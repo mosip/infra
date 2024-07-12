@@ -1,0 +1,5 @@
+.idea
+terraform/aws/.terraform.lock.hcl
+terraform/aws/.terraform
+terraform/aws/*/*/.terraform.lock.hcl
+terraform/aws/*/*/.terraform
