@@ -47,6 +47,10 @@ variable "AMI" {
 variable "ZONE_ID" { type = string }
 
 variable "K8S_INFRA_BRANCH" {
-  type = string
+  type    = string
   default = "main"
 }
+
+variable "NGINX_NODE_ROOT_VOLUME_SIZE" { type = number }
+variable "NGINX_NODE_EBS_VOLUME_SIZE" { type = number }
+variable "K8S_INSTANCE_ROOT_VOLUME_SIZE" { type = number }

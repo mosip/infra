@@ -78,17 +78,21 @@ locals {
 }
 
 module "aws-resource-creation" {
-  source = "github.com/syedsalman3753/mosip-infra//deployment/v3/terraform/aws/modules/aws-resource-creation?ref=develop"
-  #source = "/home/techno-384/Desktop/MOSIP/mosip-infra/deployment/v3/terraform/aws/modules/aws-resource-creation"
-  CLUSTER_NAME        = var.CLUSTER_NAME
-  AWS_PROVIDER_REGION = var.AWS_PROVIDER_REGION
-  SSH_KEY_NAME        = var.SSH_KEY_NAME
-  K8S_INSTANCE_TYPE   = var.K8S_INSTANCE_TYPE
-  NGINX_INSTANCE_TYPE = var.NGINX_INSTANCE_TYPE
-  MOSIP_DOMAIN        = var.MOSIP_DOMAIN
-  ZONE_ID             = var.ZONE_ID
-  AMI                 = var.AMI
-  K8S_INSTANCE_COUNT  = var.K8S_INSTANCE_COUNT
+  #source = "github.com/syedsalman3753/mosip-infra//deployment/v3/terraform/aws/modules/aws-resource-creation?ref=develop"
+  source = "./modules/aws-resource-creation"
+  CLUSTER_NAME                  = var.CLUSTER_NAME
+  AWS_PROVIDER_REGION           = var.AWS_PROVIDER_REGION
+  SSH_KEY_NAME                  = var.SSH_KEY_NAME
+  K8S_INSTANCE_TYPE             = var.K8S_INSTANCE_TYPE
+  NGINX_INSTANCE_TYPE           = var.NGINX_INSTANCE_TYPE
+  MOSIP_DOMAIN                  = var.MOSIP_DOMAIN
+  ZONE_ID                       = var.ZONE_ID
+  AMI                           = var.AMI
+  K8S_INSTANCE_COUNT            = var.K8S_INSTANCE_COUNT
+  K8S_INSTANCE_ROOT_VOLUME_SIZE = var.K8S_INSTANCE_ROOT_VOLUME_SIZE
+
+  NGINX_NODE_EBS_VOLUME_SIZE  = var.NGINX_NODE_EBS_VOLUME_SIZE
+  NGINX_NODE_ROOT_VOLUME_SIZE = var.NGINX_NODE_ROOT_VOLUME_SIZE
 
   SECURITY_GROUP = {
     NGINX_SECURITY_GROUP = [
@@ -174,7 +178,7 @@ module "aws-resource-creation" {
 module "nginx-setup" {
   depends_on = [module.aws-resource-creation]
   #source     = "github.com/syedsalman3753/mosip-infra//deployment/v3/terraform/aws/modules/nginx-setup?ref=develop"
-  source = "./modules/nginx-setup"
+  source                                  = "./modules/nginx-setup"
   NGINX_PUBLIC_IP                         = module.aws-resource-creation.NGINX_PUBLIC_IP
   MOSIP_DOMAIN                            = var.MOSIP_DOMAIN
   MOSIP_K8S_CLUSTER_NODES_PRIVATE_IP_LIST = module.aws-resource-creation.MOSIP_K8S_CLUSTER_NODES_PRIVATE_IP_LIST

@@ -36,6 +36,9 @@ variable "NGINX_INSTANCE_TYPE" {
 }
 variable "MOSIP_DOMAIN" { type = string }
 variable "ZONE_ID" { type = string }
+variable "NGINX_NODE_ROOT_VOLUME_SIZE" { type = number }
+variable "NGINX_NODE_EBS_VOLUME_SIZE"  { type = number }
+variable "K8S_INSTANCE_ROOT_VOLUME_SIZE" { type = number }
 
 variable "DNS_RECORDS" {
   description = "A map of DNS records to create"
@@ -121,7 +124,7 @@ EOF
     ]
 
     root_block_device = {
-      volume_size           = 30
+      volume_size           = var.NGINX_NODE_ROOT_VOLUME_SIZE
       volume_type           = "gp3"
       delete_on_termination = true
       encrypted             = false
@@ -132,7 +135,7 @@ EOF
     }
     ebs_block_device = [{
       device_name           = "/dev/sdb"
-      volume_size           = 10
+      volume_size           = var.NGINX_NODE_EBS_VOLUME_SIZE
       volume_type           = "gp3"
       delete_on_termination = true
       encrypted             = false
@@ -157,7 +160,7 @@ EOF
     ]
 
     root_block_device = {
-      volume_size           = 30
+      volume_size           = var.K8S_INSTANCE_ROOT_VOLUME_SIZE
       volume_type           = "gp3"
       delete_on_termination = true
       encrypted             = false
