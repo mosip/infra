@@ -3,7 +3,7 @@
 ## Create MOSIP Infrastructure 
 
 ### Prerequisites
-* Create a new branch `env-<environment_name>` from master/develop branch.
+* Create a new branch `env-<environment_name>` from master branch.
 * Goto `terraform/aws` location and update environment related details in `env.tfvars` file.
 
 ### Run `terraform plan / apply` workflow to set up MOSIP infrastructure
@@ -42,8 +42,13 @@ The workflow can be manually triggered to destroy infrastructure managed by Terr
 # Terraform Setup for MOSIP Infrastructure
 
 ## Overview
-This Terraform configuration script set up the infrastructure for MOSIP (Modular Open Source Identity Platform) on AWS.
-The setup includes security groups, an NGINX server, and a Kubernetes (K8S) cluster.
+This Terraform configuration script set up the infrastructure for MOSIP deployment on AWS.
+
+The setup includes:
+1. EC2 instance creation for Kubernetes nodes and Nginx server.
+2. Security group definition for cluster nodes. 
+3. Nginx server installation, configuration setup, and SSL certificate generation.
+4. Security group for Nginx machine.
 
 ## Requirements
 * Terraform version: `v1.8.4`
