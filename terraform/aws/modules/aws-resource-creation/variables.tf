@@ -1,7 +1,6 @@
 variable "AWS_PROVIDER_REGION" { type = string }
 variable "CLUSTER_NAME" { type = string }
 variable "SSH_KEY_NAME" { type = string }
-variable "K8S_INSTANCE_COUNT" { type = number }
 variable "SECURITY_GROUP" {
   type = map(list(object({
     description      = string
@@ -37,18 +36,18 @@ variable "NGINX_INSTANCE_TYPE" {
 variable "MOSIP_DOMAIN" { type = string }
 variable "ZONE_ID" { type = string }
 variable "NGINX_NODE_ROOT_VOLUME_SIZE" { type = number }
-variable "NGINX_NODE_EBS_VOLUME_SIZE"  { type = number }
+variable "NGINX_NODE_EBS_VOLUME_SIZE" { type = number }
 variable "K8S_INSTANCE_ROOT_VOLUME_SIZE" { type = number }
 
 variable "DNS_RECORDS" {
   description = "A map of DNS records to create"
   type = map(object({
-    name             = string
-    type             = string
-    zone_id          = string
-    ttl              = number
-    records          = string
-    allow_overwrite  = bool
+    name            = string
+    type            = string
+    zone_id         = string
+    ttl             = number
+    records         = string
+    allow_overwrite = bool
     # health_check_id = string // Uncomment if using health checks
   }))
 }
@@ -90,12 +89,13 @@ locals {
     instance_type               = var.NGINX_INSTANCE_TYPE
     associate_public_ip_address = true
     key_name                    = var.SSH_KEY_NAME
-    user_data =<<-EOF
+    user_data                   = <<-EOF
 #!/bin/bash
 
 # Log file path
 echo "[ Set Log File ] : "
 LOG_FILE="/tmp/ebs-volume-mount.log"
+ENV_FILE_PATH="/etc/environment"
 
 # Redirect stdout and stderr to log file
 exec > >(tee -a "$LOG_FILE") 2>&1
@@ -114,6 +114,10 @@ mkfs -t xfs /dev/xvdb
 mkdir -p /srv/nfs
 echo "/dev/xvdb    /srv/nfs xfs  defaults,nofail  0  2" >> /etc/fstab
 mount -a
+
+export TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+echo "export TOKEN=$TOKEN" | sudo tee -a $ENV_FILE_PATH
+echo "export INTERNAL_IP=\"$(curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/local-ipv4)\"" | sudo tee -a $ENV_FILE_PATH
 EOF
     tags = {
       Name    = local.TAG_NAME.NGINX_TAG_NAME
@@ -150,15 +154,15 @@ EOF
     instance_type               = var.K8S_INSTANCE_TYPE
     associate_public_ip_address = true
     key_name                    = var.SSH_KEY_NAME
-    count                       = var.K8S_INSTANCE_COUNT
+    #count                       = var.K8S_INSTANCE_COUNT
+
     tags = {
-      Name    = "${var.CLUSTER_NAME}-node"
+      Name    = var.CLUSTER_NAME
       Cluster = var.CLUSTER_NAME
     }
     security_groups = [
-      aws_security_group.security-group["K8S_SECURITY_GROUP"].id
     ]
-
+    #user_data =
     root_block_device = {
       volume_size           = var.K8S_INSTANCE_ROOT_VOLUME_SIZE
       volume_type           = "gp3"
@@ -168,3 +172,7 @@ EOF
     }
   }
 }
+
+variable "K8S_CONTROL_PLANE_NODE_COUNT" { type = number }
+variable "K8S_ETCD_NODE_COUNT" { type = number }
+variable "K8S_WORKER_NODE_COUNT" { type = number }

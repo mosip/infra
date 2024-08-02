@@ -22,21 +22,21 @@ set -o pipefail  # trace ERR through pipes
 echo "[ Install nginx & ssl dependencies packages ] : "
 sudo apt-get update
 sudo apt install -y software-properties-common
-sudo add-apt-repository universe
+sudo add-apt-repository universe -y
 sudo apt update
-sudo apt-get install nginx letsencrypt certbot python3-certbot-nginx python3-certbot-dns-route53 -y
+sudo apt-get install letsencrypt certbot python3-certbot-nginx python3-certbot-dns-route53 -y
 
 ## Get ssl certificate automatically
 echo "[ Generate SSL certificates from letsencrypt  ] : "
 sudo certbot certonly --dns-route53 -d "*.${mosip_domain}" -d "${mosip_domain}" --non-interactive --agree-tos --email "$certbot_email"
 
 ## start and enable Nginx
-echo "[ Start & Enable nginx ] : "
-sudo systemctl enable nginx
-sudo systemctl start nginx
+#echo "[ Start & Enable nginx ] : "
+#sudo systemctl enable nginx
+#sudo systemctl start nginx
 
 cd $working_dir
 git clone $k8s_infra_repo_url -b $k8s_infra_branch || true # read it from variables
 cd $nginx_location
-./install.sh
+sudo ./install.sh
 

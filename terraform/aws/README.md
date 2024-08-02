@@ -121,6 +121,19 @@ This module sets up NGINX and configures it with the provided domain and SSL cer
   * `CERTBOT_EMAIL`: The email ID for SSL certificate generation.
   * `SSH_KEY_NAME`: SSH private key used for login (i.e., file content of SSH pem key).
 
+#### rke2-setup
+This module sets up RKE2 kubernetes cluster.
+
+* **Primary Control Plane Node Setup :**
+  This resource sets up the primary control plane node.
+  It connects to the node via SSH, uploads the rke2-setup.sh script, and executes it to configure the node.
+* **Additional Nodes Setup :**
+  This resource sets up additional nodes (control plane, ETCD, and worker nodes) in the cluster.
+  It follows a similar process to the primary node setup.
+* **Rancher Import :**
+  This resource imports the RKE2 cluster into Rancher.
+  It connects to the primary control plane node, configures kubectl, and applies the Rancher import URL.
+
 ## Outputs
 The following outputs are provided:
 
@@ -132,15 +145,15 @@ The following outputs are provided:
 * `MOSIP_K8S_SG_ID`: The security group ID for the Kubernetes cluster.
 * `MOSIP_K8S_CLUSTER_NODES_PRIVATE_IP_LIST`: The private IP addresses of the Kubernetes cluster nodes.
 * `MOSIP_PUBLIC_DOMAIN_LIST`: The public domain names.
+* `K8S_CLUSTER_PUBLIC_IPS_EXCEPT_CONTROL_PLANE_NODE_1`: Map of public IP addresses excluding the primary control plane node.
+* `CONTROL_PLANE_NODE_1`: Private IP of the primary control plane node.
+* `K8S_CLUSTER_PRIVATE_IPS_STR`: Comma-separated string of the cluster's private IP addresses.
 
 # Terraform fetch variables via ENV variables
-
 ```
 $ export TF_VAR_CLUSTER_NAME=dev
 $ export TF_LOG="DEBUG"
 $ export TF_LOG_PATH="/tmp/terraform.log"
 ```
-
 * TF_VAR_ : is a syntax
 * CLUSTER_NAME=dev : is variable and its value
-

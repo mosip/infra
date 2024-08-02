@@ -30,6 +30,29 @@ jobs:
         working-directory: 'terraform/aws'
     steps:
       - uses: actions/checkout@v4
+      - name: Setup ufw firewall
+        run: |
+          sudo ufw enable
+          sudo ufw allow ssh
+          sudo ufw allow 443/tcp
+          sudo ufw allow 51820/udp
+          sudo ufw status
+
+      - name: Install WireGuard
+        run: sudo apt-get install -y wireguard
+
+      - name: Configure WireGuard
+        run: |
+          echo "${{ secrets.WG_CONFIG }}" | sudo tee /etc/wireguard/wg0.conf
+
+      - name: Start WireGuard
+        run: |
+          sudo chmod 600 /etc/wireguard/wg0.conf
+          sudo chmod 700 /etc/wireguard/
+          sudo chmod 644 /lib/systemd/system/wg-quick@.service
+          sudo systemctl daemon-reload
+          sudo wg-quick up wg0
+          sudo wg show wg0
 
       - name: Setup Terraform with specified version on the runner
         uses: hashicorp/setup-terraform@v3
@@ -51,11 +74,16 @@ jobs:
         run: terraform validate -no-color
 
       - name: Terraform Plan
-        run: terraform plan -input=false -var-file="./env.tfvars" -out ./tf-plan -no-color
+        id: plan
+        run: |
+          terraform plan -input=false -var-file="./env.tfvars" -out ./tf-plan -no-color
+        continue-on-error: true
 
       - name: Terraform Apply
+        id: apply
         run: terraform apply -input=false -var-file="./env.tfvars" -no-color -auto-approve
         if: "${{ inputs.TERRAFORM_APPLY  == true }}"
+        continue-on-error: true
 
       - name: Add the Terraform plan file / *.tfstate files / terraform format changes
         run: |
@@ -67,6 +95,10 @@ jobs:
           git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Terraform plan / apply status
+        if: ${{ steps.plan.outcome == 'failure' || steps.apply.outcome == 'failure' }}
+        run: exit 1
 
       - uses: 8398a7/action-slack@v3
         with:

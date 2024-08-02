@@ -1,7 +1,19 @@
 variable "AWS_PROVIDER_REGION" { type = string }
 variable "CLUSTER_NAME" { type = string }
 variable "SSH_PRIVATE_KEY" { type = string }
-variable "K8S_INSTANCE_COUNT" { type = number }
+variable "K8S_CONTROL_PLANE_NODE_COUNT" { type = number }
+variable "K8S_ETCD_NODE_COUNT" { type = number }
+variable "K8S_WORKER_NODE_COUNT" { type = number }
+variable "RANCHER_IMPORT_URL" {
+  description = "Rancher import URL for kubectl apply"
+  type        = string
+
+  validation {
+    condition     = can(regex("^\"kubectl apply -f https://rancher\\.mosip\\.net/v3/import/[a-zA-Z0-9_\\-]+\\.yaml\"$", var.RANCHER_IMPORT_URL))
+    error_message = "The RANCHER_IMPORT_URL must be in the format: '\"kubectl apply -f https://rancher.mosip.net/v3/import/<ID>.yaml\"'"
+  }
+}
+
 variable "MOSIP_DOMAIN" {
   description = "MOSIP DOMAIN : (ex: sandbox.xyz.net)"
   type        = string
@@ -45,7 +57,15 @@ variable "AMI" {
 }
 
 variable "ZONE_ID" { type = string }
+variable "K8S_INFRA_REPO_URL" {
+  description = "The URL of the Kubernetes infrastructure GitHub repository"
+  type        = string
 
+  validation {
+    condition     = can(regex("^https://github\\.com/.+/.+\\.git$", var.K8S_INFRA_REPO_URL))
+    error_message = "The K8S_INFRA_REPO_URL must be a valid GitHub repository URL ending with .git"
+  }
+}
 variable "K8S_INFRA_BRANCH" {
   type    = string
   default = "main"
