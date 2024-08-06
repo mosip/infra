@@ -33,6 +33,7 @@ jobs:
 
       - name: Skip SSH Host key verification
         run: |
+          mkdir -p ~/.ssh
           echo -e "Host *\n     StrictHostKeyChecking no" > ~/.ssh/config
 
       - name: Setup ufw firewall
