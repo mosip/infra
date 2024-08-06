@@ -25,14 +25,14 @@ K8S_INFRA_REPO_URL = "https://github.com/mosip/k8s-infra.git"
 # Repo K8S-INFRA branch
 K8S_INFRA_BRANCH = "develop"
 # NGINX Node's Root volume size
-NGINX_NODE_ROOT_VOLUME_SIZE = "20"
+NGINX_NODE_ROOT_VOLUME_SIZE = "30"
 # NGINX node's EBS volume size
-NGINX_NODE_EBS_VOLUME_SIZE = "50"
+NGINX_NODE_EBS_VOLUME_SIZE = "300"
 # Kubernetes nodes Root volume size
-K8S_INSTANCE_ROOT_VOLUME_SIZE = "20"
+K8S_INSTANCE_ROOT_VOLUME_SIZE = "50"
 
 # Control-plane, ETCD, Worker
-K8S_CONTROL_PLANE_NODE_COUNT = 2
+K8S_CONTROL_PLANE_NODE_COUNT = 4
 # ETCD, Worker
 K8S_ETCD_NODE_COUNT = 2
 # Worker
