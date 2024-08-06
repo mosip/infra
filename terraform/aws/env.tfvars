@@ -21,7 +21,7 @@ ZONE_ID = ""
 AMI = "ami-0ad21ae1d0696ad58"
 
 # Repo K8S-INFRA URL
-K8S_INFRA_REPO_URL = "https://github.com/syedsalman3753/k8s-infra.git"
+K8S_INFRA_REPO_URL = "https://github.com/mosip/k8s-infra.git"
 # Repo K8S-INFRA branch
 K8S_INFRA_BRANCH = "develop"
 # NGINX Node's Root volume size
