@@ -22,9 +22,6 @@ output "MOSIP_K8S_CLUSTER_NODES_PRIVATE_IP_LIST" {
 output "MOSIP_PUBLIC_DOMAIN_LIST" {
   value = module.aws-resource-creation.MOSIP_PUBLIC_DOMAIN_LIST
 }
-output "K8S_CLUSTER_PUBLIC_IPS_EXCEPT_CONTROL_PLANE_NODE_1" {
-  value = module.rke2-setup.K8S_CLUSTER_PUBLIC_IPS_EXCEPT_CONTROL_PLANE_NODE_1
-}
 
 output "CONTROL_PLANE_NODE_1" {
   value = module.rke2-setup.CONTROL_PLANE_NODE_1

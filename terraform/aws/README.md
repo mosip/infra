@@ -3,6 +3,7 @@
 ## Create MOSIP Infrastructure 
 
 ### Prerequisites
+* Fork the `infra` repo and set it as private to ensure secrecy.
 * Create a new branch `env-<environment_name>` from master branch.
 * Goto `terraform/aws` location and update environment related details in `env.tfvars` file.
 

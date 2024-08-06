@@ -38,9 +38,9 @@ locals {
     RANCHER_IMPORT_URL          = var.RANCHER_IMPORT_URL
   }
   # Filter out CONTROL_PLANE_NODE_1 from K8S_CLUSTER_PUBLIC_IPS
-  K8S_CLUSTER_PUBLIC_IPS_EXCEPT_CONTROL_PLANE_NODE_1 = {
-    for key, value in var.K8S_CLUSTER_PUBLIC_IPS : key => value if value != local.CONTROL_PLANE_NODE_1
-  }
+#   K8S_CLUSTER_PRIVATE_IPS_EXCEPT_CONTROL_PLANE_NODE_1 = {
+#     for key, value in var.K8S_CLUSTER_PRIVATE_IPS : key => value if value != local.CONTROL_PLANE_NODE_1
+#   }
 
   datetime = formatdate("2006-01-02_15-04-05", timestamp())
   backup_command = [
@@ -56,11 +56,9 @@ locals {
 }
 
 resource "null_resource" "rke2-primary-cluster-setup" {
-  triggers = {
-    # node_count_or_hash = module.ec2-resource-creation.node_count
-    # or if you used hash:
-    node_hash = md5(local.K8S_CLUSTER_PRIVATE_IPS_STR)
-  }
+#   triggers = {
+#     node_hash = md5(local.K8S_CLUSTER_PRIVATE_IPS_STR)
+#   }
   connection {
     type        = "ssh"
     host        = local.CONTROL_PLANE_NODE_1
@@ -89,6 +87,7 @@ resource "null_resource" "rke2-cluster-setup" {
     # node_count_or_hash = module.ec2-resource-creation.node_count
     # or if you used hash:
     node_hash = md5(local.K8S_CLUSTER_PRIVATE_IPS_STR)
+    script_hash = filemd5("${path.module}/rke2-setup.sh")
   }
   connection {
     type        = "ssh"
@@ -126,10 +125,10 @@ resource "null_resource" "rancher-import" {
         "sudo chown -R $USER:$USER ~/.kube",
         "sudo cp /var/lib/rancher/rke2/bin/kubectl /bin/kubectl",
         "sudo chmod 400 ~/.kube/config && sudo chmod +x /bin/kubectl",
-        "sleep 180",
+        "sleep 30",
         "$RANCHER_IMPORT_URL",
         "kubectl -n cattle-system patch deployment cattle-cluster-agent -p '{\"spec\": {\"template\": {\"spec\": {\"dnsPolicy\": \"Default\"}}}}'",
-        "sleep 300",
+        "sleep 360",
         "kubectl -n cattle-system rollout status deploy",
         "sleep 100"
       ]
@@ -137,8 +136,35 @@ resource "null_resource" "rancher-import" {
   }
 }
 
-output "K8S_CLUSTER_PUBLIC_IPS_EXCEPT_CONTROL_PLANE_NODE_1" {
-  value = local.K8S_CLUSTER_PUBLIC_IPS_EXCEPT_CONTROL_PLANE_NODE_1
+resource "null_resource" "download-k8s-kubeconfig" {
+  depends_on = [null_resource.rke2-cluster-setup]
+  for_each   = var.K8S_CLUSTER_PRIVATE_IPS
+  triggers = {
+    # node_count_or_hash = module.ec2-resource-creation.node_count
+    # or if you used hash:
+    node_hash = md5(local.K8S_CLUSTER_PRIVATE_IPS_STR)
+  }
+  connection {
+    type        = "ssh"
+    host        = each.value
+    user        = "ubuntu"            # Change based on the AMI used
+    private_key = var.SSH_PRIVATE_KEY # content of your private key
+  }
+  provisioner "file" {
+    source      = "${path.module}/rke2-setup.sh"
+    destination = "/tmp/rke2-setup.sh"
+  }
+  provisioner "local-exec" {
+    command = <<EOF
+echo "${var.SSH_PRIVATE_KEY}" > ${each.key}-sshkey
+chmod 400 ${each.key}-sshkey
+scp -i ${each.key}-sshkey ubuntu@${each.value}:/home/ubuntu/.kube/${each.key}.yaml ${each.key}.yaml
+
+# Clean up the temporary private key file
+rm ${each.key}-sshkey
+
+EOF
+  }
 }
 output "CONTROL_PLANE_NODE_1" {
   value = local.CONTROL_PLANE_NODE_1

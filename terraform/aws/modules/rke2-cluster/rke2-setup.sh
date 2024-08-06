@@ -32,6 +32,7 @@ mkdir -p $RKE2_CONFIG_DIR
 chown -R 1000:1000 $RKE2_CONFIG_DIR
 
 cd $RKE2_LOCATION
+
 if [[ -f "$RKE2_CONFIG_DIR/config.yaml" ]]; then
   echo "RKE CONFIG file exists \"$RKE2_CONFIG_DIR/config.yaml\""
   exit 0
@@ -80,3 +81,14 @@ cat $ENV_FILE_PATH
 
 sudo systemctl enable $RKE2_SERVICE
 sudo systemctl start $RKE2_SERVICE
+
+sleep 120
+
+if [[ -f "$RKE2_CONFIG_DIR/rke2.yaml" ]]; then
+  sudo cp /var/lib/rancher/rke2/bin/kubectl /bin/kubectl
+  mkdir -p /home/ubuntu/.kube/
+  cat "$RKE2_CONFIG_DIR/rke2.yaml" | sed "s/127.0.0.1/${INTERNAL_IP}/g" | sed "s/default/${CLUSTER_DOMAIN}/g" | tee -a /home/ubuntu/.kube/${CLUSTER_DOMAIN}-${NODE_NAME}.yaml
+  sudo chown -R ubuntu:ubuntu /home/ubuntu/.kube/*
+  sudo chmod -R 444 /home/ubuntu/.kube/*.yaml
+  sudo chmod +x /bin/kubectl
+fi
