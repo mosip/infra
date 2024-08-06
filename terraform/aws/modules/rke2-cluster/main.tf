@@ -128,9 +128,9 @@ resource "null_resource" "rancher-import" {
         "sleep 30",
         "$RANCHER_IMPORT_URL",
         "kubectl -n cattle-system patch deployment cattle-cluster-agent -p '{\"spec\": {\"template\": {\"spec\": {\"dnsPolicy\": \"Default\"}}}}'",
-        "sleep 360",
+        "sleep 720",
         "kubectl -n cattle-system rollout status deploy",
-        "sleep 100"
+        "sleep 90"
       ]
     )
   }

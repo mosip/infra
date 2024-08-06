@@ -30,6 +30,11 @@ jobs:
         working-directory: 'terraform/aws'
     steps:
       - uses: actions/checkout@v4
+
+      - name: Skip SSH Host key verification
+        run: |
+          echo -e "Host *\n     StrictHostKeyChecking no" > ~/.ssh/config
+
       - name: Setup ufw firewall
         run: |
           sudo ufw enable
