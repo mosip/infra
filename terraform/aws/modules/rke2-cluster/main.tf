@@ -1,4 +1,3 @@
-variable "K8S_CLUSTER_PUBLIC_IPS" { type = map(string) }
 variable "K8S_CLUSTER_PRIVATE_IPS" { type = map(string) }
 variable "SSH_PRIVATE_KEY" { type = string }
 variable "K8S_INFRA_REPO_URL" {
@@ -20,6 +19,18 @@ variable "RANCHER_IMPORT_URL" {
     error_message = "The RANCHER_IMPORT_URL must be in the format: '\"kubectl apply -f https://rancher.mosip.net/v3/import/<ID>.yaml\"'"
   }
 }
+# Generate a random string (token)
+resource "random_string" "K8S_TOKEN" {
+  length  = 32        # Length of the token
+  upper   = true      # Include uppercase letters
+  lower   = true      # Include lowercase letters
+  numeric = true      # Include numbers
+  special = false     # Include special characters (true/false)
+  # override_special = "$%&^@#"
+  # min_numeric = 5
+  # min_upper = 5
+  # min_lower = 5
+}
 
 locals {
   CONTROL_PLANE_NODE_1        = element([for key, value in var.K8S_CLUSTER_PRIVATE_IPS : value if length(regexall(".*CONTROL-PLANE-NODE-1", key)) > 0], 0)
@@ -33,9 +44,10 @@ locals {
     INSTALL_RKE2_VERSION        = "v1.28.9+rke2r1"
     K8S_INFRA_REPO_URL          = var.K8S_INFRA_REPO_URL
     K8S_INFRA_BRANCH            = var.K8S_INFRA_BRANCH
-    RKE2_LOCATION               = "/home/ubuntu/k8s-infra/rke2"
+    RKE2_LOCATION               = "/home/ubuntu/k8s-infra/k8-cluster/on-prem/rke2/"
     K8S_CLUSTER_PRIVATE_IPS_STR = local.K8S_CLUSTER_PRIVATE_IPS_STR
     RANCHER_IMPORT_URL          = var.RANCHER_IMPORT_URL
+    K8S_TOKEN = random_string.K8S_TOKEN.result
   }
   # Filter out CONTROL_PLANE_NODE_1 from K8S_CLUSTER_PUBLIC_IPS
 #   K8S_CLUSTER_PRIVATE_IPS_EXCEPT_CONTROL_PLANE_NODE_1 = {
@@ -166,9 +178,14 @@ rm ${each.key}-sshkey
 EOF
   }
 }
+
 output "CONTROL_PLANE_NODE_1" {
   value = local.CONTROL_PLANE_NODE_1
 }
 output "K8S_CLUSTER_PRIVATE_IPS_STR" {
   value = local.K8S_CLUSTER_PRIVATE_IPS_STR
+}
+# Output the token
+output "K8S_TOKEN" {
+  value = random_string.K8S_TOKEN.result
 }

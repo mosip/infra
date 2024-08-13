@@ -367,7 +367,6 @@ module "rke2-setup" {
   SSH_PRIVATE_KEY         = var.SSH_PRIVATE_KEY
   K8S_INFRA_BRANCH        = var.K8S_INFRA_BRANCH
   K8S_CLUSTER_PRIVATE_IPS = module.aws-resource-creation.K8S_CLUSTER_PRIVATE_IPS
-  K8S_CLUSTER_PUBLIC_IPS  = module.aws-resource-creation.K8S_CLUSTER_PUBLIC_IPS
   RANCHER_IMPORT_URL      = var.RANCHER_IMPORT_URL
   K8S_INFRA_REPO_URL      = var.K8S_INFRA_REPO_URL
 }

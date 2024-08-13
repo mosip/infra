@@ -2,8 +2,7 @@
 
 # Log file path
 echo "[ Set Log File ] : "
-sudo mv /tmp/nginx-setup.log /tmp/nginx-setup.log.old || true
-LOG_FILE="/tmp/nginx-setup.log"
+LOG_FILE="/tmp/nginx-setup-$( date +"%d-%h-%Y-%H-%M" ).log"
 ENV_FILE_PATH="/etc/environment"
 source $ENV_FILE_PATH
 env | grep cluster
