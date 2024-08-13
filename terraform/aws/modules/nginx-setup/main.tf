@@ -36,7 +36,7 @@ locals {
     k8s_infra_repo_url                = var.K8S_INFRA_REPO_URL
     k8s_infra_branch                  = var.K8S_INFRA_BRANCH
     working_dir                       = "/home/ubuntu/"
-    nginx_location                    = "./k8s-infra/mosip/on-prem/nginx"
+    nginx_location                    = "./k8s-infra/nginx/mosip/"
   }
 
   nginx_env_vars = [

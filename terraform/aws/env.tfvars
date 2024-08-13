@@ -9,9 +9,9 @@ SSH_KEY_NAME = ""
 # The AWS region for resource creation
 AWS_PROVIDER_REGION = ""
 # The instance type for Kubernetes nodes
-K8S_INSTANCE_TYPE = ""
+K8S_INSTANCE_TYPE = "t3a.2xlarge"
 # The instance type for Nginx server
-NGINX_INSTANCE_TYPE = ""
+NGINX_INSTANCE_TYPE = "t3a.medium"
 # The Route 53 hosted zone ID
 ZONE_ID = ""
 ## UBUNTU 20.04
@@ -23,13 +23,13 @@ AMI = "ami-0ad21ae1d0696ad58"
 # Repo K8S-INFRA URL
 K8S_INFRA_REPO_URL = "https://github.com/mosip/k8s-infra.git"
 # Repo K8S-INFRA branch
-K8S_INFRA_BRANCH = "develop"
+K8S_INFRA_BRANCH = "MOSIP-34911"
 # NGINX Node's Root volume size
-NGINX_NODE_ROOT_VOLUME_SIZE = "30"
+NGINX_NODE_ROOT_VOLUME_SIZE = "24"
 # NGINX node's EBS volume size
 NGINX_NODE_EBS_VOLUME_SIZE = "300"
 # Kubernetes nodes Root volume size
-K8S_INSTANCE_ROOT_VOLUME_SIZE = "50"
+K8S_INSTANCE_ROOT_VOLUME_SIZE = "64"
 
 # Control-plane, ETCD, Worker
 K8S_CONTROL_PLANE_NODE_COUNT = 4

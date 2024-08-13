@@ -2,8 +2,7 @@
 
 # Log file path
 echo "[ Set Log File ] : "
-sudo mv /tmp/rke2-setup.log /tmp/rke2-setup.log.old || true
-LOG_FILE="/tmp/rke2-setup.log"
+LOG_FILE="/tmp/rke2-setup-$( date +"%d-%h-%Y-%H-%M" ).log"
 ENV_FILE_PATH="/etc/environment"
 source $ENV_FILE_PATH
 env | grep -E 'K8S|RKE2|WORK|CONTROL'
@@ -69,7 +68,7 @@ fi
 
 cd $RKE2_CONFIG_DIR
 
-sed -i 's/<configure-some-token-here>/abc123/g' $RKE2_CONFIG_DIR/config.yaml
+sed -i "s/<configure-some-token-here>/$K8S_TOKEN/g" $RKE2_CONFIG_DIR/config.yaml
 sed -i "s/<node-name>/${NODE_NAME}/g" $RKE2_CONFIG_DIR/config.yaml
 sed -i "s/<node-internal-ip>/${INTERNAL_IP}/g" $RKE2_CONFIG_DIR/config.yaml
 sed -i "s/<primary-server-ip>/${CONTROL_PLANE_NODE_1}/g" $RKE2_CONFIG_DIR/config.yaml

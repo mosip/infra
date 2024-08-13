@@ -149,6 +149,7 @@ The following outputs are provided:
 * `K8S_CLUSTER_PUBLIC_IPS_EXCEPT_CONTROL_PLANE_NODE_1`: Map of public IP addresses excluding the primary control plane node.
 * `CONTROL_PLANE_NODE_1`: Private IP of the primary control plane node.
 * `K8S_CLUSTER_PRIVATE_IPS_STR`: Comma-separated string of the cluster's private IP addresses.
+* `K8S_TOKEN`: RKE2 Kubernetes access token
 
 # Terraform fetch variables via ENV variables
 ```

@@ -1,8 +1,7 @@
 #!/bin/bash
 # Log file path
 echo "[ Set Log File ] : "
-sudo mv /tmp/k8s.log /tmp/k8s.log.old || true
-LOG_FILE="/tmp/k8s.log"
+LOG_FILE="/tmp/k8s-$( date +"%d-%h-%Y-%H-%M" ).log"
 ENV_FILE_PATH="/etc/environment"
 
 # Redirect stdout and stderr to log file

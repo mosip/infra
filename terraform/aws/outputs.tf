@@ -29,3 +29,7 @@ output "CONTROL_PLANE_NODE_1" {
 output "K8S_CLUSTER_PRIVATE_IPS_STR" {
   value = module.rke2-setup.K8S_CLUSTER_PRIVATE_IPS_STR
 }
+# Output the token
+output "K8S_TOKEN" {
+  value = module.rke2-setup.K8S_TOKEN
+}
