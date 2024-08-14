@@ -51,6 +51,6 @@ resource "aws_iam_role_policy_attachment" "certbot_policy_attachment" {
   policy_arn = aws_iam_policy.certbot_policy.arn
 }
 resource "aws_iam_instance_profile" "certbot_profile" {
-  name = "certbot-instance-profile"
+  name = "${var.CLUSTER_NAME}-certbot-instance-profile"
   role = aws_iam_role.certbot_role.name
 }
