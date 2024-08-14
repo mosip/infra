@@ -101,6 +101,7 @@ jobs:
           git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: always()
 
       - name: Terraform plan / apply status
         if: ${{ steps.plan.outcome == 'failure' || steps.apply.outcome == 'failure' }}
