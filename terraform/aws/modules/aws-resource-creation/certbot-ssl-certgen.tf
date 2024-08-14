@@ -1,5 +1,9 @@
 resource "aws_iam_role" "certbot_role" {
-  name               = "certbot-route53-role"
+  name = "${var.CLUSTER_NAME}-certbot-route53-role"
+  tags = {
+    Name    = "${var.CLUSTER_NAME}-certbot-route53-role"
+    Cluster = var.CLUSTER_NAME
+  }
   assume_role_policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -17,7 +21,11 @@ EOF
 }
 
 resource "aws_iam_policy" "certbot_policy" {
-  name        = "certbot-route53-policy"
+  name = "${var.CLUSTER_NAME}-certbot-route53-policy"
+  tags = {
+    Name    = "${var.CLUSTER_NAME}-certbot-route53-policy"
+    Cluster = var.CLUSTER_NAME
+  }
   description = "Allow Certbot to modify Route 53 records"
   policy      = <<EOF
 {
@@ -43,6 +51,6 @@ resource "aws_iam_role_policy_attachment" "certbot_policy_attachment" {
   policy_arn = aws_iam_policy.certbot_policy.arn
 }
 resource "aws_iam_instance_profile" "certbot_profile" {
-  name = "certbot-instance-profile"
+  name = "${var.CLUSTER_NAME}-certbot-instance-profile"
   role = aws_iam_role.certbot_role.name
 }
