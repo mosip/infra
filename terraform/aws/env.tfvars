@@ -14,8 +14,7 @@ K8S_INSTANCE_TYPE = "t3a.2xlarge"
 NGINX_INSTANCE_TYPE = "t3a.medium"
 # The Route 53 hosted zone ID
 ZONE_ID = ""
-## UBUNTU 20.04
-#AMI                 = "ami-0a7cf821b91bcccbc"
+
 ## UBUNTU 24.04
 # The Amazon Machine Image ID for the instances
 AMI = "ami-0ad21ae1d0696ad58"
@@ -39,4 +38,4 @@ K8S_ETCD_NODE_COUNT = 2
 K8S_WORKER_NODE_COUNT = 2
 
 # Rancher Import URL
-RANCHER_IMPORT_URL = "\"\""
+RANCHER_IMPORT_URL = "\"kubectl apply -f <rancher-import-url>\""
