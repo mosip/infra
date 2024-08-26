@@ -3,9 +3,49 @@
 ## Create MOSIP Infrastructure 
 
 ### Prerequisites
-* Fork the `infra` repository and set its visibility to private to ensure confidentiality.
+* Import `infra` repository to your github account and set its visibility to private to ensure confidentiality.
+  ![terraform-2.png](../../docs/_images/terraform-2.png)\
+  Import might take sometime to prepare repository.
+  ![terraform-3.png](../../docs/_images/terraform-3.png)
+  ![terraform-4.png](../../docs/_images/terraform-4.png)
 * Create a new branch `env-<environment_name>` from master branch.
 * Goto `terraform/aws` location and update environment related details in `env.tfvars` file.
+  * `CLUSTER_NAME`: The name of the Kubernetes cluster.\
+     Example: `sandbox`
+  * `MOSIP_DOMAIN`: The domain name for MOSIP.\
+     Example: `sandbox.xyz.net`
+  * `MOSIP_EMAIL_ID`: The email address used by Certbot to send SSL certificate expiry notifications.
+  * `SSH_KEY_NAME`: The SSH key name used for accessing AWS node instances via SSH. Ensure an SSH key pair is created/exists on AWS, and provide the key pair name in this field.\
+     Example: `my-ssh-key`
+  * `AWS_PROVIDER_REGION`: The AWS region where resources will be created.\
+     Example: `ap-south-1`
+  * `K8S_INSTANCE_TYPE`: The instance type for Kubernetes nodes.\
+     Default: `t3a.2xlarge`
+  * `NGINX_INSTANCE_TYPE`: The instance type for the Nginx server.\
+     Default: `t3a.medium`
+  * `ZONE_ID`: The Route 53 hosted zone ID associated with the domain.
+  * `AMI`: The Amazon Machine Image (AMI) ID for the instances.\
+     Default: `ami-0ad21ae1d0696ad58`\
+     Note: `This is specific to Ubuntu 24.04.`
+  * `K8S_INFRA_REPO_URL`: The URL of the Kubernetes infrastructure repository.\
+     Default: `https://github.com/mosip/k8s-infra.git`
+  * `K8S_INFRA_BRANCH`: The branch of the Kubernetes infrastructure repository to be used.\
+     Default: `MOSIP-34911`
+  * `NGINX_NODE_ROOT_VOLUME_SIZE`: The root volume size (in GB) for the Nginx node.\
+     Default: `24`
+  * `NGINX_NODE_EBS_VOLUME_SIZE`: The EBS volume size (in GB) for the Nginx node. 
+     This volume will be used as a NFS server location for kubernetes storage class.\
+     Default: `300`
+  * `K8S_INSTANCE_ROOT_VOLUME_SIZE`: The root volume size (in GB) for the Kubernetes nodes.\
+     Default: `64`
+  * `K8S_CONTROL_PLANE_NODE_COUNT`: The number of control-plane nodes for the Kubernetes cluster. These nodes will serve as a control-plane, ETCD, and worker node within the Kubernetes cluster.\
+     Default: `4`
+  * `K8S_ETCD_NODE_COUNT`: The number of ETCD nodes in the Kubernetes cluster. These nodes will serve as a ETCD and worker node within the Kubernetes cluster.\
+     Default: `2`
+  * `K8S_WORKER_NODE_COUNT`: The number of worker nodes in the Kubernetes cluster. These nodes will serve as a worker node within the Kubernetes cluster.\
+     Default: `2`
+  * `RANCHER_IMPORT_URL`: The Rancher import URL used to import the Kubernetes cluster into Rancher.\
+     Default: `"kubectl apply -f <rancher-import-url>"`
 
 ### Run `terraform plan / apply` workflow to set up MOSIP infrastructure
 * This GitHub Action automates the Terraform workflow,
@@ -15,7 +55,7 @@
   ![terraform-1.png](../../docs/_images/terraform-1.png)
 
 ### Inputs
-* `SSH_PRIVATE_KEY (required)`: GitHub secret name containing the private key for SSH login on the nginx node.
+* `SSH_PRIVATE_KEY (required)`: GitHub secret name containing the AWS's key-pair private key for SSH login on the nginx node.
 * `TERRAFORM_APPLY (optional)`: Boolean flag to apply the Terraform plan. Defaults to false.
 
 ### Environment Variables
