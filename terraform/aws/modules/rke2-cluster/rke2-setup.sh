@@ -54,13 +54,13 @@ elif [[ "$NODE_NAME" == CONTROL-PLANE-NODE-* ]]; then
 
 elif [[ "$NODE_NAME" == ETCD-NODE-* ]]; then
   echo "ETCD NODE"
-  cp rke2-etcd-worker.conf.template $RKE2_CONFIG_DIR/config.yaml
+  cp rke2-etcd-agents.conf.template $RKE2_CONFIG_DIR/config.yaml
   RKE2_SERVICE=rke2-agent
   export RKE2_SERVICE="rke2-agent" | sudo tee -a $ENV_FILE_PATH
 
 else
   echo "WORKER NODE"
-  cp rke2-worker.conf.template $RKE2_CONFIG_DIR/config.yaml
+  cp rke2-agents.conf.template $RKE2_CONFIG_DIR/config.yaml
   RKE2_SERVICE=rke2-agent
   export RKE2_SERVICE="rke2-agent" | sudo tee -a $ENV_FILE_PATH
 
