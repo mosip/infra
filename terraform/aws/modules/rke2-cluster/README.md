@@ -71,6 +71,7 @@ The Terraform script is structured to:
 * Provision the primary control plane node.
 * Provision additional nodes (control plane, ETCD, and worker nodes).
 * Import the RKE2 cluster into Rancher.
+* Download `kubectl` tool from control plane server to local system. 
 
 #### rke2-setup.sh
 The shell script `rke2-setup.sh` performs the following actions on each node:

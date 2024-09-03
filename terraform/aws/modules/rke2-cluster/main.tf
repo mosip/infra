@@ -179,6 +179,32 @@ EOF
   }
 }
 
+resource "null_resource" "download-kubectl-file" {
+  depends_on = [null_resource.rke2-cluster-setup]
+  connection {
+    type        = "ssh"
+    host        = local.CONTROL_PLANE_NODE_1
+    user        = "ubuntu"            # Change based on the AMI used
+    private_key = var.SSH_PRIVATE_KEY # content of your private key
+  }
+  provisioner "file" {
+    source      = "${path.module}/rke2-setup.sh"
+    destination = "/tmp/rke2-setup.sh"
+  }
+  provisioner "local-exec" {
+    command = <<EOF
+echo "${var.SSH_PRIVATE_KEY}" > ${local.CONTROL_PLANE_NODE_1}-sshkey
+chmod 400 ${local.CONTROL_PLANE_NODE_1}-sshkey
+scp -i ${local.CONTROL_PLANE_NODE_1}-sshkey ubuntu@${local.CONTROL_PLANE_NODE_1}:/var/lib/rancher/rke2/bin/kubectl kubectl
+chmod +x kubectl
+
+# Clean up the temporary private key file
+rm ${local.CONTROL_PLANE_NODE_1}-sshkey
+
+EOF
+  }
+}
+
 output "CONTROL_PLANE_NODE_1" {
   value = local.CONTROL_PLANE_NODE_1
 }
