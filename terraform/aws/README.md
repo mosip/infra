@@ -175,6 +175,18 @@ This module sets up RKE2 kubernetes cluster.
   This resource imports the RKE2 cluster into Rancher.
   It connects to the primary control plane node, configures kubectl, and applies the Rancher import URL.
 
+#### nfs-setup
+This Terraform module, nfs-setup, is designed to configure and deploy an NFS (Network File System) setup within a Kubernetes cluster environment. 
+The module depends on other infrastructure modules for AWS resource creation and RKE2 setup.
+
+* Inputs:
+  * `NFS_SERVER_LOCATION`: The location on the NFS server where the files will be stored. This is dynamically set based on the `MOSIP_DOMAIN` variable.
+  * `NFS_SERVER`: The private IP address of the NGINX server, which acts as the NFS server. This value is retrieved from the aws-resource-creation module. 
+  * `SSH_PRIVATE_KEY`: The SSH private key used for accessing the NFS server. 
+  * `K8S_INFRA_REPO_URL`: The URL of the Kubernetes infrastructure repository where the configuration files are stored. 
+  * `K8S_INFRA_BRANCH`: The branch of the Kubernetes infrastructure repository to be used. 
+  * `CLUSTER_NAME`: The name of the Kubernetes cluster that will use the NFS setup.
+
 ## Outputs
 The following outputs are provided:
 
