@@ -137,12 +137,11 @@ resource "null_resource" "rancher-import" {
         "sudo chown -R $USER:$USER ~/.kube",
         "sudo cp /var/lib/rancher/rke2/bin/kubectl /bin/kubectl",
         "sudo chmod 400 ~/.kube/config && sudo chmod +x /bin/kubectl",
-        "sleep 30",
         "$RANCHER_IMPORT_URL",
         "kubectl -n cattle-system patch deployment cattle-cluster-agent -p '{\"spec\": {\"template\": {\"spec\": {\"dnsPolicy\": \"Default\"}}}}'",
         "sleep 720",
         "kubectl -n cattle-system rollout status deploy",
-        "sleep 90"
+        "sleep 30"
       ]
     )
   }
@@ -174,6 +173,32 @@ scp -i ${each.key}-sshkey ubuntu@${each.value}:/home/ubuntu/.kube/${each.key}.ya
 
 # Clean up the temporary private key file
 rm ${each.key}-sshkey
+
+EOF
+  }
+}
+
+resource "null_resource" "download-kubectl-file" {
+  depends_on = [null_resource.rke2-cluster-setup]
+  connection {
+    type        = "ssh"
+    host        = local.CONTROL_PLANE_NODE_1
+    user        = "ubuntu"            # Change based on the AMI used
+    private_key = var.SSH_PRIVATE_KEY # content of your private key
+  }
+  provisioner "file" {
+    source      = "${path.module}/rke2-setup.sh"
+    destination = "/tmp/rke2-setup.sh"
+  }
+  provisioner "local-exec" {
+    command = <<EOF
+echo "${var.SSH_PRIVATE_KEY}" > ${local.CONTROL_PLANE_NODE_1}-sshkey
+chmod 400 ${local.CONTROL_PLANE_NODE_1}-sshkey
+scp -i ${local.CONTROL_PLANE_NODE_1}-sshkey ubuntu@${local.CONTROL_PLANE_NODE_1}:/var/lib/rancher/rke2/bin/kubectl kubectl
+chmod +x kubectl
+
+# Clean up the temporary private key file
+rm ${local.CONTROL_PLANE_NODE_1}-sshkey
 
 EOF
   }
