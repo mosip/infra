@@ -1,5 +1,8 @@
 # Terraform Setup for MOSIP Infrastructure via GitHub Actions
 
+## Terraform architecture for MOSIP infrastructure
+![terraform-architecture-mosip-infrastructure.jpg](../../docs/_images/terraform-architecture-mosip-infrastructure.jpg)
+
 ## Create MOSIP Infrastructure 
 
 ### Prerequisites
