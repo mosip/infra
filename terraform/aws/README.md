@@ -3,6 +3,37 @@
 ## Terraform architecture for MOSIP infrastructure
 ![terraform-architecture-mosip-infrastructure.jpg](../../docs/_images/terraform-architecture-mosip-infrastructure.jpg)
 
+This simplified diagram represents the key components involved in the deployment architecture using Terraform.\
+The infrastructure consists of four key components:
+* `AWS resource creation`
+* `NGINX setup`
+* `RKE2 (Rancher Kubernetes Engine 2) cluster setup`
+* `NFS server setup`
+
+The diagram outlines how each component is interconnected and the dependencies between them.
+
+### Components
+
+1. **AWS Resource Creation:**
+   * This component is responsible for creating all the necessary AWS infrastructure that other components depend on. It sets up:
+   * AWS Security Groups to control network traffic. 
+   * IAM roles and policies are used to grant permission to the Nginx EC2 instance to update DNS records for certbot validation in order to generate an SSL certificate.
+   * EC2 Instances for Nginx load balancer, Kubernetes Control Plane, ETCD, and Worker nodes. 
+   * DNS Records (Route53) for domain name resolution.
+
+2. **NGINX setup:**
+   * The NGINX setup component is responsible for deploying an NGINX server and updating its configuration file to act as a load balancer.
+   * This ensures that external traffic can be routed to Istio node ports, which then route the request to the services running on the Kubernetes cluster.
+
+3. **RKE2 Setup**
+   * This component focuses on deploying the `Rancher Kubernetes Engine 2 (RKE2) cluster` and importing it into the `Rancher UI` dashboard. 
+   * It also handles downloading necessary files such as the `kubectl` binary and `kubeconfig` file from the control plane nodes, using the infrastructure provisioned by the AWS component. It manages:
+
+4. **NFS Setup**
+   * The NFS setup component provides shared file storage for the Kubernetes cluster. This involves:
+       * **NFS Server Setup** for hosting the storage.
+       * **NFS Client Configuration** for enabling Kubernetes workloads to use NFS volumes as storage class.
+
 ## Create MOSIP Infrastructure 
 
 ### Prerequisites
