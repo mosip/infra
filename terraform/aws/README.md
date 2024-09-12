@@ -33,6 +33,11 @@ The diagram outlines how each component is interconnected and the dependencies b
    * The NFS setup component provides shared file storage for the Kubernetes cluster. This involves:
        * **NFS Server Setup** for hosting the storage.
        * **NFS Client Configuration** for enabling Kubernetes workloads to use NFS volumes as storage class.
+   * By default, the Nginx node is used as the NFS server. 
+     If you wish to designate a separate node for this purpose, please update the following variables in the `main.tf` file for the `nfs-setup` module:
+     * `NFS_SERVER_LOCATION`
+     * `NFS_SERVER`
+     * `SSH_PRIVATE_KEY`
 
 ## Create MOSIP Infrastructure 
 
