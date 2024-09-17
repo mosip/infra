@@ -139,7 +139,7 @@ resource "null_resource" "rancher-import" {
         "sudo chmod 400 ~/.kube/config && sudo chmod +x /bin/kubectl",
         "$RANCHER_IMPORT_URL",
         "kubectl -n cattle-system patch deployment cattle-cluster-agent -p '{\"spec\": {\"template\": {\"spec\": {\"dnsPolicy\": \"Default\"}}}}'",
-        "sleep 720",
+        "sleep 420",
         "kubectl -n cattle-system rollout status deploy",
         "sleep 30"
       ]
