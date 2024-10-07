@@ -1,5 +1,5 @@
 variable "NGINX_PUBLIC_IP" { type = string }
-variable "MOSIP_DOMAIN" { type = string }
+variable "CLUSTER_ENV_DOMAIN" { type = string }
 variable "MOSIP_K8S_CLUSTER_NODES_PRIVATE_IP_LIST" { type = string }
 variable "MOSIP_PUBLIC_DOMAIN_LIST" { type = string }
 variable "CERTBOT_EMAIL" { type = string }
@@ -21,10 +21,10 @@ variable "K8S_INFRA_BRANCH" {
 
 locals {
   NGINX_CONFIG = {
-    mosip_domain                      = var.MOSIP_DOMAIN
+    mosip_domain                      = var.CLUSTER_ENV_DOMAIN
     env_var_file                      = "/etc/environment"
-    cluster_nginx_certs               = "/etc/letsencrypt/live/${var.MOSIP_DOMAIN}/fullchain.pem"
-    cluster_nginx_cert_key            = "/etc/letsencrypt/live/${var.MOSIP_DOMAIN}/privkey.pem"
+    cluster_nginx_certs               = "/etc/letsencrypt/live/${var.CLUSTER_ENV_DOMAIN}/fullchain.pem"
+    cluster_nginx_cert_key            = "/etc/letsencrypt/live/${var.CLUSTER_ENV_DOMAIN}/privkey.pem"
     cluster_node_ips                  = var.MOSIP_K8S_CLUSTER_NODES_PRIVATE_IP_LIST
     cluster_public_domains            = var.MOSIP_PUBLIC_DOMAIN_LIST
     cluster_ingress_public_nodeport   = "30080"

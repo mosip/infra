@@ -14,11 +14,11 @@ variable "RANCHER_IMPORT_URL" {
   }
 }
 
-variable "MOSIP_DOMAIN" {
+variable "CLUSTER_ENV_DOMAIN" {
   description = "MOSIP DOMAIN : (ex: sandbox.xyz.net)"
   type        = string
   validation {
-    condition     = can(regex("^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9])\\.)+[a-zA-Z]{2,}$", var.MOSIP_DOMAIN))
+    condition     = can(regex("^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9])\\.)+[a-zA-Z]{2,}$", var.CLUSTER_ENV_DOMAIN))
     error_message = "The domain name must be a valid domain name, e.g., sandbox.xyz.net."
   }
 }
