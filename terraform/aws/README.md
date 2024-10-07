@@ -51,7 +51,7 @@ The diagram outlines how each component is interconnected and the dependencies b
 * Goto `terraform/aws` location and update environment related details in `env.tfvars` file.
   * `CLUSTER_NAME`: The name of the Kubernetes cluster.\
      Example: `sandbox`
-  * `MOSIP_DOMAIN`: The domain name for MOSIP.\
+  * `CLUSTER_ENV_DOMAIN`: The domain name for MOSIP.\
      Example: `sandbox.xyz.net`
   * `MOSIP_EMAIL_ID`: The email address used by Certbot to send SSL certificate expiry notifications.
   * `SSH_KEY_NAME`: The SSH key name used for accessing AWS node instances via SSH. Ensure an SSH key pair is created/exists on AWS, and provide the key pair name in this field.\
@@ -185,7 +185,7 @@ This module is responsible for creating the AWS resources needed for the MOSIP p
   * `SSH_KEY_NAME`: The name of the SSH key for accessing instances.
   * `K8S_INSTANCE_TYPE`: The instance type for Kubernetes nodes.
   * `NGINX_INSTANCE_TYPE`: The instance type for the NGINX server.
-  * `MOSIP_DOMAIN`: The domain name for the MOSIP platform.
+  * `CLUSTER_ENV_DOMAIN`: The domain name for the MOSIP platform.
   * `ZONE_ID`: The Route 53 hosted zone ID.
   * `AMI`: The Amazon Machine Image ID for the instances.
   * `SECURITY_GROUP`: Security group configurations.
@@ -195,7 +195,7 @@ This module sets up NGINX and configures it with the provided domain and SSL cer
 
 * Inputs:
   * `NGINX_PUBLIC_IP`: The public IP address of the NGINX server.
-  * `MOSIP_DOMAIN`: The domain name for the MOSIP platform.
+  * `CLUSTER_ENV_DOMAIN`: The domain name for the MOSIP platform.
   * `MOSIP_K8S_CLUSTER_NODES_PRIVATE_IP_LIST`: List of private IP addresses of the Kubernetes nodes.
   * `MOSIP_PUBLIC_DOMAIN_LIST`: List of public domain names.
   * `CERTBOT_EMAIL`: The email ID for SSL certificate generation.
@@ -219,7 +219,7 @@ This Terraform module, nfs-setup, is designed to configure and deploy an NFS (Ne
 The module depends on other infrastructure modules for AWS resource creation and RKE2 setup.
 
 * Inputs:
-  * `NFS_SERVER_LOCATION`: The location on the NFS server where the files will be stored. This is dynamically set based on the `MOSIP_DOMAIN` variable.
+  * `NFS_SERVER_LOCATION`: The location on the NFS server where the files will be stored. This is dynamically set based on the `CLUSTER_ENV_DOMAIN` variable.
   * `NFS_SERVER`: The private IP address of the NGINX server, which acts as the NFS server. This value is retrieved from the aws-resource-creation module. 
   * `SSH_PRIVATE_KEY`: The SSH private key used for accessing the NFS server. 
   * `K8S_INFRA_REPO_URL`: The URL of the Kubernetes infrastructure repository where the configuration files are stored. 

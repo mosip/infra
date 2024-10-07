@@ -48,7 +48,7 @@ To destroy AWS resources, follow the steps below:
 
 ## Input Variables
 * `NGINX_PUBLIC_IP`: The public IP address of the EC2 instance where Nginx will be set up.
-* `MOSIP_DOMAIN`: The domain for which the wildcard SSL certificates will be generated.
+* `CLUSTER_ENV_DOMAIN`: The domain for which the wildcard SSL certificates will be generated.
 * `MOSIP_K8S_CLUSTER_NODES_PRIVATE_IP_LIST`: A comma-separated list of Kubernetes cluster node's private IP addresses for Nginx configuration.
 * `MOSIP_PUBLIC_DOMAIN_LIST`: A comma-separated list of public domain names associated for Nginx configuration.
 * `CERTBOT_EMAIL`: Email address to be used for SSL certificate registration with Certbot.
