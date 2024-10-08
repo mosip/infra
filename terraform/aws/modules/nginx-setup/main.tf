@@ -21,7 +21,7 @@ variable "K8S_INFRA_BRANCH" {
 
 locals {
   NGINX_CONFIG = {
-    mosip_domain                      = var.CLUSTER_ENV_DOMAIN
+    cluster_env_domain                      = var.CLUSTER_ENV_DOMAIN
     env_var_file                      = "/etc/environment"
     cluster_nginx_certs               = "/etc/letsencrypt/live/${var.CLUSTER_ENV_DOMAIN}/fullchain.pem"
     cluster_nginx_cert_key            = "/etc/letsencrypt/live/${var.CLUSTER_ENV_DOMAIN}/privkey.pem"
