@@ -27,7 +27,7 @@ sudo apt-get install letsencrypt certbot python3-certbot-nginx python3-certbot-d
 
 ## Get ssl certificate automatically
 echo "[ Generate SSL certificates from letsencrypt  ] : "
-sudo certbot certonly --dns-route53 -d "*.${cluster_env_domain}" -d "${cluster_env_domain_domain}" --non-interactive --agree-tos --email "$certbot_email"
+sudo certbot certonly --dns-route53 -d "*.${cluster_env_domain}" -d "${cluster_env_domain}" --non-interactive --agree-tos --email "$certbot_email"
 
 ## start and enable Nginx
 #echo "[ Start & Enable nginx ] : "
