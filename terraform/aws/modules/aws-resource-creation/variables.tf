@@ -33,7 +33,7 @@ variable "NGINX_INSTANCE_TYPE" {
     error_message = "Invalid instance type format. Must be in the form 'series.type'."
   }
 }
-variable "MOSIP_DOMAIN" { type = string }
+variable "CLUSTER_ENV_DOMAIN" { type = string }
 variable "ZONE_ID" { type = string }
 variable "NGINX_NODE_ROOT_VOLUME_SIZE" { type = number }
 variable "NGINX_NODE_EBS_VOLUME_SIZE" { type = number }
@@ -54,7 +54,7 @@ variable "DNS_RECORDS" {
 locals {
   MAP_DNS_TO_IP = {
     API_DNS = {
-      name    = "api.${var.MOSIP_DOMAIN}"
+      name    = "api.${var.CLUSTER_ENV_DOMAIN}"
       type    = "A"
       zone_id = var.ZONE_ID
       ttl     = 300
@@ -63,7 +63,7 @@ locals {
       allow_overwrite = true
     }
     API_INTERNAL_DNS = {
-      name    = "api-internal.${var.MOSIP_DOMAIN}"
+      name    = "api-internal.${var.CLUSTER_ENV_DOMAIN}"
       type    = "A"
       zone_id = var.ZONE_ID
       ttl     = 300

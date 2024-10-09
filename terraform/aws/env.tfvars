@@ -1,7 +1,7 @@
 # Environment name (ex: sandbox)
 CLUSTER_NAME = ""
 # MOSIP's domain (ex: sandbox.xyz.net)
-MOSIP_DOMAIN = ""
+CLUSTER_ENV_DOMAIN = ""
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
 MOSIP_EMAIL_ID = ""
 # SSH login key name for AWS node instances (ex: my-ssh-key)
