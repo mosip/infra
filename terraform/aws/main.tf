@@ -19,7 +19,7 @@ provider "aws" {
 locals {
   DNS_RECORDS = {
     #     API_DNS = {
-    #       name            = "api.${var.MOSIP_DOMAIN}"
+    #       name            = "api.${var.CLUSTER_ENV_DOMAIN}"
     #       type            = "A"
     #       zone_id         = var.ZONE_ID
     #       ttl             = 300
@@ -27,7 +27,7 @@ locals {
     #       allow_overwrite = true
     #     }
     #     API_INTERNAL_DNS = {
-    #       name            = "api-internal.${var.MOSIP_DOMAIN}"
+    #       name            = "api-internal.${var.CLUSTER_ENV_DOMAIN}"
     #       type            = "A"
     #       zone_id         = var.ZONE_ID
     #       ttl             = 300
@@ -35,43 +35,43 @@ locals {
     #       allow_overwrite = true
     #     }
     MOSIP_HOMEPAGE_DNS = {
-      name            = var.MOSIP_DOMAIN
+      name            = var.CLUSTER_ENV_DOMAIN
       type            = "CNAME"
       zone_id         = var.ZONE_ID
       ttl             = 300
-      records         = "api-internal.${var.MOSIP_DOMAIN}"
+      records         = "api-internal.${var.CLUSTER_ENV_DOMAIN}"
       allow_overwrite = true
     }
     ADMIN_DNS = {
-      name            = "admin.${var.MOSIP_DOMAIN}"
+      name            = "admin.${var.CLUSTER_ENV_DOMAIN}"
       type            = "CNAME"
       zone_id         = var.ZONE_ID
       ttl             = 300
-      records         = "api-internal.${var.MOSIP_DOMAIN}"
+      records         = "api-internal.${var.CLUSTER_ENV_DOMAIN}"
       allow_overwrite = true
     }
     PREREG_DNS = {
-      name            = "prereg.${var.MOSIP_DOMAIN}"
+      name            = "prereg.${var.CLUSTER_ENV_DOMAIN}"
       type            = "CNAME"
       zone_id         = var.ZONE_ID
       ttl             = 300
-      records         = "api.${var.MOSIP_DOMAIN}"
+      records         = "api.${var.CLUSTER_ENV_DOMAIN}"
       allow_overwrite = true
     }
     RESIDENT_DNS = {
-      name            = "resident.${var.MOSIP_DOMAIN}"
+      name            = "resident.${var.CLUSTER_ENV_DOMAIN}"
       type            = "CNAME"
       zone_id         = var.ZONE_ID
       ttl             = 300
-      records         = "api.${var.MOSIP_DOMAIN}"
+      records         = "api.${var.CLUSTER_ENV_DOMAIN}"
       allow_overwrite = true
     }
     ESIGNET_DNS = {
-      name            = "esignet.${var.MOSIP_DOMAIN}"
+      name            = "esignet.${var.CLUSTER_ENV_DOMAIN}"
       type            = "CNAME"
       zone_id         = var.ZONE_ID
       ttl             = 300
-      records         = "api.${var.MOSIP_DOMAIN}"
+      records         = "api.${var.CLUSTER_ENV_DOMAIN}"
       allow_overwrite = true
     }
   }
@@ -86,7 +86,7 @@ module "aws-resource-creation" {
   SSH_KEY_NAME                  = var.SSH_KEY_NAME
   K8S_INSTANCE_TYPE             = var.K8S_INSTANCE_TYPE
   NGINX_INSTANCE_TYPE           = var.NGINX_INSTANCE_TYPE
-  MOSIP_DOMAIN                  = var.MOSIP_DOMAIN
+  CLUSTER_ENV_DOMAIN                  = var.CLUSTER_ENV_DOMAIN
   ZONE_ID                       = var.ZONE_ID
   AMI                           = var.AMI
   K8S_INSTANCE_ROOT_VOLUME_SIZE = var.K8S_INSTANCE_ROOT_VOLUME_SIZE
@@ -397,7 +397,7 @@ module "nginx-setup" {
   #source     = "github.com/mosip/mosip-infra//deployment/v3/terraform/aws/modules/nginx-setup?ref=develop"
   source                                  = "./modules/nginx-setup"
   NGINX_PUBLIC_IP                         = module.aws-resource-creation.NGINX_PUBLIC_IP
-  MOSIP_DOMAIN                            = var.MOSIP_DOMAIN
+  CLUSTER_ENV_DOMAIN                            = var.CLUSTER_ENV_DOMAIN
   MOSIP_K8S_CLUSTER_NODES_PRIVATE_IP_LIST = module.aws-resource-creation.MOSIP_K8S_CLUSTER_NODES_PRIVATE_IP_LIST
   MOSIP_PUBLIC_DOMAIN_LIST                = module.aws-resource-creation.MOSIP_PUBLIC_DOMAIN_LIST
   CERTBOT_EMAIL                           = var.MOSIP_EMAIL_ID
@@ -422,7 +422,7 @@ module "rke2-setup" {
 module "nfs-setup" {
   depends_on = [module.aws-resource-creation, module.rke2-setup]
   source = "./modules/nfs-setup"
-  NFS_SERVER_LOCATION = "/srv/nfs/mosip/${var.MOSIP_DOMAIN}"
+  NFS_SERVER_LOCATION = "/srv/nfs/mosip/${var.CLUSTER_ENV_DOMAIN}"
   NFS_SERVER = module.aws-resource-creation.NGINX_PRIVATE_IP
   SSH_PRIVATE_KEY=var.SSH_PRIVATE_KEY
   K8S_INFRA_REPO_URL = var.K8S_INFRA_REPO_URL
