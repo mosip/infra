@@ -74,6 +74,102 @@ locals {
       records         = "api.${var.CLUSTER_ENV_DOMAIN}"
       allow_overwrite = true
     }
+    IAM_DNS = {
+      name            = "iam.${var.CLUSTER_ENV_DOMAIN}"
+      type            = "CNAME"
+      zone_id         = var.ZONE_ID
+      ttl             = 300
+      records         = "api-internal.${var.CLUSTER_ENV_DOMAIN}"
+      allow_overwrite = true
+    }
+    ACTIVEMQ_DNS = {
+      name            = "activemq.${var.CLUSTER_ENV_DOMAIN}"
+      type            = "CNAME"
+      zone_id         = var.ZONE_ID
+      ttl             = 300
+      records         = "api-internal.${var.CLUSTER_ENV_DOMAIN}"
+      allow_overwrite = true
+    }
+    HEALTHSERVICES_DNS = {
+      name            = "healthservices.${var.CLUSTER_ENV_DOMAIN}"
+      type            = "CNAME"
+      zone_id         = var.ZONE_ID
+      ttl             = 300
+      records         = "api.${var.CLUSTER_ENV_DOMAIN}"
+      allow_overwrite = true
+    }
+    SIGNUP_DNS = {
+      name            = "signup.${var.CLUSTER_ENV_DOMAIN}"
+      type            = "CNAME"
+      zone_id         = var.ZONE_ID
+      ttl             = 300
+      records         = "api.${var.CLUSTER_ENV_DOMAIN}"
+      allow_overwrite = true
+    }
+    KAFKA_DNS = {
+      name            = "kafka.${var.CLUSTER_ENV_DOMAIN}"
+      type            = "CNAME"
+      zone_id         = var.ZONE_ID
+      ttl             = 300
+      records         = "api-internal.${var.CLUSTER_ENV_DOMAIN}"
+      allow_overwrite = true
+    }
+    KIBANA_DNS = {
+      name            = "kibana.${var.CLUSTER_ENV_DOMAIN}"
+      type            = "CNAME"
+      zone_id         = var.ZONE_ID
+      ttl             = 300
+      records         = "api-internal.${var.CLUSTER_ENV_DOMAIN}"
+      allow_overwrite = true
+    }
+    POSTGRES_DNS = {
+      name            = "postgres.${var.CLUSTER_ENV_DOMAIN}"
+      type            = "CNAME"
+      zone_id         = var.ZONE_ID
+      ttl             = 300
+      records         = "api-internal.${var.CLUSTER_ENV_DOMAIN}"
+      allow_overwrite = true
+    }
+    PMP_DNS = {
+      name            = "pmp.${var.CLUSTER_ENV_DOMAIN}"
+      type            = "CNAME"
+      zone_id         = var.ZONE_ID
+      ttl             = 300
+      records         = "api-internal.${var.CLUSTER_ENV_DOMAIN}"
+      allow_overwrite = true
+    }
+    SMTP_DNS = {
+      name            = "smtp.${var.CLUSTER_ENV_DOMAIN}"
+      type            = "CNAME"
+      zone_id         = var.ZONE_ID
+      ttl             = 300
+      records         = "api-internal.${var.CLUSTER_ENV_DOMAIN}"
+      allow_overwrite = true
+    }
+    MINIO_DNS = {
+      name            = "minio.${var.CLUSTER_ENV_DOMAIN}"
+      type            = "CNAME"
+      zone_id         = var.ZONE_ID
+      ttl             = 300
+      records         = "api-internal.${var.CLUSTER_ENV_DOMAIN}"
+      allow_overwrite = true
+    }
+    REGCLIENT_DNS = {
+      name            = "regclient.${var.CLUSTER_ENV_DOMAIN}"
+      type            = "CNAME"
+      zone_id         = var.ZONE_ID
+      ttl             = 300
+      records         = "api-internal.${var.CLUSTER_ENV_DOMAIN}"
+      allow_overwrite = true
+    }
+    COMPLIANCE_DNS = {
+      name            = "compliance.${var.CLUSTER_ENV_DOMAIN}"
+      type            = "CNAME"
+      zone_id         = var.ZONE_ID
+      ttl             = 300
+      records         = "api-internal.${var.CLUSTER_ENV_DOMAIN}"
+      allow_overwrite = true
+    }
   }
 }
 
