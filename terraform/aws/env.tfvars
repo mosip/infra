@@ -39,3 +39,7 @@ K8S_WORKER_NODE_COUNT = 2
 
 # Rancher Import URL
 RANCHER_IMPORT_URL = "\"kubectl apply -f <rancher-import-url>\""
+
+# DNS Records to map
+SUBDOMAIN_PUBLIC = ["resident", "prereg", "esignet", "healthservices", "signup"] # List of subdomains that are public
+SUBDOMAIN_INTERNAL = ["admin", "iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio", "regclient", "compliance"] # List of subdomains that are internal ]
