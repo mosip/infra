@@ -23,6 +23,16 @@ variable "CLUSTER_ENV_DOMAIN" {
   }
 }
 
+variable "SUBDOMAIN_PUBLIC" {
+  description = "A list of public subdomains that will point to api.example.com"
+  type        = list(string)
+}
+
+variable "SUBDOMAIN_INTERNAL" {
+  description = "A list of internal subdomains that will point to api-internal.example.com"
+  type        = list(string)
+}
+
 variable "MOSIP_EMAIL_ID" {
   description = "Email ID used by certbot to generate SSL certs for Nginx node"
   type        = string
