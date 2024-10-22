@@ -42,36 +42,24 @@ locals {
       records         = "api-internal.${var.CLUSTER_ENV_DOMAIN}"
       allow_overwrite = true
     }
-    ADMIN_DNS = {
-      name            = "admin.${var.CLUSTER_ENV_DOMAIN}"
+  }
+  PUBLIC_DNS_RECORDS = {
+    for subdomain in var.SUBDOMAIN_PUBLIC : subdomain_DNS => {
+      name            = "${subdomain}.${var.CLUSTER_ENV_DOMAIN}"
+      type            = "CNAME"
+      zone_id         = var.ZONE_ID
+      ttl             = 300
+      records         = "api.${var.CLUSTER_ENV_DOMAIN}"
+      allow_overwrite = true
+    }
+  }
+  INTERNAL_DNS_RECORDS = {
+    for subdomain in var.SUBDOMAIN_INTERNAL : subdomain_DNS => {
+      name            = "${subdomain}.${var.CLUSTER_ENV_DOMAIN}"
       type            = "CNAME"
       zone_id         = var.ZONE_ID
       ttl             = 300
       records         = "api-internal.${var.CLUSTER_ENV_DOMAIN}"
-      allow_overwrite = true
-    }
-    PREREG_DNS = {
-      name            = "prereg.${var.CLUSTER_ENV_DOMAIN}"
-      type            = "CNAME"
-      zone_id         = var.ZONE_ID
-      ttl             = 300
-      records         = "api.${var.CLUSTER_ENV_DOMAIN}"
-      allow_overwrite = true
-    }
-    RESIDENT_DNS = {
-      name            = "resident.${var.CLUSTER_ENV_DOMAIN}"
-      type            = "CNAME"
-      zone_id         = var.ZONE_ID
-      ttl             = 300
-      records         = "api.${var.CLUSTER_ENV_DOMAIN}"
-      allow_overwrite = true
-    }
-    ESIGNET_DNS = {
-      name            = "esignet.${var.CLUSTER_ENV_DOMAIN}"
-      type            = "CNAME"
-      zone_id         = var.ZONE_ID
-      ttl             = 300
-      records         = "api.${var.CLUSTER_ENV_DOMAIN}"
       allow_overwrite = true
     }
   }
