@@ -1,0 +1,377 @@
+helmDefaults:
+  tillerNamespace: kube-system
+  tillerless: true
+  install: true
+
+helmRepos:
+  bitnami: https://charts.bitnami.com/bitnami
+  mosip: https://mosip.github.io/mosip-helm
+  wiremind: https://wiremind.github.io/wiremind-helm-charts
+  kafka-ui: https://provectus.github.io/kafka-ui-charts
+
+# Note: Based on your requirement disable the namespaces which you want to use, by default all the namespaces are protected.
+namespaces:
+  postgres:
+    protected: true
+  keycloak:
+    protected: true
+  softhsm:
+    protected: true
+  minio:
+    protected: true
+  clamav:
+    protected: true
+  activemq:
+    protected: true
+  kafka:
+    protected: true
+  s3:
+    protected: true
+  msg-gateways:
+    protected: true
+  captcha:
+    protected: true
+  landing-page:
+    protected: true
+
+apps:
+  postgres:
+    namespace: postgres
+    enabled: true
+    version: <chart version>
+    chart: bitnami/postgresql
+    wait: true
+    priority: -16
+    set:
+      primary.extendedConfiguration: |
+        max_connections=1000
+        wal_level=logical
+        max_wal_senders=20
+        max_replication_slots=10
+      primary.resources.limits.cpu: "1500m"
+      primary.resources.limits.memory: "2000Mi"
+      primary.resources.requests.cpu: "1500m"
+      primary.resources.requests.memory: "2000Mi"
+      audit.logHostname: "true"
+      audit.logConnections: "true"
+      audit.logDisconnections: "true"
+      audit.pgAuditLog: ""
+      audit.pgAuditLogCatalog: "off"
+      audit.clientMinMessages: "error"
+      audit.logLinePrefix: ""
+      audit.logTimezone: ""
+      image.debug: "true"
+    timeout: 1200
+
+
+  istio-addons-psql:
+    namespace: postgres
+    enabled: true
+    version: 0.1.0
+    chart: $WORKDIR/utils/istio-addons/postgres-istio-addons-0.1.0.tgz
+    set:
+      postgresHost: "postgres.soil.mosip.net"
+    wait: true
+    priority: -4
+    timeout: 1200
+
+  postgres-init:
+    namespace: postgres
+    enabled: true
+    version: <chart version>
+    chart: mosip/postgres-init
+    set:
+      dbUserPasswords.dbuserPassword: ""
+      databases.mosip_master.enabled: "true"
+      databases.mosip_master.branch: "v1.2.1.1"
+      databases.mosip_audit.enabled: "true"
+      databases.mosip_audit.branch: "v1.2.0.1"
+      databases.mosip_keymgr.enabled: "true"
+      databases.mosip_keymgr.branch: "v1.2.1.0"
+      databases.mosip_kernel.enabled: "true"
+      databases.mosip_kernel.branch: "v1.2.0.1"
+      databases.mosip_idmap.enabled: "true"
+      databases.mosip_idmap.branch: "v1.2.2.2"
+      databases.mosip_prereg.enabled: "true"
+      databases.mosip_prereg.branch: "v1.2.0.1"
+      databases.mosip_idrepo.enabled: "true"
+      databases.mosip_idrepo.branch: "v1.2.2.2"
+      databases.mosip_ida.enabled: "true"
+      databases.mosip_ida.branch: "v1.2.1.0"
+      databases.mosip_credential.enabled: "true"
+      databases.mosip_credential.branch: "v1.2.2.2"
+      databases.mosip_regprc.enabled: "true"
+      databases.mosip_regprc.branch: "v1.2.1.1"
+      databases.mosip_pms.enabled: "true"
+      databases.mosip_pms.branch: "v1.2.2.1"
+      databases.mosip_hotlist.enabled: "true"
+      databases.mosip_hotlist.branch: "v1.2.1.1"
+      databases.mosip_resident.enabled: "true"
+      databases.mosip_resident.branch: "v1.2.1.1"
+      databases.mosip_digitalcard.enabled: "true"
+      databases.mosip_digitalcard.branch: "v1.2.0.1"
+    wait: true
+    timeout: 1200
+    priority: -15
+
+  keycloak:
+    namespace: keycloak
+    enabled: true
+    version: <chart version>
+    chart: mosip/keycloak
+    set:
+      image.repository: "mosipid/mosip-artemis-keycloak"
+      image.tag: "1.2.0.1"
+      image.pullPolicy: "Always"
+      service.type: "ClusterIP"
+      auth.adminUser: "admin"
+      extraEnvVars[0].name: "KEYCLOAK_EXTRA_ARGS"
+      extraEnvVars[0].value: "-Dkeycloak.profile.feature.upload_scripts=enabled -Dkeycloak.profile.feature.token_exchange=enabled -Dkeycloak.profile.feature.admin_fine_grained_authz=enabled"
+      ingress.enabled: "false"
+      ingress.hostname: ""
+      ingress.annotations.ingress\.kubernetes\.io/class: "nginx"
+      proxyAddressForwarding: "true"
+      replicaCount: "1"
+      serviceDiscovery.enabled: "true"
+      # resources.limits.cpu: "250m"
+      # resources.limits.memory: "1Gi"
+      resources.requests.cpu: "200m"
+      resources.requests.memory: "1000Mi"
+      rbac.create: "true"
+      rbac.rules[0].apiGroups[0]: ""
+      rbac.rules[0].resources[0]: "pods"
+      rbac.rules[0].verbs[0]: "get"
+      rbac.rules[0].verbs[1]: "list"
+    wait: true
+    timeout: 1200
+    priority: -14
+
+  istio-addons-iam:
+    namespace: keycloak
+    enabled: true
+    version: 0.1.0
+    chart: $WORKDIR/utils/istio-addons/iam-istio-addons-0.1.0.tgz
+    set:
+      keycloakExternalHost: "iam.soil.mosip.net"
+      keycloakInternalHost: "keycloak.keycloak"
+      service: "keycloak"
+    wait: true
+    timeout: 1200
+    priority: -3
+
+  keycloak-init:
+    namespace: keycloak
+    enabled: true
+    version: <chart version>
+    chart: mosip/keycloak-init
+    set:
+      image.repository: "mosipid/keycloak-init"
+      image.tag: "1.2.0.1"
+      keycloakExternalHost: "iam.soil.mosip.net"
+      keycloakInternalHost: "keycloak.keycloak"
+      keycloak.realms.mosip.realm_config.attributes.frontendUrl: "https://iam.soil.mosip.net/auth"
+      keycloak.realms.mosip.realm_config.smtpServer.auth: "false"
+      keycloak.realms.mosip.realm_config.smtpServer.host: "smtp.gmail.com"
+      keycloak.realms.mosip.realm_config.smtpServer.port: "465"
+      keycloak.realms.mosip.realm_config.smtpServer.from: "mosipqa@gmail.com"
+      keycloak.realms.mosip.realm_config.smtpServer.starttls: "false"
+      keycloak.realms.mosip.realm_config.smtpServer.ssl: "true"
+    wait: true
+    timeout: 1200
+    priority: -13
+
+  softhsm-kernel:
+    namespace: softhsm
+    enabled: true
+    version: <chart version>
+    chart: mosip/softhsm
+    set:
+      # resources.limits.cpu: "250m"
+      # resources.limits.memory: "1Gi"
+      resources.requests.cpu: "100m"
+      resources.requests.memory: "100Mi"
+    wait: true
+    timeout: 1200
+    priority: -12
+
+  softhsm-ida:
+    namespace: softhsm
+    enabled: true
+    version: <chart version>
+    chart: mosip/softhsm
+    set:
+      # resources.limits.cpu: "250m"
+      # resources.limits.memory: "1Gi"
+      resources.requests.cpu: "100m"
+      resources.requests.memory: "200Mi"
+    wait: true
+    timeout: 1200
+    priority: -11
+
+  minio:
+    namespace: minio
+    enabled: true
+    version: <chart version>
+    chart: mosip/minio
+    set:
+      metrics.serviceMonitor.enabled: "true"
+      extraEnvVars[0].name: "MINIO_PROMETHEUS_URL"
+      extraEnvVars[0].value: "http://rancher-monitoring-prometheus.cattle-monitoring-system:9090"
+      extraEnvVars[1].name: "MINIO_PROMETHEUS_JOB_ID"
+      extraEnvVars[1].value: "minio"
+      resourcesPreset: "none"
+    wait: true
+    timeout: 1200
+    priority: -10
+
+  istio-addons-minio:
+    namespace: minio
+    enabled: true
+    version: 1.2.0
+    chart: $WORKDIR/utils/istio-addons/minio-istio-addons-1.2.0.tgz
+    set:
+      externalHost: "minio.soil.mosip.net"
+    wait: true
+    timeout: 1200
+    hooks:
+      postInstall: "$WORKDIR/hooks/s3-setup.sh "
+    priority: -2
+
+  clamav:
+    namespace: clamav
+    enabled: true
+    version: <chart version>
+    chart: wiremind/clamav
+    set:
+      replicaCount: "1"
+      # image.repository, image.tag, and image.pullPolicy are commented out in the original YAML
+      # Uncomment and update as needed:
+      # image.repository: "clamav/clamav"
+      # image.tag: "1.2"
+      # image.pullPolicy: "Always"
+    wait: true
+    timeout: 1200
+    priority: -9
+
+  activemq:
+    namespace: activemq
+    enabled: true
+    version: <chart version>
+    chart: mosip/activemq-artemis
+    set: 
+      istio.enabled: "true"
+      istio.hosts[0]: "activemq.soil.mosip.net"
+      istio.ingressController.name: "ingressgateway-internal"
+      istio.prefix: ""
+    wait: true
+    timeout: 1200
+    priority: -8
+    hooks:
+      postInstall: "$WORKDIR/hooks/captcha-setup.sh <prereg site key> <prereg secret key> <admin site key> <admin secret key> <resident site key> <resident secret key>"
+  # Note: Create a google recaptcha v2 ("I am not a Robot") from Google Recaptcha Admin.
+  # Pass the captcha site and secret key in the above post install script as an argument.To create site and secret key below is the link:
+  # https://cloud.google.com/security/products/recaptcha
+  # https://www.google.com/recaptcha/admin/create
+
+  kafka: 
+    namespace: kafka
+    enabled: true
+    version: <chart version>
+    chart: bitnami/kafka
+    set:
+      clusterDomain: "cluster.local"
+      logRetentionBytes: "_1073741824"
+      defaultReplicationFactor: "3"
+      offsetsTopicReplicationFactor: "3"
+      transactionStateLogReplicationFactor: "3"
+      numPartitions: "20"
+      replicaCount: "5"
+      autoCreateTopicsEnable: "true"
+      deleteTopicEnable: "true"
+      persistence.enabled: "true"
+      persistence.accessModes[0]: "ReadWriteOnce"
+      persistence.size: "8Gi"
+      zookeeper.enabled: "true"
+      zookeeper.replicaCount: "5"
+      zookeeper.persistence.enabled: "true"
+      zookeeper.persistence.size: "2Gi"
+      # resources.limits.cpu: "250m"
+      # resources.limits.memory: "1Gi"
+      resources.requests.cpu: "200m"
+      resources.requests.memory: "2000Mi"
+      startupProbe.enabled: "true"
+      startupProbe.initialDelaySeconds: "30"
+      startupProbe.periodSeconds: "10"
+      startupProbe.timeoutSeconds: "1"
+      startupProbe.failureThreshold: "30"
+      startupProbe.successThreshold: "1"
+    wait: true
+    timeout: 1200
+    priority: -7
+
+  kafka-ui:
+    namespace: kafka
+    enabled: true
+    version: <chart version>
+    chart: kafka-ui/kafka-ui
+    set:
+      envs.config.KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "kafka.kafka:9092"
+      envs.config.KAFKA_CLUSTERS_0_NAME: "main_kafka"
+      envs.config.KAFKA_CLUSTERS_0_ZOOKEEPER: "kafka-zookeeper.kafka:2181"
+      envs.config.KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: "http://debezium-service.reporting:8083"
+      envs.config.KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: "debezium"
+      envs.config.KAFKA_CLUSTERS_0_KAFKACONNECT_1_ADDRESS: "http://es-connect.reporting:8083"
+      envs.config.KAFKA_CLUSTERS_0_KAFKACONNECT_1_NAME: "es-connect"
+      image.pullPolicy: "Always"
+    wait: true
+    timeout: 1200
+    priority: -6
+
+  istio-addons-kafka:
+    namespace: kafka
+    enabled: true
+    version: 1.2.0
+    chart: $WORKDIR/utils/istio-addons/kafka-istio-addons-1.2.0.tgz
+    set:
+      kafkaUiHost: "kafka.soil.mosip.net"
+      installName: "kafka-ui"
+    wait: true
+    timeout: 1200
+    hooks:
+      postInstall: "$WORKDIR/hooks/msg-gateways-setup.sh"
+    priority: -1
+
+  landing-page:
+    namespace: landing-page
+    enabled: true
+    version: <chart version>
+    chart: mosip/landing-page
+    set:
+      landing.version: "develop"
+      landing.name: "soil"
+      landing.api: "api.soil.mosip.net"
+      landing.apiInternal: "api-internal.soil.mosip.net"
+      landing.admin: "admin.soil.mosip.net"
+      landing.prereg: "prereg.soil.mosip.net"
+      landing.kafka: "kafka.soil.mosip.net"
+      landing.kibana: "kibana.soil.mosip.net"
+      landing.activemq: "activemq.soil.mosip.net"
+      landing.minio: "minio.soil.mosip.net"
+      landing.keycloak: "iam.soil.mosip.net"
+      landing.regclient: "regclient.soil.mosip.net"
+      landing.postgres.host: "postgres.soil.mosip.net"
+      landing.postgres.port: "5432"
+      landing.compliance: "compliance.soil.mosip.net"
+      landing.pmp: "pmp.soil.mosip.net"
+      landing.resident: "resident.soil.mosip.net"
+      landing.esignet: "esignet.soil.mosip.net"
+      landing.smtp: "smtp.soil.mosip.net"
+      landing.healthservices: "healthservices.soil.mosip.net"
+      landing.injiweb: "injiweb.soil.mosip.net"
+      landing.injiverify: "injiverify.soil.mosip.net"
+      istio.host: "soil.mosip.net"
+    wait: true
+    timeout: 1200
+    hooks:
+      preInstall: "$WORKDIR/hooks/landing-page.sh"
+    priority: -5
