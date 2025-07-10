@@ -13,8 +13,8 @@ on:
           - apply   
   push:
     paths:
-      - helmsman/dsf/prereq-dsf.yaml
-      - helmsman/dsf/external-dsf.yaml
+      - Helmsman/dsf/prereq-dsf.yaml
+      - Helmsman/dsf/external-dsf.yaml
 
 jobs:
   set-matrix:
@@ -46,16 +46,16 @@ jobs:
             fi
 
             # Get changed files safely
-            changed_files=$(git diff --name-only "$base_sha" "$head_sha" -- 'deployment/v3/helmsman/dsf/' || echo "")
+            changed_files=$(git diff --name-only "$base_sha" "$head_sha" -- 'Helmsman/dsf/' || echo "")
             
             entries=()
             
             # Check for exact file paths
-            if echo "$changed_files" | grep -qx 'deployment/v3/helmsman/dsf/prereq-dsf.yaml'; then
+            if echo "$changed_files" | grep -qx 'Helmsman/dsf/prereq-dsf.yaml'; then
               entries+=('{"dsf_files":"prereq-dsf.yaml","wg_conf":"wg0"}')
             fi
       
-            if echo "$changed_files" | grep -qx 'deployment/v3/helmsman/dsf/external-dsf.yaml'; then
+            if echo "$changed_files" | grep -qx 'Helmsman/dsf/external-dsf.yaml'; then
               entries+=('{"dsf_files":"external-dsf.yaml","wg_conf":"wg1"}')
             fi
             
@@ -144,7 +144,7 @@ jobs:
           kubectl get nodes
           pwd
           export HOME="/home/runner/work/infra/infra"
-          export WORKDIR="$HOME/helmsman"
+          export WORKDIR="$HOME/Helmsman"
           helmsman --debug --${{ env.mode }} -f $WORKDIR/dsf/${{ matrix.dsf_files }}
 
   workflow-caller:

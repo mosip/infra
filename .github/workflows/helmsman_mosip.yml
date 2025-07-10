@@ -13,7 +13,7 @@ on:
           - apply
   push:
     paths:
-      - helmsman/dsf/mosip-dsf.yaml
+      - Helmsman/dsf/mosip-dsf.yaml
 
 jobs:
   deploy:
@@ -84,7 +84,7 @@ jobs:
           kubectl config view
           kubectl get nodes
           export HOME="/home/runner/work/infra/infra"
-          export WORKDIR="$HOME/helmsman"
+          export WORKDIR="$HOME/Helmsman"
           helmsman --debug --${{ env.mode }} -f $WORKDIR/dsf/mosip-dsf.yaml
 
   workflow-caller:
