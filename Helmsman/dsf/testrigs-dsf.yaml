@@ -48,11 +48,11 @@ apps:
       apitestrig.configmaps.s3.s3-host: 'http://minio.minio:9000'
       apitestrig.configmaps.s3.s3-user-key: 'admin'
       apitestrig.configmaps.s3.s3-region: ''
-      apitestrig.configmaps.db.db-server: "api-internal.soil.mosip.net"
+      apitestrig.configmaps.db.db-server: "api-internal.sanbox.mosip.net"
       apitestrig.configmaps.db.db-su-user: "postgres"
       apitestrig.configmaps.db.db-port: "5432"
-      apitestrig.configmaps.apitestrig.ENV_USER: "api-internal.soil"
-      apitestrig.configmaps.apitestrig.ENV_ENDPOINT: "https://api-internal.soil.mosip.net"
+      apitestrig.configmaps.apitestrig.ENV_USER: "api-internal.sanbox"
+      apitestrig.configmaps.apitestrig.ENV_ENDPOINT: "https://api-internal.sanbox.mosip.net"
       apitestrig.configmaps.apitestrig.ENV_TESTLEVEL: "smokeAndRegression"
       apitestrig.configmaps.apitestrig.reportExpirationInDays: "3"
       apitestrig.configmaps.apitestrig.slack-webhook-url: "https://hooks.slack.com/services/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"
@@ -131,11 +131,11 @@ apps:
       dslorchestrator.configmaps.s3.s3-host: 'http://minio.minio:9000'
       dslorchestrator.configmaps.s3.s3-user-key: 'admin'
       dslorchestrator.configmaps.s3.s3-region: ''
-      dslorchestrator.configmaps.db.db-server: "api-internal.soil.mosip.net"
+      dslorchestrator.configmaps.db.db-server: "api-internal.sanbox.mosip.net"
       dslorchestrator.configmaps.db.db-su-user: "postgres"
       dslorchestrator.configmaps.db.db-port: "5432"
-      dslorchestrator.configmaps.dslorchestrator.USER: "api-internal.soil"
-      dslorchestrator.configmaps.dslorchestrator.ENDPOINT: "https://api-internal.soil.mosip.net"
+      dslorchestrator.configmaps.dslorchestrator.USER: "api-internal.sanbox"
+      dslorchestrator.configmaps.dslorchestrator.ENDPOINT: "https://api-internal.sanbox.mosip.net"
       dslorchestrator.configmaps.dslorchestrator.packetUtilityBaseUrl: "http://packetcreator.packetcreator:80/v1/packetcreator"
       dslorchestrator.configmaps.dslorchestrator.reportExpirationInDays: "3"
       dslorchestrator.configmaps.dslorchestrator.NS: "dslrig"
@@ -158,14 +158,14 @@ apps:
       uitestrig.configmaps.s3.s3-host: "http://minio.minio:9000"
       uitestrig.configmaps.s3.s3-user-key: "admin"
       uitestrig.configmaps.s3.s3-region: ""
-      uitestrig.configmaps.db.db-server: "api-internal.soil.mosip.net"
+      uitestrig.configmaps.db.db-server: "api-internal.sanbox.mosip.net"
       uitestrig.configmaps.db.db-su-user: "postgres"
       uitestrig.configmaps.db.db-port: "5432"
-      uitestrig.configmaps.uitestrig.apiInternalEndPoint: "https://api-internal.soil.mosip.net"
-      uitestrig.configmaps.uitestrig.apiEnvUser: "api-internal.soil.mosip.net"
-      uitestrig.configmaps.uitestrig.PmpPortalPath: "https://pmp.soil.mosip.net"
-      uitestrig.configmaps.uitestrig.adminPortalPath: "https://admin.soil.mosip.net"
-      uitestrig.configmaps.uitestrig.residentPortalPath: "https://resident.soil.mosip.net"
+      uitestrig.configmaps.uitestrig.apiInternalEndPoint: "https://api-internal.sanbox.mosip.net"
+      uitestrig.configmaps.uitestrig.apiEnvUser: "api-internal.sanbox.mosip.net"
+      uitestrig.configmaps.uitestrig.PmpPortalPath: "https://pmp.sanbox.mosip.net"
+      uitestrig.configmaps.uitestrig.adminPortalPath: "https://admin.sanbox.mosip.net"
+      uitestrig.configmaps.uitestrig.residentPortalPath: "https://resident.sanbox.mosip.net"
       uitestrig.configmaps.uitestrig.NS: "uitestrig"
   
       modules[0].name: admin-ui
