@@ -125,7 +125,7 @@ jobs:
           tar xzf helmsman.tar.gz
           sudo mv helmsman /usr/local/bin          
 
-      - name: Initiate helmsman to apply the DSF configurations.
+      - name: Install Istio,kubectl and check cluster access
         env:
           KUBECONFIG: ${{ secrets.KUBECONFIG }}
         run: |
@@ -142,10 +142,33 @@ jobs:
           export KUBECONFIG=$HOME/.kube/config
           kubectl config view
           kubectl get nodes
-          pwd
+      - name: Initiate helmsman to apply the DSF configurations.    
           export HOME="/home/runner/work/infra/infra"
           export WORKDIR="$HOME/Helmsman"
           helmsman --debug --${{ env.mode }} -f $WORKDIR/dsf/${{ matrix.dsf_files }}
+      - name: Health Check External Pods
+        run: |
+          set -e
+          NAMESPACES=( cattle-monitoring-system cattle-logging-system istio-system istio-operator httpbin keycloak kafka minio softhsm clamav activemq landing-page)
+          for NS in "${NAMESPACES[@]}"; do
+            echo "Checking health for namespace: $NS"
+            for i in {1..30}; do
+              UNREADY=$(kubectl get pods -n "$NS" --no-headers | grep -vE 'Running|Completed' | wc -l)
+              if [ "$UNREADY" -eq 0 ]; then
+                break
+              fi
+              sleep 10
+            done
+            UNREADY_FINAL=$(kubectl get pods -n "$NS" --no-headers | grep -vE 'Running|Completed' | wc -l)
+            if [ "$UNREADY_FINAL" -ne 0 ]; then
+              echo "Pods in $NS not healthy"
+              exit 1
+            fi
+          done
+
+      - name: Mark External DSF Completed with Commit
+        run: |
+          kubectl label namespace default external-dsf=${{ github.sha }} --overwrite
 
   workflow-caller:
     runs-on: ubuntu-latest
