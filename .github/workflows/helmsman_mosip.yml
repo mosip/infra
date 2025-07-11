@@ -66,7 +66,7 @@ jobs:
           tar xzf helmsman.tar.gz
           sudo mv helmsman /usr/local/bin          
 
-      - name: Initiate helmsman to apply the DSF configurations.
+      - name: Install Istio,kubectl and check cluster access.
         env:
           KUBECONFIG: ${{ secrets.KUBECONFIG }}
         run: |
@@ -83,6 +83,14 @@ jobs:
           export KUBECONFIG=$HOME/.kube/config
           kubectl config view
           kubectl get nodes
+      - name: Check if external-dsf label is completed
+        run: |
+          STATUS=$(kubectl get namespace default -o jsonpath='{.metadata.labels.external-dsf}')
+          if [[ "$STATUS" != "completed" ]]; then
+            echo "❌ External DSF not completed."
+            exit 1
+          fi
+      - name: Initiate helmsman to apply the DSF configurations. 
           export HOME="/home/runner/work/infra/infra"
           export WORKDIR="$HOME/Helmsman"
           helmsman --debug --${{ env.mode }} -f $WORKDIR/dsf/mosip-dsf.yaml
