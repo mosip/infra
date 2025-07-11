@@ -142,6 +142,14 @@ jobs:
           export KUBECONFIG=$HOME/.kube/config
           kubectl config view
           kubectl get nodes
+      - name: Check if external-dsf label is completed only for push
+        if: github.event_name == 'push'
+        run: |
+          STATUS=$(kubectl get namespace default -o jsonpath='{.metadata.labels.external-dsf}')
+          if [[ "$STATUS" != "completed" ]]; then
+            echo "❌ External DSF not completed."
+            exit 1
+          fi
       - name: Initiate helmsman to apply the DSF configurations.    
           export HOME="/home/runner/work/infra/infra"
           export WORKDIR="$HOME/Helmsman"
