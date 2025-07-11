@@ -83,6 +83,14 @@ jobs:
           export KUBECONFIG=$HOME/.kube/config
           kubectl config view
           kubectl get nodes
+      - name: Check if mosip-dsf label is completed
+        run: |
+          STATUS=$(kubectl get namespace default -o jsonpath='{.metadata.labels.mosip-dsf}')
+          if [[ "$STATUS" != "completed" ]]; then
+            echo "❌ MOSIP DSF not completed."
+            exit 1
+          fi
+      - name: Initiate helmsman to apply the DSF configurations
           export HOME="/home/runner/work/infra/infra"
           export WORKDIR="$HOME/Helmsman"
           helmsman --debug --${{ env.mode }} -f $WORKDIR/dsf/testrigs-dsf.yaml
