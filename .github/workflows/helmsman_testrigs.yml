@@ -91,6 +91,7 @@ jobs:
             exit 1
           fi
       - name: Initiate helmsman to apply the DSF configurations
+        run: |
           export HOME="/home/runner/work/infra/infra"
           export WORKDIR="$HOME/Helmsman"
           helmsman --debug --${{ env.mode }} -f $WORKDIR/dsf/testrigs-dsf.yaml
