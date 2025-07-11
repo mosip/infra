@@ -91,6 +91,7 @@ jobs:
             exit 1
           fi
       - name: Initiate helmsman to apply the DSF configurations. 
+        run: |
           export HOME="/home/runner/work/infra/infra"
           export WORKDIR="$HOME/Helmsman"
           helmsman --debug --${{ env.mode }} -f $WORKDIR/dsf/mosip-dsf.yaml
@@ -122,9 +123,9 @@ jobs:
   workflow-caller:
     runs-on: ubuntu-latest
     needs: deploy
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     steps:
       - name: Trigger helmsman testrigs workflow via API
-        if: ${{ github.event_name == 'workflow_dispatch' }}
         env:
           GITHUB_REPO: ${{ github.repository }}
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
