@@ -166,9 +166,9 @@ jobs:
             fi
           done
 
-      - name: Mark External DSF Completed with Commit
+      - name: Mark External DSF Completed
         run: |
-          kubectl label namespace default external-dsf=${{ github.sha }} --overwrite
+          kubectl label namespace default external-dsf=completed --overwrite
 
   workflow-caller:
     runs-on: ubuntu-latest
