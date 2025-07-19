@@ -21,7 +21,7 @@ variable "K8S_INFRA_BRANCH" {
 
 locals {
   NGINX_CONFIG = {
-    cluster_env_domain                      = var.CLUSTER_ENV_DOMAIN
+    cluster_env_domain                = var.CLUSTER_ENV_DOMAIN
     env_var_file                      = "/etc/environment"
     cluster_nginx_certs               = "/etc/letsencrypt/live/${var.CLUSTER_ENV_DOMAIN}/fullchain.pem"
     cluster_nginx_cert_key            = "/etc/letsencrypt/live/${var.CLUSTER_ENV_DOMAIN}/privkey.pem"
@@ -49,8 +49,8 @@ resource "null_resource" "Nginx-setup" {
   triggers = {
     # node_count_or_hash = module.ec2-resource-creation.node_count
     # or if you used hash:
-    node_hash       = md5(var.MOSIP_K8S_CLUSTER_NODES_PRIVATE_IP_LIST)
-    public_dns_hash = md5(var.MOSIP_PUBLIC_DOMAIN_LIST)
+    # node_hash       = md5(var.MOSIP_K8S_CLUSTER_NODES_PRIVATE_IP_LIST)
+    # public_dns_hash = md5(var.MOSIP_PUBLIC_DOMAIN_LIST)
   }
   connection {
     type        = "ssh"

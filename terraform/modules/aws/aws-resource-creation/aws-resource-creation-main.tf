@@ -12,9 +12,7 @@ terraform {
 # profile = "default"
 # region = "ap-south-1"
 # }
-provider "aws" {
-  region = var.AWS_PROVIDER_REGION
-}
+
 
 resource "aws_security_group" "security-group" {
   for_each = var.SECURITY_GROUP

@@ -1,6 +1,7 @@
 ## Terraform & Shell Script for Nginx Setup with SSL
 
 ## Overview
+
 This Terraform configuration script sets up a Nginx server with SSL certificates on an AWS EC2 instance.
 It fetches SSL certificates using Certbot and integrates with Kubernetes infrastructure from a specified GitHub repository
 
@@ -19,34 +20,43 @@ It fetches SSL certificates using Certbot and integrates with Kubernetes infrast
 * Git is installed on the EC2 instance.
 
 ## Files
-* `main.tf`: Main Terraform script that defines providers, resources, and output values.
+
+* `nginx-setup-main.tf`: Main Terraform script that defines providers, resources, and output values.
 * `nginx-setup.sh`: This scripts install and setup nginx configuration.
 
 ## Setup
+
 * Initialize Terraform
+
   ```
   terraform init
   ```
 * Terraform validate & plan the terraform scripts:
+
   ```
   terraform validate
   ```
+
   ```
   terraform plan -var-file="aws.tfvars"
   ```
 * Apply the Terraform configuration:
+
   ```
   terraform apply -var-file="aws.tfvars"
   ```
 
 ## Destroy
+
 To destroy AWS resources, follow the steps below:
+
 * Ensure to have `terraform.tfstate` file.
   ```
   terraform destroy
   ```
 
 ## Input Variables
+
 * `NGINX_PUBLIC_IP`: The public IP address of the EC2 instance where Nginx will be set up.
 * `CLUSTER_ENV_DOMAIN`: The domain for which the wildcard SSL certificates will be generated.
 * `MOSIP_K8S_CLUSTER_NODES_PRIVATE_IP_LIST`: A comma-separated list of Kubernetes cluster node's private IP addresses for Nginx configuration.
@@ -54,6 +64,7 @@ To destroy AWS resources, follow the steps below:
 * `CERTBOT_EMAIL`: Email address to be used for SSL certificate registration with Certbot.
 
 ## Local Variables
+
 The script `main.tf` defines a local variable NGINX_CONFIG containing various configuration parameters required for setting up Nginx and obtaining SSL certificates.
 
 ## Terraform Scripts
@@ -68,10 +79,12 @@ The script `main.tf` defines a local variable NGINX_CONFIG containing various co
   * Set environment variables.
   * Run the nginx-setup.sh script.
 
-#### nginx-setup.sh: 
+#### nginx-setup.sh:
+
 This script performs the following actions:
-  * Logs the script execution.
-  * Installs Nginx and SSL dependencies.
-  * Obtains SSL certificates using Certbot.
-  * Enables and starts the Nginx service.
-  * Clones the specified Kubernetes infrastructure repository and runs the Nginx setup script from it.
+
+* Logs the script execution.
+* Installs Nginx and SSL dependencies.
+* Obtains SSL certificates using Certbot.
+* Enables and starts the Nginx service.
+* Clones the specified Kubernetes infrastructure repository and runs the Nginx setup script from it.

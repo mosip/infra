@@ -1,6 +1,7 @@
 # Terraform Script for AWS Infrastructure with Certbot and NGINX
 
 ## Overview
+
 This Terraform script sets up an AWS infrastructure that includes:
 
 * IAM roles and policies for Certbot to modify Route 53 DNS records.
@@ -21,33 +22,42 @@ This Terraform script sets up an AWS infrastructure that includes:
 * Ensure SSH key created for accessing EC2 instances on AWS.
 
 ## Files
+
 * `certbot-ssl-certgen.tf`: Defines IAM roles, policies, and instance profiles for Certbot.
 * `aws.tfvars`: Contains variable values for AWS infrastructure configuration.
-* `main.tf`: Main Terraform script that defines providers, resources, and output values.
+* `aws-resource-creation-main.tf`: Main Terraform script that defines providers, resources, and output values.
 * `variables.tf`: Defines variables used in the Terraform scripts.
 
 ## Setup
+
 * Initialize Terraform
+
   ```
   terraform init
   ```
 * Review and modify variable values:
+
   * Ensure `aws.tfvars` contains correct values for your setup.
   * Verify `variables.tf` for any additional configuration needs.
 * Terraform validate & plan the terraform scripts:
+
   ```
   terraform validate
   ```
+
   ```
   terraform plan -var-file="aws.tfvars"
   ```
 * Apply the Terraform configuration:
+
   ```
   terraform apply -var-file="aws.tfvars"
   ```
 
 ## Destroy
+
 To destroy AWS resources, follow the steps below:
+
 * Ensure to have `terraform.tfstate` file.
   ```
   terraform destroy
@@ -56,6 +66,7 @@ To destroy AWS resources, follow the steps below:
 ## Terraform Scripts
 
 #### certbot-ssl-certgen.tf
+
 * Defines resources for setting up IAM roles and policies for Certbot:
   * `aws_iam_role.certbot_role`: IAM role for Certbot with EC2 assume role policy.
   * `aws_iam_policy.certbot_policy`: IAM policy allowing Certbot to modify Route 53 records.
@@ -63,12 +74,14 @@ To destroy AWS resources, follow the steps below:
   * `aws_iam_instance_profile.certbot_profile`: Creates an instance profile for the IAM role.
 
 #### aws.tfvars
+
 * Contains configuration variables for the AWS infrastructure
 * Ensure the AMI ID `ami-xxxxxxxxxxxxxxxxx` is available in your specified region.
 * The `user_data` script for the NGINX instance mounts an EBS volume at `/srv/nfs`.
 * Modify the security group rules as per your security requirements.
 
-#### main.tf
+#### aws-main.tf
+
 * Defines the main resources and provider configuration:
   * `Providers`: AWS provider configuration.
   * `Security Groups`: aws_security_group.security-group for NGINX and Kubernetes.
@@ -80,12 +93,15 @@ To destroy AWS resources, follow the steps below:
     * **aws_route53_record.MAP_DNS_TO_CNAME** for CNAME records.
 
 #### outputs.tf
+
 * Provides useful information after infrastructure creation.
 
 #### variables.tf
+
 * Defines input variables used across the Terraform scripts
 
 #### Outputs
+
 The script provides the following output values:
 
 * `K8S_CLUSTER_PUBLIC_IPS`: Public IPs of Kubernetes cluster nodes.

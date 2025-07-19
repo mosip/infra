@@ -12,40 +12,12 @@ terraform {
 # profile = "default"
 # region = "ap-south-1"
 # }
-provider "aws" {
-  region = var.AWS_PROVIDER_REGION
-}
 
 locals {
-  DNS_RECORDS = {
-    #     API_DNS = {
-    #       name            = "api.${var.CLUSTER_ENV_DOMAIN}"
-    #       type            = "A"
-    #       zone_id         = var.ZONE_ID
-    #       ttl             = 300
-    #       records         = module.aws-resource-creation.aws_instance.NGINX_EC2_INSTANCE.public_ip
-    #       allow_overwrite = true
-    #     }
-    #     API_INTERNAL_DNS = {
-    #       name            = "api-internal.${var.CLUSTER_ENV_DOMAIN}"
-    #       type            = "A"
-    #       zone_id         = var.ZONE_ID
-    #       ttl             = 300
-    #       records         = aws_instance.NGINX_EC2_INSTANCE.tags.Name == local.TAG_NAME.NGINX_TAG_NAME ? aws_instance.NGINX_EC2_INSTANCE.private_ip : ""
-    #       allow_overwrite = true
-    #     }
-    MOSIP_HOMEPAGE_DNS = {
-      name            = var.CLUSTER_ENV_DOMAIN
-      type            = "CNAME"
-      zone_id         = var.ZONE_ID
-      ttl             = 300
-      records         = "api-internal.${var.CLUSTER_ENV_DOMAIN}"
-      allow_overwrite = true
-    }
-  }
-  PUBLIC_DNS_RECORDS = {
-    for subdomain in var.SUBDOMAIN_PUBLIC : subdomain_DNS => {
-      name            = "${subdomain}.${var.CLUSTER_ENV_DOMAIN}"
+  public_dns_records = {
+    for sub in var.SUBDOMAIN_PUBLIC :
+    sub => {
+      name            = "${sub}.${var.CLUSTER_ENV_DOMAIN}"
       type            = "CNAME"
       zone_id         = var.ZONE_ID
       ttl             = 300
@@ -53,9 +25,11 @@ locals {
       allow_overwrite = true
     }
   }
-  INTERNAL_DNS_RECORDS = {
-    for subdomain in var.SUBDOMAIN_INTERNAL : subdomain_DNS => {
-      name            = "${subdomain}.${var.CLUSTER_ENV_DOMAIN}"
+
+  internal_dns_records = {
+    for sub in var.SUBDOMAIN_INTERNAL :
+    sub => {
+      name            = "${sub}.${var.CLUSTER_ENV_DOMAIN}"
       type            = "CNAME"
       zone_id         = var.ZONE_ID
       ttl             = 300
@@ -63,24 +37,27 @@ locals {
       allow_overwrite = true
     }
   }
+
+  dns_records = merge(local.public_dns_records, local.internal_dns_records)
 }
 
 module "aws-resource-creation" {
 
   #source = "github.com/mosip/mosip-infra//deployment/v3/terraform/aws/modules/aws-resource-creation?ref=develop"
-  source                        = "./modules/aws-resource-creation"
+  source                        = "./aws-resource-creation"
   CLUSTER_NAME                  = var.CLUSTER_NAME
   AWS_PROVIDER_REGION           = var.AWS_PROVIDER_REGION
   SSH_KEY_NAME                  = var.SSH_KEY_NAME
   K8S_INSTANCE_TYPE             = var.K8S_INSTANCE_TYPE
   NGINX_INSTANCE_TYPE           = var.NGINX_INSTANCE_TYPE
-  CLUSTER_ENV_DOMAIN                  = var.CLUSTER_ENV_DOMAIN
+  CLUSTER_ENV_DOMAIN            = var.CLUSTER_ENV_DOMAIN
   ZONE_ID                       = var.ZONE_ID
   AMI                           = var.AMI
   K8S_INSTANCE_ROOT_VOLUME_SIZE = var.K8S_INSTANCE_ROOT_VOLUME_SIZE
 
   NGINX_NODE_EBS_VOLUME_SIZE  = var.NGINX_NODE_EBS_VOLUME_SIZE
   NGINX_NODE_ROOT_VOLUME_SIZE = var.NGINX_NODE_ROOT_VOLUME_SIZE
+
 
   SECURITY_GROUP = {
     NGINX_SECURITY_GROUP = [
@@ -372,7 +349,8 @@ module "aws-resource-creation" {
       },
     ]
   }
-  DNS_RECORDS = local.DNS_RECORDS
+  DNS_RECORDS = local.dns_records
+
 
   K8S_CONTROL_PLANE_NODE_COUNT = var.K8S_CONTROL_PLANE_NODE_COUNT
   K8S_ETCD_NODE_COUNT          = var.K8S_ETCD_NODE_COUNT
@@ -383,9 +361,9 @@ module "aws-resource-creation" {
 module "nginx-setup" {
   depends_on = [module.aws-resource-creation]
   #source     = "github.com/mosip/mosip-infra//deployment/v3/terraform/aws/modules/nginx-setup?ref=develop"
-  source                                  = "./modules/nginx-setup"
+  source                                  = "./nginx-setup"
   NGINX_PUBLIC_IP                         = module.aws-resource-creation.NGINX_PUBLIC_IP
-  CLUSTER_ENV_DOMAIN                            = var.CLUSTER_ENV_DOMAIN
+  CLUSTER_ENV_DOMAIN                      = var.CLUSTER_ENV_DOMAIN
   MOSIP_K8S_CLUSTER_NODES_PRIVATE_IP_LIST = module.aws-resource-creation.MOSIP_K8S_CLUSTER_NODES_PRIVATE_IP_LIST
   MOSIP_PUBLIC_DOMAIN_LIST                = module.aws-resource-creation.MOSIP_PUBLIC_DOMAIN_LIST
   CERTBOT_EMAIL                           = var.MOSIP_EMAIL_ID
@@ -398,7 +376,7 @@ module "nginx-setup" {
 module "rke2-setup" {
   depends_on = [module.aws-resource-creation]
   #source     = "github.com/mosip/mosip-infra//deployment/v3/terraform/aws/modules/rke2-setup?ref=develop"
-  source = "./modules/rke2-cluster"
+  source = "./rke2-cluster"
 
   SSH_PRIVATE_KEY         = var.SSH_PRIVATE_KEY
   K8S_INFRA_BRANCH        = var.K8S_INFRA_BRANCH
@@ -408,12 +386,12 @@ module "rke2-setup" {
 }
 
 module "nfs-setup" {
-  depends_on = [module.aws-resource-creation, module.rke2-setup]
-  source = "./modules/nfs-setup"
+  depends_on          = [module.aws-resource-creation, module.rke2-setup]
+  source              = "./nfs-setup"
   NFS_SERVER_LOCATION = "/srv/nfs/mosip/${var.CLUSTER_ENV_DOMAIN}"
-  NFS_SERVER = module.aws-resource-creation.NGINX_PRIVATE_IP
-  SSH_PRIVATE_KEY=var.SSH_PRIVATE_KEY
-  K8S_INFRA_REPO_URL = var.K8S_INFRA_REPO_URL
-  K8S_INFRA_BRANCH = var.K8S_INFRA_BRANCH
-  CLUSTER_NAME = var.CLUSTER_NAME
+  NFS_SERVER          = module.aws-resource-creation.NGINX_PRIVATE_IP
+  SSH_PRIVATE_KEY     = var.SSH_PRIVATE_KEY
+  K8S_INFRA_REPO_URL  = var.K8S_INFRA_REPO_URL
+  K8S_INFRA_BRANCH    = var.K8S_INFRA_BRANCH
+  CLUSTER_NAME        = var.CLUSTER_NAME
 }

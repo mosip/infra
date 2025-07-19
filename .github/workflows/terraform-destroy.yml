@@ -3,6 +3,14 @@ name: terraform destroy
 on:
   workflow_dispatch:
     inputs:
+      CLOUD_PROVIDER:
+        description: 'Choose the cloud provider (aws, azure, gcp)'
+        required: true
+        type: choice
+        options:
+          - aws
+          - azure
+          - gcp
       SSH_PRIVATE_KEY:
         description: 'The GitHub secret containing the private key of the SSH key named in the preceding input variable `SSH_PRIVATE_KEY` is used for SSH login purposes on nginx node.'
         required: true
@@ -27,9 +35,17 @@ jobs:
       run:
         shell: bash
         # We keep Terraform files in the terraform directory.
-        working-directory: 'terraform/aws'
+        working-directory: 'terraform'
     steps:
       - uses: actions/checkout@v4
+      - name: Check for required component directories
+        run: |
+          for dir in "${{ inputs.CLOUD_PROVIDER }}-resource-creation" "nginx-setup" "rke2-cluster" "nfs-setup"; do
+            if [ ! -d "./modules/${{ inputs.CLOUD_PROVIDER }}/${dir}" ]; then
+              echo "Directory './modules/${{ inputs.CLOUD_PROVIDER }}/${dir}' does not exist. The ${CLOUD_PROVIDER} module is a work in progress."
+              exit 1
+            fi
+          done
 
       - name: Skip SSH Host key verification
         run: |
@@ -73,12 +89,12 @@ jobs:
         run: terraform init
 
       - name: Terraform refresh
-        run: terraform refresh -var-file="./env.tfvars" -no-color
+        run: terraform refresh -var-file="./modules/${{ inputs.CLOUD_PROVIDER }}/${{ inputs.CLOUD_PROVIDER }}.tfvars" -no-color
         if: "${{ inputs.TERRAFORM_DESTROY  == true }}"
 
       - name: Terraform Destroy
         id: destroy
-        run: terraform destroy -var-file="./env.tfvars" -no-color -auto-approve
+        run: terraform destroy -var-file="./modules/${{ inputs.CLOUD_PROVIDER }}/${{ inputs.CLOUD_PROVIDER }}.tfvars" -no-color -auto-approve
         if: "${{ inputs.TERRAFORM_DESTROY  == true }}"
         continue-on-error: true
 
