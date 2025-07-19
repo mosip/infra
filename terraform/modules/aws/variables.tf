@@ -24,13 +24,15 @@ variable "CLUSTER_ENV_DOMAIN" {
 }
 
 variable "SUBDOMAIN_PUBLIC" {
-  description = "A list of public subdomains that will point to api.example.com"
+  description = "List of public subdomains to create CNAME records for"
   type        = list(string)
+  default     = []
 }
 
 variable "SUBDOMAIN_INTERNAL" {
-  description = "A list of internal subdomains that will point to api-internal.example.com"
+  description = "List of internal subdomains to create CNAME records for"
   type        = list(string)
+  default     = []
 }
 
 variable "MOSIP_EMAIL_ID" {
