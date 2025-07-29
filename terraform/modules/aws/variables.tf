@@ -4,6 +4,11 @@ variable "SSH_PRIVATE_KEY" { type = string }
 variable "K8S_CONTROL_PLANE_NODE_COUNT" { type = number }
 variable "K8S_ETCD_NODE_COUNT" { type = number }
 variable "K8S_WORKER_NODE_COUNT" { type = number }
+variable "ENABLE_RANCHER_IMPORT" {
+  description = "Set to true to enable Rancher import"
+  type        = bool
+  default     = false
+}
 variable "RANCHER_IMPORT_URL" {
   description = "Rancher import URL for kubectl apply"
   type        = string
@@ -12,6 +17,13 @@ variable "RANCHER_IMPORT_URL" {
     condition     = can(regex("^\"kubectl apply -f https://rancher\\.mosip\\.net/v3/import/[a-zA-Z0-9_\\-]+\\.yaml\"$", var.RANCHER_IMPORT_URL))
     error_message = "The RANCHER_IMPORT_URL must be in the format: '\"kubectl apply -f https://rancher.mosip.net/v3/import/<ID>.yaml\"'"
   }
+  # validation {
+  #   condition = (
+  #     var.RANCHER_IMPORT_URL == "" ||
+  #     can(regex("^\"kubectl apply -f https://rancher\\.mosip\\.net/v3/import/[a-zA-Z0-9_\\-]+\\.yaml\"$", var.RANCHER_IMPORT_URL))
+  #   )
+  #   error_message = "The RANCHER_IMPORT_URL must be empty or in the format: '\"kubectl apply -f https://rancher.mosip.net/v3/import/<ID>.yaml\"'"
+  # }
 }
 
 variable "CLUSTER_ENV_DOMAIN" {
@@ -81,6 +93,20 @@ variable "K8S_INFRA_REPO_URL" {
 variable "K8S_INFRA_BRANCH" {
   type    = string
   default = "main"
+}
+
+# AWS Configuration
+variable "aws_region" {
+  description = "AWS region"
+  type        = string
+  default     = "us-east-1"
+}
+
+# VPC Configuration - VPC name to discover existing VPC
+variable "vpc_name" {
+  description = "Name of the existing VPC (will be discovered by tag:Name)"
+  type        = string
+  default     = "mosip-boxes"
 }
 
 variable "NGINX_NODE_ROOT_VOLUME_SIZE" { type = number }

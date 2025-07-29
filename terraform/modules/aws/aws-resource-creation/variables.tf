@@ -87,7 +87,6 @@ locals {
   NGINX_INSTANCE = {
     ami                         = var.AMI
     instance_type               = var.NGINX_INSTANCE_TYPE
-    associate_public_ip_address = true
     key_name                    = var.SSH_KEY_NAME
     user_data                   = <<-EOF
 #!/bin/bash
@@ -153,7 +152,6 @@ EOF
   K8S_EC2_NODE = {
     ami                         = var.AMI
     instance_type               = var.K8S_INSTANCE_TYPE
-    associate_public_ip_address = true
     key_name                    = var.SSH_KEY_NAME
     #count                       = var.K8S_INSTANCE_COUNT
 
@@ -172,6 +170,20 @@ EOF
 
     }
   }
+}
+variable "VPC_ID" {
+  description = "VPC ID where resources will be created"
+  type        = string
+}
+
+variable "PUBLIC_SUBNET_ID" {
+  description = "Public subnet ID for NGINX instance"
+  type        = string
+}
+
+variable "PRIVATE_SUBNET_IDS" {
+  description = "List of private subnet IDs for K8s instances"
+  type        = list(string)
 }
 
 variable "K8S_CONTROL_PLANE_NODE_COUNT" { type = number }

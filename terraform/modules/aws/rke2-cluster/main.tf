@@ -121,7 +121,14 @@ resource "null_resource" "rke2-cluster-setup" {
   }
 }
 
+variable "enable_rancher_import" {
+  description = "Set to true to enable Rancher import"
+  type        = bool
+  default     = false
+}
+
 resource "null_resource" "rancher-import" {
+  count      = var.enable_rancher_import ? 1 : 0
   depends_on = [null_resource.rke2-primary-cluster-setup]
   connection {
     type        = "ssh"

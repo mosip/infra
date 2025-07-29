@@ -16,6 +16,7 @@ terraform {
 
 resource "aws_security_group" "security-group" {
   for_each = var.SECURITY_GROUP
+  vpc_id   = var.VPC_ID
   tags = {
     Name    = "${var.CLUSTER_NAME}-${each.key}"
     Cluster = var.CLUSTER_NAME
@@ -48,10 +49,11 @@ resource "aws_instance" "NGINX_EC2_INSTANCE" {
 
   ami                         = local.NGINX_INSTANCE.ami
   instance_type               = local.NGINX_INSTANCE.instance_type
-  associate_public_ip_address = lookup(local.NGINX_INSTANCE, "associate_public_ip_address", false)
+  associate_public_ip_address = true  # Always true - NGINX needs public IP in both scenarios
   key_name                    = local.NGINX_INSTANCE.key_name
   user_data                   = lookup(local.NGINX_INSTANCE, "user_data", "")
   vpc_security_group_ids      = local.NGINX_INSTANCE.security_groups
+  subnet_id                   = var.PUBLIC_SUBNET_ID
 
   ## for ssl certificate generation
   iam_instance_profile = aws_iam_instance_profile.certbot_profile.name
@@ -92,8 +94,9 @@ resource "aws_instance" "K8S_CLUSTER_EC2_INSTANCE" {
 
   ami                         = local.K8S_EC2_NODE.ami
   instance_type               = local.K8S_EC2_NODE.instance_type
-  associate_public_ip_address = lookup(local.K8S_EC2_NODE, "associate_public_ip_address", false)
+  associate_public_ip_address = false  # K8s instances always use private IPs
   key_name                    = local.K8S_EC2_NODE.key_name
+  subnet_id                   = var.PRIVATE_SUBNET_IDS[each.value % length(var.PRIVATE_SUBNET_IDS)]
   user_data = templatefile("${path.module}/rke-user-data.sh.tpl", {
     index          = each.value
     role           = each.key
@@ -104,9 +107,6 @@ resource "aws_instance" "K8S_CLUSTER_EC2_INSTANCE" {
     can(regex("CONTROL-PLANE-NODE", each.key)) ? aws_security_group.security-group["K8S_CONTROL_PLANE_SECURITY_GROUP"].id :
     can(regex("ETCD-NODE", each.key)) ? aws_security_group.security-group["K8S_ETCD_SECURITY_GROUP"].id : aws_security_group.security-group["K8S_WORKER_SECURITY_GROUP"].id
   ]
-  #user_data                   = lookup(local.K8S_EC2_NODE, "user_data", "")
-  #vpc_security_group_ids      = local.K8S_EC2_NODE.security_groups
-  #count                       = local.K8S_EC2_NODE.count
 
   root_block_device {
     volume_size           = local.K8S_EC2_NODE.root_block_device.volume_size
