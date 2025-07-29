@@ -62,56 +62,28 @@ apps:
   conf-secrets:
     namespace: conf-secrets 
     enabled: true
-    version: <chart version>
+    version: v1.3.0-beta.2
     chart: mosip/conf-secrets
     priority: -15
+    recreatePods: false  # Never recreate
+    hooks:
+      preInstall: |
+        # Check if any secrets exist in conf-secrets namespace
+        if kubectl get secrets -n conf-secrets 2>/dev/null | grep -q "conf-secrets-various"; then
+          echo "Conf-secrets already exist, skipping to preserve existing secrets"
+          exit 78
+        fi
+        echo "No existing secrets found, proceeding with conf-secrets creation"
+    preUpgrade: |
+      # Always skip on upgrade to preserve secrets
+      echo "Skipping conf-secrets upgrade to preserve existing random secrets"
+      exit 78
   config-server:
     namespace: config-server
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/config-server
-    set:
-      # image.repository: "mosipqa/kernel-config-server"
-      # image.tag: "develop"
-      gitRepo.uri: "https://github.com/mosip/mosip-config" 
-      gitRepo.version: "<mosip-config-branch>"
-      gitRepo.searchFolders: ""
-      gitRepo.private: "false"
-      gitRepo.username: ""
-      gitRepo.token: ""
-      resources.limits.cpu: "500m"
-      resources.limits.memory: "2000Mi"
-      resources.requests.cpu: "200m"
-      resources.requests.memory: "1000Mi"
-      spring_profiles.enabled: true
-      spring_profiles.spring_profiles_active: "composite"
-      spring_profiles.spring_compositeRepos[0].type: "git"
-      spring_profiles.spring_compositeRepos[0].uri: "https://github.com/mosip/inji-config"
-      spring_profiles.spring_compositeRepos[0].version: "<config-branch>"
-      spring_profiles.spring_compositeRepos[0].spring_cloud_config_server_git_cloneOnStart: true
-      spring_profiles.spring_compositeRepos[0].spring_cloud_config_server_git_force_pull: true
-      spring_profiles.spring_compositeRepos[0].spring_cloud_config_server_git_refreshRate: 5
-      spring_profiles.spring_compositeRepos[1].type: "git"
-      spring_profiles.spring_compositeRepos[1].uri: "https://github.com/mosip/mosip-config"
-      spring_profiles.spring_compositeRepos[1].version: "<config-branch>"
-      spring_profiles.spring_compositeRepos[1].spring_cloud_config_server_git_cloneOnStart: true
-      spring_profiles.spring_compositeRepos[1].spring_cloud_config_server_git_force_pull: true
-      spring_profiles.spring_compositeRepos[1].spring_cloud_config_server_git_refreshRate: 5
-      spring_profiles.spring_fail_on_composite_error: false
-      localRepo.enabled: false
-      localRepo.spring_profiles_active: "native"
-      localRepo.spring_cloud_config_server_native_search_locations: "file:///var/lib/config_repo"
-      localRepo.spring_cloud_config_server_accept_empty: true
-      localRepo.spring_cloud_config_server_git_force_pull: false
-      localRepo.spring_cloud_config_server_git_refreshRate: 0
-      localRepo.spring_cloud_config_server_git_cloneOnStart: false
-      volume.name: "config-server"
-      volume.storageClass: "nfs-csi"
-      volume.accessModes[0]: "ReadWriteMany"
-      volume.size: "10Mi"
-      volume.mountDir: "/var/lib/config_repo"
-      volume.nfs.path: ""
-      volume.nfs.server: ""
+    valuesFile: "$WORKDIR/utils/config-server-values.yaml"
     wait: true
     timeout: 1200
     priority: -14
@@ -121,26 +93,34 @@ apps:
   artifactory:
     namespace: artifactory
     enabled: true
-    version: <chart version>
+    version: 12.0.2
     chart: mosip/artifactory
     set:
-      # image.repository: "mosipid/artifactory-server"
-      # image.tag: "1.4.1-ES"
+      image.repository: "mosipid/artifactory-server"
+      image.tag: "1.4.1-ES"
     wait: true
     timeout: 1200
     priority: -13
     hooks:
+      # For fresh installations
       preInstall: "kubectl label ns artifactory istio-injection=enabled --overwrite"
       postInstall: "$WORKDIR/hooks/common-labeling-istio-and-sharing-cm-secrets-among-ns.sh"
+      
+      # For upgrades/retries
+      preUpgrade: "kubectl label ns artifactory istio-injection=enabled --overwrite"
+      postUpgrade: "$WORKDIR/hooks/common-labeling-istio-and-sharing-cm-secrets-among-ns.sh"
 
   captcha:
     namespace: captcha
     enabled: true
-    version: <chart version>
+    version: 0.1.0-beta.1
     chart: mosip/captcha
     set:
       # image.repository: "mosipdev/captcha-validation-service"
       # image.tag: "develop"
+      extraEnvVars[0].name: MOSIP_CAPTCHA_SECRET_PREREGISTRATION
+      extraEnvVars[0].valueFrom.secretKeyRef.name: mosip-captcha
+      extraEnvVars[0].valueFrom.secretKeyRef.key: prereg-captcha-secret-key
     priority: -13
     timeout: 1200
     hooks:
@@ -150,7 +130,7 @@ apps:
   mock-abis:
     namespace: abis
     enabled: true
-    version: <chart version>
+    version: 12.0.2
     chart: mosip/mock-abis
     set:
       startupProbe.failureThreshold: 60
@@ -163,7 +143,7 @@ apps:
   mock-mv:
     namespace: abis
     enabled: true
-    version: <chart version>
+    version: 12.0.2
     chart: mosip/mock-mv
     set:
       resources.requests.cpu: 200m
@@ -177,7 +157,7 @@ apps:
   kernel-keygen:
     namespace: keymanager
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/keygen
     set:
       # image.repository: "mosipdev/keys-generator"
@@ -196,11 +176,11 @@ apps:
   keymanager:
     namespace: keymanager
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/keymanager
-    # set:
-    #   image.repository: "mosipid/kernel-keymanager-service"
-    #   image.tag: "1.2.1.0"
+    set:
+      image.repository: "mosipid/kernel-keymanager-service"
+      image.tag: "1.2.1.0"
     #   persistence.enabled: "false"
     #   volumePermissions.enabled: "false"
     #   persistence.size: "<volume_size>"
@@ -215,7 +195,7 @@ apps:
   websub-consolidator:
     namespace: websub
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/websub-consolidator
     # set:
     #  image.repository: "mosipqa/consolidator-websub-service"
@@ -228,7 +208,7 @@ apps:
   websub:
     namespace: websub
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/websub
     # set:
     #   image.repository: "mosipqa/websub-service"
@@ -239,12 +219,12 @@ apps:
   mock-smtp:
     namespace: mock-smtp
     enabled: true
-    version: <chart version>
+    version: 1.0.0
     chart: mosip/mock-smtp
     set:
       # image.repository: "mosipdev/mock-smtp"
       # image.tag: "1.0.0"
-      istio.hosts[0]: "smtp.sanbox.mosip.net"
+      istio.hosts[0]: "smtp.testvpc.mosip.net"
     priority: -10
     timeout: 1200
 
@@ -252,12 +232,12 @@ apps:
   masterdata-loader:
     namespace: masterdata-loader
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/masterdata-loader
     set:
       # image.repository: "mosipqa/masterdata-loader"
       # image.tag: "develop"
-      mosipDataGithubBranch: "<update the branch>"
+      mosipDataGithubBranch: "v1.2.0.1"
       mosipDataGithubRepo: "https://github.com/mosip/mosip-data"
       mosipDataXlsfolderPath: "/home/mosip/mosip-data/mosip_master/xlsx"
     wait: true
@@ -268,7 +248,7 @@ apps:
   authmanager:
     namespace: kernel
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/authmanager
     # set:
     #   image.repository: "mosipdev/kernel-auth-service"
@@ -280,7 +260,7 @@ apps:
   auditmanager:
     namespace: kernel
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/auditmanager
     # set:
     #   image.repository: "mosipdev/kernel-auditmanager-service"
@@ -292,17 +272,17 @@ apps:
   idgenerator:
     namespace: kernel
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/idgenerator
     set:
       # image.repository: "bn1997/kernel-idgenerator-service"
       # image.tag: "develop"
-      # resources.limits.cpu: "1"
-      # resources.limits.memory: "3000Mi"
-      # resources.requests.cpu: "700m"
-      # resources.requests.memory: "2500Mi"
-      # startupProbe.failureThreshold: "30"
-      # startupProbe.periodSeconds: "10"
+      resources.limits.cpu: "1"
+      resources.limits.memory: "3000Mi"
+      resources.requests.cpu: "700m"
+      resources.requests.memory: "2500Mi"
+      startupProbe.failureThreshold: "30"
+      startupProbe.periodSeconds: "10"
     priority: -9
     timeout: 1200
 
@@ -310,16 +290,16 @@ apps:
   masterdata:
     namespace: kernel
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/masterdata
     set:
-      # image.repository: "mosipid/kernel-masterdata-service"
-      # image.tag: "1.2.1.1"
-      # resources.limits.cpu: "600m"
-      # resources.limits.memory: "4000Mi"
-      # resources.requests.cpu: "200m"
-      # resources.requests.memory: "2000Mi"
-      istio.corsPolicy.allowOrigins[0].exact: "https://admin.sanbox.mosip.net"
+      image.repository: "mosipid/kernel-masterdata-service"
+      image.tag: "1.2.1.2"
+      resources.limits.cpu: "600m"
+      resources.limits.memory: "4000Mi"
+      resources.requests.cpu: "200m"
+      resources.requests.memory: "2000Mi"
+      istio.corsPolicy.allowOrigins[0].exact: "https://admin.testvpc.mosip.net"
     priority: -9
     timeout: 1200
 
@@ -327,7 +307,7 @@ apps:
   otpmanager:
     namespace: kernel
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/otpmanager
     # set:
     #   image.repository: ""
@@ -339,7 +319,7 @@ apps:
   pridgenerator:
     namespace: kernel
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/pridgenerator
     # set:
     #   image.repository: ""
@@ -351,7 +331,7 @@ apps:
   ridgenerator:
     namespace: kernel
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/ridgenerator
     # set:
     #   image.repository: ""
@@ -363,16 +343,16 @@ apps:
   syncdata:
     namespace: kernel
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/syncdata
-    # set:
-    #   image.repository: "mosipid/kernel-syncdata-service"
-    #   image.tag: "1.2.1.1"
-    #   resources.limits.cpu: "500m"
-    #   resources.limits.memory: "5000Mi"
-    #   resources.requests.cpu: "300m"
-    #   resources.requests.memory: "2500Mi"
-    #   startupProbe.failureThreshold: "60"
+    set:
+      image.repository: "mosipid/kernel-syncdata-service"
+      image.tag: "1.2.1.2"
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "5000Mi"
+      resources.requests.cpu: "300m"
+      resources.requests.memory: "2500Mi"
+      startupProbe.failureThreshold: "60"
     priority: -9
     timeout: 1200
 
@@ -380,7 +360,7 @@ apps:
   notifier:
     namespace: kernel
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/notifier
     # set:
     #   image.repository: ""
@@ -392,7 +372,7 @@ apps:
   biosdk-service:
     namespace: biosdk
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/biosdk-service
     set:
       # image.repository: "mosipid/biosdk-server"
@@ -406,7 +386,7 @@ apps:
   packetmanager:
     namespace: packetmanager
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/packetmanager
     set:
       image.repository: "mosipid/commons-packet-service"
@@ -418,7 +398,7 @@ apps:
   datashare:
     namespace: datashare
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/datashare
     # set:
     #   image.repository: "mosipid/data-share-service"
@@ -429,32 +409,32 @@ apps:
   prereg-gateway:
     namespace: prereg
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/prereg-gateway
     set:
-      istio.hosts[0]: "prereg.sanbox.mosip.net"
+      istio.hosts[0]: "prereg.testvpc.mosip.net"
     priority: -8
     timeout: 1200
 
   prereg-captcha:
     namespace: prereg
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/prereg-captcha
-    # set:
-    #   image.repository: "mosipdev2/pre-registration-batchjob"
-    #   image.tag: "release-1.3.x"
+    set:
+      image.repository: "mosipid/pre-registration-captcha-service"
+      image.tag: "1.2.0.2"
     priority: -8
     timeout: 1200
 
   prereg-application:
     namespace: prereg
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/prereg-application
-    # set:
-    #   image.repository: "mosipdev2/pre-registration-application-service"
-    #   image.tag: "release-1.3.x"
+    set:
+      image.repository: "mosipid/pre-registration-application-service"
+      image.tag: "1.2.0.2"
     priority: -8
     timeout: 1200
 
@@ -462,22 +442,22 @@ apps:
   prereg-booking:
     namespace: prereg
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/prereg-booking
-    # set:
-    #   image.repository: "mosipdev2/pre-registration-booking-service"
-    #   image.tag: "release-1.3.x"
+    set:
+      image.repository: "mosipid/pre-registration-booking-service"
+      image.tag: "1.2.0.2"
     priority: -8
     timeout: 1200
 
   prereg-datasync:
     namespace: prereg
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/prereg-datasync
-    # set:
-    #   image.repository: "mosipdev2/pre-registration-datasync-service"
-    #   image.tag: "release-1.3.x"
+    set:
+      image.repository: "mosipid/pre-registration-datasync-service"
+      image.tag: "1.2.0.2"
     priority: -8
     timeout: 1200
 
@@ -485,11 +465,11 @@ apps:
   prereg-batchjob:
     namespace: prereg
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/prereg-batchjob
-    # set:
-    #   image.repository: "mosipdev2/pre-registration-batchjob"
-    #   image.tag: "release-1.3.x"
+    set:
+      image.repository: "mosipid/pre-registration-batchjob"
+      image.tag: "1.2.0.2"
     priority: -8
     timeout: 1200
 
@@ -498,12 +478,12 @@ apps:
   prereg-ui:
     namespace: prereg
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/prereg-ui
     set:
       # image.repository: ""
       # image.tag: ""
-      prereg.apiHost: "prereg.sanbox.mosip.net"
+      prereg.apiHost: "prereg.testvpc.mosip.net"
     priority: -8
     timeout: 1200
 
@@ -511,7 +491,7 @@ apps:
   idrepo-saltgen:
     namespace: idrepo
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/idrepo-saltgen
     # set:
     #   image.repository: ""
@@ -524,22 +504,22 @@ apps:
   credential:
     namespace: idrepo
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/credential
-    # set:
-    #   image.repository: "mosipid/credential-service"
-    #   image.tag: "1.2.2.1"
+    set:
+      image.repository: "mosipid/credential-service"
+      image.tag: "1.2.2.2"
     priority: -7
     timeout: 1200
 
   credentialrequest:
     namespace: idrepo
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/credentialrequest
-    # set:
-    #   image.repository: "mosipid/credential-request-generator"
-    #   image.tag: "1.2.2.1"
+    set:
+      image.repository: "mosipid/credential-request-generator"
+      image.tag: "1.2.2.2"
     priority: -6
     timeout: 1200
   
@@ -547,22 +527,22 @@ apps:
   identity:
     namespace: idrepo
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/identity
-    # set:
-    #   image.repository: "mosipid/id-repository-identity-service"
-    #   image.tag: "1.2.2.1"
+    set:
+      image.repository: "mosipid/id-repository-identity-service"
+      image.tag: "1.2.2.2"
     priority: -6
     timeout: 1200
 
   vid:
     namespace: idrepo
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/vid
-    # set:
-    #   image.repository: "mosipid/id-repository-vid-service"
-    #   image.tag: "1.2.2.1"
+    set:
+      image.repository: "mosipid/id-repository-vid-service"
+      image.tag: "1.2.2.2"
     priority: -5
     timeout: 1200
 
@@ -571,12 +551,12 @@ apps:
   pms-partner:
     namespace: pms
     enabled: true
-    version: <chart version>
+    version: 12.2.2
     chart: mosip/pms-partner
     set:
       # image.repository: "mosipid/partner-management-service"
       # image.tag: "1.2.2.1"
-      istio.corsPolicy.allowOrigins[0].prefix: "https://pmp.sanbox.mosip.net"
+      istio.corsPolicy.allowOrigins[0].prefix: "https://pmp.testvpc.mosip.net"
     priority: -8
     timeout: 1200
 
@@ -584,50 +564,50 @@ apps:
   pms-policy:
     namespace: pms
     enabled: true
-    version: <chart version>
+    version: 12.2.2
     chart: mosip/pms-policy
     set:
       # image.repository: "mosipid/partner-management-service"
       # image.tag: "1.2.2.1"
-      istio.corsPolicy.allowOrigins[0].prefix: "https://pmp.sanbox.mosip.net"
+      istio.corsPolicy.allowOrigins[0].prefix: "https://pmp.testvpc.mosip.net"
     priority: -8
     timeout: 1200
 
 
-  pmp-ui:
-    namespace: pms
-    enabled: true
-    version: <chart version>
-    chart: mosip/pmp-ui
-    set:
-      # image.repository: "mosipid/pmp-ui"
-      # image.tag: "1.2.2.1"
-      pmp.apiUrl: "https://api-internal.sanbox.mosip.net/"
-      istio.hosts[0]: "pmp.sanbox.mosip.net"
-    priority: -8
-    timeout: 1200
+  # pmp-ui:
+  #   namespace: pms
+  #   enabled: true
+  #   version: 12.0.2
+  #   chart: mosip/pmp-ui
+  #   set:
+  #     image.repository: "mosipid/pmp-ui"
+  #     image.tag: "1.2.2.1"
+  #     pmp.apiUrl: "https://api-internal.testvpc.mosip.net/"
+  #     istio.hosts[0]: "pmp.testvpc.mosip.net"
+  #   priority: -8
+  #   timeout: 1200
 
 
   pmp-revamp-ui:
     namespace: pms
     enabled: true
-    version: <chart version>
+    version: 12.2.2
     chart: mosip/pmp-revamp-ui
     set:
       # image.repository: "mosipqa/pmp-revamp-ui"
       # image.tag: "develop"
-      pmp_revamp.react_app_partner_manager_api_base_url: "https://api-internal.sanbox.mosip.net/v1/partnermanager"
-      pmp_revamp.react_app_policy_manager_api_base_url: "https://api-internal.sanbox.mosip.net/v1/policymanager"
+      pmp_revamp.react_app_partner_manager_api_base_url: "https://api-internal.testvpc.mosip.net/v1/partnermanager"
+      pmp_revamp.react_app_policy_manager_api_base_url: "https://api-internal.testvpc.mosip.net/v1/policymanager"
       pmp_revamp.pms_partner_manager_internal_service_url: "http://pms-partner.pms/v1/partnermanager"
       pmp_revamp.pms_policy_manager_internal_service_url: "http://pms-policy.pms/v1/policymanager"
-      istio.hosts[0]: "pmp-revamp.sanbox.mosip.net"
+      istio.hosts[0]: "pmp.testvpc.mosip.net"
     priority: -8
     timeout: 1200
 
   regproc-salt:
     namespace: regproc
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/regproc-salt
     set:
       # image.repository: "mosipdev/kernel-salt-generator"
@@ -639,7 +619,7 @@ apps:
   regproc-workflow:
     namespace: regproc
     enabled: true
-    version: <chart version>
+    version: 12.1.1
     chart: mosip/regproc-workflow
     # set:
     #   image.repository: ""
@@ -652,7 +632,7 @@ apps:
   regproc-status:
     namespace: regproc
     enabled: true
-    version: <chart version>
+    version: 12.1.1
     chart: mosip/regproc-status
     # set:
     #   image.repository: ""
@@ -663,7 +643,7 @@ apps:
   regproc-camel:
     namespace: regproc
     enabled: true
-    version: <chart version>
+    version: 12.1.1
     chart: mosip/regproc-camel
     # set:
     #   image.repository: ""
@@ -674,7 +654,7 @@ apps:
   regproc-pktserver:
     namespace: regproc
     enabled: true
-    version: <chart version>
+    version: 12.1.1
     chart: mosip/regproc-pktserver
     # set:
     #   image.repository: ""
@@ -685,7 +665,7 @@ apps:
   regproc-group1:
     namespace: regproc
     enabled: true
-    version: <chart version>
+    version: 12.1.1
     chart: mosip/regproc-group1
     set:
       persistence.storageClass: nfs-csi
@@ -698,7 +678,7 @@ apps:
   regproc-group2:
     namespace: regproc
     enabled: true
-    version: <chart version>
+    version: 12.1.1
     chart: mosip/regproc-group2
     set:
     #   image.repository: ""
@@ -710,7 +690,7 @@ apps:
   regproc-group3:
     namespace: regproc
     enabled: true
-    version: <chart version>
+    version: 12.1.1
     chart: mosip/regproc-group3
     # set:
     #   image.repository: ""
@@ -721,7 +701,7 @@ apps:
   regproc-group4:
     namespace: regproc
     enabled: true
-    version: <chart version>
+    version: 12.1.1
     chart: mosip/regproc-group4
     # set:
     #   image.repository: ""
@@ -732,7 +712,7 @@ apps:
   regproc-group5:
     namespace: regproc
     enabled: true
-    version: <chart version>
+    version: 12.1.1
     chart: mosip/regproc-group5
     # set:
     #   image.repository: ""
@@ -743,7 +723,7 @@ apps:
   regproc-group6:
     namespace: regproc
     enabled: true
-    version: <chart version>
+    version: 12.1.1
     chart: mosip/regproc-group6
     # set:
     #   image.repository: ""
@@ -754,7 +734,7 @@ apps:
   regproc-group7:
     namespace: regproc
     enabled: true
-    version: <chart version>
+    version: 12.1.1
     chart: mosip/regproc-group7
     # set:
     #   image.repository: "mosipdev/registration-processor-stage-group-7"
@@ -765,7 +745,7 @@ apps:
   regproc-trans:
     namespace: regproc
     enabled: true
-    version: <chart version>
+    version: 12.1.1
     chart: mosip/regproc-trans
     # set:
     #   image.repository: ""
@@ -776,13 +756,13 @@ apps:
   regproc-notifier:
     namespace: regproc
     enabled: true
-    version: <chart version>
+    version: 12.1.1
     chart: mosip/regproc-notifier
-    # set:
-    #   resources.limits.cpu: "500m"
-    #   resources.limits.memory: "1500Mi"
-    #   resources.requests.cpu: "500m"
-    #   resources.requests.memory: "1500Mi"
+    set:
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "1500Mi"
+      resources.requests.cpu: "500m"
+      resources.requests.memory: "1500Mi"
     #   image.repository: ""
     #   image.tag: ""
     timeout: 1200
@@ -791,7 +771,7 @@ apps:
   regproc-reprocess:
     namespace: regproc
     enabled: true
-    version: <chart version>
+    version: 12.1.1
     chart: mosip/regproc-reprocess
     # set:
     #   image.repository: ""
@@ -802,7 +782,7 @@ apps:
   regproc-landingzone:
     namespace: regproc
     enabled: true
-    version: <chart version>
+    version: 12.1.1
     chart: mosip/regproc-landingzone
     # set:
     #    image.repository: "mosipid/registration-processor-landing-zone"
@@ -813,11 +793,11 @@ apps:
   admin-hotlist:
     namespace: admin
     enabled: true
-    version: <chart version>
+    version: 12.1.1
     chart: mosip/admin-hotlist
     set:
-      # image.repository: "mosipqa/hotlist-service"
-      # image.tag: "1.3.x"
+      image.repository: "mosipid/hotlist-service"
+      image.tag: "1.2.1.2"
       resources.limits.cpu: "300m"
       resources.limits.memory: "1500Mi"
       resources.requests.cpu: "300m"
@@ -829,12 +809,12 @@ apps:
   admin-service:
     namespace: admin
     enabled: true
-    version: <chart version>
+    version: 12.1.1
     chart: mosip/admin-service
     set:
-      # image.repository: "mosipqa/admin-service"
-      # image.tag: "1.3.x"
-      istio.corsPolicy.allowOrigins[0].prefix: "https://admin.sanbox.mosip.net"
+      image.repository: "mosipid/admin-service"
+      image.tag: "1.2.1.2"
+      istio.corsPolicy.allowOrigins[0].prefix: "https://admin.testvpc.mosip.net"
       startupProbe.failureThreshold: 60
     timeout: 1200
     priority: -8
@@ -843,13 +823,13 @@ apps:
   admin-ui:
     namespace: admin
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/admin-ui
     set:
       # image.repository: "mosipqa/admin-ui"
       # image.tag: "1.3.x"
-      admin.apiUrl: "https://api-internal.sanbox.mosip.net/v1/"
-      istio.hosts[0]: "admin.sanbox.mosip.net"
+      admin.apiUrl: "https://api-internal.testvpc.mosip.net/v1/"
+      istio.hosts[0]: "admin.testvpc.mosip.net"
     timeout: 1200
     priority: -8
 
@@ -857,7 +837,7 @@ apps:
   ida-keygen:
     namespace: ida
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/keygen
     set:
       springConfigNameEnv: "id-authentication" 
@@ -874,16 +854,16 @@ apps:
   ida-auth:
     namespace: ida
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/ida-auth
-    # set:
-    #   image.repository: "mosipid/authentication-service"
-    #   image.tag: "1.2.1.0"
-    #   enable_insecure: "false"
-    #   persistence.enabled: "false"
-    #   volumePermissions.enabled: "false"
-    #   persistence.mountDir: "<volume_mount_path>"
-    #   persistence.existingClaim: "<PVC_CLAIM_NAME>"
+    set:
+      image.repository: "mosipid/authentication-service"
+      image.tag: "1.2.1.0"
+      # enable_insecure: "false"
+      # persistence.enabled: "false"
+      # volumePermissions.enabled: "false"
+      # persistence.mountDir: "<volume_mount_path>"
+      # persistence.existingClaim: "<PVC_CLAIM_NAME>"
     timeout: 1200
     priority: -7
     hooks:
@@ -892,39 +872,39 @@ apps:
   ida-internal:
     namespace: ida
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/ida-internal
-    # set:
-    #   image.repository: "mosipid/authentication-internal-service"
-    #   image.tag: "1.2.1.0"
-    #   enable_insecure: "false"
-    #   persistence.enabled: "false"
-    #   volumePermissions.enabled: "false"
-    #   persistence.mountDir: "<volume_mount_path>"
-    #   persistence.existingClaim: "<PVC_CLAIM_NAME>"
+    set:
+      image.repository: "mosipid/authentication-internal-service"
+      image.tag: "1.2.1.0"
+      # enable_insecure: "false"
+      # persistence.enabled: "false"
+      # volumePermissions.enabled: "false"
+      # persistence.mountDir: "<volume_mount_path>"
+      # persistence.existingClaim: "<PVC_CLAIM_NAME>"
     timeout: 1200
     priority: -6
 
   ida-otp:
     namespace: ida
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/ida-otp
-    # set:
-    #   image.repository: "mosipid/authentication-otp-service"
-    #   image.tag: "1.2.1.0"
-    #   enable_insecure: false
-    #   persistence.enabled: false
-    #   volumePermissions.enabled: false
-    #   persistence.mountDir: "<volume_mount_path>"
-    #   persistence.existingClaim: "<PVC_CLAIM_NAME>"
+    set:
+      image.repository: "mosipid/authentication-otp-service"
+      image.tag: "1.2.1.0"
+      # enable_insecure: false
+      # persistence.enabled: false
+      # volumePermissions.enabled: false
+      # persistence.mountDir: "<volume_mount_path>"
+      # persistence.existingClaim: "<PVC_CLAIM_NAME>"
     timeout: 1200
     priority: -5
 
   print:
     namespace: print
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/print-service
     # set:
     #   image.repository: "mosipdev/print"
@@ -936,11 +916,11 @@ apps:
   digitalcard:
     namespace: digitalcard
     enabled: true
-    version: <chart version>
+    version: 1.3.0-beta.1
     chart: mosip/digitalcard
-    # set:
-    #   image.repository: "mosipdev/digital-card-service"
-    #   image.tag: "develop"
+    set:
+     image.repository: "mosipid/digital-card-service"
+     image.tag: "1.2.0.1"
     timeout: 1200
     priority: -8
 
@@ -948,15 +928,15 @@ apps:
   resident:
     namespace: resident
     enabled: true
-    version: <chart version>
+    version: 12.1.1
     chart: mosip/resident
     set:
-      # image.repository: "mosipdev/resident-service"
-      # image.tag: "release-1.3.x"
-      # resources.requests.cpu: "300m"
-      # resources.requests.memory: "2000Mi"
-      # startupProbe.failureThreshold: "60"
-      istio.corsPolicy.allowOrigins[0].prefix: "https://resident.sanbox.mosip.net"
+      image.repository: "mosipid/resident-service"
+      image.tag: "1.2.1.2"
+      resources.requests.cpu: "300m"
+      resources.requests.memory: "2000Mi"
+      startupProbe.failureThreshold: "60"
+      istio.corsPolicy.allowOrigins[0].prefix: "https://resident.testvpc.mosip.net"
     timeout: 1000
     wait: true
     priority: -4
@@ -966,13 +946,13 @@ apps:
   resident-ui:
     namespace: resident
     enabled: true
-    version: <chart version>
+    version: 0.9.1
     chart: mosip/resident-ui
     set:
       # image.repository: "mosipdev2/resident-ui"
       # image.tag: "release-0.9.x"
-      resident.apiHost: "api-internal.sanbox.mosip.net"
-      istio.hosts[0]: "resident.sanbox.mosip.net"
+      resident.apiHost: "api-internal.testvpc.mosip.net"
+      istio.hosts[0]: "resident.testvpc.mosip.net"
     wait: true
     timeout: 1200
     priority: -3
@@ -980,7 +960,7 @@ apps:
   partner-onboarder:
     namespace: onboarder
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/partner-onboarder
     set:
       # image.repository: "mosipqa/partner-onboarder"
@@ -1027,15 +1007,15 @@ apps:
   mosip-file-server:
     namespace: mosip-file-server
     enabled: true
-    version: <chart version>
+    version: 0.0.1-develop
     chart: mosip/mosip-file-server
     set:
-      # image.repository: "mosipid/mosip-file-server"
-      # image.tag: "1.2.0.1"
-      mosipfileserver.host: "api.sanbox.mosip.net"
+      image.repository: "mosipid/mosip-file-server"
+      image.tag: "1.2.0.1"
+      mosipfileserver.host: "api.testvpc.mosip.net"
       # mosipfileserver.secrets.KEYCLOAK_CLIENT_SECRET: ""
-      istio.corsPolicy.allowOrigins[0].prefix: "https://api.sanbox.mosip.net"
-      istio.corsPolicy.allowOrigins[1].prefix: "https://api-internal.sanbox.mosip.net"
+      istio.corsPolicy.allowOrigins[0].prefix: "https://api.testvpc.mosip.net"
+      istio.corsPolicy.allowOrigins[1].prefix: "https://api-internal.testvpc.mosip.net"
       istio.corsPolicy.allowOrigins[2].prefix: "https://verifiablecredential.io"
     priority: -1
     timeout: 1200
@@ -1043,16 +1023,16 @@ apps:
   regclient:
     namespace: regclient
     enabled: true
-    version: <chart version>
+    version: 1.3.0-beta.1
     chart: mosip/regclient
     set:
       startupProbe.failureThreshold: "60"
-      # image.repository: "mosipid/registration-client"
-      # image.tag: "1.2.0.2"
-      regclient.version: "<version>"
-      regclient.upgradeServerUrl: "https://regclient.sanbox.mosip.net"
-      regclient.healthCheckUrl: "https://api-internal.sanbox.mosip.net/v1/syncdata/actuator/health"
-      regclient.hostName: "api-internal.sanbox.mosip.net"
-      istio.host: "regclient.sanbox.mosip.net"
+      image.repository: "mosipid/registration-client"
+      image.tag: "1.2.0.2"
+      regclient.version: "1.2.0.2"
+      regclient.upgradeServerUrl: "https://regclient.testvpc.mosip.net"
+      regclient.healthCheckUrl: "https://api-internal.testvpc.mosip.net/v1/syncdata/actuator/health"
+      regclient.hostName: "api-internal.testvpc.mosip.net"
+      istio.host: "regclient.testvpc.mosip.net"
     priority: -1
     timeout: 1200
