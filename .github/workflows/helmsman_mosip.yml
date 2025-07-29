@@ -75,7 +75,7 @@ jobs:
 
       - name: Configure WireGuard
         run: |
-          echo "${{ secrets.CLUSTER_WIREGUARD_WG1 }}" | sudo tee /etc/wireguard/wg0.conf
+          echo "${{ secrets.CLUSTER_WIREGUARD_WG0 }}" | sudo tee /etc/wireguard/wg0.conf
 
       - name: Start WireGuard
         run: |
