@@ -37,10 +37,10 @@ The infrastructure consists of four key components:
 
 ### Prerequisites
 
-* Import `infra` repository to your github account and set its visibility to private to ensure confidentiality.
-  ![terraform-2.png](../../../docs/_images/terraform-2.png)Import might take sometime to prepare repository.
-  ![terraform-3.png](../../../docs/_images/terraform-3.png)
-  ![terraform-4.png](../../../docs/_images/terraform-4.png)
+* Import `infra` repository to your GitHub account and set its visibility to private to ensure confidentiality.
+  - Go to the repository URL and click "Use this template" or "Fork"
+  - Set repository visibility to "Private"
+  - Import may take some time to prepare the repository
 * Create a new branch `env-<environment_name>` from master branch.
 * Goto `terraform/` location and update environment related details in `env.tfvars` file.
   * `CLUSTER_NAME`: The name of the Kubernetes cluster.Example: `sandbox`
@@ -69,8 +69,12 @@ The infrastructure consists of four key components:
 * This GitHub Action automates the Terraform workflow,
   allowing users to run `terraform plan` and optionally `terraform apply` commands within a CI/CD pipeline.
   The workflow is triggered manually via workflow_dispatch.
-* To trigger this workflow, go to the `Actions` tab in your GitHub repository. Select `terraform plan / apply` workflow and provide the required inputs and click `Run workflow` to start the workflow.
-  ![terraform-1.png](../../../docs/_images/terraform-1.png)
+* To trigger this workflow:
+  1. Go to the `Actions` tab in your GitHub repository
+  2. Select `terraform plan / apply` workflow
+  3. Click `Run workflow`
+  4. Provide the required inputs
+  5. Click `Run workflow` to start the workflow
 
 ### Inputs
 
@@ -89,8 +93,12 @@ The infrastructure consists of four key components:
 
 * This GitHub Action automates the `Terraform destroy` command within a CI/CD pipeline.
   The workflow can be manually triggered to destroy infrastructure managed by Terraform.
-* To trigger this workflow, go to the `Actions` tab in your GitHub repository. Select `terraform destroy` workflow and provide the required inputs and click `Run workflow` to start the workflow.
-  ![terraform-destroy-1.png](../../../docs/_images/terraform-destroy-1.png)
+* To trigger this workflow:
+  1. Go to the `Actions` tab in your GitHub repository
+  2. Select `terraform destroy` workflow
+  3. Click `Run workflow`
+  4. Provide the required inputs
+  5. Click `Run workflow` to start the workflow
 
 ### Inputs
 

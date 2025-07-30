@@ -96,18 +96,18 @@ graph TB
         GCP_MON -.->|Import| GCP_RKE2
     end
     
-    style AWS_VPC fill:#e1f5fe,stroke:#01579b
-    style AWS_MON fill:#fff3e0,stroke:#f57c00
-    style AWS_RKE1 fill:#f3e5f5,stroke:#4a148c
-    style AWS_RKE2 fill:#e8f5e8,stroke:#1b5e20
-    style AZ_VNET fill:#e1f5fe,stroke:#01579b
-    style AZ_MON fill:#fff3e0,stroke:#f57c00
-    style AZ_RKE1 fill:#f3e5f5,stroke:#4a148c
-    style AZ_RKE2 fill:#e8f5e8,stroke:#1b5e20
-    style GCP_VPC fill:#e1f5fe,stroke:#01579b
-    style GCP_MON fill:#fff3e0,stroke:#f57c00
-    style GCP_RKE1 fill:#f3e5f5,stroke:#4a148c
-    style GCP_RKE2 fill:#e8f5e8,stroke:#1b5e20
+    style AWS_VPC fill:#e1f5fe,stroke:#01579b,color:#000000
+    style AWS_MON fill:#fff3e0,stroke:#f57c00,color:#000000
+    style AWS_RKE1 fill:#f3e5f5,stroke:#4a148c,color:#000000
+    style AWS_RKE2 fill:#e8f5e8,stroke:#1b5e20,color:#000000
+    style AZ_VNET fill:#e1f5fe,stroke:#01579b,color:#000000
+    style AZ_MON fill:#fff3e0,stroke:#f57c00,color:#000000
+    style AZ_RKE1 fill:#f3e5f5,stroke:#4a148c,color:#000000
+    style AZ_RKE2 fill:#e8f5e8,stroke:#1b5e20,color:#000000
+    style GCP_VPC fill:#e1f5fe,stroke:#01579b,color:#000000
+    style GCP_MON fill:#fff3e0,stroke:#f57c00,color:#000000
+    style GCP_RKE1 fill:#f3e5f5,stroke:#4a148c,color:#000000
+    style GCP_RKE2 fill:#e8f5e8,stroke:#1b5e20,color:#000000
 ```
 
 ## Deployment Flow & Dependencies
@@ -146,15 +146,15 @@ graph TD
     N -.->|Optional Import| S
     P -.->|Optional Import| T
     
-    style F fill:#e1f5fe,stroke:#01579b
-    style G fill:#e1f5fe,stroke:#01579b
-    style H fill:#e1f5fe,stroke:#01579b
-    style L fill:#fff3e0,stroke:#f57c00
-    style N fill:#fff3e0,stroke:#f57c00
-    style P fill:#fff3e0,stroke:#f57c00
-    style M fill:#f3e5f5,stroke:#4a148c
-    style O fill:#f3e5f5,stroke:#4a148c
-    style Q fill:#f3e5f5,stroke:#4a148c
+    style F fill:#e1f5fe,stroke:#01579b,color:#000000
+    style G fill:#e1f5fe,stroke:#01579b,color:#000000
+    style H fill:#e1f5fe,stroke:#01579b,color:#000000
+    style L fill:#fff3e0,stroke:#f57c00,color:#000000
+    style N fill:#fff3e0,stroke:#f57c00,color:#000000
+    style P fill:#fff3e0,stroke:#f57c00,color:#000000
+    style M fill:#f3e5f5,stroke:#4a148c,color:#000000
+    style O fill:#f3e5f5,stroke:#4a148c,color:#000000
+    style Q fill:#f3e5f5,stroke:#4a148c,color:#000000
 ```
 
 ## Terraform Module Structure
@@ -220,15 +220,15 @@ graph TB
     GCP_INF --> GCP_LB
     GCP_INF --> GCP_STOR
     
-    style AWS_BASE fill:#e1f5fe,stroke:#01579b
-    style AWS_OBS fill:#fff3e0,stroke:#f57c00
-    style AWS_INF fill:#f3e5f5,stroke:#4a148c
-    style AZ_BASE fill:#e1f5fe,stroke:#01579b
-    style AZ_OBS fill:#fff3e0,stroke:#f57c00
-    style AZ_INF fill:#f3e5f5,stroke:#4a148c
-    style GCP_BASE fill:#e1f5fe,stroke:#01579b
-    style GCP_OBS fill:#fff3e0,stroke:#f57c00
-    style GCP_INF fill:#f3e5f5,stroke:#4a148c
+    style AWS_BASE fill:#e1f5fe,stroke:#01579b,color:#000000
+    style AWS_OBS fill:#fff3e0,stroke:#f57c00,color:#000000
+    style AWS_INF fill:#f3e5f5,stroke:#4a148c,color:#000000
+    style AZ_BASE fill:#e1f5fe,stroke:#01579b,color:#000000
+    style AZ_OBS fill:#fff3e0,stroke:#f57c00,color:#000000
+    style AZ_INF fill:#f3e5f5,stroke:#4a148c,color:#000000
+    style GCP_BASE fill:#e1f5fe,stroke:#01579b,color:#000000
+    style GCP_OBS fill:#fff3e0,stroke:#f57c00,color:#000000
+    style GCP_INF fill:#f3e5f5,stroke:#4a148c,color:#000000
 ```
 
 ## State File Isolation

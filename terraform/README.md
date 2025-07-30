@@ -164,10 +164,10 @@ graph TD
     B -.->|Optional Import| C
     C -.->|Can Deploy Multiple| D[Additional MOSIP Clusters<br/>Can be imported to Rancher]
     
-    style A fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    style B fill:#fff3e0,stroke:#f57c00,stroke-width:2px
-    style C fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
-    style D fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    style A fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
+    style B fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000000
+    style C fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000000
+    style D fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px,color:#000000
 ```
 
 **Deployment Order**: base-infra → observ-infra (optional) → infra (multiple clusters)
