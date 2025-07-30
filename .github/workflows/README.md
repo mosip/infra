@@ -71,10 +71,10 @@ graph LR
     B -.->|Import Clusters| C
     C --> D[Multiple MOSIP<br/>Deployments]
     
-    style A fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    style B fill:#fff3e0,stroke:#f57c00,stroke-width:2px
-    style C fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
-    style D fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    style A fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
+    style B fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000000
+    style C fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000000
+    style D fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px,color:#000000
 ```
 
 | Component | Purpose | Deployment Order | Dependencies | Lifecycle |
@@ -105,10 +105,10 @@ graph TD
     OUTPUT --> COMPLETE[Workflow Complete]
     SUCCESS --> COMPLETE
     
-    style START fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
-    style CREATES3 fill:#fff3e0,stroke:#f57c00,stroke-width:2px
-    style APPLY fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
-    style SUCCESS fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    style START fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px,color:#000000
+    style CREATES3 fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000000
+    style APPLY fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000000
+    style SUCCESS fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
 ```
 
 ## Automated S3 State Management

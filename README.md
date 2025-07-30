@@ -10,7 +10,7 @@ This repository contains **cloud-agnostic Terraform code** for deploying MOSIP (
 
 ### Three-Component Architecture
 
-![MOSIP Three-Component Architecture](docs/_images/terraform-architecture-mosip-infrastructure.png)
+![MOSIP Three-Component Architecture](docs/_images/mosip-rke2-architecture.svg)
 
 The MOSIP infrastructure follows a clean three-component architecture with isolated state management:
 
@@ -69,15 +69,15 @@ graph TB
     GCP_INFRA -.-> GCP_STATE
     
     style GHA fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:#fff
-    style AWS_BASE fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    style AWS_OBS fill:#fff3e0,stroke:#f57c00,stroke-width:2px
-    style AWS_INFRA fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
-    style AZ_BASE fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    style AZ_OBS fill:#fff3e0,stroke:#f57c00,stroke-width:2px
-    style AZ_INFRA fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
-    style GCP_BASE fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    style GCP_OBS fill:#fff3e0,stroke:#f57c00,stroke-width:2px
-    style GCP_INFRA fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style AWS_BASE fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
+    style AWS_OBS fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000000
+    style AWS_INFRA fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000000
+    style AZ_BASE fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
+    style AZ_OBS fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000000
+    style AZ_INFRA fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000000
+    style GCP_BASE fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
+    style GCP_OBS fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000000
+    style GCP_INFRA fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000000
 ```
 
 **Component Relationships:**
@@ -113,9 +113,9 @@ graph TD
     F1 --> F1C["observ-infra/"]
     
     classDef root fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:#fff
-    classDef component fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    classDef modules fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
-    classDef impl fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    classDef component fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
+    classDef modules fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px,color:#000000
+    classDef impl fill:#fce4ec,stroke:#880e4f,stroke-width:2px,color:#000000
     
     class A root
     class B,C,D component
