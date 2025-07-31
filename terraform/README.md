@@ -1,252 +1,537 @@
-# MOSIP Infrastructure Terraform
+# MOSIP Terraform Infrastructure
 
-> **Cloud-agnostic infrastructure automation for MOSIP platform deployment**
+![MOSIP Infrastructure](../docs/_images/mosip-cloud-agnostic-banner.png)
+
+This directory contains **cloud-agnostic Terraform code** for deploying MOSIP (Modular Open Source Identity Platform) infrastructure across **AWS, Azure, and GCP**. The architecture separates infrastructure into three distinct components for clear isolation and management.
 
 ## Architecture Overview
 
-```
-MOSIP Infrastructure (3-Component Architecture) 
-├── base-infra      → Foundation (VPC, Sub## Additional Documentationets, NAT, WireGuard VPN) - One-time setup
-├── observ-infra    → Management Cluster (Rancher UI + Keycloak + RBAC) - Optional, One-time
-└── infra           → MOSIP K8s Clusters (Multiple clusters, optionally imported to Rancher)
-```
+**For detailed architecture diagrams and deployment flows, see: [ARCHITECTURE_DIAGRAMS.md](../docs/_images/ARCHITECTURE_DIAGRAMS.md)**
 
-## Directory Structure
+### Three-Component Architecture
 
-```
-terraform/
-├── implementations/           # Cloud-specific deployments
-│   ├── aws/
-│   │   ├── base-infra/       # Foundation resources (VPC, subnets, jumpserver)
-│   │   ├── observ-infra/     # Management cluster (Rancher UI + Keycloak)
-│   │   └── infra/            # MOSIP application clusters
-│   ├── azure/                # Azure implementations
-│   └── gcp/                  # GCP implementations
-│
-├── modules/                  # Reusable Terraform modules
-│   ├── aws/                  # AWS-specific modules
-│   │   ├── aws-resource-creation/    # VPC, networking, security groups
-│   │   ├── rke2-cluster/            # Kubernetes cluster creation
-│   │   ├── nginx-setup/             # Load balancer setup
-│   │   └── nfs-setup/               # Storage setup
-│   ├── azure/                # Azure-specific modules
-│   └── gcp/                  # GCP-specific modules
-│
-├── base-infra/               # Component entry points
-├── observ-infra/             # Component entry points
-├── infra/                    # Component entry points
-└── README.md                 # This documentation
-```
+![MOSIP Three-Component Architecture](../docs/_images/mosip-rke2-architecture.svg)
 
-## Deployment Options
+The MOSIP infrastructure follows a clean three-component architecture with isolated state management:
 
-### Option 1: GitHub Actions (Recommended)
-```yaml
-# Automated deployment via workflows
-Component: base-infra | observ-infra | infra
-Cloud: aws | azure | gcp
-Backend: remote (S3 with encryption & versioning)
-```
-
-### Option 2: Manual Deployment
-```bash
-# 1. Foundation (Deploy first - One-time setup)
-cd implementations/aws/base-infra/
-terraform init && terraform apply -var-file="aws.tfvars"
-
-# 2. Management Cluster (Deploy second - Optional, One-time)
-cd implementations/aws/observ-infra/  
-terraform init && terraform apply -var-file="aws.tfvars"
-
-# 3. MOSIP Clusters (Deploy third - Can create multiple)
-cd implementations/aws/infra/
-terraform init && terraform apply -var-file="aws.tfvars"
-```
-
-## Component Details
-
-| Component | Purpose | Resources | Dependencies | Lifecycle |
-|-----------|---------|-----------|--------------|-----------|
-| **base-infra** | Foundation & VPN | VPC, Subnets, Security Groups, WireGuard Jumpserver | None | One-time setup |
-| **observ-infra** | Cluster Management | Rancher UI, Keycloak, RBAC Integration | base-infra | Optional, One-time |  
-| **infra** | MOSIP Clusters | Kubernetes clusters, NGINX load balancers, NFS storage | base-infra | Multiple deployments |
-
-### Detailed Component Breakdown
-
-#### **base-infra** (Foundation - Deploy First)
-- **VPC/VNet Creation**: Public/private subnets with proper CIDR allocation
-- **Network Components**: NAT gateways, Internet gateways, Route tables
-- **Security**: Security groups, Network ACLs, Firewall rules
-- **VPN Access**: Jumpserver with automated WireGuard container setup
-- **DNS & SSL**: Route53/Azure DNS zones, SSL certificate management
-
-#### **observ-infra** (Management - Optional Second)
-- **Rancher UI**: Web-based Kubernetes cluster management interface
-- **Keycloak**: Identity and access management service
-- **RBAC Integration**: Rancher-Keycloak integration for cluster access control
-- **Lightweight K8s**: Minimal cluster for management services only
-- **Import Capability**: Allows importing multiple infra clusters for centralized management
-
-#### **infra** (Applications - Deploy Third, Multiple Times)
-- **Production K8s Clusters**: Full-featured clusters for MOSIP services
-- **Load Balancing**: Application load balancers with SSL termination
-- **Storage**: Persistent volumes, NFS, database storage
-- **Databases**: PostgreSQL, Redis, other MOSIP data services
-- **Optional Import**: Can be imported to observ-infra Rancher for centralized management
-
-## Backend Configuration
-
-### Remote Backend (Production)
-```yaml
-BACKEND_TYPE: remote
-REMOTE_BACKEND_CONFIG: aws:my-terraform-bucket:us-west-2
-```
-- **Automated S3 bucket creation** with encryption (AES256) and versioning
-- **Branch-specific isolation**: `bucket-{branch}` naming
-- **Component-specific state**: `{cloud}-{component}-{branch}-terraform.tfstate`
-
-### Local Backend (Development)
-```yaml
-BACKEND_TYPE: local
-```
-- State files stored locally and committed to git (not recommended for production)
-
-## Multi-Cloud Support
-
-| Cloud | Status | Components | Features |
-|-------|--------|------------|----------|
-| **AWS** | Production Ready | All 3 components | RKE2, VPC, automated WireGuard |
-| **Azure** | Production Ready | All 3 components | RKE2, VNet, resource groups |
-| **GCP** | Production Ready | All 3 components | RKE2, VPC, project setup |
-
-## Security & Compliance
-
-- **State Encryption**: AES256 encryption for all remote state files
-- **State Versioning**: Automatic backup and rollback capability  
-- **Access Control**: IAM-based permissions with least privilege
-- **Resource Tagging**: Consistent tagging for cost management and compliance
-- **Network Isolation**: Private subnets with NAT gateways
-- **VPN Access**: Automated WireGuard setup for secure cluster access
-
-## State Management Architecture
-
-### Branch-Based Isolation
-```
-Production:  my-terraform-bucket-main
-Staging:     my-terraform-bucket-staging  
-Development: my-terraform-bucket-dev
+```mermaid
+graph TB
+    subgraph "GitHub Actions Orchestration"
+        GHA[GitHub Actions<br/>Central Deployment Control]
+    end
+    
+    subgraph "Multi-Cloud Infrastructure"
+        subgraph "AWS Cloud"
+            AWS_BASE[base-infra<br/>VPC + WireGuard]
+            AWS_OBS[observ-infra<br/>Rancher + Keycloak]
+            AWS_INFRA[infra<br/>MOSIP K8s Cluster]
+            AWS_STATE[(AWS S3<br/>State Files)]
+        end
+        
+        subgraph "Azure Cloud"
+            AZ_BASE[base-infra<br/>VNet + WireGuard]
+            AZ_OBS[observ-infra<br/>Rancher + Keycloak]
+            AZ_INFRA[infra<br/>MOSIP RKE2 Cluster]
+            AZ_STATE[(Azure Storage<br/>State Files)]
+        end
+        
+        subgraph "GCP Cloud"
+            GCP_BASE[base-infra<br/>VPC + WireGuard]
+            GCP_OBS[observ-infra<br/>Rancher + Keycloak]
+            GCP_INFRA[infra<br/>MOSIP RKE2 Cluster]
+            GCP_STATE[(GCS<br/>State Files)]
+        end
+    end
+    
+    GHA --> AWS_BASE
+    GHA --> AZ_BASE
+    GHA --> GCP_BASE
+    
+    AWS_BASE --> AWS_OBS
+    AWS_BASE --> AWS_INFRA
+    AWS_OBS -.->|Import| AWS_INFRA
+    AWS_BASE -.-> AWS_STATE
+    AWS_OBS -.-> AWS_STATE
+    AWS_INFRA -.-> AWS_STATE
+    
+    AZ_BASE --> AZ_OBS
+    AZ_BASE --> AZ_INFRA
+    AZ_OBS -.->|Import| AZ_INFRA
+    AZ_BASE -.-> AZ_STATE
+    AZ_OBS -.-> AZ_STATE
+    AZ_INFRA -.-> AZ_STATE
+    
+    GCP_BASE --> GCP_OBS
+    GCP_BASE --> GCP_INFRA
+    GCP_OBS -.->|Import| GCP_INFRA
+    GCP_BASE -.-> GCP_STATE
+    GCP_OBS -.-> GCP_STATE
+    GCP_INFRA -.-> GCP_STATE
+    
+    style GHA fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:#fff
+    style AWS_BASE fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
+    style AWS_OBS fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000000
+    style AWS_INFRA fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000000
+    style AZ_BASE fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
+    style AZ_OBS fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000000
+    style AZ_INFRA fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000000
+    style GCP_BASE fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
+    style GCP_OBS fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000000
+    style GCP_INFRA fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000000
 ```
 
-### Component-Specific State Files
-```
-my-terraform-bucket-main/
-├── aws-base-infra-main-terraform.tfstate     # Foundation layer
-├── aws-infra-main-terraform.tfstate          # Application layer  
-└── aws-observ-infra-main-terraform.tfstate   # Monitoring layer
-```
+**Component Relationships:**
+- **base-infra**: Foundation layer (VPC, WireGuard jumpserver)
+- **observ-infra**: Management layer (Rancher, Keycloak) - *Optional*
+- **infra**: Application layer (MOSIP Kubernetes deployment)
 
-## GitHub Actions Integration
-
-Professional-grade CI/CD automation:
-- **Create/Update**: `.github/workflows/terraform.yml`
-- **Destroy**: `.github/workflows/terraform-destroy.yml`
-- **Automated S3 Setup**: Bucket creation, encryption, versioning
-- **Branch Management**: Environment-specific deployments
-
-See: [GitHub Actions Documentation](../.github/workflows/README.md)
-
-## Deployment Sequence
+### Terraform Directory Structure
 
 ```mermaid
 graph TD
-    A[1. base-infra<br/>VPC + WireGuard VPN] --> B[2. observ-infra<br/>Rancher UI + Keycloak<br/>Optional]
-    A --> C[3. infra<br/>RKE2 + NGINX + NFS]
-    B -.->|Optional Import| C
-    C -.->|Can Deploy Multiple| D[Additional MOSIP Clusters<br/>Can be imported to Rancher]
+    A["terraform/"] --> B["base-infra/"]
+    A --> C["infra/"]
+    A --> D["observ-infra/"]
+    A --> E["modules/"]
+    A --> F["implementations/"]
     
-    style A fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
-    style B fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000000
-    style C fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000000
-    style D fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px,color:#000000
+    E --> E1["aws/"]
+    E --> E2["azure/"]
+    E --> E3["gcp/"]
+    
+    E1 --> E1A["aws-resource-creation/"]
+    E1 --> E1B["nginx-setup/"]
+    E1 --> E1C["rke2-cluster/"]
+    E1 --> E1D["nfs-setup/"]
+    
+    F --> F1["aws/"]
+    F --> F2["azure/"]
+    F --> F3["gcp/"]
+    
+    F1 --> F1A["base-infra/"]
+    F1 --> F1B["infra/"]
+    F1 --> F1C["observ-infra/"]
+    
+    classDef root fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:#fff
+    classDef component fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
+    classDef modules fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px,color:#000000
+    classDef impl fill:#fce4ec,stroke:#880e4f,stroke-width:2px,color:#000000
+    
+    class A root
+    class B,C,D component
+    class E,E1,E2,E3,E1A,E1B,E1C,E1D modules
+    class F,F1,F2,F3,F1A,F1B,F1C impl
 ```
 
-**Deployment Order**: base-infra → observ-infra (optional) → infra (multiple clusters)
+**Color Legend:**
+- 🔵 **Blue** - Root directory (terraform/)
+- 🔷 **Light Blue** - Component directories (base-infra/, infra/, observ-infra/)
+- 🟢 **Green** - Reusable modules (aws/, azure/, gcp/ modules)
+- 🟣 **Pink** - Cloud implementations (deployment configurations)
 
-## Resource Tagging Strategy
+## Component Overview
 
-```hcl
-tags = {
-  Project      = "MOSIP"
-  Environment  = "production|staging|development"  
-  Component    = "base-infra|infra|observ-infra"
-  ManagedBy    = "Terraform"
-  Owner        = "Platform-Team"
-  CostCenter   = "MOSIP-Infrastructure"
-}
+### Base Infrastructure (base-infra)
+- **Purpose**: Foundational networking and VPN access
+- **Includes**: VPC/VNet, Subnets, Security Groups, Jumpserver, WireGuard VPN
+- **Lifecycle**: Deploy once, rarely destroyed
+- **State File**: `{cloud}-base-infra-terraform.tfstate`
+
+### MOSIP Infrastructure (infra)
+- **Purpose**: Core MOSIP services and external dependencies
+- **Includes**: Kubernetes cluster for MOSIP core services, external services, databases, storage
+- **Workloads**: Authentication, Registration, Partner Management, etc.
+- **Lifecycle**: Can be destroyed and recreated as needed
+- **State File**: `{cloud}-infra-terraform.tfstate`
+
+### Observation Infrastructure (observ-infra)
+- **Purpose**: Observation and monitoring tools
+- **Includes**: Minimal Kubernetes cluster for observation tools
+- **Workloads**: Rancher UI, Keycloak, Integration services
+- **Resources**: Minimal CPU/Memory configuration (different from infra)
+- **Lifecycle**: Independent from MOSIP core services
+- **State File**: `{cloud}-observ-infra-terraform.tfstate`
+
+## Deployment Workflow
+
+### Three-Phase Deployment Strategy
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant GitHub Actions
+    participant Cloud Provider
+    participant Terraform State
+    
+    Note over User,Terraform State: Phase 1: Base Infrastructure (One-time)
+    User->>GitHub Actions: Trigger terraform.yml<br/>(base-infra)
+    GitHub Actions->>Cloud Provider: Deploy VPC, Jumpserver, WireGuard
+    Cloud Provider-->>Terraform State: Store base-infra state
+    GitHub Actions-->>User: Base infrastructure ready
+    
+    Note over User,Terraform State: Phase 2: MOSIP Infrastructure (Repeatable)
+    User->>GitHub Actions: Trigger terraform.yml<br/>(infra)
+    GitHub Actions->>Cloud Provider: Deploy K8s for MOSIP core/external services
+    Cloud Provider-->>Terraform State: Store infra state
+    GitHub Actions-->>User: MOSIP infrastructure ready
+    
+    Note over User,Terraform State: Phase 3: Observation Infrastructure (Independent)
+    User->>GitHub Actions: Trigger terraform.yml<br/>(observ-infra)
+    GitHub Actions->>Cloud Provider: Deploy K8s for Rancher UI, Keycloak
+    Cloud Provider-->>Terraform State: Store observ-infra state
+    GitHub Actions-->>User: Observation infrastructure ready
+    
+    Note over User,Terraform State: Phase 4: Safe Destruction (When needed)
+    User->>GitHub Actions: Trigger terraform-destroy.yml<br/>(infra or observ-infra)
+    GitHub Actions->>Cloud Provider: Destroy selected resources
+    Cloud Provider-->>Terraform State: Clear selected state
+    GitHub Actions-->>User: Resources destroyed, base intact
 ```
 
-## Key Features
+## Quick Start Guide
 
-### Automated WireGuard VPN
-- **Zero-touch setup**: Jumpserver auto-configured with WireGuard container
-- **Multi-client support**: Configurable peer count (default: 30 clients)
-- **Ready-to-use**: Docker, Ansible, k8s-infra repo pre-installed
-- **Management tools**: Built-in status check and restart scripts
+### Prerequisites
 
-### Cloud-Agnostic Design  
-- **Consistent APIs**: Same Terraform workflow across AWS/Azure/GCP
-- **Modular architecture**: Reusable modules and implementations
-- **Environment parity**: Identical infrastructure across environments
+1. **GitHub Secrets Configuration** (per cloud):
+   ```yaml
+   # AWS
+   AWS_ACCESS_KEY_ID: your-aws-access-key
+   AWS_SECRET_ACCESS_KEY: your-aws-secret-key
+   
+   # Azure  
+   AZURE_CLIENT_ID: your-azure-client-id
+   AZURE_CLIENT_SECRET: your-azure-client-secret
+   AZURE_SUBSCRIPTION_ID: your-azure-subscription-id
+   AZURE_TENANT_ID: your-azure-tenant-id
+   
+   # GCP
+   GOOGLE_CREDENTIALS: your-gcp-service-account-json
+   
+   # Common
+   YOUR_SSH_KEY_NAME: your-ssh-private-key-content
+   WG_CONFIG: wireguard-configuration
+   SLACK_WEBHOOK_URL: slack-webhook-for-notifications
+   
 
-### Production Security
-- **Encrypted state**: AES256 S3 encryption with versioning
-- **Network isolation**: Private subnets with controlled egress
-- **Access control**: IAM roles with least-privilege principles
-- **Audit trail**: Comprehensive resource tagging and logging
+2. **State Storage Setup**:
+   - **AWS**: S3 bucket for Terraform state
+   - **Azure**: Storage Account with container
+   - **GCP**: GCS bucket for state storage
+
+### Step 1: Deploy Base Infrastructure
+
+```bash
+# Via GitHub Actions UI:
+# 1. Go to Actions → terraform plan / apply
+# 2. Select:
+#    - CLOUD_PROVIDER: aws
+#    - TERRAFORM_COMPONENT: base-infra
+#    - SSH_PRIVATE_KEY: YOUR_SSH_KEY_NAME
+#    - TERRAFORM_APPLY: true
+```
+
+### Step 2: Deploy MOSIP Infrastructure
+
+```bash
+# Via GitHub Actions UI:
+# 1. Go to Actions → terraform plan / apply  
+# 2. Select:
+#    - CLOUD_PROVIDER: aws
+#    - TERRAFORM_COMPONENT: infra
+#    - SSH_PRIVATE_KEY: YOUR_SSH_KEY_NAME
+#    - TERRAFORM_APPLY: true
+```
+
+### Step 3: Deploy Observation Infrastructure (Optional)
+
+```bash
+# Via GitHub Actions UI:
+# 1. Go to Actions → terraform plan / apply  
+# 2. Select:
+#    - CLOUD_PROVIDER: aws
+#    - TERRAFORM_COMPONENT: observ-infra
+#    - SSH_PRIVATE_KEY: YOUR_SSH_KEY_NAME
+#    - TERRAFORM_APPLY: true
+```
+
+### Step 4: Access Your MOSIP Deployment
+
+After successful deployment, access your MOSIP services:
+
+```bash
+# MOSIP Services (from infra)
+https://your-domain.mosip.net        # MOSIP Landing Page
+https://api.your-domain.mosip.net    # API Gateway
+https://admin.your-domain.mosip.net  # Admin Console
+
+# Observation Services (from observ-infra)
+https://rancher.your-domain.mosip.net    # Rancher UI
+https://keycloak.your-domain.mosip.net   # Keycloak Management
+```
+
+## 📁 Directory Structure
+
+```
+terraform/
+├── 📋 README.md                              # This file
+├── 🏛️ base-infra/                           # Foundational infrastructure
+│   ├── main.tf                              # Cloud selector for base infrastructure
+│   ├── variables.tf                         # Common base infrastructure variables
+│   ├── outputs.tf                           # Common base infrastructure outputs
+│   ├── aws/                                 # AWS base infrastructure
+│   │   ├── main.tf                          # AWS VPC, subnets, jumpserver, WireGuard
+│   │   ├── variables.tf                     # AWS-specific base variables
+│   │   └── outputs.tf                       # AWS base infrastructure outputs
+│   ├── azure/                               # Azure base infrastructure (placeholder)
+│   └── gcp/                                 # GCP base infrastructure (placeholder)
+├── 🏗️ infra/                                # MOSIP infrastructure interface
+│   ├── main.tf                              # Cloud selector for MOSIP infrastructure
+│   ├── variables.tf                         # Common MOSIP variables
+│   ├── outputs.tf                           # Common MOSIP outputs
+│   ├── aws/                                 # AWS MOSIP infrastructure interface
+│   │   ├── main.tf                          # Calls AWS modules for MOSIP services
+│   │   ├── variables.tf                     # AWS-specific MOSIP variables
+│   │   └── outputs.tf                       # AWS MOSIP outputs
+│   ├── azure/                               # Azure MOSIP infrastructure (placeholder)
+│   └── gcp/                                 # GCP MOSIP infrastructure (placeholder)
+├── 🔧 observ-infra/                         # Observation infrastructure interface
+│   ├── main.tf                              # Cloud selector for observation infrastructure
+│   ├── variables.tf                         # Common observation variables
+│   ├── outputs.tf                           # Common observation outputs
+│   ├── aws/                                 # AWS observation infrastructure interface
+│   │   ├── main.tf                          # Calls AWS modules for Rancher UI, Keycloak
+│   │   ├── variables.tf                     # AWS-specific observation variables
+│   │   └── outputs.tf                       # AWS observation outputs
+│   ├── azure/                               # Azure observation infrastructure (placeholder)
+│   └── gcp/                                 # GCP observation infrastructure (placeholder)
+├── 🧱 modules/                              # Reusable infrastructure modules
+│   ├── aws/                                 # AWS-specific modules
+│   │   ├── main.tf                          # AWS module interface
+│   │   ├── variables.tf                     # AWS module variables
+│   │   ├── outputs.tf                       # AWS module outputs
+│   │   ├── aws-resource-creation/           # Core AWS resources
+│   │   ├── nginx-setup/                     # NGINX load balancer setup
+│   │   ├── rke2-cluster/                    # RKE2 Kubernetes cluster
+│   │   └── nfs-setup/                       # NFS storage setup
+│   ├── azure/                               # Azure modules (placeholder)
+│   └── gcp/                                 # GCP modules (placeholder)
+├── 🚀 implementations/                      # Deployable configurations
+│   ├── aws/                                 # AWS implementations
+│   │   ├── base-infra/                      # AWS base infrastructure deployment
+│   │   │   ├── main.tf                      # Points to base-infra/aws
+│   │   │   ├── variables.tf                 # AWS base configuration
+│   │   │   ├── outputs.tf                   # AWS base outputs
+│   │   │   └── aws.tfvars                   # AWS base configuration values
+│   │   ├── infra/                           # AWS MOSIP infrastructure deployment
+│   │   │   ├── main.tf                      # Points to infra/aws
+│   │   │   ├── variables.tf                 # AWS MOSIP configuration
+│   │   │   ├── outputs.tf                   # AWS MOSIP outputs
+│   │   │   └── aws.tfvars                   # AWS MOSIP configuration values
+│   │   └── observ-infra/                    # AWS observation infrastructure deployment
+│   │       ├── main.tf                      # Points to observ-infra/aws
+│   │       ├── variables.tf                 # AWS observation configuration
+│   │       ├── outputs.tf                   # AWS observation outputs
+│   │       └── aws.tfvars                   # AWS observation configuration values
+│   ├── azure/                               # Azure implementations
+│   │   ├── base-infra/                      # Azure base infrastructure
+│   │   ├── infra/                           # Azure MOSIP infrastructure
+│   │   └── observ-infra/                    # Azure observation infrastructure
+│   └── gcp/                                 # GCP implementations
+│       ├── base-infra/                      # GCP base infrastructure
+│       ├── infra/                           # GCP MOSIP infrastructure
+│       └── observ-infra/                    # GCP observation infrastructure
+└── CLOUD_AGNOSTIC_README.md             # Detailed technical documentation
+```
+
+## State Management
+
+### Isolated State Files
+
+Each cloud provider and component combination maintains its own state file:
+
+```
+State File Isolation Structure
+==============================
+
+AWS States:
+├── aws-base-infra-terraform.tfstate     (VPC, Jumpserver, WireGuard)
+├── aws-infra-terraform.tfstate          (K8s for MOSIP Core/External)
+└── aws-observ-infra-terraform.tfstate   (K8s for Rancher UI, Keycloak)
+
+Azure States:
+├── azure-base-infra-terraform.tfstate   (VNet, Jumpserver, WireGuard)
+├── azure-infra-terraform.tfstate        (RKE2 for MOSIP Core/External)
+└── azure-observ-infra-terraform.tfstate (RKE2 for Rancher UI, Keycloak)
+
+GCP States:
+├── gcp-base-infra-terraform.tfstate     (VPC, Jumpserver, WireGuard)
+├── gcp-infra-terraform.tfstate          (RKE2 for MOSIP Core/External)
+└── gcp-observ-infra-terraform.tfstate   (RKE2 for Rancher UI, Keycloak)
+```
+
+### Benefits of Isolated States
+
+- **No Cross-Cloud Interference**: Each cloud is completely isolated  
+- **Safe Partial Destruction**: Destroy MOSIP or observation infrastructure without affecting base  
+- **Independent Scaling**: Scale each cloud deployment independently  
+- **Component Isolation**: MOSIP services and observation tools are separate  
+- **Reduced Blast Radius**: Errors in one component don't affect others  
+- **Parallel Development**: Teams can work on different clouds and components simultaneously  
+
+## GitHub Actions Workflows
+
+### terraform.yml - Infrastructure Deployment
+
+**Inputs:**
+- `CLOUD_PROVIDER`: aws | azure | gcp
+- `TERRAFORM_COMPONENT`: base-infra | infra | observ-infra
+- `SSH_PRIVATE_KEY`: GitHub secret name
+- `TERRAFORM_APPLY`: true/false
+
+**Workflow Features:**
+- Dynamic backend configuration per cloud
+- Component-specific warnings and validations  
+- Isolated working directories
+- Support for all three components
+- Comprehensive logging and status reporting
+
+### terraform-destroy.yml - Infrastructure Destruction
+
+**Inputs:**
+- `CLOUD_PROVIDER`: aws | azure | gcp
+- `TERRAFORM_COMPONENT`: infra | observ-infra (base-infra protected)
+- `SSH_PRIVATE_KEY`: GitHub secret name
+- `TERRAFORM_DESTROY`: true (required for confirmation)
+
+**Safety Features:**
+- Critical warnings for base-infra destruction
+- Explicit confirmation required
+- Automatic cleanup of state files after successful destruction
+- Detailed destruction planning before execution
+
+## Key Benefits
+
+### True Cloud Agnostic
+- Deploy to AWS, Azure, and GCP with identical interfaces
+- Switch clouds without changing core logic
+- Multi-cloud deployments for high availability
+
+### Modular Architecture 
+- Clear separation between base and application infrastructure
+- Reusable modules across different deployments
+- Easy to extend with new cloud providers
+
+### Safe Operations
+- Isolated state management prevents accidental interference
+- Explicit confirmation required for destructive operations
+- Comprehensive validation and error handling
+
+### Scalable Design
+- Support for multiple environments per cloud
+- Easy to add new components and modules
+- Consistent patterns across all clouds
+
+### Developer Friendly
+- Intuitive directory structure
+- Comprehensive documentation and examples
+- GitHub Actions integration for CI/CD
+
+## Advanced Usage
+
+### Multi-Cloud Deployment
+
+Deploy the same MOSIP infrastructure across multiple clouds:
+
+```
+Deployment Sequence:
+# Deploy to AWS
+terraform.yml → CLOUD_PROVIDER: aws, TERRAFORM_COMPONENT: base-infra
+terraform.yml → CLOUD_PROVIDER: aws, TERRAFORM_COMPONENT: infra
+
+# Deploy to Azure  
+terraform.yml → CLOUD_PROVIDER: azure, TERRAFORM_COMPONENT: base-infra
+terraform.yml → CLOUD_PROVIDER: azure, TERRAFORM_COMPONENT: infra
+
+# Deploy to GCP
+terraform.yml → CLOUD_PROVIDER: gcp, TERRAFORM_COMPONENT: base-infra
+terraform.yml → CLOUD_PROVIDER: gcp, TERRAFORM_COMPONENT: infra
+```
+
+### Environment-Specific Deployments
+
+Create multiple environments by duplicating implementation directories:
+
+```
+implementations/
+├── aws/
+│   ├── base-infra/          # Shared base infrastructure
+│   ├── infra-prod/          # Production environment
+│   ├── infra-staging/       # Staging environment  
+│   └── infra-dev/           # Development environment
+```
+
+### Custom Module Development
+
+Add new modules following the established pattern:
+
+```
+modules/
+├── aws/
+│   ├── your-custom-module/
+│   │   ├── main.tf
+│   │   ├── variables.tf
+│   │   └── outputs.tf
+```
 
 ## Troubleshooting
 
-### Common Issues & Solutions
+### Common Issues
 
-| Issue | Solution |
-|-------|----------|
-| **State Lock Error** | `terraform force-unlock LOCK_ID` |
-| **Provider Auth Failed** | `aws sts get-caller-identity` / `az account show` / `gcloud auth list` |
-| **Backend Init Failed** | `terraform init -reconfigure` |
-| **Module Not Found** | `terraform init -upgrade` |
-| **S3 Access Denied** | Verify IAM permissions for S3 and DynamoDB |
+1. **State File Conflicts**
+   ```
+   Error: Resource already exists in state
+   ```
+   **Solution**: Ensure you're not mixing old and new directory structures
 
-### Validation Commands
-```bash
-# Verify Terraform syntax
-terraform validate
+2. **Backend Configuration Issues**
+   ```
+   Error: Backend configuration changed
+   ```
+   **Solution**: Run `terraform init -reconfigure` in the implementation directory
 
-# Check state file integrity  
-terraform state list
+3. **Missing Dependencies**
+   ```
+   Error: base-infra resources not found
+   ```
+   **Solution**: Deploy base-infra before application infrastructure
 
-# Verify provider authentication
-terraform providers
+### Debugging Tips
 
-# Test connectivity to backend
-terraform init -backend=false
-```
+- Enable Terraform logging: Set `TF_LOG=DEBUG` in workflow
+- Check state file location in cloud storage
+- Verify cloud provider credentials and permissions
+- Review implementation directory tfvars files
 
-## � Additional Documentation
+## Support and Contributing
 
-- **[AWS Implementation Guide](implementations/aws/README.md)** - AWS-specific deployment details
-- **[Azure Implementation Guide](implementations/azure/README.md)** - Azure-specific deployment details  
-- **[GCP Implementation Guide](implementations/gcp/README.md)** - GCP-specific deployment details
-- **[Module Documentation](modules/README.md)** - Detailed module specifications
-- **[GitHub Actions Guide](../.github/workflows/README.md)** - CI/CD workflow documentation
+### Getting Help
+- Check [CLOUD_AGNOSTIC_README.md](CLOUD_AGNOSTIC_README.md) for detailed technical docs
+- Review [GitHub Actions Workflows](../.github/workflows/README.md) for CI/CD details
+- Open issues for bugs or feature requests
+
+### Contributing
+1. Fork the repository
+2. Create feature branch: `git checkout -b feature/your-feature`
+3. Follow the established directory structure and naming conventions
+4. Test changes with both plan and apply operations
+5. Submit pull request with detailed description
+
+## License
+
+This project is licensed under the [Mozilla Public License 2.0](../LICENSE).
 
 ---
 
-## Support & Maintenance
+**Built for the MOSIP Community**
 
-**Production Support**: Platform Engineering Team  
-**Documentation**: Keep up-to-date with infrastructure changes  
-**Monitoring**: Use observ-infra component for infrastructure health  
-**Backup**: State files automatically versioned in S3
-
-**Production-ready infrastructure with comprehensive security, monitoring, and compliance**
-
+*Enabling secure, scalable, and cloud-agnostic identity infrastructure worldwide.*
