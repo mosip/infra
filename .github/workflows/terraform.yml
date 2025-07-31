@@ -137,7 +137,7 @@ jobs:
             if [ $? -eq 0 ]; then
               echo "✅ Bucket versioning enabled"
             else
-              echo "⚠️  Warning: Failed to enable versioning, but continuing..."
+              echo "Warning: Failed to enable versioning, but continuing..."
             fi
             
             # Enable server-side encryption for security
@@ -157,7 +157,7 @@ jobs:
             if [ $? -eq 0 ]; then
               echo "✅ Bucket encryption enabled"
             else
-              echo "⚠️  Warning: Failed to enable encryption, but continuing..."
+              echo "Warning: Failed to enable encryption, but continuing..."
             fi
             
             # Block public access for security
@@ -170,22 +170,22 @@ jobs:
             if [ $? -eq 0 ]; then
               echo "✅ Public access blocked"
             else
-              echo "⚠️  Warning: Failed to block public access, but continuing..."
+              echo "Warning: Failed to block public access, but continuing..."
             fi
             
             # Store dynamic bucket name for next step
             echo "DYNAMIC_BUCKET_NAME=$DYNAMIC_BUCKET_NAME" >> $GITHUB_ENV
             echo "DYNAMIC_REGION=$REGION" >> $GITHUB_ENV
             
-            echo "🎯 S3 bucket setup completed: $DYNAMIC_BUCKET_NAME"
+            echo "S3 bucket setup completed: $DYNAMIC_BUCKET_NAME"
           else
-            echo "ℹ️  Skipping S3 bucket setup (not AWS remote backend)"
+            echo "Skipping S3 bucket setup (not AWS remote backend)"
           fi
 
       - name: Configure Terraform Backend for State Management
         run: |
           # Configure backend based on user choice and cloud provider
-          echo "🔧 Configuring Terraform backend..."
+          echo "Configuring Terraform backend..."
           echo "Backend type: ${{ inputs.BACKEND_TYPE }}"
           echo "Cloud provider: ${{ inputs.CLOUD_PROVIDER }}"
           echo "Component: ${{ inputs.TERRAFORM_COMPONENT }}"
@@ -206,7 +206,7 @@ jobs:
             echo "✅ Local backend configuration created"
             
           elif [ "${{ inputs.BACKEND_TYPE }}" = "remote" ]; then
-            echo "☁️  Using remote backend for state management"
+            echo "Using remote backend for state management"
             
             # Parse REMOTE_BACKEND_CONFIG
             BACKEND_CONFIG="${{ inputs.REMOTE_BACKEND_CONFIG }}"
@@ -319,7 +319,7 @@ jobs:
             fi
           fi
           
-          echo "📋 Backend configuration:"
+          echo "Backend configuration:"
           cat backend.tf
 
       - name: Skip SSH Host key verification
@@ -363,16 +363,16 @@ jobs:
 
       - name: Display Component Information
         run: |
-          echo "🚀 Deploying to: ${{ inputs.CLOUD_PROVIDER }} (${{ inputs.TERRAFORM_COMPONENT }})"
+          echo "Deploying to: ${{ inputs.CLOUD_PROVIDER }} (${{ inputs.TERRAFORM_COMPONENT }})"
           echo "📁 Working directory: $(pwd)"
-          echo "📋 Available files:"
+          echo "Available files:"
           ls -la
           
           if [ "${{ inputs.TERRAFORM_COMPONENT }}" = "base-infra" ]; then
-            echo "⚠️  WARNING: base-infra should only be deployed once per cloud provider"
+            echo "WARNING: base-infra should only be deployed once per cloud provider"
             echo "   This creates foundational resources like VPCs, subnets, etc."
           else
-            echo "ℹ️  INFO: infra deployment - can be destroyed and recreated multiple times"
+            echo "INFO: infra deployment - can be destroyed and recreated multiple times"
             echo "   This creates MOSIP application infrastructure"
           fi
 
@@ -400,7 +400,7 @@ jobs:
       - name: Add the Terraform plan file / *.tfstate files / terraform format changes
         run: |
           echo "📁 Current working directory: $(pwd)"
-          echo "📋 Files in current directory:"
+          echo "Files in current directory:"
           ls -la
           
           echo "🔍 Checking for Terraform files to commit..."
@@ -418,7 +418,7 @@ jobs:
           
           # Check if there are any changes to commit
           if git diff --cached --quiet; then
-            echo "ℹ️  No changes to commit - this is normal for remote backends or when state is managed remotely"
+            echo "No changes to commit - this is normal for remote backends or when state is managed remotely"
             echo "✅ Terraform execution completed successfully"
           else
             echo "📝 Committing Terraform changes..."

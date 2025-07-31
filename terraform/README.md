@@ -125,7 +125,7 @@ graph TD
 
 **Color Legend:**
 - 🔵 **Blue** - Root directory (terraform/)
-- 🔷 **Light Blue** - Component directories (base-infra/, infra/, observ-infra/)
+- **Light Blue** - Component directories (base-infra/, infra/, observ-infra/)
 - 🟢 **Green** - Reusable modules (aws/, azure/, gcp/ modules)
 - 🟣 **Pink** - Cloud implementations (deployment configurations)
 
@@ -273,8 +273,8 @@ https://keycloak.your-domain.mosip.net   # Keycloak Management
 
 ```
 terraform/
-├── 📋 README.md                              # This file
-├── 🏛️ base-infra/                           # Foundational infrastructure
+├── README.md                              # This file
+├── base-infra/                           # Foundational infrastructure
 │   ├── main.tf                              # Cloud selector for base infrastructure
 │   ├── variables.tf                         # Common base infrastructure variables
 │   ├── outputs.tf                           # Common base infrastructure outputs
@@ -284,7 +284,7 @@ terraform/
 │   │   └── outputs.tf                       # AWS base infrastructure outputs
 │   ├── azure/                               # Azure base infrastructure (placeholder)
 │   └── gcp/                                 # GCP base infrastructure (placeholder)
-├── 🏗️ infra/                                # MOSIP infrastructure interface
+├── infra/                                # MOSIP infrastructure interface
 │   ├── main.tf                              # Cloud selector for MOSIP infrastructure
 │   ├── variables.tf                         # Common MOSIP variables
 │   ├── outputs.tf                           # Common MOSIP outputs
@@ -294,7 +294,7 @@ terraform/
 │   │   └── outputs.tf                       # AWS MOSIP outputs
 │   ├── azure/                               # Azure MOSIP infrastructure (placeholder)
 │   └── gcp/                                 # GCP MOSIP infrastructure (placeholder)
-├── 🔧 observ-infra/                         # Observation infrastructure interface
+├── observ-infra/                         # Observation infrastructure interface
 │   ├── main.tf                              # Cloud selector for observation infrastructure
 │   ├── variables.tf                         # Common observation variables
 │   ├── outputs.tf                           # Common observation outputs
@@ -315,7 +315,7 @@ terraform/
 │   │   └── nfs-setup/                       # NFS storage setup
 │   ├── azure/                               # Azure modules (placeholder)
 │   └── gcp/                                 # GCP modules (placeholder)
-├── 🚀 implementations/                      # Deployable configurations
+├── implementations/                      # Deployable configurations
 │   ├── aws/                                 # AWS implementations
 │   │   ├── base-infra/                      # AWS base infrastructure deployment
 │   │   │   ├── main.tf                      # Points to base-infra/aws

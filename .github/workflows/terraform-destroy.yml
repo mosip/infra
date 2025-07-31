@@ -110,7 +110,7 @@ jobs:
             if aws s3api head-bucket --bucket "$DYNAMIC_BUCKET_NAME" 2>/dev/null; then
               echo "✅ Bucket $DYNAMIC_BUCKET_NAME found - ready for destroy"
             else
-              echo "⚠️  Warning: Bucket $DYNAMIC_BUCKET_NAME not found"
+              echo "Warning: Bucket $DYNAMIC_BUCKET_NAME not found"
               echo "   This may be normal if resources were already destroyed or created with local backend"
             fi
             
@@ -118,15 +118,15 @@ jobs:
             echo "DYNAMIC_BUCKET_NAME=$DYNAMIC_BUCKET_NAME" >> $GITHUB_ENV
             echo "DYNAMIC_REGION=$REGION" >> $GITHUB_ENV
             
-            echo "🎯 S3 bucket check completed: $DYNAMIC_BUCKET_NAME"
+            echo "S3 bucket check completed: $DYNAMIC_BUCKET_NAME"
           else
-            echo "ℹ️  Skipping S3 bucket setup (not AWS remote backend)"
+            echo "Skipping S3 bucket setup (not AWS remote backend)"
           fi
 
       - name: Configure Terraform Backend for State Management
         run: |
           # Configure backend based on user choice and cloud provider
-          echo "🔧 Configuring Terraform backend..."
+          echo "Configuring Terraform backend..."
           echo "Backend type: ${{ inputs.BACKEND_TYPE }}"
           echo "Cloud provider: ${{ inputs.CLOUD_PROVIDER }}"
           echo "Component: ${{ inputs.TERRAFORM_COMPONENT }}"
@@ -147,7 +147,7 @@ jobs:
             echo "✅ Local backend configuration created"
             
           elif [ "${{ inputs.BACKEND_TYPE }}" = "remote" ]; then
-            echo "☁️  Using remote backend for state management"
+            echo "Using remote backend for state management"
             
             # Parse REMOTE_BACKEND_CONFIG
             BACKEND_CONFIG="${{ inputs.REMOTE_BACKEND_CONFIG }}"
@@ -260,7 +260,7 @@ jobs:
             fi
           fi
           
-          echo "📋 Backend configuration:"
+          echo "Backend configuration:"
           cat backend.tf
 
       - name: Skip SSH Host key verification
@@ -306,7 +306,7 @@ jobs:
         run: |
           echo "🚨 DESTRUCTIVE OPERATION: ${{ inputs.CLOUD_PROVIDER }} (${{ inputs.TERRAFORM_COMPONENT }})"
           echo "📁 Working directory: $(pwd)"
-          echo "📋 Available files:"
+          echo "Available files:"
           ls -la
           
           if [ "${{ inputs.TERRAFORM_COMPONENT }}" = "base-infra" ]; then
@@ -315,7 +315,7 @@ jobs:
             echo "   This is typically a ONE-TIME setup and should rarely be destroyed."
             echo "   Make sure you understand the impact before proceeding."
           else
-            echo "ℹ️  INFO: infra destruction - removes MOSIP application infrastructure"
+            echo "INFO: infra destruction - removes MOSIP application infrastructure"
             echo "   This is safe to destroy and recreate as needed."
           fi
           
@@ -335,7 +335,7 @@ jobs:
       - name: Terraform Destroy Plan
         id: destroy-plan
         run: |
-          echo "📋 Showing what will be destroyed..."
+          echo "Showing what will be destroyed..."
           terraform plan -destroy -var-file="${{ inputs.CLOUD_PROVIDER }}.tfvars" -no-color
         if: "${{ inputs.TERRAFORM_DESTROY  == true }}"
         continue-on-error: true
@@ -357,7 +357,7 @@ jobs:
       - name: Add the Terraform state changes
         run: |
           echo "📁 Current working directory: $(pwd)"
-          echo "📋 Files in current directory:"
+          echo "Files in current directory:"
           ls -la
           
           echo "🔍 Checking for Terraform files to commit..."
@@ -374,7 +374,7 @@ jobs:
           
           # Check if there are any changes to commit
           if git diff --cached --quiet; then
-            echo "ℹ️  No changes to commit - this is normal for remote backends or when state is managed remotely"
+            echo "No changes to commit - this is normal for remote backends or when state is managed remotely"
             echo "✅ Terraform destroy completed successfully"
           else
             echo "📝 Committing Terraform changes..."
@@ -398,7 +398,7 @@ jobs:
         if: ${{ steps.destroy.outcome == 'success' }}
         run: |
           echo "✅ Terraform destroy completed successfully"
-          echo "🗑️  All ${{ inputs.CLOUD_PROVIDER }}-${{ inputs.TERRAFORM_COMPONENT }} resources have been destroyed"
+          echo "All ${{ inputs.CLOUD_PROVIDER }}-${{ inputs.TERRAFORM_COMPONENT }} resources have been destroyed"
 
       - uses: 8398a7/action-slack@v3
         with:
