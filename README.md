@@ -6,7 +6,7 @@
 
 This repository provides a **3-step rapid deployment model** for MOSIP (Modular Open Source Identity Platform) that covers infrastructure provisioning, dependency setup, and complete MOSIP service deployment.
 
-## 🚀 Rapid Deployment Model
+## Rapid Deployment Model
 
 ### Step 1: Infrastructure Creation (Terraform)
 **Create cloud infrastructure using Terraform**
@@ -26,7 +26,7 @@ cd terraform/
 - Branch-based environment isolation  
 - Optional Rancher cluster import automation
 
-📖 **[Complete Terraform Documentation](terraform/README.md)**
+**[Complete Terraform Documentation](terraform/README.md)**
 
 ---
 
@@ -57,7 +57,7 @@ cd Helmsman/
 - **Message Queues** (ActiveMQ, Kafka with UI)
 - **Supporting services** (S3, message gateways, CAPTCHA, landing page)
 
-📖 **[Complete Helmsman Documentation](Helmsman/README.md)**
+**[Complete Helmsman Documentation](Helmsman/README.md)**
 
 ---
 
@@ -78,11 +78,11 @@ cd Helmsman/
   - **DSL Test Rig** - Domain-specific language testing  
   - **UI Test Rig** - User interface testing automation
 
-📖 **[Helmsman DSF Documentation](Helmsman/dsf/README.md)**
+**[Helmsman DSF Documentation](Helmsman/dsf/README.md)**
 
 ---
 
-## 📋 Complete Deployment Flow
+## Complete Deployment Flow
 
 ```mermaid
 graph TD
@@ -109,7 +109,7 @@ graph TD
     style E fill:#e8f5e8,stroke:#1b5e20,color:#000000
 ```
 
-## ⚙️ GitHub Actions Automation
+## GitHub Actions Automation
 
 ### Infrastructure Automation
 - **terraform.yml** - Automated infrastructure provisioning
@@ -120,11 +120,11 @@ graph TD
 - **helmsman_mosip.yml** - MOSIP core services deployment
 - **helmsman_testrigs.yml** - Testing infrastructure deployment
 
-📖 **[GitHub Actions Documentation](.github/workflows/README.md)**
+**[GitHub Actions Documentation](.github/workflows/README.md)**
 
 ---
 
-## 🏗️ Architecture Overview
+## Architecture Overview
 
 ### Infrastructure Layer (Terraform)
 ```
@@ -169,7 +169,7 @@ Helmsman/
 
 ---
 
-## 🚦 Prerequisites
+## Prerequisites
 
 ### Required Setup
 1. **Cloud Account** - AWS, Azure, or GCP with appropriate permissions
@@ -193,7 +193,7 @@ MOSIP_EMAIL_ID          # Email for SSL certificate notifications
 
 ---
 
-## 🎯 Quick Start Guide
+## Quick Start Guide
 
 ### 1. Fork & Configure Repository
 ```bash
@@ -226,7 +226,7 @@ MOSIP_EMAIL_ID          # Email for SSL certificate notifications
 
 ---
 
-## 📚 Detailed Documentation
+## Detailed Documentation
 
 | Component | Purpose | Documentation |
 |-----------|---------|---------------|
@@ -237,7 +237,7 @@ MOSIP_EMAIL_ID          # Email for SSL certificate notifications
 
 ---
 
-## 🔧 Optional Components
+## Optional Components
 
 ### Rancher Management (observ-infra)
 - **Purpose**: Centralized Kubernetes cluster management
@@ -253,7 +253,7 @@ MOSIP_EMAIL_ID          # Email for SSL certificate notifications
 
 ---
 
-## 🆘 Support & Troubleshooting
+## Support & Troubleshooting
 
 ### Common Issues
 - **Infrastructure failures**: Check Terraform logs in GitHub Actions
@@ -268,7 +268,7 @@ MOSIP_EMAIL_ID          # Email for SSL certificate notifications
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the [Mozilla Public License 2.0](LICENSE).
 
