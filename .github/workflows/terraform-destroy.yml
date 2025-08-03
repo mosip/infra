@@ -79,189 +79,70 @@ jobs:
             exit 1
           fi
 
-      - name: Setup S3 Bucket for Remote State (AWS only)
+      - name: Check Cloud Storage for Remote State (All Providers)
         run: |
-          if [ "${{ inputs.BACKEND_TYPE }}" = "remote" ] && [ "${{ inputs.CLOUD_PROVIDER }}" = "aws" ]; then
-            # Extract bucket name from REMOTE_BACKEND_CONFIG or create dynamic name
+          if [ "${{ inputs.BACKEND_TYPE }}" = "remote" ]; then
+            echo "Checking cloud storage for remote Terraform state..."
+            echo "Provider: ${{ inputs.CLOUD_PROVIDER }}"
+            echo "Component: ${{ inputs.TERRAFORM_COMPONENT }}"
+            echo "Branch: ${{ github.ref_name }}"
+            
+            # Parse remote configuration to check if storage exists
             BACKEND_CONFIG="${{ inputs.REMOTE_BACKEND_CONFIG }}"
-            BRANCH_NAME="${{ github.ref_name }}"
             
             if [ -n "$BACKEND_CONFIG" ]; then
-              # Parse provided config: aws:bucket_name:region
               IFS=':' read -ra CONFIG_PARTS <<< "$BACKEND_CONFIG"
-              BUCKET_BASE_NAME="${CONFIG_PARTS[1]}"
-              REGION="${CONFIG_PARTS[2]:-us-east-1}"
+              PROVIDER_TYPE="${CONFIG_PARTS[0]}"
+              
+              case "$PROVIDER_TYPE" in
+                aws)
+                  BUCKET_BASE_NAME="${CONFIG_PARTS[1]}"
+                  REGION="${CONFIG_PARTS[2]:-us-east-1}"
+                  DYNAMIC_BUCKET_NAME="${BUCKET_BASE_NAME}-${{ github.ref_name }}"
+                  
+                  echo "Checking AWS S3 bucket: $DYNAMIC_BUCKET_NAME"
+                  if aws s3api head-bucket --bucket "$DYNAMIC_BUCKET_NAME" 2>/dev/null; then
+                    echo "AWS S3 bucket found - ready for destroy"
+                  else
+                    echo "WARNING: AWS S3 bucket not found - may already be destroyed"
+                  fi
+                  ;;
+                azure)
+                  RESOURCE_GROUP="${CONFIG_PARTS[1]}"
+                  STORAGE_ACCOUNT="${CONFIG_PARTS[2]}"
+                  CONTAINER="${CONFIG_PARTS[3]}"
+                  
+                  echo "Checking Azure Storage: RG=$RESOURCE_GROUP, Account=$STORAGE_ACCOUNT, Container=$CONTAINER"
+                  echo "INFO: Azure storage existence check requires Azure CLI - assuming exists for destroy"
+                  ;;
+                gcp)
+                  BUCKET_NAME="${CONFIG_PARTS[1]}"
+                  
+                  echo "Checking GCP Cloud Storage bucket: $BUCKET_NAME"
+                  echo "INFO: GCP storage existence check requires gcloud CLI - assuming exists for destroy"
+                  ;;
+                *)
+                  echo "WARNING: Unknown provider type: $PROVIDER_TYPE"
+                  ;;
+              esac
             else
-              # Create dynamic bucket name if not provided
-              BUCKET_BASE_NAME="mosip-terraform-state"
-              REGION="us-east-1"
+              echo "WARNING: No remote backend config provided"
             fi
             
-            # Create dynamic bucket name with branch (same bucket for all components - recommended)
-            DYNAMIC_BUCKET_NAME="${BUCKET_BASE_NAME}-${BRANCH_NAME}"
-            
-            echo "🪣 Connecting to S3 bucket for Terraform state..."
-            echo "Base bucket name: $BUCKET_BASE_NAME"
-            echo "Branch name: $BRANCH_NAME"
-            echo "Dynamic bucket name: $DYNAMIC_BUCKET_NAME"
-            echo "Region: $REGION"
-            
-            # Check if bucket exists (required for destroy)
-            if aws s3api head-bucket --bucket "$DYNAMIC_BUCKET_NAME" 2>/dev/null; then
-              echo "✅ Bucket $DYNAMIC_BUCKET_NAME found - ready for destroy"
-            else
-              echo "Warning: Bucket $DYNAMIC_BUCKET_NAME not found"
-              echo "   This may be normal if resources were already destroyed or created with local backend"
-            fi
-            
-            # Store dynamic bucket name for next step
-            echo "DYNAMIC_BUCKET_NAME=$DYNAMIC_BUCKET_NAME" >> $GITHUB_ENV
-            echo "DYNAMIC_REGION=$REGION" >> $GITHUB_ENV
-            
-            echo "S3 bucket check completed: $DYNAMIC_BUCKET_NAME"
+            echo "Cloud storage check completed"
           else
-            echo "Skipping S3 bucket setup (not AWS remote backend)"
+            echo "Skipping cloud storage check (using local backend)"
           fi
 
       - name: Configure Terraform Backend for State Management
         run: |
-          # Configure backend based on user choice and cloud provider
-          echo "Configuring Terraform backend..."
-          echo "Backend type: ${{ inputs.BACKEND_TYPE }}"
-          echo "Cloud provider: ${{ inputs.CLOUD_PROVIDER }}"
-          echo "Component: ${{ inputs.TERRAFORM_COMPONENT }}"
-          
-          if [ "${{ inputs.BACKEND_TYPE }}" = "local" ]; then
-            echo "📁 Using local backend - state files will be stored locally and committed to git"
-            echo "State file will be: ${{ inputs.CLOUD_PROVIDER }}-${{ inputs.TERRAFORM_COMPONENT }}-terraform.tfstate"
-            
-            # Create terraform configuration with local backend
-            cat > backend.tf << EOF
-          terraform {
-            backend "local" {
-              path = "${{ inputs.CLOUD_PROVIDER }}-${{ inputs.TERRAFORM_COMPONENT }}-terraform.tfstate"
-            }
-          }
-          EOF
-            
-            echo "✅ Local backend configuration created"
-            
-          elif [ "${{ inputs.BACKEND_TYPE }}" = "remote" ]; then
-            echo "Using remote backend for state management"
-            
-            # Parse REMOTE_BACKEND_CONFIG
-            BACKEND_CONFIG="${{ inputs.REMOTE_BACKEND_CONFIG }}"
-            if [ -z "$BACKEND_CONFIG" ]; then
-              echo "❌ ERROR: REMOTE_BACKEND_CONFIG is required for remote backend"
-              echo "Format: aws:bucket_name:region OR azure:rg_name:storage_account:container OR gcp:bucket_name"
-              exit 1
-            fi
-            
-            IFS=':' read -ra CONFIG_PARTS <<< "$BACKEND_CONFIG"
-            PROVIDER_TYPE="${CONFIG_PARTS[0]}"
-            
-            if [ "${{ inputs.CLOUD_PROVIDER }}" = "aws" ] && [ "$PROVIDER_TYPE" = "aws" ]; then
-              # Use dynamic bucket name from previous step or parse from config
-              if [ -n "$DYNAMIC_BUCKET_NAME" ]; then
-                BUCKET_NAME="$DYNAMIC_BUCKET_NAME"
-                REGION="$DYNAMIC_REGION"
-                echo "Using dynamically created bucket: $BUCKET_NAME"
-              else
-                # Fallback to parsing from REMOTE_BACKEND_CONFIG
-                BUCKET_NAME="${CONFIG_PARTS[1]}"
-                REGION="${CONFIG_PARTS[2]:-us-east-1}"
-              fi
-              
-              if [ -z "$BUCKET_NAME" ]; then
-                echo "❌ ERROR: Bucket name is required for AWS S3 backend"
-                echo "Format: aws:bucket_name:region"
-                exit 1
-              fi
-              
-              # Create branch-specific key (must match the one used during creation)
-              BRANCH_NAME="${{ github.ref_name }}"
-              STATE_KEY="${{ inputs.CLOUD_PROVIDER }}-${{ inputs.TERRAFORM_COMPONENT }}-${BRANCH_NAME}-terraform.tfstate"
-              
-              echo "Configuring AWS S3 backend..."
-              echo "Bucket: $BUCKET_NAME"
-              echo "Region: $REGION"
-              echo "Branch: $BRANCH_NAME"
-              echo "State Key: $STATE_KEY"
-              
-              cat > backend.tf << EOF
-          terraform {
-            backend "s3" {
-              bucket = "$BUCKET_NAME"
-              key    = "$STATE_KEY"
-              region = "$REGION"
-            }
-          }
-          EOF
-              
-              echo "✅ AWS S3 backend configuration created"
-              
-            elif [ "${{ inputs.CLOUD_PROVIDER }}" = "azure" ] && [ "$PROVIDER_TYPE" = "azure" ]; then
-              RESOURCE_GROUP="${CONFIG_PARTS[1]}"
-              STORAGE_ACCOUNT="${CONFIG_PARTS[2]}"
-              CONTAINER="${CONFIG_PARTS[3]:-terraform-state}"
-              
-              if [ -z "$RESOURCE_GROUP" ] || [ -z "$STORAGE_ACCOUNT" ]; then
-                echo "❌ ERROR: Resource Group and Storage Account are required for Azure backend"
-                echo "Format: azure:rg_name:storage_account:container"
-                exit 1
-              fi
-              
-              echo "Configuring Azure Storage backend..."
-              echo "Resource Group: $RESOURCE_GROUP"
-              echo "Storage Account: $STORAGE_ACCOUNT"
-              echo "Container: $CONTAINER"
-              
-              cat > backend.tf << EOF
-          terraform {
-            backend "azurerm" {
-              resource_group_name  = "$RESOURCE_GROUP"
-              storage_account_name = "$STORAGE_ACCOUNT"
-              container_name       = "$CONTAINER"
-              key                  = "${{ inputs.CLOUD_PROVIDER }}-${{ inputs.TERRAFORM_COMPONENT }}-terraform.tfstate"
-            }
-          }
-          EOF
-              
-              echo "✅ Azure Storage backend configuration created"
-              
-            elif [ "${{ inputs.CLOUD_PROVIDER }}" = "gcp" ] && [ "$PROVIDER_TYPE" = "gcp" ]; then
-              BUCKET_NAME="${CONFIG_PARTS[1]}"
-              
-              if [ -z "$BUCKET_NAME" ]; then
-                echo "❌ ERROR: Bucket name is required for GCS backend"
-                echo "Format: gcp:bucket_name"
-                exit 1
-              fi
-              
-              echo "Configuring GCS backend..."
-              echo "Bucket: $BUCKET_NAME"
-              
-              cat > backend.tf << EOF
-          terraform {
-            backend "gcs" {
-              bucket = "$BUCKET_NAME"
-              prefix = "terraform/${{ inputs.CLOUD_PROVIDER }}-${{ inputs.TERRAFORM_COMPONENT }}"
-            }
-          }
-          EOF
-              
-              echo "✅ GCS backend configuration created"
-            else
-              echo "❌ ERROR: Backend configuration mismatch"
-              echo "Cloud provider: ${{ inputs.CLOUD_PROVIDER }}"
-              echo "Backend config provider: $PROVIDER_TYPE"
-              echo "They must match!"
-              exit 1
-            fi
-          fi
-          
-          echo "Backend configuration:"
-          cat backend.tf
+          # Use backend configuration script for cleaner code
+          ../../../../.github/scripts/configure-backend.sh \
+            --type "${{ inputs.BACKEND_TYPE }}" \
+            --provider "${{ inputs.CLOUD_PROVIDER }}" \
+            --component "${{ inputs.TERRAFORM_COMPONENT }}" \
+            --branch "${{ github.ref_name }}" \
+            --remote-config "${{ inputs.REMOTE_BACKEND_CONFIG }}"
 
       - name: Skip SSH Host key verification
         run: |
@@ -304,13 +185,13 @@ jobs:
 
       - name: Display Destruction Warning
         run: |
-          echo "🚨 DESTRUCTIVE OPERATION: ${{ inputs.CLOUD_PROVIDER }} (${{ inputs.TERRAFORM_COMPONENT }})"
-          echo "📁 Working directory: $(pwd)"
+          echo "DESTRUCTIVE OPERATION: ${{ inputs.CLOUD_PROVIDER }} (${{ inputs.TERRAFORM_COMPONENT }})"
+          echo "Working directory: $(pwd)"
           echo "Available files:"
           ls -la
           
           if [ "${{ inputs.TERRAFORM_COMPONENT }}" = "base-infra" ]; then
-            echo "💥 CRITICAL WARNING: base-infra destruction will remove foundational resources!"
+            echo "CRITICAL WARNING: base-infra destruction will remove foundational resources!"
             echo "   This includes VPCs, subnets, routing tables, security groups, etc."
             echo "   This is typically a ONE-TIME setup and should rarely be destroyed."
             echo "   Make sure you understand the impact before proceeding."
@@ -320,9 +201,9 @@ jobs:
           fi
           
           if [ "${{ inputs.TERRAFORM_DESTROY }}" != "true" ]; then
-            echo "❌ TERRAFORM_DESTROY is not set to true - skipping actual destruction"
+            echo "ERROR: TERRAFORM_DESTROY is not set to true - skipping actual destruction"
           else
-            echo "✅ TERRAFORM_DESTROY confirmed - proceeding with destruction"
+            echo "TERRAFORM_DESTROY confirmed - proceeding with destruction"
           fi
 
       - name: Terraform Init
@@ -348,19 +229,19 @@ jobs:
 
       - name: Clean up state files and artifacts
         run: |
-          echo "🧹 Cleaning up local state files and artifacts..."
+          echo "Cleaning up local state files and artifacts..."
           rm -f terraform.tfstate*
           rm -f backend.tf
-          echo "✅ Cleanup completed"
+          echo "Cleanup completed"
         if: "${{ inputs.TERRAFORM_DESTROY == true && steps.destroy.outcome == 'success' }}"
 
       - name: Add the Terraform state changes
         run: |
-          echo "📁 Current working directory: $(pwd)"
+          echo "Current working directory: $(pwd)"
           echo "Files in current directory:"
           ls -la
           
-          echo "🔍 Checking for Terraform files to commit..."
+          echo "Checking for Terraform files to commit..."
           
           # Force add Terraform files even if they're in .gitignore
           git add -f *.tfstate* 2>/dev/null || echo "No .tfstate files found"
@@ -369,20 +250,20 @@ jobs:
           # Also add any other Terraform-related files that might have been created
           git add -A
           
-          echo "📊 Git status after adding files:"
+          echo "Git status after adding files:"
           git status
           
           # Check if there are any changes to commit
           if git diff --cached --quiet; then
             echo "No changes to commit - this is normal for remote backends or when state is managed remotely"
-            echo "✅ Terraform destroy completed successfully"
+            echo "Terraform destroy completed successfully"
           else
-            echo "📝 Committing Terraform changes..."
+            echo "Committing Terraform changes..."
             git config --global user.email ${{ github.actor }}@users.noreply.github.com
             git config --global user.name ${{ github.actor }}
             git commit -s -am "Terraform destroy GitHub Actions - ${{ inputs.CLOUD_PROVIDER }}-${{ inputs.TERRAFORM_COMPONENT }}"
             git push
-            echo "✅ Changes committed and pushed successfully"
+            echo "Changes committed and pushed successfully"
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -390,14 +271,14 @@ jobs:
       - name: Terraform destroy status
         if: ${{ steps.destroy.outcome == 'failure' }}
         run: |
-          echo "❌ Terraform destroy failed"
+          echo "ERROR: Terraform destroy failed"
           echo "Check the logs above for detailed error information"
           exit 1
 
       - name: Terraform destroy success
         if: ${{ steps.destroy.outcome == 'success' }}
         run: |
-          echo "✅ Terraform destroy completed successfully"
+          echo "SUCCESS: Terraform destroy completed successfully"
           echo "All ${{ inputs.CLOUD_PROVIDER }}-${{ inputs.TERRAFORM_COMPONENT }} resources have been destroyed"
 
       - uses: 8398a7/action-slack@v3
