@@ -153,6 +153,8 @@ test_scripts() {
                             ;;
                     esac
                     
+                    # Test without locking first
+                    echo "    Testing remote backend WITHOUT locking..."
                     "$PROJECT_ROOT/.github/scripts/configure-backend.sh" \
                         --type remote \
                         --provider "$provider" \
@@ -161,49 +163,123 @@ test_scripts() {
                         --remote-config "$REMOTE_CONFIG" || echo "ERROR: Remote backend test failed for $provider/$component"
                         
                     if [ -f "backend.tf" ]; then
-                        echo "  SUCCESS: Remote backend configuration created for $provider/$component"
+                        echo "    SUCCESS: Remote backend configuration created for $provider/$component"
                         # Validate content based on provider
                         case "$provider" in
                             aws)
                                 if grep -q "backend \"s3\"" backend.tf && grep -q "test-bucket" backend.tf; then
-                                    echo "  SUCCESS: AWS S3 backend content is correct"
+                                    echo "    SUCCESS: AWS S3 backend content is correct"
+                                    # Verify no DynamoDB table in non-locking mode
+                                    if ! grep -q "dynamodb_table" backend.tf; then
+                                        echo "    SUCCESS: No DynamoDB table (locking disabled)"
+                                    else
+                                        echo "    ERROR: DynamoDB table found when locking should be disabled"
+                                    fi
                                     # Check if branch name is included in state key
                                     if grep -q "$provider-$component-.*-terraform.tfstate" backend.tf; then
-                                        echo "  SUCCESS: Branch name correctly included in state key"
+                                        echo "    SUCCESS: Branch name correctly included in state key"
                                     else
-                                        echo "  ERROR: Branch name missing in state key"
+                                        echo "    ERROR: Branch name missing in state key"
                                     fi
                                 else
-                                    echo "  ERROR: AWS S3 backend content validation failed"
+                                    echo "    ERROR: AWS S3 backend content validation failed"
                                 fi
                                 ;;
                             azure)
                                 if grep -q "backend \"azurerm\"" backend.tf && grep -q "test-rg" backend.tf; then
-                                    echo "  SUCCESS: Azure backend content is correct"
+                                    echo "    SUCCESS: Azure backend content is correct"
                                     # Check if branch name is included in state key
                                     if grep -q "$provider-$component-.*-terraform.tfstate" backend.tf; then
-                                        echo "  SUCCESS: Branch name correctly included in state key"
+                                        echo "    SUCCESS: Branch name correctly included in state key"
                                     else
-                                        echo "  ERROR: Branch name missing in state key"
+                                        echo "    ERROR: Branch name missing in state key"
                                     fi
                                 else
-                                    echo "  ERROR: Azure backend content validation failed"
+                                    echo "    ERROR: Azure backend content validation failed"
                                 fi
                                 ;;
                             gcp)
                                 if grep -q "backend \"gcs\"" backend.tf && grep -q "test-bucket" backend.tf; then
-                                    echo "  SUCCESS: GCP backend content is correct"
+                                    echo "    SUCCESS: GCP backend content is correct"
                                     # Check if branch name is included in prefix
                                     if grep -q "terraform/$provider-$component-" backend.tf; then
-                                        echo "  SUCCESS: Branch name correctly included in prefix"
+                                        echo "    SUCCESS: Branch name correctly included in prefix"
                                     else
-                                        echo "  ERROR: Branch name missing in prefix"
+                                        echo "    ERROR: Branch name missing in prefix"
                                     fi
                                 else
-                                    echo "  ERROR: GCP backend content validation failed"
+                                    echo "    ERROR: GCP backend content validation failed"
                                 fi
                                 ;;
                         esac
+                    else
+                        echo "    ERROR: backend.tf not created for $provider/$component"
+                    fi
+                    
+                    # Test WITH locking (AWS only for now)
+                    if [ "$provider" = "aws" ]; then
+                        echo "    Testing remote backend WITH locking..."
+                        rm -f backend.tf  # Clean up previous test
+                        
+                        # Set environment variable to simulate DynamoDB table creation
+                        export DYNAMIC_DYNAMODB_TABLE="terraform-state-lock-$component-test-branch"
+                        
+                        "$PROJECT_ROOT/.github/scripts/configure-backend.sh" \
+                            --type remote \
+                            --provider "$provider" \
+                            --component "$component" \
+                            --branch "test-branch" \
+                            --remote-config "$REMOTE_CONFIG" \
+                            --enable-locking || echo "ERROR: Remote backend locking test failed for $provider/$component"
+                            
+                        if [ -f "backend.tf" ]; then
+                            echo "    SUCCESS: Remote backend with locking created for $provider/$component"
+                            # Validate DynamoDB table is included
+                            if grep -q "dynamodb_table" backend.tf && grep -q "terraform-state-lock-$component-test-branch" backend.tf; then
+                                echo "    SUCCESS: DynamoDB table correctly configured for locking"
+                            else
+                                echo "    ERROR: DynamoDB table missing in locking-enabled backend"
+                            fi
+                            # Verify encryption is enabled
+                            if grep -q "encrypt.*true" backend.tf; then
+                                echo "    SUCCESS: Encryption enabled with locking"
+                            else
+                                echo "    ERROR: Encryption not enabled with locking"
+                            fi
+                        else
+                            echo "    ERROR: backend.tf with locking not created for $provider/$component"
+                        fi
+                        
+                        unset DYNAMIC_DYNAMODB_TABLE
+                    fi
+                    ;;
+                azure)
+                    if grep -q "backend \"azurerm\"" backend.tf && grep -q "test-rg" backend.tf; then
+                        echo "    SUCCESS: Azure backend content is correct"
+                        # Check if branch name is included in state key
+                        if grep -q "$provider-$component-.*-terraform.tfstate" backend.tf; then
+                            echo "    SUCCESS: Branch name correctly included in state key"
+                        else
+                            echo "    ERROR: Branch name missing in state key"
+                        fi
+                    else
+                        echo "    ERROR: Azure backend content validation failed"
+                    fi
+                    ;;
+                gcp)
+                    if grep -q "backend \"gcs\"" backend.tf && grep -q "test-bucket" backend.tf; then
+                        echo "    SUCCESS: GCP backend content is correct"
+                        # Check if branch name is included in prefix
+                        if grep -q "terraform/$provider-$component-" backend.tf; then
+                            echo "    SUCCESS: Branch name correctly included in prefix"
+                        else
+                            echo "    ERROR: Branch name missing in prefix"
+                        fi
+                    else
+                        echo "    ERROR: GCP backend content validation failed"
+                    fi
+                    ;;
+            esac
                     else
                         echo "  ERROR: backend.tf not created for $provider/$component"
                     fi

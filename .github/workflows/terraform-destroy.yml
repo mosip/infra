@@ -32,6 +32,11 @@ on:
         description: 'Remote backend config (format: aws:bucket_base_name:region OR azure:rg_name:storage_account:container OR gcp:bucket_name). For AWS, bucket will be created as bucket_base_name-BRANCH_NAME'
         required: false
         type: string
+      ENABLE_STATE_LOCKING:
+        description: 'Enable state locking cleanup (must match the setting used during creation)'
+        required: false
+        type: boolean
+        default: true
       SSH_PRIVATE_KEY:
         description: 'The GitHub secret containing the private key of the SSH key named in the preceding input variable `SSH_PRIVATE_KEY` is used for SSH login purposes on nginx node.'
         required: true
@@ -142,7 +147,8 @@ jobs:
             --provider "${{ inputs.CLOUD_PROVIDER }}" \
             --component "${{ inputs.TERRAFORM_COMPONENT }}" \
             --branch "${{ github.ref_name }}" \
-            --remote-config "${{ inputs.REMOTE_BACKEND_CONFIG }}"
+            --remote-config "${{ inputs.REMOTE_BACKEND_CONFIG }}" \
+            ${{ inputs.ENABLE_STATE_LOCKING == true && '--enable-locking' || '' }}
 
       - name: Skip SSH Host key verification
         run: |
@@ -234,6 +240,17 @@ jobs:
           rm -f backend.tf
           echo "Cleanup completed"
         if: "${{ inputs.TERRAFORM_DESTROY == true && steps.destroy.outcome == 'success' }}"
+
+      - name: Cleanup State Locking Resources
+        run: |
+          echo "Cleaning up state locking resources..."
+          ../../../../.github/scripts/cleanup-state-locking.sh \
+            --provider "${{ inputs.CLOUD_PROVIDER }}" \
+            --config "${{ inputs.REMOTE_BACKEND_CONFIG }}" \
+            --branch "${{ github.ref_name }}" \
+            --component "${{ inputs.TERRAFORM_COMPONENT }}" \
+            ${{ inputs.ENABLE_STATE_LOCKING == true && '--enable-locking' || '' }}
+        if: "${{ inputs.TERRAFORM_DESTROY == true && steps.destroy.outcome == 'success' && inputs.BACKEND_TYPE == 'remote' }}"
 
       - name: Add the Terraform state changes
         run: |

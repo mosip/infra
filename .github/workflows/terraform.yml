@@ -32,6 +32,11 @@ on:
         description: 'Remote backend config (format: aws:bucket_base_name:region OR azure:rg_name:storage_account:container OR gcp:bucket_name). SECURITY: Use separate buckets per component for production (e.g., mybucket-base-infra, mybucket-infra, mybucket-observ)'
         required: false
         type: string
+      ENABLE_STATE_LOCKING:
+        description: 'Enable Terraform state locking with DynamoDB (recommended for production)'
+        required: false
+        type: boolean
+        default: true
       SSH_PRIVATE_KEY:
         description: 'The GitHub secret containing the private key of the SSH key named in the preceding input variable `SSH_PRIVATE_KEY` is used for SSH login purposes on nginx node.'
         required: true
@@ -90,7 +95,8 @@ jobs:
               --provider "${{ inputs.CLOUD_PROVIDER }}" \
               --config "${{ inputs.REMOTE_BACKEND_CONFIG }}" \
               --branch "${{ github.ref_name }}" \
-              --component "${{ inputs.TERRAFORM_COMPONENT }}"
+              --component "${{ inputs.TERRAFORM_COMPONENT }}" \
+              ${{ inputs.ENABLE_STATE_LOCKING == true && '--enable-locking' || '' }}
           else
             echo "Skipping cloud storage setup (using local backend)"
           fi
@@ -103,7 +109,8 @@ jobs:
             --provider "${{ inputs.CLOUD_PROVIDER }}" \
             --component "${{ inputs.TERRAFORM_COMPONENT }}" \
             --branch "${{ github.ref_name }}" \
-            --remote-config "${{ inputs.REMOTE_BACKEND_CONFIG }}"
+            --remote-config "${{ inputs.REMOTE_BACKEND_CONFIG }}" \
+            ${{ inputs.ENABLE_STATE_LOCKING == true && '--enable-locking' || '' }}
 
       - name: Skip SSH Host key verification
         run: |

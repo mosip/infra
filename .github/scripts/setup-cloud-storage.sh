@@ -14,6 +14,7 @@ usage() {
     echo "  -c, --config          Remote backend config string (required)"
     echo "  -b, --branch          Branch name for resource naming (required)"
     echo "  -t, --component       Component type: base-infra, infra, observ-infra (optional, for validation)"
+    echo "  --enable-locking      Enable state locking (optional, for production)"
     echo "  -h, --help            Show this help message"
     echo ""
     echo "Remote config formats:"
@@ -37,6 +38,7 @@ CLOUD_PROVIDER=""
 REMOTE_CONFIG=""
 BRANCH_NAME=""
 COMPONENT=""
+ENABLE_LOCKING=false
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -56,6 +58,10 @@ while [[ $# -gt 0 ]]; do
         -t|--component)
             COMPONENT="$2"
             shift 2
+            ;;
+        --enable-locking)
+            ENABLE_LOCKING=true
+            shift
             ;;
         -h|--help)
             usage
@@ -115,6 +121,7 @@ setup_aws_s3() {
     local region="$2"
     local branch_name="$3"
     local component="$4"
+    local enable_locking="$5"  # Added state locking parameter
     
     # SECURITY IMPROVEMENT: Create component-specific buckets for better isolation
     # For production, recommended pattern: bucket-base-component-branch
@@ -207,13 +214,50 @@ setup_aws_s3() {
         echo "WARNING: Failed to block public access, but continuing..."
     fi
     
+    # Optional: Setup state locking infrastructure (provider-specific)
+    if [ "$enable_locking" = true ]; then
+        local lock_resource_name="terraform-state-lock-${component}-${branch_name}"
+        echo "Setting up state locking infrastructure: $lock_resource_name"
+        
+        # Check if DynamoDB table exists
+        if aws dynamodb describe-table --table-name "$lock_resource_name" --region "$region" 2>/dev/null; then
+            echo "DynamoDB table $lock_resource_name already exists"
+        else
+            echo "Creating DynamoDB table: $lock_resource_name"
+            aws dynamodb create-table \
+                --table-name "$lock_resource_name" \
+                --attribute-definitions AttributeName=LockID,AttributeType=S \
+                --key-schema AttributeName=LockID,KeyType=HASH \
+                --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5 \
+                --region "$region"
+            
+            if [ $? -eq 0 ]; then
+                echo "DynamoDB table created successfully"
+                # Wait for table to be active
+                echo "Waiting for table to become active..."
+                aws dynamodb wait table-exists --table-name "$lock_resource_name" --region "$region"
+                echo "DynamoDB table is now active"
+            else
+                echo "ERROR: Failed to create DynamoDB table"
+                exit 1
+            fi
+        fi
+        
+        # Set environment variable for backend configuration
+        export TERRAFORM_STATE_LOCK_TABLE="$lock_resource_name"
+    else
+        echo "State locking disabled (DynamoDB table will not be created)"
+        echo "Note: For production environments, consider enabling state locking with --enable-locking"
+    fi
+    
     # Set environment variables for GitHub Actions
     if [ -n "$GITHUB_ENV" ]; then
         echo "DYNAMIC_STORAGE_NAME=$bucket_name" >> "$GITHUB_ENV"
         echo "DYNAMIC_REGION=$region" >> "$GITHUB_ENV"
+        if [ -n "$TERRAFORM_STATE_LOCK_TABLE" ]; then
+            echo "TERRAFORM_STATE_LOCK_TABLE=$TERRAFORM_STATE_LOCK_TABLE" >> "$GITHUB_ENV"
+        fi
     fi
-    
-    echo "AWS S3 setup completed: $bucket_name"
 }
 
 # Function to setup Azure Storage Account
@@ -223,6 +267,7 @@ setup_azure_storage() {
     local container="$3"
     local branch_name="$4"
     local component="$5"
+    local enable_locking="$6"  # Added state locking parameter
     
     # SECURITY IMPROVEMENT: Create component-specific storage accounts
     local branch_suffix=$(echo "$branch_name" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g' | cut -c1-8)
@@ -284,6 +329,15 @@ setup_azure_storage() {
             
             echo "Azure Storage setup completed"
         fi
+        
+        # Azure state locking information
+        if [ "$enable_locking" = true ]; then
+            echo "State locking: Azure Blob Storage has built-in lease-based locking"
+            echo "No additional setup required - locking is handled by the azurerm backend"
+        else
+            echo "State locking disabled"
+            echo "Note: For production environments, consider enabling state locking with --enable-locking"
+        fi
     fi
     
     # Set environment variables for GitHub Actions
@@ -291,6 +345,9 @@ setup_azure_storage() {
         echo "DYNAMIC_STORAGE_NAME=$dynamic_storage_account" >> "$GITHUB_ENV"
         echo "DYNAMIC_RESOURCE_GROUP=$dynamic_resource_group" >> "$GITHUB_ENV"
         echo "DYNAMIC_CONTAINER=$container" >> "$GITHUB_ENV"
+        if [ "$enable_locking" = true ]; then
+            echo "TERRAFORM_STATE_LOCKING=true" >> "$GITHUB_ENV"
+        fi
     fi
     
     echo "Azure Storage configuration prepared: $dynamic_storage_account"
@@ -302,6 +359,7 @@ setup_gcp_storage() {
     local region="$2"
     local branch_name="$3"
     local component="$4"
+    local enable_locking="$5"  # Added state locking parameter
     
     # SECURITY IMPROVEMENT: Create component-specific buckets
     local bucket_name
@@ -352,12 +410,24 @@ setup_gcp_storage() {
             
             echo "GCP Storage setup completed"
         fi
+        
+        # GCP state locking information
+        if [ "$enable_locking" = true ]; then
+            echo "State locking: GCP Cloud Storage has built-in object versioning and consistency"
+            echo "No additional setup required - locking is handled by the gcs backend"
+        else
+            echo "State locking disabled"
+            echo "Note: For production environments, consider enabling state locking with --enable-locking"
+        fi
     fi
     
     # Set environment variables for GitHub Actions
     if [ -n "$GITHUB_ENV" ]; then
         echo "DYNAMIC_STORAGE_NAME=$bucket_name" >> "$GITHUB_ENV"
         echo "DYNAMIC_REGION=$region" >> "$GITHUB_ENV"
+        if [ "$enable_locking" = true ]; then
+            echo "TERRAFORM_STATE_LOCKING=true" >> "$GITHUB_ENV"
+        fi
     fi
     
     echo "GCP Storage configuration prepared: $bucket_name"
@@ -379,7 +449,7 @@ case "$CLOUD_PROVIDER" in
             exit 1
         fi
         
-        setup_aws_s3 "$BUCKET_BASE_NAME" "$REGION" "$BRANCH_NAME" "${COMPONENT:-infra}"
+        setup_aws_s3 "$BUCKET_BASE_NAME" "$REGION" "$BRANCH_NAME" "${COMPONENT:-infra}" "$ENABLE_LOCKING"
         ;;
         
     azure)
@@ -397,7 +467,7 @@ case "$CLOUD_PROVIDER" in
             exit 1
         fi
         
-        setup_azure_storage "$RESOURCE_GROUP" "$STORAGE_ACCOUNT" "$CONTAINER" "$BRANCH_NAME" "${COMPONENT:-infra}"
+        setup_azure_storage "$RESOURCE_GROUP" "$STORAGE_ACCOUNT" "$CONTAINER" "$BRANCH_NAME" "${COMPONENT:-infra}" "$ENABLE_LOCKING"
         ;;
         
     gcp)
@@ -414,7 +484,7 @@ case "$CLOUD_PROVIDER" in
             exit 1
         fi
         
-        setup_gcp_storage "$BUCKET_BASE_NAME" "$REGION" "$BRANCH_NAME" "${COMPONENT:-infra}"
+        setup_gcp_storage "$BUCKET_BASE_NAME" "$REGION" "$BRANCH_NAME" "${COMPONENT:-infra}" "$ENABLE_LOCKING"
         ;;
         
     *)
