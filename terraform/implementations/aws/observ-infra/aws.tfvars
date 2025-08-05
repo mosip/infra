@@ -43,11 +43,7 @@ nginx_node_ebs_volume_size = 100      # Smaller than infra (300)
 k8s_instance_root_volume_size = 32    # Smaller than infra (64)
 
 # Subdomains for observability services
-subdomain_public = [
-  "grafana",
-  "prometheus",
-  "kibana"
-]
+subdomain_public = [""]
 
 subdomain_internal = [
   "alertmanager",
@@ -57,6 +53,16 @@ subdomain_internal = [
 # Repository configuration
 k8s_infra_repo_url = "https://github.com/mosip/k8s-infra.git"
 k8s_infra_branch = "develop"
+
+# Rancher UI configuration (hostname will be dynamically created from cluster_env_domain)
+rancher_hostname = ""  # Will default to rancher.testvpc.mosip.net
+rancher_bootstrap_password = "admin"
+
+# Keycloak configuration (hostname will be dynamically created from cluster_env_domain)  
+keycloak_hostname = ""  # Will default to iam.testvpc.mosip.net
+
+# Enable Rancher-Keycloak integration for observability cluster
+enable_rancher_keycloak_integration = true
 
 # Rancher import (same as infra)
 enable_rancher_import = false

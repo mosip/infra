@@ -60,3 +60,29 @@ variable "enable_rancher_import" {
   type = bool
   description = "Set to true to enable Rancher import"
 }
+
+# Rancher and Keycloak Configuration Variables
+variable "enable_rancher_keycloak_integration" {
+  description = "Enable Rancher and Keycloak installation"
+  type        = bool
+  default     = true
+}
+
+variable "rancher_hostname" {
+  description = "Hostname for Rancher UI (defaults to rancher.<cluster_env_domain>)"
+  type        = string
+  default     = ""
+}
+
+variable "keycloak_hostname" {
+  description = "Hostname for Keycloak (defaults to iam.<cluster_env_domain>)"
+  type        = string
+  default     = ""
+}
+
+variable "rancher_bootstrap_password" {
+  description = "Bootstrap password for Rancher UI"
+  type        = string
+  default     = "admin"
+  sensitive   = true
+}

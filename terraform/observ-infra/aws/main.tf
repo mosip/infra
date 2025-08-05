@@ -36,3 +36,22 @@ module "aws_observation_infrastructure" {
   NGINX_NODE_EBS_VOLUME_SIZE    = var.nginx_node_ebs_volume_size
   K8S_INSTANCE_ROOT_VOLUME_SIZE = var.k8s_instance_root_volume_size
 }
+
+# Rancher and Keycloak Integration (only for observ-infra)
+module "rancher_keycloak_setup" {
+  count      = var.enable_rancher_keycloak_integration ? 1 : 0
+  depends_on = [module.aws_observation_infrastructure]
+  source     = "../../modules/aws/rancher-keycloak-setup"
+
+  SSH_PRIVATE_KEY              = var.ssh_private_key
+  K8S_INFRA_REPO_URL          = var.k8s_infra_repo_url
+  K8S_INFRA_BRANCH            = var.k8s_infra_branch
+  CLUSTER_NAME                = var.cluster_name
+  CLUSTER_ENV_DOMAIN          = var.cluster_env_domain
+  RANCHER_HOSTNAME            = var.rancher_hostname
+  KEYCLOAK_HOSTNAME           = var.keycloak_hostname
+  RANCHER_BOOTSTRAP_PASSWORD  = var.rancher_bootstrap_password
+  ENABLE_RANCHER_KEYCLOAK     = var.enable_rancher_keycloak_integration
+  CONTROL_PLANE_IPS           = module.aws_observation_infrastructure.K8S_CLUSTER_PRIVATE_IPS["control_plane"]
+  NGINX_PUBLIC_IP             = module.aws_observation_infrastructure.NGINX_PUBLIC_IP
+}

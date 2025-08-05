@@ -47,4 +47,10 @@ module "mosip_observ_infra" {
   nginx_node_root_volume_size   = var.nginx_node_root_volume_size
   nginx_node_ebs_volume_size    = var.nginx_node_ebs_volume_size
   k8s_instance_root_volume_size = var.k8s_instance_root_volume_size
+  
+  # Rancher and Keycloak Configuration (passed through to module)
+  enable_rancher_keycloak_integration = var.enable_rancher_keycloak_integration
+  rancher_hostname                   = var.rancher_hostname
+  keycloak_hostname                  = var.keycloak_hostname
+  rancher_bootstrap_password         = var.rancher_bootstrap_password
 }
