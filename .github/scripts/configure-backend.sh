@@ -15,6 +15,7 @@ usage() {
     echo "  -c, --component       Component: base-infra, infra, observ-infra (required)"
     echo "  -b, --branch          Branch name for state key (required for remote)"
     echo "  -r, --remote-config   Remote backend config string (required for remote)"
+    echo "  --enable-locking      Enable state locking (optional, for production)"
     echo "  -h, --help            Show this help message"
     echo ""
     echo "Supported combinations:"
@@ -43,6 +44,7 @@ CLOUD_PROVIDER=""
 COMPONENT=""
 BRANCH_NAME=""
 REMOTE_CONFIG=""
+ENABLE_LOCKING=false
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -66,6 +68,10 @@ while [[ $# -gt 0 ]]; do
         -r|--remote-config)
             REMOTE_CONFIG="$2"
             shift 2
+            ;;
+        --enable-locking)
+            ENABLE_LOCKING=true
+            shift
             ;;
         -h|--help)
             usage
@@ -173,7 +179,27 @@ create_aws_backend() {
     echo "Region: $region"
     echo "State Key: $state_key"
     
-    cat > backend.tf << EOF
+    # Create backend configuration with optional state locking
+    if [ "$ENABLE_LOCKING" = true ] && [ -n "$TERRAFORM_STATE_LOCK_TABLE" ]; then
+        echo "State Locking Resource: $TERRAFORM_STATE_LOCK_TABLE"
+        echo "State locking: ENABLED"
+        
+        cat > backend.tf << EOF
+terraform {
+  backend "s3" {
+    bucket         = "$bucket_name"
+    key            = "$state_key"
+    region         = "$region"
+    dynamodb_table = "$TERRAFORM_STATE_LOCK_TABLE"
+    encrypt        = true
+  }
+}
+EOF
+    else
+        echo "State locking: DISABLED"
+        echo "Note: For production environments, consider enabling state locking"
+        
+        cat > backend.tf << EOF
 terraform {
   backend "s3" {
     bucket = "$bucket_name"
@@ -182,6 +208,7 @@ terraform {
   }
 }
 EOF
+    fi
     
     echo "AWS S3 backend configuration created"
 }
@@ -199,10 +226,18 @@ create_azure_backend() {
     
     echo "Configuring Azure Storage backend..."
     echo "Resource Group: $resource_group"
-    echo "Storage Account: $storage_account"
+    echo "Storage Account: $storage_account"  
     echo "Container: $container"
     echo "State Key: $state_key"
     
+    # Azure Storage has built-in lease-based locking
+    if [ "$ENABLE_LOCKING" = true ]; then
+        echo "State locking: ENABLED (Azure Blob Storage lease-based locking)"
+    else
+        echo "State locking: DISABLED"
+        echo "Note: For production environments, consider enabling state locking"
+    fi
+
     cat > backend.tf << EOF
 terraform {
   backend "azurerm" {
@@ -230,6 +265,14 @@ create_gcp_backend() {
     echo "Bucket: $bucket_name"
     echo "State Prefix: $state_prefix"
     
+    # GCP Cloud Storage has built-in consistency and versioning
+    if [ "$ENABLE_LOCKING" = true ]; then
+        echo "State locking: ENABLED (GCS built-in consistency and versioning)"
+    else
+        echo "State locking: DISABLED"
+        echo "Note: For production environments, consider enabling state locking"
+    fi
+
     cat > backend.tf << EOF
 terraform {
   backend "gcs" {

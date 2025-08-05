@@ -51,9 +51,16 @@ simulate_terraform_workflow() {
     local component="$2"
     local backend="$3"
     local remote_config="$4"
+    local enable_locking="$5"
     local branch="main"
     
-    print_step "Simulating TERRAFORM workflow: $provider/$component/$backend"
+    local locking_flag=""
+    if [[ "$enable_locking" == "true" ]]; then
+        locking_flag="--enable-locking"
+        print_step "Simulating TERRAFORM workflow: $provider/$component/$backend (WITH locking)"
+    else
+        print_step "Simulating TERRAFORM workflow: $provider/$component/$backend (WITHOUT locking)"
+    fi
     
     # Change to the workflow working directory
     local work_dir="$PROJECT_ROOT/terraform/implementations/$provider/$component"
@@ -80,7 +87,8 @@ simulate_terraform_workflow() {
             --provider "$provider" \
             --config "$remote_config" \
             --branch "$branch" \
-            --component "$component" > /dev/null 2>&1; then
+            --component "$component" \
+            $locking_flag > /dev/null 2>&1; then
             print_success "    ✓ Cloud storage setup completed"
         else
             print_error "    ✗ Cloud storage setup failed"
@@ -97,7 +105,8 @@ simulate_terraform_workflow() {
         --provider "$provider" \
         --component "$component" \
         --branch "$branch" \
-        --remote-config "$remote_config" > /dev/null 2>&1; then
+        --remote-config "$remote_config" \
+        $locking_flag > /dev/null 2>&1; then
         print_success "    ✓ Backend configuration completed"
     else
         print_error "    ✗ Backend configuration failed"
@@ -107,8 +116,31 @@ simulate_terraform_workflow() {
     # Step 4: Verify backend.tf was created
     if [[ -f "backend.tf" ]]; then
         print_success "    ✓ backend.tf created successfully"
+        
+        # Validate DynamoDB locking based on settings
+        if [[ "$backend" == "remote" && "$provider" == "aws" ]]; then
+            if [[ "$enable_locking" == "true" ]]; then
+                if grep -q "dynamodb_table" backend.tf; then
+                    print_success "    ✓ DynamoDB locking correctly enabled"
+                else
+                    print_error "    ✗ DynamoDB locking missing when enabled"
+                fi
+                if grep -q "encrypt.*true" backend.tf; then
+                    print_success "    ✓ Encryption correctly enabled with locking"
+                else
+                    print_error "    ✗ Encryption missing with locking"
+                fi
+            else
+                if ! grep -q "dynamodb_table" backend.tf; then
+                    print_success "    ✓ DynamoDB locking correctly disabled"
+                else
+                    print_error "    ✗ DynamoDB locking found when disabled"
+                fi
+            fi
+        fi
+        
         print_info "    Content preview:"
-        echo "    $(head -3 backend.tf | sed 's/^/      /')"
+        echo "    $(head -5 backend.tf | sed 's/^/      /')"
     else
         print_error "    ✗ backend.tf not created"
         return 1
@@ -117,7 +149,13 @@ simulate_terraform_workflow() {
     # Clean up test files
     rm -f backend.tf
     
-    print_success "  TERRAFORM workflow simulation completed for $provider/$component/$backend"
+    local locking_status=""
+    if [[ "$enable_locking" == "true" ]]; then
+        locking_status=" (WITH locking)"
+    else
+        locking_status=" (WITHOUT locking)"
+    fi
+    print_success "  TERRAFORM workflow simulation completed for $provider/$component/$backend$locking_status"
     echo ""
 }
 
@@ -222,8 +260,6 @@ test_all_combinations() {
     for provider in "${PROVIDERS[@]}"; do
         for component in "${COMPONENTS[@]}"; do
             for backend in "${BACKENDS[@]}"; do
-                total_tests=$((total_tests + 2)) # +2 for both terraform and destroy workflows
-                
                 local remote_config=""
                 if [[ "$backend" == "remote" ]]; then
                     remote_config="${REMOTE_CONFIGS[$provider]}"
@@ -234,20 +270,58 @@ test_all_combinations() {
                 echo "Remote config: ${remote_config:-"N/A"}"
                 echo ""
                 
-                # Test terraform workflow
-                if simulate_terraform_workflow "$provider" "$component" "$backend" "$remote_config"; then
-                    passed_tests=$((passed_tests + 1))
+                # For remote AWS backends, test both with and without locking
+                if [[ "$backend" == "remote" && "$provider" == "aws" ]]; then
+                    # Test WITHOUT locking
+                    total_tests=$((total_tests + 2))
+                    
+                    if simulate_terraform_workflow "$provider" "$component" "$backend" "$remote_config" "false"; then
+                        passed_tests=$((passed_tests + 1))
+                    else
+                        failed_tests=$((failed_tests + 1))
+                        print_error "TERRAFORM workflow (no locking) failed for $provider/$component/$backend"
+                    fi
+                    
+                    if simulate_destroy_workflow "$provider" "$component" "$backend" "$remote_config"; then
+                        passed_tests=$((passed_tests + 1))
+                    else
+                        failed_tests=$((failed_tests + 1))
+                        print_error "TERRAFORM-DESTROY workflow (no locking) failed for $provider/$component/$backend"
+                    fi
+                    
+                    # Test WITH locking
+                    total_tests=$((total_tests + 2))
+                    
+                    if simulate_terraform_workflow "$provider" "$component" "$backend" "$remote_config" "true"; then
+                        passed_tests=$((passed_tests + 1))
+                    else
+                        failed_tests=$((failed_tests + 1))
+                        print_error "TERRAFORM workflow (with locking) failed for $provider/$component/$backend"
+                    fi
+                    
+                    if simulate_destroy_workflow "$provider" "$component" "$backend" "$remote_config"; then
+                        passed_tests=$((passed_tests + 1))
+                    else
+                        failed_tests=$((failed_tests + 1))
+                        print_error "TERRAFORM-DESTROY workflow (with locking) failed for $provider/$component/$backend"
+                    fi
                 else
-                    failed_tests=$((failed_tests + 1))
-                    print_error "TERRAFORM workflow failed for $provider/$component/$backend"
-                fi
-                
-                # Test terraform-destroy workflow
-                if simulate_destroy_workflow "$provider" "$component" "$backend" "$remote_config"; then
-                    passed_tests=$((passed_tests + 1))
-                else
-                    failed_tests=$((failed_tests + 1))
-                    print_error "TERRAFORM-DESTROY workflow failed for $provider/$component/$backend"
+                    # For local backends and non-AWS providers, test normally
+                    total_tests=$((total_tests + 2))
+                    
+                    if simulate_terraform_workflow "$provider" "$component" "$backend" "$remote_config" "false"; then
+                        passed_tests=$((passed_tests + 1))
+                    else
+                        failed_tests=$((failed_tests + 1))
+                        print_error "TERRAFORM workflow failed for $provider/$component/$backend"
+                    fi
+                    
+                    if simulate_destroy_workflow "$provider" "$component" "$backend" "$remote_config"; then
+                        passed_tests=$((passed_tests + 1))
+                    else
+                        failed_tests=$((failed_tests + 1))
+                        print_error "TERRAFORM-DESTROY workflow failed for $provider/$component/$backend"
+                    fi
                 fi
             done
         done
