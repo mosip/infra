@@ -143,3 +143,29 @@ variable "k8s_instance_root_volume_size" {
   description = "Root volume size for K8s instances"
   type        = number
 }
+
+# Rancher-Keycloak Integration Variables
+variable "enable_rancher_keycloak_integration" {
+  description = "Enable Rancher and Keycloak installation on the observability cluster"
+  type        = bool
+  default     = true
+}
+
+variable "rancher_hostname" {
+  description = "Hostname for Rancher UI (will be constructed from cluster_env_domain)"
+  type        = string
+  default     = ""
+}
+
+variable "keycloak_hostname" {
+  description = "Hostname for Keycloak (will be constructed from cluster_env_domain)"
+  type        = string
+  default     = ""
+}
+
+variable "rancher_bootstrap_password" {
+  description = "Bootstrap password for Rancher UI"
+  type        = string
+  default     = "admin"
+  sensitive   = true
+}

@@ -39,3 +39,30 @@ output "vpc_id" {
   description = "VPC ID for observation infrastructure"
   value       = module.mosip_observ_infra.vpc_id
 }
+
+# Rancher-Keycloak Integration Outputs
+output "rancher_url" {
+  description = "URL to access Rancher UI"
+  value       = module.mosip_observ_infra.rancher_url
+}
+
+output "keycloak_url" {
+  description = "URL to access Keycloak"
+  value       = module.mosip_observ_infra.keycloak_url
+}
+
+output "rancher_bootstrap_password" {
+  description = "Bootstrap password for Rancher UI"
+  value       = module.mosip_observ_infra.rancher_bootstrap_password
+  sensitive   = true
+}
+
+output "rancher_keycloak_status" {
+  description = "Status of Rancher and Keycloak installation"
+  value       = module.mosip_observ_infra.rancher_keycloak_status
+}
+
+output "rancher_keycloak_next_steps" {
+  description = "Next steps after Rancher and Keycloak installation"
+  value       = module.mosip_observ_infra.rancher_keycloak_next_steps
+}

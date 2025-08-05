@@ -209,3 +209,29 @@ variable "gcp_dns_zone" {
   type        = string
   default     = ""
 }
+
+# Rancher and Keycloak Integration Variables (Common across all cloud providers)
+variable "enable_rancher_keycloak_integration" {
+  description = "Enable Rancher and Keycloak installation on the observability cluster"
+  type        = bool
+  default     = true
+}
+
+variable "rancher_hostname" {
+  description = "Hostname for Rancher UI (will be constructed from cluster_env_domain if empty)"
+  type        = string
+  default     = ""
+}
+
+variable "keycloak_hostname" {
+  description = "Hostname for Keycloak (will be constructed from cluster_env_domain if empty)"
+  type        = string
+  default     = ""
+}
+
+variable "rancher_bootstrap_password" {
+  description = "Bootstrap password for Rancher UI"
+  type        = string
+  default     = "admin"
+  sensitive   = true
+}

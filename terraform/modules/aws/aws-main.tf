@@ -41,6 +41,33 @@ locals {
   dns_records = merge(local.public_dns_records, local.internal_dns_records)
 }
 
+# Data source to get existing VPC information
+data "aws_vpc" "existing_vpc" {
+  tags = {
+    Name = var.vpc_name
+  }
+}
+
+# Data source to get public subnet
+data "aws_subnet" "public_subnet" {
+  vpc_id = data.aws_vpc.existing_vpc.id
+  tags = {
+    Type = "public"
+  }
+}
+
+# Data source to get private subnets
+data "aws_subnets" "private_subnets" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.existing_vpc.id]
+  }
+
+  tags = {
+    Type = "private"
+  }
+}
+
 module "aws-resource-creation" {
 
   #source = "github.com/mosip/mosip-infra//deployment/v3/terraform/aws/modules/aws-resource-creation?ref=develop"
@@ -57,6 +84,11 @@ module "aws-resource-creation" {
 
   NGINX_NODE_EBS_VOLUME_SIZE  = var.NGINX_NODE_EBS_VOLUME_SIZE
   NGINX_NODE_ROOT_VOLUME_SIZE = var.NGINX_NODE_ROOT_VOLUME_SIZE
+
+  # VPC and Subnet Configuration
+  VPC_ID             = data.aws_vpc.existing_vpc.id
+  PUBLIC_SUBNET_ID   = data.aws_subnet.public_subnet.id
+  PRIVATE_SUBNET_IDS = data.aws_subnets.private_subnets.ids
 
 
   SECURITY_GROUP = {
