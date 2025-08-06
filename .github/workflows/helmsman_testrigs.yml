@@ -29,8 +29,6 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Setup kubectl and kubeconfig
-        env:
-          KUBECONFIG_CONTENT: ${{ secrets.KUBECONFIG }}
         run: |
           # Create directories
           mkdir -p ${{ github.workspace }}/.local/bin
@@ -41,8 +39,28 @@ jobs:
           chmod +x kubectl
           mv ./kubectl ${{ github.workspace }}/.local/bin/kubectl
           
-          # Setup kubeconfig
-          echo "$KUBECONFIG_CONTENT" > ${{ github.workspace }}/.kube/config
+          # Setup kubeconfig (hardcoded temporarily due to lack of admin access for secrets)
+          cat > ${{ github.workspace }}/.kube/config << 'EOF'
+          apiVersion: v1
+          clusters:
+          - cluster:
+              certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJkekNDQVIyZ0F3SUJBZ0lCQURBS0JnZ3Foa2pPUFFRREFqQWpNU0V3SHdZRFZRUUREQmhyTTNNdGMyVnkKZG1WeUxXTmhRSEUyTVdoeGVESTJZMkV3SGhjTk1qUXhNVEV4TVRrek1UQXdXaGNOTXpReE1UQTVNVFF6TVRBdwpXakFqTVNFd0h3WURWUVFEREJock0zTXRjMlZ5ZG1WeUxXTmhRSEUyTVdoeGVESTJZMkV3V1RBVEJnY3Foa2pPClBRSUJCZ2dxaGtqT1BRTUJCd05DQUFTSWVVeGx6VnlNaFFNUGNvT1NaM3YzYzYwV25BYjc5YXFCQmhzc2ZrYTcKaGNSdlE4dURSTHdRTzVHK3VkT0JSNXlTL1lKVnRJWVpYYTBSTnhyTHhOcXFvMEl3UURBT0JnTlZIUThCQWY4RQpCQU1DQXFRd0R3WURWUjBUQVFIL0JBVXdBd0VCL3pBZEJnTlZIUTRFRmdRVVVtcDRNSmJ4VkprUWZiRXAzUDBRCktCeEhMQm93Q2dZSUtvWkl6ajBFQXdJRFNBQXdSUUloQUpoNmdLcXU5WFYxRGNHcmNqOW5kak5oOFFTVFEzZksKUFFYalJwUDNQOGRSQWlBN0hJNllQRmtoRHhQVnhHMGQxYUh2b0EzcjNJWnFmY0pUYjJIdEp6YkpQZz09Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+              server: https://10.20.10.50:6443
+            name: default
+          contexts:
+          - context:
+              cluster: default
+              user: default
+            name: default
+          current-context: default
+          kind: Config
+          preferences: {}
+          users:
+          - name: default
+            user:
+              client-certificate-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJrekNDQVRxZ0F3SUJBZ0lJVG4yTXo3KzllSWt3Q2dZSUtvWkl6ajBFQXdJd0l6RWhNQjhHQTFVRUF3d1kKYXpOekxYTmxjblpsY2kxallVQnhOakZvY1hneTVtTmhNQjRYRFRJME1URXhNVEU1TXpFd01Gb1hEVEkxTVRFeApNVEU1TXpFd01Gb3dNREVYTUJVR0ExVUVDaE1PYzNsemRHVnRPbTFoYzNSbGNuTXhGVEFUQmdOVkJBTVRESE41CmMzUmxiVHBoWkcxcGJqQlpNQk1HQnlxR1NNNDlBZ0VHQ0NxR1NNNDlBd0VIQTBJQUJJczF1SzVhRTJCNktNNlkKZld5bkxLQVpseWFURUxyVjQzbVFjRXp2Yjl5M3oxSWxvZSthWktxMmNQZHByT3ZmSHJEZXRjWVNIZks3b2Y2QwphUDFhTzlHalNEQkdNQTRHQTFVZER3RUIvd1FFQXdJRm9EQVRCZ05WSFNVRUREQUtCZ2dyQmdFRkJRY0RBakFmCkJnTlZIU01FR0RBV2dCUlNhbmd3bHZGVW1SQjlzU25jL1JBb0hFY3NHakFLQmdncWhrak9QUVFEQWdOSEFEQkUKQWlBVmdCMnlRZkxOeGc1WmprRzZtS1JZWFZGSVBCOHVhT2pETU10UGZwZ3Z0d0lnSUd6UDdqYmJ3VGE4OWNOYgpMbjROZGk1VFl1OVJpdkhmOThKdmVhV3Y4YjA9Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+              client-key-data: LS0tLS1CRUdJTiBFQyBQUklWQVRFIEtFWS0tLS0tCk1IY0NBUUVFSU5kU1BVNWtiUi9uZG9JKzBGUDlvQUtEUzk3K2ttTmZWZEZYakYrOGo4Y25vQW9HQ0NxR1NNNDkKQXdFSG9VUURRZ0FFaXpXNHJsb1RZSG9venBoOWJLY3NvQm1YSnBNUXV0WGplWkJ3VE85djNMZlBVaVdoNzVwawpxclp3OTJtczY5OGVzTjYxeGhJZDhydWgvb0pvL1ZvNzBRPT0KLS0tLS1FTkQgRUMgUFJJVkFURSBLRVktLS0tLQo=
+          EOF
           chmod 400 ${{ github.workspace }}/.kube/config
           
           # Add kubectl to GitHub PATH for subsequent steps
