@@ -149,7 +149,13 @@ jobs:
           echo "✅ Secret length: ${#TF_WG_CONFIG} characters"
           
           # Create config file with proper handling of multiline content
+          echo "Creating /etc/wireguard directory with proper permissions..."
           sudo mkdir -p /etc/wireguard
+          sudo chmod 755 /etc/wireguard
+          sudo chown root:root /etc/wireguard
+          
+          echo "Directory created. Checking permissions..."
+          sudo ls -la /etc/ | grep wireguard || echo "WireGuard directory not visible"
           
           # Debug: Check secret format without exposing sensitive data
           echo "Secret contains '[Interface]': $(printf '%s' "$TF_WG_CONFIG" | grep -c '\[Interface\]')"
@@ -167,30 +173,28 @@ jobs:
           echo "Temp file size: $(wc -c < /tmp/wg0.conf.tmp) bytes"
           echo "Temp file lines: $(wc -l < /tmp/wg0.conf.tmp)"
           
-          # Copy to final location
-          echo "Copying temp file to /etc/wireguard/wg0.conf..."
-          if ! sudo cp /tmp/wg0.conf.tmp /etc/wireguard/wg0.conf; then
-            echo "❌ ERROR: Failed to copy config file"
-            exit 1
-          fi
+          # Use a more direct approach - write directly with sudo
+          echo "Writing config directly with sudo..."
+          sudo tee /etc/wireguard/wg0.conf < /tmp/wg0.conf.tmp > /dev/null
           
-          # Verify copy was successful before removing temp file
-          if [ ! -f /etc/wireguard/wg0.conf ]; then
-            echo "❌ ERROR: Config file doesn't exist after copy"
-            ls -la /etc/wireguard/
-            exit 1
-          fi
-          
-          echo "Final config file size after copy: $(wc -c < /etc/wireguard/wg0.conf) bytes"
-          
-          # Remove temp file only after successful copy
+          # Clean up temp file
           rm -f /tmp/wg0.conf.tmp
           
-          # Set proper permissions immediately
+          # Verify the file was created and check its size
+          if sudo test -f /etc/wireguard/wg0.conf; then
+            echo "✅ Config file created successfully"
+            echo "Final config file size: $(sudo wc -c < /etc/wireguard/wg0.conf) bytes"
+          else
+            echo "❌ ERROR: Config file still doesn't exist"
+            sudo ls -la /etc/wireguard/ || echo "Cannot list /etc/wireguard directory"
+            exit 1
+          fi
+          
+          # Set proper permissions
           sudo chmod 600 /etc/wireguard/wg0.conf
           sudo chown root:root /etc/wireguard/wg0.conf
           
-          echo "Final file permissions: $(ls -la /etc/wireguard/wg0.conf)"
+          echo "Final file permissions: $(sudo ls -la /etc/wireguard/wg0.conf)"
           
           # Verify config file is not empty and has expected content
           if [ ! -s /etc/wireguard/wg0.conf ]; then
