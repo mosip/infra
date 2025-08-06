@@ -151,20 +151,34 @@ jobs:
           # Create config file with proper handling of multiline content
           sudo mkdir -p /etc/wireguard
           
-          # Debug: Show first few characters of the secret (without exposing sensitive data)
-          echo "First 20 chars of secret: $(printf '%s' "$TF_WG_CONFIG" | head -c 20)..."
+          # Debug: Check secret format without exposing sensitive data
+          echo "Secret contains '[Interface]': $(printf '%s' "$TF_WG_CONFIG" | grep -c '\[Interface\]')"
+          echo "Secret contains '[Peer]': $(printf '%s' "$TF_WG_CONFIG" | grep -c '\[Peer\]')"
           
-          # Create temp file in user space first, then copy to protect against permission issues
+          # Write to temp file with explicit newline handling
           printf '%s' "$TF_WG_CONFIG" > /tmp/wg0.conf.tmp
+          
+          # Check temp file was created successfully
+          if [ ! -f /tmp/wg0.conf.tmp ]; then
+            echo "❌ ERROR: Failed to create temporary config file"
+            exit 1
+          fi
+          
+          echo "Temp file size: $(wc -c < /tmp/wg0.conf.tmp) bytes"
+          echo "Temp file lines: $(wc -l < /tmp/wg0.conf.tmp)"
+          
+          # Copy to final location
           sudo cp /tmp/wg0.conf.tmp /etc/wireguard/wg0.conf
           rm -f /tmp/wg0.conf.tmp
+          
+          # Set proper permissions immediately
+          sudo chmod 600 /etc/wireguard/wg0.conf
           
           # Verify config file is not empty and has expected content
           if [ ! -s /etc/wireguard/wg0.conf ]; then
             echo "❌ ERROR: WireGuard config file is empty after writing!"
-            echo "This usually means the secret contains only whitespace or invalid characters"
-            echo "Debug: Secret starts with: $(printf '%s' "$TF_WG_CONFIG" | head -c 50)"
-            echo "Debug: Secret ends with: $(printf '%s' "$TF_WG_CONFIG" | tail -c 50)"
+            echo "Checking if it's a permission issue..."
+            ls -la /etc/wireguard/
             exit 1
           fi
           
