@@ -1,5 +1,119 @@
-.idea
-terraform/aws/.terraform.lock.hcl
-terraform/aws/.terraform
-terraform/aws/*/*/.terraform.lock.hcl
-terraform/aws/*/*/.terraform
+# IDE and Editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Terraform files
+**/.terraform/
+**/.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfvars.backup
+*.tfplan
+*.tfplan.*
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# Terraform plan files
+*.tfplan
+tf-plan
+destroy.tfplan
+
+# Terraform backend files
+backend.tf
+.terraform.tfstate.lock.info
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+terraform.log
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# SSH keys and sensitive files
+*.pem
+*.key
+id_rsa*
+*.p12
+*.pfx
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Backup files
+*.backup
+*.bak
+*~
+
+# Archive files
+*.zip
+*.tar
+*.tar.gz
+*.rar
+
+# Application specific
+node_modules/
+.npm/
+package-lock.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+env/
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
+
+# Local test files
+local-test/
+scratch/
+test-output/
+
+# Cloud-specific files that might contain sensitive data
+aws-credentials
+gcp-credentials.json
+azure-credentials
+
+# Kubernetes config files (might contain sensitive info)
+kubeconfig
+*.kubeconfig
+
+# Certificate files
+*.crt
+*.csr
+*.pem
+*.key
+*.p12
+*.jks
+
+# Helmsman specific
+helmsman_logs/
+*.log
