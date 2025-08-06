@@ -150,12 +150,21 @@ jobs:
           
           # Create config file with proper handling of multiline content
           sudo mkdir -p /etc/wireguard
-          echo "$TF_WG_CONFIG" | sudo tee /etc/wireguard/wg0.conf > /dev/null
+          
+          # Debug: Show first few characters of the secret (without exposing sensitive data)
+          echo "First 20 chars of secret: $(printf '%s' "$TF_WG_CONFIG" | head -c 20)..."
+          
+          # Create temp file in user space first, then copy to protect against permission issues
+          printf '%s' "$TF_WG_CONFIG" > /tmp/wg0.conf.tmp
+          sudo cp /tmp/wg0.conf.tmp /etc/wireguard/wg0.conf
+          rm -f /tmp/wg0.conf.tmp
           
           # Verify config file is not empty and has expected content
           if [ ! -s /etc/wireguard/wg0.conf ]; then
             echo "❌ ERROR: WireGuard config file is empty after writing!"
             echo "This usually means the secret contains only whitespace or invalid characters"
+            echo "Debug: Secret starts with: $(printf '%s' "$TF_WG_CONFIG" | head -c 50)"
+            echo "Debug: Secret ends with: $(printf '%s' "$TF_WG_CONFIG" | tail -c 50)"
             exit 1
           fi
           
