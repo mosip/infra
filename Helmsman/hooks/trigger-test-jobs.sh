@@ -145,7 +145,7 @@ wait_for_single_job() {
         
         if [[ "$job_status" == "True" ]]; then
             echo "Job $job_name completed successfully after ${job_elapsed_time} seconds"
-            result_var=010800
+            result_var=0
             return 0
         elif [[ "$job_failed" == "True" ]]; then
             echo "ERROR: Job $job_name failed after ${job_elapsed_time} seconds"

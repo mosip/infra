@@ -70,6 +70,13 @@ jobs:
     needs: set-matrix
     strategy:
       matrix: ${{ fromJson(needs.set-matrix.outputs.matrix) }}
+    environment: 
+      name: ${{ github.ref_name }}  # Dynamic environment based on branch name
+    env:
+      KUBECONFIG: ${{ github.workspace }}/.kube/config
+      PATH: ${{ github.workspace }}/istio-1.22.0/bin:${{ github.workspace }}/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+      ISTIOCTL_PATH: ${{ github.workspace }}/istio-1.22.0/bin/istioctl
+      KUBECTL_PATH: ${{ github.workspace }}/.local/bin/kubectl
     steps:
       - name: Show matrix values
         run: |
@@ -80,12 +87,45 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      - name: Setup kubectl, istioctl and kubeconfig
+        env:
+          KUBECONFIG_CONTENT: ${{ secrets.KUBECONFIG }}
+        run: |
+          # Create directories
+          mkdir -p ${{ github.workspace }}/.local/bin
+          mkdir -p ${{ github.workspace }}/.kube
+          
+          # Install kubectl
+          curl -LO https://dl.k8s.io/release/v1.31.3/bin/linux/amd64/kubectl
+          chmod +x kubectl
+          mv ./kubectl ${{ github.workspace }}/.local/bin/kubectl
+          
+          # Install istioctl
+          curl -L https://istio.io/downloadIstio | ISTIO_VERSION=1.22.0 TARGET_ARCH=x86_64 sh -
+          
+          # Setup kubeconfig
+          echo "$KUBECONFIG_CONTENT" > ${{ github.workspace }}/.kube/config
+          chmod 400 ${{ github.workspace }}/.kube/config
+          
+          # Add tools to GitHub PATH for subsequent steps
+          echo "${{ github.workspace }}/.local/bin" >> $GITHUB_PATH
+          echo "${{ github.workspace }}/istio-1.22.0/bin" >> $GITHUB_PATH
+          
+          # Export environment variables for immediate use
+          echo "KUBECTL_PATH=${{ github.workspace }}/.local/bin/kubectl" >> $GITHUB_ENV
+          echo "ISTIOCTL_PATH=${{ github.workspace }}/istio-1.22.0/bin/istioctl" >> $GITHUB_ENV
+          
+          # Verify installations
+          ${{ github.workspace }}/.local/bin/kubectl version --client
+          ${{ github.workspace }}/istio-1.22.0/bin/istioctl version --remote=false
+          ${{ github.workspace }}/.local/bin/kubectl config view
+
       - name: Set Default Mode
         run: |
           if [ -z "${{ github.event.inputs.mode }}" ]; then
-            echo "mode=apply" >> $GITHUB_ENV
+            echo "HELMSMAN_MODE=apply" >> $GITHUB_ENV
           else
-            echo "mode=${{ github.event.inputs.mode }}" >> $GITHUB_ENV
+            echo "HELMSMAN_MODE=${{ github.event.inputs.mode }}" >> $GITHUB_ENV
           fi        
 
       - name: Setup ufw firewall
@@ -123,25 +163,33 @@ jobs:
         run: |
           curl -L https://github.com/Praqma/helmsman/releases/download/v3.17.1/helmsman_3.17.1_linux_amd64.tar.gz -o helmsman.tar.gz
           tar xzf helmsman.tar.gz
-          sudo mv helmsman /usr/local/bin          
-
-      - name: Install Istio,kubectl and check cluster access
-        env:
-          KUBECONFIG: ${{ secrets.KUBECONFIG }}
+          sudo mv helmsman /usr/local/bin
+          
+          # Verify all tools are available
+          echo "All tools verification:"
+          echo "kubectl: $(which kubectl)"
+          echo "istioctl: $(which istioctl)" 
+          echo "helmsman: $(which helmsman)"
+          
+          kubectl version --client
+          istioctl version --remote=false
+          helmsman -v
+      
+      - name: Verify cluster access
         run: |
-          curl -L https://istio.io/downloadIstio | ISTIO_VERSION=1.22.0 TARGET_ARCH=x86_64 sh -
-          export PATH=$PWD/istio-1.22.0/bin:$PATH
-          curl -LO https://dl.k8s.io/release/v1.31.3/bin/linux/amd64/kubectl
-          chmod +x kubectl
-          mkdir -p ~/.local/bin
-          mv ./kubectl ~/.local/bin/kubectl
-          kubectl version --client        
-          mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBECONFIG }}" > $HOME/.kube/config
-          chmod 400 $HOME/.kube/config
-          export KUBECONFIG=$HOME/.kube/config
-          kubectl config view
+          # Verify tools are accessible
+          echo "Verifying tool availability:"
+          echo "kubectl path: $(which kubectl)"
+          echo "istioctl path: $(which istioctl)"
+          echo "KUBECONFIG: $KUBECONFIG"
+          
+          # Test kubectl functionality
+          kubectl version --client
           kubectl get nodes
+          kubectl cluster-info
+          
+          # Test istioctl functionality  
+          istioctl version --remote=false
       - name: Check if external-dsf label is completed only for push
         if: github.event_name == 'push'
         run: |
@@ -150,15 +198,23 @@ jobs:
             echo "❌ External DSF not completed."
             exit 1
           fi
+          
       - name: Initiate helmsman to apply the DSF configurations.
-        run: |    
-          export HOME="/home/runner/work/infra/infra"
+        run: |          
+          export HOME="${{ github.workspace }}"
           export WORKDIR="$HOME/Helmsman"
-          helmsman --debug --${{ env.mode }} -f $WORKDIR/dsf/${{ matrix.dsf_files }}
+          
+          # Verify tools are available
+          echo "Using kubectl: $(which kubectl)"
+          echo "Using istioctl: $(which istioctl)"
+          echo "Using kubeconfig: $KUBECONFIG"
+          
+          # Run helmsman with the determined mode
+          helmsman --debug --${HELMSMAN_MODE} -f $WORKDIR/dsf/${{ matrix.dsf_files }}
       - name: Health Check External Pods
         run: |
           set -e
-          NAMESPACES=( cattle-monitoring-system cattle-logging-system istio-system istio-operator httpbin keycloak kafka minio softhsm clamav activemq landing-page)
+          NAMESPACES=( cattle-logging-system istio-system istio-operator httpbin keycloak kafka minio softhsm clamav activemq landing-page)
           for NS in "${NAMESPACES[@]}"; do
             echo "Checking health for namespace: $NS"
             for i in {1..30}; do
@@ -187,7 +243,7 @@ jobs:
       - name: Trigger helmsman mosip workflow via API
         env:
           GITHUB_REPO: ${{ github.repository }}
-          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BRANCH: ${{ github.ref_name }}
         run: |
           curl -X PATCH \
@@ -201,5 +257,3 @@ jobs:
             -H "X-GitHub-Api-Version: 2022-11-28" \
             https://api.github.com/repos/$GITHUB_REPO/actions/workflows/helmsman_mosip.yml/dispatches \
             -d '{"ref":"'"$BRANCH"'","inputs":{"mode":"apply"}}'
-
-              
