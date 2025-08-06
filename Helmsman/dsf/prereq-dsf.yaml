@@ -33,8 +33,8 @@ apps:
     timeout: 900
     priority: -6
     hooks:
-      postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh testvpc helmsman"
-      postUpgrade: "$WORKDIR/hooks/install-istio-and-httpbin.sh testvpc helmsman"
+      postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh soil helmsman"
+      postUpgrade: "$WORKDIR/hooks/install-istio-and-httpbin.sh soil helmsman"
 
   rancher-monitoring:
     namespace: cattle-monitoring-system
@@ -79,7 +79,7 @@ apps:
     version: 0.1.0
     chart: $WORKDIR/utils/istio-addons/logging-istio-addons-0.1.0.tgz
     set:
-      kibanaHost: "kibana.testvpc.mosip.net"
+      kibanaHost: "kibana.soil.mosip.net"
       installName: "elasticsearch-kibana"
     wait: true
     priority: -3

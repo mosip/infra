@@ -65,19 +65,7 @@ apps:
     version: v1.3.0-beta.2
     chart: mosip/conf-secrets
     priority: -15
-    recreatePods: false  # Never recreate
-    hooks:
-      preInstall: |
-        # Check if any secrets exist in conf-secrets namespace
-        if kubectl get secrets -n conf-secrets 2>/dev/null | grep -q "conf-secrets-various"; then
-          echo "Conf-secrets already exist, skipping to preserve existing secrets"
-          exit 78
-        fi
-        echo "No existing secrets found, proceeding with conf-secrets creation"
-    preUpgrade: |
-      # Always skip on upgrade to preserve secrets
-      echo "Skipping conf-secrets upgrade to preserve existing random secrets"
-      exit 78
+
   config-server:
     namespace: config-server
     enabled: true
@@ -224,7 +212,7 @@ apps:
     set:
       # image.repository: "mosipdev/mock-smtp"
       # image.tag: "1.0.0"
-      istio.hosts[0]: "smtp.testvpc.mosip.net"
+      istio.hosts[0]: "smtp.soil.mosip.net"
     priority: -10
     timeout: 1200
 
@@ -237,7 +225,7 @@ apps:
     set:
       # image.repository: "mosipqa/masterdata-loader"
       # image.tag: "develop"
-      mosipDataGithubBranch: "v1.2.0.1"
+      mosipDataGithubBranch: "v1.2.2.0"
       mosipDataGithubRepo: "https://github.com/mosip/mosip-data"
       mosipDataXlsfolderPath: "/home/mosip/mosip-data/mosip_master/xlsx"
     wait: true
@@ -299,7 +287,7 @@ apps:
       resources.limits.memory: "4000Mi"
       resources.requests.cpu: "200m"
       resources.requests.memory: "2000Mi"
-      istio.corsPolicy.allowOrigins[0].exact: "https://admin.testvpc.mosip.net"
+      istio.corsPolicy.allowOrigins[0].exact: "https://admin.soil.mosip.net"
     priority: -9
     timeout: 1200
 
@@ -412,7 +400,7 @@ apps:
     version: 12.0.1
     chart: mosip/prereg-gateway
     set:
-      istio.hosts[0]: "prereg.testvpc.mosip.net"
+      istio.hosts[0]: "prereg.soil.mosip.net"
     priority: -8
     timeout: 1200
 
@@ -483,7 +471,7 @@ apps:
     set:
       # image.repository: ""
       # image.tag: ""
-      prereg.apiHost: "prereg.testvpc.mosip.net"
+      prereg.apiHost: "prereg.soil.mosip.net"
     priority: -8
     timeout: 1200
 
@@ -556,7 +544,7 @@ apps:
     set:
       # image.repository: "mosipid/partner-management-service"
       # image.tag: "1.2.2.1"
-      istio.corsPolicy.allowOrigins[0].prefix: "https://pmp.testvpc.mosip.net"
+      istio.corsPolicy.allowOrigins[0].prefix: "https://pmp.soil.mosip.net"
     priority: -8
     timeout: 1200
 
@@ -569,7 +557,7 @@ apps:
     set:
       # image.repository: "mosipid/partner-management-service"
       # image.tag: "1.2.2.1"
-      istio.corsPolicy.allowOrigins[0].prefix: "https://pmp.testvpc.mosip.net"
+      istio.corsPolicy.allowOrigins[0].prefix: "https://pmp.soil.mosip.net"
     priority: -8
     timeout: 1200
 
@@ -582,8 +570,8 @@ apps:
   #   set:
   #     image.repository: "mosipid/pmp-ui"
   #     image.tag: "1.2.2.1"
-  #     pmp.apiUrl: "https://api-internal.testvpc.mosip.net/"
-  #     istio.hosts[0]: "pmp.testvpc.mosip.net"
+  #     pmp.apiUrl: "https://api-internal.soil.mosip.net/"
+  #     istio.hosts[0]: "pmp.soil.mosip.net"
   #   priority: -8
   #   timeout: 1200
 
@@ -596,11 +584,11 @@ apps:
     set:
       # image.repository: "mosipqa/pmp-revamp-ui"
       # image.tag: "develop"
-      pmp_revamp.react_app_partner_manager_api_base_url: "https://api-internal.testvpc.mosip.net/v1/partnermanager"
-      pmp_revamp.react_app_policy_manager_api_base_url: "https://api-internal.testvpc.mosip.net/v1/policymanager"
+      pmp_revamp.react_app_partner_manager_api_base_url: "https://api-internal.soil.mosip.net/v1/partnermanager"
+      pmp_revamp.react_app_policy_manager_api_base_url: "https://api-internal.soil.mosip.net/v1/policymanager"
       pmp_revamp.pms_partner_manager_internal_service_url: "http://pms-partner.pms/v1/partnermanager"
       pmp_revamp.pms_policy_manager_internal_service_url: "http://pms-policy.pms/v1/policymanager"
-      istio.hosts[0]: "pmp.testvpc.mosip.net"
+      istio.hosts[0]: "pmp.soil.mosip.net"
     priority: -8
     timeout: 1200
 
@@ -621,7 +609,8 @@ apps:
     enabled: true
     version: 12.1.1
     chart: mosip/regproc-workflow
-    # set:
+    set:
+      livenessProbe.periodSeconds: "30"
     #   image.repository: ""
     #   image.tag: ""
     priority: -7
@@ -634,7 +623,8 @@ apps:
     enabled: true
     version: 12.1.1
     chart: mosip/regproc-status
-    # set:
+    set:
+      livenessProbe.periodSeconds: "30"
     #   image.repository: ""
     #   image.tag: ""
     timeout: 1200
@@ -645,9 +635,8 @@ apps:
     enabled: true
     version: 12.1.1
     chart: mosip/regproc-camel
-    # set:
-    #   image.repository: ""
-    #   image.tag: ""
+    set:
+      livenessProbe.periodSeconds: "30"
     timeout: 1200
     priority: -6
 
@@ -656,9 +645,8 @@ apps:
     enabled: true
     version: 12.1.1
     chart: mosip/regproc-pktserver
-    # set:
-    #   image.repository: ""
-    #   image.tag: ""
+    set:
+      livenessProbe.periodSeconds: "30"
     timeout: 1200
     priority: -6
 
@@ -670,8 +658,7 @@ apps:
     set:
       persistence.storageClass: nfs-csi
       persistence.size: 5Gi
-    #   image.repository: ""
-    #   image.tag: ""
+      livenessProbe.periodSeconds: "30"
     timeout: 1200
     priority: -6
 
@@ -684,6 +671,7 @@ apps:
     #   image.repository: ""
     #   image.tag: ""
     startupProbe.failureThreshold: 60
+    livenessProbe.periodSeconds: "30"
     timeout: 1200
     priority: -5
 
@@ -692,9 +680,8 @@ apps:
     enabled: true
     version: 12.1.1
     chart: mosip/regproc-group3
-    # set:
-    #   image.repository: ""
-    #   image.tag: ""
+    set:
+      livenessProbe.periodSeconds: "30"
     timeout: 1200
     priority: -5
 
@@ -703,9 +690,8 @@ apps:
     enabled: true
     version: 12.1.1
     chart: mosip/regproc-group4
-    # set:
-    #   image.repository: ""
-    #   image.tag: ""
+    set:
+      livenessProbe.periodSeconds: "30"
     timeout: 1200
     priority: -5
 
@@ -714,9 +700,8 @@ apps:
     enabled: true
     version: 12.1.1
     chart: mosip/regproc-group5
-    # set:
-    #   image.repository: ""
-    #   image.tag: ""
+    set:
+      livenessProbe.periodSeconds: "30"
     timeout: 1200
     priority: -5
 
@@ -725,9 +710,8 @@ apps:
     enabled: true
     version: 12.1.1
     chart: mosip/regproc-group6
-    # set:
-    #   image.repository: ""
-    #   image.tag: ""
+    set:
+      livenessProbe.periodSeconds: "30"
     timeout: 1200
     priority: -5
 
@@ -736,9 +720,8 @@ apps:
     enabled: true
     version: 12.1.1
     chart: mosip/regproc-group7
-    # set:
-    #   image.repository: "mosipdev/registration-processor-stage-group-7"
-    #   image.tag: "develop"
+    set:
+      livenessProbe.periodSeconds: "30"
     timeout: 1200
     priority: -5
 
@@ -747,9 +730,8 @@ apps:
     enabled: true
     version: 12.1.1
     chart: mosip/regproc-trans
-    # set:
-    #   image.repository: ""
-    #   image.tag: ""
+    set:
+      livenessProbe.periodSeconds: "30"
     timeout: 1200
     priority: -5
 
@@ -763,6 +745,7 @@ apps:
       resources.limits.memory: "1500Mi"
       resources.requests.cpu: "500m"
       resources.requests.memory: "1500Mi"
+      livenessProbe.periodSeconds: "30"
     #   image.repository: ""
     #   image.tag: ""
     timeout: 1200
@@ -773,7 +756,8 @@ apps:
     enabled: true
     version: 12.1.1
     chart: mosip/regproc-reprocess
-    # set:
+    set:
+      livenessProbe.periodSeconds: "30"
     #   image.repository: ""
     #   image.tag: ""
     timeout: 1200
@@ -784,7 +768,8 @@ apps:
     enabled: true
     version: 12.1.1
     chart: mosip/regproc-landingzone
-    # set:
+    set:
+      livenessProbe.periodSeconds: "30"
     #    image.repository: "mosipid/registration-processor-landing-zone"
     #    image.tag: "1.2.0.2"
     timeout: 1200
@@ -814,7 +799,7 @@ apps:
     set:
       image.repository: "mosipid/admin-service"
       image.tag: "1.2.1.2"
-      istio.corsPolicy.allowOrigins[0].prefix: "https://admin.testvpc.mosip.net"
+      istio.corsPolicy.allowOrigins[0].prefix: "https://admin.soil.mosip.net"
       startupProbe.failureThreshold: 60
     timeout: 1200
     priority: -8
@@ -828,8 +813,8 @@ apps:
     set:
       # image.repository: "mosipqa/admin-ui"
       # image.tag: "1.3.x"
-      admin.apiUrl: "https://api-internal.testvpc.mosip.net/v1/"
-      istio.hosts[0]: "admin.testvpc.mosip.net"
+      admin.apiUrl: "https://api-internal.soil.mosip.net/v1/"
+      istio.hosts[0]: "admin.soil.mosip.net"
     timeout: 1200
     priority: -8
 
@@ -936,8 +921,8 @@ apps:
       resources.requests.cpu: "300m"
       resources.requests.memory: "2000Mi"
       startupProbe.failureThreshold: "60"
-      istio.corsPolicy.allowOrigins[0].prefix: "https://resident.testvpc.mosip.net"
-    timeout: 1000
+      istio.corsPolicy.allowOrigins[0].prefix: "https://resident.soil.mosip.net"
+    timeout: 1200
     wait: true
     priority: -4
     hooks:
@@ -951,8 +936,8 @@ apps:
     set:
       # image.repository: "mosipdev2/resident-ui"
       # image.tag: "release-0.9.x"
-      resident.apiHost: "api-internal.testvpc.mosip.net"
-      istio.hosts[0]: "resident.testvpc.mosip.net"
+      resident.apiHost: "api-internal.soil.mosip.net"
+      istio.hosts[0]: "resident.soil.mosip.net"
     wait: true
     timeout: 1200
     priority: -3
@@ -1012,10 +997,10 @@ apps:
     set:
       image.repository: "mosipid/mosip-file-server"
       image.tag: "1.2.0.1"
-      mosipfileserver.host: "api.testvpc.mosip.net"
+      mosipfileserver.host: "api.soil.mosip.net"
       # mosipfileserver.secrets.KEYCLOAK_CLIENT_SECRET: ""
-      istio.corsPolicy.allowOrigins[0].prefix: "https://api.testvpc.mosip.net"
-      istio.corsPolicy.allowOrigins[1].prefix: "https://api-internal.testvpc.mosip.net"
+      istio.corsPolicy.allowOrigins[0].prefix: "https://api.soil.mosip.net"
+      istio.corsPolicy.allowOrigins[1].prefix: "https://api-internal.soil.mosip.net"
       istio.corsPolicy.allowOrigins[2].prefix: "https://verifiablecredential.io"
     priority: -1
     timeout: 1200
@@ -1030,9 +1015,9 @@ apps:
       image.repository: "mosipid/registration-client"
       image.tag: "1.2.0.2"
       regclient.version: "1.2.0.2"
-      regclient.upgradeServerUrl: "https://regclient.testvpc.mosip.net"
-      regclient.healthCheckUrl: "https://api-internal.testvpc.mosip.net/v1/syncdata/actuator/health"
-      regclient.hostName: "api-internal.testvpc.mosip.net"
-      istio.host: "regclient.testvpc.mosip.net"
+      regclient.upgradeServerUrl: "https://regclient.soil.mosip.net"
+      regclient.healthCheckUrl: "https://api-internal.soil.mosip.net/v1/syncdata/actuator/health"
+      regclient.hostName: "api-internal.soil.mosip.net"
+      istio.host: "regclient.soil.mosip.net"
     priority: -1
     timeout: 1200
