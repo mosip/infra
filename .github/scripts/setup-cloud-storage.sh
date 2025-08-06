@@ -250,7 +250,10 @@ setup_aws_s3() {
         echo "Note: For production environments, consider enabling state locking with --enable-locking"
     fi
     
-    # Set environment variables for GitHub Actions
+    # Set environment variables for GitHub Actions and shell usage
+    export DYNAMIC_STORAGE_NAME="$bucket_name"
+    export DYNAMIC_REGION="$region"
+    
     if [ -n "$GITHUB_ENV" ]; then
         echo "DYNAMIC_STORAGE_NAME=$bucket_name" >> "$GITHUB_ENV"
         echo "DYNAMIC_REGION=$region" >> "$GITHUB_ENV"
@@ -340,7 +343,11 @@ setup_azure_storage() {
         fi
     fi
     
-    # Set environment variables for GitHub Actions
+    # Set environment variables for GitHub Actions and shell usage
+    export DYNAMIC_STORAGE_NAME="$dynamic_storage_account"
+    export DYNAMIC_RESOURCE_GROUP="$dynamic_resource_group"
+    export DYNAMIC_CONTAINER="$container"
+    
     if [ -n "$GITHUB_ENV" ]; then
         echo "DYNAMIC_STORAGE_NAME=$dynamic_storage_account" >> "$GITHUB_ENV"
         echo "DYNAMIC_RESOURCE_GROUP=$dynamic_resource_group" >> "$GITHUB_ENV"
@@ -421,7 +428,13 @@ setup_gcp_storage() {
         fi
     fi
     
-    # Set environment variables for GitHub Actions
+    # Set environment variables for GitHub Actions and shell usage
+    export DYNAMIC_STORAGE_NAME="$bucket_name"
+    export DYNAMIC_REGION="$region"
+    if [ "$enable_locking" = true ]; then
+        export TERRAFORM_STATE_LOCKING="true"
+    fi
+    
     if [ -n "$GITHUB_ENV" ]; then
         echo "DYNAMIC_STORAGE_NAME=$bucket_name" >> "$GITHUB_ENV"
         echo "DYNAMIC_REGION=$region" >> "$GITHUB_ENV"

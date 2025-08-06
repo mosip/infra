@@ -1,4 +1,15 @@
 # AWS Implementation Variables
+
+# Cloud provider selection
+variable "cloud_provider" {
+  description = "Cloud provider to use (aws, azure, gcp)"
+  type        = string
+  validation {
+    condition     = contains(["aws", "azure", "gcp"], var.cloud_provider)
+    error_message = "Cloud provider must be one of: aws, azure, gcp"
+  }
+}
+
 variable "aws_provider_region" {
   description = "AWS region for resource creation"
   type        = string

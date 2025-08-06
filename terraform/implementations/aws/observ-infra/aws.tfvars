@@ -8,7 +8,7 @@ cloud_provider = "aws"
 cluster_name = "testvpc-observ"
 
 # MOSIP domain
-cluster_env_domain = "testvpc.mosip.net"
+cluster_env_domain = "observ.mosip.net"
 
 # Email-ID for SSL certificate notifications
 mosip_email_id = "chandra.mishra@technoforte.co.in"
@@ -21,12 +21,12 @@ aws_provider_region = "ap-south-1"
 
 # Minimal node counts for observability
 k8s_control_plane_node_count = 1
-k8s_etcd_node_count          = 1
-k8s_worker_node_count        = 2
+k8s_etcd_node_count          = 0
+k8s_worker_node_count        = 0
 
-# Minimal instance types for observability
-k8s_instance_type   = "t3a.medium" # Smaller than infra (t3a.2xlarge)
-nginx_instance_type = "t3a.medium" # Smaller than infra (t3a.2xlarge)
+# Minimal instance types for observability (upgraded for better performance)
+k8s_instance_type   = "t3a.2xlarge"
+nginx_instance_type = "t3a.large"
 
 # AMI ID (Ubuntu 24.04 LTS in ap-south-1)
 ami = "ami-0ad21ae1d0696ad58"
@@ -43,23 +43,23 @@ nginx_node_ebs_volume_size    = 100 # Smaller than infra (300)
 k8s_instance_root_volume_size = 32  # Smaller than infra (64)
 
 # Subdomains for observability services
-subdomain_public = [""]
+subdomain_public = []
 
 subdomain_internal = [
-  "alertmanager",
-  "elasticsearch"
+  "rancher",
+  "keycloak"
 ]
 
 # Repository configuration
-k8s_infra_repo_url = "https://github.com/mosip/k8s-infra.git"
+k8s_infra_repo_url = "https://github.com/bhumi46/k8s-infra.git"
 k8s_infra_branch   = "develop"
 
 # Rancher UI configuration (hostname will be dynamically created from cluster_env_domain)
-rancher_hostname           = "" # Will default to rancher.testvpc.mosip.net
+rancher_hostname           = "rancher.observ.mosip.net" # Will default to rancher.testvpc.mosip.net
 rancher_bootstrap_password = "admin"
 
 # Keycloak configuration (hostname will be dynamically created from cluster_env_domain)  
-keycloak_hostname = "" # Will default to iam.testvpc.mosip.net
+keycloak_hostname = "keycloak.observ.mosip.net" # Will default to iam.testvpc.mosip.net
 
 # Enable Rancher-Keycloak integration for observability cluster
 enable_rancher_keycloak_integration = true

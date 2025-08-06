@@ -161,21 +161,36 @@ EOF
 create_aws_backend() {
     local component="$1"
     local branch="$2"
-    local bucket_name="$3"
+    local bucket_base_name="$3"
     local region="$4"
     
-    # Use environment variables if available (from S3 setup script)
-    if [ -n "$DYNAMIC_BUCKET_NAME" ]; then
-        bucket_name="$DYNAMIC_BUCKET_NAME"
+    # Construct dynamic bucket name using same logic as setup-cloud-storage.sh
+    local bucket_name
+    if [[ "$bucket_base_name" == *"-$component"* ]]; then
+        # Already component-specific: mosip-base-infra -> mosip-base-infra-main
+        bucket_name="${bucket_base_name}-${branch}"
+    else
+        # Add component for security: mosip-terraform-state -> mosip-terraform-state-observ-infra-main
+        bucket_name="${bucket_base_name}-${component}-${branch}"
+    fi
+    
+    # Use environment variables if available (from S3 setup script) - this overrides the calculated name
+    if [ -n "$DYNAMIC_STORAGE_NAME" ]; then
+        echo "Using dynamic storage name from environment: $DYNAMIC_STORAGE_NAME"
+        bucket_name="$DYNAMIC_STORAGE_NAME"
     fi
     if [ -n "$DYNAMIC_REGION" ]; then
+        echo "Using dynamic region from environment: $DYNAMIC_REGION"
         region="$DYNAMIC_REGION"
     fi
     
     local state_key="${CLOUD_PROVIDER}-${component}-${branch}-terraform.tfstate"
     
     echo "Configuring AWS S3 backend..."
-    echo "Bucket: $bucket_name"
+    echo "Base bucket name: $bucket_base_name"
+    echo "Component: $component"
+    echo "Branch: $branch"
+    echo "Final bucket name: $bucket_name"
     echo "Region: $region"
     echo "State Key: $state_key"
     
@@ -221,6 +236,20 @@ create_azure_backend() {
     local storage_account="$4"
     local container="$5"
     
+    # Use environment variables if available (from storage setup script)
+    if [ -n "$DYNAMIC_RESOURCE_GROUP" ]; then
+        echo "Using dynamic resource group from environment: $DYNAMIC_RESOURCE_GROUP"
+        resource_group="$DYNAMIC_RESOURCE_GROUP"
+    fi
+    if [ -n "$DYNAMIC_STORAGE_NAME" ]; then
+        echo "Using dynamic storage account from environment: $DYNAMIC_STORAGE_NAME"
+        storage_account="$DYNAMIC_STORAGE_NAME"
+    fi
+    if [ -n "$DYNAMIC_CONTAINER" ]; then
+        echo "Using dynamic container from environment: $DYNAMIC_CONTAINER"
+        container="$DYNAMIC_CONTAINER"
+    fi
+    
     # Include branch name in state key to avoid conflicts
     local state_key="${CLOUD_PROVIDER}-${component}-${branch}-terraform.tfstate"
     
@@ -257,6 +286,12 @@ create_gcp_backend() {
     local component="$1"
     local branch="$2"
     local bucket_name="$3"
+    
+    # Use environment variables if available (from storage setup script)
+    if [ -n "$DYNAMIC_STORAGE_NAME" ]; then
+        echo "Using dynamic bucket name from environment: $DYNAMIC_STORAGE_NAME"
+        bucket_name="$DYNAMIC_STORAGE_NAME"
+    fi
     
     # Include branch name in prefix to avoid conflicts
     local state_prefix="terraform/${CLOUD_PROVIDER}-${component}-${branch}"

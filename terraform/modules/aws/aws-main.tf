@@ -48,11 +48,15 @@ data "aws_vpc" "existing_vpc" {
   }
 }
 
-# Data source to get public subnet
-data "aws_subnet" "public_subnet" {
-  vpc_id = data.aws_vpc.existing_vpc.id
+# Data source to get public subnets
+data "aws_subnets" "public_subnets" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.existing_vpc.id]
+  }
+
   tags = {
-    Type = "public"
+    Type = "Public"
   }
 }
 
@@ -64,7 +68,7 @@ data "aws_subnets" "private_subnets" {
   }
 
   tags = {
-    Type = "private"
+    Type = "Private"
   }
 }
 
@@ -86,9 +90,9 @@ module "aws-resource-creation" {
   NGINX_NODE_ROOT_VOLUME_SIZE = var.NGINX_NODE_ROOT_VOLUME_SIZE
 
   # VPC and Subnet Configuration
-  VPC_ID             = data.aws_vpc.existing_vpc.id
-  PUBLIC_SUBNET_ID   = data.aws_subnet.public_subnet.id
-  PRIVATE_SUBNET_IDS = data.aws_subnets.private_subnets.ids
+  VPC_ID              = data.aws_vpc.existing_vpc.id
+  PUBLIC_SUBNET_IDS   = data.aws_subnets.public_subnets.ids
+  PRIVATE_SUBNET_IDS  = data.aws_subnets.private_subnets.ids
 
 
   SECURITY_GROUP = {
