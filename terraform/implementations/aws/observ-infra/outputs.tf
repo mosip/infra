@@ -65,4 +65,5 @@ output "rancher_keycloak_status" {
 output "rancher_keycloak_next_steps" {
   description = "Next steps after Rancher and Keycloak installation"
   value       = module.mosip_observ_infra.rancher_keycloak_next_steps
+  sensitive   = true
 }

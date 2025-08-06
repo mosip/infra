@@ -30,6 +30,23 @@ output "K8S_TOKEN" {
   sensitive   = true
 }
 
+# Add missing outputs for compatibility
+output "control_plane_node_1" {
+  description = "First control plane node information (lowercase alias)"
+  value       = module.aws_observation_infrastructure.CONTROL_PLANE_NODE_1
+}
+
+output "k8s_token" {
+  description = "K8s cluster token (lowercase alias)"
+  value       = module.aws_observation_infrastructure.K8S_TOKEN
+  sensitive   = true
+}
+
+output "vpc_id" {
+  description = "VPC ID (lowercase alias)"
+  value       = module.aws_observation_infrastructure.VPC_ID
+}
+
 # Rancher and Keycloak outputs
 output "rancher_url" {
   description = "URL for accessing Rancher UI"
@@ -55,6 +72,7 @@ output "rancher_keycloak_status" {
 output "rancher_keycloak_next_steps" {
   description = "Next steps after Rancher and Keycloak installation"
   value       = var.enable_rancher_keycloak_integration && length(module.rancher_keycloak_setup) > 0 ? module.rancher_keycloak_setup[0].next_steps : ["Rancher and Keycloak integration disabled"]
+  sensitive   = true
 }
 
 # Infrastructure outputs

@@ -176,9 +176,9 @@ variable "VPC_ID" {
   type        = string
 }
 
-variable "PUBLIC_SUBNET_ID" {
-  description = "Public subnet ID for NGINX instance"
-  type        = string
+variable "PUBLIC_SUBNET_IDS" {
+  description = "List of public subnet IDs for NGINX instances"
+  type        = list(string)
 }
 
 variable "PRIVATE_SUBNET_IDS" {

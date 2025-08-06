@@ -53,7 +53,7 @@ resource "aws_instance" "NGINX_EC2_INSTANCE" {
   key_name                    = local.NGINX_INSTANCE.key_name
   user_data                   = lookup(local.NGINX_INSTANCE, "user_data", "")
   vpc_security_group_ids      = local.NGINX_INSTANCE.security_groups
-  subnet_id                   = var.PUBLIC_SUBNET_ID
+  subnet_id                   = var.PUBLIC_SUBNET_IDS[0]
 
   ## for ssl certificate generation
   iam_instance_profile = aws_iam_instance_profile.certbot_profile.name

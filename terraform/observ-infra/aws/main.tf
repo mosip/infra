@@ -52,6 +52,6 @@ module "rancher_keycloak_setup" {
   KEYCLOAK_HOSTNAME           = var.keycloak_hostname
   RANCHER_BOOTSTRAP_PASSWORD  = var.rancher_bootstrap_password
   ENABLE_RANCHER_KEYCLOAK     = var.enable_rancher_keycloak_integration
-  CONTROL_PLANE_IPS           = module.aws_observation_infrastructure.K8S_CLUSTER_PRIVATE_IPS["control_plane"]
+  CONTROL_PLANE_IPS           = [module.aws_observation_infrastructure.CONTROL_PLANE_NODE_1]
   NGINX_PUBLIC_IP             = module.aws_observation_infrastructure.NGINX_PUBLIC_IP
 }

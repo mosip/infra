@@ -40,12 +40,18 @@ output "K8S_CLUSTER_PRIVATE_IPS_STR" {
 
 output "K8S_TOKEN" {
   value = module.rke2-setup.K8S_TOKEN
+  sensitive = true
 }
 
 # VPC Information
 output "VPC_ID" {
   description = "ID of the VPC"
   value       = data.aws_vpc.existing_vpc.id
+}
+
+output "PUBLIC_SUBNET_IDS" {
+  description = "List of public subnet IDs"
+  value       = data.aws_subnets.public_subnets.ids
 }
 
 # Infrastructure Status

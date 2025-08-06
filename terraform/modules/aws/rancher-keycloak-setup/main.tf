@@ -31,28 +31,38 @@ resource "null_resource" "install_rancher" {
   provisioner "remote-exec" {
     inline = [
       "set -e",
-      "echo 'Installing Rancher UI...'",
+      "echo 'Setting up Rancher UI...'",
       
-      # Wait for kubectl to be available
+      # Wait for kubectl to be available and check version
       "timeout 300 bash -c 'until kubectl get nodes; do sleep 5; done'",
+      "echo 'Kubectl version:'",
+      "kubectl version --client",
+      
+      # Check if helm is installed, if not install it
+      "echo 'Checking Helm installation...'",
+      "if ! command -v helm &> /dev/null; then",
+      "  echo 'Helm not found, installing...'",
+      "  sudo apt update",
+      "  sudo snap install helm --classic",
+      "else",
+      "  echo 'Helm version:'",
+      "  helm version",
+      "fi",
+      
+      # Install ingress-nginx
+      "echo 'Installing ingress-nginx...'",
+      "helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx",
+      "helm repo update",
+      "helm install ingress-nginx ingress-nginx/ingress-nginx --namespace ingress-nginx --version 4.10.0 --create-namespace --set controller.service.type=NodePort --set controller.service.nodePorts.http=30080 --set controller.service.nodePorts.https=30443 --set controller.config.use-forwarded-headers=true",
       
       # Add Rancher Helm repository
+      "echo 'Adding Rancher Helm repository...'",
       "helm repo add rancher-latest https://releases.rancher.com/server-charts/latest",
       "helm repo update",
       
-      # Install cert-manager (required for Rancher)
-      "kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/releases/download/v1.13.0/cert-manager.crds.yaml",
-      "helm repo add jetstack https://charts.jetstack.io",
-      "helm repo update",
-      "helm install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --version v1.13.0",
-      
-      # Wait for cert-manager to be ready
-      "kubectl wait --for=condition=ready pod -l app=cert-manager --timeout=300s -n cert-manager",
-      "kubectl wait --for=condition=ready pod -l app=cainjector --timeout=300s -n cert-manager",
-      "kubectl wait --for=condition=ready pod -l app=webhook --timeout=300s -n cert-manager",
-      
-      # Install Rancher
-      "helm install rancher rancher-latest/rancher --namespace cattle-system --create-namespace --set hostname=${var.RANCHER_HOSTNAME != "" ? var.RANCHER_HOSTNAME : "rancher.${var.CLUSTER_ENV_DOMAIN}"} --set bootstrapPassword=${var.RANCHER_BOOTSTRAP_PASSWORD} --set ingress.tls.source=letsEncrypt --set letsEncrypt.email=admin@${var.CLUSTER_ENV_DOMAIN} --set letsEncrypt.ingress.class=nginx --set ingress.extraAnnotations.'kubernetes\\.io/ingress\\.class'=nginx --wait --timeout=600s",
+      # Install Rancher with updated configuration
+      "echo 'Installing Rancher...'",
+      "helm install rancher rancher-stable/rancher --namespace cattle-system --version=2.8.3 --create-namespace --kube-version 1.28.9 --set hostname=${var.RANCHER_HOSTNAME != "" ? var.RANCHER_HOSTNAME : "rancher.${var.CLUSTER_ENV_DOMAIN}"} --set ingress.enabled=true --set ingress.includeDefaultExtraAnnotations=true --set ingress.extraAnnotations.'kubernetes\\.io/ingress\\.class'=nginx --set rancherImage=rancher/rancher --set replicas=2 --set tls=external --set-string bootstrapPassword=${var.RANCHER_BOOTSTRAP_PASSWORD}",
       
       # Wait for Rancher to be ready
       "kubectl wait --for=condition=ready pod -l app=rancher --timeout=600s -n cattle-system",
@@ -95,7 +105,7 @@ resource "null_resource" "install_keycloak" {
       "git pull origin ${var.K8S_INFRA_BRANCH}",
       
       # Navigate to Keycloak installation directory
-      "cd rancher/keycloak",
+      "cd observation/keycloak",
       
       # Make sure the install script is executable
       "chmod +x install.sh",

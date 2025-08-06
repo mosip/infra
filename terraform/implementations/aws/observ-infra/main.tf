@@ -19,7 +19,7 @@ module "mosip_observ_infra" {
   source = "../../../observ-infra"
 
   # Cloud provider selection
-  cloud_provider = "aws"
+  cloud_provider = var.cloud_provider
 
   # Common configuration (same as infra but different values for minimal resources)
   cluster_name                 = var.cluster_name

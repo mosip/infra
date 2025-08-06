@@ -171,7 +171,18 @@ jobs:
       - name: Configure WireGuard
         run: |
           # WG_CONFIG comes from environment-level secrets (dynamic based on branch name)
+          if [ -z "${{ secrets.TF_WG_CONFIG }}" ]; then
+            echo "❌ ERROR: TF_WG_CONFIG secret is not configured for environment '${{ github.ref_name }}'"
+            echo "Please configure the WireGuard configuration secret for this branch/environment"
+            exit 1
+          fi
           echo "${{ secrets.TF_WG_CONFIG }}" | sudo tee /etc/wireguard/wg0.conf
+          # Verify config file is not empty
+          if [ ! -s /etc/wireguard/wg0.conf ]; then
+            echo "❌ ERROR: WireGuard config file is empty!"
+            exit 1
+          fi
+          echo "✅ WireGuard configuration applied successfully"
         if: "${{ inputs.TERRAFORM_COMPONENT != 'base-infra' }}"
 
       - name: Start WireGuard
@@ -180,7 +191,14 @@ jobs:
           sudo chmod 700 /etc/wireguard/
           sudo chmod 644 /lib/systemd/system/wg-quick@.service
           sudo systemctl daemon-reload
-          sudo wg-quick up wg0
+          echo "Starting WireGuard..."
+          if ! sudo wg-quick up wg0; then
+            echo "❌ ERROR: Failed to start WireGuard VPN"
+            echo "Config file contents (first 5 lines):"
+            head -5 /etc/wireguard/wg0.conf
+            exit 1
+          fi
+          echo "✅ WireGuard started successfully"
           sudo wg show wg0
         if: "${{ inputs.TERRAFORM_COMPONENT != 'base-infra' }}"
 
@@ -213,7 +231,12 @@ jobs:
           fi
 
       - name: Terraform Init
-        run: terraform init
+        run: |
+          # First try normal init
+          if ! terraform init; then
+            echo "Normal init failed, trying with -reconfigure to handle backend configuration changes..."
+            terraform init -reconfigure
+          fi
 
       - name: Terraform refresh
         run: terraform refresh -var-file="${{ inputs.CLOUD_PROVIDER }}.tfvars" -no-color
