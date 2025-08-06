@@ -3,11 +3,45 @@ name: terraform destroy
 on:
   workflow_dispatch:
     inputs:
+      CLOUD_PROVIDER:
+        description: 'Choose the cloud provider (aws, azure, gcp)'
+        required: true
+        type: choice
+        options:
+          - aws
+          - azure
+          - gcp
+      TERRAFORM_COMPONENT:
+        description: 'Choose component to destroy (WARNING: base-infra destruction removes foundational resources!)'
+        required: true
+        type: choice
+        options:
+          - infra
+          - base-infra
+          - observ-infra
+        default: infra
+      BACKEND_TYPE:
+        description: 'Choose Terraform backend type (must match the one used during creation)'
+        required: true
+        type: choice
+        options:
+          - local
+          - remote
+        default: local
+      REMOTE_BACKEND_CONFIG:
+        description: 'Remote backend config (format: aws:bucket_base_name:region OR azure:rg_name:storage_account:container OR gcp:bucket_name). For AWS, bucket will be created as bucket_base_name-BRANCH_NAME'
+        required: false
+        type: string
+      ENABLE_STATE_LOCKING:
+        description: 'Enable state locking cleanup (must match the setting used during creation)'
+        required: false
+        type: boolean
+        default: true
       SSH_PRIVATE_KEY:
         description: 'The GitHub secret containing the private key of the SSH key named in the preceding input variable `SSH_PRIVATE_KEY` is used for SSH login purposes on nginx node.'
         required: true
       TERRAFORM_DESTROY:
-        description: 'Terraform destroy'
+        description: 'Terraform destroy - CONFIRM DESTRUCTION'
         required: false
         type: boolean
         default: false
@@ -15,21 +49,106 @@ on:
 env:
   # TF_LOG_PATH: ./temp/terraform.log
   ## TRACE, DEBUG, INFO, WARN or ERROR
-  # TF_LOG: TRACE
+  # TF_LOG: TRACE  
+  # Repository-level secrets for cloud credentials
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  TF_VAR_SSH_PRIVATE_KEY: ${{ secrets[inputs.SSH_PRIVATE_KEY] }}
+  TF_VAR_ssh_private_key: ${{ secrets[inputs.SSH_PRIVATE_KEY] }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
   terraform-destroy:
     runs-on: ubuntu-latest
+    # Use dynamic environment based on current branch name
+    environment: ${{ github.ref_name }}
     defaults:
       run:
         shell: bash
-        # We keep Terraform files in the terraform directory.
-        working-directory: 'terraform/aws'
+        # We work in the cloud-specific implementation directory
+        working-directory: 'terraform/implementations/${{ inputs.CLOUD_PROVIDER }}/${{ inputs.TERRAFORM_COMPONENT }}'
     steps:
       - uses: actions/checkout@v4
+
+      - name: Check for required implementation directory
+        run: |
+          if [ ! -d "." ]; then
+            echo "Directory 'terraform/implementations/${{ inputs.CLOUD_PROVIDER }}/${{ inputs.TERRAFORM_COMPONENT }}' does not exist."
+            echo "Available providers: aws, azure, gcp"
+            echo "Available components: base-infra, infra"
+            exit 1
+          fi
+          
+          # Check if tfvars file exists
+          if [ ! -f "${{ inputs.CLOUD_PROVIDER }}.tfvars" ]; then
+            echo "Configuration file '${{ inputs.CLOUD_PROVIDER }}.tfvars' not found in current directory."
+            exit 1
+          fi
+
+      - name: Check Cloud Storage for Remote State (All Providers)
+        run: |
+          if [ "${{ inputs.BACKEND_TYPE }}" = "remote" ]; then
+            echo "Checking cloud storage for remote Terraform state..."
+            echo "Provider: ${{ inputs.CLOUD_PROVIDER }}"
+            echo "Component: ${{ inputs.TERRAFORM_COMPONENT }}"
+            echo "Branch: ${{ github.ref_name }}"
+            
+            # Parse remote configuration to check if storage exists
+            BACKEND_CONFIG="${{ inputs.REMOTE_BACKEND_CONFIG }}"
+            
+            if [ -n "$BACKEND_CONFIG" ]; then
+              IFS=':' read -ra CONFIG_PARTS <<< "$BACKEND_CONFIG"
+              PROVIDER_TYPE="${CONFIG_PARTS[0]}"
+              
+              case "$PROVIDER_TYPE" in
+                aws)
+                  BUCKET_BASE_NAME="${CONFIG_PARTS[1]}"
+                  REGION="${CONFIG_PARTS[2]:-us-east-1}"
+                  DYNAMIC_BUCKET_NAME="${BUCKET_BASE_NAME}-${{ github.ref_name }}"
+                  
+                  echo "Checking AWS S3 bucket: $DYNAMIC_BUCKET_NAME"
+                  if aws s3api head-bucket --bucket "$DYNAMIC_BUCKET_NAME" 2>/dev/null; then
+                    echo "AWS S3 bucket found - ready for destroy"
+                  else
+                    echo "WARNING: AWS S3 bucket not found - may already be destroyed"
+                  fi
+                  ;;
+                azure)
+                  RESOURCE_GROUP="${CONFIG_PARTS[1]}"
+                  STORAGE_ACCOUNT="${CONFIG_PARTS[2]}"
+                  CONTAINER="${CONFIG_PARTS[3]}"
+                  
+                  echo "Checking Azure Storage: RG=$RESOURCE_GROUP, Account=$STORAGE_ACCOUNT, Container=$CONTAINER"
+                  echo "INFO: Azure storage existence check requires Azure CLI - assuming exists for destroy"
+                  ;;
+                gcp)
+                  BUCKET_NAME="${CONFIG_PARTS[1]}"
+                  
+                  echo "Checking GCP Cloud Storage bucket: $BUCKET_NAME"
+                  echo "INFO: GCP storage existence check requires gcloud CLI - assuming exists for destroy"
+                  ;;
+                *)
+                  echo "WARNING: Unknown provider type: $PROVIDER_TYPE"
+                  ;;
+              esac
+            else
+              echo "WARNING: No remote backend config provided"
+            fi
+            
+            echo "Cloud storage check completed"
+          else
+            echo "Skipping cloud storage check (using local backend)"
+          fi
+
+      - name: Configure Terraform Backend for State Management
+        run: |
+          # Use backend configuration script for cleaner code
+          ../../../../.github/scripts/configure-backend.sh \
+            --type "${{ inputs.BACKEND_TYPE }}" \
+            --provider "${{ inputs.CLOUD_PROVIDER }}" \
+            --component "${{ inputs.TERRAFORM_COMPONENT }}" \
+            --branch "${{ github.ref_name }}" \
+            --remote-config "${{ inputs.REMOTE_BACKEND_CONFIG }}" \
+            ${{ inputs.ENABLE_STATE_LOCKING == true && '--enable-locking' || '' }}
 
       - name: Skip SSH Host key verification
         run: |
@@ -43,59 +162,164 @@ jobs:
           sudo ufw allow 443/tcp
           sudo ufw allow 51820/udp
           sudo ufw status
+        if: "${{ inputs.TERRAFORM_COMPONENT != 'base-infra' }}"
 
       - name: Install WireGuard
         run: sudo apt-get install -y wireguard
+        if: "${{ inputs.TERRAFORM_COMPONENT != 'base-infra' }}"
 
       - name: Configure WireGuard
         run: |
-          echo "${{ secrets.WG_CONFIG }}" | sudo tee /etc/wireguard/wg0.conf
+          # WG_CONFIG comes from environment-level secrets (dynamic based on branch name)
+          if [ -z "${{ secrets.TF_WG_CONFIG }}" ]; then
+            echo "❌ ERROR: TF_WG_CONFIG secret is not configured for environment '${{ github.ref_name }}'"
+            echo "Please configure the WireGuard configuration secret for this branch/environment"
+            exit 1
+          fi
+          echo "${{ secrets.TF_WG_CONFIG }}" | sudo tee /etc/wireguard/wg0.conf
+          # Verify config file is not empty
+          if [ ! -s /etc/wireguard/wg0.conf ]; then
+            echo "❌ ERROR: WireGuard config file is empty!"
+            exit 1
+          fi
+          echo "✅ WireGuard configuration applied successfully"
+        if: "${{ inputs.TERRAFORM_COMPONENT != 'base-infra' }}"
+
       - name: Start WireGuard
         run: |
           sudo chmod 600 /etc/wireguard/wg0.conf
           sudo chmod 700 /etc/wireguard/
           sudo chmod 644 /lib/systemd/system/wg-quick@.service
           sudo systemctl daemon-reload
-          sudo wg-quick up wg0
+          echo "Starting WireGuard..."
+          if ! sudo wg-quick up wg0; then
+            echo "❌ ERROR: Failed to start WireGuard VPN"
+            echo "Config file contents (first 5 lines):"
+            head -5 /etc/wireguard/wg0.conf
+            exit 1
+          fi
+          echo "✅ WireGuard started successfully"
           sudo wg show wg0
+        if: "${{ inputs.TERRAFORM_COMPONENT != 'base-infra' }}"
 
       - name: Setup Terraform with specified version on the runner
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: v1.8.5
 
-      #- name: Create terraform log file
-      #  run: |
-      #    rm -rf ${{env.TF_LOG_PATH}}
-      #    mkdir -p "$(dirname ${{env.TF_LOG_PATH}} )" && touch "${{env.TF_LOG_PATH}}"
+      - name: Display Destruction Warning
+        run: |
+          echo "DESTRUCTIVE OPERATION: ${{ inputs.CLOUD_PROVIDER }} (${{ inputs.TERRAFORM_COMPONENT }})"
+          echo "Working directory: $(pwd)"
+          echo "Available files:"
+          ls -la
+          
+          if [ "${{ inputs.TERRAFORM_COMPONENT }}" = "base-infra" ]; then
+            echo "CRITICAL WARNING: base-infra destruction will remove foundational resources!"
+            echo "   This includes VPCs, subnets, routing tables, security groups, etc."
+            echo "   This is typically a ONE-TIME setup and should rarely be destroyed."
+            echo "   Make sure you understand the impact before proceeding."
+          else
+            echo "INFO: infra destruction - removes MOSIP application infrastructure"
+            echo "   This is safe to destroy and recreate as needed."
+          fi
+          
+          if [ "${{ inputs.TERRAFORM_DESTROY }}" != "true" ]; then
+            echo "ERROR: TERRAFORM_DESTROY is not set to true - skipping actual destruction"
+          else
+            echo "TERRAFORM_DESTROY confirmed - proceeding with destruction"
+          fi
 
       - name: Terraform Init
-        run: terraform init
+        run: |
+          # First try normal init
+          if ! terraform init; then
+            echo "Normal init failed, trying with -reconfigure to handle backend configuration changes..."
+            terraform init -reconfigure
+          fi
 
       - name: Terraform refresh
-        run: terraform refresh -var-file="./env.tfvars" -no-color
+        run: terraform refresh -var-file="${{ inputs.CLOUD_PROVIDER }}.tfvars" -no-color
         if: "${{ inputs.TERRAFORM_DESTROY  == true }}"
 
-      - name: Terraform Destroy
-        id: destroy
-        run: terraform destroy -var-file="./env.tfvars" -no-color -auto-approve
+      - name: Terraform Destroy Plan
+        id: destroy-plan
+        run: |
+          echo "Showing what will be destroyed..."
+          terraform plan -destroy -var-file="${{ inputs.CLOUD_PROVIDER }}.tfvars" -no-color
         if: "${{ inputs.TERRAFORM_DESTROY  == true }}"
         continue-on-error: true
 
-      - name: Add the Terraform plan file / *.tfstate files / terraform format changes
+      - name: Terraform Destroy
+        id: destroy
+        run: terraform destroy -var-file="${{ inputs.CLOUD_PROVIDER }}.tfvars" -no-color -auto-approve
+        if: "${{ inputs.TERRAFORM_DESTROY  == true }}"
+        continue-on-error: true
+
+      - name: Clean up state files and artifacts
         run: |
+          echo "Cleaning up local state files and artifacts..."
+          rm -f terraform.tfstate*
+          rm -f backend.tf
+          echo "Cleanup completed"
+        if: "${{ inputs.TERRAFORM_DESTROY == true && steps.destroy.outcome == 'success' }}"
+
+      - name: Cleanup State Locking Resources
+        run: |
+          echo "Cleaning up state locking resources..."
+          ../../../../.github/scripts/cleanup-state-locking.sh \
+            --provider "${{ inputs.CLOUD_PROVIDER }}" \
+            --config "${{ inputs.REMOTE_BACKEND_CONFIG }}" \
+            --branch "${{ github.ref_name }}" \
+            --component "${{ inputs.TERRAFORM_COMPONENT }}" \
+            ${{ inputs.ENABLE_STATE_LOCKING == true && '--enable-locking' || '' }}
+        if: "${{ inputs.TERRAFORM_DESTROY == true && steps.destroy.outcome == 'success' && inputs.BACKEND_TYPE == 'remote' }}"
+
+      - name: Add the Terraform state changes
+        run: |
+          echo "Current working directory: $(pwd)"
+          echo "Files in current directory:"
+          ls -la
+          
+          echo "Checking for Terraform files to commit..."
+          
+          # Force add Terraform files even if they're in .gitignore
+          git add -f *.tfstate* 2>/dev/null || echo "No .tfstate files found"
+          git add -f backend.tf 2>/dev/null || echo "No backend.tf file found"
+          git add -f *.tf 2>/dev/null || echo "No .tf files to add"
+          # Also add any other Terraform-related files that might have been created
           git add -A
+          
+          echo "Git status after adding files:"
           git status
-          git config --global user.email ${{ github.actor }}@users.noreply.github.com
-          git config --global user.name ${{ github.actor }}
-          git commit -s -am "Terraform destroy - GitHub Actions"
-          git push
+          
+          # Check if there are any changes to commit
+          if git diff --cached --quiet; then
+            echo "No changes to commit - this is normal for remote backends or when state is managed remotely"
+            echo "Terraform destroy completed successfully"
+          else
+            echo "Committing Terraform changes..."
+            git config --global user.email ${{ github.actor }}@users.noreply.github.com
+            git config --global user.name ${{ github.actor }}
+            git commit -s -am "Terraform destroy GitHub Actions - ${{ inputs.CLOUD_PROVIDER }}-${{ inputs.TERRAFORM_COMPONENT }}"
+            git push
+            echo "Changes committed and pushed successfully"
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Terraform destroy Status
+        if: "${{ inputs.TERRAFORM_DESTROY == true }}"
+      - name: Terraform destroy status
         if: ${{ steps.destroy.outcome == 'failure' }}
-        run: exit 1
+        run: |
+          echo "ERROR: Terraform destroy failed"
+          echo "Check the logs above for detailed error information"
+          exit 1
+
+      - name: Terraform destroy success
+        if: ${{ steps.destroy.outcome == 'success' }}
+        run: |
+          echo "SUCCESS: Terraform destroy completed successfully"
+          echo "All ${{ inputs.CLOUD_PROVIDER }}-${{ inputs.TERRAFORM_COMPONENT }} resources have been destroyed"
 
       - uses: 8398a7/action-slack@v3
         with:
