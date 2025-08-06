@@ -235,23 +235,22 @@ jobs:
           echo "Final file permissions: $(sudo ls -la /etc/wireguard/wg0.conf)"
           
           # Verify config file is not empty and has expected content
-          if [ ! -s /etc/wireguard/wg0.conf ]; then
+          if ! sudo test -s /etc/wireguard/wg0.conf; then
             echo "❌ ERROR: WireGuard config file is empty after writing!"
-            echo "Checking if it's a permission issue..."
-            ls -la /etc/wireguard/
+            echo "File size: $(sudo wc -c < /etc/wireguard/wg0.conf) bytes"
             exit 1
           fi
           
           # Basic validation that it looks like a WireGuard config
-          if ! grep -q "\[Interface\]" /etc/wireguard/wg0.conf; then
+          if ! sudo grep -q "\[Interface\]" /etc/wireguard/wg0.conf; then
             echo "❌ ERROR: WireGuard config doesn't contain [Interface] section"
             echo "Please check that TF_WG_CONFIG contains a valid WireGuard configuration"
-            echo "Config file size: $(wc -c < /etc/wireguard/wg0.conf) bytes"
+            echo "Config file size: $(sudo wc -c < /etc/wireguard/wg0.conf) bytes"
             exit 1
           fi
           
           echo "✅ WireGuard configuration applied successfully"
-          echo "Config file size: $(wc -c < /etc/wireguard/wg0.conf) bytes"
+          echo "Config file size: $(sudo wc -c < /etc/wireguard/wg0.conf) bytes"
         env:
           TF_WG_CONFIG: ${{ secrets.TF_WG_CONFIG }}
         if: "${{ inputs.TERRAFORM_COMPONENT != 'base-infra' }}"
