@@ -138,13 +138,39 @@ jobs:
             echo "Please configure the WireGuard configuration secret for this branch/environment"
             exit 1
           fi
-          echo "${{ secrets.TF_WG_CONFIG }}" | sudo tee /etc/wireguard/wg0.conf
-          # Verify config file is not empty
-          if [ ! -s /etc/wireguard/wg0.conf ]; then
-            echo "❌ ERROR: WireGuard config file is empty!"
+          
+          # Debug: Check if secret is available (without exposing content)
+          echo "🔍 Checking TF_WG_CONFIG secret..."
+          if [ ${#TF_WG_CONFIG} -eq 0 ]; then
+            echo "❌ ERROR: TF_WG_CONFIG environment variable is empty"
+            echo "Secret may contain only whitespace or special characters"
             exit 1
           fi
+          echo "✅ Secret length: ${#TF_WG_CONFIG} characters"
+          
+          # Create config file with proper handling of multiline content
+          sudo mkdir -p /etc/wireguard
+          echo "$TF_WG_CONFIG" | sudo tee /etc/wireguard/wg0.conf > /dev/null
+          
+          # Verify config file is not empty and has expected content
+          if [ ! -s /etc/wireguard/wg0.conf ]; then
+            echo "❌ ERROR: WireGuard config file is empty after writing!"
+            echo "This usually means the secret contains only whitespace or invalid characters"
+            exit 1
+          fi
+          
+          # Basic validation that it looks like a WireGuard config
+          if ! grep -q "\[Interface\]" /etc/wireguard/wg0.conf; then
+            echo "❌ ERROR: WireGuard config doesn't contain [Interface] section"
+            echo "Please check that TF_WG_CONFIG contains a valid WireGuard configuration"
+            echo "Config file size: $(wc -c < /etc/wireguard/wg0.conf) bytes"
+            exit 1
+          fi
+          
           echo "✅ WireGuard configuration applied successfully"
+          echo "Config file size: $(wc -c < /etc/wireguard/wg0.conf) bytes"
+        env:
+          TF_WG_CONFIG: ${{ secrets.TF_WG_CONFIG }}
         if: "${{ inputs.TERRAFORM_COMPONENT != 'base-infra' }}"
 
       - name: Start WireGuard
