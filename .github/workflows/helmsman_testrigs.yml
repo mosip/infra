@@ -18,16 +18,49 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: 
+      name: ${{ github.ref_name }}
+    env:
+      KUBECONFIG: ${{ github.workspace }}/.kube/config
+      PATH: ${{ github.workspace }}/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+      KUBECTL_PATH: ${{ github.workspace }}/.local/bin/kubectl
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      - name: Setup kubectl and kubeconfig
+        env:
+          KUBECONFIG_CONTENT: ${{ secrets.KUBECONFIG }}
+        run: |
+          # Create directories
+          mkdir -p ${{ github.workspace }}/.local/bin
+          mkdir -p ${{ github.workspace }}/.kube
+          
+          # Install kubectl
+          curl -LO https://dl.k8s.io/release/v1.31.3/bin/linux/amd64/kubectl
+          chmod +x kubectl
+          mv ./kubectl ${{ github.workspace }}/.local/bin/kubectl
+          
+          # Setup kubeconfig
+          echo "$KUBECONFIG_CONTENT" > ${{ github.workspace }}/.kube/config
+          chmod 400 ${{ github.workspace }}/.kube/config
+          
+          # Add kubectl to GitHub PATH for subsequent steps
+          echo "${{ github.workspace }}/.local/bin" >> $GITHUB_PATH
+          
+          # Export environment variables for immediate use
+          echo "KUBECTL_PATH=${{ github.workspace }}/.local/bin/kubectl" >> $GITHUB_ENV
+          
+          # Verify installation
+          ${{ github.workspace }}/.local/bin/kubectl version --client
+          ${{ github.workspace }}/.local/bin/kubectl config view
+
       - name: Set Default Mode
         run: |
           if [ -z "${{ github.event.inputs.mode }}" ]; then
-            echo "mode=apply" >> $GITHUB_ENV
+            echo "HELMSMAN_MODE=apply" >> $GITHUB_ENV
           else
-            echo "mode=${{ github.event.inputs.mode }}" >> $GITHUB_ENV
+            echo "HELMSMAN_MODE=${{ github.event.inputs.mode }}" >> $GITHUB_ENV
           fi        
 
       - name: Setup ufw firewall
@@ -64,25 +97,42 @@ jobs:
         run: |
           curl -L https://github.com/Praqma/helmsman/releases/download/v3.17.1/helmsman_3.17.1_linux_amd64.tar.gz -o helmsman.tar.gz
           tar xzf helmsman.tar.gz
-          sudo mv helmsman /usr/local/bin          
+          sudo mv helmsman /usr/local/bin
+          
+          # Verify tools are available
+          echo "Tools verification:"
+          echo "kubectl: $(which kubectl)"
+          echo "helmsman: $(which helmsman)"
+          
+          kubectl version --client
+          helmsman -v       
 
-      - name: Initiate helmsman to apply the DSF configurations.
-        env:
-          KUBECONFIG: ${{ secrets.KUBECONFIG }}
+      - name: Verify cluster access
         run: |
-          curl -L https://istio.io/downloadIstio | ISTIO_VERSION=1.22.0 TARGET_ARCH=x86_64 sh -
-          export PATH=$PWD/istio-1.22.0/bin:$PATH
-          curl -LO https://dl.k8s.io/release/v1.31.3/bin/linux/amd64/kubectl
-          chmod +x kubectl
-          mkdir -p ~/.local/bin
-          mv ./kubectl ~/.local/bin/kubectl
-          kubectl version --client        
-          mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBECONFIG }}" > $HOME/.kube/config
-          chmod 400 $HOME/.kube/config
-          export KUBECONFIG=$HOME/.kube/config
-          kubectl config view
+          # Verify tools are accessible
+          echo "Verifying tool availability:"
+          echo "kubectl path: $(which kubectl)"
+          echo "KUBECONFIG: $KUBECONFIG"
+          
+          # Test kubectl functionality
+          kubectl version --client
           kubectl get nodes
-          export HOME="/home/runner/work/infra/infra"
+          kubectl cluster-info
+      - name: Check if mosip-dsf label is completed
+        run: |
+          STATUS=$(kubectl get namespace default -o jsonpath='{.metadata.labels.mosip-dsf}')
+          if [[ "$STATUS" != "completed" ]]; then
+            echo "❌ MOSIP DSF not completed."
+            exit 1
+          fi
+      - name: Initiate helmsman to apply the DSF configurations
+        run: |
+          export HOME="${{ github.workspace }}"
           export WORKDIR="$HOME/Helmsman"
-          helmsman --debug --${{ env.mode }} -f $WORKDIR/dsf/testrigs-dsf.yaml
+          
+          # Verify tools are available
+          echo "Using kubectl: $(which kubectl)"
+          echo "Using kubeconfig: $KUBECONFIG"
+          
+          # Run helmsman with the determined mode
+          helmsman --debug --${HELMSMAN_MODE} -f $WORKDIR/dsf/testrigs-dsf.yaml

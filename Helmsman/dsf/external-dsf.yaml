@@ -38,7 +38,7 @@ apps:
   postgres:
     namespace: postgres
     enabled: true
-    version: <chart version>
+    version: 13.1.5
     chart: bitnami/postgresql
     wait: true
     priority: -16
@@ -70,7 +70,7 @@ apps:
     version: 0.1.0
     chart: $WORKDIR/utils/istio-addons/postgres-istio-addons-0.1.0.tgz
     set:
-      postgresHost: "postgres.sanbox.mosip.net"
+      postgresHost: "postgres.testvpc.mosip.net"
     wait: true
     priority: -4
     timeout: 1200
@@ -78,38 +78,40 @@ apps:
   postgres-init:
     namespace: postgres
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/postgres-init
     set:
       dbUserPasswords.dbuserPassword: ""
       databases.mosip_master.enabled: "true"
-      databases.mosip_master.branch: "<branch or tag>"
+      databases.mosip_master.branch: "v1.2.1.1"
       databases.mosip_audit.enabled: "true"
-      databases.mosip_audit.branch: "<branch or tag>"
+      databases.mosip_audit.branch: "v1.2.0.1"
       databases.mosip_keymgr.enabled: "true"
-      databases.mosip_keymgr.branch: "<branch or tag>"
+      databases.mosip_keymgr.branch: "v1.2.1.0"
       databases.mosip_kernel.enabled: "true"
-      databases.mosip_kernel.branch: "<branch or tag>"
+      databases.mosip_kernel.branch: "v1.2.0.1"
       databases.mosip_idmap.enabled: "true"
-      databases.mosip_idmap.branch: "<branch or tag>"
+      databases.mosip_idmap.branch: "v1.2.2.2"
       databases.mosip_prereg.enabled: "true"
-      databases.mosip_prereg.branch: "<branch or tag>"
+      databases.mosip_prereg.branch: "v1.2.0.1"
       databases.mosip_idrepo.enabled: "true"
-      databases.mosip_idrepo.branch: "<branch or tag>"
+      databases.mosip_idrepo.branch: "v1.2.2.2"
       databases.mosip_ida.enabled: "true"
-      databases.mosip_ida.branch: "<branch or tag>"
+      databases.mosip_ida.branch: "v1.2.1.0"
       databases.mosip_credential.enabled: "true"
-      databases.mosip_credential.branch: "<branch or tag>"
+      databases.mosip_credential.branch: "v1.2.2.2"
       databases.mosip_regprc.enabled: "true"
-      databases.mosip_regprc.branch: "<branch or tag>"
+      databases.mosip_regprc.branch: "v1.2.1.1"
       databases.mosip_pms.enabled: "true"
-      databases.mosip_pms.branch: "<branch or tag>"
+      databases.mosip_pms.branch: "v1.2.2.1"
       databases.mosip_hotlist.enabled: "true"
-      databases.mosip_hotlist.branch: "<branch or tag>"
+      databases.mosip_hotlist.branch: "v1.2.1.1"
       databases.mosip_resident.enabled: "true"
-      databases.mosip_resident.branch: "<branch or tag>"
+      databases.mosip_resident.branch: "v1.2.1.1"
+      databases.mosip_otp.enabled: "true"
+      databases.mosip_otp.branch: "release-1.3.x"
       databases.mosip_digitalcard.enabled: "true"
-      databases.mosip_digitalcard.branch: "<branch or tag>"
+      databases.mosip_digitalcard.branch: "v1.2.0.1"
     wait: true
     timeout: 1200
     priority: -15
@@ -117,11 +119,11 @@ apps:
   keycloak:
     namespace: keycloak
     enabled: true
-    version: <chart version>
+    version: 7.1.18
     chart: mosip/keycloak
     set:
-      # image.repository: "mosipid/mosip-artemis-keycloak"
-      # image.tag: "1.2.0.1"
+      image.repository: "mosipid/mosip-artemis-keycloak"
+      image.tag: "1.2.0.1"
       image.pullPolicy: "Always"
       service.type: "ClusterIP"
       auth.adminUser: "admin"
@@ -152,7 +154,7 @@ apps:
     version: 0.1.0
     chart: $WORKDIR/utils/istio-addons/iam-istio-addons-0.1.0.tgz
     set:
-      keycloakExternalHost: "iam.sanbox.mosip.net"
+      keycloakExternalHost: "iam.testvpc.mosip.net"
       keycloakInternalHost: "keycloak.keycloak"
       service: "keycloak"
     wait: true
@@ -162,14 +164,14 @@ apps:
   keycloak-init:
     namespace: keycloak
     enabled: true
-    version: <chart version>
+    version: 0.0.1-develop
     chart: mosip/keycloak-init
     set:
       # image.repository: "mosipid/keycloak-init"
       # image.tag: "1.2.0.1"
-      keycloakExternalHost: "iam.sanbox.mosip.net"
+      keycloakExternalHost: "iam.testvpc.mosip.net"
       keycloakInternalHost: "keycloak.keycloak"
-      keycloak.realms.mosip.realm_config.attributes.frontendUrl: "https://iam.sanbox.mosip.net/auth"
+      keycloak.realms.mosip.realm_config.attributes.frontendUrl: "https://iam.testvpc.mosip.net/auth"
       keycloak.realms.mosip.realm_config.smtpServer.auth: "false"
       keycloak.realms.mosip.realm_config.smtpServer.host: "smtp.gmail.com"
       keycloak.realms.mosip.realm_config.smtpServer.port: "465"
@@ -183,7 +185,7 @@ apps:
   softhsm-kernel:
     namespace: softhsm
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/softhsm
     set:
       # resources.limits.cpu: "250m"
@@ -197,7 +199,7 @@ apps:
   softhsm-ida:
     namespace: softhsm
     enabled: true
-    version: <chart version>
+    version: 12.0.1
     chart: mosip/softhsm
     set:
       # resources.limits.cpu: "250m"
@@ -211,7 +213,7 @@ apps:
   minio:
     namespace: minio
     enabled: true
-    version: <chart version>
+    version: 10.1.6
     chart: mosip/minio
     set:
       metrics.serviceMonitor.enabled: "true"
@@ -230,7 +232,7 @@ apps:
     version: 1.2.0
     chart: $WORKDIR/utils/istio-addons/minio-istio-addons-1.2.0.tgz
     set:
-      externalHost: "minio.sanbox.mosip.net"
+      externalHost: "minio.testvpc.mosip.net"
     wait: true
     timeout: 1200
     hooks:
@@ -240,7 +242,7 @@ apps:
   clamav:
     namespace: clamav
     enabled: true
-    version: <chart version>
+    version: 3.1.0
     chart: wiremind/clamav
     set:
       replicaCount: "1"
@@ -256,18 +258,18 @@ apps:
   activemq:
     namespace: activemq
     enabled: true
-    version: <chart version>
+    version: 0.0.2
     chart: mosip/activemq-artemis
     set: 
       istio.enabled: "true"
-      istio.hosts[0]: "activemq.sanbox.mosip.net"
+      istio.hosts[0]: "activemq.testvpc.mosip.net"
       istio.ingressController.name: "ingressgateway-internal"
       istio.prefix: ""
     wait: true
     timeout: 1200
     priority: -8
     hooks:
-      postInstall: "$WORKDIR/hooks/captcha-setup.sh <prereg site key> <prereg secret key> <admin site key> <admin secret key> <resident site key> <resident secret key>"
+      postInstall: "$WORKDIR/hooks/captcha-setup.sh 6Ld-ApIrAAAAANodeOxnO56WhXWlWZ1keYHWogWE 6Ld-ApIrAAAAAELrz4V7kjUnmT1KqzmKVarx4aC8  6LfNA5IrAAAAABCOm2IdUDEJ9Z4QUAIxo81YRyu4 6LfNA5IrAAAAAJ4LMz5Bm_L7VPB1QNYR1J50M8zL 6LdLBJIrAAAAADKI_lACcV7cLLKG-hushXs8qD7s 6LdLBJIrAAAAAH21zQ2xqSAXlL3m3jJlNoOHMNMx"
   # Note: Create a google recaptcha v2 ("I am not a Robot") from Google Recaptcha Admin.
   # Pass the captcha site and secret key in the above post install script as an argument.To create site and secret key below is the link:
   # https://cloud.google.com/security/products/recaptcha
@@ -276,7 +278,7 @@ apps:
   kafka: 
     namespace: kafka
     enabled: true
-    version: <chart version>
+    version: 18.3.1
     chart: bitnami/kafka
     set:
       clusterDomain: "cluster.local"
@@ -312,7 +314,7 @@ apps:
   kafka-ui:
     namespace: kafka
     enabled: true
-    version: <chart version>
+    version: 0.4.2
     chart: kafka-ui/kafka-ui
     set:
       envs.config.KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "kafka.kafka:9092"
@@ -333,7 +335,7 @@ apps:
     version: 1.2.0
     chart: $WORKDIR/utils/istio-addons/kafka-istio-addons-1.2.0.tgz
     set:
-      kafkaUiHost: "kafka.sanbox.mosip.net"
+      kafkaUiHost: "kafka.testvpc.mosip.net"
       installName: "kafka-ui"
     wait: true
     timeout: 1200
@@ -344,32 +346,32 @@ apps:
   landing-page:
     namespace: landing-page
     enabled: true
-    version: <chart version>
+    version: 12.0.2
     chart: mosip/landing-page
     set:
       landing.version: "develop"
-      landing.name: "sanbox"
-      landing.api: "api.sanbox.mosip.net"
-      landing.apiInternal: "api-internal.sanbox.mosip.net"
-      landing.admin: "admin.sanbox.mosip.net"
-      landing.prereg: "prereg.sanbox.mosip.net"
-      landing.kafka: "kafka.sanbox.mosip.net"
-      landing.kibana: "kibana.sanbox.mosip.net"
-      landing.activemq: "activemq.sanbox.mosip.net"
-      landing.minio: "minio.sanbox.mosip.net"
-      landing.keycloak: "iam.sanbox.mosip.net"
-      landing.regclient: "regclient.sanbox.mosip.net"
-      landing.postgres.host: "postgres.sanbox.mosip.net"
+      landing.name: "testvpc"
+      landing.api: "api.testvpc.mosip.net"
+      landing.apiInternal: "api-internal.testvpc.mosip.net"
+      landing.admin: "admin.testvpc.mosip.net"
+      landing.prereg: "prereg.testvpc.mosip.net"
+      landing.kafka: "kafka.testvpc.mosip.net"
+      landing.kibana: "kibana.testvpc.mosip.net"
+      landing.activemq: "activemq.testvpc.mosip.net"
+      landing.minio: "minio.testvpc.mosip.net"
+      landing.keycloak: "iam.testvpc.mosip.net"
+      landing.regclient: "regclient.testvpc.mosip.net"
+      landing.postgres.host: "postgres.testvpc.mosip.net"
       landing.postgres.port: "5432"
-      landing.compliance: "compliance.sanbox.mosip.net"
-      landing.pmp: "pmp.sanbox.mosip.net"
-      landing.resident: "resident.sanbox.mosip.net"
-      landing.esignet: "esignet.sanbox.mosip.net"
-      landing.smtp: "smtp.sanbox.mosip.net"
-      landing.healthservices: "healthservices.sanbox.mosip.net"
-      landing.injiweb: "injiweb.sanbox.mosip.net"
-      landing.injiverify: "injiverify.sanbox.mosip.net"
-      istio.host: "sanbox.mosip.net"
+      landing.compliance: "compliance.testvpc.mosip.net"
+      landing.pmp: "pmp.testvpc.mosip.net"
+      landing.resident: "resident.testvpc.mosip.net"
+      landing.esignet: "esignet.testvpc.mosip.net"
+      landing.smtp: "smtp.testvpc.mosip.net"
+      landing.healthservices: "healthservices.testvpc.mosip.net"
+      landing.injiweb: "injiweb.testvpc.mosip.net"
+      landing.injiverify: "injiverify.testvpc.mosip.net"
+      istio.host: "testvpc.mosip.net"
     wait: true
     timeout: 1200
     hooks:

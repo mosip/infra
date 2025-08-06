@@ -1,0 +1,31 @@
+# MOSIP Cloud-Agnostic Infrastructure Banner
+
+This is a placeholder for the MOSIP cloud-agnostic infrastructure banner image.
+
+## Banner Image Requirements
+
+The banner should include:
+- MOSIP logo
+- Cloud provider icons (AWS, Azure, GCP)
+- Infrastructure elements (servers, networking, security)
+- Modern, professional design
+- Dimensions: 1200x400 pixels (recommended)
+
+## Alternative Text-Based Banner
+
+```
+╔══════════════════════════════════════════════════════════════════╗
+║                    MOSIP CLOUD-AGNOSTIC INFRASTRUCTURE          ║
+║                                                                  ║
+║  ☁️  AWS    🔷 Azure    🟡 GCP    🏗️ Terraform    🔧 GitHub   ║
+║                                                                  ║
+║     Secure • Scalable • Multi-Cloud • Identity Platform         ║
+╚══════════════════════════════════════════════════════════════════╝
+```
+
+To replace this placeholder:
+1. Create a professional banner image (PNG/JPG)
+2. Name it: mosip-cloud-agnostic-banner.png
+3. Place it in: docs/_images/
+4. Dimensions: 1200x400px recommended
+5. Include MOSIP branding and cloud provider logos
