@@ -1,0 +1,208 @@
+<svg width="1200" height="800" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .title { font-family: Arial, sans-serif; font-size: 24px; font-weight: bold; fill: #000000; }
+      .subtitle { font-family: Arial, sans-serif; font-size: 16px; fill: #333333; }
+      .component-title { font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; fill: #000000; }
+      .component-text { font-family: Arial, sans-serif; font-size: 11px; fill: #000000; }
+      .cloud-title { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #000000; }
+      .state-text { font-family: Arial, sans-serif; font-size: 10px; fill: #000000; }
+      .arrow { stroke: #2563EB; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+      .optional-arrow { stroke: #F59E0B; stroke-width: 2; fill: none; stroke-dasharray: 5,5; marker-end: url(#arrowhead-orange); }
+      .state-arrow { stroke: #7C3AED; stroke-width: 1; fill: none; stroke-dasharray: 3,3; marker-end: url(#arrowhead-purple); }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#2563EB" />
+    </marker>
+    <marker id="arrowhead-orange" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#F59E0B" />
+    </marker>
+    <marker id="arrowhead-purple" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#7C3AED" />
+    </marker>
+  </defs>
+  
+  <!-- Title -->
+  <text x="600" y="30" text-anchor="middle" class="title">MOSIP Three-Component Architecture</text>
+  <text x="600" y="50" text-anchor="middle" class="subtitle">Cloud-Agnostic RKE2 Infrastructure Deployment</text>
+  
+  <!-- GitHub Actions Orchestration -->
+  <rect x="500" y="80" width="200" height="50" rx="5" fill="#E0F2FE" stroke="#0EA5E9" stroke-width="2"/>
+  <text x="600" y="100" text-anchor="middle" class="cloud-title">GitHub Actions</text>
+  <text x="600" y="115" text-anchor="middle" class="cloud-title">Orchestration</text>
+  
+  <!-- AWS Cloud -->
+  <rect x="50" y="170" width="300" height="400" rx="10" fill="#FEF3C7" stroke="#F59E0B" stroke-width="2"/>
+  <text x="200" y="195" text-anchor="middle" class="cloud-title">AWS Cloud</text>
+  
+  <!-- AWS base-infra -->
+  <rect x="70" y="210" width="120" height="80" rx="5" fill="#DBEAFE" stroke="#2563EB" stroke-width="2"/>
+  <text x="130" y="235" text-anchor="middle" class="component-title">base-infra</text>
+  <text x="130" y="250" text-anchor="middle" class="component-text">VPC 10.0.0.0/16</text>
+  <text x="130" y="265" text-anchor="middle" class="component-text">WireGuard VPN</text>
+  <text x="130" y="280" text-anchor="middle" class="component-text">EC2 Jumpserver</text>
+  
+  <!-- AWS observ-infra -->
+  <rect x="210" y="210" width="120" height="80" rx="5" fill="#FEF3C7" stroke="#F59E0B" stroke-width="2"/>
+  <text x="270" y="235" text-anchor="middle" class="component-title">observ-infra</text>
+  <text x="270" y="250" text-anchor="middle" class="component-text">RKE2 Cluster</text>
+  <text x="270" y="265" text-anchor="middle" class="component-text">Rancher UI</text>
+  <text x="270" y="280" text-anchor="middle" class="component-text">Keycloak</text>
+  
+  <!-- AWS infra -->
+  <rect x="70" y="310" width="120" height="80" rx="5" fill="#EDE9FE" stroke="#7C3AED" stroke-width="2"/>
+  <text x="130" y="335" text-anchor="middle" class="component-title">infra</text>
+  <text x="130" y="350" text-anchor="middle" class="component-text">RKE2 Cluster</text>
+  <text x="130" y="365" text-anchor="middle" class="component-text">MOSIP Services</text>
+  <text x="130" y="380" text-anchor="middle" class="component-text">NGINX + NFS</text>
+  
+  <!-- AWS Multiple Clusters -->
+  <rect x="210" y="310" width="120" height="80" rx="5" fill="#DCFCE7" stroke="#16A34A" stroke-width="2"/>
+  <text x="270" y="335" text-anchor="middle" class="component-title">Multiple</text>
+  <text x="270" y="350" text-anchor="middle" class="component-text">RKE2 Clusters</text>
+  <text x="270" y="365" text-anchor="middle" class="component-text">Prod/Staging/Dev</text>
+  <text x="270" y="380" text-anchor="middle" class="component-text">Environments</text>
+  
+  <!-- AWS State -->
+  <ellipse cx="200" cy="450" rx="80" ry="40" fill="#FEE2E2" stroke="#DC2626" stroke-width="2"/>
+  <text x="200" y="445" text-anchor="middle" class="component-title">S3 State Files</text>
+  <text x="200" y="460" text-anchor="middle" class="state-text">Branch Isolated</text>
+  
+  <!-- Azure Cloud -->
+  <rect x="400" y="170" width="300" height="400" rx="10" fill="#E0F2FE" stroke="#0EA5E9" stroke-width="2"/>
+  <text x="550" y="195" text-anchor="middle" class="cloud-title">Azure Cloud</text>
+  
+  <!-- Azure base-infra -->
+  <rect x="420" y="210" width="120" height="80" rx="5" fill="#DBEAFE" stroke="#2563EB" stroke-width="2"/>
+  <text x="480" y="235" text-anchor="middle" class="component-title">base-infra</text>
+  <text x="480" y="250" text-anchor="middle" class="component-text">VNet 10.0.0.0/16</text>
+  <text x="480" y="265" text-anchor="middle" class="component-text">WireGuard VPN</text>
+  <text x="480" y="280" text-anchor="middle" class="component-text">VM Jumpserver</text>
+  
+  <!-- Azure observ-infra -->
+  <rect x="560" y="210" width="120" height="80" rx="5" fill="#FEF3C7" stroke="#F59E0B" stroke-width="2"/>
+  <text x="620" y="235" text-anchor="middle" class="component-title">observ-infra</text>
+  <text x="620" y="250" text-anchor="middle" class="component-text">RKE2 Cluster</text>
+  <text x="620" y="265" text-anchor="middle" class="component-text">Rancher UI</text>
+  <text x="620" y="280" text-anchor="middle" class="component-text">Keycloak</text>
+  
+  <!-- Azure infra -->
+  <rect x="420" y="310" width="120" height="80" rx="5" fill="#EDE9FE" stroke="#7C3AED" stroke-width="2"/>
+  <text x="480" y="335" text-anchor="middle" class="component-title">infra</text>
+  <text x="480" y="350" text-anchor="middle" class="component-text">RKE2 Cluster</text>
+  <text x="480" y="365" text-anchor="middle" class="component-text">MOSIP Services</text>
+  <text x="480" y="380" text-anchor="middle" class="component-text">NGINX + NFS</text>
+  
+  <!-- Azure Multiple Clusters -->
+  <rect x="560" y="310" width="120" height="80" rx="5" fill="#DCFCE7" stroke="#16A34A" stroke-width="2"/>
+  <text x="620" y="335" text-anchor="middle" class="component-title">Multiple</text>
+  <text x="620" y="350" text-anchor="middle" class="component-text">RKE2 Clusters</text>
+  <text x="620" y="365" text-anchor="middle" class="component-text">Prod/Staging/Dev</text>
+  <text x="620" y="380" text-anchor="middle" class="component-text">Environments</text>
+  
+  <!-- Azure State -->
+  <ellipse cx="550" cy="450" rx="80" ry="40" fill="#FEE2E2" stroke="#DC2626" stroke-width="2"/>
+  <text x="550" y="445" text-anchor="middle" class="component-title">Storage State</text>
+  <text x="550" y="460" text-anchor="middle" class="state-text">Branch Isolated</text>
+  
+  <!-- GCP Cloud -->
+  <rect x="750" y="170" width="300" height="400" rx="10" fill="#FEF3C7" stroke="#F59E0B" stroke-width="2"/>
+  <text x="900" y="195" text-anchor="middle" class="cloud-title">GCP Cloud</text>
+  
+  <!-- GCP base-infra -->
+  <rect x="770" y="210" width="120" height="80" rx="5" fill="#DBEAFE" stroke="#2563EB" stroke-width="2"/>
+  <text x="830" y="235" text-anchor="middle" class="component-title">base-infra</text>
+  <text x="830" y="250" text-anchor="middle" class="component-text">VPC 10.0.0.0/16</text>
+  <text x="830" y="265" text-anchor="middle" class="component-text">WireGuard VPN</text>
+  <text x="830" y="280" text-anchor="middle" class="component-text">Compute Engine</text>
+  
+  <!-- GCP observ-infra -->
+  <rect x="910" y="210" width="120" height="80" rx="5" fill="#FEF3C7" stroke="#F59E0B" stroke-width="2"/>
+  <text x="970" y="235" text-anchor="middle" class="component-title">observ-infra</text>
+  <text x="970" y="250" text-anchor="middle" class="component-text">RKE2 Cluster</text>
+  <text x="970" y="265" text-anchor="middle" class="component-text">Rancher UI</text>
+  <text x="970" y="280" text-anchor="middle" class="component-text">Keycloak</text>
+  
+  <!-- GCP infra -->
+  <rect x="770" y="310" width="120" height="80" rx="5" fill="#EDE9FE" stroke="#7C3AED" stroke-width="2"/>
+  <text x="830" y="335" text-anchor="middle" class="component-title">infra</text>
+  <text x="830" y="350" text-anchor="middle" class="component-text">RKE2 Cluster</text>
+  <text x="830" y="365" text-anchor="middle" class="component-text">MOSIP Services</text>
+  <text x="830" y="380" text-anchor="middle" class="component-text">NGINX + NFS</text>
+  
+  <!-- GCP Multiple Clusters -->
+  <rect x="910" y="310" width="120" height="80" rx="5" fill="#DCFCE7" stroke="#16A34A" stroke-width="2"/>
+  <text x="970" y="335" text-anchor="middle" class="component-title">Multiple</text>
+  <text x="970" y="350" text-anchor="middle" class="component-text">RKE2 Clusters</text>
+  <text x="970" y="365" text-anchor="middle" class="component-text">Prod/Staging/Dev</text>
+  <text x="970" y="380" text-anchor="middle" class="component-text">Environments</text>
+  
+  <!-- GCP State -->
+  <ellipse cx="900" cy="450" rx="80" ry="40" fill="#FEE2E2" stroke="#DC2626" stroke-width="2"/>
+  <text x="900" y="445" text-anchor="middle" class="component-title">GCS State Files</text>
+  <text x="900" y="460" text-anchor="middle" class="state-text">Branch Isolated</text>
+  
+  <!-- GitHub Actions to Cloud arrows -->
+  <line x1="550" y1="130" x2="200" y2="170" class="arrow"/>
+  <line x1="600" y1="130" x2="550" y2="170" class="arrow"/>
+  <line x1="650" y1="130" x2="900" y2="170" class="arrow"/>
+  
+  <!-- AWS Dependencies -->
+  <line x1="130" y1="290" x2="130" y2="310" class="arrow"/>
+  <line x1="130" y1="290" x2="270" y2="210" class="arrow"/>
+  <line x1="270" y1="290" x2="130" y2="310" class="optional-arrow"/>
+  <line x1="190" y1="350" x2="210" y2="350" class="arrow"/>
+  
+  <!-- Azure Dependencies -->
+  <line x1="480" y1="290" x2="480" y2="310" class="arrow"/>
+  <line x1="480" y1="290" x2="620" y2="210" class="arrow"/>
+  <line x1="620" y1="290" x2="480" y2="310" class="optional-arrow"/>
+  <line x1="540" y1="350" x2="560" y2="350" class="arrow"/>
+  
+  <!-- GCP Dependencies -->
+  <line x1="830" y1="290" x2="830" y2="310" class="arrow"/>
+  <line x1="830" y1="290" x2="970" y2="210" class="arrow"/>
+  <line x1="970" y1="290" x2="830" y2="310" class="optional-arrow"/>
+  <line x1="890" y1="350" x2="910" y2="350" class="arrow"/>
+  
+  <!-- State connections -->
+  <line x1="130" y1="390" x2="170" y2="420" class="state-arrow"/>
+  <line x1="270" y1="390" x2="230" y2="420" class="state-arrow"/>
+  <line x1="480" y1="390" x2="520" y2="420" class="state-arrow"/>
+  <line x1="620" y1="390" x2="580" y2="420" class="state-arrow"/>
+  <line x1="830" y1="390" x2="870" y2="420" class="state-arrow"/>
+  <line x1="970" y1="390" x2="930" y2="420" class="state-arrow"/>
+  
+  <!-- Legend -->
+  <rect x="50" y="620" width="1100" height="150" rx="5" fill="#F9FAFB" stroke="#E5E7EB" stroke-width="1"/>
+  <text x="600" y="645" text-anchor="middle" class="component-title">Architecture Legend</text>
+  
+  <!-- Legend items -->
+  <rect x="80" y="660" width="20" height="15" fill="#DBEAFE" stroke="#2563EB" stroke-width="1"/>
+  <text x="110" y="672" class="component-text">base-infra: Foundation (VPC, WireGuard VPN, Jumpserver)</text>
+  
+  <rect x="80" y="680" width="20" height="15" fill="#FEF3C7" stroke="#F59E0B" stroke-width="1"/>
+  <text x="110" y="692" class="component-text">observ-infra: Management (RKE2, Rancher UI, Keycloak) - Optional</text>
+  
+  <rect x="80" y="700" width="20" height="15" fill="#EDE9FE" stroke="#7C3AED" stroke-width="1"/>
+  <text x="110" y="712" class="component-text">infra: MOSIP Application (RKE2 Clusters, NGINX, NFS, Databases)</text>
+  
+  <rect x="80" y="720" width="20" height="15" fill="#DCFCE7" stroke="#16A34A" stroke-width="1"/>
+  <text x="110" y="732" class="component-text">Multiple Environments: Production, Staging, Development</text>
+  
+  <ellipse cx="90" cy="750" rx="15" ry="8" fill="#FEE2E2" stroke="#DC2626" stroke-width="1"/>
+  <text x="110" y="755" class="component-text">State Files: Isolated per branch and cloud provider</text>
+  
+  <!-- Legend arrows -->
+  <line x1="600" y1="660" x2="650" y2="660" class="arrow"/>
+  <text x="670" y="665" class="component-text">Required Dependencies</text>
+  
+  <line x1="600" y1="680" x2="650" y2="680" class="optional-arrow"/>
+  <text x="670" y="685" class="component-text">Optional Import/Management</text>
+  
+  <line x1="600" y1="700" x2="650" y2="700" class="state-arrow"/>
+  <text x="670" y="705" class="component-text">State File Connections</text>
+  
+  <!-- Footer -->
+  <text x="600" y="780" text-anchor="middle" class="subtitle">Cloud-Agnostic • RKE2 Kubernetes • State Isolation • Multi-Environment Support</text>
+</svg>

@@ -10,6 +10,35 @@ HTTPBIN_NS=httpbin
 export ENV="${1:-sandbox}"
 export VERSION="${2:-develop}"
 
+# Function to wait for deployment to exist and be ready
+wait_for_deployment() {
+  local deployment_name=$1
+  local namespace=$2
+  local max_attempts=${3:-30}
+  
+  echo "Waiting for deployment $deployment_name in namespace $namespace..."
+  
+  # Wait for deployment to exist
+  for i in $(seq 1 $max_attempts); do
+    if kubectl get deployment $deployment_name -n $namespace >/dev/null 2>&1; then
+      echo "$deployment_name deployment found, waiting for rollout..."
+      if kubectl -n $namespace rollout status deploy $deployment_name --timeout=300s; then
+        echo "$deployment_name is ready!"
+        return 0
+      else
+        echo "Rollout status failed for $deployment_name"
+        return 1
+      fi
+    else
+      echo "Waiting for $deployment_name deployment to be created... (attempt $i/$max_attempts)"
+      sleep 10
+    fi
+  done
+  
+  echo "ERROR: $deployment_name deployment was not created within the timeout period"
+  return 1
+}
+
 echo Operator init
 istioctl operator init
 
@@ -23,11 +52,13 @@ function installing_istio_and_httpbin() {
   echo Create ingress gateways, load balancers and istio monitoring
   kubectl apply -f $WORKDIR/utils/istio-mesh/nodeport/iop-mosip.yaml
   kubectl apply -f $WORKDIR/utils/istio-mesh/nodeport/istio-monitoring
+  
   echo Wait for all resources to come up
-  sleep 10
-  kubectl -n $ISTIO_NS rollout status deploy istiod
-  kubectl -n $ISTIO_NS rollout status deploy istio-ingressgateway
-  kubectl -n $ISTIO_NS rollout status deploy istio-ingressgateway-internal
+  
+  # Wait for Istio deployments to be created and ready
+  wait_for_deployment "istiod" "$ISTIO_NS" || { echo "Failed to deploy istiod"; return 1; }
+  wait_for_deployment "istio-ingressgateway" "$ISTIO_NS" || { echo "Failed to deploy istio-ingressgateway"; return 1; }
+  wait_for_deployment "istio-ingressgateway-internal" "$ISTIO_NS" || { echo "Failed to deploy istio-ingressgateway-internal"; return 1; }
 
   echo ------ IMPORTANT ---------
   echo If you already have pods running with envoy sidecars, restart all of them NOW.  Check if all of them appear with command "istioctl proxy-status"
@@ -76,6 +107,15 @@ function installing_istio_and_httpbin() {
   kubectl -n $HTTPBIN_NS apply -f $WORKDIR/utils/httpbin/deployment-busybox-curl.yaml
   kubectl -n $HTTPBIN_NS apply -f $WORKDIR/utils/httpbin/vs.yaml
   
+  echo "Verifying Istio installation..."
+  echo "Istio deployments:"
+  kubectl get deployments -n $ISTIO_NS
+  echo "Istio services:"
+  kubectl get services -n $ISTIO_NS
+  echo "Httpbin resources:"
+  kubectl get all -n $HTTPBIN_NS
+  
+  echo "Istio and httpbin installation completed successfully!"
   return 0
 }
 
