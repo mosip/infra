@@ -14,6 +14,17 @@ terraform {
 # }
 
 locals {
+  homepage_dns_record = {
+    "${var.CLUSTER_ENV_DOMAIN}" = {
+      name            = var.CLUSTER_ENV_DOMAIN
+      type            = "CNAME"
+      zone_id         = var.ZONE_ID
+      ttl             = 300
+      records         = "api-internal.${var.CLUSTER_ENV_DOMAIN}"
+      allow_overwrite = true
+    }
+  }
+
   public_dns_records = {
     for sub in var.SUBDOMAIN_PUBLIC :
     sub => {
@@ -38,7 +49,7 @@ locals {
     }
   }
 
-  dns_records = merge(local.public_dns_records, local.internal_dns_records)
+  dns_records = merge(local.homepage_dns_record, local.public_dns_records, local.internal_dns_records)
 }
 
 # Data source to get existing VPC information
