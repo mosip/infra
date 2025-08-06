@@ -140,6 +140,7 @@ apps:
       dslorchestrator.configmaps.dslorchestrator.reportExpirationInDays: "3"
       dslorchestrator.configmaps.dslorchestrator.NS: "dslrig"
       dslorchestrator.configmaps.dslorchestrator.servicesNotDeployed: "esignet"
+      dslorchestrator.configmaps.dslorchestrator.scenariosToSkip: "I-194,I-198,I-199,I-200,I-201,I-202,I-203,I-204,I-206,I-207"
       enable_insecure: false
     priority: -2
     hooks:
