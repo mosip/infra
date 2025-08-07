@@ -886,7 +886,7 @@ apps:
     timeout: 1200
     priority: -5
 
-  print:
+  print-service:
     namespace: print
     enabled: true
     version: 12.0.1
