@@ -36,13 +36,46 @@ resource "aws_security_group" "security-group" {
     }
   }
   egress {
-    description      = "Rules which allow the incoming traffic to the instances associated with the security group."
+    description      = "Allow HTTPS outbound to anywhere"
+    from_port        = 443
+    to_port          = 443
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = []
+  }
+  egress {
+    description      = "Allow WireGuard VPN outbound to VPN CIDR"
+    from_port        = 51820
+    to_port          = 51820
+    protocol         = "udp"
+    cidr_blocks      = [var.WIREGUARD_CIDR]
+    ipv6_cidr_blocks = []
+  }
+  egress {
+    description      = "Allow DNS TCP outbound to VPC CIDR"
+    from_port        = 53
+    to_port          = 53
+    protocol         = "tcp"
+    cidr_blocks      = [var.network_cidr]
+    ipv6_cidr_blocks = []
+  }
+  egress {
+    description      = "Allow DNS UDP outbound to VPC CIDR"
+    from_port        = 53
+    to_port          = 53
+    protocol         = "udp"
+    cidr_blocks      = [var.network_cidr]
+    ipv6_cidr_blocks = []
+  }
+  egress {
+    description      = "Allow all required internal communication to VPC CIDR"
     from_port        = 0
     to_port          = 0
     protocol         = "-1"
-    cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
+    cidr_blocks      = [var.network_cidr]
+    ipv6_cidr_blocks = []
   }
+  # Add more egress blocks for other trusted external IPs/services as needed
 }
 
 resource "aws_instance" "NGINX_EC2_INSTANCE" {

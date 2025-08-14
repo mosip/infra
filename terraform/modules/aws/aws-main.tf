@@ -1,3 +1,12 @@
+variable "network_cidr" {
+  description = "VPC CIDR block for internal communication and DNS rules"
+  type        = string
+}
+
+variable "WIREGUARD_CIDR" {
+  description = "CIDR block for WireGuard VPN server(s)"
+  type        = string
+}
 terraform {
   required_providers {
     aws = {
@@ -105,170 +114,172 @@ module "aws-resource-creation" {
   PUBLIC_SUBNET_IDS   = data.aws_subnets.public_subnets.ids
   PRIVATE_SUBNET_IDS  = data.aws_subnets.private_subnets.ids
 
+  network_cidr        = var.network_cidr
+  WIREGUARD_CIDR      = var.WIREGUARD_CIDR
 
   SECURITY_GROUP = {
     NGINX_SECURITY_GROUP = [
       {
-        description : "SSH login port"
+        description : "SSH login port (restricted to VPC CIDR)"
         from_port : 22,
         to_port : 22,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
-        ipv6_cidr_blocks = ["::/0"]
+        cidr_blocks      = [var.network_cidr],
+        ipv6_cidr_blocks = []
       },
       {
-        description : "Allow all incoming ICMP IPv4 and IPv6 traffic"
+        description : "Allow ICMP only within VPC CIDR"
         from_port : -1,
         to_port : -1,
         protocol : "ICMP",
-        cidr_blocks      = ["0.0.0.0/0"],
-        ipv6_cidr_blocks = ["::/0"]
+        cidr_blocks      = [var.network_cidr],
+        ipv6_cidr_blocks = []
       },
       {
-        description : "HTTP port"
+        description : "HTTP port (public)"
         from_port : 80,
         to_port : 80,
         protocol : "TCP",
         cidr_blocks      = ["0.0.0.0/0"],
-        ipv6_cidr_blocks = ["::/0"]
+        ipv6_cidr_blocks = []
       },
       {
-        description : "HTTPS port"
+        description : "HTTPS port (public)"
         from_port : 443,
         to_port : 443,
         protocol : "TCP",
         cidr_blocks      = ["0.0.0.0/0"],
-        ipv6_cidr_blocks = ["::/0"]
+        ipv6_cidr_blocks = []
       },
       {
-        description : "Minio console port"
+        description : "Minio console port (internal only)"
         from_port : 9000,
         to_port : 9000,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
-        ipv6_cidr_blocks = ["::/0"]
+        cidr_blocks      = [var.network_cidr],
+        ipv6_cidr_blocks = []
       },
       {
-        description : "Postgres port"
+        description : "Postgres port (internal only)"
         from_port : 5432,
         to_port : 5432,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
-        ipv6_cidr_blocks = ["::/0"]
+        cidr_blocks      = [var.network_cidr],
+        ipv6_cidr_blocks = []
       },
       {
-        description : "ActiveMQ port"
+        description : "ActiveMQ port (internal only)"
         from_port : 61616,
         to_port : 61616,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
-        ipv6_cidr_blocks = ["::/0"]
+        cidr_blocks      = [var.network_cidr],
+        ipv6_cidr_blocks = []
       },
       {
-        description : "NFS server port tcp"
+        description : "NFS server port tcp (internal only)"
         from_port : 2049,
         to_port : 2049,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
-        ipv6_cidr_blocks = ["::/0"]
+        cidr_blocks      = [var.network_cidr],
+        ipv6_cidr_blocks = []
       },
       {
-        description : "NFS server port udp"
+        description : "NFS server port udp (internal only)"
         from_port : 2049,
         to_port : 2049,
         protocol : "UDP",
-        cidr_blocks      = ["0.0.0.0/0"],
-        ipv6_cidr_blocks = ["::/0"]
+        cidr_blocks      = [var.network_cidr],
+        ipv6_cidr_blocks = []
       },
     ]
     K8S_CONTROL_PLANE_SECURITY_GROUP = [
       {
-        description : "SSH login port"
+        description : "SSH login port (restricted to VPC CIDR)"
         from_port : 22,
         to_port : 22,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
-        ipv6_cidr_blocks = ["::/0"]
+        cidr_blocks      = [var.network_cidr],
+        ipv6_cidr_blocks = []
       },
       {
-        description : "Allow all incoming ICMP IPv4 and IPv6 traffic"
+        description : "Allow ICMP only within VPC CIDR"
         from_port : -1,
         to_port : -1,
         protocol : "ICMP",
-        cidr_blocks      = ["0.0.0.0/0"],
-        ipv6_cidr_blocks = ["::/0"]
+        cidr_blocks      = [var.network_cidr],
+        ipv6_cidr_blocks = []
       },
       {
-        description : "Kubernetes API"
+        description : "Kubernetes API (internal only)"
         from_port : 6443,
         to_port : 6443,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
-        ipv6_cidr_blocks = ["::/0"]
+        cidr_blocks      = [var.network_cidr],
+        ipv6_cidr_blocks = []
       },
       {
-        description : "RKE2 supervisor API"
+        description : "RKE2 supervisor API (internal only)"
         from_port : 9345,
         to_port : 9345,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
-        ipv6_cidr_blocks = ["::/0"]
+        cidr_blocks      = [var.network_cidr],
+        ipv6_cidr_blocks = []
       },
       {
-        description : "Kubelet metrics"
+        description : "Kubelet metrics (internal only)"
         from_port : 10250,
         to_port : 10250,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
-        ipv6_cidr_blocks = ["::/0"]
+        cidr_blocks      = [var.network_cidr],
+        ipv6_cidr_blocks = []
       },
       {
-        description : "ETCD client port"
+        description : "ETCD client port (internal only)"
         from_port : 2379,
         to_port : 2379,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
-        ipv6_cidr_blocks = ["::/0"]
+        cidr_blocks      = [var.network_cidr],
+        ipv6_cidr_blocks = []
       },
       {
-        description : "ETCD peer port"
+        description : "ETCD peer port (internal only)"
         from_port : 2380,
         to_port : 2380,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
-        ipv6_cidr_blocks = ["::/0"]
+        cidr_blocks      = [var.network_cidr],
+        ipv6_cidr_blocks = []
       },
       {
-        description : "ETCD metrics port"
+        description : "ETCD metrics port (internal only)"
         from_port : 2381,
         to_port : 2381,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
-        ipv6_cidr_blocks = ["::/0"]
+        cidr_blocks      = [var.network_cidr],
+        ipv6_cidr_blocks = []
       },
       {
-        description : "NodePort port range"
+        description : "NodePort port range (internal only)"
         from_port : 30000,
         to_port : 32767,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
-        ipv6_cidr_blocks = ["::/0"]
+        cidr_blocks      = [var.network_cidr],
+        ipv6_cidr_blocks = []
       },
       {
-        description : "Canal CNI with VXLAN"
+        description : "Canal CNI with VXLAN (internal only)"
         from_port : 8472,
         to_port : 8472,
         protocol : "UDP",
-        cidr_blocks      = ["0.0.0.0/0"],
-        ipv6_cidr_blocks = ["::/0"]
+        cidr_blocks      = [var.network_cidr],
+        ipv6_cidr_blocks = []
       },
       {
-        description : "Canal CNI health checks"
+        description : "Canal CNI health checks (internal only)"
         from_port : 9099,
         to_port : 9099,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
-        ipv6_cidr_blocks = ["::/0"]
+        cidr_blocks      = [var.network_cidr],
+        ipv6_cidr_blocks = []
       },
     ]
     K8S_ETCD_SECURITY_GROUP = [

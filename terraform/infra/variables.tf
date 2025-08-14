@@ -1,3 +1,12 @@
+variable "network_cidr" {
+  description = "VPC CIDR block for internal communication and DNS rules"
+  type        = string
+}
+
+variable "WIREGUARD_CIDR" {
+  description = "CIDR block for WireGuard VPN server(s)"
+  type        = string
+}
 # Cloud provider selection
 variable "cloud_provider" {
   description = "Cloud provider to use (aws, azure, gcp)"
