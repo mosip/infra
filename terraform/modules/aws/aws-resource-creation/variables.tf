@@ -1,3 +1,7 @@
+variable "network_cidr" {
+  description = "VPC CIDR block for internal communication and DNS rules"
+  type        = string
+}
 variable "AWS_PROVIDER_REGION" { type = string }
 variable "CLUSTER_NAME" { type = string }
 variable "SSH_KEY_NAME" { type = string }
@@ -11,6 +15,10 @@ variable "SECURITY_GROUP" {
     ipv6_cidr_blocks = list(string)
     }
   )))
+}
+variable "WIREGUARD_CIDR" {
+  description = "CIDR block for WireGuard VPN server(s)"
+  type        = string
 }
 variable "K8S_INSTANCE_TYPE" {
   type = string

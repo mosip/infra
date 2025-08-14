@@ -155,6 +155,16 @@ variable "k8s_instance_root_volume_size" {
   type        = number
 }
 
+variable "network_cidr" {
+  description = "VPC CIDR block for internal communication and DNS rules"
+  type        = string
+}
+
+variable "WIREGUARD_CIDR" {
+  description = "CIDR block for WireGuard VPN server(s)"
+  type        = string
+}
+
 # Rancher-Keycloak Integration Variables
 variable "enable_rancher_keycloak_integration" {
   description = "Enable Rancher and Keycloak installation on the observability cluster"
