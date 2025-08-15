@@ -46,6 +46,8 @@ module "aws_infra" {
   nginx_node_root_volume_size  = var.nginx_node_root_volume_size
   nginx_node_ebs_volume_size   = var.nginx_node_ebs_volume_size
   k8s_instance_root_volume_size = var.k8s_instance_root_volume_size
+  network_cidr                  = var.network_cidr
+  WIREGUARD_CIDR                = var.WIREGUARD_CIDR
 }
 
 # Azure Infrastructure

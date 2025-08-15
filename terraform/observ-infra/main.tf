@@ -47,6 +47,9 @@ module "aws_observ_infra" {
   nginx_node_ebs_volume_size   = var.nginx_node_ebs_volume_size
   k8s_instance_root_volume_size = var.k8s_instance_root_volume_size
   
+  network_cidr                  = var.network_cidr
+  WIREGUARD_CIDR                = var.WIREGUARD_CIDR
+  
   # Rancher and Keycloak Configuration
   enable_rancher_keycloak_integration = var.enable_rancher_keycloak_integration
   rancher_hostname                   = var.rancher_hostname

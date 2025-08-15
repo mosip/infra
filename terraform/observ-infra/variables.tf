@@ -8,6 +8,16 @@ variable "cloud_provider" {
   }
 }
 
+variable "network_cidr" {
+  description = "VPC CIDR block for internal communication and DNS rules"
+  type        = string
+}
+
+variable "WIREGUARD_CIDR" {
+  description = "CIDR block for WireGuard VPN server(s)"
+  type        = string
+}
+
 # Common variables for all cloud providers
 # observ-infra uses the same variables as infra but with different values (minimal resources)
 variable "cluster_name" {

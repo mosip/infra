@@ -35,4 +35,6 @@ module "aws_infrastructure" {
   NGINX_NODE_ROOT_VOLUME_SIZE   = var.nginx_node_root_volume_size
   NGINX_NODE_EBS_VOLUME_SIZE    = var.nginx_node_ebs_volume_size
   K8S_INSTANCE_ROOT_VOLUME_SIZE = var.k8s_instance_root_volume_size
+  network_cidr                  = var.network_cidr
+  WIREGUARD_CIDR                = var.WIREGUARD_CIDR
 }

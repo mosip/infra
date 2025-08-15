@@ -16,6 +16,8 @@ provider "aws" {
 
 # Call the cloud-agnostic infra module
 module "mosip_infra" {
+  network_cidr    = var.network_cidr
+  WIREGUARD_CIDR = var.WIREGUARD_CIDR
   source = "../../../infra"
 
   # Cloud provider selection
@@ -47,4 +49,5 @@ module "mosip_infra" {
   nginx_node_root_volume_size   = var.nginx_node_root_volume_size
   nginx_node_ebs_volume_size    = var.nginx_node_ebs_volume_size
   k8s_instance_root_volume_size = var.k8s_instance_root_volume_size
+
 }
