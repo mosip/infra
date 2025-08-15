@@ -497,6 +497,10 @@ apps:
     set:
       image.repository: "mosipid/credential-service"
       image.tag: "1.2.2.2"
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "3000Mi"
+      resources.requests.cpu: "200m"
+      resources.requests.memory: "2000Mi"
     priority: -7
     timeout: 1200
 
@@ -508,6 +512,10 @@ apps:
     set:
       image.repository: "mosipid/credential-request-generator"
       image.tag: "1.2.2.2"
+      resources.limits.cpu: "1"
+      resources.limits.memory: "4000Mi"
+      resources.requests.cpu: "200m"
+      resources.requests.memory: "3000Mi"
     priority: -6
     timeout: 1200
   
@@ -534,6 +542,18 @@ apps:
     priority: -5
     timeout: 1200
 
+  pms-keycloak-init:
+    namespace: pms
+    enabled: true
+    version: 0.0.1-develop
+    chart: mosip/keycloak-init
+    set:
+      # image.repository: ""
+      # image.tag: ""
+    priority: -7
+    timeout: 1200
+    hooks:
+      preInstall: "$WORKDIR/hooks/pms-keycloak-init.sh" 
 
 
   pms-partner:
@@ -610,6 +630,10 @@ apps:
     version: 12.1.1
     chart: mosip/regproc-workflow
     set:
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "3000Mi"
+      resources.requests.cpu: "200m"
+      resources.requests.memory: "1000Mi"
       livenessProbe.periodSeconds: "30"
     #   image.repository: ""
     #   image.tag: ""
@@ -624,6 +648,10 @@ apps:
     version: 12.1.1
     chart: mosip/regproc-status
     set:
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "4000Mi"
+      resources.requests.cpu: "100m"
+      resources.requests.memory: "1000Mi"
       livenessProbe.periodSeconds: "30"
     #   image.repository: ""
     #   image.tag: ""
@@ -636,6 +664,10 @@ apps:
     version: 12.1.1
     chart: mosip/regproc-camel
     set:
+      resources.limits.cpu: "1"
+      resources.limits.memory: "2000Mi"
+      resources.requests.cpu: "100m"
+      resources.requests.memory: "1500Mi"
       livenessProbe.periodSeconds: "30"
     timeout: 1200
     priority: -6
@@ -646,6 +678,10 @@ apps:
     version: 12.1.1
     chart: mosip/regproc-pktserver
     set:
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "1250Mi"
+      resources.requests.cpu: "500m"
+      resources.requests.memory: "1000Mi"
       livenessProbe.periodSeconds: "30"
     timeout: 1200
     priority: -6
@@ -656,6 +692,10 @@ apps:
     version: 12.1.1
     chart: mosip/regproc-group1
     set:
+      resources.limits.cpu: "1"
+      resources.limits.memory: "5000Mi"
+      resources.requests.cpu: "100m"
+      resources.requests.memory: "1000Mi"
       persistence.storageClass: nfs-csi
       persistence.size: 5Gi
       livenessProbe.periodSeconds: "30"
@@ -670,8 +710,12 @@ apps:
     set:
     #   image.repository: ""
     #   image.tag: ""
-    startupProbe.failureThreshold: 60
-    livenessProbe.periodSeconds: "30"
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "4000Mi"
+      resources.requests.cpu: "500m"
+      resources.requests.memory: "3000Mi"
+      startupProbe.failureThreshold: 60
+      livenessProbe.periodSeconds: "30"
     timeout: 1200
     priority: -5
 
@@ -681,6 +725,10 @@ apps:
     version: 12.1.1
     chart: mosip/regproc-group3
     set:
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "3000Mi"
+      resources.requests.cpu: "500m"
+      resources.requests.memory: "3000Mi"
       livenessProbe.periodSeconds: "30"
     timeout: 1200
     priority: -5
@@ -691,6 +739,10 @@ apps:
     version: 12.1.1
     chart: mosip/regproc-group4
     set:
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "4000Mi"
+      resources.requests.cpu: "500m"
+      resources.requests.memory: "3000Mi"
       livenessProbe.periodSeconds: "30"
     timeout: 1200
     priority: -5
@@ -701,6 +753,10 @@ apps:
     version: 12.1.1
     chart: mosip/regproc-group5
     set:
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "4000Mi"
+      resources.requests.cpu: "500m"
+      resources.requests.memory: "3000Mi"
       livenessProbe.periodSeconds: "30"
     timeout: 1200
     priority: -5
@@ -711,6 +767,10 @@ apps:
     version: 12.1.1
     chart: mosip/regproc-group6
     set:
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "4000Mi"
+      resources.requests.cpu: "500m"
+      resources.requests.memory: "3000Mi"
       livenessProbe.periodSeconds: "30"
     timeout: 1200
     priority: -5
@@ -721,6 +781,10 @@ apps:
     version: 12.1.1
     chart: mosip/regproc-group7
     set:
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "4000Mi"
+      resources.requests.cpu: "500m"
+      resources.requests.memory: "3000Mi"
       livenessProbe.periodSeconds: "30"
     timeout: 1200
     priority: -5
@@ -731,6 +795,10 @@ apps:
     version: 12.1.1
     chart: mosip/regproc-trans
     set:
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "2500Mi"
+      resources.requests.cpu: "100m"
+      resources.requests.memory: "1000Mi"
       livenessProbe.periodSeconds: "30"
     timeout: 1200
     priority: -5
@@ -757,6 +825,10 @@ apps:
     version: 12.1.1
     chart: mosip/regproc-reprocess
     set:
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "2500Mi"
+      resources.requests.cpu: "100m"
+      resources.requests.memory: "1000Mi"
       livenessProbe.periodSeconds: "30"
     #   image.repository: ""
     #   image.tag: ""
@@ -769,6 +841,10 @@ apps:
     version: 12.1.1
     chart: mosip/regproc-landingzone
     set:
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "4000Mi"
+      resources.requests.cpu: "100m"
+      resources.requests.memory: "1000Mi"
       livenessProbe.periodSeconds: "30"
     #    image.repository: "mosipid/registration-processor-landing-zone"
     #    image.tag: "1.2.0.2"
@@ -783,7 +859,7 @@ apps:
     set:
       image.repository: "mosipid/hotlist-service"
       image.tag: "1.2.1.2"
-      resources.limits.cpu: "300m"
+      resources.limits.cpu: "500m"
       resources.limits.memory: "1500Mi"
       resources.requests.cpu: "300m"
       resources.requests.memory: "1500Mi"
@@ -799,6 +875,10 @@ apps:
     set:
       image.repository: "mosipid/admin-service"
       image.tag: "1.2.1.2"
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "1500Mi"
+      resources.requests.cpu: "300m"
+      resources.requests.memory: "1500Mi"
       istio.corsPolicy.allowOrigins[0].prefix: "https://admin.soil.mosip.net"
       startupProbe.failureThreshold: 60
     timeout: 1200
@@ -886,7 +966,7 @@ apps:
     timeout: 1200
     priority: -5
 
-  print:
+  print-service:
     namespace: print
     enabled: true
     version: 12.0.1
