@@ -40,7 +40,7 @@ k8s_worker_node_count = 2
 # Rancher Import Configuration
 
 # Security group CIDRs
-network_cidr          = "10.0.0.0/16" # Use your actual VPC CIDR
+network_cidr          = "10.0.0.0/16"   # Use your actual VPC CIDR
 WIREGUARD_CIDR        = "10.13.13.0/24" # Use your actual WireGuard VPN CIDR
 enable_rancher_import = false
 # Rancher Import URL
