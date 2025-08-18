@@ -36,6 +36,14 @@ resource "aws_security_group" "security-group" {
     }
   }
   egress {
+    description      = "Allow HTTP outbound to anywhere (for package downloads)"
+    from_port        = 80
+    to_port          = 80
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = []
+  }
+  egress {
     description      = "Allow HTTPS outbound to anywhere"
     from_port        = 443
     to_port          = 443
@@ -52,19 +60,19 @@ resource "aws_security_group" "security-group" {
     ipv6_cidr_blocks = []
   }
   egress {
-    description      = "Allow DNS TCP outbound to VPC CIDR"
+    description      = "Allow DNS TCP outbound to anywhere (for public DNS resolution)"
     from_port        = 53
     to_port          = 53
     protocol         = "tcp"
-    cidr_blocks      = [var.network_cidr]
+    cidr_blocks      = ["0.0.0.0/0"]
     ipv6_cidr_blocks = []
   }
   egress {
-    description      = "Allow DNS UDP outbound to VPC CIDR"
+    description      = "Allow DNS UDP outbound to anywhere (for public DNS resolution)"
     from_port        = 53
     to_port          = 53
     protocol         = "udp"
-    cidr_blocks      = [var.network_cidr]
+    cidr_blocks      = ["0.0.0.0/0"]
     ipv6_cidr_blocks = []
   }
   egress {
