@@ -288,19 +288,19 @@ module "aws-resource-creation" {
   SECURITY_GROUP = {
     NGINX_SECURITY_GROUP = [
       {
-        description : "SSH login port (restricted to VPC CIDR)"
+        description : "SSH login port (restricted to VPC CIDR and WireGuard CIDR)"
         from_port : 22,
         to_port : 22,
         protocol : "TCP",
-        cidr_blocks      = [var.network_cidr],
+        cidr_blocks      = [var.network_cidr, var.WIREGUARD_CIDR],
         ipv6_cidr_blocks = []
       },
       {
-        description : "Allow ICMP only within VPC CIDR"
+        description : "Allow ICMP within VPC CIDR and WireGuard CIDR"
         from_port : -1,
         to_port : -1,
         protocol : "ICMP",
-        cidr_blocks      = [var.network_cidr],
+        cidr_blocks      = [var.network_cidr, var.WIREGUARD_CIDR],
         ipv6_cidr_blocks = []
       },
       {
@@ -362,19 +362,19 @@ module "aws-resource-creation" {
     ]
     K8S_CONTROL_PLANE_SECURITY_GROUP = [
       {
-        description : "SSH login port (restricted to VPC CIDR)"
+        description : "SSH login port (restricted to VPC CIDR and WireGuard CIDR)"
         from_port : 22,
         to_port : 22,
         protocol : "TCP",
-        cidr_blocks      = [var.network_cidr],
+        cidr_blocks      = [var.network_cidr, var.WIREGUARD_CIDR],
         ipv6_cidr_blocks = []
       },
       {
-        description : "Allow ICMP only within VPC CIDR"
+        description : "Allow ICMP within VPC CIDR and WireGuard CIDR"
         from_port : -1,
         to_port : -1,
         protocol : "ICMP",
-        cidr_blocks      = [var.network_cidr],
+        cidr_blocks      = [var.network_cidr, var.WIREGUARD_CIDR],
         ipv6_cidr_blocks = []
       },
       {
@@ -452,20 +452,20 @@ module "aws-resource-creation" {
     ]
     K8S_ETCD_SECURITY_GROUP = [
       {
-        description : "SSH login port"
+        description : "SSH login port (restricted to VPC CIDR and WireGuard CIDR)"
         from_port : 22,
         to_port : 22,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
-        ipv6_cidr_blocks = ["::/0"]
+        cidr_blocks      = [var.network_cidr, var.WIREGUARD_CIDR],
+        ipv6_cidr_blocks = []
       },
       {
-        description : "Allow all incoming ICMP IPv4 and IPv6 traffic"
+        description : "Allow ICMP within VPC CIDR and WireGuard CIDR"
         from_port : -1,
         to_port : -1,
         protocol : "ICMP",
-        cidr_blocks      = ["0.0.0.0/0"],
-        ipv6_cidr_blocks = ["::/0"]
+        cidr_blocks      = [var.network_cidr, var.WIREGUARD_CIDR],
+        ipv6_cidr_blocks = []
       },
       {
         description : "Kubelet metrics"
@@ -526,20 +526,20 @@ module "aws-resource-creation" {
     ]
     K8S_WORKER_SECURITY_GROUP = [
       {
-        description : "SSH login port"
+        description : "SSH login port (restricted to VPC CIDR and WireGuard CIDR)"
         from_port : 22,
         to_port : 22,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
-        ipv6_cidr_blocks = ["::/0"]
+        cidr_blocks      = [var.network_cidr, var.WIREGUARD_CIDR],
+        ipv6_cidr_blocks = []
       },
       {
-        description : "Allow all incoming ICMP IPv4 and IPv6 traffic"
+        description : "Allow ICMP within VPC CIDR and WireGuard CIDR"
         from_port : -1,
         to_port : -1,
         protocol : "ICMP",
-        cidr_blocks      = ["0.0.0.0/0"],
-        ipv6_cidr_blocks = ["::/0"]
+        cidr_blocks      = [var.network_cidr, var.WIREGUARD_CIDR],
+        ipv6_cidr_blocks = []
       },
       {
         description : "Kubelet metrics"
