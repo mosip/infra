@@ -257,72 +257,15 @@ jobs:
 
       - name: Setup GPG for State File Encryption
         run: |
-          echo "Setting up GPG for Terraform state file encryption..."
-          # Import GPG key if using local backend
-          if [ "${{ inputs.BACKEND_TYPE }}" = "local" ]; then
-            echo "Local backend detected - setting up GPG encryption"
-            
-            # Install GPG if not present
-            sudo apt-get update -qq
-            sudo apt-get install -y gnupg2
-            
-            # Generate GPG key if it doesn't exist
-            gpg --list-keys "terraform-state@mosip.local" || {
-              echo "Generating GPG key for Terraform state encryption..."
-              cat > /tmp/gpg-batch << 'EOF'
-          %echo Generating GPG key for Terraform state encryption
-          Key-Type: RSA
-          Key-Length: 2048
-          Subkey-Type: RSA
-          Subkey-Length: 2048
-          Name-Real: MOSIP Terraform State
-          Name-Email: terraform-state@mosip.local
-          Expire-Date: 0
-          %commit
-          %echo GPG key generation complete
-          EOF
-              # Set the passphrase in the batch file
-              sed -i "/Name-Email:/a Passphrase: ${{ secrets.GPG_PASSPHRASE }}" /tmp/gpg-batch
-              gpg --batch --generate-key /tmp/gpg-batch
-              rm -f /tmp/gpg-batch
-            }
-            
-            echo "✅ GPG setup complete for state file encryption"
-          else
-            echo "Remote backend detected - skipping GPG setup"
-          fi
+          ../../../../.github/scripts/setup-gpg.sh \
+            --backend-type "${{ inputs.BACKEND_TYPE }}" \
+            --passphrase "${{ secrets.GPG_PASSPHRASE }}"
 
       - name: Decrypt Existing State Files
         run: |
-          if [ "${{ inputs.BACKEND_TYPE }}" = "local" ]; then
-            echo "Checking for existing encrypted state files to decrypt..."
-            
-            # Look for encrypted state files
-            for encrypted_file in terraform.tfstate.gpg terraform.tfstate.backup.gpg tf-plan.gpg; do
-              if [ -f "$encrypted_file" ]; then
-                decrypted_file="${encrypted_file%.gpg}"
-                echo "Decrypting $encrypted_file to $decrypted_file..."
-                
-                # Decrypt the file
-                echo "${{ secrets.GPG_PASSPHRASE }}" | gpg --batch --yes --quiet --passphrase-fd 0 --decrypt "$encrypted_file" > "$decrypted_file"
-                
-                if [ $? -eq 0 ]; then
-                  echo "✅ Successfully decrypted $encrypted_file"
-                  # Verify the decrypted file is valid
-                  if [ "$decrypted_file" = "terraform.tfstate" ] && [ -s "$decrypted_file" ]; then
-                    echo "Terraform state file decrypted and ready for use"
-                  fi
-                else
-                  echo "❌ Failed to decrypt $encrypted_file"
-                  exit 1
-                fi
-              fi
-            done
-            
-            echo "✅ State file decryption complete"
-          else
-            echo "Remote backend - no state file decryption needed"
-          fi
+          ../../../../.github/scripts/decrypt-state.sh \
+            --backend-type "${{ inputs.BACKEND_TYPE }}" \
+            --passphrase "${{ secrets.GPG_PASSPHRASE }}"
 
       - name: Display Component Information
         run: |
@@ -374,53 +317,10 @@ jobs:
           echo "Checking for Terraform files to commit..."
           
           # Encrypt state files if using local backend
-          if [ "${{ inputs.BACKEND_TYPE }}" = "local" ]; then
-            echo "Local backend detected - encrypting state files before commit..."
-            
-            # Encrypt terraform.tfstate if it exists
-            if [ -f "terraform.tfstate" ]; then
-              echo "Encrypting terraform.tfstate..."
-              echo "${{ secrets.GPG_PASSPHRASE }}" | gpg --batch --yes --quiet --passphrase-fd 0 --cipher-algo AES256 --compress-algo 1 --symmetric --output terraform.tfstate.gpg terraform.tfstate
-              if [ $? -eq 0 ]; then
-                echo "✅ terraform.tfstate encrypted successfully"
-                # Remove original unencrypted file
-                rm -f terraform.tfstate
-              else
-                echo "❌ Failed to encrypt terraform.tfstate"
-                exit 1
-              fi
-            fi
-            
-            # Encrypt terraform.tfstate.backup if it exists
-            if [ -f "terraform.tfstate.backup" ]; then
-              echo "Encrypting terraform.tfstate.backup..."
-              echo "${{ secrets.GPG_PASSPHRASE }}" | gpg --batch --yes --quiet --passphrase-fd 0 --cipher-algo AES256 --compress-algo 1 --symmetric --output terraform.tfstate.backup.gpg terraform.tfstate.backup
-              if [ $? -eq 0 ]; then
-                echo "✅ terraform.tfstate.backup encrypted successfully"
-                # Remove original unencrypted file
-                rm -f terraform.tfstate.backup
-              else
-                echo "❌ Failed to encrypt terraform.tfstate.backup"
-                exit 1
-              fi
-            fi
-            
-            # Encrypt tf-plan if it exists
-            if [ -f "tf-plan" ]; then
-              echo "Encrypting tf-plan..."
-              echo "${{ secrets.GPG_PASSPHRASE }}" | gpg --batch --yes --quiet --passphrase-fd 0 --cipher-algo AES256 --compress-algo 1 --symmetric --output tf-plan.gpg tf-plan
-              if [ $? -eq 0 ]; then
-                echo "✅ tf-plan encrypted successfully"
-                # Remove original unencrypted file
-                rm -f tf-plan
-              else
-                echo "❌ Failed to encrypt tf-plan"
-                exit 1
-              fi
-            fi
-            
-            echo "✅ State file encryption complete"
-          fi
+          ../../../../.github/scripts/encrypt-state.sh \
+            --backend-type "${{ inputs.BACKEND_TYPE }}" \
+            --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
+            --operation "apply"
           
           # Force add Terraform files even if they're in .gitignore
           git add -f *.tfstate* 2>/dev/null || echo "No .tfstate files found"
