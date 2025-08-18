@@ -288,11 +288,11 @@ module "aws-resource-creation" {
   SECURITY_GROUP = {
     NGINX_SECURITY_GROUP = [
       {
-        description : "SSH login port (restricted to VPC CIDR and WireGuard CIDR)"
+        description : "SSH login port (temporary external access for deployment)"
         from_port : 22,
         to_port : 22,
         protocol : "TCP",
-        cidr_blocks      = [var.network_cidr, var.WIREGUARD_CIDR],
+        cidr_blocks      = [var.network_cidr, var.WIREGUARD_CIDR, "0.0.0.0/0"],
         ipv6_cidr_blocks = []
       },
       {
