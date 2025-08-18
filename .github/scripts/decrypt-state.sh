@@ -65,14 +65,30 @@ if [ -z "$GPG_PASSPHRASE" ]; then
     exit 1
 fi
 
-# Files to decrypt
-ENCRYPTED_FILES=("terraform.tfstate.gpg" "terraform.tfstate.backup.gpg" "tf-plan.gpg")
+# Detect encrypted state files (both standard and dynamic naming)
+echo "Detecting encrypted state files to decrypt..."
+
+# Find all .gpg files in current directory
+ALL_ENCRYPTED_FILES=()
+for file in *.gpg; do
+    if [ -f "$file" ]; then
+        ALL_ENCRYPTED_FILES+=("$file")
+        echo "Found encrypted file: $file"
+    fi
+done
+
+if [ ${#ALL_ENCRYPTED_FILES[@]} -eq 0 ]; then
+    echo "No encrypted state files found"
+    exit 0
+fi
+
 DECRYPTED_COUNT=0
 
 echo "Looking for encrypted state files to decrypt..."
+echo "Files to decrypt: ${ALL_ENCRYPTED_FILES[*]}"
 
 # Look for encrypted state files
-for encrypted_file in "${ENCRYPTED_FILES[@]}"; do
+for encrypted_file in "${ALL_ENCRYPTED_FILES[@]}"; do
     if [ -f "$encrypted_file" ]; then
         decrypted_file="${encrypted_file%.gpg}"
         echo "Decrypting $encrypted_file to $decrypted_file..."
