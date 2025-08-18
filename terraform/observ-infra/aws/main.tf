@@ -37,6 +37,10 @@ module "aws_observation_infrastructure" {
   K8S_INSTANCE_ROOT_VOLUME_SIZE = var.k8s_instance_root_volume_size
   network_cidr                  = var.network_cidr
   WIREGUARD_CIDR                = var.WIREGUARD_CIDR
+  
+  # Capacity exclusion lists
+  k8s_capacity_excluded_azs     = var.k8s_capacity_excluded_azs
+  nginx_capacity_excluded_azs   = var.nginx_capacity_excluded_azs
 }
 
 # Rancher and Keycloak Integration (only for observ-infra)
