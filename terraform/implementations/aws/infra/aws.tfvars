@@ -9,6 +9,8 @@ ssh_key_name = "mosip-aws"
 # The AWS region for resource creation
 aws_provider_region = "ap-south-1"
 # The instance type for Kubernetes nodes
+# Note: Infrastructure will automatically validate availability across AZs
+# and only deploy to AZs where this instance type has sufficient capacity
 k8s_instance_type = "t3a.2xlarge"
 # The instance type for Nginx server
 nginx_instance_type = "t3a.2xlarge"
@@ -51,6 +53,3 @@ subdomain_internal = ["admin", "iam", "activemq", "kafka", "kibana", "postgres",
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
 vpc_name = "mosip-boxes"
-
-# SSH Private Key (should be set via environment variable or terraform.tfvars)
-# ssh_private_key = "your-private-key-content"

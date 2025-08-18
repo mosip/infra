@@ -59,3 +59,30 @@ output "vpc_with_subnets" {
   description = "Always true - using existing VPC with tagged subnets"
   value       = true
 }
+
+# AZ Validation Information
+output "all_availability_zones" {
+  description = "All available AZs in the region"
+  value       = data.aws_availability_zones.available.names
+}
+
+output "instance_type_available_azs" {
+  description = "AZs where the specified instance type is available"
+  value       = local.available_azs_for_instance_type
+}
+
+output "selected_availability_zones" {
+  description = "AZs selected for deployment after validation"
+  value       = local.selected_azs
+}
+
+output "instance_type_availability_check" {
+  description = "Instance type availability validation results"
+  value = {
+    instance_type = var.K8S_INSTANCE_TYPE
+    total_azs = length(data.aws_availability_zones.available.names)
+    available_azs = length(local.available_azs_for_instance_type)
+    using_azs = length(local.selected_azs)
+    validation_passed = length(local.available_azs_for_instance_type) >= 2
+  }
+}
