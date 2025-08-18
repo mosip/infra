@@ -25,8 +25,20 @@ k8s_etcd_node_count          = 0
 k8s_worker_node_count        = 0
 
 # Minimal instance types for observability (upgraded for better performance)
+# The infrastructure automatically validates both instance types across AZs and calculates
+# optimal AZ distribution based on actual node counts:
+# - K8s validation considers total nodes (control plane + etcd + worker)  
+# - NGINX typically runs 1 instance (can work with 1 AZ)
+# - Dynamic calculation: min_azs_needed = min(total_k8s_nodes, 3)
+# - Capacity exclusions are optional and configurable below
 k8s_instance_type   = "t3a.2xlarge"
 nginx_instance_type = "t3a.large"
+
+# Optional: Exclude specific AZs due to known capacity issues
+# Leave empty for fully dynamic behavior (recommended)
+# Add AZs only if you experience repeated capacity issues
+k8s_capacity_excluded_azs = []     # e.g., ["ap-south-1a"] if needed  
+nginx_capacity_excluded_azs = []   # e.g., ["ap-south-1a"] if needed
 
 # AMI ID (Ubuntu 24.04 LTS in ap-south-1)
 ami = "ami-0ad21ae1d0696ad58"

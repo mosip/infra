@@ -13,8 +13,8 @@ data "aws_availability_zones" "available" {
   state = "available"
 }
 
-# Data source to check instance type availability in each AZ
-data "aws_ec2_instance_type_offerings" "available_instance_types" {
+# Data source to check K8s instance type availability in each AZ
+data "aws_ec2_instance_type_offerings" "k8s_instance_types" {
   for_each = toset(data.aws_availability_zones.available.names)
   
   filter {
@@ -30,42 +30,135 @@ data "aws_ec2_instance_type_offerings" "available_instance_types" {
   location_type = "availability-zone"
 }
 
+# Data source to check NGINX instance type availability in each AZ
+data "aws_ec2_instance_type_offerings" "nginx_instance_types" {
+  for_each = toset(data.aws_availability_zones.available.names)
+  
+  filter {
+    name   = "instance-type"
+    values = [var.NGINX_INSTANCE_TYPE]
+  }
+  
+  filter {
+    name   = "location"
+    values = [each.value]
+  }
+  
+  location_type = "availability-zone"
+}
+
 # Local variables for dynamic AZ selection
 locals {
-  # Get AZs where the specified instance type is available
-  available_azs_for_instance_type = [
+  # Get AZs where K8s instance type is available
+  k8s_available_azs = [
     for az in data.aws_availability_zones.available.names :
-    az if length(data.aws_ec2_instance_type_offerings.available_instance_types[az].instance_types) > 0
+    az if length(data.aws_ec2_instance_type_offerings.k8s_instance_types[az].instance_types) > 0
   ]
   
-  # Smart selection with fallback strategies
-  selected_azs = length(local.available_azs_for_instance_type) >= 2 ? local.available_azs_for_instance_type : data.aws_availability_zones.available.names
+  # Get AZs where NGINX instance type is available
+  nginx_available_azs = [
+    for az in data.aws_availability_zones.available.names :
+    az if length(data.aws_ec2_instance_type_offerings.nginx_instance_types[az].instance_types) > 0
+  ]
+  
+  # Dynamic problematic AZ detection
+  # Uses configurable exclusion lists when needed, defaults to empty (fully dynamic)
+  k8s_capacity_excluded_azs = var.k8s_capacity_excluded_azs
+  nginx_capacity_excluded_azs = var.nginx_capacity_excluded_azs
+  
+  # Filter out problematic AZs
+  k8s_filtered_azs = [
+    for az in local.k8s_available_azs :
+    az if !contains(local.k8s_capacity_excluded_azs, az)
+  ]
+  
+  nginx_filtered_azs = [
+    for az in local.nginx_available_azs :
+    az if !contains(local.nginx_capacity_excluded_azs, az)
+  ]
+  
+  # Smart selection: Use intersection of both filtered lists, with fallbacks
+  # Calculate total K8s nodes that will be deployed
+  total_k8s_nodes = var.K8S_CONTROL_PLANE_NODE_COUNT + var.K8S_ETCD_NODE_COUNT + var.K8S_WORKER_NODE_COUNT
+  
+  # Determine minimum AZs needed based on actual deployment
+  # For K8s: Need enough AZs to distribute nodes (max 1 node per AZ for HA is ideal, but can pack more if needed)
+  # For NGINX: Usually 1 instance, rarely 2
+  min_azs_for_k8s = min(local.total_k8s_nodes, 3)  # Don't need more than 3 AZs even for large clusters
+  min_azs_for_nginx = 1  # NGINX typically runs on 1 instance
+  
+  common_available_azs = setintersection(toset(local.k8s_filtered_azs), toset(local.nginx_filtered_azs))
+  
+  # Dynamic selection based on actual requirements
+  selected_azs = length(local.common_available_azs) >= local.min_azs_for_k8s ? tolist(local.common_available_azs) : (
+    length(local.k8s_filtered_azs) >= local.min_azs_for_k8s ? local.k8s_filtered_azs :
+    length(local.k8s_available_azs) >= local.min_azs_for_k8s ? local.k8s_available_azs :
+    data.aws_availability_zones.available.names
+  )
 }
 
 # Validation checks
 resource "null_resource" "instance_type_validation" {
   triggers = {
-    instance_type = var.K8S_INSTANCE_TYPE
-    available_azs = length(local.available_azs_for_instance_type)
+    k8s_instance_type = var.K8S_INSTANCE_TYPE
+    nginx_instance_type = var.NGINX_INSTANCE_TYPE
+    k8s_available_azs = length(local.k8s_filtered_azs)
+    nginx_available_azs = length(local.nginx_filtered_azs)
+    common_azs = length(local.common_available_azs)
+    total_k8s_nodes = local.total_k8s_nodes
+    min_azs_needed = local.min_azs_for_k8s
   }
 
   provisioner "local-exec" {
     command = <<-EOT
-      echo "=== Instance Type Availability Validation ==="
-      echo "Instance Type: ${var.K8S_INSTANCE_TYPE}"
+      echo "=== Dynamic Instance Type & Capacity Validation ==="
+      echo "K8s Instance Type: ${var.K8S_INSTANCE_TYPE}"
+      echo "NGINX Instance Type: ${var.NGINX_INSTANCE_TYPE}"
       echo "Total AZs in region: ${length(data.aws_availability_zones.available.names)}"
-      echo "AZs with instance type available: ${length(local.available_azs_for_instance_type)}"
-      echo "Available AZs: ${join(", ", local.available_azs_for_instance_type)}"
+      echo ""
+      echo "K8s Cluster Configuration:"
+      echo "  - Control Plane nodes: ${var.K8S_CONTROL_PLANE_NODE_COUNT}"
+      echo "  - ETCD nodes: ${var.K8S_ETCD_NODE_COUNT}"
+      echo "  - Worker nodes: ${var.K8S_WORKER_NODE_COUNT}"
+      echo "  - Total K8s nodes: ${local.total_k8s_nodes}"
+      echo "  - Minimum AZs needed: ${local.min_azs_for_k8s}"
+      echo ""
+      echo "K8s instance availability:"
+      echo "  - API available AZs: ${join(", ", local.k8s_available_azs)}"
+      echo "  - Capacity excluded AZs: ${join(", ", local.k8s_capacity_excluded_azs)}"
+      echo "  - Filtered available AZs: ${join(", ", local.k8s_filtered_azs)}"
+      echo ""
+      echo "NGINX instance availability:"
+      echo "  - API available AZs: ${join(", ", local.nginx_available_azs)}"
+      echo "  - Capacity excluded AZs: ${join(", ", local.nginx_capacity_excluded_azs)}"
+      echo "  - Filtered available AZs: ${join(", ", local.nginx_filtered_azs)}"
+      echo ""
+      echo "Common available AZs: ${join(", ", local.common_available_azs)}"
       echo "Selected AZs for deployment: ${join(", ", local.selected_azs)}"
+      echo ""
       
-      if [ ${length(local.available_azs_for_instance_type)} -eq 0 ]; then
-        echo "WARNING: Instance type ${var.K8S_INSTANCE_TYPE} is not available in any AZ!"
+      # Dynamic validation based on actual node requirements
+      if [ ${length(local.k8s_filtered_azs)} -eq 0 ]; then
+        echo "ERROR: K8s instance type ${var.K8S_INSTANCE_TYPE} has no available capacity!"
         echo "Consider using a different instance type or region."
-      elif [ ${length(local.available_azs_for_instance_type)} -eq 1 ]; then
-        echo "WARNING: Instance type ${var.K8S_INSTANCE_TYPE} is only available in 1 AZ!"
-        echo "This may impact high availability."
+        exit 1
+      elif [ ${length(local.k8s_filtered_azs)} -lt ${local.min_azs_for_k8s} ]; then
+        echo "WARNING: K8s needs ${local.min_azs_for_k8s} AZs for ${local.total_k8s_nodes} nodes, but only ${length(local.k8s_filtered_azs)} available!"
+        echo "This may impact high availability and node distribution."
+        if [ ${local.total_k8s_nodes} -gt 1 ]; then
+          echo "Consider reducing node count or using a different instance type/region."
+        fi
       else
-        echo "SUCCESS: Instance type ${var.K8S_INSTANCE_TYPE} is available in ${length(local.available_azs_for_instance_type)} AZs."
+        echo "SUCCESS: K8s has ${length(local.k8s_filtered_azs)} AZs available for ${local.total_k8s_nodes} nodes."
+        echo "This allows good distribution across AZs for high availability."
+      fi
+      
+      if [ ${length(local.nginx_filtered_azs)} -eq 0 ]; then
+        echo "ERROR: NGINX instance type ${var.NGINX_INSTANCE_TYPE} has no available capacity!"
+        echo "Consider using a different instance type or region."
+        exit 1
+      else
+        echo "SUCCESS: NGINX instance type ${var.NGINX_INSTANCE_TYPE} is available in ${length(local.nginx_filtered_azs)} AZs."
       fi
       echo "=============================================="
     EOT
