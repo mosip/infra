@@ -52,11 +52,14 @@ resource "null_resource" "Nginx-setup" {
     # node_hash       = md5(var.MOSIP_K8S_CLUSTER_NODES_PRIVATE_IP_LIST)
     # public_dns_hash = md5(var.MOSIP_PUBLIC_DOMAIN_LIST)
   }
+
   connection {
     type        = "ssh"
     host        = var.NGINX_PUBLIC_IP
     user        = "ubuntu"            # Change based on the AMI used
     private_key = var.SSH_PRIVATE_KEY # content of your private key
+    timeout     = "5m"                # 5 minute timeout
+    agent       = false               # Don't use SSH agent
   }
   provisioner "file" {
     source      = "${path.module}/nginx-setup.sh"
