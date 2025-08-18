@@ -220,17 +220,17 @@ echo "Summary:"
 case "$CLOUD_PROVIDER" in
     aws)
         if [ "$ENABLE_LOCKING" = true ]; then
-            echo "  ✅ AWS DynamoDB table cleanup attempted"
+            echo "  AWS DynamoDB table cleanup attempted"
             echo "  💡 Verify in AWS console that DynamoDB table was deleted"
         else
-            echo "  ⏭️  AWS DynamoDB cleanup skipped (--enable-locking not set)"
+            echo "  AWS DynamoDB cleanup skipped (--enable-locking not set)"
         fi
         ;;
     azure)
-        echo "  ✅ Azure: No additional cleanup needed (built-in locking)"
+        echo "  Azure: No additional cleanup needed (built-in locking)"
         ;;
     gcp)
-        echo "  ✅ GCP: No additional cleanup needed (built-in consistency)"
+        echo "  GCP: No additional cleanup needed (built-in consistency)"
         ;;
 esac
 
