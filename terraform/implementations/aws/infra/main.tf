@@ -16,9 +16,9 @@ provider "aws" {
 
 # Call the cloud-agnostic infra module
 module "mosip_infra" {
-  network_cidr    = var.network_cidr
+  network_cidr   = var.network_cidr
   WIREGUARD_CIDR = var.WIREGUARD_CIDR
-  source = "../../../infra"
+  source         = "../../../infra"
 
   # Cloud provider selection
   cloud_provider = "aws"
