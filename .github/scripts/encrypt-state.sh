@@ -89,19 +89,51 @@ if [ "$OPERATION" = "destroy" ]; then
     fi
 fi
 
-# Files to encrypt
-STATE_FILES=("terraform.tfstate" "terraform.tfstate.backup")
-PLAN_FILES=("tf-plan")
+# Detect actual state files (both standard and dynamic naming)
+echo "Detecting state files to encrypt..."
+
+# Standard state files
+STANDARD_STATE_FILES=("terraform.tfstate" "terraform.tfstate.backup")
+
+# Detect dynamic state files from backend.tf or existing files
+DYNAMIC_STATE_FILES=()
+if [ -f "backend.tf" ]; then
+    # Extract state file path from backend.tf
+    backend_path=$(grep -A 5 'backend "local"' backend.tf | grep 'path' | sed 's/.*path = "\([^"]*\)".*/\1/' | head -1)
+    if [ -n "$backend_path" ]; then
+        DYNAMIC_STATE_FILES+=("$backend_path")
+        # Add backup file variant
+        DYNAMIC_STATE_FILES+=("${backend_path}.backup")
+        echo "Detected dynamic state files from backend.tf: $backend_path"
+    fi
+fi
+
+# Also detect any existing state files matching patterns
+for pattern in "*-terraform.tfstate" "*-terraform.tfstate.backup"; do
+    for file in $pattern; do
+        if [ -f "$file" ]; then
+            DYNAMIC_STATE_FILES+=("$file")
+            echo "Found existing state file: $file"
+        fi
+    done
+done
+
+# Combine all state files, removing duplicates
+ALL_STATE_FILES=($(printf '%s\n' "${STANDARD_STATE_FILES[@]}" "${DYNAMIC_STATE_FILES[@]}" | sort -u))
+
+# Plan files
+PLAN_FILES=("tf-plan" "tfplan.out")
 ENCRYPTED_COUNT=0
 
 # Add plan files only for apply operations
 if [ "$OPERATION" = "apply" ]; then
-    FILES_TO_ENCRYPT=("${STATE_FILES[@]}" "${PLAN_FILES[@]}")
+    FILES_TO_ENCRYPT=("${ALL_STATE_FILES[@]}" "${PLAN_FILES[@]}")
 else
-    FILES_TO_ENCRYPT=("${STATE_FILES[@]}")
+    FILES_TO_ENCRYPT=("${ALL_STATE_FILES[@]}")
 fi
 
 echo "Looking for state files to encrypt..."
+echo "Files to check: ${FILES_TO_ENCRYPT[*]}"
 
 # Encrypt each file if it exists
 for file in "${FILES_TO_ENCRYPT[@]}"; do
