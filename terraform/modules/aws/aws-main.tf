@@ -7,6 +7,71 @@ variable "WIREGUARD_CIDR" {
   description = "CIDR block for WireGuard VPN server(s)"
   type        = string
 }
+
+# Data source to get all availability zones in the region
+data "aws_availability_zones" "available" {
+  state = "available"
+}
+
+# Data source to check instance type availability in each AZ
+data "aws_ec2_instance_type_offerings" "available_instance_types" {
+  for_each = toset(data.aws_availability_zones.available.names)
+  
+  filter {
+    name   = "instance-type"
+    values = [var.K8S_INSTANCE_TYPE]
+  }
+  
+  filter {
+    name   = "location"
+    values = [each.value]
+  }
+  
+  location_type = "availability-zone"
+}
+
+# Local variables for dynamic AZ selection
+locals {
+  # Get AZs where the specified instance type is available
+  available_azs_for_instance_type = [
+    for az in data.aws_availability_zones.available.names :
+    az if length(data.aws_ec2_instance_type_offerings.available_instance_types[az].instance_types) > 0
+  ]
+  
+  # Smart selection with fallback strategies
+  selected_azs = length(local.available_azs_for_instance_type) >= 2 ? local.available_azs_for_instance_type : data.aws_availability_zones.available.names
+}
+
+# Validation checks
+resource "null_resource" "instance_type_validation" {
+  triggers = {
+    instance_type = var.K8S_INSTANCE_TYPE
+    available_azs = length(local.available_azs_for_instance_type)
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      echo "=== Instance Type Availability Validation ==="
+      echo "Instance Type: ${var.K8S_INSTANCE_TYPE}"
+      echo "Total AZs in region: ${length(data.aws_availability_zones.available.names)}"
+      echo "AZs with instance type available: ${length(local.available_azs_for_instance_type)}"
+      echo "Available AZs: ${join(", ", local.available_azs_for_instance_type)}"
+      echo "Selected AZs for deployment: ${join(", ", local.selected_azs)}"
+      
+      if [ ${length(local.available_azs_for_instance_type)} -eq 0 ]; then
+        echo "WARNING: Instance type ${var.K8S_INSTANCE_TYPE} is not available in any AZ!"
+        echo "Consider using a different instance type or region."
+      elif [ ${length(local.available_azs_for_instance_type)} -eq 1 ]; then
+        echo "WARNING: Instance type ${var.K8S_INSTANCE_TYPE} is only available in 1 AZ!"
+        echo "This may impact high availability."
+      else
+        echo "SUCCESS: Instance type ${var.K8S_INSTANCE_TYPE} is available in ${length(local.available_azs_for_instance_type)} AZs."
+      fi
+      echo "=============================================="
+    EOT
+  }
+}
+
 terraform {
   required_providers {
     aws = {
@@ -68,11 +133,16 @@ data "aws_vpc" "existing_vpc" {
   }
 }
 
-# Data source to get public subnets
+# Data source to get public subnets (using dynamically selected AZs)
 data "aws_subnets" "public_subnets" {
   filter {
     name   = "vpc-id"
     values = [data.aws_vpc.existing_vpc.id]
+  }
+
+  filter {
+    name   = "availability-zone"
+    values = local.selected_azs
   }
 
   tags = {
@@ -80,11 +150,16 @@ data "aws_subnets" "public_subnets" {
   }
 }
 
-# Data source to get private subnets
+# Data source to get private subnets (using dynamically selected AZs)
 data "aws_subnets" "private_subnets" {
   filter {
     name   = "vpc-id"
     values = [data.aws_vpc.existing_vpc.id]
+  }
+
+  filter {
+    name   = "availability-zone"
+    values = local.selected_azs
   }
 
   tags = {
