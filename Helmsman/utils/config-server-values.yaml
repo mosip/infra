@@ -127,7 +127,7 @@ affinity: {}
 ## version: branch/tag of the repo to be used
 gitRepo:
   uri: https://github.com/mosip/mosip-config
-  version: qatest1
+  version: qatest1-backup
   ## Folders within the base repo where properties may be found.
   searchFolders: ""
   private: false
