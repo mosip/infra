@@ -544,7 +544,7 @@ apps:
 
   pms-keycloak-init:
     namespace: pms
-    enabled: true
+    enabled: false
     version: 0.0.1-develop
     chart: mosip/keycloak-init
     set:
