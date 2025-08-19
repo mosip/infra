@@ -45,6 +45,7 @@ module "aws_infra" {
   k8s_infra_branch             = var.k8s_infra_branch
   nginx_node_root_volume_size  = var.nginx_node_root_volume_size
   nginx_node_ebs_volume_size   = var.nginx_node_ebs_volume_size
+  nginx_node_ebs_volume_size_2 = var.nginx_node_ebs_volume_size_2
   k8s_instance_root_volume_size = var.k8s_instance_root_volume_size
   network_cidr                  = var.network_cidr
   WIREGUARD_CIDR                = var.WIREGUARD_CIDR
