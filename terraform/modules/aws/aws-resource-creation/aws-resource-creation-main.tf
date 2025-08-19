@@ -18,8 +18,9 @@ resource "aws_security_group" "security-group" {
   for_each = var.SECURITY_GROUP
   vpc_id   = var.VPC_ID
   tags = {
-    Name    = "${var.CLUSTER_NAME}-${each.key}"
-    Cluster = var.CLUSTER_NAME
+    Name      = "${var.CLUSTER_NAME}-${each.key}"
+    Cluster   = var.CLUSTER_NAME
+    Component = var.CLUSTER_NAME
   }
   description = "Rules which allow the outgoing traffic from the instances associated with the security group ${each.key}"
 
@@ -122,8 +123,9 @@ resource "aws_instance" "NGINX_EC2_INSTANCE" {
   }
 
   tags = {
-    Name    = local.NGINX_INSTANCE.tags.Name
-    Cluster = local.NGINX_INSTANCE.tags.Cluster
+    Name      = local.NGINX_INSTANCE.tags.Name
+    Cluster   = local.NGINX_INSTANCE.tags.Cluster
+    Component = var.CLUSTER_NAME
   }
 }
 resource "aws_instance" "K8S_CLUSTER_EC2_INSTANCE" {
@@ -155,14 +157,16 @@ resource "aws_instance" "K8S_CLUSTER_EC2_INSTANCE" {
     delete_on_termination = local.K8S_EC2_NODE.root_block_device.delete_on_termination
     encrypted             = local.K8S_EC2_NODE.root_block_device.encrypted
     tags = {
-      Name    = "${local.K8S_EC2_NODE.tags.Name}-${each.key}"
-      Cluster = local.K8S_EC2_NODE.tags.Cluster
+      Name      = "${local.K8S_EC2_NODE.tags.Name}-${each.key}"
+      Cluster   = local.K8S_EC2_NODE.tags.Cluster
+      Component = var.CLUSTER_NAME
     }
   }
 
   tags = {
-    Name    = "${local.K8S_EC2_NODE.tags.Name}-${each.key}"
-    Cluster = local.K8S_EC2_NODE.tags.Cluster
+    Name      = "${local.K8S_EC2_NODE.tags.Name}-${each.key}"
+    Cluster   = local.K8S_EC2_NODE.tags.Cluster
+    Component = var.CLUSTER_NAME
   }
 }
 

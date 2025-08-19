@@ -4,8 +4,8 @@
 # Cloud provider
 cloud_provider = "aws"
 
-# Environment name (observability cluster)
-cluster_name = "testvpc-observ"
+# Environment name (observability component)
+cluster_name = "soil-observ"
 
 # MOSIP domain
 cluster_env_domain = "observ.mosip.net"

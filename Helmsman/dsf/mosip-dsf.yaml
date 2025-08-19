@@ -542,18 +542,18 @@ apps:
     priority: -5
     timeout: 1200
 
-  pms-keycloak-init:
-    namespace: pms
-    enabled: true
-    version: 0.0.1-develop
-    chart: mosip/keycloak-init
-    set:
-      # image.repository: ""
-      # image.tag: ""
-    priority: -7
-    timeout: 1200
-    hooks:
-      preInstall: "$WORKDIR/hooks/pms-keycloak-init.sh" 
+  # pms-keycloak-init:
+  #   namespace: pms
+  #   enabled: false
+  #   version: 0.0.1-develop
+  #   chart: mosip/keycloak-init
+  #   set:
+  #     # image.repository: ""
+  #     # image.tag: ""
+  #   priority: -7
+  #   timeout: 1200
+  #   hooks:
+  #     preInstall: "$WORKDIR/hooks/pms-keycloak-init.sh" 
 
 
   pms-partner:

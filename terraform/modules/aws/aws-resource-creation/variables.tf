@@ -45,6 +45,7 @@ variable "CLUSTER_ENV_DOMAIN" { type = string }
 variable "ZONE_ID" { type = string }
 variable "NGINX_NODE_ROOT_VOLUME_SIZE" { type = number }
 variable "NGINX_NODE_EBS_VOLUME_SIZE" { type = number }
+variable "NGINX_NODE_EBS_VOLUME_SIZE_2" { type = number }
 variable "K8S_INSTANCE_ROOT_VOLUME_SIZE" { type = number }
 
 variable "DNS_RECORDS" {
@@ -141,21 +142,34 @@ EOF
       delete_on_termination = true
       encrypted             = false
       tags = {
-        Name    = local.TAG_NAME.NGINX_TAG_NAME
-        Cluster = var.CLUSTER_NAME
+        Name      = local.TAG_NAME.NGINX_TAG_NAME
+        Cluster   = var.CLUSTER_NAME
+        Component = var.CLUSTER_NAME
       }
     }
-    ebs_block_device = [{
+    ebs_block_device = concat([{
       device_name           = "/dev/sdb"
       volume_size           = var.NGINX_NODE_EBS_VOLUME_SIZE
       volume_type           = "gp3"
       delete_on_termination = true
       encrypted             = false
       tags = {
-        Name    = local.TAG_NAME.NGINX_TAG_NAME
-        Cluster = var.CLUSTER_NAME
+        Name      = "${local.TAG_NAME.NGINX_TAG_NAME}-vol1"
+        Cluster   = var.CLUSTER_NAME
+        Component = var.CLUSTER_NAME
       }
-    }]
+    }], var.NGINX_NODE_EBS_VOLUME_SIZE_2 > 0 ? [{
+      device_name           = "/dev/sdc"
+      volume_size           = var.NGINX_NODE_EBS_VOLUME_SIZE_2
+      volume_type           = "gp3"
+      delete_on_termination = true
+      encrypted             = false
+      tags = {
+        Name      = "${local.TAG_NAME.NGINX_TAG_NAME}-vol2"
+        Cluster   = var.CLUSTER_NAME
+        Component = var.CLUSTER_NAME
+      }
+    }] : [])
   }
   K8S_EC2_NODE = {
     ami                         = var.AMI
@@ -164,8 +178,9 @@ EOF
     #count                       = var.K8S_INSTANCE_COUNT
 
     tags = {
-      Name    = var.CLUSTER_NAME
-      Cluster = var.CLUSTER_NAME
+      Name      = var.CLUSTER_NAME
+      Cluster   = var.CLUSTER_NAME
+      Component = var.CLUSTER_NAME
     }
     security_groups = [
     ]

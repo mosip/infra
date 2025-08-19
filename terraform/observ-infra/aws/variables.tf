@@ -61,7 +61,12 @@ variable "nginx_node_root_volume_size" {
 }
 variable "nginx_node_ebs_volume_size" { 
   type = number
-  description = "EBS volume size for NGINX node"
+  description = "EBS volume size for NGINX node (first volume)"
+}
+
+variable "nginx_node_ebs_volume_size_2" {
+  type = number
+  description = "EBS volume size for NGINX node (second volume) - set to 0 to disable"
 }
 variable "k8s_instance_root_volume_size" { 
   type = number

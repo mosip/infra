@@ -116,7 +116,12 @@ variable "nginx_node_root_volume_size" {
 }
 
 variable "nginx_node_ebs_volume_size" {
-  description = "EBS volume size for NGINX node"
+  description = "EBS volume size for NGINX node (first volume)"
+  type        = number
+}
+
+variable "nginx_node_ebs_volume_size_2" {
+  description = "EBS volume size for NGINX node (second volume)"
   type        = number
 }
 

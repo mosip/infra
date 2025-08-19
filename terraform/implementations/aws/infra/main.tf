@@ -48,6 +48,7 @@ module "mosip_infra" {
   vpc_name                      = var.vpc_name
   nginx_node_root_volume_size   = var.nginx_node_root_volume_size
   nginx_node_ebs_volume_size    = var.nginx_node_ebs_volume_size
+  nginx_node_ebs_volume_size_2  = var.nginx_node_ebs_volume_size_2
   k8s_instance_root_volume_size = var.k8s_instance_root_volume_size
 
 }
