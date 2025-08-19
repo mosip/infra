@@ -34,6 +34,7 @@ module "aws_observation_infrastructure" {
   vpc_name                      = var.vpc_name
   NGINX_NODE_ROOT_VOLUME_SIZE   = var.nginx_node_root_volume_size
   NGINX_NODE_EBS_VOLUME_SIZE    = var.nginx_node_ebs_volume_size
+  nginx_node_ebs_volume_size_2  = var.nginx_node_ebs_volume_size_2
   K8S_INSTANCE_ROOT_VOLUME_SIZE = var.k8s_instance_root_volume_size
   network_cidr                  = var.network_cidr
   WIREGUARD_CIDR                = var.WIREGUARD_CIDR

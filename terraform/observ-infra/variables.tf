@@ -159,9 +159,15 @@ variable "nginx_node_root_volume_size" {
 }
 
 variable "nginx_node_ebs_volume_size" {
-  description = "EBS volume size for NGINX node"
+  description = "EBS volume size for NGINX node (first volume)"
   type        = number
   default     = 100  # Smaller volumes for observation tools
+}
+
+variable "nginx_node_ebs_volume_size_2" {
+  description = "EBS volume size for NGINX node (second volume) - set to 0 to disable"
+  type        = number
+  default     = 0  # Disabled by default for observability (uses minimal resources)
 }
 
 variable "k8s_instance_root_volume_size" {

@@ -1,4 +1,4 @@
-# Environment name (ex: sandbox)
+# Environment name (infra component)
 cluster_name = "soil"
 # MOSIP's domain (ex: sandbox.xyz.net)
 cluster_env_domain = "soil.mosip.net"
@@ -42,6 +42,8 @@ k8s_infra_branch = "develop"
 nginx_node_root_volume_size = 24
 # NGINX node's EBS volume size
 nginx_node_ebs_volume_size = 300
+# NGINX node's second EBS volume size (optional - set to 0 to disable)
+nginx_node_ebs_volume_size_2 = 200
 # Kubernetes nodes Root volume size
 k8s_instance_root_volume_size = 64
 

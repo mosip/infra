@@ -275,6 +275,7 @@ module "aws-resource-creation" {
   K8S_INSTANCE_ROOT_VOLUME_SIZE = var.K8S_INSTANCE_ROOT_VOLUME_SIZE
 
   NGINX_NODE_EBS_VOLUME_SIZE  = var.NGINX_NODE_EBS_VOLUME_SIZE
+  NGINX_NODE_EBS_VOLUME_SIZE_2 = var.nginx_node_ebs_volume_size_2
   NGINX_NODE_ROOT_VOLUME_SIZE = var.NGINX_NODE_ROOT_VOLUME_SIZE
 
   # VPC and Subnet Configuration
@@ -331,6 +332,14 @@ module "aws-resource-creation" {
         description : "Postgres port (internal only)"
         from_port : 5432,
         to_port : 5432,
+        protocol : "TCP",
+        cidr_blocks      = [var.network_cidr],
+        ipv6_cidr_blocks = []
+      },
+      {
+        description : "Postgres alternative port (internal only)"
+        from_port : 5433,
+        to_port : 5433,
         protocol : "TCP",
         cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = []
