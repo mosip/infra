@@ -25,8 +25,8 @@ apps:
     version: 0.0.1-develop
     chart: mosip/packetcreator
     set:
-      image.repository: "mosipdev/dsl-packetcreator"
-      image.tag: "release-1.3.x"
+      image.repository: "mosipqa/dsl-packetcreator"
+      image.tag: "1.3.x"
       enable_insecure: false
       ingress.enabled: false
       ## If ingress enabled, provide ingress host value i.e., PACKETCREATOR_HOST

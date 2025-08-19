@@ -111,6 +111,7 @@ variable "vpc_name" {
 
 variable "NGINX_NODE_ROOT_VOLUME_SIZE" { type = number }
 variable "NGINX_NODE_EBS_VOLUME_SIZE" { type = number }
+variable "nginx_node_ebs_volume_size_2" { type = number }
 variable "K8S_INSTANCE_ROOT_VOLUME_SIZE" { type = number }
 
 # Optional capacity exclusion lists (for problematic AZs)
