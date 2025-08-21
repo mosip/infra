@@ -156,7 +156,7 @@ resource "null_resource" "PostgreSQL-ansible-setup" {
       "export NETWORK_CIDR=${var.NETWORK_CIDR}",
       
       # Run PostgreSQL setup
-      "ansible-playbook -i inventory.ini -e postgresql_version=$POSTGRESQL_VERSION -e storage_device=$STORAGE_DEVICE -e mount_point=$MOUNT_POINT -e postgresql_port=$POSTGRESQL_PORT -e network_cidr=$NETWORK_CIDR setup-postgres.yml",
+      "ansible-playbook -i inventory.ini -e postgresql_version=$POSTGRESQL_VERSION -e storage_device=$STORAGE_DEVICE -e mount_point=$MOUNT_POINT -e postgresql_port=$POSTGRESQL_PORT -e network_cidr=$NETWORK_CIDR postgresql-setup.yml",
       
       # Verify PostgreSQL installation
       "sudo systemctl status postgresql",
