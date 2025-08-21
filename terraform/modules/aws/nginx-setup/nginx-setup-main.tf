@@ -132,7 +132,7 @@ resource "null_resource" "PostgreSQL-ansible-setup" {
     inline = [
       # Set up logging and error handling
       "set -e",  # Exit on error
-      "exec > >(tee /tmp/postgresql-setup.log) 2>&1",  # Log everything
+      "exec > /tmp/postgresql-setup.log 2>&1",  # Simplified logging - redirect both stdout and stderr
       "echo '=== PostgreSQL Ansible Setup Started at $(date) ==='",
       
       # Install prerequisites with timeout
@@ -174,14 +174,10 @@ resource "null_resource" "PostgreSQL-ansible-setup" {
       
       # Configure APT to prevent hanging
       "echo '=== Configuring APT for non-interactive mode ==='",
-      "sudo tee /etc/apt/apt.conf.d/99automated > /dev/null << 'EOF'",
-      "APT::Get::Assume-Yes \"true\";",
-      "APT::Get::force-yes \"true\";",
-      "Dpkg::Options {",
-      "   \"--force-confdef\";", 
-      "   \"--force-confold\";",
-      "}",
-      "EOF",
+      "sudo mkdir -p /etc/apt/apt.conf.d/",
+      "echo 'APT::Get::Assume-Yes \"true\";' | sudo tee /etc/apt/apt.conf.d/99automated",
+      "echo 'APT::Get::force-yes \"true\";' | sudo tee -a /etc/apt/apt.conf.d/99automated",
+      "echo 'Dpkg::Options { \"--force-confdef\"; \"--force-confold\"; }' | sudo tee -a /etc/apt/apt.conf.d/99automated",
       
       # Check if storage device exists and wait if needed
       "echo '=== Checking Storage Device ==='",
@@ -199,10 +195,12 @@ resource "null_resource" "PostgreSQL-ansible-setup" {
       "sleep 10",  # Wait for service to start
       "sudo systemctl status postgresql --no-pager || true",
       "sudo systemctl is-active postgresql || true",
-      "sudo -u postgres psql -c 'SELECT version();' || echo 'PostgreSQL verification failed'",
+      "sudo -u postgres psql -p ${var.POSTGRESQL_PORT} -c 'SELECT version();' || echo 'PostgreSQL verification failed'",
       
       "echo '=== PostgreSQL Ansible Setup Completed at $(date) ==='",
-      "echo '=== Setup Log saved to /tmp/postgresql-setup.log ==='"
+      "echo '=== Setup Log saved to /tmp/postgresql-setup.log ==='",
+      "echo '=== Displaying last 20 lines of log for verification ==='",
+      "tail -20 /tmp/postgresql-setup.log || true"
     ]
   }
 }
