@@ -43,7 +43,7 @@ nginx_node_root_volume_size = 24
 # NGINX node's EBS volume size
 nginx_node_ebs_volume_size = 300
 # NGINX node's second EBS volume size (optional - set to 0 to disable)
-nginx_node_ebs_volume_size_2 = 200  # Enable second EBS volume for PostgreSQL testing
+nginx_node_ebs_volume_size_2 = 200 # Enable second EBS volume for PostgreSQL testing
 # Kubernetes nodes Root volume size
 k8s_instance_root_volume_size = 64
 
@@ -68,13 +68,15 @@ subdomain_internal = ["admin", "iam", "activemq", "kafka", "kibana", "postgres",
 
 # PostgreSQL Configuration (used when second EBS volume is enabled)
 postgresql_version = "15"
-storage_device = "/dev/nvme2n1"
-mount_point = "/srv/postgres"
-postgresql_port = "5433"
+storage_device     = "/dev/nvme2n1"
+mount_point        = "/srv/postgres"
+postgresql_port    = "5433"
 
 # MOSIP Infrastructure Repository Configuration
 mosip_infra_repo_url = "https://github.com/bhumi46/mosip-infra.git"
-mosip_infra_branch = "develop"
+
+mosip_infra_branch   = "develop"
+
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
 vpc_name = "mosip-boxes"
