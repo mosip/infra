@@ -75,7 +75,7 @@ postgresql_port    = "5433"
 # MOSIP Infrastructure Repository Configuration
 mosip_infra_repo_url = "https://github.com/bhumi46/mosip-infra.git"
 
-mosip_infra_branch   = "develop"
+mosip_infra_branch = "develop"
 
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
