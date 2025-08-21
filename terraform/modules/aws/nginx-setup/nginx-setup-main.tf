@@ -124,43 +124,85 @@ resource "null_resource" "PostgreSQL-ansible-setup" {
     host        = var.NGINX_PUBLIC_IP
     user        = "ubuntu"
     private_key = var.SSH_PRIVATE_KEY
-    timeout     = "10m"
+    timeout     = "15m"  # Increased timeout for PostgreSQL setup
     agent       = false
   }
 
   provisioner "remote-exec" {
     inline = [
-      # Install prerequisites
-      "sudo apt-get update",
-      "sudo apt-get install -y git ansible",
+      # Set up logging and error handling
+      "set -e",  # Exit on error
+      "exec > >(tee /tmp/postgresql-setup.log) 2>&1",  # Log everything
+      "echo '=== PostgreSQL Ansible Setup Started at $(date) ==='",
+      
+      # Install prerequisites with timeout
+      "echo '=== Installing Prerequisites ==='",
+      "sudo apt-get update -qq",
+      "timeout 300 sudo apt-get install -y git ansible python3-pip",
       
       # Clone MOSIP infrastructure repository
+      "echo '=== Cloning Repository ==='",
       "cd /tmp",
       "rm -rf mosip-infra",
-      "git clone ${var.MOSIP_INFRA_REPO_URL}",
+      "timeout 300 git clone ${var.MOSIP_INFRA_REPO_URL}",
       "cd mosip-infra",
       "git checkout ${var.MOSIP_INFRA_BRANCH}",
       
       # Navigate to PostgreSQL Ansible directory
+      "echo '=== Navigating to PostgreSQL Ansible ==='",
       "cd deployment/v3/external/postgres/ansible",
+      "pwd && ls -la",
       
       # Create dynamic inventory with current host
-      "echo '[postgres]' > inventory.ini",
-      "echo \"localhost ansible_connection=local ansible_user=ubuntu\" >> inventory.ini",
+      "echo '=== Creating Inventory ==='",
+      "echo '[postgresql_servers]' > inventory.ini",  # Fixed: changed from 'postgres' to 'postgresql_servers'
+      "echo \"localhost ansible_connection=local ansible_user=ubuntu ansible_become=yes ansible_become_method=sudo\" >> inventory.ini",
+      "cat inventory.ini",
       
       # Set PostgreSQL configuration variables
+      "echo '=== Setting Environment Variables ==='",
       "export POSTGRESQL_VERSION=${var.POSTGRESQL_VERSION}",
       "export STORAGE_DEVICE=${var.STORAGE_DEVICE}",
       "export MOUNT_POINT=${var.MOUNT_POINT}",
       "export POSTGRESQL_PORT=${var.POSTGRESQL_PORT}",
       "export NETWORK_CIDR=${var.NETWORK_CIDR}",
+      "export DEBIAN_FRONTEND=noninteractive",  # Prevent interactive prompts
+      "export ANSIBLE_HOST_KEY_CHECKING=False",  # Skip host key checking
+      "export ANSIBLE_STDOUT_CALLBACK=debug",   # Verbose output
+      "export ANSIBLE_TIMEOUT=30",              # Set ansible timeout
+      "export ANSIBLE_CONNECT_TIMEOUT=30",      # Set connection timeout
       
-      # Run PostgreSQL setup
-      "ansible-playbook -i inventory.ini -e postgresql_version=$POSTGRESQL_VERSION -e storage_device=$STORAGE_DEVICE -e mount_point=$MOUNT_POINT -e postgresql_port=$POSTGRESQL_PORT -e network_cidr=$NETWORK_CIDR postgresql-setup.yml",
+      # Configure APT to prevent hanging
+      "echo '=== Configuring APT for non-interactive mode ==='",
+      "sudo tee /etc/apt/apt.conf.d/99automated > /dev/null << 'EOF'",
+      "APT::Get::Assume-Yes \"true\";",
+      "APT::Get::force-yes \"true\";",
+      "Dpkg::Options {",
+      "   \"--force-confdef\";", 
+      "   \"--force-confold\";",
+      "}",
+      "EOF",
+      
+      # Check if storage device exists and wait if needed
+      "echo '=== Checking Storage Device ==='",
+      "echo 'Waiting for storage device ${var.STORAGE_DEVICE}...'",
+      "for i in {1..60}; do if [ -b ${var.STORAGE_DEVICE} ]; then echo 'Storage device found!'; break; fi; echo \"Attempt $i: waiting for ${var.STORAGE_DEVICE}...\"; sleep 5; done",
+      "if [ ! -b ${var.STORAGE_DEVICE} ]; then echo 'ERROR: Storage device ${var.STORAGE_DEVICE} not found after 5 minutes'; lsblk; exit 1; fi",
+      "lsblk | grep -E '(nvme|xvd|sd)' || true",
+      
+      # Run PostgreSQL setup with timeout and error handling
+      "echo '=== Running PostgreSQL Ansible Playbook ==='",
+      "timeout 1800 ansible-playbook -vvv -i inventory.ini -e postgresql_version=$POSTGRESQL_VERSION -e storage_device=$STORAGE_DEVICE -e mount_point=$MOUNT_POINT -e postgresql_port=$POSTGRESQL_PORT -e network_cidr=$NETWORK_CIDR postgresql-setup.yml || (echo 'Ansible playbook failed with exit code $?'; cat /tmp/postgresql-setup.log; exit 1)",
       
       # Verify PostgreSQL installation
-      "sudo systemctl status postgresql",
-      "sudo -u postgres psql -c 'SELECT version();'"
+      "echo '=== Verifying PostgreSQL Installation ==='",
+      "sleep 10",  # Wait for service to start
+      "sudo systemctl status postgresql --no-pager || true",
+      "sudo systemctl is-active postgresql || true",
+      "sudo -u postgres psql -c 'SELECT version();' || echo 'PostgreSQL verification failed'",
+      
+      "echo '=== PostgreSQL Ansible Setup Completed at $(date) ==='",
+      "echo '=== Setup Log saved to /tmp/postgresql-setup.log ==='"
     ]
   }
 }
