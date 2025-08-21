@@ -25,15 +25,15 @@ apps:
     version: 0.0.1-develop
     chart: mosip/packetcreator
     set:
-      image.repository: "mosipqa/dsl-packetcreator"
-      image.tag: "1.3.x"
+      image.repository: "mosipdev2/dsl-packetcreator"
+      image.tag: "release-1.2.1.x"
       enable_insecure: false
       ingress.enabled: false
       ## If ingress enabled, provide ingress host value i.e., PACKETCREATOR_HOST
       ingress.host: "<PACKETCREATOR_HOST>"
       istio.enabled: true
     wait: true
-    timeout: 1200
+    timeout: 2400
     priority: -4
     hooks:
       preInstall: "$WORKDIR/hooks/packetcreator-setup.sh"
@@ -61,13 +61,13 @@ apps:
       apitestrig.configmaps.apitestrig.servicesNotDeployed: 'esignet'
 
       modules.prereg.enabled: true
-      modules.prereg.image.repository: mosipid/apitest-prereg
-      modules.prereg.image.tag: 1.2.0.2
+      modules.prereg.image.repository: mosipdev2/apitest-prereg
+      modules.prereg.image.tag: release-1.2.0.x
       modules.prereg.image.pullPolicy: Always
 
       modules.masterdata.enabled: true
-      modules.masterdata.image.repository: mosipid/apitest-masterdata
-      modules.masterdata.image.tag: 1.2.1.2
+      modules.masterdata.image.repository: mosipdev2/apitest-masterdata
+      modules.masterdata.image.tag: release-1.2.1.x
       modules.masterdata.image.pullPolicy: Always
 
       modules.idrepo.enabled: true

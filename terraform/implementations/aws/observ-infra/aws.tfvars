@@ -52,6 +52,8 @@ vpc_name = "mosip-boxes"
 # Minimal storage configuration
 nginx_node_root_volume_size   = 20  # Smaller than infra (24)
 nginx_node_ebs_volume_size    = 100 # Smaller than infra (300)
+# Second EBS volume for PostgreSQL (disabled for observ-infra)
+nginx_node_ebs_volume_size_2  = 0   # Disabled for observability infrastructure
 k8s_instance_root_volume_size = 32  # Smaller than infra (64)
 
 # Subdomains for observability services
@@ -83,3 +85,13 @@ rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/
 # Security group CIDRs
 network_cidr   = "10.0.0.0/16"   # Use your actual VPC CIDR
 WIREGUARD_CIDR = "10.0.0.0/24"   # Use your actual WireGuard VPN CIDR
+
+# PostgreSQL Configuration (used when second EBS volume is enabled)
+postgresql_version = "15"
+storage_device = "/dev/nvme2n1"
+mount_point = "/srv/postgres"
+postgresql_port = "5433"
+
+# MOSIP Infrastructure Repository Configuration
+mosip_infra_repo_url = "https://github.com/bhumi46/mosip-infra.git"
+mosip_infra_branch = "main"
