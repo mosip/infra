@@ -8,9 +8,28 @@ set -euo pipefail  # Exit on error, undefined vars, pipe failures
 echo '=== PostgreSQL Ansible Setup Started at $(date) ==='
 
 # Install prerequisites with extended timeout and better error handling
-echo '=== Installing Prerequisites ==='
-sudo apt-get update -qq || (echo 'apt-get update failed, retrying...'; sleep 10; sudo apt-get update -qq)
-timeout 600 sudo apt-get install -y git ansible python3-pip || (echo 'Package installation failed'; exit 1)
+echo '🔧 Installing Prerequisites...'
+sudo apt-get update -qq || (echo '❌ apt-get update failed, retrying...'; sleep 10; sudo apt-get update -qq)
+
+# Install packages step by step with individual timeouts
+echo '📦 Installing Git...'
+timeout 300 sudo apt-get install -y git || (echo '❌ Git installation failed'; exit 1)
+
+echo '📦 Installing Python3-pip...'
+timeout 300 sudo apt-get install -y python3-pip || (echo '❌ Python3-pip installation failed'; exit 1)
+
+echo '📦 Installing Ansible (this may take a few minutes)...'
+timeout 900 sudo apt-get install -y ansible || {
+    echo '⚠️ System ansible installation failed, trying pip install...'
+    timeout 600 pip3 install --user ansible || (echo '❌ Ansible installation failed completely'; exit 1)
+    export PATH="$HOME/.local/bin:$PATH"
+}
+
+echo '✅ All prerequisites installed successfully'
+echo 'Installed versions:'
+git --version
+python3 --version
+ansible --version
 
 # Clone MOSIP infrastructure repository with retry logic
 echo '=== Cloning Repository ==='
@@ -32,13 +51,40 @@ echo "localhost ansible_connection=local ansible_user=ubuntu ansible_become=yes 
 cat inventory.ini
 
 # Set PostgreSQL configuration variables
-echo '=== Setting Environment Variables ==='
+echo '🔧 Setting Environment Variables...'
 export DEBIAN_FRONTEND=noninteractive  # Prevent interactive prompts
 export ANSIBLE_HOST_KEY_CHECKING=False  # Skip host key checking
 export ANSIBLE_STDOUT_CALLBACK=debug   # Verbose output
 export ANSIBLE_TIMEOUT=30              # Set ansible timeout
 export ANSIBLE_CONNECT_TIMEOUT=30      # Set connection timeout
-echo 'Environment variables set:'
+export ANSIBLE_COLLECTIONS_PATH=/tmp/ansible_collections  # Custom collections path
+export ANSIBLE_GALAXY_DISABLE_GPG_VERIFY=true  # Disable GPG verification
+export ANSIBLE_PIPELINING=true         # Enable pipelining for speed
+export ANSIBLE_SSH_RETRIES=3           # Set SSH retries
+
+# Create ansible configuration to prevent hanging
+echo '🔧 Creating Ansible Configuration...'
+mkdir -p ~/.ansible
+cat > ~/.ansible/ansible.cfg << 'EOF'
+[defaults]
+host_key_checking = False
+gathering = explicit
+fact_caching = memory
+fact_caching_timeout = 86400
+stdout_callback = debug
+stderr_callback = debug
+timeout = 30
+command_timeout = 30
+connect_timeout = 30
+gathering_timeout = 30
+
+[ssh_connection]
+pipelining = True
+ssh_args = -o ControlMaster=auto -o ControlPersist=60s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no
+retries = 3
+EOF
+
+echo '✅ Environment variables and Ansible configuration set:'
 echo "PostgreSQL Version: $POSTGRESQL_VERSION"
 echo "Storage Device: $STORAGE_DEVICE"
 echo "Mount Point: $MOUNT_POINT"
@@ -46,49 +92,76 @@ echo "PostgreSQL Port: $POSTGRESQL_PORT"
 echo "Network CIDR: $NETWORK_CIDR"
 
 # Configure APT to prevent hanging
-echo '=== Configuring APT for non-interactive mode ==='
+echo '🔧 Configuring APT for non-interactive mode...'
 sudo mkdir -p /etc/apt/apt.conf.d/
 echo 'APT::Get::Assume-Yes "true";' | sudo tee /etc/apt/apt.conf.d/99automated
 echo 'APT::Get::force-yes "true";' | sudo tee -a /etc/apt/apt.conf.d/99automated
 echo 'Dpkg::Options { "--force-confdef"; "--force-confold"; }' | sudo tee -a /etc/apt/apt.conf.d/99automated
-echo 'APT configured for non-interactive mode'
+echo '✅ APT configured for non-interactive mode'
+
+# Install required Ansible collections to prevent hanging during playbook execution
+echo '📦 Installing Required Ansible Collections...'
+mkdir -p /tmp/ansible_collections
+timeout 600 ansible-galaxy collection install community.general ansible.posix --force || {
+    echo '⚠️ Failed to install some collections, continuing with basic setup...'
+}
+echo '✅ Ansible collections installation completed'
 
 # Check if storage device exists and wait if needed
-echo '=== Checking Storage Device ==='
+echo '🔍 Checking Storage Device...'
 echo "Waiting for storage device $STORAGE_DEVICE..."
 for i in {1..120}; do 
     if [ -b $STORAGE_DEVICE ]; then 
-        echo 'Storage device found!'; 
+        echo '✅ Storage device found!'; 
         break; 
     fi; 
-    echo "Attempt $i: waiting for $STORAGE_DEVICE..."; 
+    echo "⏳ Attempt $i: waiting for $STORAGE_DEVICE..."; 
     sleep 5; 
 done
 if [ ! -b $STORAGE_DEVICE ]; then 
-    echo "ERROR: Storage device $STORAGE_DEVICE not found after 10 minutes"
-    echo 'Available block devices:'
+    echo "❌ ERROR: Storage device $STORAGE_DEVICE not found after 10 minutes"
+    echo '📋 Available block devices:'
     lsblk
     exit 1
 fi
-echo 'Available storage devices:'
+echo '📋 Available storage devices:'
 lsblk | grep -E '(nvme|xvd|sd)' || true
 
 # Run PostgreSQL setup with extended timeout and better error handling
-echo '=== Running PostgreSQL Ansible Playbook ==='
-echo "Starting ansible-playbook at $(date)"
-echo 'This may take 15-30 minutes. Progress will be shown below...'
+echo '🚀 Running PostgreSQL Ansible Playbook...'
+echo "⏰ Starting ansible-playbook at $(date)"
+echo '📝 This may take 15-30 minutes. Progress will be shown below...'
+
+# Start a background progress monitor
+(
+    while true; do
+        sleep 60
+        echo "⏳ PostgreSQL setup still running... $(date) - Check /tmp/postgresql-ansible.log for details"
+        if [ -f /tmp/postgresql-ansible.log ]; then
+            LAST_LINE=$(tail -1 /tmp/postgresql-ansible.log 2>/dev/null || echo "Log file being written...")
+            echo "📄 Last log: $LAST_LINE"
+        fi
+    done
+) &
+PROGRESS_PID=$!
+
+# Run the actual playbook
 timeout 2400 ansible-playbook -vv -i inventory.ini \
     -e postgresql_version=$POSTGRESQL_VERSION \
     -e storage_device=$STORAGE_DEVICE \
     -e mount_point=$MOUNT_POINT \
     -e postgresql_port=$POSTGRESQL_PORT \
     -e network_cidr=$NETWORK_CIDR \
-    postgresql-setup.yml 2>&1 | tee /tmp/postgresql-ansible.log || {
-    
-    ANSIBLE_EXIT_CODE=$?
+    postgresql-setup.yml 2>&1 | tee /tmp/postgresql-ansible.log
+ANSIBLE_EXIT_CODE=$?
+
+# Stop the progress monitor
+kill $PROGRESS_PID 2>/dev/null || true
+
+if [ $ANSIBLE_EXIT_CODE -ne 0 ]; then
     echo ''
     echo "❌ Ansible playbook failed with exit code $ANSIBLE_EXIT_CODE"
-    echo '=== Attempting PostgreSQL Recovery ==='
+    echo '🔧 Attempting PostgreSQL Recovery...'
     
     # Fix common permission issues
     echo '🔧 Fixing data directory permissions...'
@@ -121,10 +194,11 @@ timeout 2400 ansible-playbook -vv -i inventory.ini \
         free -h
         exit 1
     fi
-}
+else
+    echo ''
+    echo "✅ Ansible playbook completed successfully at $(date)"
+fi
 
-echo ''
-echo "✅ Ansible playbook completed successfully at $(date)"
 
 # Verify PostgreSQL installation with improved checks
 echo ''
