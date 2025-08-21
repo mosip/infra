@@ -19,6 +19,29 @@ variable "K8S_INFRA_BRANCH" {
   default = "main"
 }
 
+# PostgreSQL Configuration Variables
+variable "NGINX_NODE_EBS_VOLUME_SIZE_2" { type = number }
+variable "POSTGRESQL_VERSION" { type = string }
+variable "STORAGE_DEVICE" { type = string }
+variable "MOUNT_POINT" { type = string }
+variable "POSTGRESQL_PORT" { type = string }
+variable "NETWORK_CIDR" { type = string }
+
+# MOSIP Infrastructure Repository Configuration
+variable "MOSIP_INFRA_REPO_URL" {
+  description = "The URL of the MOSIP infrastructure GitHub repository"
+  type        = string
+  validation {
+    condition     = can(regex("^https://github\\.com/.+/.+\\.git$", var.MOSIP_INFRA_REPO_URL))
+    error_message = "The MOSIP_INFRA_REPO_URL must be a valid GitHub repository URL ending with .git"
+  }
+}
+
+variable "MOSIP_INFRA_BRANCH" {
+  type    = string
+  default = "main"
+}
+
 locals {
   NGINX_CONFIG = {
     cluster_env_domain                = var.CLUSTER_ENV_DOMAIN
@@ -61,10 +84,12 @@ resource "null_resource" "Nginx-setup" {
     timeout     = "5m"                # 5 minute timeout
     agent       = false               # Don't use SSH agent
   }
+  
   provisioner "file" {
     source      = "${path.module}/nginx-setup.sh"
     destination = "/tmp/nginx-setup.sh"
   }
+  
   provisioner "remote-exec" {
     inline = concat(
       local.nginx_env_vars,
@@ -75,5 +100,67 @@ resource "null_resource" "Nginx-setup" {
         "sudo bash /tmp/nginx-setup.sh"
       ]
     )
+  }
+}
+
+# PostgreSQL Ansible Setup (conditional on second EBS volume)
+resource "null_resource" "PostgreSQL-ansible-setup" {
+  count = var.NGINX_NODE_EBS_VOLUME_SIZE_2 > 0 ? 1 : 0
+  
+  depends_on = [null_resource.Nginx-setup]
+
+  triggers = {
+    postgresql_config_hash = md5(join("", [
+      var.POSTGRESQL_VERSION,
+      var.STORAGE_DEVICE, 
+      var.MOUNT_POINT,
+      var.POSTGRESQL_PORT,
+      var.MOSIP_INFRA_REPO_URL
+    ]))
+  }
+
+  connection {
+    type        = "ssh"
+    host        = var.NGINX_PUBLIC_IP
+    user        = "ubuntu"
+    private_key = var.SSH_PRIVATE_KEY
+    timeout     = "10m"
+    agent       = false
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      # Install prerequisites
+      "sudo apt-get update",
+      "sudo apt-get install -y git ansible",
+      
+      # Clone MOSIP infrastructure repository
+      "cd /tmp",
+      "rm -rf mosip-infra",
+      "git clone ${var.MOSIP_INFRA_REPO_URL}",
+      "cd mosip-infra",
+      "git checkout ${var.MOSIP_INFRA_BRANCH}",
+      
+      # Navigate to PostgreSQL Ansible directory
+      "cd deployment/v3/external/postgres/ansible",
+      
+      # Create dynamic inventory with current host
+      "echo '[postgres]' > inventory.ini",
+      "echo \"localhost ansible_connection=local ansible_user=ubuntu\" >> inventory.ini",
+      
+      # Set PostgreSQL configuration variables
+      "export POSTGRESQL_VERSION=${var.POSTGRESQL_VERSION}",
+      "export STORAGE_DEVICE=${var.STORAGE_DEVICE}",
+      "export MOUNT_POINT=${var.MOUNT_POINT}",
+      "export POSTGRESQL_PORT=${var.POSTGRESQL_PORT}",
+      "export NETWORK_CIDR=${var.NETWORK_CIDR}",
+      
+      # Run PostgreSQL setup
+      "ansible-playbook -i inventory.ini -e postgresql_version=$POSTGRESQL_VERSION -e storage_device=$STORAGE_DEVICE -e mount_point=$MOUNT_POINT -e postgresql_port=$POSTGRESQL_PORT -e network_cidr=$NETWORK_CIDR setup-postgres.yml",
+      
+      # Verify PostgreSQL installation
+      "sudo systemctl status postgresql",
+      "sudo -u postgres psql -c 'SELECT version();'"
+    ]
   }
 }
