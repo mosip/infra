@@ -605,6 +605,16 @@ module "nginx-setup" {
   SSH_PRIVATE_KEY                         = var.SSH_PRIVATE_KEY
   K8S_INFRA_BRANCH                        = var.K8S_INFRA_BRANCH
   K8S_INFRA_REPO_URL                      = var.K8S_INFRA_REPO_URL
+  
+  # PostgreSQL and EBS volume configuration
+  NGINX_NODE_EBS_VOLUME_SIZE_2            = var.nginx_node_ebs_volume_size_2
+  POSTGRESQL_VERSION                      = var.postgresql_version
+  STORAGE_DEVICE                          = var.storage_device
+  MOUNT_POINT                             = var.mount_point
+  POSTGRESQL_PORT                         = var.postgresql_port
+  NETWORK_CIDR                            = var.network_cidr
+  MOSIP_INFRA_REPO_URL                    = var.mosip_infra_repo_url
+  MOSIP_INFRA_BRANCH                      = var.mosip_infra_branch
 }
 
 
