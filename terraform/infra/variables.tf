@@ -39,7 +39,7 @@ variable "k8s_control_plane_node_count" {
 }
 
 variable "k8s_etcd_node_count" {
-  description = "Number of K8s ETCD nodes"  
+  description = "Number of K8s ETCD nodes"
   type        = number
   default     = 1
 }
@@ -203,7 +203,7 @@ variable "nginx_node_additional_volume_size" {
 variable "gcp_project_id" {
   description = "GCP project ID"
   type        = string
-  default     = "" 
+  default     = ""
 }
 
 variable "gcp_provider_region" {
@@ -222,31 +222,6 @@ variable "gcp_dns_zone" {
   description = "GCP DNS zone for domain management"
   type        = string
   default     = ""
-}
-
-# PostgreSQL Configuration Variables
-variable "postgresql_version" {
-  description = "PostgreSQL version to install"
-  type        = string
-  default     = "15"
-}
-
-variable "storage_device" {
-  description = "Storage device path for PostgreSQL data"
-  type        = string
-  default     = "/dev/nvme2n1"
-}
-
-variable "mount_point" {
-  description = "Mount point for PostgreSQL data directory"
-  type        = string
-  default     = "/srv/postgres"
-}
-
-variable "postgresql_port" {
-  description = "PostgreSQL port configuration"
-  type        = string
-  default     = "5433"
 }
 
 # PostgreSQL Configuration Variables

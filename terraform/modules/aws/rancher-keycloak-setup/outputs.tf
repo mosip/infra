@@ -37,7 +37,7 @@ output "next_steps" {
     "3. Access Keycloak at: https://${var.KEYCLOAK_HOSTNAME != "" ? var.KEYCLOAK_HOSTNAME : "iam.${var.CLUSTER_ENV_DOMAIN}"}",
     "4. Configure Keycloak admin credentials as provided by the installation script",
     "5. Set up MOSIP integration using Rancher and Keycloak"
-  ] : [
+    ] : [
     "Rancher and Keycloak installation was disabled. Set ENABLE_RANCHER_KEYCLOAK=true to enable."
   ]
 }

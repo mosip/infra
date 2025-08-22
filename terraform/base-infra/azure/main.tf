@@ -5,7 +5,7 @@
 # Placeholder resource to prevent module errors
 resource "null_resource" "azure_placeholder" {
   count = 1
-  
+
   provisioner "local-exec" {
     command = "echo 'Azure base infrastructure module - placeholder implementation'"
   }

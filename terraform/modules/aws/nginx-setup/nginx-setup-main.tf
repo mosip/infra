@@ -21,28 +21,28 @@ variable "K8S_INFRA_BRANCH" {
 
 # PostgreSQL Configuration Variables
 variable "NGINX_NODE_EBS_VOLUME_SIZE_2" { type = number }
-variable "POSTGRESQL_VERSION" { 
-  type = string 
-  default = "15"
+variable "POSTGRESQL_VERSION" {
+  type        = string
+  default     = "15"
   description = "PostgreSQL version to install"
 }
-variable "STORAGE_DEVICE" { 
-  type = string 
-  default = "/dev/nvme2n1"
+variable "STORAGE_DEVICE" {
+  type        = string
+  default     = "/dev/nvme2n1"
   description = "Storage device path for PostgreSQL data"
 }
-variable "MOUNT_POINT" { 
-  type = string 
-  default = "/srv/postgres"
+variable "MOUNT_POINT" {
+  type        = string
+  default     = "/srv/postgres"
   description = "Mount point for PostgreSQL data directory"
 }
-variable "POSTGRESQL_PORT" { 
-  type = string 
-  default = "5433"
+variable "POSTGRESQL_PORT" {
+  type        = string
+  default     = "5433"
   description = "PostgreSQL port configuration"
 }
-variable "NETWORK_CIDR" { 
-  type = string 
+variable "NETWORK_CIDR" {
+  type        = string
   description = "VPC CIDR block for internal communication"
 }
 
@@ -103,12 +103,12 @@ resource "null_resource" "Nginx-setup" {
     timeout     = "5m"                # 5 minute timeout
     agent       = false               # Don't use SSH agent
   }
-  
+
   provisioner "file" {
     source      = "${path.module}/nginx-setup.sh"
     destination = "/tmp/nginx-setup.sh"
   }
-  
+
   provisioner "remote-exec" {
     inline = concat(
       local.nginx_env_vars,
@@ -125,13 +125,13 @@ resource "null_resource" "Nginx-setup" {
 # PostgreSQL Ansible Setup (conditional on second EBS volume)
 resource "null_resource" "PostgreSQL-ansible-setup" {
   count = var.NGINX_NODE_EBS_VOLUME_SIZE_2 > 0 ? 1 : 0
-  
+
   depends_on = [null_resource.Nginx-setup]
 
   triggers = {
     postgresql_config_hash = md5(join("", [
       var.POSTGRESQL_VERSION,
-      var.STORAGE_DEVICE, 
+      var.STORAGE_DEVICE,
       var.MOUNT_POINT,
       var.POSTGRESQL_PORT,
       var.MOSIP_INFRA_REPO_URL,
@@ -144,7 +144,7 @@ resource "null_resource" "PostgreSQL-ansible-setup" {
     host        = var.NGINX_PUBLIC_IP
     user        = "ubuntu"
     private_key = var.SSH_PRIVATE_KEY
-    timeout     = "25m"  # Extended timeout for PostgreSQL setup
+    timeout     = "25m" # Extended timeout for PostgreSQL setup
     agent       = false
   }
 
@@ -152,7 +152,7 @@ resource "null_resource" "PostgreSQL-ansible-setup" {
     source      = "${path.module}/postgresql-setup.sh"
     destination = "/tmp/postgresql-setup.sh"
   }
-  
+
   provisioner "remote-exec" {
     inline = [
       # Set environment variables for the PostgreSQL setup script
@@ -163,7 +163,7 @@ resource "null_resource" "PostgreSQL-ansible-setup" {
       "export NETWORK_CIDR=${var.NETWORK_CIDR}",
       "export MOSIP_INFRA_REPO_URL=${var.MOSIP_INFRA_REPO_URL}",
       "export MOSIP_INFRA_BRANCH=${var.MOSIP_INFRA_BRANCH}",
-      
+
       # Execute the PostgreSQL setup script
       "sudo chmod +x /tmp/postgresql-setup.sh",
       "bash /tmp/postgresql-setup.sh"
