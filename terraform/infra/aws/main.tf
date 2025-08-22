@@ -38,4 +38,14 @@ module "aws_infrastructure" {
   K8S_INSTANCE_ROOT_VOLUME_SIZE = var.k8s_instance_root_volume_size
   network_cidr                  = var.network_cidr
   WIREGUARD_CIDR                = var.WIREGUARD_CIDR
+  
+  # PostgreSQL Configuration
+  postgresql_version = var.postgresql_version
+  storage_device     = var.storage_device
+  mount_point        = var.mount_point
+  postgresql_port    = var.postgresql_port
+  
+  # MOSIP Infrastructure Repository Configuration
+  mosip_infra_repo_url = var.mosip_infra_repo_url
+  mosip_infra_branch   = var.mosip_infra_branch
 }
