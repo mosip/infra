@@ -38,6 +38,16 @@ module "mosip_infra" {
   k8s_infra_repo_url           = var.k8s_infra_repo_url
   k8s_infra_branch             = var.k8s_infra_branch
 
+  # PostgreSQL Configuration
+  postgresql_version = var.postgresql_version
+  storage_device     = var.storage_device
+  mount_point        = var.mount_point
+  postgresql_port    = var.postgresql_port
+
+  # MOSIP Infrastructure Repository Configuration
+  mosip_infra_repo_url = var.mosip_infra_repo_url
+  mosip_infra_branch   = var.mosip_infra_branch
+
   # AWS-specific configuration
   aws_provider_region           = var.aws_provider_region
   k8s_instance_type             = var.k8s_instance_type
