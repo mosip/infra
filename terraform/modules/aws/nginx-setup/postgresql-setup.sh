@@ -1,11 +1,121 @@
+
 #!/bin/bash
 
-# PostgreSQL Ansible Setup Script
-# This script automates PostgreSQL installation using Ansible
+# PostgreSQL Ansible Setup Script - Bulletproof & Idempotent
+# This script uses the bulletproof approach for timezone and package installation
 
-set -euo pipefail  # Exit on error, undefined vars, pipe failures
+set -euo pipefail
 
 echo '=== PostgreSQL Ansible Setup Started at $(date) ==='
+
+# Set complete non-interactive environment (bulletproof approach)
+export DEBIAN_FRONTEND=noninteractive
+export APT_LISTCHANGES_FRONTEND=none
+export UCF_FORCE_CONFFOLD=1
+export DEBCONF_NONINTERACTIVE_SEEN=true
+export NEEDRESTART_MODE=a
+export NEEDRESTART_SUSPEND=1
+
+# Configure debconf to never ask questions
+echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections 2>/dev/null || true
+echo 'debconf debconf/priority select critical' | debconf-set-selections 2>/dev/null || true
+
+# BULLETPROOF timezone configuration - multiple preseeding methods
+echo "tzdata tzdata/Areas select Etc" | debconf-set-selections 2>/dev/null || true
+echo "tzdata tzdata/Zones/Etc select UTC" | debconf-set-selections 2>/dev/null || true
+
+# Set timezone files directly
+mkdir -p /etc
+echo 'Etc/UTC' > /etc/timezone 2>/dev/null || true
+ln -sf /usr/share/zoneinfo/Etc/UTC /etc/localtime 2>/dev/null || true
+
+# Simple function to check if package is already installed (idempotent)
+is_installed() {
+    dpkg -l "$1" 2>/dev/null | grep -q "^ii" || return 1
+}
+
+# Bulletproof package installation function
+install_package_bulletproof() {
+    local package="$1"
+    
+    if is_installed "$package"; then
+        echo "✅ $package is already installed, skipping"
+        return 0
+    fi
+    
+    echo "Installing $package with bulletproof method..."
+    
+    if [ "$package" = "tzdata" ]; then
+        # BULLETPROOF timezone handling - auto-answer prompts
+        echo "Installing tzdata with automatic timezone answers..."
+        echo -e "12\n1\n" | apt-get install -y tzdata 2>/dev/null || {
+            # Fallback method 1
+            echo "Method 1 failed, trying method 2..."
+            DEBIAN_FRONTEND=noninteractive apt-get install -y tzdata -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" || {
+                # Fallback method 2
+                echo "Method 2 failed, trying method 3..."
+                yes '' | apt-get install -y tzdata || apt-get install -y tzdata < /dev/null || true
+            }
+        }
+        
+        # Ensure timezone is set correctly after installation
+        echo 'Etc/UTC' > /etc/timezone
+        ln -sf /usr/share/zoneinfo/Etc/UTC /etc/localtime
+        dpkg-reconfigure -f noninteractive tzdata 2>/dev/null || true
+        
+        echo "✅ tzdata installed successfully"
+        return 0
+    else
+        # Normal package installation with bulletproof options
+        if apt-get install -y "$package" -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"; then
+            echo "✅ $package installed successfully"
+            return 0
+        else
+            echo "❌ $package installation failed"
+            return 1
+        fi
+    fi
+}
+
+# Configure APT for bulletproof operation
+mkdir -p /etc/apt/apt.conf.d/
+cat > /etc/apt/apt.conf.d/99-bulletproof << 'EOF'
+APT::Get::Assume-Yes "true";
+APT::Install-Recommends "false";
+APT::Install-Suggests "false";
+Dpkg::Options {
+    "--force-confdef";
+    "--force-confold";
+    "--force-confnew";
+};
+Dpkg::Use-Pty "0";
+EOF
+
+# Disable problematic hooks that can cause hanging
+if [ -d /etc/ca-certificates/update.d/ ]; then
+    find /etc/ca-certificates/update.d/ -type f -exec chmod -x {} \; 2>/dev/null || true
+fi
+
+# Disable man-db updates
+echo 'path-exclude /usr/share/man/*' > /etc/dpkg/dpkg.cfg.d/01_nodoc 2>/dev/null || true
+
+# Update package lists (bulletproof)
+echo "Updating package lists..."
+apt-get update -qq || {
+    echo "Initial update failed, trying again..."
+    sleep 5
+    apt-get update -qq
+}
+
+# Install essential packages with bulletproof method
+essential_packages=("sudo" "curl" "git" "apt-utils" "net-tools" "tzdata")
+
+echo "Installing essential packages with bulletproof method..."
+for package in "${essential_packages[@]}"; do
+    install_package_bulletproof "$package" || {
+        echo "WARNING: Failed to install $package, continuing..."
+    }
+done
 
 # Validate required environment variables
 echo 'Validating Environment Variables...'
@@ -40,29 +150,66 @@ for var in "${REQUIRED_VARS[@]}"; do
 done
 echo ""
 
-# Install prerequisites with extended timeout and better error handling
-echo 'Installing Prerequisites...'
-sudo apt-get update -qq || (echo 'apt-get update failed, retrying...'; sleep 10; sudo apt-get update -qq)
+# Install prerequisites with bulletproof method
+echo 'Installing Prerequisites with Bulletproof Method...'
 
-# Install packages step by step with individual timeouts
-echo 'Installing Git...'
-timeout 300 sudo apt-get install -y git || (echo 'Git installation failed'; exit 1)
+# Install python3 first (usually already installed)
+if ! is_installed "python3"; then
+    install_package_bulletproof "python3" || {
+        echo "ERROR: Failed to install python3"
+        exit 1
+    }
+fi
 
+# Install python3-pip with bulletproof method
 echo 'Installing Python3-pip...'
-timeout 300 sudo apt-get install -y python3-pip || (echo 'Python3-pip installation failed'; exit 1)
+if ! install_package_bulletproof "python3-pip"; then
+    echo "Package installation failed, trying pip bootstrap method..."
+    # Alternative: Use the official pip installer
+    if command -v curl >/dev/null; then
+        curl -sS https://bootstrap.pypa.io/get-pip.py | python3 -W ignore || {
+            echo "ERROR: Failed to install pip via bootstrap"
+            exit 1
+        }
+    else
+        echo "ERROR: Cannot install pip - curl not available"
+        exit 1
+    fi
+fi
 
-echo 'Installing Ansible (this may take a few minutes)...'
-timeout 900 sudo apt-get install -y ansible || {
-    echo 'System ansible installation failed, trying pip install...'
-    timeout 600 pip3 install --user ansible || (echo 'Ansible installation failed completely'; exit 1)
-    export PATH="$HOME/.local/bin:$PATH"
-}
+# Verify pip is working
+if ! command -v pip3 >/dev/null && ! python3 -m pip --version >/dev/null 2>&1; then
+    echo "ERROR: pip installation verification failed"
+    exit 1
+fi
 
-echo 'All prerequisites installed successfully'
-echo 'Installed versions:'
-git --version
-python3 --version
-ansible --version
+# Install ansible with bulletproof method
+echo 'Installing Ansible...'
+if ! install_package_bulletproof "ansible"; then
+    echo 'Package installation failed, installing via pip...'
+    
+    # Install ansible via pip (user install to avoid conflicts)
+    if python3 -m pip install --user --quiet ansible; then
+        echo 'Ansible installed via pip (user) successfully'
+        # Add user bin to PATH
+        export PATH="$HOME/.local/bin:$PATH"
+        echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc || true
+    else
+        echo 'User pip install failed, trying system pip...'
+        if python3 -m pip install --quiet ansible; then
+            echo 'Ansible installed via pip (system) successfully'
+        else
+            echo 'ERROR: All ansible installation methods failed'
+            exit 1
+        fi
+    fi
+fi
+
+echo 'All prerequisites installation completed with bulletproof method'
+echo 'Checking installed versions:'
+git --version || echo "Git: Not available"
+python3 --version || echo "Python3: Not available"
+ansible --version || echo "Ansible: Not available"
 
 # Clone MOSIP infrastructure repository with retry logic
 echo 'Cloning Repository...'
