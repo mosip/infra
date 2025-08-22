@@ -144,7 +144,7 @@ resource "null_resource" "PostgreSQL-ansible-setup" {
     host        = var.NGINX_PUBLIC_IP
     user        = "ubuntu"
     private_key = var.SSH_PRIVATE_KEY
-    timeout     = "25m" # Extended timeout for PostgreSQL setup
+    timeout     = "15m" # Fast timeout for PostgreSQL setup
     agent       = false
   }
 
