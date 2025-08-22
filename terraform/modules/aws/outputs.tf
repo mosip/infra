@@ -39,7 +39,7 @@ output "K8S_CLUSTER_PRIVATE_IPS_STR" {
 }
 
 output "K8S_TOKEN" {
-  value = module.rke2-setup.K8S_TOKEN
+  value     = module.rke2-setup.K8S_TOKEN
   sensitive = true
 }
 
@@ -89,26 +89,26 @@ output "selected_availability_zones" {
 output "instance_type_availability_check" {
   description = "Instance type availability validation results"
   value = {
-    k8s_instance_type = var.K8S_INSTANCE_TYPE
+    k8s_instance_type   = var.K8S_INSTANCE_TYPE
     nginx_instance_type = var.NGINX_INSTANCE_TYPE
-    total_azs = length(data.aws_availability_zones.available.names)
-    
+    total_azs           = length(data.aws_availability_zones.available.names)
+
     # Node count information
     k8s_control_plane_nodes = var.K8S_CONTROL_PLANE_NODE_COUNT
-    k8s_etcd_nodes = var.K8S_ETCD_NODE_COUNT
-    k8s_worker_nodes = var.K8S_WORKER_NODE_COUNT
-    total_k8s_nodes = local.total_k8s_nodes
-    min_azs_needed = local.min_azs_for_k8s
-    
+    k8s_etcd_nodes          = var.K8S_ETCD_NODE_COUNT
+    k8s_worker_nodes        = var.K8S_WORKER_NODE_COUNT
+    total_k8s_nodes         = local.total_k8s_nodes
+    min_azs_needed          = local.min_azs_for_k8s
+
     # Availability information
-    k8s_available_azs = length(local.k8s_filtered_azs)
+    k8s_available_azs   = length(local.k8s_filtered_azs)
     nginx_available_azs = length(local.nginx_filtered_azs)
-    common_azs = length(local.common_available_azs)
-    using_azs = length(local.selected_azs)
-    
+    common_azs          = length(local.common_available_azs)
+    using_azs           = length(local.selected_azs)
+
     # Validation results
-    k8s_validation_passed = length(local.k8s_filtered_azs) >= local.min_azs_for_k8s
+    k8s_validation_passed   = length(local.k8s_filtered_azs) >= local.min_azs_for_k8s
     nginx_validation_passed = length(local.nginx_filtered_azs) >= 1
-    deployment_feasible = length(local.selected_azs) >= local.min_azs_for_k8s
+    deployment_feasible     = length(local.selected_azs) >= local.min_azs_for_k8s
   }
 }

@@ -5,7 +5,7 @@
 cloud_provider = "gcp"
 
 # GCP project configuration
-gcp_project_id = "your-gcp-project-id"
+gcp_project_id      = "your-gcp-project-id"
 gcp_provider_region = "us-central1"
 
 # Environment name
@@ -40,11 +40,11 @@ private_subnets = ["10.2.10.0/24", "10.2.11.0/24"]
 availability_zones = ["us-central1-a", "us-central1-b"]
 
 # Environment metadata
-environment = "dev"
+environment  = "dev"
 project_name = "mosip"
 
 # GCP-specific options
-enable_nat_gateway = false
-single_nat_gateway = true
+enable_nat_gateway   = false
+single_nat_gateway   = true
 enable_dns_hostnames = true
-enable_dns_support = true
+enable_dns_support   = true

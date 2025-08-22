@@ -16,34 +16,34 @@ data "aws_availability_zones" "available" {
 # Data source to check K8s instance type availability in each AZ
 data "aws_ec2_instance_type_offerings" "k8s_instance_types" {
   for_each = toset(data.aws_availability_zones.available.names)
-  
+
   filter {
     name   = "instance-type"
     values = [var.K8S_INSTANCE_TYPE]
   }
-  
+
   filter {
     name   = "location"
     values = [each.value]
   }
-  
+
   location_type = "availability-zone"
 }
 
 # Data source to check NGINX instance type availability in each AZ
 data "aws_ec2_instance_type_offerings" "nginx_instance_types" {
   for_each = toset(data.aws_availability_zones.available.names)
-  
+
   filter {
     name   = "instance-type"
     values = [var.NGINX_INSTANCE_TYPE]
   }
-  
+
   filter {
     name   = "location"
     values = [each.value]
   }
-  
+
   location_type = "availability-zone"
 }
 
@@ -54,41 +54,41 @@ locals {
     for az in data.aws_availability_zones.available.names :
     az if length(data.aws_ec2_instance_type_offerings.k8s_instance_types[az].instance_types) > 0
   ]
-  
+
   # Get AZs where NGINX instance type is available
   nginx_available_azs = [
     for az in data.aws_availability_zones.available.names :
     az if length(data.aws_ec2_instance_type_offerings.nginx_instance_types[az].instance_types) > 0
   ]
-  
+
   # Dynamic problematic AZ detection
   # Uses configurable exclusion lists when needed, defaults to empty (fully dynamic)
-  k8s_capacity_excluded_azs = var.k8s_capacity_excluded_azs
+  k8s_capacity_excluded_azs   = var.k8s_capacity_excluded_azs
   nginx_capacity_excluded_azs = var.nginx_capacity_excluded_azs
-  
+
   # Filter out problematic AZs
   k8s_filtered_azs = [
     for az in local.k8s_available_azs :
     az if !contains(local.k8s_capacity_excluded_azs, az)
   ]
-  
+
   nginx_filtered_azs = [
     for az in local.nginx_available_azs :
     az if !contains(local.nginx_capacity_excluded_azs, az)
   ]
-  
+
   # Smart selection: Use intersection of both filtered lists, with fallbacks
   # Calculate total K8s nodes that will be deployed
   total_k8s_nodes = var.K8S_CONTROL_PLANE_NODE_COUNT + var.K8S_ETCD_NODE_COUNT + var.K8S_WORKER_NODE_COUNT
-  
+
   # Determine minimum AZs needed based on actual deployment
   # For K8s: Need enough AZs to distribute nodes (max 1 node per AZ for HA is ideal, but can pack more if needed)
   # For NGINX: Usually 1 instance, rarely 2
-  min_azs_for_k8s = min(local.total_k8s_nodes, 3)  # Don't need more than 3 AZs even for large clusters
-  min_azs_for_nginx = 1  # NGINX typically runs on 1 instance
-  
+  min_azs_for_k8s   = min(local.total_k8s_nodes, 3) # Don't need more than 3 AZs even for large clusters
+  min_azs_for_nginx = 1                             # NGINX typically runs on 1 instance
+
   common_available_azs = setintersection(toset(local.k8s_filtered_azs), toset(local.nginx_filtered_azs))
-  
+
   # Dynamic selection based on actual requirements
   selected_azs = length(local.common_available_azs) >= local.min_azs_for_k8s ? tolist(local.common_available_azs) : (
     length(local.k8s_filtered_azs) >= local.min_azs_for_k8s ? local.k8s_filtered_azs :
@@ -100,13 +100,13 @@ locals {
 # Validation checks
 resource "null_resource" "instance_type_validation" {
   triggers = {
-    k8s_instance_type = var.K8S_INSTANCE_TYPE
+    k8s_instance_type   = var.K8S_INSTANCE_TYPE
     nginx_instance_type = var.NGINX_INSTANCE_TYPE
-    k8s_available_azs = length(local.k8s_filtered_azs)
+    k8s_available_azs   = length(local.k8s_filtered_azs)
     nginx_available_azs = length(local.nginx_filtered_azs)
-    common_azs = length(local.common_available_azs)
-    total_k8s_nodes = local.total_k8s_nodes
-    min_azs_needed = local.min_azs_for_k8s
+    common_azs          = length(local.common_available_azs)
+    total_k8s_nodes     = local.total_k8s_nodes
+    min_azs_needed      = local.min_azs_for_k8s
   }
 
   provisioner "local-exec" {
@@ -274,17 +274,17 @@ module "aws-resource-creation" {
   AMI                           = var.AMI
   K8S_INSTANCE_ROOT_VOLUME_SIZE = var.K8S_INSTANCE_ROOT_VOLUME_SIZE
 
-  NGINX_NODE_EBS_VOLUME_SIZE  = var.NGINX_NODE_EBS_VOLUME_SIZE
+  NGINX_NODE_EBS_VOLUME_SIZE   = var.NGINX_NODE_EBS_VOLUME_SIZE
   NGINX_NODE_EBS_VOLUME_SIZE_2 = var.nginx_node_ebs_volume_size_2
-  NGINX_NODE_ROOT_VOLUME_SIZE = var.NGINX_NODE_ROOT_VOLUME_SIZE
+  NGINX_NODE_ROOT_VOLUME_SIZE  = var.NGINX_NODE_ROOT_VOLUME_SIZE
 
   # VPC and Subnet Configuration
-  VPC_ID              = data.aws_vpc.existing_vpc.id
-  PUBLIC_SUBNET_IDS   = data.aws_subnets.public_subnets.ids
-  PRIVATE_SUBNET_IDS  = data.aws_subnets.private_subnets.ids
+  VPC_ID             = data.aws_vpc.existing_vpc.id
+  PUBLIC_SUBNET_IDS  = data.aws_subnets.public_subnets.ids
+  PRIVATE_SUBNET_IDS = data.aws_subnets.private_subnets.ids
 
-  network_cidr        = var.network_cidr
-  WIREGUARD_CIDR      = var.WIREGUARD_CIDR
+  network_cidr   = var.network_cidr
+  WIREGUARD_CIDR = var.WIREGUARD_CIDR
 
   SECURITY_GROUP = {
     NGINX_SECURITY_GROUP = [
@@ -605,16 +605,16 @@ module "nginx-setup" {
   SSH_PRIVATE_KEY                         = var.SSH_PRIVATE_KEY
   K8S_INFRA_BRANCH                        = var.K8S_INFRA_BRANCH
   K8S_INFRA_REPO_URL                      = var.K8S_INFRA_REPO_URL
-  
+
   # PostgreSQL and EBS volume configuration
-  NGINX_NODE_EBS_VOLUME_SIZE_2            = var.nginx_node_ebs_volume_size_2
-  POSTGRESQL_VERSION                      = var.postgresql_version
-  STORAGE_DEVICE                          = var.storage_device
-  MOUNT_POINT                             = var.mount_point
-  POSTGRESQL_PORT                         = var.postgresql_port
-  NETWORK_CIDR                            = var.network_cidr
-  MOSIP_INFRA_REPO_URL                    = var.mosip_infra_repo_url
-  MOSIP_INFRA_BRANCH                      = var.mosip_infra_branch
+  NGINX_NODE_EBS_VOLUME_SIZE_2 = var.nginx_node_ebs_volume_size_2
+  POSTGRESQL_VERSION           = var.postgresql_version
+  STORAGE_DEVICE               = var.storage_device
+  MOUNT_POINT                  = var.mount_point
+  POSTGRESQL_PORT              = var.postgresql_port
+  NETWORK_CIDR                 = var.network_cidr
+  MOSIP_INFRA_REPO_URL         = var.mosip_infra_repo_url
+  MOSIP_INFRA_BRANCH           = var.mosip_infra_branch
 }
 
 

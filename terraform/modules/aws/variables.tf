@@ -122,7 +122,7 @@ variable "k8s_capacity_excluded_azs" {
 }
 
 variable "nginx_capacity_excluded_azs" {
-  description = "List of AZs to exclude for NGINX instances due to capacity issues" 
+  description = "List of AZs to exclude for NGINX instances due to capacity issues"
   type        = list(string)
   default     = []
 }

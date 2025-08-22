@@ -21,10 +21,10 @@ module "aws_network" {
   availability_zones = local.availability_zones
   environment        = var.environment
   project_name       = var.project_name
-  
+
   # MOSIP-specific variables
-  jumpserver_name    = var.jumpserver_name
-  mosip_email_id     = var.mosip_email_id
+  jumpserver_name = var.jumpserver_name
+  mosip_email_id  = var.mosip_email_id
 
   # Jump server variables
   ssh_key_name             = var.ssh_key_name

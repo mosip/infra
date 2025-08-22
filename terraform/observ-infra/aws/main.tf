@@ -10,7 +10,7 @@ terraform {
 # AWS Observation Infrastructure Module (using same modules as infra, with minimal resources)
 module "aws_observation_infrastructure" {
   source = "../../modules/aws"
-  
+
   # AWS-specific configurations (same as infra but with minimal resource sizing)
   AWS_PROVIDER_REGION           = var.aws_provider_region
   CLUSTER_NAME                  = var.cluster_name
@@ -38,10 +38,10 @@ module "aws_observation_infrastructure" {
   K8S_INSTANCE_ROOT_VOLUME_SIZE = var.k8s_instance_root_volume_size
   network_cidr                  = var.network_cidr
   WIREGUARD_CIDR                = var.WIREGUARD_CIDR
-  
+
   # Capacity exclusion lists
-  k8s_capacity_excluded_azs     = var.k8s_capacity_excluded_azs
-  nginx_capacity_excluded_azs   = var.nginx_capacity_excluded_azs
+  k8s_capacity_excluded_azs   = var.k8s_capacity_excluded_azs
+  nginx_capacity_excluded_azs = var.nginx_capacity_excluded_azs
 }
 
 # Rancher and Keycloak Integration (only for observ-infra)
@@ -50,15 +50,15 @@ module "rancher_keycloak_setup" {
   depends_on = [module.aws_observation_infrastructure]
   source     = "../../modules/aws/rancher-keycloak-setup"
 
-  SSH_PRIVATE_KEY              = var.ssh_private_key
-  K8S_INFRA_REPO_URL          = var.k8s_infra_repo_url
-  K8S_INFRA_BRANCH            = var.k8s_infra_branch
-  CLUSTER_NAME                = var.cluster_name
-  CLUSTER_ENV_DOMAIN          = var.cluster_env_domain
-  RANCHER_HOSTNAME            = var.rancher_hostname
-  KEYCLOAK_HOSTNAME           = var.keycloak_hostname
-  RANCHER_BOOTSTRAP_PASSWORD  = var.rancher_bootstrap_password
-  ENABLE_RANCHER_KEYCLOAK     = var.enable_rancher_keycloak_integration
-  CONTROL_PLANE_IPS           = [module.aws_observation_infrastructure.CONTROL_PLANE_NODE_1]
-  NGINX_PUBLIC_IP             = module.aws_observation_infrastructure.NGINX_PUBLIC_IP
+  SSH_PRIVATE_KEY            = var.ssh_private_key
+  K8S_INFRA_REPO_URL         = var.k8s_infra_repo_url
+  K8S_INFRA_BRANCH           = var.k8s_infra_branch
+  CLUSTER_NAME               = var.cluster_name
+  CLUSTER_ENV_DOMAIN         = var.cluster_env_domain
+  RANCHER_HOSTNAME           = var.rancher_hostname
+  KEYCLOAK_HOSTNAME          = var.keycloak_hostname
+  RANCHER_BOOTSTRAP_PASSWORD = var.rancher_bootstrap_password
+  ENABLE_RANCHER_KEYCLOAK    = var.enable_rancher_keycloak_integration
+  CONTROL_PLANE_IPS          = [module.aws_observation_infrastructure.CONTROL_PLANE_NODE_1]
+  NGINX_PUBLIC_IP            = module.aws_observation_infrastructure.NGINX_PUBLIC_IP
 }

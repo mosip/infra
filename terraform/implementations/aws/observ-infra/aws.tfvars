@@ -37,8 +37,8 @@ nginx_instance_type = "t3a.large"
 # Optional: Exclude specific AZs due to known capacity issues
 # Leave empty for fully dynamic behavior (recommended)
 # Add AZs only if you experience repeated capacity issues
-k8s_capacity_excluded_azs = []     # e.g., ["ap-south-1a"] if needed  
-nginx_capacity_excluded_azs = []   # e.g., ["ap-south-1a"] if needed
+k8s_capacity_excluded_azs   = [] # e.g., ["ap-south-1a"] if needed  
+nginx_capacity_excluded_azs = [] # e.g., ["ap-south-1a"] if needed
 
 # AMI ID (Ubuntu 24.04 LTS in ap-south-1)
 ami = "ami-0ad21ae1d0696ad58"
@@ -50,11 +50,11 @@ zone_id = "Z090954828SJIEL6P5406"
 vpc_name = "mosip-boxes"
 
 # Minimal storage configuration
-nginx_node_root_volume_size   = 20  # Smaller than infra (24)
-nginx_node_ebs_volume_size    = 100 # Smaller than infra (300)
+nginx_node_root_volume_size = 20  # Smaller than infra (24)
+nginx_node_ebs_volume_size  = 100 # Smaller than infra (300)
 # Second EBS volume for PostgreSQL (disabled for observ-infra)
-nginx_node_ebs_volume_size_2  = 0   # Disabled for observability infrastructure
-k8s_instance_root_volume_size = 32  # Smaller than infra (64)
+nginx_node_ebs_volume_size_2  = 0  # Disabled for observability infrastructure
+k8s_instance_root_volume_size = 32 # Smaller than infra (64)
 
 # Subdomains for observability services
 subdomain_public = []
@@ -83,15 +83,15 @@ enable_rancher_import = false
 rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/dzshvnb6br7qtf267zsrr9xsw6tnb2vt4x68g79r2wzsnfgvkjq2jk_c-m-b5249w76.yaml\""
 
 # Security group CIDRs
-network_cidr   = "10.0.0.0/16"   # Use your actual VPC CIDR
-WIREGUARD_CIDR = "10.0.0.0/24"   # Use your actual WireGuard VPN CIDR
+network_cidr   = "10.0.0.0/16" # Use your actual VPC CIDR
+WIREGUARD_CIDR = "10.0.0.0/24" # Use your actual WireGuard VPN CIDR
 
 # PostgreSQL Configuration (used when second EBS volume is enabled)
 postgresql_version = "15"
-storage_device = "/dev/nvme2n1"
-mount_point = "/srv/postgres"
-postgresql_port = "5433"
+storage_device     = "/dev/nvme2n1"
+mount_point        = "/srv/postgres"
+postgresql_port    = "5433"
 
 # MOSIP Infrastructure Repository Configuration
 mosip_infra_repo_url = "https://github.com/bhumi46/mosip-infra.git"
-mosip_infra_branch = "main"
+mosip_infra_branch   = "main"
