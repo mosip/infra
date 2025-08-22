@@ -21,11 +21,30 @@ variable "K8S_INFRA_BRANCH" {
 
 # PostgreSQL Configuration Variables
 variable "NGINX_NODE_EBS_VOLUME_SIZE_2" { type = number }
-variable "POSTGRESQL_VERSION" { type = string }
-variable "STORAGE_DEVICE" { type = string }
-variable "MOUNT_POINT" { type = string }
-variable "POSTGRESQL_PORT" { type = string }
-variable "NETWORK_CIDR" { type = string }
+variable "POSTGRESQL_VERSION" { 
+  type = string 
+  default = "15"
+  description = "PostgreSQL version to install"
+}
+variable "STORAGE_DEVICE" { 
+  type = string 
+  default = "/dev/nvme2n1"
+  description = "Storage device path for PostgreSQL data"
+}
+variable "MOUNT_POINT" { 
+  type = string 
+  default = "/srv/postgres"
+  description = "Mount point for PostgreSQL data directory"
+}
+variable "POSTGRESQL_PORT" { 
+  type = string 
+  default = "5433"
+  description = "PostgreSQL port configuration"
+}
+variable "NETWORK_CIDR" { 
+  type = string 
+  description = "VPC CIDR block for internal communication"
+}
 
 # MOSIP Infrastructure Repository Configuration
 variable "MOSIP_INFRA_REPO_URL" {
