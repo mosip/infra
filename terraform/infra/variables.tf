@@ -249,6 +249,31 @@ variable "postgresql_port" {
   default     = "5433"
 }
 
+# PostgreSQL Configuration Variables
+variable "postgresql_version" {
+  description = "PostgreSQL version to install"
+  type        = string
+  default     = "15"
+}
+
+variable "storage_device" {
+  description = "Storage device path for PostgreSQL data"
+  type        = string
+  default     = "/dev/nvme2n1"
+}
+
+variable "mount_point" {
+  description = "Mount point for PostgreSQL data directory"
+  type        = string
+  default     = "/srv/postgres"
+}
+
+variable "postgresql_port" {
+  description = "PostgreSQL port configuration"
+  type        = string
+  default     = "5433"
+}
+
 # MOSIP Infrastructure Repository Configuration
 variable "mosip_infra_repo_url" {
   description = "URL of the MOSIP infrastructure repository"
@@ -259,5 +284,5 @@ variable "mosip_infra_repo_url" {
 variable "mosip_infra_branch" {
   description = "Branch of the MOSIP infrastructure repository"
   type        = string
-  default     = "main"
+  default     = "develop"
 }
