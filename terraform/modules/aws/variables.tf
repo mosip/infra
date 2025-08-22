@@ -92,7 +92,7 @@ variable "K8S_INFRA_REPO_URL" {
 }
 variable "K8S_INFRA_BRANCH" {
   type    = string
-  default = "main"
+  default = "develop"
 }
 
 # AWS Configuration
@@ -162,5 +162,5 @@ variable "mosip_infra_repo_url" {
 variable "mosip_infra_branch" {
   description = "Branch of the MOSIP infrastructure repository"
   type        = string
-  default     = "main"
+  default     = "develop"
 }

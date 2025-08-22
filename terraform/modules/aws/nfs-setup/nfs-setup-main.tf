@@ -26,7 +26,7 @@ variable "K8S_INFRA_REPO_URL" {
 }
 variable "K8S_INFRA_BRANCH" {
   type    = string
-  default = "main"
+  default = "develop"
 }
 variable "CLUSTER_NAME" { type = string }
 
