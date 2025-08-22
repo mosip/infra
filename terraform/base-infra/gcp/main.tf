@@ -5,7 +5,7 @@
 # Placeholder resource to prevent module errors
 resource "null_resource" "gcp_placeholder" {
   count = 1
-  
+
   provisioner "local-exec" {
     command = "echo 'GCP base infrastructure module - placeholder implementation'"
   }

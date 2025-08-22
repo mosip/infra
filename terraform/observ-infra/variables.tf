@@ -41,7 +41,7 @@ variable "k8s_control_plane_node_count" {
 }
 
 variable "k8s_etcd_node_count" {
-  description = "Number of K8s ETCD nodes"  
+  description = "Number of K8s ETCD nodes"
   type        = number
   default     = 1
 }
@@ -119,13 +119,13 @@ variable "aws_provider_region" {
 variable "k8s_instance_type" {
   description = "Instance type for K8s nodes"
   type        = string
-  default     = "t3a.medium"  # Smaller instances for observation tools
+  default     = "t3a.medium" # Smaller instances for observation tools
 }
 
 variable "nginx_instance_type" {
   description = "Instance type for NGINX server"
   type        = string
-  default     = "t3a.medium"  # Smaller instances for observation tools
+  default     = "t3a.medium" # Smaller instances for observation tools
 }
 
 variable "ami" {
@@ -155,25 +155,25 @@ variable "vpc_name" {
 variable "nginx_node_root_volume_size" {
   description = "Root volume size for NGINX node"
   type        = number
-  default     = 20  # Smaller volumes for observation tools
+  default     = 20 # Smaller volumes for observation tools
 }
 
 variable "nginx_node_ebs_volume_size" {
   description = "EBS volume size for NGINX node (first volume)"
   type        = number
-  default     = 100  # Smaller volumes for observation tools
+  default     = 100 # Smaller volumes for observation tools
 }
 
 variable "nginx_node_ebs_volume_size_2" {
   description = "EBS volume size for NGINX node (second volume) - set to 0 to disable"
   type        = number
-  default     = 0  # Disabled by default for observability (uses minimal resources)
+  default     = 0 # Disabled by default for observability (uses minimal resources)
 }
 
 variable "k8s_instance_root_volume_size" {
   description = "Root volume size for K8s instances"
   type        = number
-  default     = 32  # Smaller volumes for observation tools
+  default     = 32 # Smaller volumes for observation tools
 }
 
 # Azure-specific variables (only used when cloud_provider = "azure")
@@ -198,14 +198,14 @@ variable "azure_dns_zone" {
 variable "nginx_node_additional_volume_size" {
   description = "Additional disk size for NGINX nodes in GB"
   type        = number
-  default     = 50  # Smaller volumes for observation tools
+  default     = 50 # Smaller volumes for observation tools
 }
 
 # GCP-specific variables (only used when cloud_provider = "gcp")
 variable "gcp_project_id" {
   description = "GCP project ID"
   type        = string
-  default     = "" 
+  default     = ""
 }
 
 variable "gcp_provider_region" {

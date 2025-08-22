@@ -55,7 +55,7 @@ resource "aws_subnet" "private" {
     Type        = "Private"
     Environment = var.environment
     Project     = var.project_name
-    AZ          = var.availability_zones[count.index % length(var.availability_zones)]  
+    AZ          = var.availability_zones[count.index % length(var.availability_zones)]
   }
 }
 
@@ -229,7 +229,7 @@ resource "aws_instance" "jumpserver" {
     Environment = var.environment
     Project     = var.project_name
   }
-  
+
   depends_on = [aws_internet_gateway.main]
 }
 
@@ -238,7 +238,7 @@ resource "aws_eip" "jumpserver" {
   count    = var.create_jumpserver_eip ? 1 : 0
   domain   = "vpc"
   instance = aws_instance.jumpserver.id
-  
+
   tags = {
     Name        = "${var.jumpserver_name}-eip"
     Environment = var.environment

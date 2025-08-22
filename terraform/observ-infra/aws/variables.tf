@@ -18,62 +18,62 @@ variable "WIREGUARD_CIDR" {
 variable "subdomain_public" { type = list(string) }
 variable "subdomain_internal" { type = list(string) }
 variable "mosip_email_id" { type = string }
-variable "ssh_private_key" { 
-  type = string
-  sensitive = true 
+variable "ssh_private_key" {
+  type      = string
+  sensitive = true
 }
 variable "rancher_import_url" { type = string }
 variable "k8s_infra_repo_url" { type = string }
 variable "k8s_infra_branch" { type = string }
 
 # AWS-specific variables
-variable "aws_provider_region" { 
-  type = string
+variable "aws_provider_region" {
+  type        = string
   description = "AWS region for resource creation"
 }
 variable "k8s_instance_type" {
-  type = string
+  type        = string
   description = "Instance type for K8s nodes"
 }
-variable "nginx_instance_type" { 
-  type = string
+variable "nginx_instance_type" {
+  type        = string
   description = "Instance type for NGINX server"
 }
-variable "ami" { 
-  type = string
+variable "ami" {
+  type        = string
   description = "AMI ID for AWS instances"
 }
-variable "ssh_key_name" { 
-  type = string
+variable "ssh_key_name" {
+  type        = string
   description = "Name of the SSH key pair in AWS"
 }
-variable "zone_id" { 
-  type = string
+variable "zone_id" {
+  type        = string
   description = "Route53 hosted zone ID"
 }
-variable "vpc_name" { 
-  type = string
+variable "vpc_name" {
+  type        = string
   description = "Name of the existing VPC (will be discovered by tag:Name)"
 }
-variable "nginx_node_root_volume_size" { 
-  type = number
+variable "nginx_node_root_volume_size" {
+  type        = number
   description = "Root volume size for NGINX node"
 }
-variable "nginx_node_ebs_volume_size" { 
-  type = number
+variable "nginx_node_ebs_volume_size" {
+  type        = number
   description = "EBS volume size for NGINX node (first volume)"
 }
 
 variable "nginx_node_ebs_volume_size_2" {
-  type = number
+  type        = number
   description = "EBS volume size for NGINX node (second volume) - set to 0 to disable"
 }
-variable "k8s_instance_root_volume_size" { 
-  type = number
+variable "k8s_instance_root_volume_size" {
+  type        = number
   description = "Root volume size for K8s instances"
 }
 variable "enable_rancher_import" {
-  type = bool
+  type        = bool
   description = "Set to true to enable Rancher import"
 }
 
