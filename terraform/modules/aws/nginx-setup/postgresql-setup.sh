@@ -219,10 +219,10 @@ rm -rf mosip-infra
 echo "Cloning from: $MOSIP_INFRA_REPO_URL"
 echo "Branch: $MOSIP_INFRA_BRANCH"
 
-timeout 600 git clone "$MOSIP_INFRA_REPO_URL" || {
+git clone "$MOSIP_INFRA_REPO_URL" || {
     echo 'Initial git clone failed, retrying with verbose output...'
     sleep 10
-    timeout 600 git clone --verbose "$MOSIP_INFRA_REPO_URL" || {
+    git clone --verbose "$MOSIP_INFRA_REPO_URL" || {
         echo 'Git clone failed completely'
         echo 'Checking network connectivity...'
         ping -c 3 8.8.8.8 || echo 'Network connectivity issue detected'
@@ -330,7 +330,7 @@ echo '[SUCCESS] APT configured for non-interactive mode'
 # Install required Ansible collections to prevent hanging during playbook execution
 echo '[INSTALL] Installing Required Ansible Collections...'
 mkdir -p /tmp/ansible_collections
-timeout 600 ansible-galaxy collection install community.general ansible.posix --force || {
+ansible-galaxy collection install community.general ansible.posix --force || {
     echo '[WARNING] Failed to install some collections, continuing with basic setup...'
 }
 echo '[SUCCESS] Ansible collections installation completed'
@@ -346,16 +346,16 @@ lsblk -f 2>/dev/null || lsblk 2>/dev/null || echo 'Unable to list block devices'
 # Wait for the specific storage device
 echo "[WAIT] Waiting for storage device $STORAGE_DEVICE..."
 DEVICE_FOUND=false
-for i in {1..120}; do 
+for i in {1..24}; do 
     if [ -b "$STORAGE_DEVICE" ]; then 
         echo "[SUCCESS] Storage device found: $STORAGE_DEVICE"; 
         DEVICE_FOUND=true
         break; 
     fi; 
     
-    # Show progress every 10 attempts
-    if [ $((i % 10)) -eq 0 ]; then
-        echo "[WAIT] Attempt $i/120: waiting for $STORAGE_DEVICE..."
+    # Show progress every 6 attempts
+    if [ $((i % 6)) -eq 0 ]; then
+        echo "[WAIT] Attempt $i/24: waiting for $STORAGE_DEVICE..."
         echo 'Current block devices:'
         lsblk | grep -E '(nvme|xvd|sd)' || echo 'No common block devices found'
     fi
@@ -363,7 +363,7 @@ for i in {1..120}; do
 done
 
 if [ "$DEVICE_FOUND" = false ]; then 
-    echo "[WARNING] WARNING: Storage device $STORAGE_DEVICE not found after 10 minutes"
+    echo "[WARNING] WARNING: Storage device $STORAGE_DEVICE not found after 2 minutes"
     echo 'This might be okay if PostgreSQL will use existing storage.'
     echo '[INFO] Available block devices:'
     lsblk 2>/dev/null || echo 'Unable to list block devices'
@@ -379,7 +379,7 @@ fi
 # Run PostgreSQL setup with extended timeout and better error handling
 echo '[RUN] Running PostgreSQL Ansible Playbook...'
 echo "[TIME] Starting ansible-playbook at $(date)"
-echo '[CREATE] This may take 15-30 minutes. Progress will be shown below...'
+echo '[CREATE] This should take 10-15 minutes. Progress will be shown below...'
 
 # Test ansible connection first
 echo '[TEST] Testing Ansible connectivity...'
@@ -408,7 +408,7 @@ echo "ansible-playbook -vv -i inventory.ini -e postgresql_version=$POSTGRESQL_VE
 PROGRESS_PID=$!
 
 # Run the actual playbook
-timeout 2400 ansible-playbook -vv -i inventory.ini \
+timeout 900 ansible-playbook -vv -i inventory.ini \
     -e postgresql_version=$POSTGRESQL_VERSION \
     -e storage_device=$STORAGE_DEVICE \
     -e mount_point=$MOUNT_POINT \
@@ -433,15 +433,15 @@ if [ $ANSIBLE_EXIT_CODE -ne 0 ]; then
     # Try to restart PostgreSQL service
     echo '[PROGRESS] Attempting to restart PostgreSQL service...'
     sudo systemctl stop postgresql 2>/dev/null || true
-    sleep 5
+    sleep 3
     sudo systemctl start postgresql 2>/dev/null || true
-    sleep 10
+    sleep 5
     
     # Check if PostgreSQL is now running
     if sudo systemctl is-active postgresql >/dev/null 2>&1; then
         echo '[SUCCESS] PostgreSQL recovery successful!'
         echo '[TEST] Testing connection...'
-        if sudo -u postgres psql -p "$POSTGRESQL_PORT" -c "SELECT version();"; then
+        if sudo -u postgres psql -p "$POSTGRESQL_PORT" -c "SELECT version();" --no-psqlrc --pset pager=off; then
             echo '[SUCCESS] PostgreSQL is working!'
         else
             echo '[ERROR] Connection still failing'
@@ -469,7 +469,7 @@ fi
 # Verify PostgreSQL installation with improved checks
 echo ''
 echo '=== [CHECK] Verifying PostgreSQL Installation ==='
-sleep 15  # Wait for service to start
+sleep 5  # Quick wait for service to start
 
 # Check main PostgreSQL service
 echo '[CHECK] Checking PostgreSQL main service status...'
@@ -480,18 +480,18 @@ echo '[CHECK] Checking PostgreSQL 15 cluster service...'
 sudo systemctl status postgresql@15-main --no-pager --lines=5 2>/dev/null || {
     echo '[WARNING]  PostgreSQL cluster service not active, attempting to start...'
     sudo systemctl start postgresql@15-main 2>/dev/null || echo '[ERROR] Failed to start PostgreSQL cluster'
-    sleep 10
+    sleep 5
 }
 
 # Check if PostgreSQL is actually listening on the configured port
 echo "[CONNECT] Testing PostgreSQL connectivity on port $POSTGRESQL_PORT..."
-for i in {1..6}; do
-    if sudo -u postgres psql -p "$POSTGRESQL_PORT" -c "SELECT version();" >/dev/null 2>&1; then
+for i in {1..3}; do
+    if timeout 15 sudo -u postgres psql -p "$POSTGRESQL_PORT" -c "SELECT version();" --no-psqlrc --pset pager=off >/dev/null 2>&1; then
         echo "[SUCCESS] PostgreSQL connection successful on attempt $i!"
         break
     else
-        echo "[WAIT] Attempt $i: PostgreSQL not responding on port $POSTGRESQL_PORT, waiting..."
-        sleep 10
+        echo "[WAIT] Attempt $i/3: PostgreSQL not responding on port $POSTGRESQL_PORT, waiting..."
+        sleep 5
     fi
 done
 
@@ -502,21 +502,21 @@ echo '[CONFIG] Service Status:'
 echo "  Main Service: $(sudo systemctl is-active postgresql 2>/dev/null || echo 'inactive')"
 echo "  Cluster Service: $(sudo systemctl is-active postgresql@15-main 2>/dev/null || echo 'inactive')"
 echo '[TEST] Connection Tests:'
-if sudo -u postgres psql -p "$POSTGRESQL_PORT" -c "SELECT version();" >/dev/null 2>&1; then
+if timeout 15 sudo -u postgres psql -p "$POSTGRESQL_PORT" -c "SELECT version();" --no-psqlrc --pset pager=off >/dev/null 2>&1; then
     echo '  [SUCCESS] PostgreSQL connection: SUCCESS'
     echo '  [CREATE] PostgreSQL version:'
-    sudo -u postgres psql -p "$POSTGRESQL_PORT" -c "SELECT version();" 2>/dev/null || echo '  [ERROR] Version check failed'
+    timeout 10 sudo -u postgres psql -p "$POSTGRESQL_PORT" -c "SELECT version();" --no-psqlrc --pset pager=off 2>/dev/null || echo '  [ERROR] Version check failed'
     echo '  [DIR] Data directory:'
-    sudo -u postgres psql -p "$POSTGRESQL_PORT" -c "SHOW data_directory;" 2>/dev/null || echo '  [ERROR] Data directory check failed'
+    timeout 10 sudo -u postgres psql -p "$POSTGRESQL_PORT" -c "SHOW data_directory;" --no-psqlrc --pset pager=off 2>/dev/null || echo '  [ERROR] Data directory check failed'
 else
     echo '  ERROR: PostgreSQL connection: FAILED'
 fi
 
 # Check if PostgreSQL is listening on the correct port
 echo 'Network Status:'
-if sudo netstat -tlnp | grep ":$POSTGRESQL_PORT" >/dev/null 2>&1; then
+if timeout 10 sudo netstat -tlnp | grep ":$POSTGRESQL_PORT" >/dev/null 2>&1; then
     echo "  SUCCESS: PostgreSQL listening on port $POSTGRESQL_PORT"
-    sudo netstat -tlnp | grep ":$POSTGRESQL_PORT" | head -1
+    timeout 5 sudo netstat -tlnp | grep ":$POSTGRESQL_PORT" | head -1 || echo "  (Port details unavailable)"
 else
     echo "  ERROR: PostgreSQL not listening on port $POSTGRESQL_PORT"
 fi
