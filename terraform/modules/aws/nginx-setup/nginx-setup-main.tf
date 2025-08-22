@@ -16,7 +16,7 @@ variable "K8S_INFRA_REPO_URL" {
 
 variable "K8S_INFRA_BRANCH" {
   type    = string
-  default = "main"
+  default = "develop"
 }
 
 # PostgreSQL Configuration Variables
@@ -39,7 +39,7 @@ variable "MOSIP_INFRA_REPO_URL" {
 
 variable "MOSIP_INFRA_BRANCH" {
   type    = string
-  default = "main"
+  default = "develop"
 }
 
 locals {
