@@ -3,7 +3,7 @@ variable "cloud_provider" {
   description = "Cloud provider to deploy infrastructure (aws, azure, gcp)"
   type        = string
   default     = "aws"
-  
+
   validation {
     condition     = contains(["aws", "azure", "gcp"], var.cloud_provider)
     error_message = "Valid values for cloud_provider are: aws, azure, gcp"
@@ -170,7 +170,7 @@ variable "region" {
 variable "jumpserver_ami_id" {
   description = "The AMI ID to use for the jump server (required)"
   type        = string
-  
+
   validation {
     condition     = length(var.jumpserver_ami_id) > 0
     error_message = "The jumpserver_ami_id value is required and cannot be empty."

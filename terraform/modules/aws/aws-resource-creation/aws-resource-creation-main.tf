@@ -91,7 +91,7 @@ resource "aws_instance" "NGINX_EC2_INSTANCE" {
 
   ami                         = local.NGINX_INSTANCE.ami
   instance_type               = local.NGINX_INSTANCE.instance_type
-  associate_public_ip_address = true  # Always true - NGINX needs public IP in both scenarios
+  associate_public_ip_address = true # Always true - NGINX needs public IP in both scenarios
   key_name                    = local.NGINX_INSTANCE.key_name
   user_data                   = lookup(local.NGINX_INSTANCE, "user_data", "")
   vpc_security_group_ids      = local.NGINX_INSTANCE.security_groups
@@ -137,7 +137,7 @@ resource "aws_instance" "K8S_CLUSTER_EC2_INSTANCE" {
 
   ami                         = local.K8S_EC2_NODE.ami
   instance_type               = local.K8S_EC2_NODE.instance_type
-  associate_public_ip_address = false  # K8s instances always use private IPs
+  associate_public_ip_address = false # K8s instances always use private IPs
   key_name                    = local.K8S_EC2_NODE.key_name
   subnet_id                   = var.PRIVATE_SUBNET_IDS[each.value % length(var.PRIVATE_SUBNET_IDS)]
   user_data = templatefile("${path.module}/rke-user-data.sh.tpl", {

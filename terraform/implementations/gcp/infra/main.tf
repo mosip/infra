@@ -1,6 +1,6 @@
 terraform {
   required_version = ">= 1.0"
-  
+
   required_providers {
     google = {
       source  = "hashicorp/google"
@@ -18,12 +18,12 @@ provider "google" {
 # Call the cloud-agnostic infra module
 module "mosip_infra" {
   source = "../../../infra"
-  
+
   # Cloud provider selection
   cloud_provider = "gcp"
-  
+
   # Common configuration
-  cluster_name                  = var.cluster_name
+  cluster_name                 = var.cluster_name
   cluster_env_domain           = var.cluster_env_domain
   k8s_control_plane_node_count = var.k8s_control_plane_node_count
   k8s_etcd_node_count          = var.k8s_etcd_node_count
@@ -35,7 +35,7 @@ module "mosip_infra" {
   rancher_import_url           = var.rancher_import_url
   k8s_infra_repo_url           = var.k8s_infra_repo_url
   k8s_infra_branch             = var.k8s_infra_branch
-  
+
   # Placeholder for GCP-specific configuration
   # TODO: Add GCP-specific variables when implementing GCP module
   aws_provider_region           = ""

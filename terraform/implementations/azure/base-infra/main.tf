@@ -123,20 +123,20 @@ module "base_infrastructure" {
 
   # Resource naming
   jumpserver_name = var.jumpserver_name
-  
+
   # Network configuration
   network_name       = var.network_name
   network_cidr       = var.network_cidr
   public_subnets     = var.public_subnets
   private_subnets    = var.private_subnets
   availability_zones = var.availability_zones
-  
+
   # Jump server configuration
   ssh_key_name             = var.ssh_key_name
   jumpserver_instance_type = var.jumpserver_instance_type
   jumpserver_ami_id        = var.jumpserver_ami_id
   create_jumpserver_eip    = var.create_jumpserver_eip
-  
+
   # Environment metadata
   environment    = var.environment
   project_name   = var.project_name

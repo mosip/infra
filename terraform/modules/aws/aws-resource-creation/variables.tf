@@ -94,10 +94,10 @@ locals {
 # EC2 INSTANCE DATA: NGINX & K8S NODES
 locals {
   NGINX_INSTANCE = {
-    ami                         = var.AMI
-    instance_type               = var.NGINX_INSTANCE_TYPE
-    key_name                    = var.SSH_KEY_NAME
-    user_data                   = <<-EOF
+    ami           = var.AMI
+    instance_type = var.NGINX_INSTANCE_TYPE
+    key_name      = var.SSH_KEY_NAME
+    user_data     = <<-EOF
 #!/bin/bash
 
 # Log file path
@@ -158,7 +158,7 @@ EOF
         Cluster   = var.CLUSTER_NAME
         Component = var.CLUSTER_NAME
       }
-    }], var.NGINX_NODE_EBS_VOLUME_SIZE_2 > 0 ? [{
+      }], var.NGINX_NODE_EBS_VOLUME_SIZE_2 > 0 ? [{
       device_name           = "/dev/sdc"
       volume_size           = var.NGINX_NODE_EBS_VOLUME_SIZE_2
       volume_type           = "gp3"
@@ -172,9 +172,9 @@ EOF
     }] : [])
   }
   K8S_EC2_NODE = {
-    ami                         = var.AMI
-    instance_type               = var.K8S_INSTANCE_TYPE
-    key_name                    = var.SSH_KEY_NAME
+    ami           = var.AMI
+    instance_type = var.K8S_INSTANCE_TYPE
+    key_name      = var.SSH_KEY_NAME
     #count                       = var.K8S_INSTANCE_COUNT
 
     tags = {
