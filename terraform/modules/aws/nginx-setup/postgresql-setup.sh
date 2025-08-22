@@ -25,9 +25,9 @@ echo "tzdata tzdata/Areas select Etc" | debconf-set-selections 2>/dev/null || tr
 echo "tzdata tzdata/Zones/Etc select UTC" | debconf-set-selections 2>/dev/null || true
 
 # Set timezone files directly
-mkdir -p /etc
-echo 'Etc/UTC' > /etc/timezone 2>/dev/null || true
-ln -sf /usr/share/zoneinfo/Etc/UTC /etc/localtime 2>/dev/null || true
+sudo mkdir -p /etc
+echo 'Etc/UTC' | sudo tee /etc/timezone > /dev/null 2>&1 || true
+sudo ln -sf /usr/share/zoneinfo/Etc/UTC /etc/localtime 2>/dev/null || true
 
 # Simple function to check if package is already installed (idempotent)
 is_installed() {
@@ -48,26 +48,26 @@ install_package_bulletproof() {
     if [ "$package" = "tzdata" ]; then
         # BULLETPROOF timezone handling - auto-answer prompts
         echo "Installing tzdata with automatic timezone answers..."
-        echo -e "12\n1\n" | apt-get install -y tzdata 2>/dev/null || {
+        echo -e "12\n1\n" | sudo apt-get install -y tzdata 2>/dev/null || {
             # Fallback method 1
             echo "Method 1 failed, trying method 2..."
-            DEBIAN_FRONTEND=noninteractive apt-get install -y tzdata -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" || {
+            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y tzdata -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" || {
                 # Fallback method 2
                 echo "Method 2 failed, trying method 3..."
-                yes '' | apt-get install -y tzdata || apt-get install -y tzdata < /dev/null || true
+                yes '' | sudo apt-get install -y tzdata || sudo apt-get install -y tzdata < /dev/null || true
             }
         }
         
         # Ensure timezone is set correctly after installation
-        echo 'Etc/UTC' > /etc/timezone
-        ln -sf /usr/share/zoneinfo/Etc/UTC /etc/localtime
-        dpkg-reconfigure -f noninteractive tzdata 2>/dev/null || true
+        echo 'Etc/UTC' | sudo tee /etc/timezone > /dev/null
+        sudo ln -sf /usr/share/zoneinfo/Etc/UTC /etc/localtime
+        sudo dpkg-reconfigure -f noninteractive tzdata 2>/dev/null || true
         
         echo "✅ tzdata installed successfully"
         return 0
     else
         # Normal package installation with bulletproof options
-        if apt-get install -y "$package" -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"; then
+        if sudo apt-get install -y "$package" -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"; then
             echo "✅ $package installed successfully"
             return 0
         else
@@ -78,8 +78,8 @@ install_package_bulletproof() {
 }
 
 # Configure APT for bulletproof operation
-mkdir -p /etc/apt/apt.conf.d/
-cat > /etc/apt/apt.conf.d/99-bulletproof << 'EOF'
+sudo mkdir -p /etc/apt/apt.conf.d/
+sudo tee /etc/apt/apt.conf.d/99-bulletproof > /dev/null << 'EOF'
 APT::Get::Assume-Yes "true";
 APT::Install-Recommends "false";
 APT::Install-Suggests "false";
@@ -93,18 +93,18 @@ EOF
 
 # Disable problematic hooks that can cause hanging
 if [ -d /etc/ca-certificates/update.d/ ]; then
-    find /etc/ca-certificates/update.d/ -type f -exec chmod -x {} \; 2>/dev/null || true
+    sudo find /etc/ca-certificates/update.d/ -type f -exec chmod -x {} \; 2>/dev/null || true
 fi
 
 # Disable man-db updates
-echo 'path-exclude /usr/share/man/*' > /etc/dpkg/dpkg.cfg.d/01_nodoc 2>/dev/null || true
+echo 'path-exclude /usr/share/man/*' | sudo tee /etc/dpkg/dpkg.cfg.d/01_nodoc > /dev/null 2>&1 || true
 
 # Update package lists (bulletproof)
 echo "Updating package lists..."
-apt-get update -qq || {
+sudo apt-get update -qq || {
     echo "Initial update failed, trying again..."
     sleep 5
-    apt-get update -qq
+    sudo apt-get update -qq
 }
 
 # Install essential packages with bulletproof method
