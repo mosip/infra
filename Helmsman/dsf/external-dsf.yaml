@@ -38,31 +38,10 @@ apps:
   postgres:
     namespace: postgres
     enabled: true
-    version: 13.1.5
-    chart: bitnami/postgresql
+    version: 0.1.0
+    chart: $WORKDIR/utils/postgres/dummy-postgres-setup/dummy-postgres-setup-0.1.0.tgz
     wait: true
     priority: -16
-    set:
-      primary.extendedConfiguration: |
-        max_connections=1000
-        wal_level=logical
-        max_wal_senders=20
-        max_replication_slots=10
-      primary.resources.limits.cpu: "1500m"
-      primary.resources.limits.memory: "2000Mi"
-      primary.resources.requests.cpu: "1500m"
-      primary.resources.requests.memory: "2000Mi"
-      audit.logHostname: "true"
-      audit.logConnections: "true"
-      audit.logDisconnections: "true"
-      audit.pgAuditLog: ""
-      audit.pgAuditLogCatalog: "off"
-      audit.clientMinMessages: "error"
-      audit.logLinePrefix: ""
-      audit.logTimezone: ""
-      image.debug: "true"
-    timeout: 1200
-
 
   istio-addons-psql:
     namespace: postgres
