@@ -1,0 +1,11 @@
+# Default values for dummy-postgres-setup
+# This is a minimal chart that creates only a ConfigMap placeholder
+
+# Override the chart name
+nameOverride: ""
+fullnameOverride: ""
+
+# Minimal placeholder configuration
+placeholder:
+  enabled: true
+  name: "postgres-setup-placeholder"

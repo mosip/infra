@@ -1,0 +1,6 @@
+apiVersion: v2
+name: dummy-postgres-setup
+description: A minimal dummy chart for postgres namespace and hooks setup
+type: application
+version: 0.1.0
+appVersion: "1.0"
