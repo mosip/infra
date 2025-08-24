@@ -50,7 +50,7 @@ apps:
       apitestrig.configmaps.s3.s3-region: ''
       apitestrig.configmaps.db.db-server: "api-internal.soil0.mosip.net"
       apitestrig.configmaps.db.db-su-user: "postgres"
-      apitestrig.configmaps.db.db-port: "5432"
+      apitestrig.configmaps.db.db-port: "5433"
       apitestrig.configmaps.apitestrig.ENV_USER: "api-internal.soil0"
       apitestrig.configmaps.apitestrig.ENV_ENDPOINT: "https://api-internal.soil0.mosip.net"
       apitestrig.configmaps.apitestrig.ENV_TESTLEVEL: "smokeAndRegression"
@@ -133,7 +133,7 @@ apps:
       dslorchestrator.configmaps.s3.s3-region: ''
       dslorchestrator.configmaps.db.db-server: "api-internal.soil0.mosip.net"
       dslorchestrator.configmaps.db.db-su-user: "postgres"
-      dslorchestrator.configmaps.db.db-port: "5432"
+      dslorchestrator.configmaps.db.db-port: "5433"
       dslorchestrator.configmaps.dslorchestrator.USER: "api-internal.soil0"
       dslorchestrator.configmaps.dslorchestrator.ENDPOINT: "https://api-internal.soil0.mosip.net"
       dslorchestrator.configmaps.dslorchestrator.packetUtilityBaseUrl: "http://packetcreator.packetcreator:80/v1/packetcreator"
@@ -160,7 +160,7 @@ apps:
       uitestrig.configmaps.s3.s3-region: ""
       uitestrig.configmaps.db.db-server: "api-internal.soil0.mosip.net"
       uitestrig.configmaps.db.db-su-user: "postgres"
-      uitestrig.configmaps.db.db-port: "5432"
+      uitestrig.configmaps.db.db-port: "5433"
       uitestrig.configmaps.uitestrig.apiInternalEndPoint: "https://api-internal.soil0.mosip.net"
       uitestrig.configmaps.uitestrig.apiEnvUser: "api-internal.soil0.mosip.net"
       uitestrig.configmaps.uitestrig.PmpPortalPath: "https://pmp.soil0.mosip.net"
