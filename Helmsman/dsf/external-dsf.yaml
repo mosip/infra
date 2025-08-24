@@ -39,9 +39,12 @@ apps:
     namespace: postgres
     enabled: true
     version: 0.1.0
-    chart: $WORKDIR/utils/postgres/dummy-postgres-setup/dummy-postgres-setup-0.1.0.tgz
+    chart: $WORKDIR/utils/postgres/external-postgres-setup/external-postgres-setup-0.1.0.tgz
     wait: true
     priority: -16
+    set:
+      postgres.configmaps.postgres-setup-config.postgres-host: "postgres.soil0.mosip.net"
+      postgres.configmaps.postgres-setup-config.postgres-port: "5433"
 
   istio-addons-psql:
     namespace: postgres
@@ -49,7 +52,7 @@ apps:
     version: 0.1.0
     chart: $WORKDIR/utils/istio-addons/postgres-istio-addons-0.1.0.tgz
     set:
-      postgresHost: "postgres.soil.mosip.net"
+      postgresHost: "postgres.soil0.mosip.net"
     wait: true
     priority: -4
     timeout: 1200
@@ -133,7 +136,7 @@ apps:
     version: 0.1.0
     chart: $WORKDIR/utils/istio-addons/iam-istio-addons-0.1.0.tgz
     set:
-      keycloakExternalHost: "iam.soil.mosip.net"
+      keycloakExternalHost: "iam.soil0.mosip.net"
       keycloakInternalHost: "keycloak.keycloak"
       service: "keycloak"
     wait: true
@@ -148,9 +151,9 @@ apps:
     set:
       # image.repository: "mosipid/keycloak-init"
       # image.tag: "1.2.0.1"
-      keycloakExternalHost: "iam.soil.mosip.net"
+      keycloakExternalHost: "iam.soil0.mosip.net"
       keycloakInternalHost: "keycloak.keycloak"
-      keycloak.realms.mosip.realm_config.attributes.frontendUrl: "https://iam.soil.mosip.net/auth"
+      keycloak.realms.mosip.realm_config.attributes.frontendUrl: "https://iam.soil0.mosip.net/auth"
       keycloak.realms.mosip.realm_config.smtpServer.auth: "false"
       keycloak.realms.mosip.realm_config.smtpServer.host: "smtp.gmail.com"
       keycloak.realms.mosip.realm_config.smtpServer.port: "465"
@@ -211,7 +214,7 @@ apps:
     version: 1.2.0
     chart: $WORKDIR/utils/istio-addons/minio-istio-addons-1.2.0.tgz
     set:
-      externalHost: "minio.soil.mosip.net"
+      externalHost: "minio.soil0.mosip.net"
     wait: true
     timeout: 1200
     hooks:
@@ -241,14 +244,14 @@ apps:
     chart: mosip/activemq-artemis
     set: 
       istio.enabled: "true"
-      istio.hosts[0]: "activemq.soil.mosip.net"
+      istio.hosts[0]: "activemq.soil0.mosip.net"
       istio.ingressController.name: "ingressgateway-internal"
       istio.prefix: ""
     wait: true
     timeout: 1200
     priority: -8
     hooks:
-      postInstall: "$WORKDIR/hooks/captcha-setup.sh 6LfYwZwrAAAAAE0NSPMTPTE7YmCd61kT3B4O2dfg 6LfYwZwrAAAAAO9EjlT5_9UNZ_eXysGd_5RrhVB7  6LfjwZwrAAAAAJL63SuUrbUxK_HLG9bTnPOaakXM 6LfjwZwrAAAAAPfdtlR5n9rAO9XHsIp_5Yf9ZR2W 6Ldzw5wrAAAAACIJVndSh30PAPsuyNi73CmxNNY6 6Ldzw5wrAAAAAG35A7XxYrZ-MedU_EBYdAr9c6ji"
+      postInstall: "$WORKDIR/hooks/captcha-setup.sh 6LcAjrArAAAAAFHSM0soYeo-HTn6M6p-G_zBqWAb 6LcAjrArAAAAAB0gatjynhCHSsUPsmrya0KYI1YQ  6LcIjrArAAAAABUpMJSf6aFioXhGmX1XOxT5ai8c 6LcIjrArAAAAAEUAIiQfHv4q53PIx72O_-xJJt78 6Ld3jrArAAAAAAdL0KW6j8N9PfMz-MlnRxGP_ySx 6Ld3jrArAAAAABNsqmutUNxVv2S2BfwbR0bhuOjK"
   # Note: Create a google recaptcha v2 ("I am not a Robot") from Google Recaptcha Admin.
   # Pass the captcha site and secret key in the above post install script as an argument.To create site and secret key below is the link:
   # https://cloud.google.com/security/products/recaptcha
@@ -314,7 +317,7 @@ apps:
     version: 1.2.0
     chart: $WORKDIR/utils/istio-addons/kafka-istio-addons-1.2.0.tgz
     set:
-      kafkaUiHost: "kafka.soil.mosip.net"
+      kafkaUiHost: "kafka.soil0.mosip.net"
       installName: "kafka-ui"
     wait: true
     timeout: 1200
@@ -329,28 +332,28 @@ apps:
     chart: mosip/landing-page
     set:
       landing.version: "develop"
-      landing.name: "soil"
-      landing.api: "api.soil.mosip.net"
-      landing.apiInternal: "api-internal.soil.mosip.net"
-      landing.admin: "admin.soil.mosip.net"
-      landing.prereg: "prereg.soil.mosip.net"
-      landing.kafka: "kafka.soil.mosip.net"
-      landing.kibana: "kibana.soil.mosip.net"
-      landing.activemq: "activemq.soil.mosip.net"
-      landing.minio: "minio.soil.mosip.net"
-      landing.keycloak: "iam.soil.mosip.net"
-      landing.regclient: "regclient.soil.mosip.net"
-      landing.postgres.host: "postgres.soil.mosip.net"
+      landing.name: "soil0"
+      landing.api: "api.soil0.mosip.net"
+      landing.apiInternal: "api-internal.soil0.mosip.net"
+      landing.admin: "admin.soil0.mosip.net"
+      landing.prereg: "prereg.soil0.mosip.net"
+      landing.kafka: "kafka.soil0.mosip.net"
+      landing.kibana: "kibana.soil0.mosip.net"
+      landing.activemq: "activemq.soil0.mosip.net"
+      landing.minio: "minio.soil0.mosip.net"
+      landing.keycloak: "iam.soil0.mosip.net"
+      landing.regclient: "regclient.soil0.mosip.net"
+      landing.postgres.host: "postgres.soil0.mosip.net"
       landing.postgres.port: "5432"
-      landing.compliance: "compliance.soil.mosip.net"
-      landing.pmp: "pmp.soil.mosip.net"
-      landing.resident: "resident.soil.mosip.net"
-      landing.esignet: "esignet.soil.mosip.net"
-      landing.smtp: "smtp.soil.mosip.net"
-      landing.healthservices: "healthservices.soil.mosip.net"
-      landing.injiweb: "injiweb.soil.mosip.net"
-      landing.injiverify: "injiverify.soil.mosip.net"
-      istio.host: "soil.mosip.net"
+      landing.compliance: "compliance.soil0.mosip.net"
+      landing.pmp: "pmp.soil0.mosip.net"
+      landing.resident: "resident.soil0.mosip.net"
+      landing.esignet: "esignet.soil0.mosip.net"
+      landing.smtp: "smtp.soil0.mosip.net"
+      landing.healthservices: "healthservices.soil0.mosip.net"
+      landing.injiweb: "injiweb.soil0.mosip.net"
+      landing.injiverify: "injiverify.soil0.mosip.net"
+      istio.host: "soil0.mosip.net"
     wait: true
     timeout: 1200
     hooks:

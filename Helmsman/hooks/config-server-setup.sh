@@ -15,6 +15,7 @@ function copy_resource() {
     $COPY_UTIL configmap activemq-activemq-artemis-share activemq $NS
     $COPY_UTIL configmap s3 s3 $NS
     $COPY_UTIL configmap msg-gateway msg-gateways $NS
+    $COPY_UTIL configmap postgres-setup-config postgres $NS
     #Copy Secrets
     $COPY_UTIL secret db-common-secrets postgres $NS
     $COPY_UTIL secret keycloak keycloak $NS
