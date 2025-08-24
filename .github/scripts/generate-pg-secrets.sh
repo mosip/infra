@@ -36,6 +36,19 @@ echo -e "Output Directory: ${OUTPUT_DIR}"
 DB_PASSWORD="${DB_PASSWORD:-}"
 POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-}"
 
+# Debug: Check if environment variables are set
+if [ -z "$DB_PASSWORD" ]; then
+  echo "DEBUG: DB_PASSWORD is not set or empty."
+else
+  echo "DEBUG: DB_PASSWORD is set."
+fi
+
+if [ -z "$POSTGRES_PASSWORD" ]; then
+  echo "DEBUG: POSTGRES_PASSWORD is not set or empty."
+else
+  echo "DEBUG: POSTGRES_PASSWORD is set."
+fi
+
 # --- Validate secrets ---
 if [[ -z "$DB_PASSWORD" || -z "$POSTGRES_PASSWORD" ]]; then
   echo -e "${RED}❌ ERROR: Environment variables DB_PASSWORD and POSTGRES_PASSWORD must be set.${NC}"
