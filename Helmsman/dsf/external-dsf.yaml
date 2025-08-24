@@ -66,34 +66,78 @@ apps:
       dbUserPasswords.dbuserPassword: ""
       databases.mosip_master.enabled: "true"
       databases.mosip_master.branch: "v1.2.1.1"
+      databases.mosip_master.host: "postgres.soil0.mosip.net"
+      databases.mosip_master.port: 5433
+
       databases.mosip_audit.enabled: "true"
       databases.mosip_audit.branch: "v1.2.0.1"
+      databases.mosip_audit.host: "postgres.soil0.mosip.net"
+      databases.mosip_audit.port: 5433
+
       databases.mosip_keymgr.enabled: "true"
       databases.mosip_keymgr.branch: "v1.2.1.0"
+      databases.mosip_keymgr.host: "postgres.soil0.mosip.net"
+      databases.mosip_keymgr.port: 5433
+
       databases.mosip_kernel.enabled: "true"
       databases.mosip_kernel.branch: "v1.2.0.1"
+      databases.mosip_kernel.host: "postgres.soil0.mosip.net"
+      databases.mosip_kernel.port: 5433
+
       databases.mosip_idmap.enabled: "true"
       databases.mosip_idmap.branch: "v1.2.2.2"
+      databases.mosip_idmap.host: "postgres.soil0.mosip.net"
+      databases.mosip_idmap.port: 5433
+
       databases.mosip_prereg.enabled: "true"
       databases.mosip_prereg.branch: "v1.2.0.1"
+      databases.mosip_prereg.host: "postgres.soil0.mosip.net"
+      databases.mosip_prereg.port: 5433
+
       databases.mosip_idrepo.enabled: "true"
       databases.mosip_idrepo.branch: "v1.2.2.2"
+      databases.mosip_idrepo.host: "postgres.soil0.mosip.net"
+      databases.mosip_idrepo.port: 5433
+
       databases.mosip_ida.enabled: "true"
       databases.mosip_ida.branch: "v1.2.1.0"
+      databases.mosip_ida.host: "postgres.soil0.mosip.net"
+      databases.mosip_ida.port: 5433
+
       databases.mosip_credential.enabled: "true"
       databases.mosip_credential.branch: "v1.2.2.2"
+      databases.mosip_credential.host: "postgres.soil0.mosip.net"
+      databases.mosip_credential.port: 5433
+
       databases.mosip_regprc.enabled: "true"
       databases.mosip_regprc.branch: "v1.2.1.1"
+      databases.mosip_regprc.host: "postgres.soil0.mosip.net"
+      databases.mosip_regprc.port: 5433
+
       databases.mosip_pms.enabled: "true"
       databases.mosip_pms.branch: "release-1.3.x"
+      databases.mosip_pms.host: "postgres.soil0.mosip.net"
+      databases.mosip_pms.port: 5433
+
       databases.mosip_hotlist.enabled: "true"
       databases.mosip_hotlist.branch: "v1.2.1.1"
+      databases.mosip_hotlist.host: "postgres.soil0.mosip.net"
+      databases.mosip_hotlist.port: 5433
+
       databases.mosip_resident.enabled: "true"
       databases.mosip_resident.branch: "v1.2.1.2"
+      databases.mosip_resident.host: "postgres.soil0.mosip.net"
+      databases.mosip_resident.port: 5433
+
       databases.mosip_otp.enabled: "true"
       databases.mosip_otp.branch: "release-1.3.x"
+      databases.mosip_otp.host: "postgres.soil0.mosip.net"
+      databases.mosip_otp.port: 5433
+
       databases.mosip_digitalcard.enabled: "true"
       databases.mosip_digitalcard.branch: "v1.2.0.1"
+      databases.mosip_digitalcard.host: "postgres.soil0.mosip.net"
+      databases.mosip_digitalcard.port: 5433
     wait: true
     timeout: 1200
     priority: -15
