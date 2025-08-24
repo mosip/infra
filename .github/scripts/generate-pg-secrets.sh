@@ -2,10 +2,10 @@
 #
 # Production-Ready PostgreSQL Secrets Generator for MOSIP (Shell Version)
 # Usage:
-#   DB_PASSWORD=... POSTGRES_PASSWORD=... ./generate-pg-secrets.sh <output_dir> <environment> [--apply]
+#   POSTGRES_PASSWORD=... ./generate-pg-secrets.sh <output_dir> <environment> [--apply]
 #
 # Example:
-#   DB_PASSWORD='StrongDBPass123!' POSTGRES_PASSWORD='SuperPostgresPass456!' \
+#   POSTGRES_PASSWORD='SuperPostgresPass456!' \
 #   ./generate-pg-secrets.sh /tmp/mosip-secrets production --apply
 #
 
@@ -18,7 +18,6 @@ APPLY="${3:-}"
 
 # --- Configuration ---
 NAMESPACE="postgres"
-DB_SECRET_NAME="db-common-secrets"
 PG_SECRET_NAME="postgres-postgresql"
 
 # --- Colors for output ---
@@ -33,16 +32,9 @@ echo -e "Environment: ${ENVIRONMENT}"
 echo -e "Output Directory: ${OUTPUT_DIR}"
 
 # --- Read secrets from environment variables ---
-DB_PASSWORD="${DB_PASSWORD:-}"
 POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-}"
 
 # Debug: Check if environment variables are set
-if [ -z "$DB_PASSWORD" ]; then
-  echo "DEBUG: DB_PASSWORD is not set or empty."
-else
-  echo "DEBUG: DB_PASSWORD is set."
-fi
-
 if [ -z "$POSTGRES_PASSWORD" ]; then
   echo "DEBUG: POSTGRES_PASSWORD is not set or empty."
 else
@@ -70,13 +62,12 @@ if [[ "$APPLY" == "--apply" ]]; then
 fi
 
 # --- Validate secrets ---
-if [[ -z "$DB_PASSWORD" || -z "$POSTGRES_PASSWORD" ]]; then
-  echo -e "${RED}ERROR: Environment variables DB_PASSWORD and POSTGRES_PASSWORD must be set.${NC}"
+if [[ -z "$POSTGRES_PASSWORD" ]]; then
+  echo -e "${RED}ERROR: Environment variable POSTGRES_PASSWORD must be set.${NC}"
   echo "Usage example:"
-  echo "  DB_PASSWORD='mypassword' POSTGRES_PASSWORD='mypassword' $0 ./secrets production [--apply]"
+  echo "  POSTGRES_PASSWORD='mypassword' $0 ./secrets production [--apply]"
   echo ""
   echo "For production deployment, set:"
-  echo "  export DB_PASSWORD='your-secure-password'"
   echo "  export POSTGRES_PASSWORD='your-postgres-password'" 
   echo "  export ENVIRONMENT='production'"
   exit 1
@@ -99,7 +90,6 @@ echo -e "${BLUE}Using passwords from environment variables${NC}"
 
 # --- Validate password strength ---
 echo -e "${BLUE}Validating passwords for ${ENVIRONMENT} environment...${NC}"
-validate_password "$DB_PASSWORD" "DB_PASSWORD"
 validate_password "$POSTGRES_PASSWORD" "POSTGRES_PASSWORD"
 
 # --- Ensure output directory exists ---
@@ -132,12 +122,10 @@ EOF
 }
 
 # --- Create secrets ---
-DB_SECRET_FILE="$OUTPUT_DIR/db-common-secrets.yaml"
 PG_SECRET_FILE="$OUTPUT_DIR/postgres-postgresql.yaml"
 
 echo -e "${BLUE}Generating secret YAML files...${NC}"
 
-create_secret_yaml "$DB_SECRET_NAME" "$NAMESPACE" "db-dbuser-password" "$DB_PASSWORD" "$DB_SECRET_FILE"
 create_secret_yaml "$PG_SECRET_NAME" "$NAMESPACE" "postgres-password" "$POSTGRES_PASSWORD" "$PG_SECRET_FILE"
 
 echo -e "${GREEN}All PostgreSQL secrets generated successfully!${NC}"
@@ -153,20 +141,19 @@ if [[ "$APPLY" == "--apply" ]]; then
   echo -e "${GREEN}Namespace ${NAMESPACE} ready${NC}"
   
   # Apply secrets
-  kubectl apply -f "$DB_SECRET_FILE"
   kubectl apply -f "$PG_SECRET_FILE"
   
   echo -e "${GREEN}Secrets applied successfully to cluster${NC}"
   
   # Verify secrets
   echo -e "${BLUE}Verifying secrets...${NC}"
-  kubectl get secrets -n "$NAMESPACE" "$DB_SECRET_NAME" "$PG_SECRET_NAME"
+  kubectl get secrets -n "$NAMESPACE" "$PG_SECRET_NAME"
   echo -e "${GREEN}Secret verification complete${NC}"
 fi
 
 # --- Cleanup sensitive files if applied ---
 if [[ "$APPLY" == "--apply" ]]; then
   echo -e "${YELLOW}Cleaning up secret files for security...${NC}"
-  rm -f "$DB_SECRET_FILE" "$PG_SECRET_FILE"
+  rm -f "$PG_SECRET_FILE"
   echo -e "${GREEN}Cleanup complete${NC}"
 fi
