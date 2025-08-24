@@ -39,7 +39,7 @@ apps:
     namespace: postgres
     enabled: true
     version: 0.1.0
-    chart: $WORKDIR/utils/postgres/external-postgres-setup/external-postgres-setup-0.1.0.tgz
+    chart: $WORKDIR/utils/postgres/external-postgres-setup-0.1.0.tgz
     wait: true
     priority: -16
     set:
