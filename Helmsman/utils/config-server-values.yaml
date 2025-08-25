@@ -138,6 +138,18 @@ gitRepo:
 
 # All env variables that are accessed from mosip config properties
 envVariables:
+  - name: SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_POSTGRES_HOST
+    valueFrom:
+      configMapKeyRef:
+        key: postgres-host
+        name: postgres-setup-config
+    enabled: true
+  - name: SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_POSTGRES_PORT
+    valueFrom:
+      configMapKeyRef:
+        key: postgres-port
+        name: postgres-setup-config
+    enabled: true
   - name: SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_MOSIP_API_PUBLIC_HOST
     valueFrom:
       configMapKeyRef:
@@ -690,7 +702,6 @@ envVariables:
         name: conf-secrets-various
         key: resident-websub-regproc-workflow-complete-secret
     enabled: true
-
 
 ## The active profile env if you have another set of properties. Correspondingly, properties in Git repo will
 ## have names of type "*-default.properties"
