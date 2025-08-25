@@ -615,6 +615,10 @@ module "nginx-setup" {
   NETWORK_CIDR                 = var.network_cidr
   MOSIP_INFRA_REPO_URL         = var.mosip_infra_repo_url
   MOSIP_INFRA_BRANCH           = var.mosip_infra_branch
+
+  # Control plane configuration for PostgreSQL K8s deployment
+  CONTROL_PLANE_HOST = [for instance in module.aws-resource-creation.K8S_CLUSTER_PRIVATE_IPS : instance][0]
+  CONTROL_PLANE_USER = "ubuntu"
 }
 
 
