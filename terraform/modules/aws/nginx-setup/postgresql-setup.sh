@@ -1,4 +1,3 @@
-
 #!/bin/bash
 
 # PostgreSQL Ansible Setup Script - Bulletproof & Idempotent
@@ -6,7 +5,7 @@
 
 set -euo pipefail
 
-echo '=== PostgreSQL Ansible Setup Started at $(date) ==='
+echo "=== PostgreSQL Ansible Setup Started at $(date) ==="
 
 # Set complete non-interactive environment (bulletproof approach)
 export DEBIAN_FRONTEND=noninteractive
@@ -148,6 +147,32 @@ echo 'All required environment variables are set:'
 for var in "${REQUIRED_VARS[@]}"; do
     echo "  $var=${!var}"
 done
+
+# Display control plane configuration variables
+CONTROL_PLANE_VARS=(
+    "CONTROL_PLANE_HOST"
+    "CONTROL_PLANE_USER"
+)
+
+echo ''
+echo 'Kubernetes control plane configuration:'
+CONTROL_PLANE_SET=false
+for var in "${CONTROL_PLANE_VARS[@]}"; do
+    if [ -n "${!var:-}" ]; then
+        echo "  $var=${!var}"
+        CONTROL_PLANE_SET=true
+    fi
+done
+
+if [ "$CONTROL_PLANE_SET" = false ]; then
+    echo '  No control plane variables set - deployment will fail'
+    echo '  Required variables for Terraform deployment:'
+    echo '    - CONTROL_PLANE_HOST=<control-plane-ip>'
+    echo '    - CONTROL_PLANE_USER=<control-plane-username> (default: ubuntu)'
+    echo ''
+    echo '  These should be set automatically by Terraform from your K8s cluster module'
+fi
+
 echo ""
 
 # Install prerequisites with bulletproof method
@@ -265,8 +290,7 @@ cat > inventory.ini << 'EOF'
 localhost ansible_connection=local ansible_user=ubuntu ansible_become=yes ansible_become_method=sudo
 EOF
 
-echo '[SUCCESS] Inventory file created:'
-cat inventory.ini
+echo '[SUCCESS] Inventory file created successfully'
 
 # Check if required playbook exists
 PLAYBOOK_FILE="postgresql-setup.yml"
@@ -280,6 +304,68 @@ echo "[SUCCESS] Playbook file found: $PLAYBOOK_FILE"
 
 # Set PostgreSQL configuration variables
 echo '[CONFIG] Setting Environment Variables...'
+
+# Get the actual IP address of this nginx node for external access
+echo '[DETECT] Detecting nginx node IP address...'
+NGINX_NODE_IP=""
+
+# Method 1: Try to get IP from default route interface
+DEFAULT_INTERFACE=$(ip route | grep '^default' | awk '{print $5}' | head -1 2>/dev/null)
+if [ -n "$DEFAULT_INTERFACE" ]; then
+    NGINX_NODE_IP=$(ip addr show "$DEFAULT_INTERFACE" | grep -oP 'inet \K[\d.]+' | head -1 2>/dev/null)
+    echo "[SUCCESS] Found IP via default interface ($DEFAULT_INTERFACE): $NGINX_NODE_IP"
+fi
+
+# Method 2: If Method 1 failed, try getting IP from hostname resolution
+if [ -z "$NGINX_NODE_IP" ]; then
+    NGINX_NODE_IP=$(hostname -I | awk '{print $1}' 2>/dev/null)
+    if [ -n "$NGINX_NODE_IP" ]; then
+        echo "[SUCCESS] Found IP via hostname -I: $NGINX_NODE_IP"
+    fi
+fi
+
+# Method 3: If both methods failed, try getting from AWS metadata (if running on AWS)
+if [ -z "$NGINX_NODE_IP" ]; then
+    echo "[DETECT] Trying AWS EC2 metadata service..."
+    NGINX_NODE_IP=$(timeout 5 curl -s http://169.254.169.254/latest/meta-data/local-ipv4 2>/dev/null || echo "")
+    if [ -n "$NGINX_NODE_IP" ]; then
+        echo "[SUCCESS] Found IP via AWS metadata: $NGINX_NODE_IP"
+    fi
+fi
+
+# Method 4: Try getting private IP from network interfaces (fallback)
+if [ -z "$NGINX_NODE_IP" ]; then
+    echo "[DETECT] Trying network interface detection..."
+    NGINX_NODE_IP=$(ip addr show | grep -oP 'inet \K10\.\d+\.\d+\.\d+' | head -1 2>/dev/null)
+    if [ -z "$NGINX_NODE_IP" ]; then
+        NGINX_NODE_IP=$(ip addr show | grep -oP 'inet \K172\.(1[6-9]|2[0-9]|3[01])\.\d+\.\d+' | head -1 2>/dev/null)
+    fi
+    if [ -z "$NGINX_NODE_IP" ]; then
+        NGINX_NODE_IP=$(ip addr show | grep -oP 'inet \K192\.168\.\d+\.\d+' | head -1 2>/dev/null)
+    fi
+    if [ -n "$NGINX_NODE_IP" ]; then
+        echo "[SUCCESS] Found private IP via interface scan: $NGINX_NODE_IP"
+    fi
+fi
+
+# Validate the IP address
+if [ -n "$NGINX_NODE_IP" ]; then
+    # Basic IP validation
+    if echo "$NGINX_NODE_IP" | grep -qE '^([0-9]{1,3}\.){3}[0-9]{1,3}$'; then
+        echo "[SUCCESS] Nginx node IP address detected: $NGINX_NODE_IP"
+        echo "[INFO] This IP will be used as postgres-host in the ConfigMap"
+    else
+        echo "[ERROR] Invalid IP address detected: $NGINX_NODE_IP"
+        exit 1
+    fi
+else
+    echo "[ERROR] Could not detect nginx node IP address"
+    echo "[INFO] Available network interfaces:"
+    ip addr show | grep -E '^[0-9]+:' | awk '{print $2}' | tr -d ':'
+    echo "[INFO] Please manually set the IP address or check network configuration"
+    exit 1
+fi
+
 export DEBIAN_FRONTEND=noninteractive  # Prevent interactive prompts
 export ANSIBLE_HOST_KEY_CHECKING=False  # Skip host key checking
 export ANSIBLE_STDOUT_CALLBACK=debug   # Verbose output
@@ -392,7 +478,7 @@ fi
 
 # Show the command that will be executed
 echo '[INFO] Ansible command to be executed:'
-echo "ansible-playbook -vv -i inventory.ini -e postgresql_version=$POSTGRESQL_VERSION -e storage_device=$STORAGE_DEVICE -e mount_point=$MOUNT_POINT -e postgresql_port=$POSTGRESQL_PORT -e network_cidr=$NETWORK_CIDR postgresql-setup.yml"
+echo "ansible-playbook -vv -i inventory.ini -e postgresql_version=$POSTGRESQL_VERSION -e storage_device=$STORAGE_DEVICE -e mount_point=$MOUNT_POINT -e postgresql_port=$POSTGRESQL_PORT -e network_cidr=$NETWORK_CIDR -e postgres_external_host=$NGINX_NODE_IP postgresql-setup.yml"
 
 # Start a background progress monitor
 (
@@ -414,6 +500,7 @@ timeout 900 ansible-playbook -vv -i inventory.ini \
     -e mount_point=$MOUNT_POINT \
     -e postgresql_port=$POSTGRESQL_PORT \
     -e network_cidr=$NETWORK_CIDR \
+    -e postgres_external_host=$NGINX_NODE_IP \
     postgresql-setup.yml 2>&1 | tee /tmp/postgresql-ansible.log
 ANSIBLE_EXIT_CODE=$?
 
@@ -464,7 +551,6 @@ else
     echo ''
     echo "[SUCCESS] Ansible playbook completed successfully at $(date)"
 fi
-
 
 # Verify PostgreSQL installation with improved checks
 echo ''
@@ -548,4 +634,161 @@ echo "Storage Device: $STORAGE_DEVICE"
 echo "Mount Point: $MOUNT_POINT"
 echo "PostgreSQL Port: $POSTGRESQL_PORT"
 echo "Network CIDR: $NETWORK_CIDR"
+
+# Copy kubeconfig to nginx node
+echo '[CONFIG] Setting up Kubernetes resource deployment...'
+
+# Validate control plane configuration
+if [ -z "${CONTROL_PLANE_HOST:-}" ] || [ -z "${CONTROL_PLANE_USER:-}" ]; then
+    echo '[ERROR] Control plane configuration missing!'
+    echo '[ERROR] CONTROL_PLANE_HOST and CONTROL_PLANE_USER must be set'
+    echo '[INFO] Required variables:'
+    echo "  CONTROL_PLANE_HOST: Kubernetes control plane IP address"
+    echo "  CONTROL_PLANE_USER: SSH username for control plane access"
+    exit 1
+fi
+
+echo "[INFO] Using control plane deployment method"
+echo "[INFO] Control plane: ${CONTROL_PLANE_USER}@${CONTROL_PLANE_HOST}"
+echo "[INFO] YAML files will be copied to control plane for kubectl apply"
+
+echo ''
+echo '=== [K8S] Kubernetes Setup Phase ==='
+echo 'Setting up Kubernetes resources for PostgreSQL...'
+
+# Check if Kubernetes YAML files were generated
+echo '[CHECK] Checking for generated Kubernetes YAML files...'
+POSTGRES_SECRET_FILE="/tmp/postgresql-secrets/postgres-postgresql.yml"
+POSTGRES_CONFIG_FILE="/tmp/postgresql-secrets/postgres-setup-config.yml"
+
+if [ -f "$POSTGRES_SECRET_FILE" ] && [ -f "$POSTGRES_CONFIG_FILE" ]; then
+    echo '[SUCCESS] Kubernetes YAML files found:'
+    echo "  Secret: $POSTGRES_SECRET_FILE"
+    echo "  ConfigMap: $POSTGRES_CONFIG_FILE"
+    
+    echo ''
+    echo '[K8S] Deploying via Control Plane...'
+    
+    # Create a deployment script for the control plane
+    DEPLOY_SCRIPT="/tmp/deploy-postgres-k8s.sh"
+    cat > "$DEPLOY_SCRIPT" << 'EOF'
+#!/bin/bash
+set -e
+
+echo "=== PostgreSQL Kubernetes Deployment ==="
+echo "Timestamp: $(date)"
+
+# Create postgres namespace if it doesn't exist
+echo "[CREATE] Creating postgres namespace..."
+if kubectl get namespace postgres >/dev/null 2>&1; then
+    echo "[SUCCESS] postgres namespace already exists"
+else
+    if kubectl create namespace postgres; then
+        echo "[SUCCESS] postgres namespace created successfully"
+    else
+        echo "[ERROR] Failed to create postgres namespace"
+        exit 1
+    fi
+fi
+
+# Apply the Secret
+echo "[APPLY] Applying PostgreSQL secret..."
+if kubectl apply -f /tmp/postgresql-secrets/postgres-postgresql.yml; then
+    echo "[SUCCESS] PostgreSQL secret applied successfully"
+else
+    echo "[ERROR] Failed to apply PostgreSQL secret"
+    exit 1
+fi
+
+# Apply the ConfigMap
+echo "[APPLY] Applying PostgreSQL ConfigMap..."
+if kubectl apply -f /tmp/postgresql-secrets/postgres-setup-config.yml; then
+    echo "[SUCCESS] PostgreSQL ConfigMap applied successfully"
+else
+    echo "[ERROR] Failed to apply PostgreSQL ConfigMap"
+    exit 1
+fi
+
+# Verify the resources were created
+echo ""
+echo "[VERIFY] Verifying Kubernetes resources..."
+echo "[CHECK] postgres namespace:"
+kubectl get namespace postgres >/dev/null 2>&1 && echo "[SUCCESS] postgres namespace exists" || echo "[ERROR] postgres namespace not found"
+
+echo "[CHECK] PostgreSQL secret:"
+kubectl get secret -n postgres postgres-postgresql >/dev/null 2>&1 && echo "[SUCCESS] PostgreSQL secret exists" || echo "[ERROR] PostgreSQL secret not found"
+
+echo "[CHECK] PostgreSQL ConfigMap:"
+kubectl get configmap -n postgres postgres-setup-config >/dev/null 2>&1 && echo "[SUCCESS] PostgreSQL ConfigMap exists" || echo "[ERROR] PostgreSQL ConfigMap not found"
+
+echo ""
+echo "[SUCCESS] PostgreSQL Kubernetes deployment completed!"
+
+# Clean up the YAML files for security
+echo "[CLEANUP] Removing sensitive YAML files..."
+rm -f /tmp/postgresql-secrets/*.yml
+rmdir /tmp/postgresql-secrets 2>/dev/null || true
+echo "[SUCCESS] Cleanup completed"
+EOF
+    
+    chmod +x "$DEPLOY_SCRIPT"
+    
+    # Copy files to control plane
+    echo "[COPY] Copying YAML files and deployment script to control plane..."
+    
+    # Use SSH with proper error handling
+    if timeout 60 scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 \
+       -r /tmp/postgresql-secrets "$DEPLOY_SCRIPT" "${CONTROL_PLANE_USER}@${CONTROL_PLANE_HOST}:/tmp/" 2>/dev/null; then
+        echo "[SUCCESS] Files copied to control plane"
+        
+        # Execute the deployment script on control plane
+        echo "[EXECUTE] Running deployment script on control plane..."
+        if timeout 120 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 \
+           "${CONTROL_PLANE_USER}@${CONTROL_PLANE_HOST}" "bash /tmp/deploy-postgres-k8s.sh" 2>/dev/null; then
+            echo "[SUCCESS] Kubernetes resources deployed successfully via control plane!"
+        else
+            echo "[ERROR] Failed to execute deployment script on control plane"
+            echo "[INFO] Manual deployment fallback:"
+            echo "  1. SSH to control plane: ssh ${CONTROL_PLANE_USER}@${CONTROL_PLANE_HOST}"
+            echo "  2. Run: bash /tmp/deploy-postgres-k8s.sh"
+            exit 1
+        fi
+        
+        # Cleanup the deployment script on control plane
+        timeout 30 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+           "${CONTROL_PLANE_USER}@${CONTROL_PLANE_HOST}" "rm -f /tmp/deploy-postgres-k8s.sh" 2>/dev/null || true
+            
+    else
+        echo "[ERROR] Failed to copy files to control plane"
+        echo "[ERROR] Please verify:"
+        echo "  1. Control plane host is reachable: ${CONTROL_PLANE_HOST}"
+        echo "  2. SSH access is configured for user: ${CONTROL_PLANE_USER}"
+        echo "  3. Network connectivity between nginx node and control plane"
+        exit 1
+    fi
+    
+    # Clean up local deployment script
+    rm -f "$DEPLOY_SCRIPT"
+    
+else
+    echo '[ERROR] Kubernetes YAML files not found'
+    echo '[ERROR] Expected files:'
+    echo "  $POSTGRES_SECRET_FILE"
+    echo "  $POSTGRES_CONFIG_FILE"
+    echo '[ERROR] The Ansible playbook may have failed to generate these files'
+    exit 1
+fi
+
+echo ''
+echo '=== [CLEANUP] Cleaning up temporary files ==='
+# Clean up sensitive information 
+echo '[CLEAN] Cleaning up temporary files...'
+rm -rf /tmp/mosip-infra 2>/dev/null || true
+rm -f /tmp/postgresql-ansible.log 2>/dev/null || true
+
+# Keep the generated YAML files for reference (they will be cleaned up by control plane script)
+echo '[INFO] Generated Kubernetes files location:'
+echo '  /tmp/postgresql-secrets/ (cleaned up automatically on control plane after deployment)'
+echo ''
+
 echo "PostgreSQL setup completed successfully"

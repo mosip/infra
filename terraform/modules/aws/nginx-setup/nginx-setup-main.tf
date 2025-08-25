@@ -61,6 +61,23 @@ variable "MOSIP_INFRA_BRANCH" {
   default = "develop"
 }
 
+# Kubernetes Control Plane Configuration for PostgreSQL deployment
+variable "CONTROL_PLANE_HOST" {
+  type        = string
+  description = "IP address or hostname of the Kubernetes control plane node where kubectl is configured"
+
+  # Example: In your main Terraform configuration, pass the control plane IP:
+  # CONTROL_PLANE_HOST = module.k8s_cluster.control_plane_private_ip
+  # or
+  # CONTROL_PLANE_HOST = "10.0.1.10"
+}
+
+variable "CONTROL_PLANE_USER" {
+  type        = string
+  default     = "ubuntu"
+  description = "Username for SSH access to the control plane node"
+}
+
 locals {
   NGINX_CONFIG = {
     cluster_env_domain                = var.CLUSTER_ENV_DOMAIN
@@ -163,6 +180,10 @@ resource "null_resource" "PostgreSQL-ansible-setup" {
       "export NETWORK_CIDR=${var.NETWORK_CIDR}",
       "export MOSIP_INFRA_REPO_URL=${var.MOSIP_INFRA_REPO_URL}",
       "export MOSIP_INFRA_BRANCH=${var.MOSIP_INFRA_BRANCH}",
+
+      # Set control plane variables for Kubernetes deployment
+      "export CONTROL_PLANE_HOST=${var.CONTROL_PLANE_HOST}",
+      "export CONTROL_PLANE_USER=${var.CONTROL_PLANE_USER}",
 
       # Execute the PostgreSQL setup script
       "sudo chmod +x /tmp/postgresql-setup.sh",
