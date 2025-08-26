@@ -81,14 +81,28 @@ output "rke2_deployment_info" {
   description = "RKE2 deployment information including Cloud-Init data and instructions"
   value = var.cloud_provider == "aws" ? (
     length(module.aws_infra) > 0 ? {
-      cloud_init_user_data     = module.aws_infra[0].rke2_cloud_init_user_data
-      setup_instructions       = module.aws_infra[0].setup_instructions
-      control_plane_nodes      = module.aws_infra[0].control_plane_nodes
-      deployment_method        = module.aws_infra[0].deployment_method
+      cloud_init_user_data      = module.aws_infra[0].rke2_cloud_init_user_data
+      setup_instructions        = module.aws_infra[0].setup_instructions
+      control_plane_nodes       = module.aws_infra[0].control_plane_nodes
+      deployment_method         = module.aws_infra[0].deployment_method
       kubeconfig_files_location = module.aws_infra[0].kubeconfig_files_location
-      kubectl_usage            = module.aws_infra[0].kubectl_usage
-    } : {}
-  ) : {}  # TODO: Add Azure and GCP when implemented
+      kubectl_usage             = module.aws_infra[0].kubectl_usage
+    } : {
+      cloud_init_user_data      = {}
+      setup_instructions        = "No AWS infrastructure deployed"
+      control_plane_nodes       = {}
+      deployment_method         = "Unknown"
+      kubeconfig_files_location = "Unknown"
+      kubectl_usage             = "No kubectl usage available"
+    }
+  ) : {
+    cloud_init_user_data      = {}
+    setup_instructions        = "Cloud provider ${var.cloud_provider} not yet implemented"
+    control_plane_nodes       = {}
+    deployment_method         = "Unknown"
+    kubeconfig_files_location = "Unknown"
+    kubectl_usage             = "No kubectl usage available"
+  }
 }
 
 output "vpc_id" {
