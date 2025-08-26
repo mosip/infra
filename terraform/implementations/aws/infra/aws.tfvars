@@ -82,3 +82,9 @@ mosip_infra_branch = "develop"
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
 vpc_name = "mosip-boxes"
+
+# RKE2 Deployment Configuration - Cloud-Init (Production Grade)
+use_cloud_init = true
+# Optional: Bastion host for SSH optimization (if Cloud-Init disabled)
+use_bastion = false
+bastion_host = ""

@@ -62,4 +62,9 @@ module "mosip_infra" {
   nginx_node_ebs_volume_size_2  = var.nginx_node_ebs_volume_size_2
   k8s_instance_root_volume_size = var.k8s_instance_root_volume_size
 
+  # RKE2 Cloud-Init Configuration
+  use_cloud_init = var.use_cloud_init
+  use_bastion    = var.use_bastion
+  bastion_host   = var.bastion_host
+
 }
