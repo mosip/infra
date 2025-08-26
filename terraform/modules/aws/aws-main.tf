@@ -619,6 +619,17 @@ module "rke2-setup" {
   RANCHER_IMPORT_URL      = var.RANCHER_IMPORT_URL
   K8S_INFRA_REPO_URL      = var.K8S_INFRA_REPO_URL
   CLUSTER_ENV_DOMAIN      = var.CLUSTER_ENV_DOMAIN
+  enable_rancher_import   = var.ENABLE_RANCHER_IMPORT
+}
+module "nfs-setup" {
+  depends_on          = [module.aws-resource-creation, module.rke2-setup]
+  source              = "./nfs-setup"
+  NFS_SERVER_LOCATION = "/srv/nfs/mosip/${var.CLUSTER_ENV_DOMAIN}"
+  NFS_SERVER          = module.aws-resource-creation.NGINX_PRIVATE_IP
+  SSH_PRIVATE_KEY     = var.SSH_PRIVATE_KEY
+  K8S_INFRA_REPO_URL  = var.K8S_INFRA_REPO_URL
+  K8S_INFRA_BRANCH    = var.K8S_INFRA_BRANCH
+  CLUSTER_NAME        = var.CLUSTER_NAME
 }
 
 module "postgresql-setup" {
@@ -640,15 +651,4 @@ module "postgresql-setup" {
   # Control plane configuration for PostgreSQL K8s deployment
   CONTROL_PLANE_HOST = [for instance in module.aws-resource-creation.K8S_CLUSTER_PRIVATE_IPS : instance][0]
   CONTROL_PLANE_USER = "ubuntu"
-}
-
-module "nfs-setup" {
-  depends_on          = [module.aws-resource-creation, module.rke2-setup]
-  source              = "./nfs-setup"
-  NFS_SERVER_LOCATION = "/srv/nfs/mosip/${var.CLUSTER_ENV_DOMAIN}"
-  NFS_SERVER          = module.aws-resource-creation.NGINX_PRIVATE_IP
-  SSH_PRIVATE_KEY     = var.SSH_PRIVATE_KEY
-  K8S_INFRA_REPO_URL  = var.K8S_INFRA_REPO_URL
-  K8S_INFRA_BRANCH    = var.K8S_INFRA_BRANCH
-  CLUSTER_NAME        = var.CLUSTER_NAME
 }
