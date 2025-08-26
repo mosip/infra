@@ -561,3 +561,32 @@ output "setup_instructions" {
     "Direct VPN mode: Using extended timeouts and retry mechanisms."
   )
 }
+
+# Output control plane nodes for kubeconfig reference
+output "control_plane_nodes" {
+  description = "Control plane nodes that will have kubeconfig files available"
+  value = {
+    for key, value in var.K8S_CLUSTER_PRIVATE_IPS : key => value 
+    if length(regexall(".*CONTROL-PLANE-NODE.*", key)) > 0
+  }
+}
+
+# Output deployment method being used
+output "deployment_method" {
+  description = "Deployment method being used for RKE2 setup"
+  value = var.use_cloud_init ? "Cloud-Init (SSH-free deployment)" : (
+    var.use_bastion ? "SSH with Bastion Host" : "Direct SSH"
+  )
+}
+
+# Output kubeconfig file locations after deployment
+output "kubeconfig_files_location" {
+  description = "Location where kubeconfig files will be downloaded after terraform apply"
+  value = "Files will be downloaded to the terraform apply directory: ${path.cwd}/"
+}
+
+# Output kubectl usage instructions
+output "kubectl_usage" {
+  description = "Instructions for using kubectl after deployment"
+  value = "After deployment: cd ${path.cwd} && ./kubectl --kubeconfig=<control-plane-node-name>.yaml get nodes"
+}
