@@ -50,9 +50,9 @@ output "rke2_deployment_info" {
 output "deployment_summary" {
   description = "Summary of deployment method and file locations"
   value = {
-    deployment_method = try(module.mosip_infra.rke2_deployment_info.deployment_method, "Unknown")
-    kubeconfig_location = try(module.mosip_infra.rke2_deployment_info.kubeconfig_files_location, "Unknown")
-    control_plane_nodes = try(module.mosip_infra.rke2_deployment_info.control_plane_nodes, {})
+    deployment_method     = try(module.mosip_infra.rke2_deployment_info.deployment_method, "Unknown")
+    kubeconfig_location   = try(module.mosip_infra.rke2_deployment_info.kubeconfig_files_location, "Unknown")
+    control_plane_nodes   = try(module.mosip_infra.rke2_deployment_info.control_plane_nodes, {})
     kubectl_usage_example = try(module.mosip_infra.rke2_deployment_info.kubectl_usage, "Run terraform apply to see instructions")
   }
 }
