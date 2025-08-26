@@ -1,7 +1,7 @@
 # Environment name (infra component)
-cluster_name = "soil"
+cluster_name = "test"
 # MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "soil5.mosip.net"
+cluster_env_domain = "testgrids.mosip.net"
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
 mosip_email_id = "chandra.mishra@technoforte.co.in"
 # SSH login key name for AWS node instances (ex: my-ssh-key)
@@ -18,9 +18,9 @@ aws_provider_region = "ap-south-1"
 # - Capacity exclusions are optional and configurable below
 
 # The instance type for Kubernetes nodes (control plane, worker, etcd)
-k8s_instance_type = "t3.2xlarge"
+k8s_instance_type = "t3a.2xlarge"
 # The instance type for Nginx server (load balancer)
-nginx_instance_type = "t3.2xlarge"
+nginx_instance_type = "t3a.2xlarge"
 
 # Optional: Exclude specific AZs due to known capacity issues
 # Leave empty for fully dynamic behavior (recommended)
@@ -55,11 +55,12 @@ k8s_etcd_node_count = 1
 k8s_worker_node_count = 1
 
 # Rancher Import Configuration
+enable_rancher_import = false
 
 # Security group CIDRs
 network_cidr          = "10.0.0.0/16"   # Use your actual VPC CIDR
 WIREGUARD_CIDR        = "10.13.13.0/24" # Use your actual WireGuard VPN CIDR
-enable_rancher_import = false
+
 # Rancher Import URL
 rancher_import_url = "\"kubectl apply -f https://rancher.mosip.net/v3/import/dzshvnb6br7qtf267zsrr9xsw6tnb2vt4x68g79r2wzsnfgvkjq2jk_c-m-b5249w76.yaml\""
 # DNS Records to map
