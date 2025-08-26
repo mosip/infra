@@ -1,7 +1,7 @@
 # Environment name (infra component)
 cluster_name = "soil"
 # MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "soil0.mosip.net"
+cluster_env_domain = "soil.mosip.net"
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
 mosip_email_id = "chandra.mishra@technoforte.co.in"
 # SSH login key name for AWS node instances (ex: my-ssh-key)
@@ -18,9 +18,9 @@ aws_provider_region = "ap-south-1"
 # - Capacity exclusions are optional and configurable below
 
 # The instance type for Kubernetes nodes (control plane, worker, etcd)
-k8s_instance_type = "t3a.2xlarge"
+k8s_instance_type = "t3.2xlarge"
 # The instance type for Nginx server (load balancer)
-nginx_instance_type = "t3a.2xlarge"
+nginx_instance_type = "t3.2xlarge"
 
 # Optional: Exclude specific AZs due to known capacity issues
 # Leave empty for fully dynamic behavior (recommended)
@@ -48,11 +48,11 @@ nginx_node_ebs_volume_size_2 = 200 # Enable second EBS volume for PostgreSQL tes
 k8s_instance_root_volume_size = 64
 
 # Control-plane, ETCD, Worker
-k8s_control_plane_node_count = 3
+k8s_control_plane_node_count = 1
 # ETCD, Worker
-k8s_etcd_node_count = 3
+k8s_etcd_node_count = 1
 # Worker
-k8s_worker_node_count = 2
+k8s_worker_node_count = 1
 
 # Rancher Import Configuration
 
@@ -67,11 +67,11 @@ subdomain_public   = ["resident", "prereg", "esignet", "healthservices", "signup
 subdomain_internal = ["admin", "iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio", "regclient", "compliance"]
 
 # PostgreSQL Configuration (used when second EBS volume is enabled)
-enable_postgresql_setup = true  # Enable PostgreSQL setup for main infra
-postgresql_version = "15"
-storage_device     = "/dev/nvme2n1"
-mount_point        = "/srv/postgres"
-postgresql_port    = "5433"
+enable_postgresql_setup = true # Enable PostgreSQL setup for main infra
+postgresql_version      = "15"
+storage_device          = "/dev/nvme2n1"
+mount_point             = "/srv/postgres"
+postgresql_port         = "5433"
 
 # MOSIP Infrastructure Repository Configuration
 mosip_infra_repo_url = "https://github.com/bhumi46/mosip-infra.git"
