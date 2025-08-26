@@ -131,6 +131,12 @@ variable "k8s_instance_root_volume_size" {
 }
 
 # PostgreSQL Configuration Variables
+variable "enable_postgresql_setup" {
+  description = "Enable PostgreSQL setup"
+  type        = bool
+  default     = true
+}
+
 variable "postgresql_version" {
   description = "PostgreSQL version to install"
   type        = string
