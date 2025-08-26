@@ -87,13 +87,24 @@ resource "null_resource" "nfs-server-setup" {
     ]
   }
   
-  # Clone repository first
+    # Clone repository first
   provisioner "remote-exec" {
     inline = [
-      "# Clone k8s-infra repository",
-      "rm -rf k8s-infra",
-      "git clone ${var.K8S_INFRA_REPO_URL}",
+      "# Clone k8s-infra repository if it doesn't exist",
+      "if [ ! -d 'k8s-infra' ]; then",
+      "  echo 'Cloning k8s-infra repository...'",
+      "  git clone ${var.K8S_INFRA_REPO_URL}",
+      "else",
+      "  echo 'k8s-infra repository already exists, using existing repository'",
+      "  # Configure git safe directory to avoid ownership warnings",
+      "  git config --global --add safe.directory /home/ubuntu/k8s-infra || true",
+      "fi",
+      "",
+      "# Switch to correct branch",
       "cd k8s-infra && git checkout ${var.K8S_INFRA_BRANCH}",
+      "cd ..",
+      "",
+      "# Verify and set permissions for NFS scripts",
       "ls -la ${local.NFS_CONFIG.K8S_INFRA_NFS_LOCATION}/",
       "chmod +x ${local.NFS_CONFIG.K8S_INFRA_NFS_LOCATION}/${local.NFS_CONFIG.K8S_INFRA_NFS_SERVER_SCRIPT_NAME}"
     ]
