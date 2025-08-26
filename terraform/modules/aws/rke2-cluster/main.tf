@@ -86,11 +86,20 @@ resource "null_resource" "rke2-primary-cluster-setup" {
   #     node_hash = md5(local.K8S_CLUSTER_PRIVATE_IPS_STR)
   #   }
   connection {
-    type        = "ssh"
-    host        = local.CONTROL_PLANE_NODE_1
-    user        = "ubuntu"            # Change based on the AMI used
-    private_key = var.SSH_PRIVATE_KEY # content of your private key
-
+    type                = "ssh"
+    host                = local.CONTROL_PLANE_NODE_1
+    user                = "ubuntu"
+    private_key         = var.SSH_PRIVATE_KEY
+    timeout             = "30m"                # Increased timeout for long-running scripts
+    agent               = false                # Don't use SSH agent
+    host_key            = null                 # Skip host key verification
+    
+    # Additional SSH connection optimizations
+    script_path         = "/tmp/terraform_script_%RAND%.sh"
+    target_platform     = "unix"
+    
+    # SSH connection retry settings (implicit)
+    # Terraform will retry SSH connections automatically
   }
   provisioner "file" {
     source      = "${path.module}/rke2-setup.sh"
@@ -100,7 +109,18 @@ resource "null_resource" "rke2-primary-cluster-setup" {
     inline = concat(
       local.k8s_env_vars,
       [
-        "sudo bash /tmp/rke2-setup.sh"
+        # Set node-specific environment variables for primary control plane
+        "echo 'NODE_NAME=CONTROL-PLANE-NODE-1' | sudo tee -a /etc/environment",
+        "echo 'INTERNAL_IP=${local.CONTROL_PLANE_NODE_1}' | sudo tee -a /etc/environment",
+        "sudo chmod +x /tmp/rke2-setup.sh",
+        "echo 'Starting RKE2 setup script at $(date)...'",
+        # Run the script with timeout to prevent hanging
+        "timeout 1200 sudo bash -x /tmp/rke2-setup.sh > /tmp/rke2-setup.log 2>&1",
+        "SCRIPT_EXIT_CODE=$?",
+        "echo 'RKE2 setup script completed at $(date) with exit code: $SCRIPT_EXIT_CODE'",
+        "if [ $SCRIPT_EXIT_CODE -eq 124 ]; then echo 'Script timed out after 20 minutes'; echo 'Last 100 lines of log:'; tail -100 /tmp/rke2-setup.log; exit 124; fi",
+        "if [ $SCRIPT_EXIT_CODE -ne 0 ]; then echo 'Script failed! Last 50 lines of log:'; tail -50 /tmp/rke2-setup.log; exit $SCRIPT_EXIT_CODE; fi",
+        "echo 'Script completed successfully. Last 20 lines of log:'; tail -20 /tmp/rke2-setup.log"
       ]
     )
   }
@@ -116,10 +136,17 @@ resource "null_resource" "rke2-cluster-setup" {
     script_hash = filemd5("${path.module}/rke2-setup.sh")
   }
   connection {
-    type        = "ssh"
-    host        = each.value
-    user        = "ubuntu"            # Change based on the AMI used
-    private_key = var.SSH_PRIVATE_KEY # content of your private key
+    type                = "ssh"
+    host                = each.value
+    user                = "ubuntu"
+    private_key         = var.SSH_PRIVATE_KEY
+    timeout             = "30m"                # Increased timeout for long-running scripts
+    agent               = false                # Don't use SSH agent
+    host_key            = null                 # Skip host key verification
+    
+    # Additional SSH connection optimizations
+    script_path         = "/tmp/terraform_script_%RAND%.sh"
+    target_platform     = "unix"
   }
   provisioner "file" {
     source      = "${path.module}/rke2-setup.sh"
@@ -129,7 +156,18 @@ resource "null_resource" "rke2-cluster-setup" {
     inline = concat(
       local.k8s_env_vars,
       [
-        "sudo bash /tmp/rke2-setup.sh"
+        # Set node-specific environment variables
+        "echo 'NODE_NAME=${each.key}' | sudo tee -a /etc/environment",
+        "echo 'INTERNAL_IP=${each.value}' | sudo tee -a /etc/environment",
+        "sudo chmod +x /tmp/rke2-setup.sh",
+        "echo 'Starting RKE2 setup script for ${each.key} at $(date)...'",
+        # Run the script with timeout to prevent hanging
+        "timeout 1200 sudo bash -x /tmp/rke2-setup.sh > /tmp/rke2-setup.log 2>&1",
+        "SCRIPT_EXIT_CODE=$?",
+        "echo 'RKE2 setup script for ${each.key} completed at $(date) with exit code: $SCRIPT_EXIT_CODE'",
+        "if [ $SCRIPT_EXIT_CODE -eq 124 ]; then echo 'Script timed out after 20 minutes'; echo 'Last 100 lines of log:'; tail -100 /tmp/rke2-setup.log; exit 124; fi",
+        "if [ $SCRIPT_EXIT_CODE -ne 0 ]; then echo 'Script failed! Last 50 lines of log:'; tail -50 /tmp/rke2-setup.log; exit $SCRIPT_EXIT_CODE; fi",
+        "echo 'Script completed successfully. Last 20 lines of log:'; tail -20 /tmp/rke2-setup.log"
       ]
     )
   }
