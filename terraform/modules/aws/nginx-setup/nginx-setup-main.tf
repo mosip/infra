@@ -60,8 +60,6 @@ resource "null_resource" "Nginx-setup" {
     host        = var.NGINX_PUBLIC_IP
     user        = "ubuntu"            # Change based on the AMI used
     private_key = var.SSH_PRIVATE_KEY # content of your private key
-    timeout     = "5m"                # 5 minute timeout
-    agent       = false               # Don't use SSH agent
   }
 
   provisioner "file" {
