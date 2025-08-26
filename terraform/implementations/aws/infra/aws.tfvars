@@ -18,9 +18,9 @@ aws_provider_region = "ap-south-1"
 # - Capacity exclusions are optional and configurable below
 
 # The instance type for Kubernetes nodes (control plane, worker, etcd)
-k8s_instance_type = "t3.2xlarge"
+k8s_instance_type = "t3a.2xlarge"
 # The instance type for Nginx server (load balancer)
-nginx_instance_type = "t3.2xlarge"
+nginx_instance_type = "t3a.2xlarge"
 
 # Optional: Exclude specific AZs due to known capacity issues
 # Leave empty for fully dynamic behavior (recommended)
