@@ -74,9 +74,15 @@ fi
 sleep 30
 source $ENV_FILE_PATH
 echo "Node name: $NODE_NAME"
+echo "Current directory: $(pwd)"
+echo "Files in current directory:"
+ls -la
+
 if [[ "$NODE_NAME" == CONTROL-PLANE-NODE-1 ]]; then
   echo "PRIMARY CONTROL PLANE NODE"
   RKE2_SERVICE="rke2-server"
+  echo "Looking for primary control plane config template..."
+  ls -la rke2-server-control-plane-primary.conf.template 2>/dev/null || echo "Template file not found!"
   if cp rke2-server-control-plane-primary.conf.template $RKE2_CONFIG_DIR/config.yaml; then
     echo "Successfully copied primary control plane config template"
   else
@@ -142,15 +148,30 @@ sudo systemctl enable $RKE2_SERVICE
 sudo systemctl start $RKE2_SERVICE
 
 echo "Waiting for RKE2 service to be ready..."
-sleep 120
+# Wait for service with timeout and status checks
+for i in {1..30}; do
+    echo "Checking RKE2 service status (attempt $i/30)..."
+    if sudo systemctl is-active --quiet $RKE2_SERVICE; then
+        echo "RKE2 service is running successfully"
+        break
+    fi
+    
+    if [ $i -eq 30 ]; then
+        echo "Error: RKE2 service failed to start within 5 minutes"
+        echo "Service status:"
+        sudo systemctl status $RKE2_SERVICE || true
+        echo "Service logs:"
+        sudo journalctl -u $RKE2_SERVICE --no-pager -n 50 || true
+        exit 1
+    fi
+    
+    echo "Service not ready yet, waiting 10 seconds..."
+    sleep 10
+done
 
-# Check if RKE2 service is running
-if sudo systemctl is-active --quiet $RKE2_SERVICE; then
-    echo "RKE2 service is running successfully"
-else
-    echo "Warning: RKE2 service may not be running properly, checking status..."
-    sudo systemctl status $RKE2_SERVICE || true
-fi
+# Additional wait for RKE2 to fully initialize
+echo "Waiting additional time for RKE2 to fully initialize..."
+sleep 60
 
 if [[ -f "$RKE2_CONFIG_DIR/rke2.yaml" ]]; then
   echo "RKE2 kubeconfig found, setting up kubectl access..."
