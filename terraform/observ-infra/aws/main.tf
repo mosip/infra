@@ -42,6 +42,9 @@ module "aws_observation_infrastructure" {
   # Capacity exclusion lists
   k8s_capacity_excluded_azs   = var.k8s_capacity_excluded_azs
   nginx_capacity_excluded_azs = var.nginx_capacity_excluded_azs
+  
+  # Disable PostgreSQL setup for observ-infra
+  enable_postgresql_setup = false
 }
 
 # Rancher and Keycloak Integration (only for observ-infra)
