@@ -52,6 +52,11 @@ variable "cloud_init_complete_signal" {
   default     = "/tmp/rke2-cloud-init-complete"
 }
 
+variable "aws_provider_region" {
+  description = "AWS region for AWS CLI operations"
+  type        = string
+}
+
 # Generate a random string (token)
 resource "random_string" "K8S_TOKEN" {
   length  = 32    # Length of the token
@@ -175,7 +180,12 @@ resource "null_resource" "rke2-cloud-init-wait" {
   provisioner "local-exec" {
     command = <<EOF
       echo "Waiting for RKE2 Cloud-Init setup to complete on Control Plane Node..."
+      
+      # Set AWS region
+      export AWS_DEFAULT_REGION=${var.aws_provider_region}
+      
       INSTANCE_ID=$(aws ec2 describe-instances \
+        --region ${var.aws_provider_region} \
         --filters "Name=private-ip-address,Values=${local.CONTROL_PLANE_NODE_1}" \
         --query "Reservations[0].Instances[0].InstanceId" \
         --output text)
@@ -183,11 +193,12 @@ resource "null_resource" "rke2-cloud-init-wait" {
       echo "Instance ID: $INSTANCE_ID"
       
       # Wait for cloud-init to complete (max 30 minutes)
-      for i in {1..60}; do
+      for i in $(seq 1 60); do
         echo "Check $i/60: Waiting for cloud-init completion..."
         
         # Check if cloud-init is done
         STATUS=$(aws ssm send-command \
+          --region ${var.aws_provider_region} \
           --instance-ids $INSTANCE_ID \
           --document-name "AWS-RunShellScript" \
           --parameters 'commands=["cloud-init status"]' \
@@ -197,6 +208,7 @@ resource "null_resource" "rke2-cloud-init-wait" {
         if [ "$STATUS" != "failed" ]; then
           sleep 10
           RESULT=$(aws ssm get-command-invocation \
+            --region ${var.aws_provider_region} \
             --command-id $STATUS \
             --instance-id $INSTANCE_ID \
             --query "StandardOutputContent" \
@@ -207,6 +219,7 @@ resource "null_resource" "rke2-cloud-init-wait" {
             
             # Check if RKE2 setup completed
             RKE2_CHECK=$(aws ssm send-command \
+              --region ${var.aws_provider_region} \
               --instance-ids $INSTANCE_ID \
               --document-name "AWS-RunShellScript" \
               --parameters 'commands=["systemctl is-active rke2-server || systemctl is-active rke2-agent"]' \
@@ -216,6 +229,7 @@ resource "null_resource" "rke2-cloud-init-wait" {
             if [ "$RKE2_CHECK" != "failed" ]; then
               sleep 5
               RKE2_STATUS=$(aws ssm get-command-invocation \
+                --region ${var.aws_provider_region} \
                 --command-id $RKE2_CHECK \
                 --instance-id $INSTANCE_ID \
                 --query "StandardOutputContent" \
@@ -451,12 +465,16 @@ resource "null_resource" "download-k8s-kubeconfig" {
 if [ "${var.use_cloud_init}" = "true" ]; then
   # Cloud-Init approach: Use AWS CLI to download kubeconfig
   echo "Downloading kubeconfig for ${each.key} via AWS CLI..."
+  export AWS_DEFAULT_REGION=${var.aws_provider_region}
+  
   INSTANCE_ID=$(aws ec2 describe-instances \
+    --region ${var.aws_provider_region} \
     --filters "Name=private-ip-address,Values=${each.value}" \
     --query "Reservations[0].Instances[0].InstanceId" \
     --output text)
 
   COMMAND_ID=$(aws ssm send-command \
+    --region ${var.aws_provider_region} \
     --instance-ids $INSTANCE_ID \
     --document-name "AWS-RunShellScript" \
     --parameters 'commands=["sudo cat /home/ubuntu/.kube/${each.key}.yaml 2>/dev/null || sudo cat /etc/rancher/rke2/rke2.yaml"]' \
@@ -465,6 +483,7 @@ if [ "${var.use_cloud_init}" = "true" ]; then
 
   sleep 10
   aws ssm get-command-invocation \
+    --region ${var.aws_provider_region} \
     --command-id $COMMAND_ID \
     --instance-id $INSTANCE_ID \
     --query "StandardOutputContent" \
@@ -496,12 +515,16 @@ resource "null_resource" "download-kubectl-file" {
 if [ "${var.use_cloud_init}" = "true" ]; then
   # Cloud-Init approach: Download kubectl via AWS CLI
   echo "Downloading kubectl binary via AWS CLI..."
+  export AWS_DEFAULT_REGION=${var.aws_provider_region}
+  
   INSTANCE_ID=$(aws ec2 describe-instances \
+    --region ${var.aws_provider_region} \
     --filters "Name=private-ip-address,Values=${local.CONTROL_PLANE_NODE_1}" \
     --query "Reservations[0].Instances[0].InstanceId" \
     --output text)
 
   COMMAND_ID=$(aws ssm send-command \
+    --region ${var.aws_provider_region} \
     --instance-ids $INSTANCE_ID \
     --document-name "AWS-RunShellScript" \
     --parameters 'commands=["sudo cp /var/lib/rancher/rke2/bin/kubectl /tmp/kubectl && sudo chmod 755 /tmp/kubectl"]' \
@@ -510,6 +533,7 @@ if [ "${var.use_cloud_init}" = "true" ]; then
 
   sleep 5
   COMMAND_ID2=$(aws ssm send-command \
+    --region ${var.aws_provider_region} \
     --instance-ids $INSTANCE_ID \
     --document-name "AWS-RunShellScript" \
     --parameters 'commands=["base64 /tmp/kubectl"]' \
@@ -518,6 +542,7 @@ if [ "${var.use_cloud_init}" = "true" ]; then
 
   sleep 10
   aws ssm get-command-invocation \
+    --region ${var.aws_provider_region} \
     --command-id $COMMAND_ID2 \
     --instance-id $INSTANCE_ID \
     --query "StandardOutputContent" \

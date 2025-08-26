@@ -622,9 +622,10 @@ module "rke2-setup" {
   enable_rancher_import   = var.ENABLE_RANCHER_IMPORT
 
   # RKE2 Cloud-Init Configuration
-  use_cloud_init = var.use_cloud_init
-  use_bastion    = var.use_bastion
-  bastion_host   = var.bastion_host
+  use_cloud_init      = var.use_cloud_init
+  use_bastion         = var.use_bastion
+  bastion_host        = var.bastion_host
+  aws_provider_region = var.AWS_PROVIDER_REGION
 }
 module "nfs-setup" {
   depends_on          = [module.aws-resource-creation, module.rke2-setup]
