@@ -58,8 +58,8 @@ k8s_worker_node_count = 1
 enable_rancher_import = false
 
 # Security group CIDRs
-network_cidr          = "10.0.0.0/16"   # Use your actual VPC CIDR
-WIREGUARD_CIDR        = "10.13.13.0/24" # Use your actual WireGuard VPN CIDR
+network_cidr   = "10.0.0.0/16"   # Use your actual VPC CIDR
+WIREGUARD_CIDR = "10.13.13.0/24" # Use your actual WireGuard VPN CIDR
 
 # Rancher Import URL
 rancher_import_url = "\"kubectl apply -f https://rancher.mosip.net/v3/import/dzshvnb6br7qtf267zsrr9xsw6tnb2vt4x68g79r2wzsnfgvkjq2jk_c-m-b5249w76.yaml\""
