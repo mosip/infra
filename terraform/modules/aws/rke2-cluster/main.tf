@@ -137,17 +137,34 @@ locals {
     timeout = "45m" # Extended for direct VPN connections
   })
 
-  # Cloud-Init template for RKE2 setup
-  cloud_init_template = var.use_cloud_init ? templatefile("${path.module}/rke2-cloud-init.yml", {
-    k8s_infra_repo_url          = var.K8S_INFRA_REPO_URL
-    k8s_infra_branch            = var.K8S_INFRA_BRANCH
-    k8s_token                   = random_string.K8S_TOKEN.result
-    cluster_domain              = var.CLUSTER_ENV_DOMAIN
-    control_plane_node_1        = local.CONTROL_PLANE_NODE_1
-    k8s_cluster_private_ips_str = local.K8S_CLUSTER_PRIVATE_IPS_STR
-    node_name                   = "PLACEHOLDER" # Will be replaced per node
-    internal_ip                 = "PLACEHOLDER" # Will be replaced per node
-  }) : null
+  # Cloud-Init template for RKE2 setup - Using file() + replace() for better compatibility
+  cloud_init_template_raw = var.use_cloud_init ? file("${path.module}/rke2-cloud-init.yml") : null
+  
+  cloud_init_template = var.use_cloud_init ? replace(
+    replace(
+      replace(
+        replace(
+          replace(
+            replace(
+              replace(
+                replace(
+                  local.cloud_init_template_raw,
+                  "$${k8s_infra_repo_url}", var.K8S_INFRA_REPO_URL
+                ),
+                "$${k8s_infra_branch}", var.K8S_INFRA_BRANCH
+              ),
+              "$${k8s_token}", random_string.K8S_TOKEN.result
+            ),
+            "$${cluster_domain}", var.CLUSTER_ENV_DOMAIN
+          ),
+          "$${control_plane_node_1}", local.CONTROL_PLANE_NODE_1
+        ),
+        "$${k8s_cluster_private_ips_str}", local.K8S_CLUSTER_PRIVATE_IPS_STR
+      ),
+      "$${node_name}", "PLACEHOLDER"
+    ),
+    "$${internal_ip}", "PLACEHOLDER"
+  ) : null
 }
 
 # Cloud-Init alternative: Wait for RKE2 setup completion (No SSH required)
