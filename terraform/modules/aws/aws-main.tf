@@ -618,6 +618,7 @@ module "rke2-setup" {
   K8S_CLUSTER_PRIVATE_IPS = module.aws-resource-creation.K8S_CLUSTER_PRIVATE_IPS
   RANCHER_IMPORT_URL      = var.RANCHER_IMPORT_URL
   K8S_INFRA_REPO_URL      = var.K8S_INFRA_REPO_URL
+  CLUSTER_ENV_DOMAIN      = var.CLUSTER_ENV_DOMAIN
 }
 
 module "postgresql-setup" {
