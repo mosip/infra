@@ -1,5 +1,6 @@
 variable "K8S_CLUSTER_PRIVATE_IPS" { type = map(string) }
 variable "SSH_PRIVATE_KEY" { type = string }
+variable "CLUSTER_ENV_DOMAIN" { type = string }
 variable "K8S_INFRA_REPO_URL" {
   description = "The URL of the Kubernetes infrastructure GitHub repository"
   type        = string
@@ -48,7 +49,7 @@ locals {
     K8S_CLUSTER_PRIVATE_IPS_STR = local.K8S_CLUSTER_PRIVATE_IPS_STR
     RANCHER_IMPORT_URL          = var.RANCHER_IMPORT_URL
     K8S_TOKEN                   = random_string.K8S_TOKEN.result
-    CLUSTER_DOMAIN              = "mosip"  # Default cluster domain
+    CLUSTER_DOMAIN              = var.CLUSTER_ENV_DOMAIN
   }
   # Filter out CONTROL_PLANE_NODE_1 from K8S_CLUSTER_PUBLIC_IPS
   #   K8S_CLUSTER_PRIVATE_IPS_EXCEPT_CONTROL_PLANE_NODE_1 = {
