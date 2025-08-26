@@ -30,6 +30,37 @@ output "k8s_token" {
   sensitive   = true
 }
 
+# RKE2 Cloud-Init and deployment outputs
+output "rke2_cloud_init_user_data" {
+  description = "Base64 encoded user data for EC2 instances with Cloud-Init RKE2 setup"
+  value       = module.aws_infrastructure.rke2_cloud_init_user_data
+}
+
+output "setup_instructions" {
+  description = "RKE2 deployment setup instructions based on configuration"
+  value       = module.aws_infrastructure.setup_instructions
+}
+
+output "control_plane_nodes" {
+  description = "Control plane nodes that will have kubeconfig files available"
+  value       = module.aws_infrastructure.control_plane_nodes
+}
+
+output "deployment_method" {
+  description = "Deployment method being used for RKE2 setup"
+  value       = module.aws_infrastructure.deployment_method
+}
+
+output "kubeconfig_files_location" {
+  description = "Location where kubeconfig files will be downloaded after terraform apply"
+  value       = module.aws_infrastructure.kubeconfig_files_location
+}
+
+output "kubectl_usage" {
+  description = "Instructions for using kubectl after deployment"
+  value       = module.aws_infrastructure.kubectl_usage
+}
+
 output "vpc_id" {
   description = "VPC ID"
   value       = module.aws_infrastructure.VPC_ID

@@ -1,7 +1,13 @@
 #!/bin/bash
 
 # Log file path
-echo "[ Set Log File ] : "
+echo "=== Production RKE2 Setup Script ==="
+echo "Node: $(hostname)"
+echo "Timestamp: $(date)"
+echo "AWS AZ: $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone 2>/dev/null || echo 'Unknown')"
+echo "Instance ID: $(curl -s http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null || echo 'Unknown')"
+echo "Private IP: $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4 2>/dev/null || echo 'Unknown')"
+
 LOG_FILE="/tmp/rke2-setup-$( date +"%d-%h-%Y-%H-%M" ).log"
 ENV_FILE_PATH="/etc/environment"
 source $ENV_FILE_PATH
@@ -14,6 +20,35 @@ echo "K8S_INFRA_REPO_URL: ${K8S_INFRA_REPO_URL:-NOT_SET}"
 echo "K8S_INFRA_BRANCH: ${K8S_INFRA_BRANCH:-NOT_SET}"
 echo "WORK_DIR: ${WORK_DIR:-NOT_SET}"
 echo "RKE2_LOCATION: ${RKE2_LOCATION:-NOT_SET}"
+
+# Production network connectivity test with retry
+echo "=== Production Network Connectivity Test ==="
+test_connectivity() {
+  local target=$1
+  local name=$2
+  local max_retries=3
+  
+  for i in $(seq 1 $max_retries); do
+    if timeout 10 ping -c 2 "$target" >/dev/null 2>&1; then
+      echo "✓ $name - reachable (attempt $i/$max_retries)"
+      return 0
+    else
+      echo "⚠ $name - attempt $i/$max_retries failed"
+      if [ $i -lt $max_retries ]; then
+        echo "  Waiting 10 seconds before retry..."
+        sleep 10
+      fi
+    fi
+  done
+  echo "✗ $name - not reachable after $max_retries attempts"
+  return 1
+}
+
+# Test external connectivity
+echo "Testing connectivity from $(hostname)..."
+test_connectivity "8.8.8.8" "Google DNS"
+test_connectivity "github.com" "GitHub"
+echo "Network connectivity test completed"
 
 # Redirect stdout and stderr to log file
 exec > >(tee -a "$LOG_FILE") 2>&1
@@ -46,11 +81,38 @@ echo "Repository URL: ${K8S_INFRA_REPO_URL}"
 echo "Branch: ${K8S_INFRA_BRANCH}"
 echo "Current directory: $(pwd)"
 
-echo "Cloning k8s-infra repository"
-if ! git clone $K8S_INFRA_REPO_URL -b $K8S_INFRA_BRANCH; then
-  echo "Failed to clone k8s-infra repository"
-  echo "Repository URL: ${K8S_INFRA_REPO_URL}"
-  echo "Branch: ${K8S_INFRA_BRANCH}"
+echo "Cloning k8s-infra repository with retry logic..."
+# Production git clone with retry mechanism
+clone_repository() {
+  local max_retries=5
+  local retry_delay=15
+  
+  for attempt in $(seq 1 $max_retries); do
+    echo "Git clone attempt $attempt/$max_retries..."
+    
+    if timeout 300 git clone $K8S_INFRA_REPO_URL -b $K8S_INFRA_BRANCH; then
+      echo "✓ Git clone successful on attempt $attempt"
+      return 0
+    else
+      echo "✗ Git clone failed on attempt $attempt"
+      
+      # Clean up failed clone
+      rm -rf k8s-infra 2>/dev/null || true
+      
+      if [ $attempt -lt $max_retries ]; then
+        echo "Waiting $retry_delay seconds before retry..."
+        sleep $retry_delay
+        retry_delay=$((retry_delay + 10))  # Exponential backoff
+      fi
+    fi
+  done
+  
+  echo "Git clone failed after $max_retries attempts"
+  return 1
+}
+
+if ! clone_repository; then
+  echo "Failed to clone k8s-infra repository after multiple attempts"
   exit 1
 fi
 
