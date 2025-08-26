@@ -173,6 +173,12 @@ variable "nginx_capacity_excluded_azs" {
 }
 
 # PostgreSQL Configuration Variables
+variable "enable_postgresql_setup" {
+  description = "Enable PostgreSQL setup"
+  type        = bool
+  default     = true
+}
+
 variable "postgresql_version" {
   description = "PostgreSQL version to install"
   type        = string

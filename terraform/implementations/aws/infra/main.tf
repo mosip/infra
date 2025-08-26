@@ -39,6 +39,7 @@ module "mosip_infra" {
   k8s_infra_branch             = var.k8s_infra_branch
 
   # PostgreSQL Configuration
+  enable_postgresql_setup = var.enable_postgresql_setup
   postgresql_version = var.postgresql_version
   storage_device     = var.storage_device
   mount_point        = var.mount_point
