@@ -50,9 +50,9 @@ k8s_instance_root_volume_size = 64
 # Control-plane, ETCD, Worker
 k8s_control_plane_node_count = 1
 # ETCD, Worker
-k8s_etcd_node_count = 1
+k8s_etcd_node_count = 0
 # Worker
-k8s_worker_node_count = 1
+k8s_worker_node_count = 0
 
 # Rancher Import Configuration
 enable_rancher_import = false
