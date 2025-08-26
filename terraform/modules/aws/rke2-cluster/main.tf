@@ -44,7 +44,8 @@ locals {
   CONTROL_PLANE_NODE_1        = element([for key, value in var.K8S_CLUSTER_PRIVATE_IPS : value if length(regexall(".*CONTROL-PLANE-NODE-1", key)) > 0], 0)
   K8S_CLUSTER_PRIVATE_IPS_STR = join(",", [for key, value in var.K8S_CLUSTER_PRIVATE_IPS : "${key}=${value}"])
 
-  RKE_CONFIG = {
+  # Base RKE configuration
+  RKE_CONFIG_BASE = {
     ENV_VAR_FILE                = "/etc/environment"
     CONTROL_PLANE_NODE_1        = local.CONTROL_PLANE_NODE_1
     WORK_DIR                    = "/home/ubuntu/"
@@ -54,10 +55,14 @@ locals {
     K8S_INFRA_BRANCH            = var.K8S_INFRA_BRANCH
     RKE2_LOCATION               = "/home/ubuntu/k8s-infra/k8-cluster/on-prem/rke2/"
     K8S_CLUSTER_PRIVATE_IPS_STR = local.K8S_CLUSTER_PRIVATE_IPS_STR
-    RANCHER_IMPORT_URL          = var.RANCHER_IMPORT_URL
     K8S_TOKEN                   = random_string.K8S_TOKEN.result
     CLUSTER_DOMAIN              = var.CLUSTER_ENV_DOMAIN
   }
+
+  # Conditional RKE configuration with Rancher import URL only when enabled
+  RKE_CONFIG = var.enable_rancher_import ? merge(local.RKE_CONFIG_BASE, {
+    RANCHER_IMPORT_URL = var.RANCHER_IMPORT_URL
+  }) : local.RKE_CONFIG_BASE
   # Filter out CONTROL_PLANE_NODE_1 from K8S_CLUSTER_PUBLIC_IPS
   #   K8S_CLUSTER_PRIVATE_IPS_EXCEPT_CONTROL_PLANE_NODE_1 = {
   #     for key, value in var.K8S_CLUSTER_PRIVATE_IPS : key => value if value != local.CONTROL_PLANE_NODE_1
