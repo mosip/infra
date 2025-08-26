@@ -7,8 +7,8 @@ ENV_FILE_PATH="/etc/environment"
 source $ENV_FILE_PATH
 env | grep -E 'K8S|RKE2|WORK|CONTROL'
 
-# Redirect stdout and stderr to log file
-exec > >(tee -a "$LOG_FILE") 2>&1
+# Simple logging approach - log important steps manually
+echo "Script started at: $(date)" | tee -a "$LOG_FILE"
 
 # set commands for error handling.
 set -e
@@ -18,44 +18,44 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o pipefail  # trace ERR through pipes
 
 # Add error handler
-trap 'echo "Error occurred at line $LINENO. Exit code: $?" >&2' ERR
+trap 'echo "Error occurred at line $LINENO. Exit code: $?" | tee -a "$LOG_FILE" >&2' ERR
 
 # Validate required environment variables
-echo "Validating required environment variables..."
+echo "Validating required environment variables..." | tee -a "$LOG_FILE"
 required_vars=("WORK_DIR" "K8S_INFRA_REPO_URL" "K8S_INFRA_BRANCH" "RKE2_CONFIG_DIR" "RKE2_LOCATION" "NODE_NAME" "K8S_TOKEN" "INTERNAL_IP" "CONTROL_PLANE_NODE_1" "CLUSTER_DOMAIN")
 
 for var in "${required_vars[@]}"; do
     if [[ -z "${!var:-}" ]]; then
-        echo "Error: Required environment variable $var is not set"
+        echo "Error: Required environment variable $var is not set" | tee -a "$LOG_FILE"
         exit 1
     else
-        echo "$var is set"
+        echo "$var is set" | tee -a "$LOG_FILE"
     fi
 done
 
-echo "All required environment variables are present"
+echo "All required environment variables are present" | tee -a "$LOG_FILE"
 
 
-echo "Installing RKE2"
+echo "Installing RKE2" | tee -a "$LOG_FILE"
 RKE2_EXISTENCE=$( which rke2 2>/dev/null || echo "")
 if [[ -z "$RKE2_EXISTENCE" ]]; then
-  echo "RKE2 not found, installing..."
+  echo "RKE2 not found, installing..." | tee -a "$LOG_FILE"
   curl -sfL https://get.rke2.io | sh -
-  echo "RKE2 installation completed"
+  echo "RKE2 installation completed" | tee -a "$LOG_FILE"
 else
-  echo "RKE2 already installed at: $RKE2_EXISTENCE"
+  echo "RKE2 already installed at: $RKE2_EXISTENCE" | tee -a "$LOG_FILE"
 fi
 
 cd $WORK_DIR
-echo "Cloning K8S infrastructure repository..."
+echo "Cloning K8S infrastructure repository..." | tee -a "$LOG_FILE"
 if [ -d "k8s-infra" ]; then
-  echo "k8s-infra directory already exists, updating..."
+  echo "k8s-infra directory already exists, updating..." | tee -a "$LOG_FILE"
   cd k8s-infra
-  git pull origin $K8S_INFRA_BRANCH || echo "Warning: git pull failed, continuing with existing files"
+  git pull origin $K8S_INFRA_BRANCH || echo "Warning: git pull failed, continuing with existing files" | tee -a "$LOG_FILE"
   cd $WORK_DIR
 else
   git clone $K8S_INFRA_REPO_URL -b $K8S_INFRA_BRANCH || {
-    echo "Warning: git clone failed, but continuing..."
+    echo "Warning: git clone failed, but continuing..." | tee -a "$LOG_FILE"
   }
 fi
 
@@ -65,28 +65,27 @@ chown -R 1000:1000 $RKE2_CONFIG_DIR
 cd $RKE2_LOCATION
 
 if [[ -f "$RKE2_CONFIG_DIR/config.yaml" ]]; then
-  echo "RKE CONFIG file exists \"$RKE2_CONFIG_DIR/config.yaml\""
-  echo "RKE2 setup already completed, exiting successfully"
+  echo "RKE CONFIG file exists \"$RKE2_CONFIG_DIR/config.yaml\"" | tee -a "$LOG_FILE"
+  echo "RKE2 setup already completed, exiting successfully" | tee -a "$LOG_FILE"
   exit 0
 fi
 
 # Determine the role of the instance using pattern matching
-sleep 30
 source $ENV_FILE_PATH
-echo "Node name: $NODE_NAME"
-echo "Current directory: $(pwd)"
-echo "Files in current directory:"
-ls -la
+echo "Node name: $NODE_NAME" | tee -a "$LOG_FILE"
+echo "Current directory: $(pwd)" | tee -a "$LOG_FILE"
+echo "Files in current directory:" | tee -a "$LOG_FILE"
+ls -la | tee -a "$LOG_FILE"
 
 if [[ "$NODE_NAME" == CONTROL-PLANE-NODE-1 ]]; then
-  echo "PRIMARY CONTROL PLANE NODE"
+  echo "PRIMARY CONTROL PLANE NODE" | tee -a "$LOG_FILE"
   RKE2_SERVICE="rke2-server"
-  echo "Looking for primary control plane config template..."
-  ls -la rke2-server-control-plane-primary.conf.template 2>/dev/null || echo "Template file not found!"
+  echo "Looking for primary control plane config template..." | tee -a "$LOG_FILE"
+  ls -la rke2-server-control-plane-primary.conf.template 2>/dev/null | tee -a "$LOG_FILE" || echo "Template file not found!" | tee -a "$LOG_FILE"
   if cp rke2-server-control-plane-primary.conf.template $RKE2_CONFIG_DIR/config.yaml; then
-    echo "Successfully copied primary control plane config template"
+    echo "Successfully copied primary control plane config template" | tee -a "$LOG_FILE"
   else
-    echo "Error: Failed to copy primary control plane config template"
+    echo "Error: Failed to copy primary control plane config template" | tee -a "$LOG_FILE"
     exit 1
   fi
   export RKE2_SERVICE="rke2-server" | sudo tee -a $ENV_FILE_PATH

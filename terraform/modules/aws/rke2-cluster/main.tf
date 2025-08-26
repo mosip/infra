@@ -95,11 +95,12 @@ resource "null_resource" "rke2-primary-cluster-setup" {
         "sudo chmod +x /tmp/rke2-setup.sh",
         "echo 'Starting RKE2 setup script at $(date)...'",
         # Run the script with timeout to prevent hanging
-        "timeout 900 sudo bash -x /tmp/rke2-setup.sh 2>&1 | tee /tmp/rke2-setup.log || SCRIPT_EXIT_CODE=$?",
+        "timeout 900 sudo bash -x /tmp/rke2-setup.sh > /tmp/rke2-setup.log 2>&1",
         "SCRIPT_EXIT_CODE=$?",
         "echo 'RKE2 setup script completed at $(date) with exit code: $SCRIPT_EXIT_CODE'",
-        "if [ $SCRIPT_EXIT_CODE -eq 124 ]; then echo 'Script timed out after 15 minutes'; tail -100 /tmp/rke2-setup.log; exit 124; fi",
-        "if [ $SCRIPT_EXIT_CODE -ne 0 ]; then echo 'Script failed! Last 50 lines of log:'; tail -50 /tmp/rke2-setup.log; exit $SCRIPT_EXIT_CODE; fi"
+        "if [ $SCRIPT_EXIT_CODE -eq 124 ]; then echo 'Script timed out after 15 minutes'; echo 'Last 100 lines of log:'; tail -100 /tmp/rke2-setup.log; exit 124; fi",
+        "if [ $SCRIPT_EXIT_CODE -ne 0 ]; then echo 'Script failed! Last 50 lines of log:'; tail -50 /tmp/rke2-setup.log; exit $SCRIPT_EXIT_CODE; fi",
+        "echo 'Script completed successfully. Last 20 lines of log:'; tail -20 /tmp/rke2-setup.log"
       ]
     )
   }
@@ -135,10 +136,13 @@ resource "null_resource" "rke2-cluster-setup" {
         "echo 'INTERNAL_IP=${each.value}' | sudo tee -a /etc/environment",
         "sudo chmod +x /tmp/rke2-setup.sh",
         "echo 'Starting RKE2 setup script for ${each.key} at $(date)...'",
-        "sudo bash -x /tmp/rke2-setup.sh 2>&1 | tee /tmp/rke2-setup.log",
+        # Run the script with timeout to prevent hanging
+        "timeout 900 sudo bash -x /tmp/rke2-setup.sh > /tmp/rke2-setup.log 2>&1",
         "SCRIPT_EXIT_CODE=$?",
         "echo 'RKE2 setup script for ${each.key} completed at $(date) with exit code: $SCRIPT_EXIT_CODE'",
-        "if [ $SCRIPT_EXIT_CODE -ne 0 ]; then echo 'Script failed! Last 50 lines of log:'; tail -50 /tmp/rke2-setup.log; exit $SCRIPT_EXIT_CODE; fi"
+        "if [ $SCRIPT_EXIT_CODE -eq 124 ]; then echo 'Script timed out after 15 minutes'; echo 'Last 100 lines of log:'; tail -100 /tmp/rke2-setup.log; exit 124; fi",
+        "if [ $SCRIPT_EXIT_CODE -ne 0 ]; then echo 'Script failed! Last 50 lines of log:'; tail -50 /tmp/rke2-setup.log; exit $SCRIPT_EXIT_CODE; fi",
+        "echo 'Script completed successfully. Last 20 lines of log:'; tail -20 /tmp/rke2-setup.log"
       ]
     )
   }
