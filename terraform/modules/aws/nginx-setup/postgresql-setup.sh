@@ -128,6 +128,10 @@ REQUIRED_VARS=(
     "MOSIP_INFRA_BRANCH"
 )
 
+OPTIONAL_VARS=(
+    "NGINX_NODE_IP_OVERRIDE"
+)
+
 MISSING_VARS=()
 for var in "${REQUIRED_VARS[@]}"; do
     if [ -z "${!var:-}" ]; then
@@ -146,6 +150,17 @@ fi
 echo 'All required environment variables are set:'
 for var in "${REQUIRED_VARS[@]}"; do
     echo "  $var=${!var}"
+done
+
+# Display optional variables if set
+echo ''
+echo 'Optional environment variables:'
+for var in "${OPTIONAL_VARS[@]}"; do
+    if [ -n "${!var:-}" ]; then
+        echo "  $var=${!var}"
+    else
+        echo "  $var=<not set>"
+    fi
 done
 
 # Display control plane configuration variables
@@ -283,15 +298,6 @@ echo "Successfully navigated to: $(pwd)"
 echo 'Directory contents:'
 ls -la
 
-# Create dynamic inventory with current host
-echo '[CREATE] Creating Inventory File...'
-cat > inventory.ini << 'EOF'
-[postgresql_servers]
-localhost ansible_connection=local ansible_user=ubuntu ansible_become=yes ansible_become_method=sudo
-EOF
-
-echo '[SUCCESS] Inventory file created successfully'
-
 # Check if required playbook exists
 PLAYBOOK_FILE="postgresql-setup.yml"
 if [ ! -f "$PLAYBOOK_FILE" ]; then
@@ -306,30 +312,90 @@ echo "[SUCCESS] Playbook file found: $PLAYBOOK_FILE"
 echo '[CONFIG] Setting Environment Variables...'
 
 # Get the actual IP address of this nginx node for external access
-echo '[DETECT] Detecting nginx node IP address...'
-NGINX_NODE_IP=""
+echo '[DETECT] Detecting nginx node IP address with preference for stable interfaces...'
 
-# Method 1: Try to get IP from default route interface
-DEFAULT_INTERFACE=$(ip route | grep '^default' | awk '{print $5}' | head -1 2>/dev/null)
-if [ -n "$DEFAULT_INTERFACE" ]; then
-    NGINX_NODE_IP=$(ip addr show "$DEFAULT_INTERFACE" | grep -oP 'inet \K[\d.]+' | head -1 2>/dev/null)
-    echo "[SUCCESS] Found IP via default interface ($DEFAULT_INTERFACE): $NGINX_NODE_IP"
+# Check if IP is manually provided via environment variable
+if [ -n "${NGINX_NODE_IP_OVERRIDE:-}" ]; then
+    NGINX_NODE_IP="$NGINX_NODE_IP_OVERRIDE"
+    echo "[OVERRIDE] Using manually provided nginx IP: $NGINX_NODE_IP"
+else
+    NGINX_NODE_IP=""
 fi
 
-# Method 2: If Method 1 failed, try getting IP from hostname resolution
-if [ -z "$NGINX_NODE_IP" ]; then
-    NGINX_NODE_IP=$(hostname -I | awk '{print $1}' 2>/dev/null)
-    if [ -n "$NGINX_NODE_IP" ]; then
-        echo "[SUCCESS] Found IP via hostname -I: $NGINX_NODE_IP"
-    fi
-fi
-
-# Method 3: If both methods failed, try getting from AWS metadata (if running on AWS)
+# Method 1: Try AWS EC2 metadata first (most reliable for AWS deployments)
 if [ -z "$NGINX_NODE_IP" ]; then
     echo "[DETECT] Trying AWS EC2 metadata service..."
     NGINX_NODE_IP=$(timeout 5 curl -s http://169.254.169.254/latest/meta-data/local-ipv4 2>/dev/null || echo "")
     if [ -n "$NGINX_NODE_IP" ]; then
         echo "[SUCCESS] Found IP via AWS metadata: $NGINX_NODE_IP"
+    fi
+fi
+
+# Method 2: Try Azure metadata service
+if [ -z "$NGINX_NODE_IP" ]; then
+    echo "[DETECT] Trying Azure metadata service..."
+    NGINX_NODE_IP=$(timeout 5 curl -s -H Metadata:true "http://169.254.169.254/metadata/instance/network/interface/0/ipv4/ipAddress/0/privateIpAddress?api-version=2017-08-01&format=text" 2>/dev/null || echo "")
+    if [ -n "$NGINX_NODE_IP" ]; then
+        echo "[SUCCESS] Found IP via Azure metadata: $NGINX_NODE_IP"
+    fi
+fi
+
+# Method 3: Try GCP metadata service  
+if [ -z "$NGINX_NODE_IP" ]; then
+    echo "[DETECT] Trying GCP metadata service..."
+    NGINX_NODE_IP=$(timeout 5 curl -s -H "Metadata-Flavor: Google" "http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/ip" 2>/dev/null || echo "")
+    if [ -n "$NGINX_NODE_IP" ]; then
+        echo "[SUCCESS] Found IP via GCP metadata: $NGINX_NODE_IP"
+    fi
+fi
+
+# Method 4: Prefer stable wired interfaces over wireless
+if [ -z "$NGINX_NODE_IP" ]; then
+    echo "[DETECT] Scanning for stable wired network interfaces..."
+    
+    # Define preferred interface patterns (most stable first)
+    PREFERRED_INTERFACES=("eth" "ens" "enp" "eno" "em" "bond" "br")
+    
+    for pattern in "${PREFERRED_INTERFACES[@]}"; do
+        # Find interfaces matching the pattern
+        for interface in $(ip link show | grep -oP "${pattern}[0-9]+(?=:)"); do
+            # Check if interface is up and has an IP
+            if ip link show "$interface" | grep -q "state UP" 2>/dev/null; then
+                CANDIDATE_IP=$(ip addr show "$interface" | grep -oP 'inet \K[\d.]+' | head -1 2>/dev/null)
+                if [ -n "$CANDIDATE_IP" ] && [ "$CANDIDATE_IP" != "127.0.0.1" ]; then
+                    NGINX_NODE_IP="$CANDIDATE_IP"
+                    echo "[SUCCESS] Found IP via stable interface ($interface): $NGINX_NODE_IP"
+                    break 2
+                fi
+            fi
+        done
+    done
+fi
+
+# Method 5: Use default route interface (but warn if it's wireless)
+if [ -z "$NGINX_NODE_IP" ]; then
+    echo "[DETECT] Trying default route interface..."
+    DEFAULT_INTERFACE=$(ip route | grep '^default' | awk '{print $5}' | head -1 2>/dev/null)
+    if [ -n "$DEFAULT_INTERFACE" ]; then
+        # Check if it's a wireless interface and warn
+        if echo "$DEFAULT_INTERFACE" | grep -qE '^(wl|wlp|wlan)'; then
+            echo "[WARNING] Default interface ($DEFAULT_INTERFACE) appears to be wireless - IP may be dynamic!"
+            echo "[WARNING] Consider using a wired interface for production deployments"
+        fi
+        
+        NGINX_NODE_IP=$(ip addr show "$DEFAULT_INTERFACE" | grep -oP 'inet \K[\d.]+' | head -1 2>/dev/null)
+        if [ -n "$NGINX_NODE_IP" ]; then
+            echo "[SUCCESS] Found IP via default interface ($DEFAULT_INTERFACE): $NGINX_NODE_IP"
+        fi
+    fi
+fi
+
+# Method 6: Try hostname resolution (fallback)
+if [ -z "$NGINX_NODE_IP" ]; then
+    echo "[DETECT] Trying hostname resolution..."
+    NGINX_NODE_IP=$(hostname -I | awk '{print $1}' 2>/dev/null)
+    if [ -n "$NGINX_NODE_IP" ]; then
+        echo "[SUCCESS] Found IP via hostname -I: $NGINX_NODE_IP"
     fi
 fi
 
@@ -353,7 +419,7 @@ if [ -n "$NGINX_NODE_IP" ]; then
     # Basic IP validation
     if echo "$NGINX_NODE_IP" | grep -qE '^([0-9]{1,3}\.){3}[0-9]{1,3}$'; then
         echo "[SUCCESS] Nginx node IP address detected: $NGINX_NODE_IP"
-        echo "[INFO] This IP will be used as postgres-host in the ConfigMap"
+        echo "[INFO] This IP will be used as postgres-host in the ConfigMap and Ansible target"
     else
         echo "[ERROR] Invalid IP address detected: $NGINX_NODE_IP"
         exit 1
@@ -365,6 +431,15 @@ else
     echo "[INFO] Please manually set the IP address or check network configuration"
     exit 1
 fi
+
+# Create dynamic inventory with detected nginx node IP using local connection
+echo '[CREATE] Creating Inventory File with nginx node IP (local connection)...'
+cat > inventory.ini << EOF
+[postgresql_servers]
+$NGINX_NODE_IP ansible_connection=local ansible_user=ubuntu ansible_become=yes ansible_become_method=sudo
+EOF
+
+echo "[SUCCESS] Inventory file created with nginx IP target (local): $NGINX_NODE_IP"
 
 export DEBIAN_FRONTEND=noninteractive  # Prevent interactive prompts
 export ANSIBLE_HOST_KEY_CHECKING=False  # Skip host key checking
@@ -469,10 +544,10 @@ echo '[CREATE] This should take 10-15 minutes. Progress will be shown below...'
 
 # Test ansible connection first
 echo '[TEST] Testing Ansible connectivity...'
-if ! ansible localhost -i inventory.ini -m ping; then
+if ! ansible $NGINX_NODE_IP -i inventory.ini -m ping; then
     echo '[ERROR] Ansible connectivity test failed'
-    echo 'Checking localhost connection...'
-    ansible localhost -i inventory.ini -m setup --limit localhost -v || true
+    echo 'Checking nginx node connection...'
+    ansible $NGINX_NODE_IP -i inventory.ini -m setup --limit $NGINX_NODE_IP -v || true
     echo '[WARNING] Continuing anyway, playbook might still work...'
 fi
 
