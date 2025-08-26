@@ -40,6 +40,7 @@ module "aws_infrastructure" {
   WIREGUARD_CIDR                = var.WIREGUARD_CIDR
 
   # PostgreSQL Configuration
+  enable_postgresql_setup = var.enable_postgresql_setup
   postgresql_version = var.postgresql_version
   storage_device     = var.storage_device
   mount_point        = var.mount_point
