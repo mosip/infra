@@ -48,12 +48,11 @@ variable "CONTROL_PLANE_HOST" {
 }
 variable "CONTROL_PLANE_USER" {
   type        = string
-  default     = "ubuntu"
-  description = "SSH username for control plane access"
+  description = "Username for control plane access"
 }
 
-# PostgreSQL Ansible Setup (conditional on second EBS volume)
-resource "null_resource" "PostgreSQL-ansible-setup" {
+# SSH-based PostgreSQL Setup
+resource "null_resource" "postgresql-setup" {
   count = var.NGINX_NODE_EBS_VOLUME_SIZE_2 > 0 ? 1 : 0
 
   triggers = {
