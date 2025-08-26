@@ -632,6 +632,7 @@ module "nfs-setup" {
   source              = "./nfs-setup"
   NFS_SERVER_LOCATION = "/srv/nfs/mosip/${var.CLUSTER_ENV_DOMAIN}"
   NFS_SERVER          = module.aws-resource-creation.NGINX_PRIVATE_IP
+  NFS_SERVER_PUBLIC_IP = module.aws-resource-creation.NGINX_PUBLIC_IP
   SSH_PRIVATE_KEY     = var.SSH_PRIVATE_KEY
   K8S_INFRA_REPO_URL  = var.K8S_INFRA_REPO_URL
   K8S_INFRA_BRANCH    = var.K8S_INFRA_BRANCH

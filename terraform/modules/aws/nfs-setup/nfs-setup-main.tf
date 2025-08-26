@@ -14,6 +14,12 @@ variable "NFS_SERVER" {
     error_message = "The NFS_SERVER must be a valid DNS name, an IPv4 address, or an IPv6 address."
   }
 }
+
+variable "NFS_SERVER_PUBLIC_IP" {
+  description = "The public IP address of the NFS server for SSH connection"
+  type        = string
+}
+
 variable "SSH_PRIVATE_KEY" { type = string }
 
 variable "K8S_INFRA_REPO_URL" {
@@ -53,25 +59,60 @@ locals {
     #"echo 'export ${key}=${value}' | sudo tee -a /etc/environment"
   ]
 }
+# SSH-based NFS Setup
 resource "null_resource" "nfs-server-setup" {
   connection {
-    type        = "ssh"
-    host        = var.NFS_SERVER
-    user        = "ubuntu"            # Change based on the AMI used
-    private_key = var.SSH_PRIVATE_KEY # content of your private key
+    type            = "ssh"
+    host            = var.NFS_SERVER_PUBLIC_IP
+    user            = "ubuntu"
+    private_key     = var.SSH_PRIVATE_KEY
+    timeout         = "10m"
+    script_path     = "/tmp/terraform_%RAND%.sh"
+    agent           = false
+    host_key        = null
+    port            = 22
+    target_platform = "unix"
   }
+  
+  # Pre-flight connectivity check
   provisioner "remote-exec" {
-    inline = concat(
-      ["echo \"export NFS_SERVER_LOCATION=${var.NFS_SERVER_LOCATION}\" | sudo tee -a /etc/environment",
-        "sudo source /etc/environment",
-        "sudo bash ${local.NFS_CONFIG.K8S_INFRA_NFS_LOCATION}/${local.NFS_CONFIG.K8S_INFRA_NFS_SERVER_SCRIPT_NAME} | tee -a ${local.NFS_CONFIG.NFS_SERVER_LOG_FILE_PATH}-$( date +\"%d-%h-%Y-%H-%M\" ).log"
-      ]
-    )
+    inline = [
+      "echo 'SSH connection established to NFS server'",
+      "echo 'Public IP: ${var.NFS_SERVER_PUBLIC_IP}'",
+      "echo 'Private IP (NFS Server): ${var.NFS_SERVER}'",
+      "echo 'Timestamp: $(date)'",
+      "# Test network connectivity",
+      "ping -c 3 8.8.8.8 || echo 'External connectivity check failed'",
+      "ping -c 3 github.com || echo 'GitHub connectivity check failed'"
+    ]
+  }
+  
+  # Clone repository first
+  provisioner "remote-exec" {
+    inline = [
+      "# Clone k8s-infra repository",
+      "rm -rf k8s-infra",
+      "git clone ${var.K8S_INFRA_REPO_URL}",
+      "cd k8s-infra && git checkout ${var.K8S_INFRA_BRANCH}",
+      "ls -la ${local.NFS_CONFIG.K8S_INFRA_NFS_LOCATION}/",
+      "chmod +x ${local.NFS_CONFIG.K8S_INFRA_NFS_LOCATION}/${local.NFS_CONFIG.K8S_INFRA_NFS_SERVER_SCRIPT_NAME}"
+    ]
+  }
+  
+  # Setup NFS server
+  provisioner "remote-exec" {
+    inline = [
+      "echo \"export NFS_SERVER_LOCATION=${var.NFS_SERVER_LOCATION}\" | sudo tee -a /etc/environment",
+      "export NFS_SERVER_LOCATION=${var.NFS_SERVER_LOCATION}",
+      "sudo bash ${local.NFS_CONFIG.K8S_INFRA_NFS_LOCATION}/${local.NFS_CONFIG.K8S_INFRA_NFS_SERVER_SCRIPT_NAME} | tee -a ${local.NFS_CONFIG.NFS_SERVER_LOG_FILE_PATH}-$( date +\"%d-%h-%Y-%H-%M\" ).log"
+    ]
   }
 }
 
 resource "null_resource" "nfs-csi-setup" {
-  depends_on = [null_resource.nfs-server-setup]
+  depends_on = [
+    null_resource.nfs-server-setup
+  ]
 
   provisioner "local-exec" {
     command = join(" && ", concat(local.NFS_ENV_VARS, ["bash ${path.module}/nfs-csi.sh"]))
