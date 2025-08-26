@@ -20,6 +20,13 @@ variable "RANCHER_IMPORT_URL" {
     error_message = "The RANCHER_IMPORT_URL must be in the format: '\"kubectl apply -f https://rancher.mosip.net/v3/import/<ID>.yaml\"'"
   }
 }
+
+variable "enable_rancher_import" {
+  description = "Set to true to enable Rancher import"
+  type        = bool
+  default     = false
+}
+
 # Generate a random string (token)
 resource "random_string" "K8S_TOKEN" {
   length  = 32    # Length of the token
@@ -74,12 +81,11 @@ resource "null_resource" "rke2-primary-cluster-setup" {
   #     node_hash = md5(local.K8S_CLUSTER_PRIVATE_IPS_STR)
   #   }
   connection {
-    type         = "ssh"
-    host         = local.CONTROL_PLANE_NODE_1
-    user         = "ubuntu"            # Change based on the AMI used
-    private_key  = var.SSH_PRIVATE_KEY # content of your private key
-    timeout      = "15m"               # Extended timeout for RKE2 installation
-    agent        = false               # Don't use SSH agent
+    type        = "ssh"
+    host        = local.CONTROL_PLANE_NODE_1
+    user        = "ubuntu"            # Change based on the AMI used
+    private_key = var.SSH_PRIVATE_KEY # content of your private key
+
   }
   provisioner "file" {
     source      = "${path.module}/rke2-setup.sh"
@@ -89,18 +95,7 @@ resource "null_resource" "rke2-primary-cluster-setup" {
     inline = concat(
       local.k8s_env_vars,
       [
-        # Set node-specific environment variables for primary control plane
-        "echo 'NODE_NAME=CONTROL-PLANE-NODE-1' | sudo tee -a /etc/environment",
-        "echo 'INTERNAL_IP=${local.CONTROL_PLANE_NODE_1}' | sudo tee -a /etc/environment",
-        "sudo chmod +x /tmp/rke2-setup.sh",
-        "echo 'Starting RKE2 setup script at $(date)...'",
-        # Run the script with timeout to prevent hanging
-        "timeout 900 sudo bash -x /tmp/rke2-setup.sh > /tmp/rke2-setup.log 2>&1",
-        "SCRIPT_EXIT_CODE=$?",
-        "echo 'RKE2 setup script completed at $(date) with exit code: $SCRIPT_EXIT_CODE'",
-        "if [ $SCRIPT_EXIT_CODE -eq 124 ]; then echo 'Script timed out after 15 minutes'; echo 'Last 100 lines of log:'; tail -100 /tmp/rke2-setup.log; exit 124; fi",
-        "if [ $SCRIPT_EXIT_CODE -ne 0 ]; then echo 'Script failed! Last 50 lines of log:'; tail -50 /tmp/rke2-setup.log; exit $SCRIPT_EXIT_CODE; fi",
-        "echo 'Script completed successfully. Last 20 lines of log:'; tail -20 /tmp/rke2-setup.log"
+        "sudo bash /tmp/rke2-setup.sh"
       ]
     )
   }
@@ -120,8 +115,6 @@ resource "null_resource" "rke2-cluster-setup" {
     host        = each.value
     user        = "ubuntu"            # Change based on the AMI used
     private_key = var.SSH_PRIVATE_KEY # content of your private key
-    timeout     = "15m"               # Extended timeout for RKE2 installation
-    agent       = false               # Don't use SSH agent
   }
   provisioner "file" {
     source      = "${path.module}/rke2-setup.sh"
@@ -131,18 +124,7 @@ resource "null_resource" "rke2-cluster-setup" {
     inline = concat(
       local.k8s_env_vars,
       [
-        # Set node-specific environment variables
-        "echo 'NODE_NAME=${each.key}' | sudo tee -a /etc/environment",
-        "echo 'INTERNAL_IP=${each.value}' | sudo tee -a /etc/environment",
-        "sudo chmod +x /tmp/rke2-setup.sh",
-        "echo 'Starting RKE2 setup script for ${each.key} at $(date)...'",
-        # Run the script with timeout to prevent hanging
-        "timeout 900 sudo bash -x /tmp/rke2-setup.sh > /tmp/rke2-setup.log 2>&1",
-        "SCRIPT_EXIT_CODE=$?",
-        "echo 'RKE2 setup script for ${each.key} completed at $(date) with exit code: $SCRIPT_EXIT_CODE'",
-        "if [ $SCRIPT_EXIT_CODE -eq 124 ]; then echo 'Script timed out after 15 minutes'; echo 'Last 100 lines of log:'; tail -100 /tmp/rke2-setup.log; exit 124; fi",
-        "if [ $SCRIPT_EXIT_CODE -ne 0 ]; then echo 'Script failed! Last 50 lines of log:'; tail -50 /tmp/rke2-setup.log; exit $SCRIPT_EXIT_CODE; fi",
-        "echo 'Script completed successfully. Last 20 lines of log:'; tail -20 /tmp/rke2-setup.log"
+        "sudo bash /tmp/rke2-setup.sh"
       ]
     )
   }
