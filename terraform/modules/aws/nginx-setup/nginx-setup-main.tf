@@ -19,39 +19,6 @@ variable "K8S_INFRA_BRANCH" {
   default = "develop"
 }
 
-# Shared network variable (still needed for nginx configuration)
-variable "NETWORK_CIDR" {
-  type        = string
-  description = "VPC CIDR block for internal communication"
-}
-
-# MOSIP Infrastructure Repository Configuration
-variable "MOSIP_INFRA_REPO_URL" {
-  description = "The URL of the MOSIP infrastructure GitHub repository"
-  type        = string
-  validation {
-    condition     = can(regex("^https://github\\.com/.+/.+\\.git$", var.MOSIP_INFRA_REPO_URL))
-    error_message = "The MOSIP_INFRA_REPO_URL must be a valid GitHub repository URL ending with .git"
-  }
-}
-
-variable "MOSIP_INFRA_BRANCH" {
-  type    = string
-  default = "develop"
-}
-
-# Kubernetes Control Plane Configuration
-variable "CONTROL_PLANE_HOST" {
-  type        = string
-  description = "IP address or hostname of the Kubernetes control plane node where kubectl is configured"
-}
-
-variable "CONTROL_PLANE_USER" {
-  type        = string
-  default     = "ubuntu"
-  description = "Username for SSH access to the control plane node"
-}
-
 # Nginx nodepool data that gets passed through
 
 locals {
