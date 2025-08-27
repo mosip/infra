@@ -1,7 +1,7 @@
 # Environment name (infra component)
-cluster_name = "soiltest"
+cluster_name = "soil0"
 # MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "soiltest.mosip.net"
+cluster_env_domain = "soil0.mosip.net"
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
 mosip_email_id = "chandra.mishra@technoforte.co.in"
 # SSH login key name for AWS node instances (ex: my-ssh-key)
@@ -25,8 +25,8 @@ nginx_instance_type = "t3a.2xlarge"
 # Optional: Exclude specific AZs due to known capacity issues
 # Leave empty for fully dynamic behavior (recommended)
 # Add AZs only if you experience repeated capacity issues
-k8s_capacity_excluded_azs   = ["ap-south-1a"] # e.g., ["ap-south-1a"] if needed
-nginx_capacity_excluded_azs = ["ap-south-1a"] # e.g., ["ap-south-1a"] if needed
+k8s_capacity_excluded_azs   = [] # e.g., ["ap-south-1a"] if needed
+nginx_capacity_excluded_azs = [] # e.g., ["ap-south-1a"] if needed
 # The Route 53 hosted zone ID
 zone_id = "Z090954828SJIEL6P5406"
 
