@@ -254,27 +254,21 @@ ansible --version || echo "Ansible: Not available"
 # Clone MOSIP infrastructure repository with retry logic
 echo 'Cloning Repository...'
 cd /tmp
+rm -rf mosip-infra
 
-# Only clone if directory doesn't exist
-if [ ! -d "mosip-infra" ]; then
-    echo "Cloning from: $MOSIP_INFRA_REPO_URL"
-    echo "Branch: $MOSIP_INFRA_BRANCH"
-    
-    git clone "$MOSIP_INFRA_REPO_URL" || {
-        echo 'Initial git clone failed, retrying with verbose output...'
-        sleep 10
-        git clone --verbose "$MOSIP_INFRA_REPO_URL" || {
-            echo 'Git clone failed completely'
-            echo 'Checking network connectivity...'
-            ping -c 3 8.8.8.8 || echo 'Network connectivity issue detected'
-            exit 1
-        }
+echo "Cloning from: $MOSIP_INFRA_REPO_URL"
+echo "Branch: $MOSIP_INFRA_BRANCH"
+
+git clone "$MOSIP_INFRA_REPO_URL" || {
+    echo 'Initial git clone failed, retrying with verbose output...'
+    sleep 10
+    git clone --verbose "$MOSIP_INFRA_REPO_URL" || {
+        echo 'Git clone failed completely'
+        echo 'Checking network connectivity...'
+        ping -c 3 8.8.8.8 || echo 'Network connectivity issue detected'
+        exit 1
     }
-else
-    echo "mosip-infra repository already exists, using existing repository"
-    # Configure git safe directory to avoid ownership warnings
-    git config --global --add safe.directory /tmp/mosip-infra || true
-fi
+}
 
 cd mosip-infra
 git checkout "$MOSIP_INFRA_BRANCH" || {
