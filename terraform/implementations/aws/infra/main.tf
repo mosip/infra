@@ -39,11 +39,10 @@ module "mosip_infra" {
   k8s_infra_branch             = var.k8s_infra_branch
 
   # PostgreSQL Configuration
-  enable_postgresql_setup = var.enable_postgresql_setup
-  postgresql_version      = var.postgresql_version
-  storage_device          = var.storage_device
-  mount_point             = var.mount_point
-  postgresql_port         = var.postgresql_port
+  postgresql_version = var.postgresql_version
+  storage_device     = var.storage_device
+  mount_point        = var.mount_point
+  postgresql_port    = var.postgresql_port
 
   # MOSIP Infrastructure Repository Configuration
   mosip_infra_repo_url = var.mosip_infra_repo_url
@@ -61,10 +60,5 @@ module "mosip_infra" {
   nginx_node_ebs_volume_size    = var.nginx_node_ebs_volume_size
   nginx_node_ebs_volume_size_2  = var.nginx_node_ebs_volume_size_2
   k8s_instance_root_volume_size = var.k8s_instance_root_volume_size
-
-  # RKE2 Cloud-Init Configuration
-  use_cloud_init = var.use_cloud_init
-  use_bastion    = var.use_bastion
-  bastion_host   = var.bastion_host
 
 }

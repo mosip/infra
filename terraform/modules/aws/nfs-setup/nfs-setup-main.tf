@@ -14,12 +14,6 @@ variable "NFS_SERVER" {
     error_message = "The NFS_SERVER must be a valid DNS name, an IPv4 address, or an IPv6 address."
   }
 }
-
-variable "NFS_SERVER_PUBLIC_IP" {
-  description = "The public IP address of the NFS server for SSH connection"
-  type        = string
-}
-
 variable "SSH_PRIVATE_KEY" { type = string }
 
 variable "K8S_INFRA_REPO_URL" {
@@ -62,7 +56,7 @@ locals {
 resource "null_resource" "nfs-server-setup" {
   connection {
     type        = "ssh"
-    host        = var.NFS_SERVER_PUBLIC_IP
+    host        = var.NFS_SERVER
     user        = "ubuntu"            # Change based on the AMI used
     private_key = var.SSH_PRIVATE_KEY # content of your private key
   }

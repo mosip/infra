@@ -19,7 +19,47 @@ variable "K8S_INFRA_BRANCH" {
   default = "develop"
 }
 
-# Nginx nodepool data that gets passed through
+# PostgreSQL Configuration Variables
+variable "NGINX_NODE_EBS_VOLUME_SIZE_2" { type = number }
+variable "POSTGRESQL_VERSION" {
+  type        = string
+  default     = "15"
+  description = "PostgreSQL version to install"
+}
+variable "STORAGE_DEVICE" {
+  type        = string
+  default     = "/dev/nvme2n1"
+  description = "Storage device path for PostgreSQL data"
+}
+variable "MOUNT_POINT" {
+  type        = string
+  default     = "/srv/postgres"
+  description = "Mount point for PostgreSQL data directory"
+}
+variable "POSTGRESQL_PORT" {
+  type        = string
+  default     = "5433"
+  description = "PostgreSQL port configuration"
+}
+variable "NETWORK_CIDR" {
+  type        = string
+  description = "VPC CIDR block for internal communication"
+}
+
+# MOSIP Infrastructure Repository Configuration
+variable "MOSIP_INFRA_REPO_URL" {
+  description = "The URL of the MOSIP infrastructure GitHub repository"
+  type        = string
+  validation {
+    condition     = can(regex("^https://github\\.com/.+/.+\\.git$", var.MOSIP_INFRA_REPO_URL))
+    error_message = "The MOSIP_INFRA_REPO_URL must be a valid GitHub repository URL ending with .git"
+  }
+}
+
+variable "MOSIP_INFRA_BRANCH" {
+  type    = string
+  default = "develop"
+}
 
 locals {
   NGINX_CONFIG = {
@@ -60,6 +100,8 @@ resource "null_resource" "Nginx-setup" {
     host        = var.NGINX_PUBLIC_IP
     user        = "ubuntu"            # Change based on the AMI used
     private_key = var.SSH_PRIVATE_KEY # content of your private key
+    timeout     = "5m"                # 5 minute timeout
+    agent       = false               # Don't use SSH agent
   }
 
   provisioner "file" {
@@ -77,5 +119,54 @@ resource "null_resource" "Nginx-setup" {
         "sudo bash /tmp/nginx-setup.sh"
       ]
     )
+  }
+}
+
+# PostgreSQL Ansible Setup (conditional on second EBS volume)
+resource "null_resource" "PostgreSQL-ansible-setup" {
+  count = var.NGINX_NODE_EBS_VOLUME_SIZE_2 > 0 ? 1 : 0
+
+  depends_on = [null_resource.Nginx-setup]
+
+  triggers = {
+    postgresql_config_hash = md5(join("", [
+      var.POSTGRESQL_VERSION,
+      var.STORAGE_DEVICE,
+      var.MOUNT_POINT,
+      var.POSTGRESQL_PORT,
+      var.MOSIP_INFRA_REPO_URL,
+      var.MOSIP_INFRA_BRANCH
+    ]))
+  }
+
+  connection {
+    type        = "ssh"
+    host        = var.NGINX_PUBLIC_IP
+    user        = "ubuntu"
+    private_key = var.SSH_PRIVATE_KEY
+    timeout     = "15m" # Fast timeout for PostgreSQL setup
+    agent       = false
+  }
+
+  provisioner "file" {
+    source      = "${path.module}/postgresql-setup.sh"
+    destination = "/tmp/postgresql-setup.sh"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      # Set environment variables for the PostgreSQL setup script
+      "export POSTGRESQL_VERSION=${var.POSTGRESQL_VERSION}",
+      "export STORAGE_DEVICE=${var.STORAGE_DEVICE}",
+      "export MOUNT_POINT=${var.MOUNT_POINT}",
+      "export POSTGRESQL_PORT=${var.POSTGRESQL_PORT}",
+      "export NETWORK_CIDR=${var.NETWORK_CIDR}",
+      "export MOSIP_INFRA_REPO_URL=${var.MOSIP_INFRA_REPO_URL}",
+      "export MOSIP_INFRA_BRANCH=${var.MOSIP_INFRA_BRANCH}",
+
+      # Execute the PostgreSQL setup script
+      "sudo chmod +x /tmp/postgresql-setup.sh",
+      "bash /tmp/postgresql-setup.sh"
+    ]
   }
 }
