@@ -152,10 +152,19 @@ EOF
       # Verify kubectl connectivity
       "kubectl cluster-info",
       
+      # Create postgres namespace if it doesn't exist
+      "echo 'Creating postgres namespace...'",
+      "kubectl create namespace postgres --dry-run=client -o yaml | kubectl apply -f -",
+      
       # Deploy PostgreSQL resources
       "kubectl apply -f /tmp/postgres-postgresql.yml",
       "kubectl apply -f /tmp/postgres-setup-config.yml",
       "echo 'PostgreSQL Kubernetes resources deployed successfully!'",
+      
+      # Verify the resources were created
+      "echo 'Verifying PostgreSQL resources...'",
+      "kubectl get secret -n postgres postgres-postgresql || echo 'Secret not found'",
+      "kubectl get configmap -n postgres postgres-setup-config || echo 'ConfigMap not found'",
       
       # Cleanup
       "rm -f /tmp/postgres-postgresql.yml /tmp/postgres-setup-config.yml"
