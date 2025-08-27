@@ -1,7 +1,7 @@
 # Environment name (infra component)
-cluster_name = "test"
+cluster_name = "soil"
 # MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "testgrids.mosip.net"
+cluster_env_domain = "soil.mosip.net"
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
 mosip_email_id = "chandra.mishra@technoforte.co.in"
 # SSH login key name for AWS node instances (ex: my-ssh-key)
@@ -50,9 +50,9 @@ k8s_instance_root_volume_size = 64
 # Control-plane, ETCD, Worker
 k8s_control_plane_node_count = 1
 # ETCD, Worker
-k8s_etcd_node_count = 0
+k8s_etcd_node_count = 1
 # Worker
-k8s_worker_node_count = 0
+k8s_worker_node_count = 1
 
 # Rancher Import Configuration
 enable_rancher_import = false
@@ -67,24 +67,14 @@ rancher_import_url = "\"kubectl apply -f https://rancher.mosip.net/v3/import/dzs
 subdomain_public   = ["resident", "prereg", "esignet", "healthservices", "signup"]
 subdomain_internal = ["admin", "iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio", "regclient", "compliance"]
 
-# PostgreSQL Configuration (used when second EBS volume is enabled)
-enable_postgresql_setup = true # Enable PostgreSQL setup for main infra
 postgresql_version      = "15"
 storage_device          = "/dev/nvme2n1"
 mount_point             = "/srv/postgres"
 postgresql_port         = "5433"
 
 # MOSIP Infrastructure Repository Configuration
-mosip_infra_repo_url = "https://github.com/bhumi46/mosip-infra.git"
-
+mosip_infra_repo_url = "https://github.com/bn46/mosip-infra.git"
 mosip_infra_branch = "develop"
-
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
 vpc_name = "mosip-boxes"
-
-# RKE2 Deployment Configuration - Cloud-Init (Production Grade)
-use_cloud_init = true
-# Optional: Bastion host for SSH optimization (if Cloud-Init disabled)
-use_bastion  = false
-bastion_host = ""
