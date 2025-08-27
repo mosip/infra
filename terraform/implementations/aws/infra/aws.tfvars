@@ -1,7 +1,7 @@
 # Environment name (infra component)
 cluster_name = "soil"
 # MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "soil1.mosip.net"
+cluster_env_domain = "soil2.mosip.net"
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
 mosip_email_id = "chandra.mishra@technoforte.co.in"
 # SSH login key name for AWS node instances (ex: my-ssh-key)
@@ -25,8 +25,8 @@ nginx_instance_type = "t3a.2xlarge"
 # Optional: Exclude specific AZs due to known capacity issues
 # Force single-AZ deployment for better SSH stability over VPN
 # This will use only ap-south-1a for all instances
-k8s_capacity_excluded_azs   = ["ap-south-1b", "ap-south-1c"] # Force single AZ
-nginx_capacity_excluded_azs = ["ap-south-1b", "ap-south-1c"] # Force single AZ
+k8s_capacity_excluded_azs   = [] # Force single AZ
+nginx_capacity_excluded_azs = [] # Force single AZ
 # The Route 53 hosted zone ID
 zone_id = "Z090954828SJIEL6P5406"
 
@@ -48,11 +48,11 @@ nginx_node_ebs_volume_size_2 = 200 # Enable second EBS volume for PostgreSQL tes
 k8s_instance_root_volume_size = 64
 
 # Control-plane, ETCD, Worker
-k8s_control_plane_node_count = 1
+k8s_control_plane_node_count = 3
 # ETCD, Worker
-k8s_etcd_node_count = 1
+k8s_etcd_node_count = 3
 # Worker
-k8s_worker_node_count = 1
+k8s_worker_node_count = 2
 
 # Rancher Import Configuration
 enable_rancher_import = false
