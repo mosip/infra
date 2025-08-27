@@ -811,14 +811,19 @@ EOF
     # Copy files to control plane
     echo "[COPY] Copying YAML files and deployment script to control plane..."
     
-    # Use SSH with proper error handling
-    if timeout 60 scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 \
+    # Create temporary SSH key file for nginx->control plane communication
+    SSH_KEY_FILE="/tmp/nginx-to-control-plane-key"
+    echo "$SSH_PRIVATE_KEY" > "$SSH_KEY_FILE"
+    chmod 600 "$SSH_KEY_FILE"
+    
+    # Use SSH with proper error handling and private key
+    if timeout 60 scp -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 \
        -r /tmp/postgresql-secrets "$DEPLOY_SCRIPT" "${CONTROL_PLANE_USER}@${CONTROL_PLANE_HOST}:/tmp/" 2>/dev/null; then
         echo "[SUCCESS] Files copied to control plane"
         
         # Execute the deployment script on control plane
         echo "[EXECUTE] Running deployment script on control plane..."
-        if timeout 120 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 \
+        if timeout 120 ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 \
            "${CONTROL_PLANE_USER}@${CONTROL_PLANE_HOST}" "bash /tmp/deploy-postgres-k8s.sh" 2>/dev/null; then
             echo "[SUCCESS] Kubernetes resources deployed successfully via control plane!"
         else
@@ -826,12 +831,17 @@ EOF
             echo "[INFO] Manual deployment fallback:"
             echo "  1. SSH to control plane: ssh ${CONTROL_PLANE_USER}@${CONTROL_PLANE_HOST}"
             echo "  2. Run: bash /tmp/deploy-postgres-k8s.sh"
+            # Clean up SSH key file before exiting
+            rm -f "$SSH_KEY_FILE"
             exit 1
         fi
         
         # Cleanup the deployment script on control plane
-        timeout 30 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+        timeout 30 ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
            "${CONTROL_PLANE_USER}@${CONTROL_PLANE_HOST}" "rm -f /tmp/deploy-postgres-k8s.sh" 2>/dev/null || true
+        
+        # Clean up SSH key file
+        rm -f "$SSH_KEY_FILE"
             
     else
         echo "[ERROR] Failed to copy files to control plane"
@@ -839,6 +849,8 @@ EOF
         echo "  1. Control plane host is reachable: ${CONTROL_PLANE_HOST}"
         echo "  2. SSH access is configured for user: ${CONTROL_PLANE_USER}"
         echo "  3. Network connectivity between nginx node and control plane"
+        # Clean up SSH key file before exiting
+        rm -f "$SSH_KEY_FILE"
         exit 1
     fi
     
