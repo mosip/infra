@@ -609,7 +609,7 @@ module "nginx-setup" {
 
 
 module "rke2-setup" {
-  depends_on = [module.aws-resource-creation]
+  depends_on = [module.aws-resource-creation, module.nginx-setup]
   #source     = "github.com/mosip/mosip-infra//deployment/v3/terraform/aws/modules/rke2-setup?ref=develop"
   source = "./rke2-cluster"
 
@@ -634,7 +634,7 @@ module "nfs-setup" {
 
 module "postgresql-setup" {
   count      = var.enable_postgresql_setup && var.nginx_node_ebs_volume_size_2 > 0 ? 1 : 0
-  depends_on = [module.aws-resource-creation, module.rke2-setup, module.nfs-setup]
+  depends_on = [module.aws-resource-creation, module.nginx-setup, module.rke2-setup, module.nfs-setup]
   source     = "./postgresql-setup"
 
   NGINX_PUBLIC_IP              = module.aws-resource-creation.NGINX_PUBLIC_IP
