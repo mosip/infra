@@ -67,14 +67,14 @@ rancher_import_url = "\"kubectl apply -f https://rancher.mosip.net/v3/import/dzs
 subdomain_public   = ["resident", "prereg", "esignet", "healthservices", "signup"]
 subdomain_internal = ["admin", "iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio", "regclient", "compliance"]
 
-postgresql_version      = "15"
-storage_device          = "/dev/nvme2n1"
-mount_point             = "/srv/postgres"
-postgresql_port         = "5433"
+postgresql_version = "15"
+storage_device     = "/dev/nvme2n1"
+mount_point        = "/srv/postgres"
+postgresql_port    = "5433"
 
 # MOSIP Infrastructure Repository Configuration
 mosip_infra_repo_url = "https://github.com/bn46/mosip-infra.git"
-mosip_infra_branch = "develop"
+mosip_infra_branch   = "develop"
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
 vpc_name = "mosip-boxes"
