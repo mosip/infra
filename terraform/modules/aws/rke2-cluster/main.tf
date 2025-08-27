@@ -1,5 +1,6 @@
 variable "K8S_CLUSTER_PRIVATE_IPS" { type = map(string) }
 variable "SSH_PRIVATE_KEY" { type = string }
+variable "CLUSTER_ENV_DOMAIN" { type = string }
 variable "K8S_INFRA_REPO_URL" {
   description = "The URL of the Kubernetes infrastructure GitHub repository"
   type        = string
@@ -19,6 +20,13 @@ variable "RANCHER_IMPORT_URL" {
     error_message = "The RANCHER_IMPORT_URL must be in the format: '\"kubectl apply -f https://rancher.mosip.net/v3/import/<ID>.yaml\"'"
   }
 }
+
+variable "enable_rancher_import" {
+  description = "Set to true to enable Rancher import"
+  type        = bool
+  default     = false
+}
+
 # Generate a random string (token)
 resource "random_string" "K8S_TOKEN" {
   length  = 32    # Length of the token
@@ -36,7 +44,8 @@ locals {
   CONTROL_PLANE_NODE_1        = element([for key, value in var.K8S_CLUSTER_PRIVATE_IPS : value if length(regexall(".*CONTROL-PLANE-NODE-1", key)) > 0], 0)
   K8S_CLUSTER_PRIVATE_IPS_STR = join(",", [for key, value in var.K8S_CLUSTER_PRIVATE_IPS : "${key}=${value}"])
 
-  RKE_CONFIG = {
+  # Base RKE configuration
+  RKE_CONFIG_BASE = {
     ENV_VAR_FILE                = "/etc/environment"
     CONTROL_PLANE_NODE_1        = local.CONTROL_PLANE_NODE_1
     WORK_DIR                    = "/home/ubuntu/"
@@ -46,9 +55,14 @@ locals {
     K8S_INFRA_BRANCH            = var.K8S_INFRA_BRANCH
     RKE2_LOCATION               = "/home/ubuntu/k8s-infra/k8-cluster/on-prem/rke2/"
     K8S_CLUSTER_PRIVATE_IPS_STR = local.K8S_CLUSTER_PRIVATE_IPS_STR
-    RANCHER_IMPORT_URL          = var.RANCHER_IMPORT_URL
     K8S_TOKEN                   = random_string.K8S_TOKEN.result
+    CLUSTER_DOMAIN              = var.CLUSTER_ENV_DOMAIN
   }
+
+  # Conditional RKE configuration with Rancher import URL only when enabled
+  RKE_CONFIG = var.enable_rancher_import ? merge(local.RKE_CONFIG_BASE, {
+    RANCHER_IMPORT_URL = var.RANCHER_IMPORT_URL
+  }) : local.RKE_CONFIG_BASE
   # Filter out CONTROL_PLANE_NODE_1 from K8S_CLUSTER_PUBLIC_IPS
   #   K8S_CLUSTER_PRIVATE_IPS_EXCEPT_CONTROL_PLANE_NODE_1 = {
   #     for key, value in var.K8S_CLUSTER_PRIVATE_IPS : key => value if value != local.CONTROL_PLANE_NODE_1
@@ -76,7 +90,6 @@ resource "null_resource" "rke2-primary-cluster-setup" {
     host        = local.CONTROL_PLANE_NODE_1
     user        = "ubuntu"            # Change based on the AMI used
     private_key = var.SSH_PRIVATE_KEY # content of your private key
-
   }
   provisioner "file" {
     source      = "${path.module}/rke2-setup.sh"
@@ -119,12 +132,6 @@ resource "null_resource" "rke2-cluster-setup" {
       ]
     )
   }
-}
-
-variable "enable_rancher_import" {
-  description = "Set to true to enable Rancher import"
-  type        = bool
-  default     = false
 }
 
 resource "null_resource" "rancher-import" {

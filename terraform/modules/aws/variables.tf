@@ -128,6 +128,12 @@ variable "nginx_capacity_excluded_azs" {
 }
 
 # PostgreSQL Configuration Variables
+variable "enable_postgresql_setup" {
+  description = "Enable PostgreSQL setup (disable for observ-infra)"
+  type        = bool
+  default     = true
+}
+
 variable "postgresql_version" {
   description = "PostgreSQL version to install"
   type        = string
