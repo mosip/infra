@@ -122,8 +122,9 @@ resource "null_resource" "postgresql-k8s-deployment" {
 echo "${var.SSH_PRIVATE_KEY}" > /tmp/nginx-key
 chmod 600 /tmp/nginx-key
 
-# Download YAML files from nginx node to local
-scp -i /tmp/nginx-key -o StrictHostKeyChecking=no ubuntu@${var.NGINX_PUBLIC_IP}:/tmp/postgresql-secrets/*.yml /tmp/
+# Create local directory and download YAML files from nginx node
+mkdir -p /tmp/postgresql-secrets
+scp -i /tmp/nginx-key -o StrictHostKeyChecking=no ubuntu@${var.NGINX_PUBLIC_IP}:/tmp/postgresql-secrets/*.yml /tmp/postgresql-secrets/
 
 # Clean up nginx key
 rm -f /tmp/nginx-key
@@ -132,18 +133,26 @@ EOF
 
   # Copy YAML files to control plane
   provisioner "file" {
-    source      = "/tmp/postgres-postgresql.yml"
+    source      = "/tmp/postgresql-secrets/postgres-postgresql.yml"
     destination = "/tmp/postgres-postgresql.yml"
   }
 
   provisioner "file" {
-    source      = "/tmp/postgres-setup-config.yml"
+    source      = "/tmp/postgresql-secrets/postgres-setup-config.yml"
     destination = "/tmp/postgres-setup-config.yml"
   }
 
   # Deploy to Kubernetes
   provisioner "remote-exec" {
     inline = [
+      # Set up kubeconfig for kubectl (RKE2 creates node-specific kubeconfig files)
+      "export KUBECONFIG=$(find /home/ubuntu/.kube/ -name '*.yaml' | head -1)",
+      "echo 'Using kubeconfig: $KUBECONFIG'",
+      
+      # Verify kubectl connectivity
+      "kubectl cluster-info",
+      
+      # Deploy PostgreSQL resources
       "kubectl apply -f /tmp/postgres-postgresql.yml",
       "kubectl apply -f /tmp/postgres-setup-config.yml",
       "echo 'PostgreSQL Kubernetes resources deployed successfully!'",
@@ -155,6 +164,6 @@ EOF
 
   # Cleanup local files
   provisioner "local-exec" {
-    command = "rm -f /tmp/postgres-postgresql.yml /tmp/postgres-setup-config.yml"
+    command = "rm -rf /tmp/postgresql-secrets"
   }
 }
