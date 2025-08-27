@@ -645,7 +645,7 @@ module "rke2-setup" {
   enable_rancher_import   = var.ENABLE_RANCHER_IMPORT
 }
 module "nfs-setup" {
-  depends_on          = [module.aws-resource-creation, module.rke2-setup]
+  depends_on          = [module.aws-resource-creation, module.nginx-setup, module.rke2-setup]
   source              = "./nfs-setup"
   NFS_SERVER_LOCATION = "/srv/nfs/mosip/${var.CLUSTER_ENV_DOMAIN}"
   NFS_SERVER          = module.aws-resource-creation.NGINX_PRIVATE_IP
