@@ -1,7 +1,7 @@
 # Environment name (infra component)
-cluster_name = "testgrid"
+cluster_name = "soiltest"
 # MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "testgrid.mosip.net"
+cluster_env_domain = "soiltest.mosip.net"
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
 mosip_email_id = "chandra.mishra@technoforte.co.in"
 # SSH login key name for AWS node instances (ex: my-ssh-key)
