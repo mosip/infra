@@ -1,7 +1,7 @@
 # Environment name (infra component)
-cluster_name = "soil3"
+cluster_name = "soil0"
 # MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "soil3.mosip.net"
+cluster_env_domain = "soil0.mosip.net"
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
 mosip_email_id = "chandra.mishra@technoforte.co.in"
 # SSH login key name for AWS node instances (ex: my-ssh-key)
@@ -52,7 +52,7 @@ k8s_control_plane_node_count = 3
 # ETCD, Worker
 k8s_etcd_node_count = 3
 # Worker
-k8s_worker_node_count = 3
+k8s_worker_node_count = 2
 
 # Rancher Import Configuration
 enable_rancher_import = false
