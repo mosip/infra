@@ -23,10 +23,10 @@ k8s_instance_type = "t3a.2xlarge"
 nginx_instance_type = "t3a.2xlarge"
 
 # Optional: Exclude specific AZs due to known capacity issues
-# Leave empty for fully dynamic behavior (recommended)
-# Add AZs only if you experience repeated capacity issues
-k8s_capacity_excluded_azs   = [] # e.g., ["ap-south-1a"] if needed
-nginx_capacity_excluded_azs = [] # e.g., ["ap-south-1a"] if needed
+# Force single-AZ deployment for better SSH stability over VPN
+# This will use only ap-south-1a for all instances
+k8s_capacity_excluded_azs   = ["ap-south-1b", "ap-south-1c"] # Force single AZ
+nginx_capacity_excluded_azs = ["ap-south-1b", "ap-south-1c"] # Force single AZ
 # The Route 53 hosted zone ID
 zone_id = "Z090954828SJIEL6P5406"
 

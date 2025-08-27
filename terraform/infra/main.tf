@@ -59,11 +59,6 @@ module "aws_infra" {
   # MOSIP Infrastructure Repository Configuration
   mosip_infra_repo_url = var.mosip_infra_repo_url
   mosip_infra_branch   = var.mosip_infra_branch
-
-  # RKE2 Cloud-Init Configuration
-  use_cloud_init = var.use_cloud_init
-  use_bastion    = var.use_bastion
-  bastion_host   = var.bastion_host
 }
 
 # Azure Infrastructure

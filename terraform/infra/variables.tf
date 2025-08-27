@@ -225,12 +225,6 @@ variable "gcp_dns_zone" {
 }
 
 # PostgreSQL Configuration Variables
-variable "enable_postgresql_setup" {
-  description = "Enable PostgreSQL setup"
-  type        = bool
-  default     = true
-}
-
 variable "postgresql_version" {
   description = "PostgreSQL version to install"
   type        = string
@@ -266,23 +260,4 @@ variable "mosip_infra_branch" {
   description = "Branch of the MOSIP infrastructure repository"
   type        = string
   default     = "develop"
-}
-
-# RKE2 Cloud-Init Configuration Variables
-variable "use_cloud_init" {
-  description = "Use Cloud-Init for RKE2 setup instead of SSH (eliminates SSH issues completely)"
-  type        = bool
-  default     = false
-}
-
-variable "use_bastion" {
-  description = "Enable bastion host for SSH connections (recommended for multi-AZ)"
-  type        = bool
-  default     = false
-}
-
-variable "bastion_host" {
-  description = "Bastion host IP for SSH tunneling (optional - improves multi-AZ performance)"
-  type        = string
-  default     = ""
 }
