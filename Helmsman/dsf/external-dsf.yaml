@@ -37,7 +37,7 @@ namespaces:
 apps:
   postgres:
     namespace: postgres
-    enabled: true
+    enabled: false
     version: 0.1.0
     chart: $WORKDIR/utils/postgres/external-postgres-setup-0.1.0.tgz
     wait: true
