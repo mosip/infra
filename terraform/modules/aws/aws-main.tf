@@ -458,6 +458,14 @@ module "aws-resource-creation" {
         cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = []
       },
+      {
+        description : "PostgreSQL port (internal only)"
+        from_port : 5433,
+        to_port : 5433,
+        protocol : "TCP",
+        cidr_blocks      = [var.network_cidr],
+        ipv6_cidr_blocks = []
+      },
     ]
     K8S_ETCD_SECURITY_GROUP = [
       {
@@ -532,6 +540,14 @@ module "aws-resource-creation" {
         cidr_blocks      = ["0.0.0.0/0"],
         ipv6_cidr_blocks = ["::/0"]
       },
+      {
+        description : "PostgreSQL port (internal only)"
+        from_port : 5433,
+        to_port : 5433,
+        protocol : "TCP",
+        cidr_blocks      = [var.network_cidr],
+        ipv6_cidr_blocks = []
+      },
     ]
     K8S_WORKER_SECURITY_GROUP = [
       {
@@ -581,6 +597,14 @@ module "aws-resource-creation" {
         protocol : "TCP",
         cidr_blocks      = ["0.0.0.0/0"],
         ipv6_cidr_blocks = ["::/0"]
+      },
+      {
+        description : "PostgreSQL port (internal only)"
+        from_port : 5433,
+        to_port : 5433,
+        protocol : "TCP",
+        cidr_blocks      = [var.network_cidr],
+        ipv6_cidr_blocks = []
       },
     ]
   }
