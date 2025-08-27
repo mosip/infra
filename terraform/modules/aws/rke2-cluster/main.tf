@@ -21,11 +21,6 @@ variable "RANCHER_IMPORT_URL" {
   }
 }
 
-variable "enable_rancher_import" {
-  description = "Set to true to enable Rancher import"
-  type        = bool
-  default     = false
-}
 
 # Generate a random string (token)
 resource "random_string" "K8S_TOKEN" {
@@ -132,6 +127,12 @@ resource "null_resource" "rke2-cluster-setup" {
       ]
     )
   }
+}
+
+variable "enable_rancher_import" {
+  description = "Set to true to enable Rancher import"
+  type        = bool
+  default     = false
 }
 
 resource "null_resource" "rancher-import" {
