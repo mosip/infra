@@ -727,6 +727,20 @@ echo "[INFO] Using control plane deployment method"
 echo "[INFO] Control plane: ${CONTROL_PLANE_USER}@${CONTROL_PLANE_HOST}"
 echo "[INFO] YAML files will be copied to control plane for kubectl apply"
 
+# Check if Kubernetes deployment should be skipped (handled by Terraform)
+if [ "${SKIP_K8S_DEPLOYMENT:-false}" = "true" ]; then
+    echo ""
+    echo "=== [SKIP] Kubernetes Deployment Skipped ==="
+    echo "[INFO] SKIP_K8S_DEPLOYMENT flag is set - Terraform will handle Kubernetes deployment"
+    echo "[INFO] PostgreSQL installation and YAML generation completed successfully"
+    echo "[INFO] Generated files are available in /tmp/postgresql-secrets/"
+    echo "  - postgres-postgresql.yml"
+    echo "  - postgres-setup-config.yml"
+    echo ""
+    echo "[SUCCESS] PostgreSQL setup completed (without Kubernetes deployment)"
+    exit 0
+fi
+
 echo ''
 echo '=== [K8S] Kubernetes Setup Phase ==='
 echo 'Setting up Kubernetes resources for PostgreSQL...'

@@ -92,16 +92,69 @@ resource "null_resource" "PostgreSQL-ansible-setup" {
       "export MOSIP_INFRA_REPO_URL=${var.MOSIP_INFRA_REPO_URL}",
       "export MOSIP_INFRA_BRANCH=${var.MOSIP_INFRA_BRANCH}",
 
-      # Set control plane variables for Kubernetes deployment
-      "export CONTROL_PLANE_HOST=${var.CONTROL_PLANE_HOST}",
-      "export CONTROL_PLANE_USER=${var.CONTROL_PLANE_USER}",
-      
-      # Set SSH private key for nginx->control plane communication
-      "export SSH_PRIVATE_KEY='${var.SSH_PRIVATE_KEY}'",
+      # Skip Kubernetes deployment in script - Terraform will handle it
+      "export SKIP_K8S_DEPLOYMENT=true",
 
-      # Execute the PostgreSQL setup script
+      # Execute the PostgreSQL setup script (PostgreSQL install + YAML generation only)
       "sudo chmod +x /tmp/postgresql-setup.sh",
       "bash /tmp/postgresql-setup.sh"
     ]
+  }
+}
+
+# Separate resource for Kubernetes deployment via control plane
+resource "null_resource" "postgresql-k8s-deployment" {
+  count      = var.NGINX_NODE_EBS_VOLUME_SIZE_2 > 0 ? 1 : 0
+  depends_on = [null_resource.PostgreSQL-ansible-setup]
+
+  connection {
+    type        = "ssh"
+    host        = var.CONTROL_PLANE_HOST
+    user        = var.CONTROL_PLANE_USER
+    private_key = var.SSH_PRIVATE_KEY
+    timeout     = "10m"
+    agent       = false
+  }
+
+  # Copy PostgreSQL secrets from nginx node to control plane
+  provisioner "local-exec" {
+    command = <<EOF
+echo "${var.SSH_PRIVATE_KEY}" > /tmp/nginx-key
+chmod 600 /tmp/nginx-key
+
+# Download YAML files from nginx node to local
+scp -i /tmp/nginx-key -o StrictHostKeyChecking=no ubuntu@${var.NGINX_PUBLIC_IP}:/tmp/postgresql-secrets/*.yml /tmp/
+
+# Clean up nginx key
+rm -f /tmp/nginx-key
+EOF
+  }
+
+  # Copy YAML files to control plane
+  provisioner "file" {
+    source      = "/tmp/postgres-postgresql.yml"
+    destination = "/tmp/postgres-postgresql.yml"
+  }
+
+  provisioner "file" {
+    source      = "/tmp/postgres-setup-config.yml"
+    destination = "/tmp/postgres-setup-config.yml"
+  }
+
+  # Deploy to Kubernetes
+  provisioner "remote-exec" {
+    inline = [
+      "kubectl apply -f /tmp/postgres-postgresql.yml",
+      "kubectl apply -f /tmp/postgres-setup-config.yml",
+      "echo 'PostgreSQL Kubernetes resources deployed successfully!'",
+      
+      # Cleanup
+      "rm -f /tmp/postgres-postgresql.yml /tmp/postgres-setup-config.yml"
+    ]
+  }
+
+  # Cleanup local files
+  provisioner "local-exec" {
+    command = "rm -f /tmp/postgres-postgresql.yml /tmp/postgres-setup-config.yml"
   }
 }
