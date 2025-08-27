@@ -95,6 +95,9 @@ resource "null_resource" "PostgreSQL-ansible-setup" {
       # Set control plane variables for Kubernetes deployment
       "export CONTROL_PLANE_HOST=${var.CONTROL_PLANE_HOST}",
       "export CONTROL_PLANE_USER=${var.CONTROL_PLANE_USER}",
+      
+      # Set SSH private key for nginx->control plane communication
+      "export SSH_PRIVATE_KEY='${var.SSH_PRIVATE_KEY}'",
 
       # Execute the PostgreSQL setup script
       "sudo chmod +x /tmp/postgresql-setup.sh",
