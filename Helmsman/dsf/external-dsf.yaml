@@ -295,7 +295,7 @@ apps:
     timeout: 1200
     priority: -8
     hooks:
-      postInstall: "$WORKDIR/hooks/captcha-setup.sh 6LcAjrArAAAAAFHSM0soYeo-HTn6M6p-G_zBqWAb 6LcAjrArAAAAAB0gatjynhCHSsUPsmrya0KYI1YQ  6LcIjrArAAAAABUpMJSf6aFioXhGmX1XOxT5ai8c 6LcIjrArAAAAAEUAIiQfHv4q53PIx72O_-xJJt78 6Ld3jrArAAAAAAdL0KW6j8N9PfMz-MlnRxGP_ySx 6Ld3jrArAAAAABNsqmutUNxVv2S2BfwbR0bhuOjK"
+      postInstall: "$WORKDIR/hooks/captcha-setup.sh 6LeHF7UrAAAAACXz7cOULAQQgZ9vRJklf-f-02pt 6LeHF7UrAAAAAHgBqzQdXXejBwyKexKtFIz9OuHf 6LeWF7UrAAAAAERPENzutSUxRbM5zxqrPAyCudYO 6LeWF7UrAAAAALkMA8k6XF70u7-c6fbxyCCYrTjx 6LdmGLUrAAAAAFsl8GTZ5WS0VxO8qwA8X1hBCxkF 6LdmGLUrAAAAABdmRmhaEDNXEMD_zlvuJOIGCiRQ"
   # Note: Create a google recaptcha v2 ("I am not a Robot") from Google Recaptcha Admin.
   # Pass the captcha site and secret key in the above post install script as an argument.To create site and secret key below is the link:
   # https://cloud.google.com/security/products/recaptcha
@@ -388,7 +388,7 @@ apps:
       landing.keycloak: "iam.soil0.mosip.net"
       landing.regclient: "regclient.soil0.mosip.net"
       landing.postgres.host: "postgres.soil0.mosip.net"
-      landing.postgres.port: "5432"
+      landing.postgres.port: "5433"
       landing.compliance: "compliance.soil0.mosip.net"
       landing.pmp: "pmp.soil0.mosip.net"
       landing.resident: "resident.soil0.mosip.net"

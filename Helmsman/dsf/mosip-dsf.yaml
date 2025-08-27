@@ -228,7 +228,7 @@ apps:
       mosipDataGithubBranch: "v1.2.2.0"
       mosipDataGithubRepo: "https://github.com/mosip/mosip-data"
       mosipDataXlsfolderPath: "/home/mosip/mosip-data/mosip_master/xlsx"
-      db.host: "postgres.soil0.mosip.net"
+      db.host: "10.0.2.238"
       db.port: 5433
     wait: true
     priority: -10
