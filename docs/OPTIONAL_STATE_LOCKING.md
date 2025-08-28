@@ -10,12 +10,12 @@ Terraform state locking is now **optional** across all cloud providers in our in
 
 ## When to Use Each Option
 
-### 🔒 **With State Locking (Default - Recommended)**
+### **With State Locking (Default - Recommended)**
 - **Good for**: Production, team environments, CI/CD pipelines, all use cases
 - **Pros**: Prevents state corruption from concurrent modifications
 - **Cons**: Requires additional permissions/setup (AWS only)
 
-### ✅ **Without State Locking (Manual Override)**
+### **Without State Locking (Manual Override)**
 - **Good for**: Quick testing, single-user environments
 - **Pros**: Simpler setup, no additional resources (AWS)
 - **Cons**: No protection against concurrent Terraform runs (risk of state corruption)
