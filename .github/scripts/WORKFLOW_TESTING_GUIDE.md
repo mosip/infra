@@ -6,7 +6,7 @@ This guide demonstrates how to test and use the modernized MOSIP Terraform infra
 
 ## Validation Results Summary
 
-✅ **WORKFLOW INTEGRATION COMPLETE**
+**WORKFLOW INTEGRATION COMPLETE**
 
 ### What Was Tested
 - **36 total workflow combinations** across all providers, components, and backends
@@ -21,7 +21,7 @@ This guide demonstrates how to test and use the modernized MOSIP Terraform infra
 
 ## Key Findings
 
-### ✅ Successful Integration Points
+### Successful Integration Points
 
 1. **Script Accessibility**: All modernized scripts are accessible from workflow directories
 2. **Path Consistency**: Both workflows use correct relative paths (`../../../../.github/scripts/`)
@@ -29,14 +29,14 @@ This guide demonstrates how to test and use the modernized MOSIP Terraform infra
 4. **Input Validation**: All workflow inputs match script expectations
 5. **Security Practices**: Both workflows use GitHub secrets and branch-based environments
 
-### ⚠️ Notable Differences
+### Notable Differences
 
 1. **Cloud Storage Setup**: 
    - `terraform.yml` uses `setup-cloud-storage.sh` (creates storage)
    - `terraform-destroy.yml` has custom storage checking logic (reads existing storage)
    - **This is correct behavior** - destroy doesn't need to create storage
 
-### 🔧 Test Environment Limitations
+### Test Environment Limitations
 
 - **AWS Remote Tests**: Failed due to missing AWS CLI (expected in CI environment)
 - **Azure/GCP Remote Tests**: Passed (scripts handle missing CLI gracefully)
@@ -115,24 +115,24 @@ Inputs:
 
 | Provider | Component | Backend | terraform.yml | terraform-destroy.yml |
 |----------|-----------|---------|---------------|----------------------|
-| aws | base-infra | local | ✅ Ready | ✅ Ready |
-| aws | base-infra | remote | ✅ Ready* | ✅ Ready |
-| aws | infra | local | ✅ Ready | ✅ Ready |
-| aws | infra | remote | ✅ Ready* | ✅ Ready |
-| aws | observ-infra | local | ✅ Ready | ✅ Ready |
-| aws | observ-infra | remote | ✅ Ready* | ✅ Ready |
-| azure | base-infra | local | ✅ Ready | ✅ Ready |
-| azure | base-infra | remote | ✅ Ready | ✅ Ready |
-| azure | infra | local | ✅ Ready | ✅ Ready |
-| azure | infra | remote | ✅ Ready | ✅ Ready |
-| azure | observ-infra | local | ✅ Ready | ✅ Ready |
-| azure | observ-infra | remote | ✅ Ready | ✅ Ready |
-| gcp | base-infra | local | ✅ Ready | ✅ Ready |
-| gcp | base-infra | remote | ✅ Ready | ✅ Ready |
-| gcp | infra | local | ✅ Ready | ✅ Ready |
-| gcp | infra | remote | ✅ Ready | ✅ Ready |
-| gcp | observ-infra | local | ✅ Ready | ✅ Ready |
-| gcp | observ-infra | remote | ✅ Ready | ✅ Ready |
+| aws | base-infra | local | Ready | Ready |
+| aws | base-infra | remote | Ready* | Ready |
+| aws | infra | local | Ready | Ready |
+| aws | infra | remote | Ready* | Ready |
+| aws | observ-infra | local | Ready | Ready |
+| aws | observ-infra | remote | Ready* | Ready |
+| azure | base-infra | local | Ready | Ready |
+| azure | base-infra | remote | Ready | Ready |
+| azure | infra | local | Ready | Ready |
+| azure | infra | remote | Ready | Ready |
+| azure | observ-infra | local | Ready | Ready |
+| azure | observ-infra | remote | Ready | Ready |
+| gcp | base-infra | local | Ready | Ready |
+| gcp | base-infra | remote | Ready | Ready |
+| gcp | infra | local | Ready | Ready |
+| gcp | infra | remote | Ready | Ready |
+| gcp | observ-infra | local | Ready | Ready |
+| gcp | observ-infra | remote | Ready | Ready |
 
 *AWS remote requires AWS CLI authentication in GitHub Actions environment
 
@@ -300,7 +300,7 @@ TERRAFORM_DESTROY: true
 
 ## Conclusion
 
-✅ **The MOSIP Terraform workflows are fully compatible with the modernized scripts**
+**The MOSIP Terraform workflows are fully compatible with the modernized scripts**
 
 - Both `terraform.yml` and `terraform-destroy.yml` work correctly
 - All cloud providers (AWS, Azure, GCP) are supported

@@ -1,20 +1,21 @@
-# MOSIP Three-Component Architecture
+# MOSIP Updated Architecture with Integrated PostgreSQL
 
-> **Cloud-agnostic infrastructure for MOSIP platform deployment**
+> **Cloud-agnostic infrastructure for MOSIP platform deployment with automated PostgreSQL management**
 
 ## High-Level Architecture Overview
 
-### Simple Component Flow
+### Simplified Component Flow
 
 ```
-MOSIP Infrastructure Components
-===============================
+MOSIP Infrastructure Components (Updated)
+========================================
 
 GitHub Actions (Central Orchestration)
       |
       v
 ┌─────────────┬─────────────┬─────────────┐
 │ AWS Cloud   │Azure Cloud  │ GCP Cloud   │
+│ Full Impl   │ Placeholder │ Placeholder │
 └─────────────┴─────────────┴─────────────┘
       |             |             |
 ┌─────┼─────┐      ┌─┼─┐          ┌─┼─┐
@@ -22,6 +23,8 @@ GitHub Actions (Central Orchestration)
 v     v     v      v v v          v v v
 base  obs   infra  base infra     base infra
 │     │     │      │   │          │   │
+│     │     │      │   ├──PostgreSQL Module (optional)
+│     │     ├──────┼───┘  
 └─────┼─────┘      └───┘          └───┘
       |              |              |
       v              v              v
@@ -30,13 +33,27 @@ base  obs   infra  base infra     base infra
  Isolated)       Isolated)       Isolated)
 ```
 
-### Component Relationships
+### Component Relationships (Updated)
 
-| Component | Purpose | Dependencies | State Isolation |
-|-----------|---------|--------------|-----------------|
-| **base-infra** | Foundation (VPC, WireGuard) | None | Per branch/cloud |
-| **observ-infra** | Management (Rancher, Keycloak) | base-infra | Per branch/cloud |
-| **infra** | Application (MOSIP K8s) | base-infra | Per branch/cloud |
+| Component | Purpose | Dependencies | PostgreSQL Integration |
+|-----------|---------|--------------|----------------------|
+| **base-infra** | Foundation (VPC, WireGuard) | None | N/A |
+| **observ-infra** | Management (Rancher, Keycloak) | base-infra | N/A |
+| **infra** | Application (MOSIP K8s + PostgreSQL) | base-infra | Integrated PostgreSQL module |
+
+### PostgreSQL Module Integration
+
+```
+Terraform Infra Module
+├── RKE2 Kubernetes Cluster
+├── Node Groups & Networking
+└── PostgreSQL Module (Conditional)
+    ├── enable_postgresql_setup = true  → External PostgreSQL
+    │   ├── Dedicated EBS Volume
+    │   ├── Ansible Installation Script
+    │   └── PostgreSQL 15 Configuration
+    └── enable_postgresql_setup = false → Container PostgreSQL via Helmsman
+```
 
 ## Multi-Cloud Deployment Architecture
 
@@ -50,8 +67,8 @@ graph TB
             AWS_MON[Management Cluster<br/>Rancher UI + Keycloak<br/>RBAC Integration]
         end
         subgraph "AWS Infra (Multiple)"
-            AWS_RKE1[MOSIP Cluster 1<br/>Production Environment]
-            AWS_RKE2[MOSIP Cluster 2<br/>Staging Environment]
+            AWS_RKE1[MOSIP Cluster 1<br/>Production Environment<br/>+ External PostgreSQL]
+            AWS_RKE2[MOSIP Cluster 2<br/>Staging Environment<br/>+ Optional PostgreSQL]
         end
         AWS_VPC --> AWS_MON
         AWS_VPC --> AWS_RKE1
@@ -68,8 +85,8 @@ graph TB
             AZ_MON[Management Cluster<br/>Rancher UI + Keycloak<br/>RBAC Integration]
         end
         subgraph "Azure Infra (Multiple)"
-            AZ_RKE1[MOSIP Cluster 1<br/>Production Environment]
-            AZ_RKE2[MOSIP Cluster 2<br/>Staging Environment]
+            AZ_RKE1[MOSIP Cluster 1<br/>Production Environment<br/>+ External PostgreSQL]
+            AZ_RKE2[MOSIP Cluster 2<br/>Staging Environment<br/>+ Optional PostgreSQL]
         end
         AZ_VNET --> AZ_MON
         AZ_VNET --> AZ_RKE1
@@ -86,8 +103,8 @@ graph TB
             GCP_MON[Management Cluster<br/>Rancher UI + Keycloak<br/>RBAC Integration]
         end
         subgraph "GCP Infra (Multiple)"
-            GCP_RKE1[MOSIP Cluster 1<br/>Production Environment]
-            GCP_RKE2[MOSIP Cluster 2<br/>Staging Environment]
+            GCP_RKE1[MOSIP Cluster 1<br/>Production Environment<br/>+ External PostgreSQL]
+            GCP_RKE2[MOSIP Cluster 2<br/>Staging Environment<br/>+ Optional PostgreSQL]
         end
         GCP_VPC --> GCP_MON
         GCP_VPC --> GCP_RKE1
@@ -109,6 +126,91 @@ graph TB
     style GCP_RKE1 fill:#f3e5f5,stroke:#4a148c,color:#000000
     style GCP_RKE2 fill:#e8f5e8,stroke:#1b5e20,color:#000000
 ```
+
+## PostgreSQL Integration Architecture (NEW)
+
+```mermaid
+graph TD
+    A[Terraform Infra Deployment] --> B{enable_postgresql_setup}
+    
+    B -->|true| C[External PostgreSQL Path]
+    B -->|false| D[Container PostgreSQL Path]
+    
+    C --> E[Provision EBS/Disk Volume]
+    E --> F[Create Dedicated PostgreSQL Node]
+    F --> G[Execute Ansible PostgreSQL Setup]
+    G --> H[Install PostgreSQL 15]
+    H --> I[Configure Security & Networking]
+    I --> J[Setup Data Directory & Permissions]
+    J --> K[Configure PostgreSQL Port 5433]
+    K --> L[External PostgreSQL Ready]
+    
+    D --> M[Skip PostgreSQL Infrastructure]
+    M --> N[Configure Helmsman external-dsf.yaml]
+    N --> O[Enable PostgreSQL Container Deployment]
+    O --> P[Container PostgreSQL via Kubernetes]
+    
+    L --> Q[Update Helmsman Configuration]
+    P --> Q[Update Helmsman Configuration]
+    
+    Q --> R[postgresql.enabled = false (External)]
+    Q --> S[postgresql.enabled = true (Container)]
+    
+    R --> T[Deploy MOSIP Services]
+    S --> T[Deploy MOSIP Services]
+    
+    T --> U[MOSIP Uses Configured PostgreSQL]
+    
+    style C fill:#e8f5e8,stroke:#2e7d32,color:#000000
+    style D fill:#fff3e0,stroke:#f57c00,color:#000000
+    style L fill:#c8e6c9,stroke:#1b5e20,color:#000000
+    style P fill:#ffe0b2,stroke:#e65100,color:#000000
+```
+
+## Updated Deployment Flow with PostgreSQL
+
+```mermaid
+graph TD
+    A[1. Deploy base-infra<br/>VPC + WireGuard<br/>One-time setup] --> B{Deploy observ-infra?}
+    
+    B -->|Yes| C[2. Deploy observ-infra<br/>Rancher + Keycloak]
+    B -->|No| D[3. Configure PostgreSQL in Terraform]
+    
+    C --> D[3. Configure PostgreSQL in Terraform]
+    
+    D --> E{enable_postgresql_setup?}
+    
+    E -->|true| F[3a. Set EBS Volume Size<br/>nginx_node_ebs_volume_size_2 = 200]
+    E -->|false| G[3b. Plan for Container PostgreSQL]
+    
+    F --> H[4. Deploy infra via Terraform<br/>RKE2 + PostgreSQL + Networking]
+    G --> I[4. Deploy infra via Terraform<br/>RKE2 + Networking only]
+    
+    H --> J[Terraform Auto-executes:<br/>- Provision PostgreSQL node<br/>- Install via Ansible<br/>- Configure PostgreSQL 15]
+    I --> K[PostgreSQL will be containerized]
+    
+    J --> L[5. Update Helmsman DSF<br/>postgresql.enabled = false]
+    K --> M[5. Update Helmsman DSF<br/>postgresql.enabled = true]
+    
+    L --> N[6. Deploy Prerequisites<br/>Monitoring + Istio + Logging]
+    K --> M[6. Deploy Prerequisites<br/>Monitoring + Istio + Logging]
+    
+    L --> O[6. Deploy External Dependencies (Parallel)<br/>PostgreSQL + MinIO + Keycloak + Kafka]
+    K --> P[6. Deploy External Dependencies (Parallel)<br/>PostgreSQL + MinIO + Keycloak + Kafka]
+    
+    N --> Q[7. Deploy MOSIP Services<br/>Core services using PostgreSQL]
+    O --> Q[7. Deploy MOSIP Services<br/>Core services using PostgreSQL]
+    M --> Q[7. Deploy MOSIP Services<br/>Core services using PostgreSQL]
+    P --> Q[7. Deploy MOSIP Services<br/>Core services using PostgreSQL]
+    P --> Q[9. Optional: Deploy Test Rigs]
+    Q --> R[MOSIP Platform Ready]
+    
+    style F fill:#c8e6c9,stroke:#1b5e20,color:#000000
+    style G fill:#ffe0b2,stroke:#e65100,color:#000000
+    style H fill:#c8e6c9,stroke:#1b5e20,color:#000000
+    style I fill:#ffe0b2,stroke:#e65100,color:#000000
+    style J fill:#a5d6a7,stroke:#2e7d32,color:#000000
+    style K fill:#ffcc02,stroke:#f57c00,color:#000000
 
 ## Deployment Flow & Dependencies
 
@@ -288,7 +390,7 @@ GCP: Google Cloud Storage + Versioning
 ## Architecture Benefits
 
 - **Modular Design**: Independent component lifecycle management
-- **Cloud Agnostic**: Consistent deployment across AWS/Azure/GCP  
+- **Multi-Cloud Ready**: Full AWS implementation, Azure/GCP placeholders for community contributions
 - **Security First**: Built-in VPN, encryption, and access controls
 - **State Isolation**: Complete separation of environments and components
 - **Centralized Management**: Optional Rancher UI for cluster oversight
