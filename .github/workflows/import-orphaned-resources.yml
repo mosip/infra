@@ -142,13 +142,35 @@ jobs:
         echo "🔍 Importing NGINX EC2 Instance i-02768d47788b669c4..."
         terraform import -var-file="aws.tfvars" \
           'module.mosip_infra.module.aws_infra[0].module.aws_infrastructure.module.aws-resource-creation.aws_instance.NGINX_EC2_INSTANCE' \
-          i-02768d47788b669c4 && echo "✅ NGINX instance imported successfully" || echo "❌ NGINX instance import failed"
+          i-02768d47788b669c4 && echo "✅ NGINX instance imported successfully" || echo "❌ NGINX instance already imported or failed"
         
-        # Try to import common EBS volumes that are typically associated with NGINX
-        echo "🔍 Attempting to import EBS volumes..."
+        # Check what resources are still missing by comparing plan output
+        echo "🔍 Analyzing remaining missing resources..."
+        terraform plan -var-file="aws.tfvars" 2>/dev/null | grep -E "Plan:|will be created" || echo "Plan analysis completed"
         
-        # List all EBS volumes to identify NGINX-related volumes
-        aws ec2 describe-volumes --region ap-south-1 --filters "Name=tag:Name,Values=*NGINX*" --query 'Volumes[*].[VolumeId,Tags[?Key==`Name`].Value|[0]]' --output table 2>/dev/null || echo "Could not list EBS volumes"
+        # Try to identify and import other common missing resources
+        echo "🔍 Attempting to import common missing AWS resources..."
+        
+        # Check current resources in state
+        CURRENT_COUNT=$(terraform state list | wc -l)
+        echo "📊 Current resources in state: $CURRENT_COUNT/61"
+        
+        # List what types of resources we have
+        echo "📋 Resource types currently in state:"
+        terraform state list | cut -d'.' -f6- | cut -d'[' -f1 | sort | uniq -c | sort -nr
+        
+        # If we're still missing resources, show what terraform plan wants to create
+        echo "🔍 Resources that terraform wants to create (these might need importing):"
+        terraform plan -var-file="aws.tfvars" 2>/dev/null | grep -A 1 "will be created" | grep -v "will be created" | grep -v "^--$" | head -10 || echo "No additional resources to create or plan failed"
+        
+        echo "🔍 Final diagnostic - what terraform thinks is missing..."
+        terraform plan -var-file="aws.tfvars" -detailed-exitcode 2>/dev/null
+        PLAN_EXIT_CODE=$?
+        case $PLAN_EXIT_CODE in
+          0) echo "✅ No changes needed - all resources match!" ;;
+          1) echo "❌ Terraform plan failed" ;;
+          2) echo "� Resources still need to be created/imported" ;;
+        esac
         
         echo "� Final state: $(terraform state list | wc -l) resources imported"
         echo "🎯 Remaining to import: $((61 - $(terraform state list | wc -l))) resources"
