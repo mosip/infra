@@ -5,7 +5,7 @@
 # GPG Encryption for Local Backend:
 # - When BACKEND_TYPE is 'local', Terraform state files are automatically encrypted using GPG
 # - Required GitHub Secret: GPG_PASSPHRASE (used for encrypting/decrypting state files)
-# - Encrypted files: terraform.tfstate.gpg, terraform.tfstate.backup.gpg
+# - Encrypted files: {cloud}-{component}-{branch}-terraform.tfstate.gpg, {cloud}-{component}-{branch}-terraform.tfstate.backup.gpg
 # - On destruction, encrypted files are automatically decrypted before Terraform operations
 # - State files are cleaned up after successful destruction
 #
@@ -75,6 +75,7 @@ env:
 jobs:
   terraform-destroy:
     runs-on: ubuntu-latest
+    timeout-minutes: 120  # 2 hours maximum runtime protection
     # Use dynamic environment based on current branch name
     environment: ${{ github.ref_name }}
     defaults:
@@ -293,6 +294,36 @@ jobs:
         with:
           terraform_version: v1.8.5
 
+      - name: Clean Terraform Environment (Prevent Stale Issues)
+        run: |
+          echo "=== Cleaning Terraform Environment ==="
+          
+          # Remove any existing .terraform directory to prevent version conflicts
+          if [ -d ".terraform" ]; then
+            echo "🧹 Removing existing .terraform directory..."
+            rm -rf .terraform
+            echo "✅ Cleaned .terraform directory"
+          fi
+          
+          # Remove any existing .terraform.lock.hcl to allow fresh provider resolution
+          if [ -f ".terraform.lock.hcl" ]; then
+            echo "🧹 Removing existing .terraform.lock.hcl..."
+            rm -f .terraform.lock.hcl
+            echo "✅ Cleaned .terraform.lock.hcl"
+          fi
+          
+          # Remove any temporary Terraform files that might cause conflicts
+          echo "🧹 Cleaning temporary Terraform files..."
+          rm -f terraform_*.sh 2>/dev/null || true
+          rm -f .terraform.tfstate.lock.info 2>/dev/null || true
+          rm -f terraform.log 2>/dev/null || true
+          rm -f crash.log 2>/dev/null || true
+          
+          # Show what we're starting with
+          echo "✅ Terraform environment cleaned"
+          echo "Files in directory after cleanup:"
+          ls -la | head -10
+
       - name: Setup GPG for State File Encryption
         run: |
           ../../../../.github/scripts/setup-gpg.sh \
@@ -328,12 +359,62 @@ jobs:
             echo "TERRAFORM_DESTROY confirmed - proceeding with destruction"
           fi
 
-      - name: Terraform Init
+      - name: Terraform Init with State Validation
         run: |
-          # First try normal init
+          echo "=== Terraform Init with Enhanced State Validation ==="
+          
+          # Generate the expected state file name with custom pattern
+          expected_state_file="${{ inputs.CLOUD_PROVIDER }}-${{ inputs.TERRAFORM_COMPONENT }}-${{ github.ref_name }}-terraform.tfstate"
+          echo "🔍 Looking for state file: $expected_state_file"
+          
+          # First, verify that any existing state is valid  
+          if [ -f "$expected_state_file" ]; then
+            echo "🔍 Found existing state file, validating..."
+            
+            # Basic state file validation
+            if terraform show > /dev/null 2>&1; then
+              echo "✅ Existing state is valid"
+              
+              # Show what resources exist before destroy
+              echo "📋 Resources in current state:"
+              terraform state list | head -10 || echo "Unable to list resources"
+            else
+              echo "⚠️ WARNING: Existing state may be corrupted or incompatible"
+              echo "📋 State file size: $(wc -c < "$expected_state_file") bytes"
+              echo "📋 State file age: $(stat -c %Y "$expected_state_file")"
+              
+              # For destroy operations, we need to be more careful with bad state
+              echo "🚨 Bad state detected during destroy - manual intervention may be needed"
+            fi
+          else
+            echo "ℹ️ No existing state file found ($expected_state_file) - nothing to destroy"
+            echo "This could mean:"
+            echo "  1. No infrastructure was previously deployed"
+            echo "  2. State file naming pattern has changed" 
+            echo "  3. Different branch/component combination was used"
+            echo "Available files in directory:"
+            ls -la *.tfstate* 2>/dev/null || echo "No state files found"
+          fi
+          
+          # Initialize with clean environment
+          echo "🚀 Running terraform init..."
           if ! terraform init; then
-            echo "Normal init failed, trying with -reconfigure to handle backend configuration changes..."
-            terraform init -reconfigure
+            echo "❌ Initial init failed, trying with -upgrade to resolve provider conflicts..."
+            if ! terraform init -upgrade; then
+              echo "❌ Init with upgrade failed, trying with -reconfigure for backend changes..."
+              terraform init -reconfigure -upgrade
+            fi
+          fi
+          
+          # Verify initialization was successful
+          if [ -d ".terraform" ] && [ -f ".terraform.lock.hcl" ]; then
+            echo "✅ Terraform initialization successful"
+            echo "📋 Provider versions:"
+            terraform version
+            echo "📋 Workspace: $(terraform workspace show)"
+          else
+            echo "❌ Terraform initialization verification failed"
+            exit 1
           fi
 
       - name: Terraform refresh
@@ -350,8 +431,48 @@ jobs:
 
       - name: Terraform Destroy
         id: destroy
-        run: terraform destroy -var-file="${{ inputs.CLOUD_PROVIDER }}.tfvars" -no-color -auto-approve
+        run: |
+          echo "Starting Terraform destroy..."
+          
+          # Standard terraform destroy for all components
+          echo "Running terraform destroy for ${{ inputs.TERRAFORM_COMPONENT }}..."
+          terraform destroy -var-file="${{ inputs.CLOUD_PROVIDER }}.tfvars" -no-color -auto-approve
+          echo "✅ Terraform destroy completed successfully"
         if: "${{ inputs.TERRAFORM_DESTROY  == true }}"
+        continue-on-error: true
+
+      - name: Emergency State Save on Cancellation
+        run: |
+          echo "=== EMERGENCY STATE SAVE ==="
+          echo "Workflow cancellation detected - attempting emergency state save..."
+          
+          # Only for local backend
+          if [ "${{ inputs.BACKEND_TYPE }}" = "local" ]; then
+            # Quick encrypt and commit whatever state we have
+            ../../../../.github/scripts/encrypt-state.sh \
+              --backend-type "local" \
+              --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
+              --operation "destroy" \
+              --destroy-success "false" || true
+            
+            # Emergency commit
+            git add -f *.tfstate* *.gpg tf-plan* backend.tf 2>/dev/null || true
+            
+            # Explicitly exclude .terraform directory and its contents
+            git rm --cached -r .terraform 2>/dev/null || true
+            git rm --cached .terraform.lock.hcl 2>/dev/null || true
+            
+            if ! git diff --cached --quiet; then
+              git config --global user.email ${{ github.actor }}@users.noreply.github.com
+              git config --global user.name ${{ github.actor }}
+              git commit -m "EMERGENCY: Destroy state save before cancellation [skip ci]" || true
+              git push || true
+              echo "✅ Emergency state saved"
+            else
+              echo "⚠️ No state changes to save"
+            fi
+          fi
+        if: cancelled()
         continue-on-error: true
 
       - name: Clean up state files and artifacts
@@ -388,6 +509,9 @@ jobs:
           
           echo "Checking for Terraform files to commit..."
           
+          # Run Terraform Git Safety Check first
+          ../../../../.github/scripts/terraform-git-safety.sh "$(pwd)"
+          
           # Handle GPG encryption for local backend if state files exist
           if [ "${{ steps.destroy.outcome }}" != "success" ]; then
             ../../../../.github/scripts/encrypt-state.sh \
@@ -397,13 +521,21 @@ jobs:
               --destroy-success "false"
           fi
           
-          # Force add Terraform files even if they're in .gitignore
+          # Force add Terraform files even if they're in .gitignore - EXCLUDE .terraform
           git add -f *.tfstate* 2>/dev/null || echo "No .tfstate files found"
           git add -f *.gpg 2>/dev/null || echo "No .gpg files found"
           git add -f backend.tf 2>/dev/null || echo "No backend.tf file found"
           git add -f *.tf 2>/dev/null || echo "No .tf files to add"
-          # Also add any other Terraform-related files that might have been created
+          
+          # Explicitly exclude .terraform directory and its contents from being committed
+          git rm --cached -r .terraform 2>/dev/null || true
+          git rm --cached .terraform.lock.hcl 2>/dev/null || true
+          echo "✅ Excluded .terraform directory from commit"
+          
+          # Add other Terraform-related files but avoid .terraform directory
           git add -A
+          git reset .terraform 2>/dev/null || true  # Remove .terraform from staged changes
+          git reset .terraform.lock.hcl 2>/dev/null || true  # Remove lock file from staged changes
           
           echo "Git status after adding files:"
           git status
