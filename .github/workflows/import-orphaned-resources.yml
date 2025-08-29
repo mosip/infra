@@ -15,6 +15,10 @@ on:
         options:
           - 'true'
           - 'false'
+      SSH_PRIVATE_KEY:
+        description: 'The GitHub secret containing the SSH private key for terraform access'
+        required: true
+        default: 'SSH_PRIVATE_KEY'
 
 env:
   # Repository-level secrets for cloud credentials
@@ -118,6 +122,8 @@ jobs:
         cd terraform/implementations/aws/infra
         echo "📋 Generating terraform plan to understand resource structure..."
         terraform plan -var-file="aws.tfvars" -out=plan.out || echo "Plan may fail due to missing resources - this is expected"
+      env:
+        TF_VAR_ssh_private_key: ${{ secrets[github.event.inputs.SSH_PRIVATE_KEY] }}
 
     - name: Create Enhanced Import Script
       run: |
@@ -200,6 +206,8 @@ jobs:
           echo ""
           echo "📊 Final resources in state: $(terraform state list | wc -l)"
         fi
+      env:
+        TF_VAR_ssh_private_key: ${{ secrets[github.event.inputs.SSH_PRIVATE_KEY] }}
 
     - name: Verify and Commit State
       if: github.event.inputs.dry_run != 'true'
