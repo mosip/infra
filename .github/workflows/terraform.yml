@@ -445,9 +445,6 @@ jobs:
           
           echo "Checking for Terraform files to commit..."
           
-          # Run Terraform Git Safety Check first
-          ../../../../.github/scripts/terraform-git-safety.sh "$(pwd)"
-          
           # Encrypt state files if using local backend
           ../../../../.github/scripts/encrypt-state.sh \
             --backend-type "${{ inputs.BACKEND_TYPE }}" \

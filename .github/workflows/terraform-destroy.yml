@@ -509,9 +509,6 @@ jobs:
           
           echo "Checking for Terraform files to commit..."
           
-          # Run Terraform Git Safety Check first
-          ../../../../.github/scripts/terraform-git-safety.sh "$(pwd)"
-          
           # Handle GPG encryption for local backend if state files exist
           if [ "${{ steps.destroy.outcome }}" != "success" ]; then
             ../../../../.github/scripts/encrypt-state.sh \

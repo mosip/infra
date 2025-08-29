@@ -16,7 +16,6 @@ These scripts handle complex operations that would otherwise make workflow files
 | `decrypt-state.sh` | Decrypt Terraform state files with GPG | terraform.yml, terraform-destroy.yml | Active |
 | `setup-gpg.sh` | Configure GPG environment for encryption | terraform.yml, terraform-destroy.yml | Active |
 | `generate-pg-secrets.sh` | Generate PostgreSQL secrets (legacy) | N/A | Legacy |
-| `terraform-git-safety.sh` | Git safety utilities for Terraform operations | terraform.yml, terraform-destroy.yml | Active |
 | `cleanup-state-locking.sh` | Clean up DynamoDB state locks | terraform-destroy.yml | Active |
 | `test-*.sh` | Various testing and validation scripts | Manual testing | Active |
 | `validate-workflow-integration.sh` | Validate workflow integration | Manual testing | Active |
@@ -124,15 +123,6 @@ These scripts handle complex operations that would otherwise make workflow files
 ./cleanup-state-locking.sh --provider <provider> --table-name <dynamodb-table>
 ```
 
-### terraform-git-safety.sh
-
-**Purpose**: Git safety utilities for Terraform operations.
-
-**Usage**:
-```bash
-./terraform-git-safety.sh [options]
-```
-
 ## Legacy Scripts
 
 ### generate-pg-secrets.sh
@@ -156,14 +146,12 @@ Some scripts are empty placeholders for future functionality:
 3. `configure-backend.sh` - Generate backend configuration
 4. `setup-cloud-storage.sh` - Create remote storage (if remote backend)
 5. `encrypt-state.sh` - Encrypt state files after operations
-6. `terraform-git-safety.sh` - Git safety operations
 
 **terraform-destroy.yml workflow uses these scripts**:
 1. `setup-gpg.sh` - Configure GPG for state decryption
 2. `decrypt-state.sh` - Decrypt state files for destroy operation
 3. `configure-backend.sh` - Generate backend configuration
 4. `cleanup-state-locking.sh` - Clean up state locks after destroy
-5. `terraform-git-safety.sh` - Git safety operations
 
 ### Script Dependencies
 
@@ -192,7 +180,6 @@ graph TD
 ├── encrypt-state.sh                   # GPG state encryption
 ├── decrypt-state.sh                   # GPG state decryption
 ├── setup-gpg.sh                       # GPG environment setup
-├── terraform-git-safety.sh            # Git safety utilities
 ├── cleanup-state-locking.sh           # State lock cleanup
 ├── generate-pg-secrets.sh             # Legacy PostgreSQL secrets
 ├── test-infrastructure.sh             # Comprehensive testing
