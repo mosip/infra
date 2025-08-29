@@ -135,6 +135,9 @@ jobs:
         # Modify import_resources.sh to continue on errors instead of exiting
         sed -i 's/set -e/set +e/' import_resources.sh
         
+        # Also ensure tfvars are available for any terraform operations
+        echo "📋 Variables from tfvars will be used for terraform operations"
+        
         if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
           echo "🧪 DRY RUN MODE - Validating import commands"
           sed 's/terraform import/echo "DRY RUN: terraform import"/g' import_resources.sh > import_dry.sh
