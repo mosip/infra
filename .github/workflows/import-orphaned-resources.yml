@@ -16,10 +16,18 @@ on:
           - 'true'
           - 'false'
 
+env:
+  # Repository-level secrets for cloud credentials
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 jobs:
   import-resources:
     runs-on: ubuntu-latest
     if: github.event.inputs.confirmation == 'IMPORT'
+    # Use dynamic environment based on current branch name
+    environment: ${{ github.ref_name }}
     
     steps:
     - name: Checkout repository
@@ -27,7 +35,66 @@ jobs:
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         ref: testgrid
-    
+
+    - name: Skip SSH Host key verification
+      run: |
+        mkdir -p ~/.ssh
+        echo -e "Host *\n     StrictHostKeyChecking no" > ~/.ssh/config
+
+    - name: Setup ufw firewall
+      run: |
+        sudo ufw enable
+        sudo ufw allow ssh
+        sudo ufw allow 443/tcp
+        sudo ufw allow 51820/udp
+        sudo ufw status
+
+    - name: Install WireGuard
+      run: sudo apt-get install -y wireguard
+
+    - name: Configure WireGuard
+      run: |
+        # WG_CONFIG comes from environment-level secrets (dynamic based on branch name)
+        if [ -z "${{ secrets.TF_WG_CONFIG }}" ]; then
+          echo "❌ ERROR: TF_WG_CONFIG secret is not configured for environment '${{ github.ref_name }}'"
+          echo "Please configure the WireGuard configuration secret for this branch/environment"
+          exit 1
+        fi
+        
+        # Debug: Check if secret is available (without exposing content)
+        echo "🔍 Checking TF_WG_CONFIG secret..."
+        if [ ${#TF_WG_CONFIG} -eq 0 ]; then
+          echo "❌ ERROR: TF_WG_CONFIG environment variable is empty"
+          echo "Secret may contain only whitespace or special characters"
+          exit 1
+        fi
+        echo "✅ Secret length: ${#TF_WG_CONFIG} characters"
+        
+        # Create config file with proper handling of multiline content
+        echo "Creating /etc/wireguard directory with proper permissions..."
+        sudo mkdir -p /etc/wireguard
+        sudo chmod 755 /etc/wireguard
+        sudo chown root:root /etc/wireguard
+        
+        # Write config directly with sudo
+        printf '%s' "$TF_WG_CONFIG" > /tmp/wg0.conf.tmp
+        sudo tee /etc/wireguard/wg0.conf < /tmp/wg0.conf.tmp > /dev/null
+        rm -f /tmp/wg0.conf.tmp
+        
+        # Set proper permissions
+        sudo chmod 600 /etc/wireguard/wg0.conf
+        sudo chown root:root /etc/wireguard/wg0.conf
+        
+        # Start WireGuard
+        echo "Starting WireGuard interface..."
+        sudo wg-quick up wg0
+        
+        # Verify connection
+        echo "WireGuard status:"
+        sudo wg show
+      env:
+        TF_WG_CONFIG: ${{ secrets.TF_WG_CONFIG }}
+
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v2
       with:
