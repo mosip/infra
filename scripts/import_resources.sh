@@ -21,7 +21,7 @@ import_resource() {
     echo "  Terraform Address: $tf_address"
     echo "  AWS Resource ID: $aws_id"
     
-    if terraform import "$tf_address" "$aws_id"; then
+    if terraform import "$tf_address" "$aws_id" 2>/dev/null; then
         echo -e "${GREEN}✅ Successfully imported: $description${NC}"
     else
         echo -e "${RED}❌ Failed to import: $description${NC}"

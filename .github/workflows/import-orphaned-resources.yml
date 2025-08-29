@@ -125,75 +125,15 @@ jobs:
       env:
         TF_VAR_ssh_private_key: ${{ secrets[github.event.inputs.SSH_PRIVATE_KEY] }}
 
-    - name: Create Enhanced Import Script
-      run: |
-        cd terraform/implementations/aws/infra
-        echo "📝 Creating enhanced import script with error handling..."
-        cat > import_enhanced.sh << 'SCRIPT_END'
-        #!/bin/bash
-        set +e
-        
-        RED='\033[0;31m'
-        GREEN='\033[0;32m'
-        YELLOW='\033[1;33m'
-        NC='\033[0m'
-        
-        imported_count=0
-        failed_count=0
-        
-        import_resource() {
-            local tf_address="$1"
-            local aws_id="$2"
-            local description="$3"
-            
-            echo -e "${YELLOW}Importing: $description${NC}"
-            echo "  Terraform Address: $tf_address"
-            echo "  AWS Resource ID: $aws_id"
-            
-            if terraform import "$tf_address" "$aws_id" 2>/dev/null; then
-                echo -e "${GREEN}✅ Successfully imported: $description${NC}"
-                ((imported_count++))
-            else
-                echo -e "${RED}❌ Failed to import: $description${NC}"
-                echo "  Resource configuration may be missing or resource doesn't exist"
-                ((failed_count++))
-            fi
-            echo ""
-        }
-        
-        echo "=================================================="
-        echo "🔄 Starting Enhanced Import Process"
-        echo "This handles missing resource configurations gracefully"
-        echo "=================================================="
-        SCRIPT_END
-        
-        # Append the original import commands
-        tail -n +30 ../../../../scripts/import_resources.sh >> import_enhanced.sh
-        
-        # Add summary section
-        cat >> import_enhanced.sh << 'SUMMARY_END'
-        
-        echo ""
-        echo "=================================================="
-        echo "📊 Enhanced Import Summary"
-        echo "=================================================="
-        echo -e "${GREEN}✅ Successfully imported: $imported_count resources${NC}"
-        echo -e "${RED}❌ Failed imports: $failed_count resources${NC}"
-        echo ""
-        if [ $imported_count -gt 0 ]; then
-            echo "Resources now in terraform state:"
-            terraform state list | sort
-        fi
-        SUMMARY_END
-        
-        chmod +x import_enhanced.sh
-
     - name: Execute Import Script
       run: |
         cd terraform/implementations/aws/infra
-        echo "📝 Copying original import script..."
+        echo "📝 Copying import script..."
         cp ../../../../scripts/import_resources.sh ./
         chmod +x import_resources.sh
+        
+        # Modify import_resources.sh to continue on errors instead of exiting
+        sed -i 's/set -e/set +e/' import_resources.sh
         
         if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
           echo "🧪 DRY RUN MODE - Validating import commands"
@@ -201,8 +141,8 @@ jobs:
           chmod +x import_dry.sh
           ./import_dry.sh
         else
-          echo "🚀 LIVE MODE - Performing imports with enhanced error handling"
-          ./import_enhanced.sh
+          echo "🚀 LIVE MODE - Performing actual imports"
+          ./import_resources.sh
           echo ""
           echo "📊 Final resources in state: $(terraform state list | wc -l)"
         fi
