@@ -56,6 +56,7 @@ on:
       SSH_PRIVATE_KEY:
         description: 'The GitHub secret containing the private key of the SSH key named in the preceding input variable `SSH_PRIVATE_KEY` is used for SSH login purposes on nginx node.'
         required: true
+        type: string
       TERRAFORM_APPLY:
         description: 'Terraform apply'
         required: false
@@ -288,9 +289,9 @@ jobs:
       - name: Terraform Init
         run: |
           # First try normal init
-          if ! terraform init; then
+          if ! terraform init -input=false; then
             echo "Normal init failed, trying with -reconfigure to handle backend configuration changes..."
-            terraform init -reconfigure
+            terraform init -input=false -reconfigure
           fi
 
       - name: Terraform Validate

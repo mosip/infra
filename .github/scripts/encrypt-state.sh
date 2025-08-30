@@ -81,7 +81,9 @@ fi
 if [ "$OPERATION" = "destroy" ]; then
     if [ "$DESTROY_SUCCESS" = "true" ]; then
         echo "Successful destroy operation - removing all state files"
-        rm -f terraform.tfstate* *.gpg tf-plan*
+        # Remove all terraform state files (both standard and dynamic naming)
+        # Standard: terraform.tfstate*, Dynamic: {provider}-{component}-{branch}-terraform.tfstate*
+        rm -f terraform.tfstate* *-terraform.tfstate* *.gpg tf-plan*
         echo "All state files cleaned up after successful destruction"
         exit 0
     else
@@ -108,12 +110,15 @@ if [ -f "backend.tf" ]; then
     fi
 fi
 
-# Also detect any existing state files matching patterns
+# Also detect any existing dynamic state files matching patterns
+# Pattern: {provider}-{component}-{branch}-terraform.tfstate*
+# Examples: aws-infra-testgrid-terraform.tfstate, azure-base-infra-main-terraform.tfstate.backup
+echo "Scanning for dynamic state files (format: provider-component-branch-terraform.tfstate*)"
 for pattern in "*-terraform.tfstate" "*-terraform.tfstate.backup"; do
     for file in $pattern; do
         if [ -f "$file" ]; then
             DYNAMIC_STATE_FILES+=("$file")
-            echo "Found existing state file: $file"
+            echo "Found existing dynamic state file: $file"
         fi
     done
 done

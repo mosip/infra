@@ -56,6 +56,7 @@ on:
       SSH_PRIVATE_KEY:
         description: 'The GitHub secret containing the private key of the SSH key named in the preceding input variable `SSH_PRIVATE_KEY` is used for SSH login purposes on nginx node.'
         required: true
+        type: string
       TERRAFORM_DESTROY:
         description: 'Terraform destroy - CONFIRM DESTRUCTION'
         required: false
@@ -331,26 +332,26 @@ jobs:
       - name: Terraform Init
         run: |
           # First try normal init
-          if ! terraform init; then
+          if ! terraform init -input=false; then
             echo "Normal init failed, trying with -reconfigure to handle backend configuration changes..."
-            terraform init -reconfigure
+            terraform init -input=false -reconfigure
           fi
 
       - name: Terraform refresh
-        run: terraform refresh -var-file="${{ inputs.CLOUD_PROVIDER }}.tfvars" -no-color
+        run: terraform refresh -input=false -var-file="${{ inputs.CLOUD_PROVIDER }}.tfvars" -no-color
         if: "${{ inputs.TERRAFORM_DESTROY  == true }}"
 
       - name: Terraform Destroy Plan
         id: destroy-plan
         run: |
           echo "Showing what will be destroyed..."
-          terraform plan -destroy -var-file="${{ inputs.CLOUD_PROVIDER }}.tfvars" -no-color
+          terraform plan -destroy -input=false -var-file="${{ inputs.CLOUD_PROVIDER }}.tfvars" -no-color
         if: "${{ inputs.TERRAFORM_DESTROY  == true }}"
         continue-on-error: true
 
       - name: Terraform Destroy
         id: destroy
-        run: terraform destroy -var-file="${{ inputs.CLOUD_PROVIDER }}.tfvars" -no-color -auto-approve
+        run: terraform destroy -input=false -var-file="${{ inputs.CLOUD_PROVIDER }}.tfvars" -no-color -auto-approve
         if: "${{ inputs.TERRAFORM_DESTROY  == true }}"
         continue-on-error: true
 
@@ -388,22 +389,28 @@ jobs:
           
           echo "Checking for Terraform files to commit..."
           
-          # Handle GPG encryption for local backend if state files exist
-          if [ "${{ steps.destroy.outcome }}" != "success" ]; then
+          if [ "${{ steps.destroy.outcome }}" = "success" ]; then
+            echo "🎯 Destroy was successful - all state files should be cleaned up"
+            echo "The cleanup step already removed all state files"
+            # For successful destroy, only commit removal of state files (no state files should exist)
+            git add -u . 2>/dev/null || echo "No files to update"
+            echo "Only committing file deletions (no state files remain)"
+          else
+            echo "⚠️  Destroy failed - encrypting remaining state files for future debugging"
             ../../../../.github/scripts/encrypt-state.sh \
               --backend-type "${{ inputs.BACKEND_TYPE }}" \
               --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
               --operation "destroy" \
               --destroy-success "false"
+              
+            echo "Adding encrypted state files for debugging purposes"
+            # Add both unencrypted (if any remain) and encrypted state files
+            git add -f *.tfstate* 2>/dev/null || echo "No .tfstate files found"
+            git add -f *.gpg 2>/dev/null || echo "No .gpg files found"
           fi
           
-          # Force add Terraform files even if they're in .gitignore
-          git add -f *.tfstate* 2>/dev/null || echo "No .tfstate files found"
-          git add -f *.gpg 2>/dev/null || echo "No .gpg files found"
           git add -f backend.tf 2>/dev/null || echo "No backend.tf file found"
           git add -f *.tf 2>/dev/null || echo "No .tf files to add"
-          # Also add any other Terraform-related files that might have been created
-          git add -A
           
           echo "Git status after adding files:"
           git status
