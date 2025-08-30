@@ -329,6 +329,11 @@ jobs:
           git add -f tf-plan* 2>/dev/null || echo "No tf-plan files found"
           git add -f backend.tf 2>/dev/null || echo "No backend.tf file found"
           git add -f *.tf 2>/dev/null || echo "No .tf file found"
+          
+          # Remove problematic files that shouldn't be committed before git add -A
+          rm -rf .terraform/ 2>/dev/null || echo "No .terraform directory to remove"
+          rm -f .terraform.lock.hcl 2>/dev/null || echo "No .terraform.lock.hcl to remove"
+          
           # Also add any other Terraform-related files that might have been created
           git add -A
           
