@@ -90,7 +90,6 @@ echo "Files to decrypt: ${ALL_ENCRYPTED_FILES[*]}"
 # Look for encrypted state files
 for encrypted_file in "${ALL_ENCRYPTED_FILES[@]}"; do
     if [ -f "$encrypted_file" ]; then
-        # Keep the same base filename, just remove .gpg extension
         decrypted_file="${encrypted_file%.gpg}"
         echo "Decrypting $encrypted_file to $decrypted_file..."
         
@@ -99,23 +98,17 @@ for encrypted_file in "${ALL_ENCRYPTED_FILES[@]}"; do
             echo "Successfully decrypted $encrypted_file"
             
             # Verify the decrypted file is valid
-            if [[ "$decrypted_file" == *.tfstate* ]] && [ -s "$decrypted_file" ]; then
-                if [[ "$decrypted_file" == *.tfstate.backup ]]; then
-                    echo "   Terraform state backup file decrypted and ready: $decrypted_file"
-                else
-                    echo "   Terraform state file decrypted and ready: $decrypted_file"
-                fi
+            if [ "$decrypted_file" = "terraform.tfstate" ] && [ -s "$decrypted_file" ]; then
+                echo "   📋 Terraform state file decrypted and ready for operations"
                 
-                # Verify JSON structure for state files (both .tfstate and .tfstate.backup)
-                if python3 -c "import json; json.load(open('$decrypted_file'))" 2>/dev/null; then
-                    echo "   JSON structure is valid"
-                else
-                    echo "   Warning: JSON structure may be invalid"
+                # Verify JSON structure for state files
+                if [[ "$decrypted_file" == *.tfstate ]]; then
+                    if python3 -c "import json; json.load(open('$decrypted_file'))" 2>/dev/null; then
+                        echo "   JSON structure is valid"
+                    else
+                        echo "   ⚠️  Warning: JSON structure may be invalid"
+                    fi
                 fi
-                
-                # Export the state file name for terraform commands to use
-                echo "TERRAFORM_STATE_FILE=$decrypted_file" >> "$GITHUB_ENV"
-                echo "   State file name exported: $decrypted_file"
             fi
             
             DECRYPTED_COUNT=$((DECRYPTED_COUNT + 1))

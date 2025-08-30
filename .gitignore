@@ -8,8 +8,8 @@
 # Terraform files
 **/.terraform/
 **/.terraform.lock.hcl
-#*.tfstate
-#*.tfstate.*
+*.tfstate
+*.tfstate.*
 *.tfvars.backup
 *.tfplan
 *.tfplan.*
