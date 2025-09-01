@@ -14,8 +14,11 @@ variable "RANCHER_IMPORT_URL" {
   description = "Rancher import URL for kubectl apply"
   type        = string
   validation {
-    condition     = can(regex("^\"kubectl apply -f https://rancher\\.mosip\\.net/v3/import/[a-zA-Z0-9_\\-]+\\.yaml\"$", var.RANCHER_IMPORT_URL))
-    error_message = "The RANCHER_IMPORT_URL must be in the format: '\"kubectl apply -f https://rancher.mosip.net/v3/import/<ID>.yaml\"'"
+    condition = (
+      var.RANCHER_IMPORT_URL == "" ||
+      can(regex("^\"kubectl apply -f https://rancher\\.mosip\\.net/v3/import/[a-zA-Z0-9_\\-]+\\.yaml\"$", var.RANCHER_IMPORT_URL))
+    )
+    error_message = "The RANCHER_IMPORT_URL must be empty or in the format: '\"kubectl apply -f https://rancher.mosip.net/v3/import/<ID>.yaml\"'"
   }
 }
 
@@ -68,9 +71,13 @@ locals {
   update_commands = [
     for key, value in local.RKE_CONFIG :
     "sudo sed -i \"/^${key}=/d\" ${local.RKE_CONFIG.ENV_VAR_FILE} && echo '${key}=${value}' | sudo tee -a ${local.RKE_CONFIG.ENV_VAR_FILE}"
+    if value != null && value != ""
   ]
 
-  k8s_env_vars = concat(local.backup_command, local.update_commands)
+  k8s_env_vars = [
+    for cmd in concat(local.backup_command, local.update_commands) :
+    cmd if cmd != null && cmd != ""
+  ]
 }
 
 # Wait for SSH to be available
