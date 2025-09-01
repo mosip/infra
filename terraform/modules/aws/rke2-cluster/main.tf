@@ -24,14 +24,17 @@ variable "enable_rancher_import" {
   type        = bool
   default     = false
 }
-
 # Generate a random string (token)
 resource "random_string" "K8S_TOKEN" {
-  length  = 32
-  upper   = true
-  lower   = true
-  numeric = true
-  special = false
+  length  = 32    # Length of the token
+  upper   = true  # Include uppercase letters
+  lower   = true  # Include lowercase letters
+  numeric = true  # Include numbers
+  special = false # Include special characters (true/false)
+  # override_special = "$%&^@#"
+  # min_numeric = 5
+  # min_upper = 5
+  # min_lower = 5
 }
 
 locals {
