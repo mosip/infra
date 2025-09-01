@@ -78,11 +78,13 @@ resource "null_resource" "rke2-primary-cluster-setup" {
   #   triggers = {
   #     node_hash = md5(local.K8S_CLUSTER_PRIVATE_IPS_STR)
   #   }
+  
   connection {
     type        = "ssh"
     host        = local.CONTROL_PLANE_NODE_1
     user        = "ubuntu"            # Change based on the AMI used
     private_key = var.SSH_PRIVATE_KEY # content of your private key
+    timeout     = "10m"
   }
   provisioner "file" {
     source      = "${path.module}/rke2-setup.sh"
