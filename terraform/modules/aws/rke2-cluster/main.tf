@@ -174,46 +174,36 @@ resource "null_resource" "rke2-primary-cluster-setup" {
     on_failure = fail
   }
 
-  # Execute setup script with retry logic
+  # Execute setup script with timeout and better process management
   provisioner "remote-exec" {
     inline = [
-      <<-EOF
-        set -e
-        echo "Starting RKE2 setup script..."
-        
-        # Create a wrapper script with retry logic
-        cat > /tmp/rke2-setup-wrapper.sh << 'WRAPPER_EOF'
-#!/bin/bash
-set -e
-
-MAX_ATTEMPTS=3
-ATTEMPT=1
-
-while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-    echo "RKE2 setup attempt $ATTEMPT/$MAX_ATTEMPTS"
-    
-    if sudo timeout 600 bash /tmp/rke2-setup.sh; then
-        echo "RKE2 setup completed successfully"
-        exit 0
-    else
-        EXIT_CODE=$?
-        echo "RKE2 setup failed with exit code $EXIT_CODE on attempt $ATTEMPT"
-        
-        if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
-            echo "All attempts failed. Exiting."
-            exit $EXIT_CODE
-        else
-            echo "Waiting 30 seconds before retry..."
-            sleep 30
-            ATTEMPT=$((ATTEMPT + 1))
-        fi
-    fi
-done
-WRAPPER_EOF
-
-        chmod +x /tmp/rke2-setup-wrapper.sh
-        sudo bash /tmp/rke2-setup-wrapper.sh
-      EOF
+      "echo 'Starting RKE2 setup script with timeout...'",
+      "nohup sudo timeout 900 bash /tmp/rke2-setup.sh > /tmp/rke2-setup.log 2>&1 &",
+      "SETUP_PID=$!",
+      "echo \"Setup process started with PID: $SETUP_PID\"",
+      "",
+      "# Monitor the process",
+      "while kill -0 $SETUP_PID 2>/dev/null; do",
+      "  echo 'RKE2 setup still running...'",
+      "  sleep 30",
+      "done",
+      "",
+      "# Wait for the process to complete",
+      "wait $SETUP_PID",
+      "EXIT_CODE=$?",
+      "",
+      "# Show the log output",
+      "echo 'Setup completed. Log output:'",
+      "tail -50 /tmp/rke2-setup.log",
+      "",
+      "if [ $EXIT_CODE -eq 0 ]; then",
+      "  echo 'RKE2 setup completed successfully'",
+      "else",
+      "  echo \"RKE2 setup failed with exit code: $EXIT_CODE\"",
+      "  echo 'Full log:'",
+      "  cat /tmp/rke2-setup.log",
+      "  exit $EXIT_CODE",
+      "fi"
     ]
     
     on_failure = fail
@@ -269,66 +259,54 @@ resource "null_resource" "rke2-cluster-setup" {
     )
   }
 
-  # Execute setup with retry
+  # Execute setup with timeout and better monitoring
   provisioner "remote-exec" {
     inline = [
-      <<-EOF
-        set -e
-        echo "Starting RKE2 setup for ${each.key}..."
-        
-        # Wait for control plane to be ready (if this is not the control plane)
-        if [ "${each.value}" != "${local.CONTROL_PLANE_NODE_1}" ]; then
-            echo "Waiting for control plane to be ready..."
-            max_wait=300
-            wait_time=0
-            
-            while [ $wait_time -lt $max_wait ]; do
-                if nc -z ${local.CONTROL_PLANE_NODE_1} 6443; then
-                    echo "Control plane is ready"
-                    break
-                fi
-                echo "Waiting for control plane... ($wait_time/$max_wait seconds)"
-                sleep 10
-                wait_time=$((wait_time + 10))
-            done
-        fi
-        
-        # Create retry wrapper
-        cat > /tmp/rke2-setup-wrapper.sh << 'WRAPPER_EOF'
-#!/bin/bash
-set -e
-
-MAX_ATTEMPTS=3
-ATTEMPT=1
-
-while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-    echo "RKE2 setup attempt $ATTEMPT/$MAX_ATTEMPTS for ${each.key}"
-    
-    if sudo timeout 600 bash /tmp/rke2-setup.sh; then
-        echo "RKE2 setup completed successfully for ${each.key}"
-        exit 0
-    else
-        EXIT_CODE=$?
-        echo "Setup failed with exit code $EXIT_CODE on attempt $ATTEMPT"
-        
-        if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
-            echo "All attempts failed for ${each.key}. Exiting."
-            exit $EXIT_CODE
-        else
-            echo "Cleaning up and retrying in 30 seconds..."
-            # Clean up any partial installation
-            sudo systemctl stop rke2-server.service || true
-            sudo systemctl stop rke2-agent.service || true
-            sleep 30
-            ATTEMPT=$((ATTEMPT + 1))
-        fi
-    fi
-done
-WRAPPER_EOF
-
-        chmod +x /tmp/rke2-setup-wrapper.sh
-        sudo bash /tmp/rke2-setup-wrapper.sh
-      EOF
+      "echo 'Starting RKE2 setup for ${each.key} with timeout...'",
+      "",
+      "# Wait for control plane if this is not the control plane node",
+      "if [ '${each.value}' != '${local.CONTROL_PLANE_NODE_1}' ]; then",
+      "    echo 'Waiting for control plane to be ready...'",
+      "    max_wait=300",
+      "    wait_time=0",
+      "    while [ $wait_time -lt $max_wait ]; do",
+      "        if nc -z ${local.CONTROL_PLANE_NODE_1} 6443; then",
+      "            echo 'Control plane is ready'",
+      "            break",
+      "        fi",
+      "        echo \"Waiting for control plane... ($wait_time/$max_wait seconds)\"",
+      "        sleep 10",
+      "        wait_time=$((wait_time + 10))",
+      "    done",
+      "fi",
+      "",
+      "# Run setup with timeout and logging",
+      "nohup sudo timeout 900 bash /tmp/rke2-setup.sh > /tmp/rke2-setup.log 2>&1 &",
+      "SETUP_PID=$!",
+      "echo \"Setup process started with PID: $SETUP_PID\"",
+      "",
+      "# Monitor the process",
+      "while kill -0 $SETUP_PID 2>/dev/null; do",
+      "  echo 'RKE2 setup still running for ${each.key}...'",
+      "  sleep 30",
+      "done",
+      "",
+      "# Wait for completion and get exit code",
+      "wait $SETUP_PID",
+      "EXIT_CODE=$?",
+      "",
+      "# Show log output",
+      "echo 'Setup completed for ${each.key}. Recent log output:'",
+      "tail -50 /tmp/rke2-setup.log",
+      "",
+      "if [ $EXIT_CODE -eq 0 ]; then",
+      "  echo 'RKE2 setup completed successfully for ${each.key}'",
+      "else",
+      "  echo \"RKE2 setup failed for ${each.key} with exit code: $EXIT_CODE\"",
+      "  echo 'Full log:'",
+      "  cat /tmp/rke2-setup.log",
+      "  exit $EXIT_CODE",
+      "fi"
     ]
   }
 }
