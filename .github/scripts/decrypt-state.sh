@@ -68,14 +68,19 @@ fi
 # Detect encrypted state files (both standard and dynamic naming)
 echo "Detecting encrypted state files to decrypt..."
 
-# Find all .gpg files in current directory
+# Find all .gpg files in current directory using find command for more reliable detection
 ALL_ENCRYPTED_FILES=()
-for file in *.gpg; do
+echo "Scanning for encrypted files..."
+
+# Use find command to get all .gpg files (more reliable than shell globbing)
+while IFS= read -r -d '' file; do
     if [ -f "$file" ]; then
-        ALL_ENCRYPTED_FILES+=("$file")
-        echo "Found encrypted file: $file"
+        # Get just the filename without path
+        filename=$(basename "$file")
+        ALL_ENCRYPTED_FILES+=("$filename")
+        echo "Found encrypted file: $filename"
     fi
-done
+done < <(find . -maxdepth 1 -name "*.gpg" -type f -print0)
 
 if [ ${#ALL_ENCRYPTED_FILES[@]} -eq 0 ]; then
     echo "No encrypted state files found"
@@ -98,16 +103,17 @@ for encrypted_file in "${ALL_ENCRYPTED_FILES[@]}"; do
             echo "Successfully decrypted $encrypted_file"
             
             # Verify the decrypted file is valid
-            if [ "$decrypted_file" = "terraform.tfstate" ] && [ -s "$decrypted_file" ]; then
-                echo "   📋 Terraform state file decrypted and ready for operations"
+            if ([[ "$decrypted_file" == *.tfstate ]] || [[ "$decrypted_file" == *.tfstate.backup ]]) && [ -s "$decrypted_file" ]; then
+                echo "   📋 Terraform state file decrypted and ready for operations: $decrypted_file"
                 
-                # Verify JSON structure for state files
-                if [[ "$decrypted_file" == *.tfstate ]]; then
-                    if python3 -c "import json; json.load(open('$decrypted_file'))" 2>/dev/null; then
-                        echo "   JSON structure is valid"
-                    else
-                        echo "   ⚠️  Warning: JSON structure may be invalid"
-                    fi
+                # Verify JSON structure for state files (skip for backup files as they might be older format)
+                if [[ "$decrypted_file" == *.tfstate ]] && python3 -c "import json; json.load(open('$decrypted_file'))" 2>/dev/null; then
+                    echo "   JSON structure is valid"
+                elif [[ "$decrypted_file" == *.tfstate.backup ]]; then
+                    echo "   Backup state file restored"
+                    # Skip JSON validation for backup files as they might be from different versions
+                else
+                    echo "   ⚠️  Warning: JSON structure may be invalid"
                 fi
             fi
             
