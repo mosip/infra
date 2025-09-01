@@ -155,9 +155,85 @@ resource "null_resource" "rke2-primary-cluster-setup" {
     on_failure = continue
   }
 
-  provisioner "file" {
-    source      = "${path.module}/rke2-setup.sh"
-    destination = "/tmp/rke2-setup.sh"
+  # Alternative: File transfer with SCP retry logic and timeout handling
+  provisioner "local-exec" {
+    command = <<-EOF
+      set -e
+      echo "Starting SCP file transfer with retry logic to ${local.CONTROL_PLANE_NODE_1}..."
+      
+      # Create temporary SSH key file
+      echo "${var.SSH_PRIVATE_KEY}" > /tmp/primary-sshkey-$$
+      chmod 400 /tmp/primary-sshkey-$$
+      
+      MAX_ATTEMPTS=5
+      ATTEMPT=1
+      TIMEOUT=60
+      
+      while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+          echo "SCP transfer attempt $ATTEMPT/$MAX_ATTEMPTS to primary control plane"
+          
+          if timeout $TIMEOUT scp -o StrictHostKeyChecking=no -o ConnectTimeout=30 -o BatchMode=yes \
+                 -i /tmp/primary-sshkey-$$ \
+                 ${path.module}/rke2-setup.sh \
+                 ubuntu@${local.CONTROL_PLANE_NODE_1}:/tmp/rke2-setup.sh; then
+              echo "SCP transfer completed successfully on attempt $ATTEMPT"
+              
+              # Verify file was transferred correctly
+              if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -o BatchMode=yes \
+                     -i /tmp/primary-sshkey-$$ \
+                     ubuntu@${local.CONTROL_PLANE_NODE_1} \
+                     'test -s /tmp/rke2-setup.sh && chmod +x /tmp/rke2-setup.sh && head -1 /tmp/rke2-setup.sh | grep -q "#!/bin/bash"'; then
+                  echo "File verification successful"
+                  rm -f /tmp/primary-sshkey-$$
+                  exit 0
+              else
+                  echo "File verification failed"
+              fi
+          fi
+          
+          echo "SCP transfer failed on attempt $ATTEMPT"
+          if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+              echo "SCP transfer failed after all attempts"
+              rm -f /tmp/primary-sshkey-$$
+              exit 1
+          else
+              echo "Retrying in 10 seconds..."
+              sleep 10
+              ATTEMPT=$((ATTEMPT + 1))
+          fi
+      done
+    EOF
+  }
+
+  # Fallback to base64 transfer if SCP fails
+  provisioner "remote-exec" {
+    inline = [
+      <<-EOF
+        # Check if file exists, if not use base64 transfer as fallback
+        if [ ! -f /tmp/rke2-setup.sh ] || [ ! -s /tmp/rke2-setup.sh ]; then
+            echo "Using base64 transfer as fallback..."
+            
+            cat > /tmp/rke2-setup-base64.txt << "SCRIPT_EOF"
+${base64encode(file("${path.module}/rke2-setup.sh"))}
+SCRIPT_EOF
+            
+            base64 -d /tmp/rke2-setup-base64.txt > /tmp/rke2-setup.sh
+            chmod +x /tmp/rke2-setup.sh
+            rm -f /tmp/rke2-setup-base64.txt
+            
+            echo "Base64 fallback transfer completed"
+        fi
+        
+        # Final verification
+        if [ -s /tmp/rke2-setup.sh ] && head -1 /tmp/rke2-setup.sh | grep -q "#!/bin/bash"; then
+            echo "File transfer verification successful"
+            ls -la /tmp/rke2-setup.sh
+        else
+            echo "File transfer verification failed"
+            exit 1
+        fi
+      EOF
+    ]
   }
 
   # Set environment variables with error handling
@@ -170,7 +246,9 @@ resource "null_resource" "rke2-primary-cluster-setup" {
       local.k8s_env_vars,
       [
         "echo 'Environment variables set successfully'",
-        "chmod +x /tmp/rke2-setup.sh"
+        "echo 'Verifying script file...'",
+        "ls -la /tmp/rke2-setup.sh",
+        "head -5 /tmp/rke2-setup.sh"
       ]
     )
     
@@ -248,9 +326,73 @@ resource "null_resource" "rke2-cluster-setup" {
     on_failure = continue
   }
 
-  provisioner "file" {
-    source      = "${path.module}/rke2-setup.sh"
-    destination = "/tmp/rke2-setup.sh"
+  # File transfer with retry logic and timeout handling for cluster nodes
+  provisioner "remote-exec" {
+    inline = [
+      "echo 'Starting file transfer with retry logic for ${each.key}...'",
+      "mkdir -p /tmp/terraform-transfer",
+      "cd /tmp/terraform-transfer"
+    ]
+  }
+
+  # Transfer file with retry logic using remote-exec and base64 encoding
+  provisioner "remote-exec" {
+    inline = [
+      <<-EOF
+        set -e
+        echo "Transferring rke2-setup.sh with retry logic for ${each.key}..."
+        
+        MAX_ATTEMPTS=5
+        ATTEMPT=1
+        TIMEOUT=60
+        
+        while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            echo "File transfer attempt $ATTEMPT/$MAX_ATTEMPTS for ${each.key}"
+            
+            # Create a timeout wrapper for the file transfer
+            timeout $TIMEOUT bash -c '
+                # Receive base64 encoded file content
+                cat > /tmp/rke2-setup-base64.txt << "SCRIPT_EOF"
+${base64encode(file("${path.module}/rke2-setup.sh"))}
+SCRIPT_EOF
+                
+                # Decode and save the script
+                base64 -d /tmp/rke2-setup-base64.txt > /tmp/rke2-setup.sh
+                chmod +x /tmp/rke2-setup.sh
+                
+                # Verify file integrity
+                if [ -s /tmp/rke2-setup.sh ] && head -1 /tmp/rke2-setup.sh | grep -q "#!/bin/bash"; then
+                    echo "File transfer verification successful for ${each.key}"
+                    rm -f /tmp/rke2-setup-base64.txt
+                    exit 0
+                else
+                    echo "File transfer verification failed for ${each.key}"
+                    exit 1
+                fi
+            '
+            
+            if [ $? -eq 0 ]; then
+                echo "File transfer completed successfully on attempt $ATTEMPT for ${each.key}"
+                break
+            else
+                echo "File transfer failed on attempt $ATTEMPT for ${each.key}"
+                if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+                    echo "File transfer failed after all attempts for ${each.key}"
+                    exit 1
+                else
+                    echo "Retrying in 10 seconds..."
+                    sleep 10
+                    ATTEMPT=$((ATTEMPT + 1))
+                fi
+            fi
+        done
+        
+        echo "File transfer completed successfully for ${each.key}"
+        ls -la /tmp/rke2-setup.sh
+      EOF
+    ]
+    
+    on_failure = fail
   }
 
   # Set environment variables
@@ -258,7 +400,12 @@ resource "null_resource" "rke2-cluster-setup" {
     inline = concat(
       ["set -e", "echo 'Setting environment variables for ${each.key}...'"],
       local.k8s_env_vars,
-      ["chmod +x /tmp/rke2-setup.sh"]
+      [
+        "echo 'Environment variables set successfully for ${each.key}'",
+        "echo 'Verifying script file for ${each.key}...'",
+        "ls -la /tmp/rke2-setup.sh",
+        "head -5 /tmp/rke2-setup.sh"
+      ]
     )
   }
 
