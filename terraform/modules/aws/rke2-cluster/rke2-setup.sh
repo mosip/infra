@@ -19,6 +19,12 @@ echo "Network connectivity test:"
 ping -c 3 8.8.8.8 || echo "Network connectivity issue detected"
 echo "DNS test:"
 nslookup github.com || echo "DNS resolution issue detected"
+echo "Test HTTPS connectivity:"
+curl -v -m 30 https://get.rke2.io/ || echo "RKE2 download site unreachable"
+echo "Test GitHub connectivity:"
+curl -v -m 30 https://github.com || echo "GitHub unreachable"
+echo "Check NAT Gateway connectivity:"
+curl -v -m 30 https://httpbin.org/ip || echo "External IP check failed"
 echo "================================"
 
 # Redirect stdout and stderr to log file
@@ -33,6 +39,24 @@ set -o pipefail  # trace ERR through pipes
 
 
 echo "Installing RKE2"
+# Pre-installation connectivity verification
+echo "=== Verifying Internet Connectivity Before RKE2 Download ==="
+for site in "https://get.rke2.io/" "https://github.com" "https://raw.githubusercontent.com"; do
+    echo "Testing connectivity to: $site"
+    if timeout 30 curl -s -I "$site" >/dev/null 2>&1; then
+        echo "✓ $site is reachable"
+    else
+        echo "✗ $site is NOT reachable - this will cause installation failure"
+        echo "Checking routing..."
+        ip route show
+        echo "Checking DNS..."
+        cat /etc/resolv.conf
+        echo "Testing with different DNS..."
+        nslookup github.com 8.8.8.8 || true
+    fi
+done
+echo "==============================================="
+
 RKE2_EXISTENCE=$( which rke2 || true)
 if [[ -z $RKE2_EXISTENCE ]]; then
   echo "Downloading RKE2 installer..."
