@@ -1,7 +1,7 @@
 # Environment name (infra component)
-cluster_name = "onevm"
+cluster_name = "vmtest"
 # MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "onevm.mosip.net"
+cluster_env_domain = "vmtest.mosip.net"
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
 mosip_email_id = "chandra.mishra@technoforte.co.in"
 # SSH login key name for AWS node instances (ex: my-ssh-key)
@@ -50,12 +50,12 @@ k8s_instance_root_volume_size = 64
 # Control-plane, ETCD, Worker
 k8s_control_plane_node_count = 1
 # ETCD, Worker
-k8s_etcd_node_count = 0
+k8s_etcd_node_count = 1
 # Worker
-k8s_worker_node_count = 0
+k8s_worker_node_count = 1
 
 # Rancher Import Configuration
-enable_rancher_import = true
+enable_rancher_import = false
 
 # Security group CIDRs
 network_cidr   = "10.0.0.0/16"   # Use your actual VPC CIDR
