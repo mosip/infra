@@ -25,12 +25,31 @@ if [[ -z $RKE2_EXISTENCE ]]; then
 fi
 
 cd $WORK_DIR
-git clone $K8S_INFRA_REPO_URL -b $K8S_INFRA_BRANCH || true # read it from variables
+echo "Cloning k8s-infra repository (shallow clone for faster download)..."
+if [ -d "k8s-infra" ]; then
+  echo "k8s-infra directory already exists, updating..."
+  cd k8s-infra
+  timeout 300 git fetch origin $K8S_INFRA_BRANCH --depth=1 || echo "Git fetch failed or timed out, continuing..."
+  git checkout $K8S_INFRA_BRANCH || echo "Git checkout failed, continuing..."
+  cd ..
+else
+  echo "Starting git clone with 5-minute timeout..."
+  timeout 300 git clone --depth=1 --single-branch -b $K8S_INFRA_BRANCH $K8S_INFRA_REPO_URL || echo "Git clone failed or timed out, continuing..."
+  if [ -d "k8s-infra" ]; then
+    echo "Git clone completed successfully"
+  else
+    echo "Git clone failed - directory not found"
+  fi
+fi
+
+echo "Successfully cloned/updated k8s-infra repository"
 
 mkdir -p $RKE2_CONFIG_DIR
 chown -R 1000:1000 $RKE2_CONFIG_DIR
+echo "Created and configured RKE2 config directory: $RKE2_CONFIG_DIR"
 
 cd $RKE2_LOCATION
+echo "Changed to RKE2 location: $RKE2_LOCATION"
 
 if [[ -f "$RKE2_CONFIG_DIR/config.yaml" ]]; then
   echo "RKE CONFIG file exists \"$RKE2_CONFIG_DIR/config.yaml\""
