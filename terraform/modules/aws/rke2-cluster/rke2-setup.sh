@@ -3,24 +3,7 @@
 # Log file path
 echo "[ Set Log File ] : "
 LOG_FILE="/tmp/rke2-setup-$( date +"%d-%h-%Y-%H-%M" ).log"
-ENV_FILelse
-  echo "WORKER AGENT NODE"
-  echo "Copying template: rke2-agents.conf.template"
-  if [[ -f "rke2-agents.conf.template" ]]; then
-    cp rke2-agents.conf.template $RKE2_CONFIG_DIR/config.yaml
-    echo "Template copied successfully"
-  else
-    echo "ERROR: Template file rke2-agents.conf.template not found!"
-    exit 1
-  fi
-  RKE2_SERVICE=rke2-agent
-  echo "RKE2_SERVICE=rke2-agent" | sudo tee -a $ENV_FILE_PATH
-  export RKE2_SERVICE="rke2-agent"
-
-fi
-
-echo "Template configuration completed for node type: $NODE_NAME"
-echo "Service type set to: $RKE2_SERVICE"nvironment"
+ENV_FILE_PATH="/etc/environment"
 source $ENV_FILE_PATH
 env | grep -E 'K8S|RKE2|WORK|CONTROL'
 
@@ -34,58 +17,50 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 set -o errtrace  # trace ERR through 'time command' and other functions
 set -o pipefail  # trace ERR through pipes
 
-
+# Install RKE2
 echo "Installing RKE2"
-RKE2_EXISTENCE=$( which rke2 || true)
-if [[ -z $RKE2_EXISTENCE ]]; then
-  curl -sfL https://get.rke2.io | sh -
+curl -sfL https://get.rke2.io | INSTALL_RKE2_VERSION=$INSTALL_RKE2_VERSION sh -
+
+# Clone k8s-infra repository with timeout protection
+echo "Cloning k8s-infra repository (shallow clone for faster download)..."
+cd $WORK_DIR
+
+# Configure git to trust the directory and handle ownership issues
+sudo git config --global --add safe.directory $WORK_DIR/k8s-infra || true
+sudo git config --global --add safe.directory '*' || true
+
+# Remove existing directory if present to avoid conflicts
+if [ -d "k8s-infra" ]; then
+  echo "Removing existing k8s-infra directory..."
+  sudo rm -rf k8s-infra
 fi
 
-cd $WORK_DIR
-echo "Cloning k8s-infra repository (shallow clone for faster download)..."
-if [ -d "k8s-infra" ]; then
-  echo "k8s-infra directory already exists, updating..."
-  # Fix git ownership issue
-  echo "Fixing git ownership for k8s-infra directory..."
-  sudo chown -R ubuntu:ubuntu k8s-infra/
-  git config --global --add safe.directory /home/ubuntu/k8s-infra
-  cd k8s-infra
-  timeout 300 git fetch origin $K8S_INFRA_BRANCH --depth=1 || echo "Git fetch failed or timed out, continuing..."
-  git checkout $K8S_INFRA_BRANCH || echo "Git checkout failed, continuing..."
-  cd ..
-else
-  echo "Starting git clone with 5-minute timeout..."
-  timeout 300 git clone --depth=1 --single-branch -b $K8S_INFRA_BRANCH $K8S_INFRA_REPO_URL || echo "Git clone failed or timed out, continuing..."
-  if [ -d "k8s-infra" ]; then
-    echo "Git clone completed successfully"
-    # Ensure proper ownership after clone
-    sudo chown -R ubuntu:ubuntu k8s-infra/
-    git config --global --add safe.directory /home/ubuntu/k8s-infra
-  else
-    echo "Git clone failed - directory not found"
-  fi
-fi
+echo "Starting git clone with 5-minute timeout..."
+timeout 300 git clone --depth 1 --branch $K8S_INFRA_BRANCH $K8S_INFRA_REPO_URL k8s-infra && echo "Git clone completed successfully" || {
+  echo "Git clone failed or timed out"
+  exit 1
+}
 
 echo "Successfully cloned/updated k8s-infra repository"
+sudo chown -R ubuntu:ubuntu k8s-infra/
 
-mkdir -p $RKE2_CONFIG_DIR
-chown -R 1000:1000 $RKE2_CONFIG_DIR
+# Create and configure RKE2 config directory
 echo "Created and configured RKE2 config directory: $RKE2_CONFIG_DIR"
+sudo mkdir -p $RKE2_CONFIG_DIR
 
+# Verify repository structure
 echo "Verifying k8s-infra directory structure:"
-ls -la $WORK_DIR/k8s-infra/ || echo "Failed to list k8s-infra contents"
+ls -la k8s-infra/
+
 echo "Checking for k8-cluster directory:"
-ls -la $WORK_DIR/k8s-infra/k8-cluster/ || echo "k8-cluster directory not found"
+ls -la k8s-infra/k8-cluster/
 
-cd $RKE2_LOCATION
+# Change to RKE2 location
 echo "Changed to RKE2 location: $RKE2_LOCATION"
-echo "Contents of RKE2 location:"
-ls -la . || echo "Failed to list RKE2 location contents"
+cd $RKE2_LOCATION
 
-if [[ -f "$RKE2_CONFIG_DIR/config.yaml" ]]; then
-  echo "RKE CONFIG file exists \"$RKE2_CONFIG_DIR/config.yaml\""
-  exit 0
-fi
+echo "Contents of RKE2 location:"
+ls -la
 
 # Determine the role of the instance using pattern matching
 echo "Determining node role based on NODE_NAME: $NODE_NAME"
@@ -142,7 +117,7 @@ elif [[ "$NODE_NAME" == ETCD-NODE-* ]]; then
   export RKE2_SERVICE="rke2-agent"
 
 else
-  echo "WORKER NODE"
+  echo "WORKER AGENT NODE"
   echo "Copying template: rke2-agents.conf.template"
   if [[ -f "rke2-agents.conf.template" ]]; then
     cp rke2-agents.conf.template $RKE2_CONFIG_DIR/config.yaml
@@ -152,9 +127,13 @@ else
     exit 1
   fi
   RKE2_SERVICE=rke2-agent
-  export RKE2_SERVICE="rke2-agent" | sudo tee -a $ENV_FILE_PATH
+  echo "RKE2_SERVICE=rke2-agent" | sudo tee -a $ENV_FILE_PATH
+  export RKE2_SERVICE="rke2-agent"
 
 fi
+
+echo "Template configuration completed for node type: $NODE_NAME"
+echo "Service type set to: $RKE2_SERVICE"
 
 echo "Changing to RKE2 config directory: $RKE2_CONFIG_DIR"
 cd $RKE2_CONFIG_DIR
@@ -169,8 +148,8 @@ sed -i "s/<cluster-name>/${CLUSTER_DOMAIN}/g" $RKE2_CONFIG_DIR/config.yaml
 echo "Configuration complete. Final config file:"
 cat $RKE2_CONFIG_DIR/config.yaml
 
-source $ENV_FILE_PATH
 echo "Environment variables:"
+env | sort
 cat $ENV_FILE_PATH
 
 echo "Enabling and starting RKE2 service: $RKE2_SERVICE"
@@ -231,10 +210,8 @@ fi
 echo "Final RKE2 service status check:"
 sudo systemctl is-active $RKE2_SERVICE && echo "✅ RKE2 service is active" || echo "⚠️ RKE2 service status unknown"
 
-echo "Setting up kubectl and kubeconfig..."
-# The RKE2 kubeconfig file might be in different locations
+# Wait for kubeconfig and kubectl to be available
 KUBECONFIG_PATHS=(
-  "$RKE2_CONFIG_DIR/rke2.yaml"
   "/etc/rancher/rke2/rke2.yaml"
   "/var/lib/rancher/rke2/server/cred/admin.kubeconfig"
 )
