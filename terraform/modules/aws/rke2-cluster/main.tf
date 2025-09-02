@@ -56,10 +56,10 @@ locals {
   RKE_CONFIG = var.enable_rancher_import ? merge(local.RKE_CONFIG_BASE, {
     RANCHER_IMPORT_URL = var.RANCHER_IMPORT_URL
   }) : local.RKE_CONFIG_BASE
-  # Filter out CONTROL_PLANE_NODE_1 from K8S_CLUSTER_PUBLIC_IPS
-  #   K8S_CLUSTER_PRIVATE_IPS_EXCEPT_CONTROL_PLANE_NODE_1 = {
-  #     for key, value in var.K8S_CLUSTER_PRIVATE_IPS : key => value if value != local.CONTROL_PLANE_NODE_1
-  #   }
+  # Filter out CONTROL_PLANE_NODE_1 from K8S_CLUSTER_PRIVATE_IPS to avoid duplicate setup
+  K8S_CLUSTER_PRIVATE_IPS_EXCEPT_CONTROL_PLANE_NODE_1 = {
+    for key, value in var.K8S_CLUSTER_PRIVATE_IPS : key => value if value != local.CONTROL_PLANE_NODE_1
+  }
 
   datetime = formatdate("2006-01-02_15-04-05", timestamp())
   backup_command = [
@@ -81,10 +81,10 @@ resource "null_resource" "rke2-primary-cluster-setup" {
   
   connection {
     type        = "ssh"
-    host        = local.CONTROL_PLANE_NODE_1
+    host        = var.K8S_CLUSTER_PRIVATE_IPS[keys(var.K8S_CLUSTER_PRIVATE_IPS)[0]]
     user        = "ubuntu"            # Change based on the AMI used
     private_key = var.SSH_PRIVATE_KEY # content of your private key
-    timeout     = "20m"
+    timeout     = "10m"
   }
   provisioner "file" {
     source      = "${path.module}/rke2-setup.sh"
@@ -95,7 +95,7 @@ resource "null_resource" "rke2-primary-cluster-setup" {
       local.k8s_env_vars,
       [
         "chmod +x /tmp/rke2-setup.sh",
-        "sudo bash /tmp/rke2-setup.sh"
+        "timeout 10m sudo bash /tmp/rke2-setup.sh || (echo 'First attempt failed, retrying in 30 seconds...' && sleep 30 && timeout 10m sudo bash /tmp/rke2-setup.sh)"
       ]
     )
   }
@@ -103,7 +103,7 @@ resource "null_resource" "rke2-primary-cluster-setup" {
 
 resource "null_resource" "rke2-cluster-setup" {
   depends_on = [null_resource.rke2-primary-cluster-setup]
-  for_each   = var.K8S_CLUSTER_PRIVATE_IPS
+  for_each   = local.K8S_CLUSTER_PRIVATE_IPS_EXCEPT_CONTROL_PLANE_NODE_1
   triggers = {
     # node_count_or_hash = module.ec2-resource-creation.node_count
     # or if you used hash:
