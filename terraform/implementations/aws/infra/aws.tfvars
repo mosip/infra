@@ -1,7 +1,7 @@
 # Environment name (infra component)
-cluster_name = "vmtest"
+cluster_name = "soil0"
 # MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "vmtest.mosip.net"
+cluster_env_domain = "soil0.mosip.net"
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
 mosip_email_id = "chandra.mishra@technoforte.co.in"
 # SSH login key name for AWS node instances (ex: my-ssh-key)
@@ -18,9 +18,9 @@ aws_provider_region = "ap-south-1"
 # - Capacity exclusions are optional and configurable below
 
 # The instance type for Kubernetes nodes (control plane, worker, etcd)
-k8s_instance_type = "t3.2xlarge"
+k8s_instance_type = "t3a.2xlarge"
 # The instance type for Nginx server (load balancer)
-nginx_instance_type = "t3.2xlarge"
+nginx_instance_type = "t3a.2xlarge"
 
 # Optional: Exclude specific AZs due to known capacity issues
 # Leave empty for fully dynamic behavior (recommended)
