@@ -59,10 +59,16 @@ locals {
   RKE_CONFIG = var.enable_rancher_import ? merge(local.RKE_CONFIG_BASE, {
     RANCHER_IMPORT_URL = var.RANCHER_IMPORT_URL
   }) : local.RKE_CONFIG_BASE
-  # Filter out primary control plane node from cluster setup to avoid duplicate setup
-  # Match the user-data script pattern: exclude the first control plane node only
-  K8S_CLUSTER_PRIVATE_IPS_EXCEPT_CONTROL_PLANE_NODE_1 = {
-    for key, value in var.K8S_CLUSTER_PRIVATE_IPS : key => value if !can(regex(".*CONTROL-PLANE-NODE-1$", key))
+  # Filter out ALL control plane nodes from cluster setup to avoid duplicate setup
+  # Only ETCD and WORKER nodes should be in the cluster setup
+  K8S_CLUSTER_PRIVATE_IPS_EXCEPT_CONTROL_PLANE_NODES = {
+    for key, value in var.K8S_CLUSTER_PRIVATE_IPS : key => value if !can(regex(".*CONTROL-PLANE-NODE.*", key))
+  }
+
+  # Get additional control plane nodes (NODE-2, NODE-3, ..., NODE-N) that need to join after primary
+  # This supports unlimited control plane nodes (2, 3, 10, 15, 99, etc.)
+  K8S_ADDITIONAL_CONTROL_PLANE_NODES = {
+    for key, value in var.K8S_CLUSTER_PRIVATE_IPS : key => value if can(regex(".*CONTROL-PLANE-NODE.*", key)) && !can(regex(".*CONTROL-PLANE-NODE-1$", key))
   }
 
   datetime = formatdate("2006-01-02_15-04-05", timestamp())
@@ -105,9 +111,40 @@ resource "null_resource" "rke2-primary-cluster-setup" {
   }
 }
 
-resource "null_resource" "rke2-cluster-setup" {
+resource "null_resource" "rke2-additional-control-plane-setup" {
   depends_on = [null_resource.rke2-primary-cluster-setup]
-  for_each   = local.K8S_CLUSTER_PRIVATE_IPS_EXCEPT_CONTROL_PLANE_NODE_1
+  for_each   = local.K8S_ADDITIONAL_CONTROL_PLANE_NODES
+  triggers = {
+    node_hash   = md5(local.K8S_CLUSTER_PRIVATE_IPS_STR)
+    script_hash = filemd5("${path.module}/rke2-setup.sh")
+  }
+  connection {
+    type        = "ssh"
+    host        = each.value
+    user        = "ubuntu"            # Change based on the AMI used
+    private_key = var.SSH_PRIVATE_KEY # content of your private key
+    timeout     = "10m"
+  }
+  provisioner "file" {
+    source      = "${path.module}/rke2-setup.sh"
+    destination = "/tmp/rke2-setup.sh"
+  }
+  provisioner "remote-exec" {
+    inline = concat(
+      local.k8s_env_vars,
+      [
+        "sudo bash /tmp/rke2-setup.sh"
+      ]
+    )
+  }
+}
+
+resource "null_resource" "rke2-cluster-setup" {
+  depends_on = [
+    null_resource.rke2-primary-cluster-setup,
+    null_resource.rke2-additional-control-plane-setup
+  ]
+  for_each   = local.K8S_CLUSTER_PRIVATE_IPS_EXCEPT_CONTROL_PLANE_NODES
   triggers = {
     # node_count_or_hash = module.ec2-resource-creation.node_count
     # or if you used hash:
