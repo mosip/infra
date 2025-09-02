@@ -1,7 +1,7 @@
 # Environment name (infra component)
-cluster_name = "testgrid"
+cluster_name = "onevm"
 # MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "testgrid.mosip.net"
+cluster_env_domain = "onevm.mosip.net"
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
 mosip_email_id = "chandra.mishra@technoforte.co.in"
 # SSH login key name for AWS node instances (ex: my-ssh-key)
@@ -48,11 +48,11 @@ nginx_node_ebs_volume_size_2 = 200 # Enable second EBS volume for PostgreSQL tes
 k8s_instance_root_volume_size = 64
 
 # Control-plane, ETCD, Worker
-k8s_control_plane_node_count = 3
+k8s_control_plane_node_count = 0
 # ETCD, Worker
-k8s_etcd_node_count = 3
+k8s_etcd_node_count = 0
 # Worker
-k8s_worker_node_count = 2
+k8s_worker_node_count = 0
 
 # Rancher Import Configuration
 enable_rancher_import = false
