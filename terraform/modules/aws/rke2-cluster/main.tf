@@ -35,7 +35,10 @@ resource "random_string" "K8S_TOKEN" {
 }
 
 locals {
-  CONTROL_PLANE_NODE_1        = element([for key, value in var.K8S_CLUSTER_PRIVATE_IPS : value if length(regexall(".*CONTROL-PLANE-NODE-1", key)) > 0], 0)
+  # Dynamically find the primary control plane node (first one) by role-based pattern
+  # This matches keys like: {cluster_name}-CONTROL-PLANE-NODE-1, {cluster_name}-CONTROL-PLANE-NODE-2, etc.
+  primary_control_plane_key   = [for key in keys(var.K8S_CLUSTER_PRIVATE_IPS) : key if can(regex(".*CONTROL-PLANE-NODE-1$", key))][0]
+  CONTROL_PLANE_NODE_1        = var.K8S_CLUSTER_PRIVATE_IPS[local.primary_control_plane_key]
   K8S_CLUSTER_PRIVATE_IPS_STR = join(",", [for key, value in var.K8S_CLUSTER_PRIVATE_IPS : "${key}=${value}"])
 
   # Base RKE configuration
@@ -56,9 +59,10 @@ locals {
   RKE_CONFIG = var.enable_rancher_import ? merge(local.RKE_CONFIG_BASE, {
     RANCHER_IMPORT_URL = var.RANCHER_IMPORT_URL
   }) : local.RKE_CONFIG_BASE
-  # Filter out CONTROL_PLANE_NODE_1 from K8S_CLUSTER_PRIVATE_IPS to avoid duplicate setup
+  # Filter out primary control plane node from cluster setup to avoid duplicate setup
+  # Match the user-data script pattern: exclude the first control plane node only
   K8S_CLUSTER_PRIVATE_IPS_EXCEPT_CONTROL_PLANE_NODE_1 = {
-    for key, value in var.K8S_CLUSTER_PRIVATE_IPS : key => value if value != local.CONTROL_PLANE_NODE_1
+    for key, value in var.K8S_CLUSTER_PRIVATE_IPS : key => value if !can(regex(".*CONTROL-PLANE-NODE-1$", key))
   }
 
   datetime = formatdate("2006-01-02_15-04-05", timestamp())
@@ -81,7 +85,7 @@ resource "null_resource" "rke2-primary-cluster-setup" {
   
   connection {
     type        = "ssh"
-    host        = var.K8S_CLUSTER_PRIVATE_IPS[keys(var.K8S_CLUSTER_PRIVATE_IPS)[0]]
+    host        = local.CONTROL_PLANE_NODE_1
     user        = "ubuntu"            # Change based on the AMI used
     private_key = var.SSH_PRIVATE_KEY # content of your private key
     timeout     = "10m"
