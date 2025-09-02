@@ -18,15 +18,15 @@ aws_provider_region = "ap-south-1"
 # - Capacity exclusions are optional and configurable below
 
 # The instance type for Kubernetes nodes (control plane, worker, etcd)
-k8s_instance_type = "t3a.2xlarge"
+k8s_instance_type = "t3.2xlarge"
 # The instance type for Nginx server (load balancer)
-nginx_instance_type = "t3a.2xlarge"
+nginx_instance_type = "t3.2xlarge"
 
 # Optional: Exclude specific AZs due to known capacity issues
 # Leave empty for fully dynamic behavior (recommended)
 # Add AZs only if you experience repeated capacity issues
-k8s_capacity_excluded_azs   = ["ap-south-1a", "ap-south-1c"] # e.g., ["ap-south-1a"] if needed
-nginx_capacity_excluded_azs = ["ap-south-1a", "ap-south-1c"] # e.g., ["ap-south-1a"] if needed
+k8s_capacity_excluded_azs   = [] # e.g., ["ap-south-1a"] if needed
+nginx_capacity_excluded_azs = [] # e.g., ["ap-south-1a"] if needed
 # The Route 53 hosted zone ID
 zone_id = "Z090954828SJIEL6P5406"
 
