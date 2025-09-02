@@ -55,7 +55,7 @@ k8s_etcd_node_count = 0
 k8s_worker_node_count = 0
 
 # Rancher Import Configuration
-enable_rancher_import = false
+enable_rancher_import = true
 
 # Security group CIDRs
 network_cidr   = "10.0.0.0/16"   # Use your actual VPC CIDR
