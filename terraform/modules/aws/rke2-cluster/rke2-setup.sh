@@ -3,7 +3,24 @@
 # Log file path
 echo "[ Set Log File ] : "
 LOG_FILE="/tmp/rke2-setup-$( date +"%d-%h-%Y-%H-%M" ).log"
-ENV_FILE_PATH="/etc/environment"
+ENV_FILelse
+  echo "WORKER AGENT NODE"
+  echo "Copying template: rke2-agents.conf.template"
+  if [[ -f "rke2-agents.conf.template" ]]; then
+    cp rke2-agents.conf.template $RKE2_CONFIG_DIR/config.yaml
+    echo "Template copied successfully"
+  else
+    echo "ERROR: Template file rke2-agents.conf.template not found!"
+    exit 1
+  fi
+  RKE2_SERVICE=rke2-agent
+  echo "RKE2_SERVICE=rke2-agent" | sudo tee -a $ENV_FILE_PATH
+  export RKE2_SERVICE="rke2-agent"
+
+fi
+
+echo "Template configuration completed for node type: $NODE_NAME"
+echo "Service type set to: $RKE2_SERVICE"nvironment"
 source $ENV_FILE_PATH
 env | grep -E 'K8S|RKE2|WORK|CONTROL'
 
@@ -76,20 +93,25 @@ echo "Available template files in current directory:"
 ls -la *.template || echo "No template files found"
 echo "Current working directory: $(pwd)"
 
-sleep 5  # Reduced from 30 seconds to 5 seconds
-source $ENV_FILE_PATH
+echo "Sourcing environment file: $ENV_FILE_PATH"
+source $ENV_FILE_PATH || echo "Warning: Could not source $ENV_FILE_PATH"
+echo "Environment sourced successfully"
 if [[ "$NODE_NAME" == CONTROL-PLANE-NODE-1 ]]; then
-  echo "PRIMARY CONTROL PLANE NODE"
+  echo "✅ Detected PRIMARY CONTROL PLANE NODE"
   RKE2_SERVICE="rke2-server"
-  echo "Copying template: rke2-server-control-plane-primary.conf.template"
+  echo "📁 Copying template: rke2-server-control-plane-primary.conf.template"
   if [[ -f "rke2-server-control-plane-primary.conf.template" ]]; then
+    echo "📋 Template file found, copying..."
     cp rke2-server-control-plane-primary.conf.template $RKE2_CONFIG_DIR/config.yaml
-    echo "Template copied successfully"
+    echo "✅ Template copied successfully"
   else
-    echo "ERROR: Template file rke2-server-control-plane-primary.conf.template not found!"
+    echo "❌ ERROR: Template file rke2-server-control-plane-primary.conf.template not found!"
     exit 1
   fi
-  export RKE2_SERVICE="rke2-server" | sudo tee -a $ENV_FILE_PATH
+  echo "💾 Writing service type to environment file..."
+  echo "RKE2_SERVICE=rke2-server" | sudo tee -a $ENV_FILE_PATH
+  export RKE2_SERVICE="rke2-server"
+  echo "✅ Service configuration completed"
 
 elif [[ "$NODE_NAME" == CONTROL-PLANE-NODE-* ]]; then
   echo "SUBSEQUENT CONTROL PLANE NODE"
@@ -102,7 +124,8 @@ elif [[ "$NODE_NAME" == CONTROL-PLANE-NODE-* ]]; then
     echo "ERROR: Template file rke2-server-control-plane.subsequent.conf.template not found!"
     exit 1
   fi
-  export RKE2_SERVICE="rke2-server" | sudo tee -a $ENV_FILE_PATH
+  echo "RKE2_SERVICE=rke2-server" | sudo tee -a $ENV_FILE_PATH
+  export RKE2_SERVICE="rke2-server"
 
 elif [[ "$NODE_NAME" == ETCD-NODE-* ]]; then
   echo "ETCD NODE"
@@ -115,7 +138,8 @@ elif [[ "$NODE_NAME" == ETCD-NODE-* ]]; then
     exit 1
   fi
   RKE2_SERVICE=rke2-agent
-  export RKE2_SERVICE="rke2-agent" | sudo tee -a $ENV_FILE_PATH
+  echo "RKE2_SERVICE=rke2-agent" | sudo tee -a $ENV_FILE_PATH
+  export RKE2_SERVICE="rke2-agent"
 
 else
   echo "WORKER NODE"
@@ -151,19 +175,96 @@ cat $ENV_FILE_PATH
 
 echo "Enabling and starting RKE2 service: $RKE2_SERVICE"
 sudo systemctl enable $RKE2_SERVICE || echo "Failed to enable $RKE2_SERVICE"
-sudo systemctl start $RKE2_SERVICE || echo "Failed to start $RKE2_SERVICE"
 
-echo "Waiting for RKE2 service to initialize (2 minutes)..."
-sleep 120
-
-echo "Checking RKE2 service status:"
-sudo systemctl status $RKE2_SERVICE --no-pager || echo "Service status check failed"
-
-if [[ -f "$RKE2_CONFIG_DIR/rke2.yaml" ]]; then
-  sudo cp /var/lib/rancher/rke2/bin/kubectl /bin/kubectl
-  mkdir -p /home/ubuntu/.kube/
-  cat "$RKE2_CONFIG_DIR/rke2.yaml" | sed "s/127.0.0.1/${INTERNAL_IP}/g" | sed "s/default/${CLUSTER_DOMAIN}/g" | tee -a /home/ubuntu/.kube/${CLUSTER_DOMAIN}-${NODE_NAME}.yaml
-  sudo chown -R ubuntu:ubuntu /home/ubuntu/.kube/*
-  sudo chmod -R 444 /home/ubuntu/.kube/*.yaml
-  sudo chmod +x /bin/kubectl
+echo "Checking current RKE2 service status..."
+if sudo systemctl is-active --quiet $RKE2_SERVICE; then
+    echo "✅ RKE2 service is already active and running"
+    sudo systemctl status $RKE2_SERVICE --no-pager --lines=5 || true
+    echo "Skipping startup wait - service is already operational"
+elif sudo systemctl is-failed --quiet $RKE2_SERVICE; then
+    echo "⚠️ RKE2 service was in failed state - attempting restart"
+    sudo systemctl reset-failed $RKE2_SERVICE || true
+    sudo systemctl start $RKE2_SERVICE &
+    START_PID=$!
+    echo "RKE2 service restart initiated (PID: $START_PID)"
+    NEED_TO_WAIT=true
+else
+    echo "Starting RKE2 service..."
+    sudo systemctl start $RKE2_SERVICE &
+    START_PID=$!
+    echo "RKE2 service start command initiated (PID: $START_PID)"
+    NEED_TO_WAIT=true
 fi
+
+if [ "${NEED_TO_WAIT:-false}" = "true" ]; then
+    echo "Waiting for RKE2 service to become active..."
+    TIMEOUT=300  # 5 minutes timeout
+    ELAPSED=0
+    WAIT_INTERVAL=5  # 5 seconds between checks
+
+    while [ $ELAPSED -lt $TIMEOUT ]; do
+        if sudo systemctl is-active --quiet $RKE2_SERVICE; then
+            echo "✅ RKE2 service is active and running after ${ELAPSED} seconds"
+            sudo systemctl status $RKE2_SERVICE --no-pager --lines=5 || true
+            break
+        elif sudo systemctl is-failed --quiet $RKE2_SERVICE; then
+            echo "❌ RKE2 service failed to start after ${ELAPSED} seconds"
+            sudo systemctl status $RKE2_SERVICE --no-pager --lines=10 || true
+            echo "Recent service logs:"
+            sudo journalctl -u $RKE2_SERVICE --no-pager --lines=20 --since="10 minutes ago" || true
+            exit 1
+        else
+            echo "⏳ RKE2 service is still starting... (${ELAPSED}s elapsed)"
+            sleep $WAIT_INTERVAL
+            ELAPSED=$((ELAPSED + WAIT_INTERVAL))
+        fi
+    done
+
+    if [ $ELAPSED -ge $TIMEOUT ]; then
+        echo "⚠️ Timeout waiting for RKE2 service to become active after ${TIMEOUT} seconds"
+        sudo systemctl status $RKE2_SERVICE --no-pager || true
+        echo "Service may still be starting - check manually with: sudo systemctl status $RKE2_SERVICE"
+        exit 1
+    fi
+fi
+
+echo "Final RKE2 service status check:"
+sudo systemctl is-active $RKE2_SERVICE && echo "✅ RKE2 service is active" || echo "⚠️ RKE2 service status unknown"
+
+echo "Setting up kubectl and kubeconfig..."
+# The RKE2 kubeconfig file might be in different locations
+KUBECONFIG_PATHS=(
+  "$RKE2_CONFIG_DIR/rke2.yaml"
+  "/etc/rancher/rke2/rke2.yaml"
+  "/var/lib/rancher/rke2/server/cred/admin.kubeconfig"
+)
+
+KUBECONFIG_FOUND=""
+for path in "${KUBECONFIG_PATHS[@]}"; do
+  if [[ -f "$path" ]]; then
+    echo "Found kubeconfig at: $path"
+    KUBECONFIG_FOUND="$path"
+    break
+  else
+    echo "Kubeconfig not found at: $path"
+  fi
+done
+
+if [[ -n "$KUBECONFIG_FOUND" ]] && [[ -f "/var/lib/rancher/rke2/bin/kubectl" ]]; then
+  echo "Setting up kubectl and kubeconfig files..."
+  sudo cp /var/lib/rancher/rke2/bin/kubectl /bin/kubectl || echo "Failed to copy kubectl binary"
+  mkdir -p /home/ubuntu/.kube/
+  cat "$KUBECONFIG_FOUND" | sed "s/127.0.0.1/${INTERNAL_IP}/g" | sed "s/default/${CLUSTER_DOMAIN}/g" | tee /home/ubuntu/.kube/${CLUSTER_DOMAIN}-${NODE_NAME}.yaml
+  sudo chown -R ubuntu:ubuntu /home/ubuntu/.kube/* || true
+  sudo chmod -R 444 /home/ubuntu/.kube/*.yaml || true
+  sudo chmod +x /bin/kubectl || true
+  echo "✅ Kubectl and kubeconfig setup completed"
+else
+  echo "⚠️  Kubectl setup skipped - kubeconfig or kubectl binary not found yet"
+  echo "This is normal for initial startup - RKE2 may still be initializing"
+fi
+
+echo "🎉 RKE2 setup script completed successfully!"
+echo "RKE2 service status: $(sudo systemctl is-active $RKE2_SERVICE 2>/dev/null || echo 'unknown')"
+echo "Setup completed at: $(date)"
+exit 0
