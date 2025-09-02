@@ -48,7 +48,7 @@ nginx_node_ebs_volume_size_2 = 200 # Enable second EBS volume for PostgreSQL tes
 k8s_instance_root_volume_size = 64
 
 # Control-plane, ETCD, Worker
-k8s_control_plane_node_count = 0
+k8s_control_plane_node_count = 1
 # ETCD, Worker
 k8s_etcd_node_count = 0
 # Worker
