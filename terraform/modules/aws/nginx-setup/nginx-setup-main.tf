@@ -70,9 +70,12 @@ resource "null_resource" "Nginx-setup" {
   provisioner "remote-exec" {
     inline = concat(
       local.nginx_env_vars,
-      ["source /etc/environment",
-        "echo \"export cluster_nginx_internal_ip=\"$(curl -H \"X-aws-ec2-metadata-token: $TOKEN\" http://169.254.169.254/latest/meta-data/local-ipv4)\"\" | sudo tee -a ${local.NGINX_CONFIG.env_var_file}",
-        "echo \"export cluster_nginx_public_ip=\"$(curl -H \"X-aws-ec2-metadata-token: $TOKEN\" http://169.254.169.254/latest/meta-data/local-ipv4)\"\" | sudo tee -a ${local.NGINX_CONFIG.env_var_file}",
+      [". /etc/environment",
+        "export TOKEN=$(curl -X PUT \"http://169.254.169.254/latest/api/token\" -H \"X-aws-ec2-metadata-token-ttl-seconds: 21600\" 2>/dev/null)",
+        "export INTERNAL_IP=$(curl -H \"X-aws-ec2-metadata-token: $TOKEN\" http://169.254.169.254/latest/meta-data/local-ipv4 2>/dev/null)",
+        "export PUBLIC_IP=$(curl -H \"X-aws-ec2-metadata-token: $TOKEN\" http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null)",
+        "echo \"export cluster_nginx_internal_ip=$INTERNAL_IP\" | sudo tee -a ${local.NGINX_CONFIG.env_var_file}",
+        "echo \"export cluster_nginx_public_ip=$PUBLIC_IP\" | sudo tee -a ${local.NGINX_CONFIG.env_var_file}",
         "sudo chmod +x /tmp/nginx-setup.sh",
         "sudo bash /tmp/nginx-setup.sh"
       ]
