@@ -182,7 +182,7 @@ cat $ENV_FILE_PATH
 sudo systemctl enable $RKE2_SERVICE
 sudo systemctl start $RKE2_SERVICE
 
-sleep 300
+sleep 400
 
 if [[ -f "$RKE2_CONFIG_DIR/rke2.yaml" ]]; then
   sudo cp /var/lib/rancher/rke2/bin/kubectl /bin/kubectl
