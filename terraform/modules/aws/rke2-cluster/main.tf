@@ -101,33 +101,39 @@ resource "null_resource" "rke2-primary-cluster-setup" {
   provisioner "file" {
     source      = "${path.module}/rke2-setup.sh"
     destination = "/tmp/rke2-setup.sh"
-    on_failure  = continue           # Continue on failure
+  }
+  
+  # Add a validation provisioner to ensure file upload succeeded
+  provisioner "remote-exec" {
+    inline = [
+      "echo 'Validating file upload...'",
+      "test -f /tmp/rke2-setup.sh && echo 'File exists' || (echo 'File upload failed' && exit 1)",
+      "test -s /tmp/rke2-setup.sh && echo 'File has content' || (echo 'File is empty' && exit 1)",
+      "echo 'File upload validation completed successfully'"
+    ]
   }
   provisioner "remote-exec" {
     inline = concat(
       local.k8s_env_vars,
       [
-        # Test connectivity first
-        "echo 'Testing SSH connectivity and disk space...'",
+        # Test connectivity and validate file upload
+        "echo 'Testing SSH connectivity and validating file upload...'",
         "df -h /tmp",
         "whoami",
-        # Create the script content directly on the remote host with retry logic
-        "for i in {1..3}; do",
-        "  echo \"Attempt $i to create setup script...\"",
-        "  cat > /tmp/rke2-setup.sh << 'EOFSCRIPT'",
-        file("${path.module}/rke2-setup.sh"),
-        "EOFSCRIPT",
-        "  if [[ -f /tmp/rke2-setup.sh ]] && [[ $(wc -l < /tmp/rke2-setup.sh) -gt 100 ]]; then",
-        "    echo 'Script created successfully'",
-        "    break",
-        "  else",
-        "    echo \"Failed to create script properly on attempt $i\"",
-        "    sleep 5",
-        "  fi",
-        "done",
+        "ls -la /tmp/rke2-setup.sh || echo 'Script file not found, checking upload status'",
+        # Check if file was uploaded properly, if not try to fix permissions
+        "if [[ ! -f /tmp/rke2-setup.sh ]] || [[ ! -s /tmp/rke2-setup.sh ]]; then",
+        "  echo 'Script file missing or empty, this indicates file upload failed'",
+        "  echo 'Current /tmp contents:'",
+        "  ls -la /tmp/",
+        "  exit 1",
+        "fi",
         "chmod +x /tmp/rke2-setup.sh",
-        "ls -la /tmp/rke2-setup.sh",
-        "timeout 10m sudo bash /tmp/rke2-setup.sh || (echo 'First attempt failed, retrying in 30 seconds...' && sleep 30 && timeout 10m sudo bash /tmp/rke2-setup.sh)"
+        "echo 'Script file validation:'",
+        "wc -l /tmp/rke2-setup.sh",
+        "head -5 /tmp/rke2-setup.sh",
+        "tail -5 /tmp/rke2-setup.sh",
+        "timeout 15m sudo bash /tmp/rke2-setup.sh || (echo 'First attempt failed, retrying in 30 seconds...' && sleep 30 && timeout 15m sudo bash /tmp/rke2-setup.sh)"
       ]
     )
   }
