@@ -40,19 +40,27 @@ locals {
   primary_control_plane_key   = [for key in keys(var.K8S_CLUSTER_PRIVATE_IPS) : key if can(regex(".*CONTROL-PLANE-NODE-1$", key))][0]
   CONTROL_PLANE_NODE_1        = var.K8S_CLUSTER_PRIVATE_IPS[local.primary_control_plane_key]
   K8S_CLUSTER_PRIVATE_IPS_STR = join(",", [for key, value in var.K8S_CLUSTER_PRIVATE_IPS : "${key}=${value}"])
-
-  # Base RKE configuration
+  
+  # Extract cluster name and node name from the primary control plane key
+  cluster_name_parts = split("-", local.primary_control_plane_key)
+  cluster_name = local.cluster_name_parts[0]  # Extract cluster name (e.g., "mtest")
+  
+  # Base RKE configuration - only add variables not provided by user-data
   RKE_CONFIG_BASE = {
-    ENV_VAR_FILE                = "/etc/environment"
+    # Variables from Terraform that user-data doesn't provide
     CONTROL_PLANE_NODE_1        = local.CONTROL_PLANE_NODE_1
-    WORK_DIR                    = "/home/ubuntu/"
-    RKE2_CONFIG_DIR             = "/etc/rancher/rke2"
-    INSTALL_RKE2_VERSION        = "v1.28.9+rke2r1"
     K8S_INFRA_REPO_URL          = var.K8S_INFRA_REPO_URL
     K8S_INFRA_BRANCH            = var.K8S_INFRA_BRANCH
-    RKE2_LOCATION               = "/home/ubuntu/k8s-infra/k8-cluster/on-prem/rke2/"
     K8S_CLUSTER_PRIVATE_IPS_STR = local.K8S_CLUSTER_PRIVATE_IPS_STR
     K8S_TOKEN                   = random_string.K8S_TOKEN.result
+    
+    # RKE2 specific configuration
+    RKE2_LOCATION               = "/home/ubuntu/k8s-infra/k8-cluster/on-prem/rke2/"
+    RKE2_CONFIG_DIR             = "/etc/rancher/rke2"
+    INSTALL_RKE2_VERSION        = "v1.28.9+rke2r1"
+    
+    # Working directory
+    WORK_DIR                    = "/home/ubuntu/"
   }
 
   # Conditional RKE configuration with Rancher import URL only when enabled
@@ -72,22 +80,26 @@ locals {
   }
 
   datetime = formatdate("2006-01-02_15-04-05", timestamp())
+  
+  # Backup the current environment file before making changes
   backup_command = [
-    "sudo cp ${local.RKE_CONFIG.ENV_VAR_FILE} /tmp/environment-bkp-${local.datetime}"
+    "sudo cp /etc/environment /tmp/environment-bkp-${local.datetime}"
   ]
 
+  # Only update the variables that Terraform provides, don't override user-data variables
   update_commands = [
     for key, value in local.RKE_CONFIG :
-    "sudo sed -i \"/^${key}=/d\" ${local.RKE_CONFIG.ENV_VAR_FILE} && echo '${key}=${value}' | sudo tee -a ${local.RKE_CONFIG.ENV_VAR_FILE}"
+    "sudo sed -i \"/^${key}=/d\" /etc/environment && echo '${key}=${value}' | sudo tee -a /etc/environment"
   ]
 
   k8s_env_vars = concat(local.backup_command, local.update_commands)
 }
 
 resource "null_resource" "rke2-primary-cluster-setup" {
-  #   triggers = {
-  #     node_hash = md5(local.K8S_CLUSTER_PRIVATE_IPS_STR)
-  #   }
+  triggers = {
+    node_hash   = md5(local.K8S_CLUSTER_PRIVATE_IPS_STR)
+    script_hash = filemd5("${path.module}/rke2-setup.sh")
+  }
   # Upload script as a file first
   provisioner "file" {
     source      = "${path.module}/rke2-setup.sh"
@@ -98,7 +110,7 @@ resource "null_resource" "rke2-primary-cluster-setup" {
       host        = local.CONTROL_PLANE_NODE_1
       user        = "ubuntu"
       private_key = var.SSH_PRIVATE_KEY
-      timeout     = "10m"
+      timeout     = "35m"
     }
   }
 
@@ -107,7 +119,9 @@ resource "null_resource" "rke2-primary-cluster-setup" {
     inline = concat(
       local.k8s_env_vars,
       [
-        "sudo bash /tmp/rke2-setup.sh"
+        "source /etc/environment",  # Re-source environment after updates
+        "chmod +x /tmp/rke2-setup.sh",
+        "timeout 30m sudo bash /tmp/rke2-setup.sh || { echo 'Script execution failed or timed out'; exit 1; }"
       ]
     )    
     connection {
@@ -115,7 +129,7 @@ resource "null_resource" "rke2-primary-cluster-setup" {
       host        = local.CONTROL_PLANE_NODE_1
       user        = "ubuntu"
       private_key = var.SSH_PRIVATE_KEY
-      timeout     = "20m"
+      timeout     = "35m"
     }
   }
 }
@@ -131,7 +145,7 @@ resource "null_resource" "rke2-additional-control-plane-setup" {
     host        = each.value
     user        = "ubuntu"            # Change based on the AMI used
     private_key = var.SSH_PRIVATE_KEY # content of your private key
-    timeout     = "10m"
+    timeout     = "35m"
   }
   provisioner "file" {
     source      = "${path.module}/rke2-setup.sh"
@@ -139,9 +153,15 @@ resource "null_resource" "rke2-additional-control-plane-setup" {
   }
   provisioner "remote-exec" {
     inline = concat(
-      local.k8s_env_vars,
+      local.backup_command,
       [
-        "sudo bash /tmp/rke2-setup.sh"
+        for key, value in local.RKE_CONFIG :
+        "sudo sed -i \"/^${key}=/d\" /etc/environment && echo '${key}=${value}' | sudo tee -a /etc/environment"
+      ],
+      [
+        "source /etc/environment",  # Re-source environment after updates
+        "chmod +x /tmp/rke2-setup.sh",
+        "timeout 30m sudo bash /tmp/rke2-setup.sh || { echo 'Script execution failed or timed out'; exit 1; }"
       ]
     )
   }
@@ -164,7 +184,7 @@ resource "null_resource" "rke2-cluster-setup" {
     host        = each.value
     user        = "ubuntu"            # Change based on the AMI used
     private_key = var.SSH_PRIVATE_KEY # content of your private key
-    timeout     = "10m"
+    timeout     = "35m"
   }
   provisioner "file" {
     source      = "${path.module}/rke2-setup.sh"
@@ -172,9 +192,15 @@ resource "null_resource" "rke2-cluster-setup" {
   }
   provisioner "remote-exec" {
     inline = concat(
-      local.k8s_env_vars,
+      local.backup_command,
       [
-        "sudo bash /tmp/rke2-setup.sh"
+        for key, value in local.RKE_CONFIG :
+        "sudo sed -i \"/^${key}=/d\" /etc/environment && echo '${key}=${value}' | sudo tee -a /etc/environment"
+      ],
+      [
+        "source /etc/environment",  # Re-source environment after updates
+        "chmod +x /tmp/rke2-setup.sh",
+        "timeout 30m sudo bash /tmp/rke2-setup.sh || { echo 'Script execution failed or timed out'; exit 1; }"
       ]
     )
   }
@@ -194,7 +220,7 @@ resource "null_resource" "rancher-import" {
     host        = local.CONTROL_PLANE_NODE_1
     user        = "ubuntu"            # Change based on the AMI used
     private_key = var.SSH_PRIVATE_KEY # content of your private key
-    timeout     = "10m"
+    timeout     = "35m"
   }
   provisioner "remote-exec" {
     inline = concat(
@@ -227,7 +253,7 @@ resource "null_resource" "download-k8s-kubeconfig" {
     host        = each.value
     user        = "ubuntu"            # Change based on the AMI used
     private_key = var.SSH_PRIVATE_KEY # content of your private key
-    timeout     = "10m"
+    timeout     = "35m"
   }
   provisioner "file" {
     source      = "${path.module}/rke2-setup.sh"
@@ -253,7 +279,7 @@ resource "null_resource" "download-kubectl-file" {
     host        = local.CONTROL_PLANE_NODE_1
     user        = "ubuntu"            # Change based on the AMI used
     private_key = var.SSH_PRIVATE_KEY # content of your private key
-    timeout     = "10m"
+    timeout     = "35m"
   }
   provisioner "file" {
     source      = "${path.module}/rke2-setup.sh"

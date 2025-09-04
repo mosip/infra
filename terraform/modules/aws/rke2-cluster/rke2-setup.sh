@@ -4,8 +4,10 @@
 echo "[ Set Log File ] : "
 LOG_FILE="/tmp/rke2-setup-$( date +"%d-%h-%Y-%H-%M" ).log"
 ENV_FILE_PATH="/etc/environment"
+
+# Source environment variables first (from user-data script)
 source $ENV_FILE_PATH
-env | grep -E 'K8S|RKE2|WORK|CONTROL'
+env | grep -E 'K8S|RKE2|WORK|CONTROL|NODE_NAME|INTERNAL_IP|CLUSTER_DOMAIN'
 
 # Redirect stdout and stderr to log file
 exec > >(tee -a "$LOG_FILE") 2>&1
@@ -26,9 +28,8 @@ else
     echo "✅ RKE2 installation completed"
 
     echo "⏳ Waiting for RKE2 installation to settle..."
-    sleep 20   # wait 20 seconds (tweak as needed)
+    sleep 10   # wait 10 seconds
 fi
-
 
 # Clone k8s-infra repository only if it doesn't exist
 echo "Checking for k8s-infra repository..."
@@ -38,6 +39,7 @@ cd $WORK_DIR
 # Run git config as ubuntu user, not sudo
 git config --global --add safe.directory $WORK_DIR/k8s-infra || true
 git config --global --add safe.directory '*' || true
+echo "$(date): Git configuration completed"
 
 # Only clone if directory doesn't exist
 if [ ! -d "k8s-infra" ]; then
@@ -46,7 +48,7 @@ if [ ! -d "k8s-infra" ]; then
   echo "Branch: $K8S_INFRA_BRANCH"
   
   # Simple clone with timeout
-  timeout 480 git clone --depth 1 --branch $K8S_INFRA_BRANCH $K8S_INFRA_REPO_URL k8s-infra || {
+  timeout 600 git clone --depth 1 --branch $K8S_INFRA_BRANCH $K8S_INFRA_REPO_URL k8s-infra || {
     echo "❌ Git clone failed"
     echo "This might be due to network connectivity issues"
     exit 1
@@ -59,7 +61,11 @@ else
 fi
 
 # Ensure proper ownership
+echo "$(date): Setting proper ownership for k8s-infra directory..."
 sudo chown -R ubuntu:ubuntu k8s-infra/
+echo "$(date): Ownership set successfully"
+
+echo "$(date): Starting RKE2 configuration"
 
 # Create and configure RKE2 config directory
 echo "Created and configured RKE2 config directory: $RKE2_CONFIG_DIR"
@@ -194,9 +200,9 @@ fi
 
 if [ "${NEED_TO_WAIT:-false}" = "true" ]; then
     echo "Waiting for RKE2 service to become active..."
-    TIMEOUT=300  # 5 minutes timeout
+    TIMEOUT=600  # 10 minutes timeout
     ELAPSED=0
-    WAIT_INTERVAL=5  # 5 seconds between checks
+    WAIT_INTERVAL=10  # 10 seconds between checks
 
     while [ $ELAPSED -lt $TIMEOUT ]; do
         if sudo systemctl is-active --quiet $RKE2_SERVICE; then
