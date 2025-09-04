@@ -13,7 +13,7 @@ exec > >(tee -a "$LOG_FILE") 2>&1
 # set commands for error handling.
 set -e
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
-set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
+#set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errtrace  # trace ERR through 'time command' and other functions
 set -o pipefail  # trace ERR through pipes
 
@@ -21,27 +21,35 @@ set -o pipefail  # trace ERR through pipes
 echo "Installing RKE2"
 curl -sfL https://get.rke2.io | INSTALL_RKE2_VERSION=$INSTALL_RKE2_VERSION sh -
 
-# Clone k8s-infra repository with timeout protection
-echo "Cloning k8s-infra repository (shallow clone for faster download)..."
+# Clone k8s-infra repository only if it doesn't exist
+echo "Checking for k8s-infra repository..."
 cd $WORK_DIR
 
 # Configure git to trust the directory and handle ownership issues
-sudo git config --global --add safe.directory $WORK_DIR/k8s-infra || true
-sudo git config --global --add safe.directory '*' || true
+# Run git config as ubuntu user, not sudo
+git config --global --add safe.directory $WORK_DIR/k8s-infra || true
+git config --global --add safe.directory '*' || true
 
-# Remove existing directory if present to avoid conflicts
-if [ -d "k8s-infra" ]; then
-  echo "Removing existing k8s-infra directory..."
-  sudo rm -rf k8s-infra
+# Only clone if directory doesn't exist
+if [ ! -d "k8s-infra" ]; then
+  echo "k8s-infra directory not found, cloning repository..."
+  echo "Repository: $K8S_INFRA_REPO_URL"
+  echo "Branch: $K8S_INFRA_BRANCH"
+  
+  # Simple clone with timeout
+  timeout 480 git clone --depth 1 --branch $K8S_INFRA_BRANCH $K8S_INFRA_REPO_URL k8s-infra || {
+    echo "❌ Git clone failed"
+    echo "This might be due to network connectivity issues"
+    exit 1
+  }
+  
+  echo "✅ Git clone completed successfully"
+  sudo chown -R ubuntu:ubuntu k8s-infra/
+else
+  echo "✅ k8s-infra directory already exists, skipping clone"
 fi
 
-echo "Starting git clone with 5-minute timeout..."
-timeout 300 git clone --depth 1 --branch $K8S_INFRA_BRANCH $K8S_INFRA_REPO_URL k8s-infra && echo "Git clone completed successfully" || {
-  echo "Git clone failed or timed out"
-  exit 1
-}
-
-echo "Successfully cloned/updated k8s-infra repository"
+# Ensure proper ownership
 sudo chown -R ubuntu:ubuntu k8s-infra/
 
 # Create and configure RKE2 config directory
