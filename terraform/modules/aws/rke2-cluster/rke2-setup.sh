@@ -5,8 +5,12 @@ echo "[ Set Log File ] : "
 LOG_FILE="/tmp/rke2-setup-$( date +"%d-%h-%Y-%H-%M" ).log"
 ENV_FILE_PATH="/etc/environment"
 
-# Source environment variables first (from user-data script)
-source $ENV_FILE_PATH
+# Source environment variables (both from user-data and Terraform)
+if [ -f "$ENV_FILE_PATH" ]; then
+    set -a  # automatically export all variables
+    . $ENV_FILE_PATH
+    set +a  # stop automatically exporting
+fi
 env | grep -E 'K8S|RKE2|WORK|CONTROL|NODE_NAME|INTERNAL_IP|CLUSTER_DOMAIN'
 
 # Redirect stdout and stderr to log file

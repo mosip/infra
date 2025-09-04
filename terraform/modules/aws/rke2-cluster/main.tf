@@ -119,7 +119,6 @@ resource "null_resource" "rke2-primary-cluster-setup" {
     inline = concat(
       local.k8s_env_vars,
       [
-        "source /etc/environment",  # Re-source environment after updates
         "chmod +x /tmp/rke2-setup.sh",
         "timeout 30m sudo bash /tmp/rke2-setup.sh || { echo 'Script execution failed or timed out'; exit 1; }"
       ]
@@ -159,7 +158,6 @@ resource "null_resource" "rke2-additional-control-plane-setup" {
         "sudo sed -i \"/^${key}=/d\" /etc/environment && echo '${key}=${value}' | sudo tee -a /etc/environment"
       ],
       [
-        "source /etc/environment",  # Re-source environment after updates
         "chmod +x /tmp/rke2-setup.sh",
         "timeout 30m sudo bash /tmp/rke2-setup.sh || { echo 'Script execution failed or timed out'; exit 1; }"
       ]
@@ -198,7 +196,6 @@ resource "null_resource" "rke2-cluster-setup" {
         "sudo sed -i \"/^${key}=/d\" /etc/environment && echo '${key}=${value}' | sudo tee -a /etc/environment"
       ],
       [
-        "source /etc/environment",  # Re-source environment after updates
         "chmod +x /tmp/rke2-setup.sh",
         "timeout 30m sudo bash /tmp/rke2-setup.sh || { echo 'Script execution failed or timed out'; exit 1; }"
       ]
