@@ -94,17 +94,39 @@ resource "null_resource" "rke2-primary-cluster-setup" {
     host        = local.CONTROL_PLANE_NODE_1
     user        = "ubuntu"            # Change based on the AMI used
     private_key = var.SSH_PRIVATE_KEY # content of your private key
-    timeout     = "10m"
+    timeout     = "15m"               # Increased timeout
+    agent       = false               # Disable SSH agent
+    host_key    = null               # Skip host key verification
   }
   provisioner "file" {
     source      = "${path.module}/rke2-setup.sh"
     destination = "/tmp/rke2-setup.sh"
+    on_failure  = continue           # Continue on failure
   }
   provisioner "remote-exec" {
     inline = concat(
       local.k8s_env_vars,
       [
+        # Test connectivity first
+        "echo 'Testing SSH connectivity and disk space...'",
+        "df -h /tmp",
+        "whoami",
+        # Create the script content directly on the remote host with retry logic
+        "for i in {1..3}; do",
+        "  echo \"Attempt $i to create setup script...\"",
+        "  cat > /tmp/rke2-setup.sh << 'EOFSCRIPT'",
+        file("${path.module}/rke2-setup.sh"),
+        "EOFSCRIPT",
+        "  if [[ -f /tmp/rke2-setup.sh ]] && [[ $(wc -l < /tmp/rke2-setup.sh) -gt 100 ]]; then",
+        "    echo 'Script created successfully'",
+        "    break",
+        "  else",
+        "    echo \"Failed to create script properly on attempt $i\"",
+        "    sleep 5",
+        "  fi",
+        "done",
         "chmod +x /tmp/rke2-setup.sh",
+        "ls -la /tmp/rke2-setup.sh",
         "timeout 10m sudo bash /tmp/rke2-setup.sh || (echo 'First attempt failed, retrying in 30 seconds...' && sleep 30 && timeout 10m sudo bash /tmp/rke2-setup.sh)"
       ]
     )
