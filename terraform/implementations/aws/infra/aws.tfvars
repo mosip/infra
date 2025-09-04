@@ -9,24 +9,10 @@ ssh_key_name = "mosip-aws"
 # The AWS region for resource creation
 aws_provider_region = "ap-south-1"
 
-# Instance Types Configuration
-# The infrastructure automatically validates both instance types across AZs and calculates
-# optimal AZ distribution based on actual node counts:
-# - K8s validation considers total nodes (control plane + etcd + worker)
-# - NGINX typically runs 1 instance (can work with 1 AZ)
-# - Dynamic calculation: min_azs_needed = min(total_k8s_nodes, 3)
-# - Capacity exclusions are optional and configurable below
-
 # The instance type for Kubernetes nodes (control plane, worker, etcd)
 k8s_instance_type = "t3.2xlarge"
 # The instance type for Nginx server (load balancer)
 nginx_instance_type = "t3.2xlarge"
-
-# Optional: Exclude specific AZs due to known capacity issues
-# Leave empty for fully dynamic behavior (recommended)
-# Add AZs only if you experience repeated capacity issues
-k8s_capacity_excluded_azs   = [] # e.g., ["ap-south-1a"] if needed
-nginx_capacity_excluded_azs = [] # e.g., ["ap-south-1a"] if needed
 # The Route 53 hosted zone ID
 zone_id = "Z090954828SJIEL6P5406"
 

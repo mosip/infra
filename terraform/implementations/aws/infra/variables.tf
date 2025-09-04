@@ -159,19 +159,6 @@ variable "k8s_instance_root_volume_size" {
   type        = number
 }
 
-# Optional capacity exclusion lists
-variable "k8s_capacity_excluded_azs" {
-  description = "List of AZs to exclude for K8s instances due to capacity issues"
-  type        = list(string)
-  default     = []
-}
-
-variable "nginx_capacity_excluded_azs" {
-  description = "List of AZs to exclude for NGINX instances due to capacity issues"
-  type        = list(string)
-  default     = []
-}
-
 # PostgreSQL Configuration Variables
 variable "enable_postgresql_setup" {
   description = "Enable PostgreSQL setup"

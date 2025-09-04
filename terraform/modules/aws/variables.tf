@@ -114,19 +114,6 @@ variable "NGINX_NODE_EBS_VOLUME_SIZE" { type = number }
 variable "nginx_node_ebs_volume_size_2" { type = number }
 variable "K8S_INSTANCE_ROOT_VOLUME_SIZE" { type = number }
 
-# Optional capacity exclusion lists (for problematic AZs)
-variable "k8s_capacity_excluded_azs" {
-  description = "List of AZs to exclude for K8s instances due to capacity issues"
-  type        = list(string)
-  default     = []
-}
-
-variable "nginx_capacity_excluded_azs" {
-  description = "List of AZs to exclude for NGINX instances due to capacity issues"
-  type        = list(string)
-  default     = []
-}
-
 # PostgreSQL Configuration Variables
 variable "enable_postgresql_setup" {
   description = "Enable PostgreSQL setup (disable for observ-infra)"

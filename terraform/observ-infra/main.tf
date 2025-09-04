@@ -51,10 +51,6 @@ module "aws_observ_infra" {
   network_cidr   = var.network_cidr
   WIREGUARD_CIDR = var.WIREGUARD_CIDR
 
-  # Optional capacity exclusions
-  k8s_capacity_excluded_azs   = var.k8s_capacity_excluded_azs
-  nginx_capacity_excluded_azs = var.nginx_capacity_excluded_azs
-
   # Rancher and Keycloak Configuration
   enable_rancher_keycloak_integration = var.enable_rancher_keycloak_integration
   rancher_hostname                    = var.rancher_hostname

@@ -102,16 +102,3 @@ variable "rancher_bootstrap_password" {
   default     = "admin"
   sensitive   = true
 }
-
-# Optional capacity exclusion lists (for problematic AZs)
-variable "k8s_capacity_excluded_azs" {
-  description = "List of AZs to exclude for K8s instances due to capacity issues"
-  type        = list(string)
-  default     = []
-}
-
-variable "nginx_capacity_excluded_azs" {
-  description = "List of AZs to exclude for NGINX instances due to capacity issues"
-  type        = list(string)
-  default     = []
-}

@@ -25,3 +25,20 @@ output "MOSIP_PUBLIC_DOMAIN_LIST" {
     [for cname in var.DNS_RECORDS : cname.name if contains([cname.records], local.MAP_DNS_TO_IP.API_DNS.name)]
   ))
 }
+
+# Output to signal that all instances are ready and status checks passed
+output "INSTANCES_READY" {
+  depends_on = [
+    null_resource.nginx_status_checks,
+    null_resource.k8s_status_checks
+  ]
+  value = {
+    nginx_instance_ready = true
+    k8s_instances_ready  = true
+    all_status_checks_passed = true
+    nginx_instance_id = aws_instance.NGINX_EC2_INSTANCE.id
+    k8s_instance_ids = [for instance in aws_instance.K8S_CLUSTER_EC2_INSTANCE : instance.id]
+    ready_timestamp = timestamp()
+  }
+  description = "Indicates that all EC2 instances are running and have passed their status checks"
+}
