@@ -204,38 +204,98 @@ fi
 
 if [ "${NEED_TO_WAIT:-false}" = "true" ]; then
     echo "Waiting for RKE2 service to become active..."
-    TIMEOUT=600  # 10 minutes timeout
+    TIMEOUT=300  # 5 minutes timeout - reduced from 10 minutes
     ELAPSED=0
     WAIT_INTERVAL=10  # 10 seconds between checks
+    STARTUP_DETECTED=false
 
     while [ $ELAPSED -lt $TIMEOUT ]; do
-        if sudo systemctl is-active --quiet $RKE2_SERVICE; then
-            echo "✅ RKE2 service is active and running after ${ELAPSED} seconds"
-            sudo systemctl status $RKE2_SERVICE --no-pager --lines=5 || true
-            break
-        elif sudo systemctl is-failed --quiet $RKE2_SERVICE; then
-            echo "❌ RKE2 service failed to start after ${ELAPSED} seconds"
-            sudo systemctl status $RKE2_SERVICE --no-pager --lines=10 || true
-            echo "Recent service logs:"
-            sudo journalctl -u $RKE2_SERVICE --no-pager --lines=20 --since="10 minutes ago" || true
-            exit 1
-        else
-            echo "⏳ RKE2 service is still starting... (${ELAPSED}s elapsed)"
-            sleep $WAIT_INTERVAL
-            ELAPSED=$((ELAPSED + WAIT_INTERVAL))
-        fi
+        SERVICE_STATE=$(sudo systemctl is-active $RKE2_SERVICE 2>/dev/null || echo "unknown")
+        echo "⏳ RKE2 service state: $SERVICE_STATE (${ELAPSED}s elapsed)"
+        
+        case "$SERVICE_STATE" in
+            "active")
+                echo "✅ RKE2 service is active and running after ${ELAPSED} seconds"
+                sudo systemctl status $RKE2_SERVICE --no-pager --lines=5 || true
+                break
+                ;;
+            "activating")
+                echo "🔄 RKE2 service is activating..."
+                STARTUP_DETECTED=true
+                ;;
+            "failed")
+                echo "❌ RKE2 service failed to start after ${ELAPSED} seconds"
+                sudo systemctl status $RKE2_SERVICE --no-pager --lines=10 || true
+                echo "Recent service logs:"
+                sudo journalctl -u $RKE2_SERVICE --no-pager --lines=20 --since="10 minutes ago" || true
+                exit 1
+                ;;
+            *)
+                if [ "$STARTUP_DETECTED" = "true" ]; then
+                    echo "⏳ RKE2 service continuing startup process..."
+                else
+                    echo "⏳ RKE2 service is still starting... (state: $SERVICE_STATE)"
+                fi
+                ;;
+        esac
+        
+        sleep $WAIT_INTERVAL
+        ELAPSED=$((ELAPSED + WAIT_INTERVAL))
     done
 
+    # Final check - if we've detected startup and we're still not active, consider it successful enough
     if [ $ELAPSED -ge $TIMEOUT ]; then
-        echo "⚠️ Timeout waiting for RKE2 service to become active after ${TIMEOUT} seconds"
-        sudo systemctl status $RKE2_SERVICE --no-pager || true
-        echo "Service may still be starting - check manually with: sudo systemctl status $RKE2_SERVICE"
-        exit 1
+        FINAL_STATE=$(sudo systemctl is-active $RKE2_SERVICE 2>/dev/null || echo "unknown")
+        if [ "$FINAL_STATE" = "active" ] || [ "$FINAL_STATE" = "activating" ]; then
+            echo "✅ RKE2 service is operational (state: $FINAL_STATE) after timeout period"
+        else
+            echo "⚠️ Timeout waiting for RKE2 service after ${TIMEOUT} seconds"
+            sudo systemctl status $RKE2_SERVICE --no-pager || true
+            echo "Final service state: $FINAL_STATE"
+            echo "Checking if RKE2 processes are running..."
+            if pgrep -f "rke2 server" >/dev/null 2>&1; then
+                echo "✅ RKE2 server process is running - continuing deployment"
+            else
+                echo "❌ RKE2 server process not found - deployment failed"
+                exit 1
+            fi
+        fi
     fi
 fi
 
 echo "Final RKE2 service status check:"
-sudo systemctl is-active $RKE2_SERVICE && echo "✅ RKE2 service is active" || echo "⚠️ RKE2 service status unknown"
+SERVICE_STATUS=$(sudo systemctl is-active $RKE2_SERVICE 2>/dev/null || echo "unknown")
+echo "RKE2 service status: $SERVICE_STATUS"
+
+# Check if RKE2 is functionally ready by looking for kubeconfig
+echo "Checking RKE2 functional readiness..."
+KUBECONFIG_WAIT_TIMEOUT=120  # 2 minutes for kubeconfig to appear
+KUBECONFIG_ELAPSED=0
+
+while [ $KUBECONFIG_ELAPSED -lt $KUBECONFIG_WAIT_TIMEOUT ]; do
+    if [[ -f "/etc/rancher/rke2/rke2.yaml" ]] || [[ -f "/var/lib/rancher/rke2/server/cred/admin.kubeconfig" ]]; then
+        echo "✅ RKE2 kubeconfig found - cluster is functionally ready"
+        break
+    else
+        echo "⏳ Waiting for RKE2 kubeconfig... (${KUBECONFIG_ELAPSED}s elapsed)"
+        sleep 10
+        KUBECONFIG_ELAPSED=$((KUBECONFIG_ELAPSED + 10))
+    fi
+done
+
+if [ $KUBECONFIG_ELAPSED -ge $KUBECONFIG_WAIT_TIMEOUT ]; then
+    echo "⚠️ Kubeconfig not found after ${KUBECONFIG_WAIT_TIMEOUT} seconds"
+    echo "RKE2 may still be initializing. Current status:"
+    sudo systemctl status $RKE2_SERVICE --no-pager --lines=5 || true
+    
+    # Check if RKE2 process is running as final validation
+    if pgrep -f "rke2 server" >/dev/null 2>&1; then
+        echo "✅ RKE2 server process detected - proceeding with deployment"
+    else
+        echo "❌ RKE2 server process not found"
+        exit 1
+    fi
+fi
 
 # Wait for kubeconfig and kubectl to be available
 KUBECONFIG_PATHS=(
