@@ -152,11 +152,7 @@ resource "null_resource" "rke2-additional-control-plane-setup" {
   }
   provisioner "remote-exec" {
     inline = concat(
-      local.backup_command,
-      [
-        for key, value in local.RKE_CONFIG :
-        "sudo sed -i \"/^${key}=/d\" /etc/environment && echo '${key}=${value}' | sudo tee -a /etc/environment"
-      ],
+      local.k8s_env_vars,
       [
         "chmod +x /tmp/rke2-setup.sh",
         "timeout 30m sudo bash /tmp/rke2-setup.sh || { echo 'Script execution failed or timed out'; exit 1; }"
@@ -190,11 +186,7 @@ resource "null_resource" "rke2-cluster-setup" {
   }
   provisioner "remote-exec" {
     inline = concat(
-      local.backup_command,
-      [
-        for key, value in local.RKE_CONFIG :
-        "sudo sed -i \"/^${key}=/d\" /etc/environment && echo '${key}=${value}' | sudo tee -a /etc/environment"
-      ],
+      local.k8s_env_vars,
       [
         "chmod +x /tmp/rke2-setup.sh",
         "timeout 30m sudo bash /tmp/rke2-setup.sh || { echo 'Script execution failed or timed out'; exit 1; }"
