@@ -275,65 +275,79 @@ echo "Final RKE2 service status check:"
 SERVICE_STATUS=$(sudo systemctl is-active $RKE2_SERVICE 2>/dev/null || echo "unknown")
 echo "RKE2 service status: $SERVICE_STATUS"
 
-# Check if RKE2 is functionally ready by looking for kubeconfig
+# Check if RKE2 is functionally ready 
 echo "Checking RKE2 functional readiness..."
-KUBECONFIG_WAIT_TIMEOUT=300  # 3 minutes for kubeconfig to appear
-KUBECONFIG_ELAPSED=0
 
-while [ $KUBECONFIG_ELAPSED -lt $KUBECONFIG_WAIT_TIMEOUT ]; do
-    if [[ -f "/etc/rancher/rke2/rke2.yaml" ]] || [[ -f "/var/lib/rancher/rke2/server/cred/admin.kubeconfig" ]]; then
-        echo "✅ RKE2 kubeconfig found - cluster is functionally ready"
-        break
-    else
-        echo "⏳ Waiting for RKE2 kubeconfig... (${KUBECONFIG_ELAPSED}s elapsed)"
-        sleep 10
-        KUBECONFIG_ELAPSED=$((KUBECONFIG_ELAPSED + 10))
-    fi
-done
+# Only control plane nodes generate kubeconfig files
+if [[ "$NODE_NAME" == CONTROL-PLANE-NODE-* ]]; then
+    echo "Control plane node detected - waiting for kubeconfig generation..."
+    KUBECONFIG_WAIT_TIMEOUT=300  # 3 minutes for kubeconfig to appear
+    KUBECONFIG_ELAPSED=0
 
-if [ $KUBECONFIG_ELAPSED -ge $KUBECONFIG_WAIT_TIMEOUT ]; then
-    echo "⚠️ Kubeconfig not found after ${KUBECONFIG_WAIT_TIMEOUT} seconds"
-    echo "RKE2 may still be initializing. Current status:"
-    sudo systemctl status $RKE2_SERVICE --no-pager --lines=5 || true
-    
-    # Check if RKE2 process is running as final validation
-    if pgrep -f "rke2 server" >/dev/null 2>&1; then
-        echo "✅ RKE2 server process detected - proceeding with deployment"
-    else
-        echo "❌ RKE2 server process not found"
-        exit 1
+    while [ $KUBECONFIG_ELAPSED -lt $KUBECONFIG_WAIT_TIMEOUT ]; do
+        if [[ -f "/etc/rancher/rke2/rke2.yaml" ]] || [[ -f "/var/lib/rancher/rke2/server/cred/admin.kubeconfig" ]]; then
+            echo "✅ RKE2 kubeconfig found - cluster is functionally ready"
+            break
+        else
+            echo "⏳ Waiting for RKE2 kubeconfig... (${KUBECONFIG_ELAPSED}s elapsed)"
+            sleep 10
+            KUBECONFIG_ELAPSED=$((KUBECONFIG_ELAPSED + 10))
+        fi
+    done
+
+    if [ $KUBECONFIG_ELAPSED -ge $KUBECONFIG_WAIT_TIMEOUT ]; then
+        echo "⚠️ Kubeconfig not found after ${KUBECONFIG_WAIT_TIMEOUT} seconds"
+        echo "RKE2 may still be initializing. Current status:"
+        sudo systemctl status $RKE2_SERVICE --no-pager --lines=5 || true
+        
+        # Check if RKE2 process is running as final validation
+        if pgrep -f "rke2 server" >/dev/null 2>&1; then
+            echo "✅ RKE2 server process detected - proceeding with deployment"
+        else
+            echo "❌ RKE2 server process not found"
+            exit 1
+        fi
     fi
+else
+    echo "Worker/ETCD node detected - skipping kubeconfig wait (agents don't generate kubeconfig)"
+    echo "✅ Agent node is functionally ready when service is active"
 fi
 
-# Wait for kubeconfig and kubectl to be available
-KUBECONFIG_PATHS=(
-  "/etc/rancher/rke2/rke2.yaml"
-  "/var/lib/rancher/rke2/server/cred/admin.kubeconfig"
-)
+# Setup kubectl only for control plane nodes
+if [[ "$NODE_NAME" == CONTROL-PLANE-NODE-* ]]; then
+    echo "Setting up kubectl for control plane node..."
+    # Wait for kubeconfig and kubectl to be available
+    KUBECONFIG_PATHS=(
+      "/etc/rancher/rke2/rke2.yaml"
+      "/var/lib/rancher/rke2/server/cred/admin.kubeconfig"
+    )
 
-KUBECONFIG_FOUND=""
-for path in "${KUBECONFIG_PATHS[@]}"; do
-  if [[ -f "$path" ]]; then
-    echo "Found kubeconfig at: $path"
-    KUBECONFIG_FOUND="$path"
-    break
-  else
-    echo "Kubeconfig not found at: $path"
-  fi
-done
+    KUBECONFIG_FOUND=""
+    for path in "${KUBECONFIG_PATHS[@]}"; do
+      if [[ -f "$path" ]]; then
+        echo "Found kubeconfig at: $path"
+        KUBECONFIG_FOUND="$path"
+        break
+      else
+        echo "Kubeconfig not found at: $path"
+      fi
+    done
 
-if [[ -n "$KUBECONFIG_FOUND" ]] && [[ -f "/var/lib/rancher/rke2/bin/kubectl" ]]; then
-  echo "Setting up kubectl and kubeconfig files..."
-  sudo cp /var/lib/rancher/rke2/bin/kubectl /bin/kubectl || echo "Failed to copy kubectl binary"
-  mkdir -p /home/ubuntu/.kube/
-  cat "$KUBECONFIG_FOUND" | sed "s/127.0.0.1/${INTERNAL_IP}/g" | sed "s/default/${CLUSTER_DOMAIN}/g" | tee /home/ubuntu/.kube/${CLUSTER_DOMAIN}-${NODE_NAME}.yaml
-  sudo chown -R ubuntu:ubuntu /home/ubuntu/.kube/* || true
-  sudo chmod -R 444 /home/ubuntu/.kube/*.yaml || true
-  sudo chmod +x /bin/kubectl || true
-  echo "✅ Kubectl and kubeconfig setup completed"
+    if [[ -n "$KUBECONFIG_FOUND" ]] && [[ -f "/var/lib/rancher/rke2/bin/kubectl" ]]; then
+      echo "Setting up kubectl and kubeconfig files..."
+      sudo cp /var/lib/rancher/rke2/bin/kubectl /bin/kubectl || echo "Failed to copy kubectl binary"
+      mkdir -p /home/ubuntu/.kube/
+      cat "$KUBECONFIG_FOUND" | sed "s/127.0.0.1/${INTERNAL_IP}/g" | sed "s/default/${CLUSTER_DOMAIN}/g" | tee /home/ubuntu/.kube/${CLUSTER_DOMAIN}-${NODE_NAME}.yaml
+      sudo chown -R ubuntu:ubuntu /home/ubuntu/.kube/* || true
+      sudo chmod -R 444 /home/ubuntu/.kube/*.yaml || true
+      sudo chmod +x /bin/kubectl || true
+      echo "✅ Kubectl and kubeconfig setup completed"
+    else
+      echo "⚠️  Kubectl setup skipped - kubeconfig or kubectl binary not found yet"
+      echo "This is normal for initial startup - RKE2 may still be initializing"
+    fi
 else
-  echo "⚠️  Kubectl setup skipped - kubeconfig or kubectl binary not found yet"
-  echo "This is normal for initial startup - RKE2 may still be initializing"
+    echo "Worker/ETCD node - skipping kubectl setup (only control plane nodes need kubectl access)"
 fi
 
 echo "🎉 RKE2 setup script completed successfully!"
