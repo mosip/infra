@@ -88,57 +88,37 @@ resource "null_resource" "rke2-primary-cluster-setup" {
   #   triggers = {
   #     node_hash = md5(local.K8S_CLUSTER_PRIVATE_IPS_STR)
   #   }
-  
-  connection {
-    type        = "ssh"
-    host        = local.CONTROL_PLANE_NODE_1
-    user        = "ubuntu"            # Change based on the AMI used
-    private_key = var.SSH_PRIVATE_KEY # content of your private key
-    timeout     = "15m"               # Increased timeout
-    agent       = false               # Disable SSH agent
-    host_key    = null               # Skip host key verification
-  }
+  # Upload script as a file first
   provisioner "file" {
     source      = "${path.module}/rke2-setup.sh"
     destination = "/tmp/rke2-setup.sh"
+    
+    connection {
+      type        = "ssh"
+      host        = local.CONTROL_PLANE_NODE_1
+      user        = "ubuntu"
+      private_key = var.SSH_PRIVATE_KEY
+      timeout     = "10m"
+    }
   }
-  
-  # Add a validation provisioner to ensure file upload succeeded
-  provisioner "remote-exec" {
-    inline = [
-      "echo 'Validating file upload...'",
-      "test -f /tmp/rke2-setup.sh && echo 'File exists' || (echo 'File upload failed' && exit 1)",
-      "test -s /tmp/rke2-setup.sh && echo 'File has content' || (echo 'File is empty' && exit 1)",
-      "echo 'File upload validation completed successfully'"
-    ]
-  }
+
+  # Then execute it
   provisioner "remote-exec" {
     inline = concat(
       local.k8s_env_vars,
       [
-        # Test connectivity and validate file upload
-        "echo 'Testing SSH connectivity and validating file upload...'",
-        "df -h /tmp",
-        "whoami",
-        "ls -la /tmp/rke2-setup.sh || echo 'Script file not found, checking upload status'",
-        # Check if file was uploaded properly, if not try to fix permissions
-        "if [[ ! -f /tmp/rke2-setup.sh ]] || [[ ! -s /tmp/rke2-setup.sh ]]; then",
-        "  echo 'Script file missing or empty, this indicates file upload failed'",
-        "  echo 'Current /tmp contents:'",
-        "  ls -la /tmp/",
-        "  exit 1",
-        "fi",
-        "chmod +x /tmp/rke2-setup.sh",
-        "echo 'Script file validation:'",
-        "wc -l /tmp/rke2-setup.sh",
-        "head -5 /tmp/rke2-setup.sh",
-        "tail -5 /tmp/rke2-setup.sh",
-        "timeout 15m sudo bash /tmp/rke2-setup.sh || (echo 'First attempt failed, retrying in 30 seconds...' && sleep 30 && timeout 15m sudo bash /tmp/rke2-setup.sh)"
+        "sudo bash /tmp/rke2-setup.sh"
       ]
-    )
+    )    
+    connection {
+      type        = "ssh"
+      host        = local.CONTROL_PLANE_NODE_1
+      user        = "ubuntu"
+      private_key = var.SSH_PRIVATE_KEY
+      timeout     = "20m"
+    }
   }
 }
-
 resource "null_resource" "rke2-additional-control-plane-setup" {
   depends_on = [null_resource.rke2-primary-cluster-setup]
   for_each   = local.K8S_ADDITIONAL_CONTROL_PLANE_NODES
