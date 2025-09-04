@@ -269,7 +269,7 @@ echo "RKE2 service status: $SERVICE_STATUS"
 
 # Check if RKE2 is functionally ready by looking for kubeconfig
 echo "Checking RKE2 functional readiness..."
-KUBECONFIG_WAIT_TIMEOUT=120  # 2 minutes for kubeconfig to appear
+KUBECONFIG_WAIT_TIMEOUT=180  # 3 minutes for kubeconfig to appear
 KUBECONFIG_ELAPSED=0
 
 while [ $KUBECONFIG_ELAPSED -lt $KUBECONFIG_WAIT_TIMEOUT ]; do
