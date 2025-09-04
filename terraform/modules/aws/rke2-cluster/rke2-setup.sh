@@ -17,9 +17,18 @@ set -o errexit   ## set -e : exit the script if any statement returns a non-true
 set -o errtrace  # trace ERR through 'time command' and other functions
 set -o pipefail  # trace ERR through pipes
 
-# Install RKE2
-echo "Installing RKE2"
-curl -sfL https://get.rke2.io | INSTALL_RKE2_VERSION=$INSTALL_RKE2_VERSION sh -
+# Install RKE2 only if not installed
+if command -v rke2 >/dev/null 2>&1; then
+    echo "✅ RKE2 already installed, skipping installation"
+else
+    echo "🚀 Installing RKE2 version: $INSTALL_RKE2_VERSION"
+    curl -sfL https://get.rke2.io | INSTALL_RKE2_VERSION=$INSTALL_RKE2_VERSION sh -
+    echo "✅ RKE2 installation completed"
+
+    echo "⏳ Waiting for RKE2 installation to settle..."
+    sleep 20   # wait 20 seconds (tweak as needed)
+fi
+
 
 # Clone k8s-infra repository only if it doesn't exist
 echo "Checking for k8s-infra repository..."
