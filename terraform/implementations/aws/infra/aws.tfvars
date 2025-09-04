@@ -1,7 +1,7 @@
 # Environment name (infra component)
-cluster_name = "mocktest"
+cluster_name = "mockt"
 # MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "mocktest.mosip.net"
+cluster_env_domain = "mockt.mosip.net"
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
 mosip_email_id = "chandra.mishra@technoforte.co.in"
 # SSH login key name for AWS node instances (ex: my-ssh-key)
@@ -10,9 +10,9 @@ ssh_key_name = "mosip-aws"
 aws_provider_region = "ap-south-1"
 
 # The instance type for Kubernetes nodes (control plane, worker, etcd)
-k8s_instance_type = "t3.2xlarge"
+k8s_instance_type = "t3a.2xlarge"
 # The instance type for Nginx server (load balancer)
-nginx_instance_type = "t3.2xlarge"
+nginx_instance_type = "t3a.2xlarge"
 # The Route 53 hosted zone ID
 zone_id = "Z090954828SJIEL6P5406"
 
@@ -34,11 +34,11 @@ nginx_node_ebs_volume_size_2 = 200 # Enable second EBS volume for PostgreSQL tes
 k8s_instance_root_volume_size = 64
 
 # Control-plane, ETCD, Worker
-k8s_control_plane_node_count = 3
+k8s_control_plane_node_count = 1
 # ETCD, Worker
-k8s_etcd_node_count = 3
+k8s_etcd_node_count = 1
 # Worker
-k8s_worker_node_count = 2
+k8s_worker_node_count = 1
 
 # Rancher Import Configuration
 enable_rancher_import = false
