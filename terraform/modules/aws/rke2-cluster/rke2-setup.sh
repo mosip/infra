@@ -179,156 +179,16 @@ echo "Environment variables:"
 env | sort
 cat $ENV_FILE_PATH
 
-echo "Enabling and starting RKE2 service: $RKE2_SERVICE"
-sudo systemctl enable $RKE2_SERVICE || echo "Failed to enable $RKE2_SERVICE"
+sudo systemctl enable $RKE2_SERVICE
+sudo systemctl start $RKE2_SERVICE
 
-echo "Checking current RKE2 service status..."
-if sudo systemctl is-active --quiet $RKE2_SERVICE; then
-    echo "✅ RKE2 service is already active and running"
-    sudo systemctl status $RKE2_SERVICE --no-pager --lines=5 || true
-    echo "Skipping startup wait - service is already operational"
-elif sudo systemctl is-failed --quiet $RKE2_SERVICE; then
-    echo "⚠️ RKE2 service was in failed state - attempting restart"
-    sudo systemctl reset-failed $RKE2_SERVICE || true
-    sudo systemctl start $RKE2_SERVICE &
-    START_PID=$!
-    echo "RKE2 service restart initiated (PID: $START_PID)"
-    NEED_TO_WAIT=true
-else
-    echo "Starting RKE2 service..."
-    sudo systemctl start $RKE2_SERVICE &
-    START_PID=$!
-    echo "RKE2 service start command initiated (PID: $START_PID)"
-    NEED_TO_WAIT=true
-fi
+sleep 300
 
-if [ "${NEED_TO_WAIT:-false}" = "true" ]; then
-    echo "Waiting for RKE2 service to become active..."
-    TIMEOUT=300  # 5 minutes timeout - reduced from 10 minutes
-    ELAPSED=0
-    WAIT_INTERVAL=10  # 10 seconds between checks
-    STARTUP_DETECTED=false
-
-    while [ $ELAPSED -lt $TIMEOUT ]; do
-        SERVICE_STATE=$(sudo systemctl is-active $RKE2_SERVICE 2>/dev/null || echo "unknown")
-        echo "⏳ RKE2 service state: $SERVICE_STATE (${ELAPSED}s elapsed)"
-        
-        case "$SERVICE_STATE" in
-            "active")
-                echo "✅ RKE2 service is active and running after ${ELAPSED} seconds"
-                sudo systemctl status $RKE2_SERVICE --no-pager --lines=5 || true
-                break
-                ;;
-            "activating")
-                echo "🔄 RKE2 service is activating..."
-                STARTUP_DETECTED=true
-                ;;
-            "failed")
-                echo "❌ RKE2 service failed to start after ${ELAPSED} seconds"
-                sudo systemctl status $RKE2_SERVICE --no-pager --lines=10 || true
-                echo "Recent service logs:"
-                sudo journalctl -u $RKE2_SERVICE --no-pager --lines=20 --since="10 minutes ago" || true
-                exit 1
-                ;;
-            *)
-                if [ "$STARTUP_DETECTED" = "true" ]; then
-                    echo "⏳ RKE2 service continuing startup process..."
-                else
-                    echo "⏳ RKE2 service is still starting... (state: $SERVICE_STATE)"
-                fi
-                ;;
-        esac
-        
-        sleep $WAIT_INTERVAL
-        ELAPSED=$((ELAPSED + WAIT_INTERVAL))
-    done
-
-    # Final check - if we've detected startup and we're still not active, consider it successful enough
-    if [ $ELAPSED -ge $TIMEOUT ]; then
-        FINAL_STATE=$(sudo systemctl is-active $RKE2_SERVICE 2>/dev/null || echo "unknown")
-        if [ "$FINAL_STATE" = "active" ] || [ "$FINAL_STATE" = "activating" ]; then
-            echo "✅ RKE2 service is operational (state: $FINAL_STATE) after timeout period"
-        else
-            echo "⚠️ Timeout waiting for RKE2 service after ${TIMEOUT} seconds"
-            sudo systemctl status $RKE2_SERVICE --no-pager || true
-            echo "Final service state: $FINAL_STATE"
-            echo "Checking if RKE2 processes are running..."
-            if pgrep -f "rke2 server" >/dev/null 2>&1; then
-                echo "✅ RKE2 server process is running - continuing deployment"
-            else
-                echo "❌ RKE2 server process not found - deployment failed"
-                exit 1
-            fi
-        fi
-    fi
-fi
-
-echo "Final RKE2 service status check:"
-SERVICE_STATUS=$(sudo systemctl is-active $RKE2_SERVICE 2>/dev/null || echo "unknown")
-echo "RKE2 service status: $SERVICE_STATUS"
-
-# Check if RKE2 is functionally ready by looking for kubeconfig
-echo "Checking RKE2 functional readiness..."
-KUBECONFIG_WAIT_TIMEOUT=180  # 3 minutes for kubeconfig to appear
-KUBECONFIG_ELAPSED=0
-
-while [ $KUBECONFIG_ELAPSED -lt $KUBECONFIG_WAIT_TIMEOUT ]; do
-    if [[ -f "/etc/rancher/rke2/rke2.yaml" ]] || [[ -f "/var/lib/rancher/rke2/server/cred/admin.kubeconfig" ]]; then
-        echo "✅ RKE2 kubeconfig found - cluster is functionally ready"
-        break
-    else
-        echo "⏳ Waiting for RKE2 kubeconfig... (${KUBECONFIG_ELAPSED}s elapsed)"
-        sleep 10
-        KUBECONFIG_ELAPSED=$((KUBECONFIG_ELAPSED + 10))
-    fi
-done
-
-if [ $KUBECONFIG_ELAPSED -ge $KUBECONFIG_WAIT_TIMEOUT ]; then
-    echo "⚠️ Kubeconfig not found after ${KUBECONFIG_WAIT_TIMEOUT} seconds"
-    echo "RKE2 may still be initializing. Current status:"
-    sudo systemctl status $RKE2_SERVICE --no-pager --lines=5 || true
-    
-    # Check if RKE2 process is running as final validation
-    if pgrep -f "rke2 server" >/dev/null 2>&1; then
-        echo "✅ RKE2 server process detected - proceeding with deployment"
-    else
-        echo "❌ RKE2 server process not found"
-        exit 1
-    fi
-fi
-
-# Wait for kubeconfig and kubectl to be available
-KUBECONFIG_PATHS=(
-  "/etc/rancher/rke2/rke2.yaml"
-  "/var/lib/rancher/rke2/server/cred/admin.kubeconfig"
-)
-
-KUBECONFIG_FOUND=""
-for path in "${KUBECONFIG_PATHS[@]}"; do
-  if [[ -f "$path" ]]; then
-    echo "Found kubeconfig at: $path"
-    KUBECONFIG_FOUND="$path"
-    break
-  else
-    echo "Kubeconfig not found at: $path"
-  fi
-done
-
-if [[ -n "$KUBECONFIG_FOUND" ]] && [[ -f "/var/lib/rancher/rke2/bin/kubectl" ]]; then
-  echo "Setting up kubectl and kubeconfig files..."
-  sudo cp /var/lib/rancher/rke2/bin/kubectl /bin/kubectl || echo "Failed to copy kubectl binary"
+if [[ -f "$RKE2_CONFIG_DIR/rke2.yaml" ]]; then
+  sudo cp /var/lib/rancher/rke2/bin/kubectl /bin/kubectl
   mkdir -p /home/ubuntu/.kube/
-  cat "$KUBECONFIG_FOUND" | sed "s/127.0.0.1/${INTERNAL_IP}/g" | sed "s/default/${CLUSTER_DOMAIN}/g" | tee /home/ubuntu/.kube/${CLUSTER_DOMAIN}-${NODE_NAME}.yaml
-  sudo chown -R ubuntu:ubuntu /home/ubuntu/.kube/* || true
-  sudo chmod -R 444 /home/ubuntu/.kube/*.yaml || true
-  sudo chmod +x /bin/kubectl || true
-  echo "✅ Kubectl and kubeconfig setup completed"
-else
-  echo "⚠️  Kubectl setup skipped - kubeconfig or kubectl binary not found yet"
-  echo "This is normal for initial startup - RKE2 may still be initializing"
+  cat "$RKE2_CONFIG_DIR/rke2.yaml" | sed "s/127.0.0.1/${INTERNAL_IP}/g" | sed "s/default/${CLUSTER_DOMAIN}/g" | tee -a /home/ubuntu/.kube/${CLUSTER_DOMAIN}-${NODE_NAME}.yaml
+  sudo chown -R ubuntu:ubuntu /home/ubuntu/.kube/*
+  sudo chmod -R 444 /home/ubuntu/.kube/*.yaml
+  sudo chmod +x /bin/kubectl
 fi
-
-echo "🎉 RKE2 setup script completed successfully!"
-echo "RKE2 service status: $(sudo systemctl is-active $RKE2_SERVICE 2>/dev/null || echo 'unknown')"
-echo "Setup completed at: $(date)"
-exit 0
