@@ -4,7 +4,7 @@
 echo "[ Set Log File ] : "
 LOG_FILE="/tmp/nginx-setup-$( date +"%d-%h-%Y-%H-%M" ).log"
 ENV_FILE_PATH="/etc/environment"
-source $ENV_FILE_PATH
+. $ENV_FILE_PATH
 env | grep cluster
 
 # Redirect stdout and stderr to log file

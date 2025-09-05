@@ -252,7 +252,9 @@ resource "null_resource" "download-k8s-kubeconfig" {
     command = <<EOF
 echo "${var.SSH_PRIVATE_KEY}" > ${each.key}-sshkey
 chmod 400 ${each.key}-sshkey
-scp -i ${each.key}-sshkey ubuntu@${each.value}:/home/ubuntu/.kube/${each.key}.yaml ${each.key}.yaml
+
+# Use SSH compression and timeout for faster kubeconfig transfer
+scp -i ${each.key}-sshkey -C -o Compression=yes -o ConnectTimeout=30 ubuntu@${each.value}:/home/ubuntu/.kube/${each.key}.yaml ${each.key}.yaml
 
 # Clean up the temporary private key file
 rm ${each.key}-sshkey
@@ -278,8 +280,28 @@ resource "null_resource" "download-kubectl-file" {
     command = <<EOF
 echo "${var.SSH_PRIVATE_KEY}" > ${local.CONTROL_PLANE_NODE_1}-sshkey
 chmod 400 ${local.CONTROL_PLANE_NODE_1}-sshkey
-scp -i ${local.CONTROL_PLANE_NODE_1}-sshkey ubuntu@${local.CONTROL_PLANE_NODE_1}:/var/lib/rancher/rke2/bin/kubectl kubectl
-chmod +x kubectl
+
+# Add retry logic and progress monitoring for kubectl binary download
+echo "📥 Starting kubectl binary download..."
+for i in {1..3}; do
+  echo "Attempt $i: Downloading kubectl binary (large file, please wait...)"
+  if scp -i ${local.CONTROL_PLANE_NODE_1}-sshkey -C -o Compression=yes -o ConnectTimeout=60 -o ServerAliveInterval=30 ubuntu@${local.CONTROL_PLANE_NODE_1}:/var/lib/rancher/rke2/bin/kubectl kubectl; then
+    echo "✅ kubectl binary downloaded successfully"
+    chmod +x kubectl
+    break
+  else
+    echo "❌ Attempt $i failed, retrying..."
+    sleep 10
+  fi
+done
+
+# Verify download
+if [ -f kubectl ]; then
+  echo "✅ kubectl binary verified: $(ls -lh kubectl)"
+else
+  echo "❌ kubectl binary download failed after 3 attempts"
+  exit 1
+fi
 
 # Clean up the temporary private key file
 rm ${local.CONTROL_PLANE_NODE_1}-sshkey
