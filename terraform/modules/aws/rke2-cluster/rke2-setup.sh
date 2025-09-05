@@ -204,9 +204,12 @@ fi
 
 if [ "${NEED_TO_WAIT:-false}" = "true" ]; then
     echo "Waiting for RKE2 service to become active..."
+    echo "🔄 Giving RKE2 initial startup time (30 seconds)..."
+    sleep 30  # Initial grace period for RKE2 to start properly
+    
     TIMEOUT=300  # 5 minutes timeout - reduced from 10 minutes
-    ELAPSED=0
-    WAIT_INTERVAL=10  # 10 seconds between checks
+    ELAPSED=30   # Start elapsed at 30 since we already waited
+    WAIT_INTERVAL=15  # 15 seconds between checks (less frequent)
     STARTUP_DETECTED=false
 
     while [ $ELAPSED -lt $TIMEOUT ]; do
