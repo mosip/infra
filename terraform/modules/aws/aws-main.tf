@@ -326,7 +326,7 @@ module "aws-resource-creation" {
         from_port : 22,
         to_port : 22,
         protocol : "TCP",
-        cidr_blocks      = [var.network_cidr, var.WIREGUARD_CIDR],
+        cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = []
       },
       {
@@ -334,7 +334,7 @@ module "aws-resource-creation" {
         from_port : -1,
         to_port : -1,
         protocol : "ICMP",
-        cidr_blocks      = [var.network_cidr, var.WIREGUARD_CIDR],
+        cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = []
       },
       {
@@ -486,7 +486,7 @@ module "nginx-setup" {
 
 
 module "rke2-setup" {
-  depends_on = [module.aws-resource-creation, module.nginx-setup]
+  depends_on = [module.aws-resource-creation]
   #source     = "github.com/mosip/mosip-infra//deployment/v3/terraform/aws/modules/rke2-setup?ref=develop"
   source = "./rke2-cluster"
 
@@ -498,7 +498,7 @@ module "rke2-setup" {
   enable_rancher_import   = var.ENABLE_RANCHER_IMPORT
 }
 module "nfs-setup" {
-  depends_on          = [module.aws-resource-creation, module.nginx-setup, module.rke2-setup]
+  depends_on          = [module.aws-resource-creation, module.rke2-setup]
   source              = "./nfs-setup"
   NFS_SERVER_LOCATION = "/srv/nfs/mosip/${var.CLUSTER_ENV_DOMAIN}"
   NFS_SERVER          = module.aws-resource-creation.NGINX_PRIVATE_IP
