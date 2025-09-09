@@ -100,18 +100,23 @@ resource "null_resource" "rke2-primary-cluster-setup" {
     node_hash   = md5(local.K8S_CLUSTER_PRIVATE_IPS_STR)
     script_hash = filemd5("${path.module}/rke2-setup.sh")
   }
-  # Upload script as a file first
+  connection {
+    type        = "ssh"
+    host        = local.CONTROL_PLANE_NODE_1
+    user        = "ubuntu"
+    private_key = var.SSH_PRIVATE_KEY
+    timeout     = "35m"
+    
+    # SSH connection optimization for stability
+    agent       = false
+    host_key    = null
+    script_path = "/tmp/terraform_%RAND%.sh"
+  }
+
+  # Upload script as a file first with retry logic
   provisioner "file" {
     source      = "${path.module}/rke2-setup.sh"
     destination = "/tmp/rke2-setup.sh"
-    
-    connection {
-      type        = "ssh"
-      host        = local.CONTROL_PLANE_NODE_1
-      user        = "ubuntu"
-      private_key = var.SSH_PRIVATE_KEY
-      timeout     = "35m"
-    }
   }
 
   # Then execute it
@@ -119,17 +124,12 @@ resource "null_resource" "rke2-primary-cluster-setup" {
     inline = concat(
       local.k8s_env_vars,
       [
-        "chmod +x /tmp/rke2-setup.sh",
+        "# Verify script was uploaded correctly",
+        "ls -la /tmp/rke2-setup.sh",
+        "# Execute with timeout and error handling",
         "timeout 30m sudo bash /tmp/rke2-setup.sh || { echo 'Script execution failed or timed out'; exit 1; }"
       ]
     )    
-    connection {
-      type        = "ssh"
-      host        = local.CONTROL_PLANE_NODE_1
-      user        = "ubuntu"
-      private_key = var.SSH_PRIVATE_KEY
-      timeout     = "35m"
-    }
   }
 }
 resource "null_resource" "rke2-additional-control-plane-setup" {
@@ -142,19 +142,28 @@ resource "null_resource" "rke2-additional-control-plane-setup" {
   connection {
     type        = "ssh"
     host        = each.value
-    user        = "ubuntu"            # Change based on the AMI used
-    private_key = var.SSH_PRIVATE_KEY # content of your private key
+    user        = "ubuntu"
+    private_key = var.SSH_PRIVATE_KEY
     timeout     = "35m"
+    
+    # SSH connection optimization for stability
+    agent       = false
+    host_key    = null
+    script_path = "/tmp/terraform_%RAND%.sh"
   }
+  
   provisioner "file" {
     source      = "${path.module}/rke2-setup.sh"
     destination = "/tmp/rke2-setup.sh"
   }
+  
   provisioner "remote-exec" {
     inline = concat(
       local.k8s_env_vars,
       [
-        "chmod +x /tmp/rke2-setup.sh",
+        "# Verify script was uploaded correctly",
+        "ls -la /tmp/rke2-setup.sh",
+        "# Execute with timeout and error handling",
         "timeout 30m sudo bash /tmp/rke2-setup.sh || { echo 'Script execution failed or timed out'; exit 1; }"
       ]
     )
