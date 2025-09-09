@@ -1,9 +1,13 @@
-output "K8S_CLUSTER_PUBLIC_IPS" {
-  value = module.aws-resource-creation.K8S_CLUSTER_PUBLIC_IPS
+# K8s cluster private IPs (recommended)
+output "K8S_CLUSTER_IPS" {
+  description = "Private IP addresses of K8s cluster nodes"
+  value       = module.aws-resource-creation.K8S_CLUSTER_IPS
 }
 
+# Deprecated: Use K8S_CLUSTER_IPS instead
 output "K8S_CLUSTER_PRIVATE_IPS" {
-  value = module.aws-resource-creation.K8S_CLUSTER_PRIVATE_IPS
+  description = "Private IP addresses of K8s cluster nodes (deprecated)"
+  value       = module.aws-resource-creation.K8S_CLUSTER_PRIVATE_IPS
 }
 
 output "NGINX_PUBLIC_IP" {

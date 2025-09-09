@@ -9,6 +9,12 @@ ssh_key_name = "mosip-aws"
 # The AWS region for resource creation
 aws_provider_region = "ap-south-1"
 
+# Specific availability zones for VM deployment (optional)
+# If empty, uses all available AZs in the region
+# Example: ["ap-south-1a", "ap-south-1b"] for specific AZs
+# Example: [] for all available AZs in the region
+specific_availability_zones = ["ap-south-1a"]
+
 # The instance type for Kubernetes nodes (control plane, worker, etcd)
 k8s_instance_type = "t3a.2xlarge"
 # The instance type for Nginx server (load balancer)

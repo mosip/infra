@@ -51,6 +51,7 @@ module "mosip_infra" {
 
   # AWS-specific configuration
   aws_provider_region           = var.aws_provider_region
+  specific_availability_zones   = var.specific_availability_zones
   k8s_instance_type             = var.k8s_instance_type
   nginx_instance_type           = var.nginx_instance_type
   ami                           = var.ami

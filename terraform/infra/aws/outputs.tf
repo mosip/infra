@@ -1,11 +1,11 @@
 # AWS Infrastructure Outputs
-output "k8s_cluster_public_ips" {
-  description = "Public IP addresses of K8s cluster nodes"
-  value       = module.aws_infrastructure.K8S_CLUSTER_PUBLIC_IPS
+output "k8s_cluster_ips" {
+  description = "Private IP addresses of K8s cluster nodes"
+  value       = module.aws_infrastructure.K8S_CLUSTER_IPS
 }
 
 output "k8s_cluster_private_ips" {
-  description = "Private IP addresses of K8s cluster nodes"
+  description = "Private IP addresses of K8s cluster nodes (deprecated - use k8s_cluster_ips)"
   value       = module.aws_infrastructure.K8S_CLUSTER_PRIVATE_IPS
 }
 

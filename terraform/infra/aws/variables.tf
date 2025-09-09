@@ -14,6 +14,12 @@ variable "aws_provider_region" {
   type        = string
 }
 
+variable "specific_availability_zones" {
+  description = "Specific availability zones to use for VM deployment"
+  type        = list(string)
+  default     = []
+}
+
 variable "cluster_name" {
   description = "Name of the cluster"
   type        = string

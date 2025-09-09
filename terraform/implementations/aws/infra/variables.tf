@@ -13,6 +13,16 @@ variable "aws_provider_region" {
   type        = string
 }
 
+variable "specific_availability_zones" {
+  description = "Specific availability zones to use for VM deployment (e.g., ['us-east-1a', 'us-east-1b']). If empty, uses all available AZs in the region."
+  type        = list(string)
+  default     = []
+  validation {
+    condition     = length(var.specific_availability_zones) == 0 || length(var.specific_availability_zones) >= 1
+    error_message = "specific_availability_zones must be empty (use all AZs) or contain at least 1 availability zone."
+  }
+}
+
 variable "cluster_name" {
   description = "Name of the cluster"
   type        = string

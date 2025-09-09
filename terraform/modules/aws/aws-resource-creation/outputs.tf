@@ -1,8 +1,11 @@
-output "K8S_CLUSTER_PUBLIC_IPS" {
-  value = { for key, instance in aws_instance.K8S_CLUSTER_EC2_INSTANCE : "${local.K8S_EC2_NODE.tags.Name}-${key}" => instance.public_ip }
+# K8s instances only have private IPs for security
+output "K8S_CLUSTER_IPS" {
+  description = "Private IP addresses of K8s cluster nodes"
+  value       = { for key, instance in aws_instance.K8S_CLUSTER_EC2_INSTANCE : "${local.K8S_EC2_NODE.tags.Name}-${key}" => instance.private_ip }
 }
 output "K8S_CLUSTER_PRIVATE_IPS" {
-  value = { for key, instance in aws_instance.K8S_CLUSTER_EC2_INSTANCE : "${local.K8S_EC2_NODE.tags.Name}-${key}" => instance.private_ip }
+  description = "Private IP addresses of K8s cluster nodes (deprecated - use K8S_CLUSTER_IPS)"
+  value       = { for key, instance in aws_instance.K8S_CLUSTER_EC2_INSTANCE : "${local.K8S_EC2_NODE.tags.Name}-${key}" => instance.private_ip }
 }
 output "NGINX_PUBLIC_IP" {
   value = aws_instance.NGINX_EC2_INSTANCE.public_ip
@@ -33,12 +36,12 @@ output "INSTANCES_READY" {
     null_resource.k8s_status_checks
   ]
   value = {
-    nginx_instance_ready = true
-    k8s_instances_ready  = true
+    nginx_instance_ready     = true
+    k8s_instances_ready      = true
     all_status_checks_passed = true
-    nginx_instance_id = aws_instance.NGINX_EC2_INSTANCE.id
-    k8s_instance_ids = [for instance in aws_instance.K8S_CLUSTER_EC2_INSTANCE : instance.id]
-    ready_timestamp = timestamp()
+    nginx_instance_id        = aws_instance.NGINX_EC2_INSTANCE.id
+    k8s_instance_ids         = [for instance in aws_instance.K8S_CLUSTER_EC2_INSTANCE : instance.id]
+    ready_timestamp          = timestamp()
   }
   description = "Indicates that all EC2 instances are running and have passed their status checks"
 }

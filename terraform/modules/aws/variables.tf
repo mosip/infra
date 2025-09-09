@@ -4,6 +4,18 @@ variable "SSH_PRIVATE_KEY" { type = string }
 variable "K8S_CONTROL_PLANE_NODE_COUNT" { type = number }
 variable "K8S_ETCD_NODE_COUNT" { type = number }
 variable "K8S_WORKER_NODE_COUNT" { type = number }
+
+# Availability Zones configuration
+variable "SPECIFIC_AVAILABILITY_ZONES" {
+  description = "Specific availability zones to use for VM deployment (comma-separated list). If empty, uses all available AZs in the region."
+  type        = list(string)
+  default     = []
+  validation {
+    condition     = length(var.SPECIFIC_AVAILABILITY_ZONES) == 0 || length(var.SPECIFIC_AVAILABILITY_ZONES) >= 1
+    error_message = "SPECIFIC_AVAILABILITY_ZONES must be empty (use all AZs) or contain at least 1 availability zone."
+  }
+}
+
 variable "ENABLE_RANCHER_IMPORT" {
   description = "Set to true to enable Rancher import"
   type        = bool

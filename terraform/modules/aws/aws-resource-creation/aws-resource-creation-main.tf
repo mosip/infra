@@ -223,7 +223,7 @@ resource "aws_instance" "K8S_CLUSTER_EC2_INSTANCE" {
 # Wait for K8S cluster instances to be in running state
 resource "aws_ec2_instance_state" "k8s_instances_ready" {
   for_each = aws_instance.K8S_CLUSTER_EC2_INSTANCE
-  
+
   instance_id = each.value.id
   state       = "running"
 
@@ -236,7 +236,7 @@ resource "aws_ec2_instance_state" "k8s_instances_ready" {
 # Wait for K8S instances status checks (both system and instance status checks)
 data "aws_instance" "k8s_status_check" {
   for_each = aws_instance.K8S_CLUSTER_EC2_INSTANCE
-  
+
   depends_on  = [aws_ec2_instance_state.k8s_instances_ready]
   instance_id = each.value.id
 
@@ -271,7 +271,7 @@ resource "null_resource" "k8s_status_checks" {
 
   # Add triggers to ensure this runs when any instance changes
   triggers = {
-    instance_ids = join(",", [for instance in aws_instance.K8S_CLUSTER_EC2_INSTANCE : instance.id])
+    instance_ids    = join(",", [for instance in aws_instance.K8S_CLUSTER_EC2_INSTANCE : instance.id])
     instances_ready = join(",", [for state in aws_ec2_instance_state.k8s_instances_ready : state.id])
   }
 }
@@ -282,7 +282,7 @@ resource "aws_route53_record" "DNS_RECORDS" {
     null_resource.nginx_status_checks,
     null_resource.k8s_status_checks
   ]
-  
+
   for_each = merge(local.MAP_DNS_TO_IP, var.DNS_RECORDS)
   name     = each.value.name
   type     = each.value.type

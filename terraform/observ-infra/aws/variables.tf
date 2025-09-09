@@ -31,6 +31,12 @@ variable "aws_provider_region" {
   type        = string
   description = "AWS region for resource creation"
 }
+
+variable "specific_availability_zones" {
+  description = "Specific availability zones to use for VM deployment"
+  type        = list(string)
+  default     = []
+}
 variable "k8s_instance_type" {
   type        = string
   description = "Instance type for K8s nodes"

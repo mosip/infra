@@ -1,11 +1,11 @@
 # Pass through outputs from the AWS main module
-output "K8S_CLUSTER_PUBLIC_IPS" {
-  description = "Public IPs of the K8s cluster nodes"
-  value       = module.aws_observation_infrastructure.K8S_CLUSTER_PUBLIC_IPS
+output "K8S_CLUSTER_IPS" {
+  description = "Private IPs of the K8s cluster nodes"
+  value       = module.aws_observation_infrastructure.K8S_CLUSTER_IPS
 }
 
 output "K8S_CLUSTER_PRIVATE_IPS" {
-  description = "Private IPs of the K8s cluster nodes"
+  description = "Private IPs of the K8s cluster nodes (deprecated - use K8S_CLUSTER_IPS)"
   value       = module.aws_observation_infrastructure.K8S_CLUSTER_PRIVATE_IPS
 }
 

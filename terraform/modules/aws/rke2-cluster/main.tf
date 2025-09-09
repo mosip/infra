@@ -40,11 +40,11 @@ locals {
   primary_control_plane_key   = [for key in keys(var.K8S_CLUSTER_PRIVATE_IPS) : key if can(regex(".*CONTROL-PLANE-NODE-1$", key))][0]
   CONTROL_PLANE_NODE_1        = var.K8S_CLUSTER_PRIVATE_IPS[local.primary_control_plane_key]
   K8S_CLUSTER_PRIVATE_IPS_STR = join(",", [for key, value in var.K8S_CLUSTER_PRIVATE_IPS : "${key}=${value}"])
-  
+
   # Extract cluster name and node name from the primary control plane key
   cluster_name_parts = split("-", local.primary_control_plane_key)
-  cluster_name = local.cluster_name_parts[0]  # Extract cluster name (e.g., "mtest")
-  
+  cluster_name       = local.cluster_name_parts[0] # Extract cluster name (e.g., "mtest")
+
   # Base RKE configuration - only add variables not provided by user-data
   RKE_CONFIG_BASE = {
     # Variables from Terraform that user-data doesn't provide
@@ -53,14 +53,14 @@ locals {
     K8S_INFRA_BRANCH            = var.K8S_INFRA_BRANCH
     K8S_CLUSTER_PRIVATE_IPS_STR = local.K8S_CLUSTER_PRIVATE_IPS_STR
     K8S_TOKEN                   = random_string.K8S_TOKEN.result
-    
+
     # RKE2 specific configuration
-    RKE2_LOCATION               = "/home/ubuntu/k8s-infra/k8-cluster/on-prem/rke2/"
-    RKE2_CONFIG_DIR             = "/etc/rancher/rke2"
-    INSTALL_RKE2_VERSION        = "v1.28.9+rke2r1"
-    
+    RKE2_LOCATION        = "/home/ubuntu/k8s-infra/k8-cluster/on-prem/rke2/"
+    RKE2_CONFIG_DIR      = "/etc/rancher/rke2"
+    INSTALL_RKE2_VERSION = "v1.28.9+rke2r1"
+
     # Working directory
-    WORK_DIR                    = "/home/ubuntu/"
+    WORK_DIR = "/home/ubuntu/"
   }
 
   # Conditional RKE configuration with Rancher import URL only when enabled
@@ -80,7 +80,7 @@ locals {
   }
 
   datetime = formatdate("2006-01-02_15-04-05", timestamp())
-  
+
   # Backup the current environment file before making changes
   backup_command = [
     "sudo cp /etc/environment /tmp/environment-bkp-${local.datetime}"
@@ -104,7 +104,7 @@ resource "null_resource" "rke2-primary-cluster-setup" {
   provisioner "file" {
     source      = "${path.module}/rke2-setup.sh"
     destination = "/tmp/rke2-setup.sh"
-    
+
     connection {
       type        = "ssh"
       host        = local.CONTROL_PLANE_NODE_1
@@ -122,7 +122,7 @@ resource "null_resource" "rke2-primary-cluster-setup" {
         "chmod +x /tmp/rke2-setup.sh",
         "timeout 60m sudo bash /tmp/rke2-setup.sh || { echo 'Script execution failed or timed out'; exit 1; }"
       ]
-    )    
+    )
     connection {
       type        = "ssh"
       host        = local.CONTROL_PLANE_NODE_1
@@ -166,7 +166,7 @@ resource "null_resource" "rke2-cluster-setup" {
     null_resource.rke2-primary-cluster-setup,
     null_resource.rke2-additional-control-plane-setup
   ]
-  for_each   = local.K8S_CLUSTER_PRIVATE_IPS_EXCEPT_CONTROL_PLANE_NODES
+  for_each = local.K8S_CLUSTER_PRIVATE_IPS_EXCEPT_CONTROL_PLANE_NODES
   triggers = {
     # node_count_or_hash = module.ec2-resource-creation.node_count
     # or if you used hash:

@@ -13,6 +13,7 @@ module "aws_observation_infrastructure" {
 
   # AWS-specific configurations (same as infra but with minimal resource sizing)
   AWS_PROVIDER_REGION           = var.aws_provider_region
+  SPECIFIC_AVAILABILITY_ZONES   = var.specific_availability_zones
   CLUSTER_NAME                  = var.cluster_name
   SSH_PRIVATE_KEY               = var.ssh_private_key
   K8S_CONTROL_PLANE_NODE_COUNT  = var.k8s_control_plane_node_count
@@ -38,7 +39,7 @@ module "aws_observation_infrastructure" {
   K8S_INSTANCE_ROOT_VOLUME_SIZE = var.k8s_instance_root_volume_size
   network_cidr                  = var.network_cidr
   WIREGUARD_CIDR                = var.WIREGUARD_CIDR
-  
+
   # Disable PostgreSQL setup for observ-infra
   enable_postgresql_setup = false
 }

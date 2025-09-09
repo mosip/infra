@@ -19,6 +19,12 @@ ssh_key_name = "mosip-aws"
 # AWS region
 aws_provider_region = "ap-south-1"
 
+# Specific availability zones for observation VM deployment (optional)
+# If empty, uses all available AZs in the region
+# Example: ["ap-south-1a", "ap-south-1b"] for specific AZs
+# Example: [] for all available AZs in the region
+specific_availability_zones = ["ap-south-1a"]
+
 # Minimal node counts for observability
 k8s_control_plane_node_count = 1
 k8s_etcd_node_count          = 0

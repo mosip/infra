@@ -13,6 +13,7 @@ module "aws_infrastructure" {
 
   # AWS-specific configurations
   AWS_PROVIDER_REGION           = var.aws_provider_region
+  SPECIFIC_AVAILABILITY_ZONES   = var.specific_availability_zones
   CLUSTER_NAME                  = var.cluster_name
   SSH_PRIVATE_KEY               = var.ssh_private_key
   K8S_CONTROL_PLANE_NODE_COUNT  = var.k8s_control_plane_node_count
@@ -41,10 +42,10 @@ module "aws_infrastructure" {
 
   # PostgreSQL Configuration
   enable_postgresql_setup = var.enable_postgresql_setup
-  postgresql_version = var.postgresql_version
-  storage_device     = var.storage_device
-  mount_point        = var.mount_point
-  postgresql_port    = var.postgresql_port
+  postgresql_version      = var.postgresql_version
+  storage_device          = var.storage_device
+  mount_point             = var.mount_point
+  postgresql_port         = var.postgresql_port
 
   # MOSIP Infrastructure Repository Configuration
   mosip_infra_repo_url = var.mosip_infra_repo_url

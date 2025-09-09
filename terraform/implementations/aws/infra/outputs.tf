@@ -4,13 +4,13 @@ output "cluster_info" {
   value       = module.mosip_infra.cluster_info
 }
 
-output "k8s_cluster_public_ips" {
-  description = "Public IP addresses of K8s cluster nodes"
-  value       = module.mosip_infra.k8s_cluster_public_ips
+output "k8s_cluster_ips" {
+  description = "IP addresses of K8s cluster nodes (private IPs for security)"
+  value       = module.mosip_infra.k8s_cluster_ips
 }
 
 output "k8s_cluster_private_ips" {
-  description = "Private IP addresses of K8s cluster nodes"
+  description = "Private IP addresses of K8s cluster nodes (deprecated - use k8s_cluster_ips)"
   value       = module.mosip_infra.k8s_cluster_private_ips
 }
 

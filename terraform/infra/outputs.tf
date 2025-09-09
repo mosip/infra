@@ -9,19 +9,19 @@ output "cluster_info" {
 }
 
 # Pass through outputs from the selected cloud module
-output "k8s_cluster_public_ips" {
-  description = "Public IP addresses of K8s cluster nodes"
+output "k8s_cluster_ips" {
+  description = "IP addresses of K8s cluster nodes (private IPs for security)"
   value = var.cloud_provider == "aws" ? (
-    length(module.aws_infra) > 0 ? module.aws_infra[0].k8s_cluster_public_ips : {}
+    length(module.aws_infra) > 0 ? module.aws_infra[0].k8s_cluster_ips : {}
     ) : var.cloud_provider == "azure" ? (
-    length(module.azure_infra) > 0 ? module.azure_infra[0].k8s_cluster_public_ips : {}
+    length(module.azure_infra) > 0 ? module.azure_infra[0].k8s_cluster_ips : {}
     ) : (
-    length(module.gcp_infra) > 0 ? module.gcp_infra[0].k8s_cluster_public_ips : {}
+    length(module.gcp_infra) > 0 ? module.gcp_infra[0].k8s_cluster_ips : {}
   )
 }
 
 output "k8s_cluster_private_ips" {
-  description = "Private IP addresses of K8s cluster nodes"
+  description = "Private IP addresses of K8s cluster nodes (deprecated - use k8s_cluster_ips)"
   value = var.cloud_provider == "aws" ? (
     length(module.aws_infra) > 0 ? module.aws_infra[0].k8s_cluster_private_ips : {}
     ) : var.cloud_provider == "azure" ? (

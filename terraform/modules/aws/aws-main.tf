@@ -13,9 +13,9 @@ data "aws_availability_zones" "available" {
   state = "available"
 }
 
-# Use all available AZs without validation
+# Use specific AZs if provided, otherwise use all available AZs
 locals {
-  selected_azs = data.aws_availability_zones.available.names
+  selected_azs = length(var.SPECIFIC_AVAILABILITY_ZONES) > 0 ? var.SPECIFIC_AVAILABILITY_ZONES : data.aws_availability_zones.available.names
 }
 
 terraform {

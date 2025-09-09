@@ -26,6 +26,7 @@ module "aws_infra" {
   cluster_name                  = var.cluster_name
   cluster_env_domain            = var.cluster_env_domain
   aws_provider_region           = var.aws_provider_region
+  specific_availability_zones   = var.specific_availability_zones
   k8s_control_plane_node_count  = var.k8s_control_plane_node_count
   k8s_etcd_node_count           = var.k8s_etcd_node_count
   k8s_worker_node_count         = var.k8s_worker_node_count

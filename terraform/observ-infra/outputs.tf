@@ -10,14 +10,14 @@ output "cluster_info" {
 }
 
 # Pass through outputs from the selected cloud module
-output "k8s_cluster_public_ips" {
-  description = "Public IP addresses of K8s observation cluster nodes"
+output "k8s_cluster_ips" {
+  description = "IP addresses of K8s observation cluster nodes (private IPs for security)"
   value = var.cloud_provider == "aws" ? (
-    length(module.aws_observ_infra) > 0 ? module.aws_observ_infra[0].K8S_CLUSTER_PUBLIC_IPS : {}
+    length(module.aws_observ_infra) > 0 ? module.aws_observ_infra[0].K8S_CLUSTER_IPS : {}
     ) : var.cloud_provider == "azure" ? (
-    length(module.azure_observ_infra) > 0 ? module.azure_observ_infra[0].k8s_cluster_public_ips : {}
+    length(module.azure_observ_infra) > 0 ? module.azure_observ_infra[0].k8s_cluster_ips : {}
     ) : (
-    length(module.gcp_observ_infra) > 0 ? module.gcp_observ_infra[0].k8s_cluster_public_ips : {}
+    length(module.gcp_observ_infra) > 0 ? module.gcp_observ_infra[0].k8s_cluster_ips : {}
   )
 }
 
