@@ -3,7 +3,7 @@
 - name: Install Primary RKE2 Control Plane Node
   hosts: control_plane[0]  # Only the first control plane node
   become: yes
-  gather_facts: yes
+  gather_facts: no  # Disable automatic fact gathering to avoid hanging
   serial: 1  # Ensure only one node runs at a time
   vars:
     rke2_version: "v1.28.9+rke2r1"
@@ -13,34 +13,67 @@
     log_file: "/tmp/rke2-setup.log"
 
   tasks:
-    - name: "🚀 GITHUB ACTIONS DEBUG - Show target node information"
+    - name: "🚀 GITHUB ACTIONS DEBUG - Manual fact gathering with timeout"
+      setup:
+        gather_subset:
+          - "!all"
+          - "min"
+          - "network"
+          - "hardware"
+      async: 300  # 5 minute timeout
+      poll: 10
+      register: fact_gathering_result
+
+    - name: "🔍 GITHUB ACTIONS DEBUG - Show basic node information"
       debug:
         msg:
           - "=== RKE2 PRIMARY CONTROL PLANE INSTALLATION ==="
           - "Target Host: {{ inventory_hostname }}"
           - "Ansible Host: {{ ansible_host }}"
-          - "Target IP: {{ ansible_default_ipv4.address | default('Not detected') }}"
-          - "Timestamp: {{ ansible_date_time.iso8601 }}"
+          - "Target IP: {{ ansible_default_ipv4.address | default('Not detected yet') }}"
+          - "OS: {{ ansible_os_family | default('Unknown') }} {{ ansible_distribution | default('Unknown') }}"
+          - "Architecture: {{ ansible_architecture | default('Unknown') }}"
+          - "Timestamp: {{ ansible_date_time.iso8601 | default('Not available') }}"
           - "RKE2 Version: {{ rke2_version }}"
           - "=============================================="
 
     - name: "🔍 GITHUB ACTIONS DEBUG - System Information"
       debug:
         msg:
-          - "OS: {{ ansible_os_family }} {{ ansible_distribution }} {{ ansible_distribution_version }}"
-          - "Kernel: {{ ansible_kernel }}"
-          - "Architecture: {{ ansible_architecture }}"
-          - "Memory: {{ ansible_memtotal_mb }}MB"
-          - "CPUs: {{ ansible_processor_vcpus }}"
+          - "OS: {{ ansible_os_family | default('Unknown') }} {{ ansible_distribution | default('Unknown') }} {{ ansible_distribution_version | default('Unknown') }}"
+          - "Kernel: {{ ansible_kernel | default('Unknown') }}"
+          - "Architecture: {{ ansible_architecture | default('Unknown') }}"
+          - "Memory: {{ ansible_memtotal_mb | default(0) }}MB"
+          - "CPUs: {{ ansible_processor_vcpus | default(0) }}"
           - "Disk Space: {{ ansible_mounts[0].size_total | default(0) | human_readable }}"
+      when: fact_gathering_result is succeeded
 
     - name: "🌐 GITHUB ACTIONS DEBUG - Network Information"
       debug:
         msg:
-          - "Hostname: {{ ansible_hostname }}"
-          - "FQDN: {{ ansible_fqdn }}"
+          - "Hostname: {{ ansible_hostname | default('Unknown') }}"
+          - "FQDN: {{ ansible_fqdn | default('Unknown') }}"
           - "Default Gateway: {{ ansible_default_ipv4.gateway | default('Not detected') }}"
           - "DNS Servers: {{ ansible_dns.nameservers | default(['Not detected']) }}"
+      when: fact_gathering_result is succeeded
+
+    - name: "🔧 GITHUB ACTIONS DEBUG - Basic node readiness check"
+      shell: |
+        echo "=== Node Readiness Check ==="
+        echo "Hostname: $(hostname)"
+        echo "Current user: $(whoami)"
+        echo "Python version: $(python3 --version 2>&1)"
+        echo "Disk space: $(df -h / | tail -1)"
+        echo "Memory: $(free -h | grep Mem)"
+        echo "Network interfaces: $(ip -o link show | wc -l)"
+        echo "Can resolve internet: $(nslookup google.com 8.8.8.8 > /dev/null 2>&1 && echo 'YES' || echo 'NO')"
+        echo "=== End Check ==="
+      register: readiness_check
+      timeout: 60
+
+    - name: "📋 GITHUB ACTIONS DEBUG - Show readiness check results"
+      debug:
+        var: readiness_check.stdout_lines
 
     - name: Set error handling for bash
       set_fact:

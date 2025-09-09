@@ -154,8 +154,10 @@ export ANSIBLE_STDOUT_CALLBACK=yaml
 export ANSIBLE_CALLBACK_WHITELIST=profile_tasks,timer
 export ANSIBLE_FORCE_COLOR=True
 export ANSIBLE_HOST_KEY_CHECKING=False
-export ANSIBLE_SSH_RETRIES=3
-export ANSIBLE_TIMEOUT=30
+export ANSIBLE_SSH_RETRIES=2
+export ANSIBLE_TIMEOUT=120
+export ANSIBLE_GATHER_TIMEOUT=300
+export ANSIBLE_SSH_PIPELINING=True
 
 echo "Ansible Version:"
 ansible-playbook --version
@@ -180,8 +182,8 @@ echo ""
 echo "🎬 STARTING ANSIBLE EXECUTION..."
 echo "==============================="
 
-# Add timeout wrapper for GitHub Actions (max 45 minutes)
-echo "⏰ Setting up 45-minute timeout for GitHub Actions..."
+# Add timeout wrapper for GitHub Actions (max 30 minutes)
+echo "⏰ Setting up 30-minute timeout for GitHub Actions..."
 echo "🚀 EXECUTING ANSIBLE COMMAND:"
 echo "ansible-playbook -i $INVENTORY_FILE -u ubuntu --private-key=$SSH_KEY_FILE [with debug flags]"
 echo ""
@@ -190,12 +192,12 @@ echo "📡 This may take 15-30 minutes for RKE2 installation..."
 echo "🔄 Real-time output follows:"
 echo "=================================================================================="
 
-# Execute ansible-playbook with timeout (45 minutes = 2700 seconds)
-timeout 2700 ansible-playbook \
+# Execute ansible-playbook with timeout (30 minutes = 1800 seconds)
+timeout 1800 ansible-playbook \
     -i "$INVENTORY_FILE" \
     -u ubuntu \
     --private-key="$SSH_KEY_FILE" \
-    --ssh-common-args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=60 -o ServerAliveCountMax=3 -o ConnectTimeout=30' \
+    --ssh-common-args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -o ServerAliveCountMax=5 -o ConnectTimeout=30' \
     -vvvv \
     --diff \
     --timeout=600 \
@@ -206,7 +208,7 @@ ANSIBLE_EXIT_CODE=${PIPESTATUS[0]}
 # Check if it was killed by timeout
 if [ $ANSIBLE_EXIT_CODE -eq 124 ]; then
     echo ""
-    echo "⏰ TIMEOUT: Ansible execution exceeded 45 minutes and was terminated"
+    echo "⏰ TIMEOUT: Ansible execution exceeded 30 minutes and was terminated"
     echo "This suggests the playbook is hanging or nodes are not responding properly"
     ANSIBLE_EXIT_CODE=1
 fi
