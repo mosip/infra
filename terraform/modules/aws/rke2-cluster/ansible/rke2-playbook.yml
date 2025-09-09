@@ -13,6 +13,35 @@
     log_file: "/tmp/rke2-setup.log"
 
   tasks:
+    - name: "🚀 GITHUB ACTIONS DEBUG - Show target node information"
+      debug:
+        msg:
+          - "=== RKE2 PRIMARY CONTROL PLANE INSTALLATION ==="
+          - "Target Host: {{ inventory_hostname }}"
+          - "Ansible Host: {{ ansible_host }}"
+          - "Target IP: {{ ansible_default_ipv4.address | default('Not detected') }}"
+          - "Timestamp: {{ ansible_date_time.iso8601 }}"
+          - "RKE2 Version: {{ rke2_version }}"
+          - "=============================================="
+
+    - name: "🔍 GITHUB ACTIONS DEBUG - System Information"
+      debug:
+        msg:
+          - "OS: {{ ansible_os_family }} {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "Kernel: {{ ansible_kernel }}"
+          - "Architecture: {{ ansible_architecture }}"
+          - "Memory: {{ ansible_memtotal_mb }}MB"
+          - "CPUs: {{ ansible_processor_vcpus }}"
+          - "Disk Space: {{ ansible_mounts[0].size_total | default(0) | human_readable }}"
+
+    - name: "🌐 GITHUB ACTIONS DEBUG - Network Information"
+      debug:
+        msg:
+          - "Hostname: {{ ansible_hostname }}"
+          - "FQDN: {{ ansible_fqdn }}"
+          - "Default Gateway: {{ ansible_default_ipv4.gateway | default('Not detected') }}"
+          - "DNS Servers: {{ ansible_dns.nameservers | default(['Not detected']) }}"
+
     - name: Set error handling for bash
       set_fact:
         bash_opts: "set -e && set -o errexit && set -o nounset && set -o errtrace && set -o pipefail"
