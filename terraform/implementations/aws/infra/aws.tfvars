@@ -16,9 +16,9 @@ aws_provider_region = "ap-south-1"
 specific_availability_zones = ["ap-south-1a"]
 
 # The instance type for Kubernetes nodes (control plane, worker, etcd)
-k8s_instance_type = "t3a.2xlarge"
+k8s_instance_type = "t3.2xlarge"
 # The instance type for Nginx server (load balancer)
-nginx_instance_type = "t3a.2xlarge"
+nginx_instance_type = "t3.2xlarge"
 # The Route 53 hosted zone ID
 zone_id = "Z090954828SJIEL6P5406"
 
