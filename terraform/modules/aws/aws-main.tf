@@ -228,7 +228,7 @@ module "aws-resource-creation" {
         from_port : 22,
         to_port : 22,
         protocol : "TCP",
-        cidr_blocks      = [var.network_cidr, var.WIREGUARD_CIDR],
+        cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = []
       },
       {
@@ -236,7 +236,7 @@ module "aws-resource-creation" {
         from_port : -1,
         to_port : -1,
         protocol : "ICMP",
-        cidr_blocks      = [var.network_cidr, var.WIREGUARD_CIDR],
+        cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = []
       },
       {
@@ -408,7 +408,7 @@ module "aws-resource-creation" {
         from_port : 22,
         to_port : 22,
         protocol : "TCP",
-        cidr_blocks      = [var.network_cidr, var.WIREGUARD_CIDR],
+        cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = []
       },
       {
@@ -416,7 +416,7 @@ module "aws-resource-creation" {
         from_port : -1,
         to_port : -1,
         protocol : "ICMP",
-        cidr_blocks      = [var.network_cidr, var.WIREGUARD_CIDR],
+        cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = []
       },
       {
