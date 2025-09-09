@@ -486,7 +486,7 @@ module "nginx-setup" {
 
 
 module "rke2-setup" {
-  depends_on = [module.aws-resource-creation]
+  depends_on = [module.aws-resource-creation, module.nginx-setup]
   #source     = "github.com/mosip/mosip-infra//deployment/v3/terraform/aws/modules/rke2-setup?ref=develop"
   source = "./rke2-cluster"
 
