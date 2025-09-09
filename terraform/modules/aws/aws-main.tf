@@ -495,7 +495,7 @@ module "rke2-setup" {
   K8S_CLUSTER_PRIVATE_IPS = module.aws-resource-creation.K8S_CLUSTER_PRIVATE_IPS
   RANCHER_IMPORT_URL      = var.RANCHER_IMPORT_URL
   K8S_INFRA_REPO_URL      = var.K8S_INFRA_REPO_URL
-  enable_rancher_import   = var.ENABLE_RANCHER_IMPORT
+  ENABLE_RANCHER_IMPORT   = var.ENABLE_RANCHER_IMPORT
 }
 module "nfs-setup" {
   depends_on          = [module.aws-resource-creation, module.nginx-setup, module.rke2-setup]

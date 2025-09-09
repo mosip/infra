@@ -80,157 +80,166 @@ locals {
   k8s_env_vars = concat(local.backup_command, local.update_commands)
 }
 
-resource "null_resource" "rke2-primary-cluster-setup" {
-  #   triggers = {
-  #     node_hash = md5(local.K8S_CLUSTER_PRIVATE_IPS_STR)
-  #   }
-  connection {
-    type        = "ssh"
-    host        = local.CONTROL_PLANE_NODE_1
-    user        = "ubuntu"            # Change based on the AMI used
-    private_key = var.SSH_PRIVATE_KEY # content of your private key
-
-  }
-  provisioner "file" {
-    source      = "${path.module}/rke2-setup.sh"
-    destination = "/tmp/rke2-setup.sh"
-  }
-  provisioner "remote-exec" {
-    inline = concat(
-      local.k8s_env_vars,
-      [
-        "sudo bash /tmp/rke2-setup.sh"
-      ]
-    )
-  }
+# Create SSH private key file for Ansible
+resource "local_file" "ssh_private_key" {
+  content         = var.SSH_PRIVATE_KEY
+  filename        = "${path.module}/ansible/ssh_key"
+  file_permission = "0600"
 }
 
-resource "null_resource" "rke2-cluster-setup" {
-  depends_on = [null_resource.rke2-primary-cluster-setup]
-  for_each   = var.K8S_CLUSTER_PRIVATE_IPS
+# Generate Ansible inventory from Terraform data
+resource "local_file" "ansible_inventory" {
+  content = templatefile("${path.module}/ansible/inventory.yml.tpl", {
+    cluster_name         = random_string.K8S_TOKEN.result  # Using token as cluster identifier
+    cluster_env_domain   = "mosip.local"                  # You can make this a variable
+    k8s_infra_repo_url   = var.K8S_INFRA_REPO_URL
+    k8s_infra_branch     = var.K8S_INFRA_BRANCH
+    enable_rancher_import = var.ENABLE_RANCHER_IMPORT
+    rancher_import_url   = var.ENABLE_RANCHER_IMPORT ? var.RANCHER_IMPORT_URL : ""
+    
+    # Separate IPs by node type with explicit primary selection
+    # Sort by key name to ensure CONTROL-PLANE-NODE-1 is always primary
+    control_plane_ips = [
+      for key in sort([
+        for k, v in var.K8S_CLUSTER_PRIVATE_IPS : k 
+        if length(regexall(".*CONTROL-PLANE-NODE.*", k)) > 0
+      ]) : var.K8S_CLUSTER_PRIVATE_IPS[key]
+    ]
+    etcd_ips = [
+      for key, value in var.K8S_CLUSTER_PRIVATE_IPS : value 
+      if length(regexall(".*ETCD-NODE.*", key)) > 0
+    ]
+    worker_ips = [
+      for key, value in var.K8S_CLUSTER_PRIVATE_IPS : value 
+      if length(regexall(".*WORKER-NODE.*", key)) > 0
+    ]
+  })
+  filename = "${path.module}/ansible/inventory.yml"
+}
+
+# Run Ansible playbook to install RKE2 cluster
+resource "null_resource" "rke2_ansible_installation" {
+  depends_on = [
+    local_file.ssh_private_key,
+    local_file.ansible_inventory
+  ]
+  
   triggers = {
-    # node_count_or_hash = module.ec2-resource-creation.node_count
-    # or if you used hash:
-    node_hash   = md5(local.K8S_CLUSTER_PRIVATE_IPS_STR)
-    script_hash = filemd5("${path.module}/rke2-setup.sh")
+    cluster_ips_hash  = md5(local.K8S_CLUSTER_PRIVATE_IPS_STR)
+    inventory_hash    = local_file.ansible_inventory.content_md5
+    ssh_key_hash     = local_file.ssh_private_key.content_md5
   }
-  connection {
-    type        = "ssh"
-    host        = each.value
-    user        = "ubuntu"            # Change based on the AMI used
-    private_key = var.SSH_PRIVATE_KEY # content of your private key
+
+  provisioner "local-exec" {
+    command = "${path.module}/ansible/run-ansible.sh '${path.module}/ansible' 'inventory.yml' 'ssh_key' 'rke2-playbook.yml'"
+    
+    environment = {
+      ANSIBLE_HOST_KEY_CHECKING = "False"
+      ANSIBLE_SSH_RETRIES      = "3"
+      ANSIBLE_TIMEOUT          = "30"
+    }
   }
-  provisioner "file" {
-    source      = "${path.module}/rke2-setup.sh"
-    destination = "/tmp/rke2-setup.sh"
-  }
-  provisioner "remote-exec" {
-    inline = concat(
-      local.k8s_env_vars,
-      [
-        "sudo bash /tmp/rke2-setup.sh"
-      ]
-    )
+
+  # Clean up sensitive files after execution
+  provisioner "local-exec" {
+    when    = destroy
+    command = "rm -f ${path.module}/ansible/ssh_key"
   }
 }
 
-variable "enable_rancher_import" {
-  description = "Set to true to enable Rancher import"
-  type        = bool
-  default     = false
-}
-
-resource "null_resource" "rancher-import" {
-  count      = var.enable_rancher_import ? 1 : 0
-  depends_on = [null_resource.rke2-primary-cluster-setup]
-  connection {
-    type        = "ssh"
-    host        = local.CONTROL_PLANE_NODE_1
-    user        = "ubuntu"            # Change based on the AMI used
-    private_key = var.SSH_PRIVATE_KEY # content of your private key
-  }
-  provisioner "remote-exec" {
-    inline = concat(
-      [
-        "mkdir -p ~/.kube/ ",
-        "sudo cp /etc/rancher/rke2/rke2.yaml ~/.kube/config",
-        "sudo chown -R $USER:$USER ~/.kube",
-        "sudo cp /var/lib/rancher/rke2/bin/kubectl /bin/kubectl",
-        "sudo chmod 400 ~/.kube/config && sudo chmod +x /bin/kubectl",
-        "$RANCHER_IMPORT_URL",
-        "kubectl -n cattle-system patch deployment cattle-cluster-agent -p '{\"spec\": {\"template\": {\"spec\": {\"dnsPolicy\": \"Default\"}}}}'",
-        "sleep 420",
-        "kubectl -n cattle-system rollout status deploy",
-        "sleep 30"
-      ]
-    )
-  }
-}
-
-resource "null_resource" "download-k8s-kubeconfig" {
-  depends_on = [null_resource.rke2-cluster-setup]
-  for_each   = var.K8S_CLUSTER_PRIVATE_IPS
+# Download kubeconfig files from cluster nodes using Ansible
+resource "null_resource" "download_kubeconfig_files" {
+  depends_on = [null_resource.rke2_ansible_installation]
+  
   triggers = {
-    # node_count_or_hash = module.ec2-resource-creation.node_count
-    # or if you used hash:
-    node_hash = md5(local.K8S_CLUSTER_PRIVATE_IPS_STR)
+    cluster_ready = null_resource.rke2_ansible_installation.id
   }
-  connection {
-    type        = "ssh"
-    host        = each.value
-    user        = "ubuntu"            # Change based on the AMI used
-    private_key = var.SSH_PRIVATE_KEY # content of your private key
-  }
-  provisioner "file" {
-    source      = "${path.module}/rke2-setup.sh"
-    destination = "/tmp/rke2-setup.sh"
-  }
+
   provisioner "local-exec" {
-    command = <<EOF
-echo "${var.SSH_PRIVATE_KEY}" > ${each.key}-sshkey
-chmod 400 ${each.key}-sshkey
-scp -i ${each.key}-sshkey ubuntu@${each.value}:/home/ubuntu/.kube/${each.key}.yaml ${each.key}.yaml
-
-# Clean up the temporary private key file
-rm ${each.key}-sshkey
-
-EOF
+    command = <<-EOT
+      cd ${path.module}/ansible
+      
+      # Create local kubeconfig directory
+      mkdir -p ./kubeconfigs
+      
+      # Download kubeconfig files from all nodes
+      ansible rke2_cluster -i inventory.yml 
+        -u ubuntu 
+        --private-key=ssh_key 
+        --ssh-common-args='-o StrictHostKeyChecking=no' 
+        -m fetch 
+        -a "src=/home/ubuntu/.kube/{{ cluster_env_domain }}-{{ inventory_hostname }}.yaml dest=./kubeconfigs/ flat=yes" 
+        || echo "Some kubeconfig downloads may have failed - this is expected for worker nodes"
+    EOT
   }
 }
 
-resource "null_resource" "download-kubectl-file" {
-  depends_on = [null_resource.rke2-cluster-setup]
-  connection {
-    type        = "ssh"
-    host        = local.CONTROL_PLANE_NODE_1
-    user        = "ubuntu"            # Change based on the AMI used
-    private_key = var.SSH_PRIVATE_KEY # content of your private key
-  }
-  provisioner "file" {
-    source      = "${path.module}/rke2-setup.sh"
-    destination = "/tmp/rke2-setup.sh"
-  }
+# Optional: Download primary kubeconfig for immediate use
+resource "null_resource" "download_primary_kubeconfig" {
+  depends_on = [null_resource.rke2_ansible_installation]
+  
   provisioner "local-exec" {
-    command = <<EOF
-echo "${var.SSH_PRIVATE_KEY}" > ${local.CONTROL_PLANE_NODE_1}-sshkey
-chmod 400 ${local.CONTROL_PLANE_NODE_1}-sshkey
-scp -i ${local.CONTROL_PLANE_NODE_1}-sshkey ubuntu@${local.CONTROL_PLANE_NODE_1}:/var/lib/rancher/rke2/bin/kubectl kubectl
-chmod +x kubectl
-
-# Clean up the temporary private key file
-rm ${local.CONTROL_PLANE_NODE_1}-sshkey
-
-EOF
+    command = <<-EOT
+      cd ${path.module}/ansible
+      
+      # Get the first control plane node IP
+      CONTROL_PLANE_IP=$(cat inventory.yml | grep -A 5 "control_plane:" | grep "ansible_host:" | head -1 | awk '{print $2}')
+      
+      if [ ! -z "$CONTROL_PLANE_IP" ]; then
+        echo "Downloading primary kubeconfig from $CONTROL_PLANE_IP"
+        scp -o StrictHostKeyChecking=no -i ssh_key ubuntu@$CONTROL_PLANE_IP:/etc/rancher/rke2/rke2.yaml ./primary-kubeconfig.yaml || true
+        
+        # Update server IP in kubeconfig
+        if [ -f "./primary-kubeconfig.yaml" ]; then
+          sed -i "s/127.0.0.1/$CONTROL_PLANE_IP/g" ./primary-kubeconfig.yaml
+          echo "Primary kubeconfig saved to: ${path.module}/ansible/primary-kubeconfig.yaml"
+        fi
+      fi
+    EOT
   }
 }
 
 output "CONTROL_PLANE_NODE_1" {
   value = local.CONTROL_PLANE_NODE_1
 }
+
 output "K8S_CLUSTER_PRIVATE_IPS_STR" {
   value = local.K8S_CLUSTER_PRIVATE_IPS_STR
 }
-# Output the token
+
 output "K8S_TOKEN" {
   value = random_string.K8S_TOKEN.result
+}
+
+output "ANSIBLE_INVENTORY_PATH" {
+  value = "${path.module}/ansible/inventory.yml"
+}
+
+output "PRIMARY_KUBECONFIG_PATH" {
+  value = "${path.module}/ansible/primary-kubeconfig.yaml"
+}
+
+output "PRIMARY_CONTROL_PLANE_IP" {
+  value = length([
+    for key in sort([
+      for k, v in var.K8S_CLUSTER_PRIVATE_IPS : k 
+      if length(regexall(".*CONTROL-PLANE-NODE.*", k)) > 0
+    ]) : var.K8S_CLUSTER_PRIVATE_IPS[key]
+  ]) > 0 ? [
+    for key in sort([
+      for k, v in var.K8S_CLUSTER_PRIVATE_IPS : k 
+      if length(regexall(".*CONTROL-PLANE-NODE.*", k)) > 0
+    ]) : var.K8S_CLUSTER_PRIVATE_IPS[key]
+  ][0] : "No control plane nodes found"
+  description = "IP address of the primary control plane node (first in sorted order)"
+}
+
+output "CONTROL_PLANE_SELECTION_ORDER" {
+  value = [
+    for key in sort([
+      for k, v in var.K8S_CLUSTER_PRIVATE_IPS : k 
+      if length(regexall(".*CONTROL-PLANE-NODE.*", k)) > 0
+    ]) : "${key} -> ${var.K8S_CLUSTER_PRIVATE_IPS[key]}"
+  ]
+  description = "Shows the order of control plane node selection (first becomes primary)"
 }

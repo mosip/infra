@@ -30,12 +30,6 @@ echo "=== CONFIGURING DNS ==="
 echo "nameserver 8.8.8.8" | sudo tee -a /run/systemd/resolve/stub-resolv.conf
 echo "nameserver 8.8.4.4" | sudo tee -a /run/systemd/resolve/stub-resolv.conf
 
-echo "=== UPDATING PACKAGE MANAGER ==="
-sudo apt-get update -y || {
-    echo "Warning: apt-get update failed, but continuing..."
-    sleep 5
-}
-
 echo "=== DNS CONFIGURATION CHECK ==="
 echo "file /run/systemd/resolve/stub-resolv.conf"
 cat /run/systemd/resolve/stub-resolv.conf
@@ -71,33 +65,91 @@ echo "export TOKEN=$TOKEN" | sudo tee -a $ENV_FILE_PATH
 echo "export INTERNAL_IP=\"$INTERNAL_IP\"" | sudo tee -a $ENV_FILE_PATH
 echo "export NODE_NAME=${role}" | sudo tee -a $ENV_FILE_PATH
 echo "export CLUSTER_DOMAIN=${cluster_domain}" | sudo tee -a $ENV_FILE_PATH
+echo "export NODE_INDEX=${index}" | sudo tee -a $ENV_FILE_PATH
+
+# Explicit primary control plane selection logic
+if [[ "${role}" == CONTROL-PLANE-NODE-* ]]; then
+  echo "export K8S_ROLE=\"K8S-CONTROL-PLANE-NODE\"" | sudo tee -a $ENV_FILE_PATH
+  
+  # Determine if this is the primary control plane
+  # Option 1: Always make NODE-1 primary (current default)
+  if [[ "${role}" == "CONTROL-PLANE-NODE-1" ]]; then
+    echo "export IS_PRIMARY_CONTROL_PLANE=true" | sudo tee -a $ENV_FILE_PATH
+    echo "This node is designated as PRIMARY CONTROL PLANE"
+  else
+    echo "export IS_PRIMARY_CONTROL_PLANE=false" | sudo tee -a $ENV_FILE_PATH
+    echo "This node is designated as SUBSEQUENT CONTROL PLANE"
+  fi
+  
+  # Option 2: Use specific IP range for primary (uncomment to use)
+  # if [[ "$INTERNAL_IP" == "10.0.1.10" ]]; then
+  #   echo "export IS_PRIMARY_CONTROL_PLANE=true" | sudo tee -a $ENV_FILE_PATH
+  #   echo "This node is designated as PRIMARY CONTROL PLANE (by IP)"
+  # else
+  #   echo "export IS_PRIMARY_CONTROL_PLANE=false" | sudo tee -a $ENV_FILE_PATH
+  #   echo "This node is designated as SUBSEQUENT CONTROL PLANE (by IP)"
+  # fi
+  
+  # Option 3: Use index to determine primary (uncomment to use)
+  # if [[ "${index}" == "0" ]]; then
+  #   echo "export IS_PRIMARY_CONTROL_PLANE=true" | sudo tee -a $ENV_FILE_PATH
+  #   echo "This node is designated as PRIMARY CONTROL PLANE (by index)"
+  # else
+  #   echo "export IS_PRIMARY_CONTROL_PLANE=false" | sudo tee -a $ENV_FILE_PATH
+  #   echo "This node is designated as SUBSEQUENT CONTROL PLANE (by index)"
+  # fi
+  
+elif [[ "${role}" == ETCD-NODE-* ]]; then
+  echo "export K8S_ROLE=\"K8S-ETCD-NODE\"" | sudo tee -a $ENV_FILE_PATH
+  echo "export IS_PRIMARY_CONTROL_PLANE=false" | sudo tee -a $ENV_FILE_PATH
+else
+  echo "export K8S_ROLE=\"K8S-WORKER-NODE\"" | sudo tee -a $ENV_FILE_PATH
+  echo "export IS_PRIMARY_CONTROL_PLANE=false" | sudo tee -a $ENV_FILE_PATH
+fi
+
+# Source the environment variables
+source $ENV_FILE_PATH
+#!/bin/bash
+# Log file path
+echo "[ Set Log File ] : "
+LOG_FILE="/tmp/k8s-$( date +"%d-%h-%Y-%H-%M" ).log"
+ENV_FILE_PATH="/etc/environment"
+
+# Redirect stdout and stderr to log file
+exec > >(tee -a "$LOG_FILE") 2>&1
+
+# Set commands for error handling.
+set -e
+set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
+set -o nounset   ## set -u : exit the script if you try to use an uninitialized variable
+set -o errtrace  # Trace ERR through 'time command' and other functions
+set -o pipefail  # Trace ERR through pipes
+
+# Set internal IP address
+echo "Instance index: ${index}"
+
+echo "nameserver 8.8.8.8 8.8.4.4" | sudo tee -a /run/systemd/resolve/stub-resolv.conf
+
+echo "file /run/systemd/resolve/stub-resolv.conf"
+cat /run/systemd/resolve/stub-resolv.conf
+
+echo "file /etc/resolv.conf"
+cat /etc/resolv.conf
+
+export TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+echo "export TOKEN=$TOKEN" | sudo tee -a $ENV_FILE_PATH
+echo "export INTERNAL_IP=\"$(curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/local-ipv4)\"" | sudo tee -a $ENV_FILE_PATH
+echo "export NODE_NAME=${role}" | sudo tee -a $ENV_FILE_PATH
+echo "export CLUSTER_DOMAIN=${cluster_domain}" | sudo tee -a $ENV_FILE_PATH
 
 # Determine the role of the instance using pattern matching
-echo "=== DETERMINING NODE ROLE ==="
 if [[ "${role}" == CONTROL-PLANE-NODE-* ]]; then
-  echo "Setting up as CONTROL PLANE NODE"
   echo "export K8S_ROLE=\"K8S-CONTROL-PLANE-NODE\"" | sudo tee -a $ENV_FILE_PATH
 elif [[ "${role}" == ETCD-NODE-* ]]; then
-  echo "Setting up as ETCD NODE"
   echo "export K8S_ROLE=\"K8S-ETCD-NODE\"" | sudo tee -a $ENV_FILE_PATH
 else
-  echo "Setting up as WORKER NODE"
   echo "export K8S_ROLE=\"K8S-WORKER-NODE\"" | sudo tee -a $ENV_FILE_PATH
 fi
 
 # Source the environment variables
-echo "=== SOURCING ENVIRONMENT VARIABLES ==="
 source $ENV_FILE_PATH
-
-echo "=== FINAL ENVIRONMENT CHECK ==="
-env | grep -E 'TOKEN|INTERNAL_IP|NODE_NAME|CLUSTER_DOMAIN|K8S_ROLE' || echo "Some environment variables not set"
-
-echo "=== USER-DATA SCRIPT COMPLETED SUCCESSFULLY ==="
-echo "USERDATA_COMPLETED=$(date)" >> "$STATUS_FILE"
-echo "USERDATA_SUCCESS=true" >> "$STATUS_FILE"
-echo "Check logs at: $LOG_FILE"
-
-# Create verification files for remote-exec to check
-echo "USER_DATA_APPLIED=true" | sudo tee /tmp/userdata-applied.flag
-echo "ROLE=${role}" | sudo tee /tmp/node-role.txt
-echo "INTERNAL_IP=$INTERNAL_IP" | sudo tee /tmp/instance-ip.txt
