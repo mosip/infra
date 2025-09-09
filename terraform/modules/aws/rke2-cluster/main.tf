@@ -110,7 +110,7 @@ resource "null_resource" "rke2-primary-cluster-setup" {
       host        = local.CONTROL_PLANE_NODE_1
       user        = "ubuntu"
       private_key = var.SSH_PRIVATE_KEY
-      timeout     = 60m
+      timeout     = "60m"
     }
   }
 
@@ -128,6 +128,7 @@ resource "null_resource" "rke2-primary-cluster-setup" {
       host        = local.CONTROL_PLANE_NODE_1
       user        = "ubuntu"
       private_key = var.SSH_PRIVATE_KEY
+      timeout     = "60m"
     }
   }
 }
@@ -143,7 +144,7 @@ resource "null_resource" "rke2-additional-control-plane-setup" {
     host        = each.value
     user        = "ubuntu"            # Change based on the AMI used
     private_key = var.SSH_PRIVATE_KEY # content of your private key
-    timeout     = 60m
+    timeout     = "60m"
   }
   provisioner "file" {
     source      = "${path.module}/rke2-setup.sh"
@@ -177,7 +178,7 @@ resource "null_resource" "rke2-cluster-setup" {
     host        = each.value
     user        = "ubuntu"            # Change based on the AMI used
     private_key = var.SSH_PRIVATE_KEY # content of your private key
-    timeout     = 60m
+    timeout     = "60m"
   }
   provisioner "file" {
     source      = "${path.module}/rke2-setup.sh"
@@ -240,7 +241,7 @@ resource "null_resource" "download-k8s-kubeconfig" {
     host        = each.value
     user        = "ubuntu"            # Change based on the AMI used
     private_key = var.SSH_PRIVATE_KEY # content of your private key
-    timeout     = 60m
+    timeout     = "60m"
   }
   provisioner "file" {
     source      = "${path.module}/rke2-setup.sh"
