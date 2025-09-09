@@ -88,7 +88,7 @@ echo "======================"
 ls -la "$SSH_KEY_FILE"
 echo ""
 
-echo "� NETWORK CONNECTIVITY TEST:"
+echo "🌐 NETWORK CONNECTIVITY TEST:"
 echo "============================="
 # Test connectivity to nodes before starting
 CLUSTER_IPS=$(grep -oP 'ansible_host=\K[0-9.]+' "$INVENTORY_FILE" || true)
@@ -136,7 +136,6 @@ ansible-playbook \
     --ssh-common-args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=60 -o ServerAliveCountMax=3 -o ConnectTimeout=30' \
     -vvvv \
     --diff \
-    --check-diff \
     --timeout=600 \
     "$PLAYBOOK_FILE" 2>&1 | tee "$LOG_FILE"
 
