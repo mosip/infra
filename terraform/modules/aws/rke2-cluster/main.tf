@@ -10,6 +10,13 @@ variable "K8S_INFRA_REPO_URL" {
 }
 
 variable "K8S_INFRA_BRANCH" { type = string }
+
+variable "ENABLE_RANCHER_IMPORT" {
+  description = "Enable Rancher import after cluster setup"
+  type        = bool
+  default     = false
+}
+
 variable "RANCHER_IMPORT_URL" {
   description = "Rancher import URL for kubectl apply"
   type        = string
@@ -36,7 +43,8 @@ locals {
   CONTROL_PLANE_NODE_1        = element([for key, value in var.K8S_CLUSTER_PRIVATE_IPS : value if length(regexall(".*CONTROL-PLANE-NODE-1", key)) > 0], 0)
   K8S_CLUSTER_PRIVATE_IPS_STR = join(",", [for key, value in var.K8S_CLUSTER_PRIVATE_IPS : "${key}=${value}"])
 
-  RKE_CONFIG = {
+  # Base configuration that's always included
+  base_config = {
     ENV_VAR_FILE                = "/etc/environment"
     CONTROL_PLANE_NODE_1        = local.CONTROL_PLANE_NODE_1
     WORK_DIR                    = "/home/ubuntu/"
@@ -46,14 +54,19 @@ locals {
     K8S_INFRA_BRANCH            = var.K8S_INFRA_BRANCH
     RKE2_LOCATION               = "/home/ubuntu/k8s-infra/k8-cluster/on-prem/rke2/"
     K8S_CLUSTER_PRIVATE_IPS_STR = local.K8S_CLUSTER_PRIVATE_IPS_STR
-    RANCHER_IMPORT_URL          = var.RANCHER_IMPORT_URL
     K8S_TOKEN                   = random_string.K8S_TOKEN.result
+    ENABLE_RANCHER_IMPORT       = var.ENABLE_RANCHER_IMPORT ? "true" : "false"
   }
-  # Filter out CONTROL_PLANE_NODE_1 from K8S_CLUSTER_PUBLIC_IPS
-  #   K8S_CLUSTER_PRIVATE_IPS_EXCEPT_CONTROL_PLANE_NODE_1 = {
-  #     for key, value in var.K8S_CLUSTER_PRIVATE_IPS : key => value if value != local.CONTROL_PLANE_NODE_1
-  #   }
 
+  # Conditionally include Rancher URL only if import is enabled
+  rancher_config = var.ENABLE_RANCHER_IMPORT ? {
+    RANCHER_IMPORT_URL = var.RANCHER_IMPORT_URL
+  } : {}
+
+  # Merge base config with conditional rancher config
+  RKE_CONFIG = merge(local.base_config, local.rancher_config)
+
+  # Additional configuration variables
   datetime = formatdate("2006-01-02_15-04-05", timestamp())
   backup_command = [
     "sudo cp ${local.RKE_CONFIG.ENV_VAR_FILE} /tmp/environment-bkp-${local.datetime}"
@@ -67,7 +80,34 @@ locals {
   k8s_env_vars = concat(local.backup_command, local.update_commands)
 }
 
+# Add user-data verification resource
+resource "null_resource" "verify-userdata" {
+  for_each = var.K8S_CLUSTER_PRIVATE_IPS
+  
+  connection {
+    type        = "ssh"
+    host        = each.value
+    user        = "ubuntu"
+    private_key = var.SSH_PRIVATE_KEY
+    timeout     = "10m"
+  }
+
+  # Wait for user-data to complete and verify
+  provisioner "remote-exec" {
+    inline = [
+      "echo '=== Waiting for user-data to complete ==='",
+      "timeout 300 bash -c 'while [ ! -f /tmp/userdata-applied.flag ]; do echo \"Waiting for user-data...\"; sleep 10; done'",
+      "echo '=== User-data completion verified ==='",
+      "echo 'Node role:' && cat /tmp/node-role.txt || echo 'Role file not found'",
+      "echo 'Instance IP:' && cat /tmp/instance-ip.txt || echo 'IP file not found'",
+      "echo 'Environment variables:' && sudo grep -E 'NODE_NAME|INTERNAL_IP|CLUSTER_DOMAIN|K8S_ROLE' /etc/environment || echo 'Environment not set'",
+      "echo '=== User-data verification completed ==='",
+    ]
+  }
+}
+
 resource "null_resource" "rke2-primary-cluster-setup" {
+  depends_on = [null_resource.verify-userdata]
   #   triggers = {
   #     node_hash = md5(local.K8S_CLUSTER_PRIVATE_IPS_STR)
   #   }
@@ -93,7 +133,7 @@ resource "null_resource" "rke2-primary-cluster-setup" {
 }
 
 resource "null_resource" "rke2-cluster-setup" {
-  depends_on = [null_resource.rke2-primary-cluster-setup]
+  depends_on = [null_resource.rke2-primary-cluster-setup, null_resource.verify-userdata]
   for_each   = var.K8S_CLUSTER_PRIVATE_IPS
   triggers = {
     # node_count_or_hash = module.ec2-resource-creation.node_count
