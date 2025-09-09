@@ -80,34 +80,7 @@ locals {
   k8s_env_vars = concat(local.backup_command, local.update_commands)
 }
 
-# Add user-data verification resource
-resource "null_resource" "verify-userdata" {
-  for_each = var.K8S_CLUSTER_PRIVATE_IPS
-  
-  connection {
-    type        = "ssh"
-    host        = each.value
-    user        = "ubuntu"
-    private_key = var.SSH_PRIVATE_KEY
-    timeout     = "10m"
-  }
-
-  # Wait for user-data to complete and verify
-  provisioner "remote-exec" {
-    inline = [
-      "echo '=== Waiting for user-data to complete ==='",
-      "timeout 300 bash -c 'while [ ! -f /tmp/userdata-applied.flag ]; do echo \"Waiting for user-data...\"; sleep 10; done'",
-      "echo '=== User-data completion verified ==='",
-      "echo 'Node role:' && cat /tmp/node-role.txt || echo 'Role file not found'",
-      "echo 'Instance IP:' && cat /tmp/instance-ip.txt || echo 'IP file not found'",
-      "echo 'Environment variables:' && sudo grep -E 'NODE_NAME|INTERNAL_IP|CLUSTER_DOMAIN|K8S_ROLE' /etc/environment || echo 'Environment not set'",
-      "echo '=== User-data verification completed ==='",
-    ]
-  }
-}
-
 resource "null_resource" "rke2-primary-cluster-setup" {
-  depends_on = [null_resource.verify-userdata]
   #   triggers = {
   #     node_hash = md5(local.K8S_CLUSTER_PRIVATE_IPS_STR)
   #   }
@@ -133,7 +106,7 @@ resource "null_resource" "rke2-primary-cluster-setup" {
 }
 
 resource "null_resource" "rke2-cluster-setup" {
-  depends_on = [null_resource.rke2-primary-cluster-setup, null_resource.verify-userdata]
+  depends_on = [null_resource.rke2-primary-cluster-setup]
   for_each   = var.K8S_CLUSTER_PRIVATE_IPS
   triggers = {
     # node_count_or_hash = module.ec2-resource-creation.node_count
