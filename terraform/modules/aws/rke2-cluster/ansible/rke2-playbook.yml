@@ -1,0 +1,388 @@
+---
+# Play 1: Install Primary Control Plane Node FIRST (Sequential)
+- name: Install Primary RKE2 Control Plane Node
+  hosts: control_plane[0]  # Only the first control plane node
+  become: yes
+  gather_facts: yes
+  serial: 1  # Ensure only one node runs at a time
+  vars:
+    rke2_version: "v1.28.9+rke2r1"
+    rke2_config_dir: "/etc/rancher/rke2"
+    rke2_data_dir: "/var/lib/rancher/rke2"
+    env_file_path: "/etc/environment"
+    log_file: "/tmp/rke2-setup.log"
+
+  tasks:
+    - name: Set error handling for bash
+      set_fact:
+        bash_opts: "set -e && set -o errexit && set -o nounset && set -o errtrace && set -o pipefail"
+
+    - name: Create log file
+      file:
+        path: "{{ log_file }}"
+        state: touch
+        mode: '0644'
+
+    - name: Log start of PRIMARY installation
+      lineinfile:
+        path: "{{ log_file }}"
+        line: "=== PRIMARY Control Plane RKE2 Setup Started at {{ ansible_date_time.iso8601 }} ==="
+
+    - name: Update system packages
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install required packages
+      apt:
+        name:
+          - curl
+          - git
+          - unzip
+        state: present
+
+    - name: Create RKE2 config directory
+      file:
+        path: "{{ rke2_config_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Set environment variables for PRIMARY
+      blockinfile:
+        path: "{{ env_file_path }}"
+        block: |
+          export CLUSTER_NAME={{ cluster_name }}
+          export CLUSTER_ENV_DOMAIN={{ cluster_env_domain }}
+          export NODE_NAME={{ inventory_hostname }}
+          export INTERNAL_IP={{ ansible_default_ipv4.address }}
+          export K8S_INFRA_REPO_URL={{ k8s_infra_repo_url }}
+          export K8S_INFRA_BRANCH={{ k8s_infra_branch }}
+          export ENABLE_RANCHER_IMPORT={{ enable_rancher_import }}
+          export RANCHER_IMPORT_URL={{ rancher_import_url }}
+          export RKE2_SERVICE=rke2-server
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - RKE2 VARS PRIMARY"
+
+    - name: Download and install RKE2
+      shell: |
+        {{ bash_opts }}
+        curl -sfL https://get.rke2.io | sh -
+      args:
+        executable: /bin/bash
+        creates: /usr/local/bin/rke2
+
+    - name: Clone k8s-infra repository
+      git:
+        repo: "{{ k8s_infra_repo_url }}"
+        dest: "/home/ubuntu/k8s-infra"
+        version: "{{ k8s_infra_branch }}"
+        force: yes
+      become_user: ubuntu
+      ignore_errors: yes
+
+    - name: Copy RKE2 config templates
+      shell: |
+        {{ bash_opts }}
+        cd /home/ubuntu/k8s-infra/rke2/rke2-cluster-configuration
+        cp *.template {{ rke2_config_dir }}/
+      args:
+        executable: /bin/bash
+      ignore_errors: yes
+
+    - name: Configure PRIMARY control plane config
+      copy:
+        src: "{{ rke2_config_dir }}/rke2-server-control-plane-primary.conf.template"
+        dest: "{{ rke2_config_dir }}/config.yaml"
+        remote_src: yes
+
+    - name: Enable and start PRIMARY RKE2 server
+      systemd:
+        name: rke2-server
+        enabled: yes
+        state: started
+
+    - name: Wait for PRIMARY RKE2 server to stabilize
+      wait_for:
+        timeout: 180  # 3 minutes for primary to be ready
+
+    - name: Wait for PRIMARY kubeconfig to be available
+      wait_for:
+        path: /etc/rancher/rke2/rke2.yaml
+        timeout: 120
+
+    - name: Setup kubectl configuration on PRIMARY
+      block:
+        - name: Copy kubectl binary
+          copy:
+            src: "/var/lib/rancher/rke2/bin/kubectl"
+            dest: "/bin/kubectl"
+            remote_src: yes
+            mode: '0755'
+
+        - name: Create .kube directory
+          file:
+            path: "/home/ubuntu/.kube"
+            state: directory
+            owner: ubuntu
+            group: ubuntu
+            mode: '0755'
+
+        - name: Generate kubeconfig for PRIMARY
+          shell: |
+            cat /etc/rancher/rke2/rke2.yaml | \
+            sed "s/127.0.0.1/{{ ansible_default_ipv4.address }}/g" | \
+            sed "s/default/{{ cluster_env_domain }}/g" > \
+            "/home/ubuntu/.kube/{{ cluster_env_domain }}-{{ inventory_hostname }}.yaml"
+          args:
+            executable: /bin/bash
+
+        - name: Set kubeconfig ownership and permissions
+          file:
+            path: "/home/ubuntu/.kube/{{ cluster_env_domain }}-{{ inventory_hostname }}.yaml"
+            owner: ubuntu
+            group: ubuntu
+            mode: '0444'
+
+    - name: Verify PRIMARY cluster is ready
+      shell: kubectl get nodes
+      retries: 10
+      delay: 15
+      register: kubectl_result
+      until: kubectl_result.rc == 0
+      become_user: ubuntu
+      environment:
+        KUBECONFIG: "/home/ubuntu/.kube/{{ cluster_env_domain }}-{{ inventory_hostname }}.yaml"
+
+    - name: Log PRIMARY completion
+      lineinfile:
+        path: "{{ log_file }}"
+        line: "=== PRIMARY Control Plane Setup Completed Successfully at {{ ansible_date_time.iso8601 }} ==="
+
+# Play 2: Install ALL OTHER Nodes in PARALLEL (after primary is ready)
+- name: Install All Other RKE2 Nodes in Parallel
+  hosts: control_plane[1:],etcd,workers  # All nodes EXCEPT the first control plane
+  become: yes
+  gather_facts: yes
+  strategy: free  # This enables parallel execution across all hosts
+  vars:
+    rke2_version: "v1.28.9+rke2r1"
+    rke2_config_dir: "/etc/rancher/rke2"
+    rke2_data_dir: "/var/lib/rancher/rke2"
+    env_file_path: "/etc/environment"
+    log_file: "/tmp/rke2-setup.log"
+
+  tasks:
+    - name: Set error handling for bash
+      set_fact:
+        bash_opts: "set -e && set -o errexit && set -o nounset && set -o errtrace && set -o pipefail"
+
+    - name: Create log file
+      file:
+        path: "{{ log_file }}"
+        state: touch
+        mode: '0644'
+
+    - name: Log start of PARALLEL installation
+      lineinfile:
+        path: "{{ log_file }}"
+        line: "=== {{ node_role | upper }} RKE2 Setup Started at {{ ansible_date_time.iso8601 }} ==="
+
+    - name: Update system packages
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install required packages
+      apt:
+        name:
+          - curl
+          - git
+          - unzip
+        state: present
+
+    - name: Create RKE2 config directory
+      file:
+        path: "{{ rke2_config_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Set environment variables
+      blockinfile:
+        path: "{{ env_file_path }}"
+        block: |
+          export CLUSTER_NAME={{ cluster_name }}
+          export CLUSTER_ENV_DOMAIN={{ cluster_env_domain }}
+          export NODE_NAME={{ inventory_hostname }}
+          export INTERNAL_IP={{ ansible_default_ipv4.address }}
+          export K8S_INFRA_REPO_URL={{ k8s_infra_repo_url }}
+          export K8S_INFRA_BRANCH={{ k8s_infra_branch }}
+          export ENABLE_RANCHER_IMPORT={{ enable_rancher_import }}
+          export RANCHER_IMPORT_URL={{ rancher_import_url }}
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - RKE2 VARS"
+
+    - name: Download and install RKE2
+      shell: |
+        {{ bash_opts }}
+        curl -sfL https://get.rke2.io | sh -
+      args:
+        executable: /bin/bash
+        creates: /usr/local/bin/rke2
+
+    - name: Clone k8s-infra repository
+      git:
+        repo: "{{ k8s_infra_repo_url }}"
+        dest: "/home/ubuntu/k8s-infra"
+        version: "{{ k8s_infra_branch }}"
+        force: yes
+      become_user: ubuntu
+      ignore_errors: yes
+
+    - name: Copy RKE2 config templates
+      shell: |
+        {{ bash_opts }}
+        cd /home/ubuntu/k8s-infra/rke2/rke2-cluster-configuration
+        cp *.template {{ rke2_config_dir }}/
+      args:
+        executable: /bin/bash
+      ignore_errors: yes
+
+    - name: Configure subsequent control plane nodes
+      block:
+        - name: Copy subsequent control plane config
+          copy:
+            src: "{{ rke2_config_dir }}/rke2-server-control-plane.subsequent.conf.template"
+            dest: "{{ rke2_config_dir }}/config.yaml"
+            remote_src: yes
+            
+        - name: Set RKE2 service type for subsequent control plane
+          lineinfile:
+            path: "{{ env_file_path }}"
+            line: "export RKE2_SERVICE=rke2-server"
+            
+        - name: Set service variable for subsequent control plane
+          set_fact:
+            rke2_service: "rke2-server"
+      when: node_role == "control_plane" and not (is_primary | default(false))
+
+    - name: Configure ETCD nodes
+      block:
+        - name: Copy ETCD config
+          copy:
+            src: "{{ rke2_config_dir }}/rke2-etcd-agents.conf.template"
+            dest: "{{ rke2_config_dir }}/config.yaml"
+            remote_src: yes
+            
+        - name: Set RKE2 service type for ETCD
+          lineinfile:
+            path: "{{ env_file_path }}"
+            line: "export RKE2_SERVICE=rke2-agent"
+            
+        - name: Set service variable for ETCD
+          set_fact:
+            rke2_service: "rke2-agent"
+      when: node_role == "etcd"
+
+    - name: Configure worker nodes
+      block:
+        - name: Copy worker config
+          copy:
+            src: "{{ rke2_config_dir }}/rke2-agents.conf.template"
+            dest: "{{ rke2_config_dir }}/config.yaml"
+            remote_src: yes
+            
+        - name: Set RKE2 service type for workers
+          lineinfile:
+            path: "{{ env_file_path }}"
+            line: "export RKE2_SERVICE=rke2-agent"
+            
+        - name: Set service variable for workers
+          set_fact:
+            rke2_service: "rke2-agent"
+      when: node_role == "worker"
+
+    - name: Enable and start RKE2 service
+      systemd:
+        name: "{{ rke2_service }}"
+        enabled: yes
+        state: started
+
+    - name: Wait for RKE2 service to stabilize
+      wait_for:
+        timeout: 120
+
+    - name: Setup kubectl configuration (for control plane nodes only)
+      block:
+        - name: Copy kubectl binary
+          copy:
+            src: "/var/lib/rancher/rke2/bin/kubectl"
+            dest: "/bin/kubectl"
+            remote_src: yes
+            mode: '0755'
+
+        - name: Create .kube directory
+          file:
+            path: "/home/ubuntu/.kube"
+            state: directory
+            owner: ubuntu
+            group: ubuntu
+            mode: '0755'
+
+        - name: Generate kubeconfig
+          shell: |
+            cat /etc/rancher/rke2/rke2.yaml | \
+            sed "s/127.0.0.1/{{ ansible_default_ipv4.address }}/g" | \
+            sed "s/default/{{ cluster_env_domain }}/g" > \
+            "/home/ubuntu/.kube/{{ cluster_env_domain }}-{{ inventory_hostname }}.yaml"
+          args:
+            executable: /bin/bash
+
+        - name: Set kubeconfig ownership and permissions
+          file:
+            path: "/home/ubuntu/.kube/{{ cluster_env_domain }}-{{ inventory_hostname }}.yaml"
+            owner: ubuntu
+            group: ubuntu
+            mode: '0444'
+      when: node_role == "control_plane"
+
+    - name: Log completion
+      lineinfile:
+        path: "{{ log_file }}"
+        line: "=== {{ node_role | upper }} Setup Completed Successfully at {{ ansible_date_time.iso8601 }} ==="
+
+# Play 3: Final cluster verification and Rancher import (on primary only)
+- name: Final Cluster Setup and Rancher Import
+  hosts: control_plane[0]  # Only on primary control plane
+  become: yes
+  gather_facts: no
+  tasks:
+    - name: Wait for all nodes to join the cluster
+      shell: kubectl get nodes --no-headers | wc -l
+      retries: 20
+      delay: 15
+      register: node_count
+      until: node_count.stdout | int >= (groups['rke2_cluster'] | length)
+      become_user: ubuntu
+      environment:
+        KUBECONFIG: "/home/ubuntu/.kube/{{ cluster_env_domain }}-{{ inventory_hostname }}.yaml"
+
+    - name: Display cluster status
+      shell: kubectl get nodes -o wide
+      register: cluster_status
+      become_user: ubuntu
+      environment:
+        KUBECONFIG: "/home/ubuntu/.kube/{{ cluster_env_domain }}-{{ inventory_hostname }}.yaml"
+
+    - name: Show cluster nodes
+      debug:
+        msg: "{{ cluster_status.stdout_lines }}"
+
+    - name: Execute Rancher import (if enabled)
+      shell: "{{ rancher_import_url }}"
+      when: enable_rancher_import | bool
+      become_user: ubuntu
+      environment:
+        KUBECONFIG: "/home/ubuntu/.kube/{{ cluster_env_domain }}-{{ inventory_hostname }}.yaml"
+      ignore_errors: yes
+
+    - name: Final success message
+      debug:
+        msg: "🎉 RKE2 Cluster installation completed successfully! Primary first, then all others in parallel."
