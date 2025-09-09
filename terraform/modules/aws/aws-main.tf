@@ -228,7 +228,7 @@ module "aws-resource-creation" {
         from_port : 22,
         to_port : 22,
         protocol : "TCP",
-        cidr_blocks      = [var.network_cidr],
+        cidr_blocks      = ["0.0.0.0/0"],
         ipv6_cidr_blocks = []
       },
       {
@@ -236,7 +236,7 @@ module "aws-resource-creation" {
         from_port : -1,
         to_port : -1,
         protocol : "ICMP",
-        cidr_blocks      = [var.network_cidr],
+        cidr_blocks      = ["0.0.0.0/0"],
         ipv6_cidr_blocks = []
       },
       {
@@ -244,7 +244,7 @@ module "aws-resource-creation" {
         from_port : 6443,
         to_port : 6443,
         protocol : "TCP",
-        cidr_blocks      = [var.network_cidr],
+        cidr_blocks      = ["0.0.0.0/0"],
         ipv6_cidr_blocks = []
       },
       {
@@ -252,7 +252,7 @@ module "aws-resource-creation" {
         from_port : 9345,
         to_port : 9345,
         protocol : "TCP",
-        cidr_blocks      = [var.network_cidr],
+        cidr_blocks      = ["0.0.0.0/0"],
         ipv6_cidr_blocks = []
       },
       {
@@ -260,7 +260,7 @@ module "aws-resource-creation" {
         from_port : 10250,
         to_port : 10250,
         protocol : "TCP",
-        cidr_blocks      = [var.network_cidr],
+        cidr_blocks      = ["0.0.0.0/0"],
         ipv6_cidr_blocks = []
       },
       {
@@ -268,7 +268,7 @@ module "aws-resource-creation" {
         from_port : 2379,
         to_port : 2379,
         protocol : "TCP",
-        cidr_blocks      = [var.network_cidr],
+        cidr_blocks      = ["0.0.0.0/0"],
         ipv6_cidr_blocks = []
       },
       {
@@ -276,7 +276,7 @@ module "aws-resource-creation" {
         from_port : 2380,
         to_port : 2380,
         protocol : "TCP",
-        cidr_blocks      = [var.network_cidr],
+        cidr_blocks      = ["0.0.0.0/0"],
         ipv6_cidr_blocks = []
       },
       {
@@ -284,7 +284,7 @@ module "aws-resource-creation" {
         from_port : 2381,
         to_port : 2381,
         protocol : "TCP",
-        cidr_blocks      = [var.network_cidr],
+        cidr_blocks      = ["0.0.0.0/0"],
         ipv6_cidr_blocks = []
       },
       {
@@ -292,7 +292,7 @@ module "aws-resource-creation" {
         from_port : 30000,
         to_port : 32767,
         protocol : "TCP",
-        cidr_blocks      = [var.network_cidr],
+        cidr_blocks      = ["0.0.0.0/0"],
         ipv6_cidr_blocks = []
       },
       {
@@ -300,7 +300,7 @@ module "aws-resource-creation" {
         from_port : 8472,
         to_port : 8472,
         protocol : "UDP",
-        cidr_blocks      = [var.network_cidr],
+        cidr_blocks      = ["0.0.0.0/0"],
         ipv6_cidr_blocks = []
       },
       {
@@ -326,7 +326,7 @@ module "aws-resource-creation" {
         from_port : 22,
         to_port : 22,
         protocol : "TCP",
-        cidr_blocks      = [var.network_cidr],
+        cidr_blocks      = ["0.0.0.0/0"],
         ipv6_cidr_blocks = []
       },
       {
@@ -334,7 +334,7 @@ module "aws-resource-creation" {
         from_port : -1,
         to_port : -1,
         protocol : "ICMP",
-        cidr_blocks      = [var.network_cidr],
+        cidr_blocks      = ["0.0.0.0/0"],
         ipv6_cidr_blocks = []
       },
       {
@@ -343,7 +343,7 @@ module "aws-resource-creation" {
         to_port : 10250,
         protocol : "TCP",
         cidr_blocks      = ["0.0.0.0/0"],
-        ipv6_cidr_blocks = ["::/0"]
+        ipv6_cidr_blocks = []
       },
       {
         description : "NodePort port range"
@@ -351,7 +351,7 @@ module "aws-resource-creation" {
         to_port : 32767,
         protocol : "TCP",
         cidr_blocks      = ["0.0.0.0/0"],
-        ipv6_cidr_blocks = ["::/0"]
+        ipv6_cidr_blocks = []
       },
       {
         description : "ETCD client port"
@@ -359,7 +359,7 @@ module "aws-resource-creation" {
         to_port : 2379,
         protocol : "TCP",
         cidr_blocks      = ["0.0.0.0/0"],
-        ipv6_cidr_blocks = ["::/0"]
+        ipv6_cidr_blocks = []
       },
       {
         description : "ETCD peer port"
@@ -367,7 +367,7 @@ module "aws-resource-creation" {
         to_port : 2380,
         protocol : "TCP",
         cidr_blocks      = ["0.0.0.0/0"],
-        ipv6_cidr_blocks = ["::/0"]
+        ipv6_cidr_blocks = []
       },
       {
         description : "ETCD metrics port"
@@ -375,7 +375,7 @@ module "aws-resource-creation" {
         to_port : 2381,
         protocol : "TCP",
         cidr_blocks      = ["0.0.0.0/0"],
-        ipv6_cidr_blocks = ["::/0"]
+        ipv6_cidr_blocks = []
       },
       {
         description : "Canal CNI with VXLAN"
@@ -383,7 +383,7 @@ module "aws-resource-creation" {
         to_port : 8472,
         protocol : "UDP",
         cidr_blocks      = ["0.0.0.0/0"],
-        ipv6_cidr_blocks = ["::/0"]
+        ipv6_cidr_blocks = []
       },
       {
         description : "Canal CNI health checks"
@@ -391,14 +391,14 @@ module "aws-resource-creation" {
         to_port : 9099,
         protocol : "TCP",
         cidr_blocks      = ["0.0.0.0/0"],
-        ipv6_cidr_blocks = ["::/0"]
+        ipv6_cidr_blocks = []
       },
       {
         description : "PostgreSQL port (internal only)"
         from_port : 5433,
         to_port : 5433,
         protocol : "TCP",
-        cidr_blocks      = [var.network_cidr],
+        cidr_blocks      = ["0.0.0.0/0"],
         ipv6_cidr_blocks = []
       },
     ]
@@ -408,7 +408,7 @@ module "aws-resource-creation" {
         from_port : 22,
         to_port : 22,
         protocol : "TCP",
-        cidr_blocks      = [var.network_cidr],
+        cidr_blocks      = ["0.0.0.0/0"],
         ipv6_cidr_blocks = []
       },
       {
@@ -416,7 +416,7 @@ module "aws-resource-creation" {
         from_port : -1,
         to_port : -1,
         protocol : "ICMP",
-        cidr_blocks      = [var.network_cidr],
+        cidr_blocks      = ["0.0.0.0/0"],
         ipv6_cidr_blocks = []
       },
       {
@@ -425,7 +425,7 @@ module "aws-resource-creation" {
         to_port : 10250,
         protocol : "TCP",
         cidr_blocks      = ["0.0.0.0/0"],
-        ipv6_cidr_blocks = ["::/0"]
+        ipv6_cidr_blocks = []
       },
       {
         description : "NodePort port range"
@@ -433,7 +433,7 @@ module "aws-resource-creation" {
         to_port : 32767,
         protocol : "TCP",
         cidr_blocks      = ["0.0.0.0/0"],
-        ipv6_cidr_blocks = ["::/0"]
+        ipv6_cidr_blocks = []
       },
       {
         description : "Canal CNI with VXLAN"
@@ -456,7 +456,7 @@ module "aws-resource-creation" {
         from_port : 5433,
         to_port : 5433,
         protocol : "TCP",
-        cidr_blocks      = [var.network_cidr],
+        cidr_blocks      = ["0.0.0.0/0"],
         ipv6_cidr_blocks = []
       },
     ]
