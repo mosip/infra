@@ -23,7 +23,7 @@ ami = "ami-0ad21ae1d0696ad58"
 # Repo K8S-INFRA URL
 k8s_infra_repo_url = "https://github.com/mosip/k8s-infra.git"
 # Repo K8S-INFRA branch
-k8s_infra_branch = "develop"
+k8s_infra_branch = "MOSIP-42914"
 # NGINX Node's Root volume size
 nginx_node_root_volume_size = 24
 # NGINX node's EBS volume size
