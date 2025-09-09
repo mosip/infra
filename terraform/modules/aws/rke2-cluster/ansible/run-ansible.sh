@@ -91,37 +91,46 @@ echo ""
 echo "🌐 NETWORK CONNECTIVITY TEST:"
 echo "============================="
 # Test connectivity to nodes before starting
+echo "📍 Extracting IPs from inventory file..."
 CLUSTER_IPS=$(grep -oP 'ansible_host=\K[0-9.]+' "$INVENTORY_FILE" || true)
+echo "📋 Found IPs: $CLUSTER_IPS"
 FAILED_NODES=0
 
-for ip in $CLUSTER_IPS; do
-    echo -n "Testing SSH to $ip: "
-    if timeout 10 nc -z "$ip" 22 2>/dev/null; then
-        echo "✅ REACHABLE"
-        # Test actual SSH authentication
-        echo -n "  SSH auth test: "
-        if timeout 15 ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 ubuntu@"$ip" "echo 'SSH_SUCCESS'" 2>/dev/null | grep -q "SSH_SUCCESS"; then
-            echo "✅ SSH AUTH OK"
-            
-            # Check if RKE2 is already installed
-            echo -n "  RKE2 status: "
-            RKE2_STATUS=$(timeout 10 ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@"$ip" "ls -la /usr/local/bin/rke2* 2>/dev/null || echo 'NOT_INSTALLED'" 2>/dev/null)
-            if echo "$RKE2_STATUS" | grep -q "NOT_INSTALLED"; then
-                echo "❌ NOT INSTALLED"
+if [ -z "$CLUSTER_IPS" ]; then
+    echo "⚠️  WARNING: No IPs found in inventory file!"
+    echo "   Inventory file might have different format"
+else
+    echo "🔍 Testing connectivity to $(echo $CLUSTER_IPS | wc -w) nodes..."
+    
+    for ip in $CLUSTER_IPS; do
+        echo -n "Testing SSH to $ip: "
+        if timeout 10 nc -z "$ip" 22 2>/dev/null; then
+            echo "✅ REACHABLE"
+            # Test actual SSH authentication
+            echo -n "  SSH auth test: "
+            if timeout 15 ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 ubuntu@"$ip" "echo 'SSH_SUCCESS'" 2>/dev/null | grep -q "SSH_SUCCESS"; then
+                echo "✅ SSH AUTH OK"
+                
+                # Check if RKE2 is already installed
+                echo -n "  RKE2 status: "
+                RKE2_STATUS=$(timeout 10 ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@"$ip" "ls -la /usr/local/bin/rke2* 2>/dev/null || echo 'NOT_INSTALLED'" 2>/dev/null)
+                if echo "$RKE2_STATUS" | grep -q "NOT_INSTALLED"; then
+                    echo "❌ NOT INSTALLED"
+                else
+                    echo "✅ ALREADY INSTALLED"
+                    echo "    $RKE2_STATUS"
+                fi
             else
-                echo "✅ ALREADY INSTALLED"
-                echo "    $RKE2_STATUS"
+                echo "❌ SSH AUTH FAILED"
+                FAILED_NODES=$((FAILED_NODES + 1))
             fi
         else
-            echo "❌ SSH AUTH FAILED"
+            echo "❌ UNREACHABLE"
             FAILED_NODES=$((FAILED_NODES + 1))
         fi
-    else
-        echo "❌ UNREACHABLE"
-        FAILED_NODES=$((FAILED_NODES + 1))
-    fi
-    echo ""
-done
+        echo ""
+    done
+fi
 
 if [ $FAILED_NODES -gt 0 ]; then
     echo "⚠️  WARNING: $FAILED_NODES nodes failed connectivity/auth tests"
@@ -167,41 +176,32 @@ echo "  - Detailed: $LOG_FILE"
 echo "  - Artifact: $GITHUB_WORKSPACE_LOG (downloadable)"
 echo ""
 
-# Function to handle logging for both console and files
-log_and_display() {
-    echo "🚀 EXECUTING ANSIBLE COMMAND:"
-    echo "ansible-playbook -i $INVENTORY_FILE -u ubuntu --private-key=$SSH_KEY_FILE [with debug flags]"
-    echo ""
-    echo "⏱️  Starting at: $(date)"
-    echo "📡 This may take 15-30 minutes for RKE2 installation..."
-    echo "🔄 Real-time output follows:"
-    echo "=================================================================================="
-    
-    # This will show in GitHub Actions console AND save to files
-    ansible-playbook \
-        -i "$INVENTORY_FILE" \
-        -u ubuntu \
-        --private-key="$SSH_KEY_FILE" \
-        --ssh-common-args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=60 -o ServerAliveCountMax=3 -o ConnectTimeout=30' \
-        -vvvv \
-        --diff \
-        --timeout=600 \
-        "$PLAYBOOK_FILE" 2>&1 | tee "$LOG_FILE" | tee "$GITHUB_WORKSPACE_LOG"
-}
-
 # Execute with comprehensive logging
 echo "🎬 STARTING ANSIBLE EXECUTION..."
 echo "==============================="
 
 # Add timeout wrapper for GitHub Actions (max 45 minutes)
 echo "⏰ Setting up 45-minute timeout for GitHub Actions..."
-timeout 2700 log_and_display &
-ANSIBLE_PID=$!
+echo "🚀 EXECUTING ANSIBLE COMMAND:"
+echo "ansible-playbook -i $INVENTORY_FILE -u ubuntu --private-key=$SSH_KEY_FILE [with debug flags]"
+echo ""
+echo "⏱️  Starting at: $(date)"
+echo "📡 This may take 15-30 minutes for RKE2 installation..."
+echo "🔄 Real-time output follows:"
+echo "=================================================================================="
 
-# Monitor the process
-echo "📊 Monitoring Ansible execution (PID: $ANSIBLE_PID)..."
-wait $ANSIBLE_PID
-ANSIBLE_EXIT_CODE=$?
+# Execute ansible-playbook with timeout (45 minutes = 2700 seconds)
+timeout 2700 ansible-playbook \
+    -i "$INVENTORY_FILE" \
+    -u ubuntu \
+    --private-key="$SSH_KEY_FILE" \
+    --ssh-common-args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=60 -o ServerAliveCountMax=3 -o ConnectTimeout=30' \
+    -vvvv \
+    --diff \
+    --timeout=600 \
+    "$PLAYBOOK_FILE" 2>&1 | tee "$LOG_FILE" | tee "$GITHUB_WORKSPACE_LOG"
+
+ANSIBLE_EXIT_CODE=${PIPESTATUS[0]}
 
 # Check if it was killed by timeout
 if [ $ANSIBLE_EXIT_CODE -eq 124 ]; then
