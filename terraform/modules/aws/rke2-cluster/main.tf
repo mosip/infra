@@ -97,8 +97,8 @@ locals {
 
 resource "null_resource" "rke2-primary-cluster-setup" {
   triggers = {
-    #node_hash   = md5(local.K8S_CLUSTER_PRIVATE_IPS_STR)
-    #script_hash = filemd5("${path.module}/rke2-setup.sh")
+    node_hash   = md5(local.K8S_CLUSTER_PRIVATE_IPS_STR)
+    script_hash = filemd5("${path.module}/rke2-setup.sh")
   }
   # Upload script as a file first
   provisioner "file" {
