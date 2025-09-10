@@ -192,15 +192,15 @@ echo "📡 This may take 15-30 minutes for RKE2 installation..."
 echo "🔄 Real-time output follows:"
 echo "=================================================================================="
 
-# Execute ansible-playbook with timeout (30 minutes = 1800 seconds)
-timeout 1800 ansible-playbook \
+# Execute ansible-playbook with timeout (45 minutes = 2700 seconds)
+timeout 2700 ansible-playbook \
     -i "$INVENTORY_FILE" \
     -u ubuntu \
     --private-key="$SSH_KEY_FILE" \
     --ssh-common-args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -o ServerAliveCountMax=5 -o ConnectTimeout=30' \
     -vvvv \
     --diff \
-    --timeout=600 \
+    --timeout=900 \
     "$PLAYBOOK_FILE" 2>&1 | tee "$LOG_FILE" | tee "$GITHUB_WORKSPACE_LOG"
 
 ANSIBLE_EXIT_CODE=${PIPESTATUS[0]}
@@ -208,7 +208,7 @@ ANSIBLE_EXIT_CODE=${PIPESTATUS[0]}
 # Check if it was killed by timeout
 if [ $ANSIBLE_EXIT_CODE -eq 124 ]; then
     echo ""
-    echo "⏰ TIMEOUT: Ansible execution exceeded 30 minutes and was terminated"
+    echo "⏰ TIMEOUT: Ansible execution exceeded 45 minutes and was terminated"
     echo "This suggests the playbook is hanging or nodes are not responding properly"
     ANSIBLE_EXIT_CODE=1
 fi

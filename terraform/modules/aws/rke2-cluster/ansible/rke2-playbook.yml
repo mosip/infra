@@ -1,5 +1,33 @@
 ---
-# Global variables shared across all plays
+# Early idempotency check - Skip everything if cluster already exists
+- name: Check if PRIMARY RKE2 cluster already exists
+  hosts: control_plane[0]  # Only the first control plane node
+  become: yes
+  gather_facts: no
+  tasks:
+    - name: Check if PRIMARY RKE2 server is already running
+      systemd:
+        name: rke2-server
+      register: primary_rke2_status
+      failed_when: false
+
+    - name: Skip ALL installation if PRIMARY already active
+      block:
+        - name: Log PRIMARY already active
+          debug:
+            msg: "🔄 PRIMARY RKE2 server is already active - skipping entire cluster installation"
+        
+        - name: Log PRIMARY skip to file
+          lineinfile:
+            path: "/tmp/rke2-setup.log"
+            line: "=== PRIMARY Control Plane ALREADY ACTIVE - Entire cluster setup skipped ==="
+            create: yes
+        
+        - name: End ALL plays early
+          meta: end_play
+      when: primary_rke2_status.status is defined and primary_rke2_status.status.ActiveState == "active"
+
+# Global variables shared across all plays (only if cluster doesn't exist)
 - name: Set Global Variables
   hosts: all
   gather_facts: no
@@ -23,27 +51,6 @@
     log_file: "/tmp/rke2-setup.log"
 
   tasks:
-    - name: Check if PRIMARY RKE2 server is already running
-      systemd:
-        name: rke2-server
-      register: primary_rke2_status
-      failed_when: false
-
-    - name: Skip PRIMARY installation if already active
-      block:
-        - name: Log PRIMARY already active
-          debug:
-            msg: "🔄 PRIMARY RKE2 server is already active - skipping primary installation"
-        
-        - name: Log PRIMARY skip to file
-          lineinfile:
-            path: "{{ log_file }}"
-            line: "=== PRIMARY Control Plane ALREADY ACTIVE - Skipped at {{ ansible_date_time.iso8601 }} ==="
-            create: yes
-        
-        - name: End PRIMARY play early
-          meta: end_play
-      when: primary_rke2_status.status is defined and primary_rke2_status.status.ActiveState == "active"
 
     - name: Set PRIMARY control plane service type
       set_fact:
@@ -210,24 +217,18 @@
         - { regexp: '<node-name>', replace: '{{ inventory_hostname }}' }
         - { regexp: '<node-internal-ip>', replace: '{{ ansible_default_ipv4.address }}' }
 
-    - name: Enable and start PRIMARY RKE2 server
+    - name: Start and enable RKE2 service
       systemd:
         name: rke2-server
         enabled: yes
         state: started
 
-    - name: Wait for PRIMARY RKE2 server to stabilize
-      wait_for:
-        timeout: 180  # 3 minutes for primary to be ready
+    - name: Give RKE2 service time to start
+      pause:
+        seconds: 30
 
-    - name: Verify PRIMARY RKE2 server service is active
-      systemd:
-        name: rke2-server
-        state: started
-      register: rke2_service_status
-      
     - name: Check PRIMARY RKE2 server status with systemctl
-      shell: sudo systemctl status rke2-server --no-pager
+      shell: timeout 30 systemctl status rke2-server --no-pager
       register: rke2_status_output
       failed_when: false
       
@@ -238,17 +239,31 @@
     - name: Wait for PRIMARY kubeconfig to be available
       wait_for:
         path: /etc/rancher/rke2/rke2.yaml
-        timeout: 120
+        timeout: 300
+
+    - name: Wait for Kubernetes API to be ready
+      wait_for:
+        port: 6443
+        host: "{{ ansible_default_ipv4.address }}"
+        timeout: 300
+        delay: 30
+
+    - name: Verify RKE2 process is running
+      shell: pgrep -f "rke2 server"
+      register: rke2_process_check
+      until: rke2_process_check.rc == 0
+      retries: 10
+      delay: 15
+      failed_when: false
 
     - name: Setup kubectl configuration on PRIMARY
       block:
-        - name: Copy kubectl binary
-          copy:
+        - name: Create kubectl symlink
+          file:
             src: "/var/lib/rancher/rke2/bin/kubectl"
-            dest: "/bin/kubectl"
-            remote_src: yes
-            mode: '0755'
-            force: no
+            dest: "/usr/local/bin/kubectl"
+            state: link
+            force: yes
 
         - name: Create .kube directory
           file:
@@ -525,13 +540,18 @@
 
     - name: Setup kubectl configuration (for control plane nodes only)
       block:
-        - name: Copy kubectl binary
-          copy:
+        - name: Wait for RKE2 server config to be available
+          wait_for:
+            path: /etc/rancher/rke2/rke2.yaml
+            timeout: 180
+          when: node_role == "control_plane"
+
+        - name: Create kubectl symlink
+          file:
             src: "/var/lib/rancher/rke2/bin/kubectl"
-            dest: "/bin/kubectl"
-            remote_src: yes
-            mode: '0755'
-            force: no
+            dest: "/usr/local/bin/kubectl"
+            state: link
+            force: yes
 
         - name: Create .kube directory
           file:

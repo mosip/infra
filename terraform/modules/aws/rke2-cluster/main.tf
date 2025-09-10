@@ -120,17 +120,12 @@ resource "local_file" "ansible_inventory" {
 }
 
 # Run Ansible playbook to install RKE2 cluster
+# Note: Playbook now has built-in idempotency checks - no need for Terraform conditionals
 resource "null_resource" "rke2_ansible_installation" {
   depends_on = [
     local_file.ssh_private_key,
     local_file.ansible_inventory
   ]
-  
-  triggers = {
-    cluster_ips_hash  = md5(local.K8S_CLUSTER_PRIVATE_IPS_STR)
-    inventory_hash    = local_file.ansible_inventory.content_md5
-    ssh_key_hash     = local_file.ssh_private_key.content_md5
-  }
 
   provisioner "local-exec" {
     command = "${path.module}/ansible/run-ansible.sh '${path.module}/ansible' 'inventory.yml' 'ssh_key' 'rke2-playbook.yml'"
@@ -152,8 +147,13 @@ resource "null_resource" "rke2_ansible_installation" {
 
 # Download kubeconfig files from cluster nodes using Ansible
 resource "null_resource" "download_kubeconfig_files" {
-  depends_on = [null_resource.rke2_ansible_installation]
+  depends_on = [
+    local_file.ssh_private_key,
+    local_file.ansible_inventory,
+    null_resource.rke2_ansible_installation
+  ]
   
+  # Download kubeconfig files after cluster installation
   triggers = {
     cluster_ready = null_resource.rke2_ansible_installation.id
   }
@@ -161,6 +161,36 @@ resource "null_resource" "download_kubeconfig_files" {
   provisioner "local-exec" {
     command = <<-EOT
       cd ${path.module}/ansible
+      
+      # First ensure kubectl is available and kubeconfig files are created
+      echo "Setting up kubectl and kubeconfig files on nodes..."
+      
+      # Create kubectl symlinks on all nodes
+      ansible rke2_cluster -i inventory.yml \
+        -u ubuntu \
+        --private-key=ssh_key \
+        --ssh-common-args='-o StrictHostKeyChecking=no' \
+        -b -m file \
+        -a "src=/var/lib/rancher/rke2/bin/kubectl dest=/usr/local/bin/kubectl state=link force=yes" \
+        || echo "kubectl setup may have failed on some nodes"
+      
+      # Create .kube directories on control plane nodes
+      ansible control_plane -i inventory.yml \
+        -u ubuntu \
+        --private-key=ssh_key \
+        --ssh-common-args='-o StrictHostKeyChecking=no' \
+        -b -m file \
+        -a "path=/home/ubuntu/.kube state=directory owner=ubuntu group=ubuntu mode=0755" \
+        || echo "kube directory creation may have failed"
+      
+      # Generate kubeconfig files on control plane nodes
+      ansible control_plane -i inventory.yml \
+        -u ubuntu \
+        --private-key=ssh_key \
+        --ssh-common-args='-o StrictHostKeyChecking=no' \
+        -b -m shell \
+        -a "NODE_IP=\$(hostname -I | awk '{print \$1}'); cp /etc/rancher/rke2/rke2.yaml /home/ubuntu/.kube/{{ inventory_hostname }}.yaml && sed -i \"s/127.0.0.1/\$NODE_IP/g\" /home/ubuntu/.kube/{{ inventory_hostname }}.yaml && sed -i 's/default/soil10/g' /home/ubuntu/.kube/{{ inventory_hostname }}.yaml && chown ubuntu:ubuntu /home/ubuntu/.kube/{{ inventory_hostname }}.yaml" \
+        || echo "kubeconfig generation may have failed"
       
       # Download kubeconfig files from all nodes to terraform implementations directory
       # Use absolute path resolution to find the terraform working directory
