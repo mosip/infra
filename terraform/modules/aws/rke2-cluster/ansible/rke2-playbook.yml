@@ -262,15 +262,15 @@
           shell: |
             cat /etc/rancher/rke2/rke2.yaml | \
             sed "s/127.0.0.1/{{ ansible_default_ipv4.address }}/g" | \
-            sed "s/default/{{ cluster_env_domain }}/g" > \
-            "/home/ubuntu/.kube/{{ cluster_env_domain }}-{{ inventory_hostname }}.yaml"
+            sed "s/default/{{ cluster_name }}/g" > \
+            "/home/ubuntu/.kube/{{ cluster_name }}-{{ inventory_hostname }}.yaml"
           args:
             executable: /bin/bash
-            creates: "/home/ubuntu/.kube/{{ cluster_env_domain }}-{{ inventory_hostname }}.yaml"
+            creates: "/home/ubuntu/.kube/{{ cluster_name }}-{{ inventory_hostname }}.yaml"
 
         - name: Set kubeconfig ownership and permissions
           file:
-            path: "/home/ubuntu/.kube/{{ cluster_env_domain }}-{{ inventory_hostname }}.yaml"
+            path: "/home/ubuntu/.kube/{{ cluster_name }}-{{ inventory_hostname }}.yaml"
             owner: ubuntu
             group: ubuntu
             mode: '0444'
@@ -283,7 +283,7 @@
       until: kubectl_result.rc == 0
       become_user: ubuntu
       environment:
-        KUBECONFIG: "/home/ubuntu/.kube/{{ cluster_env_domain }}-{{ inventory_hostname }}.yaml"
+        KUBECONFIG: "/home/ubuntu/.kube/{{ cluster_name }}-{{ inventory_hostname }}.yaml"
 
     - name: Log PRIMARY completion
       lineinfile:
@@ -545,15 +545,15 @@
           shell: |
             cat /etc/rancher/rke2/rke2.yaml | \
             sed "s/127.0.0.1/{{ ansible_default_ipv4.address }}/g" | \
-            sed "s/default/{{ cluster_env_domain }}/g" > \
-            "/home/ubuntu/.kube/{{ cluster_env_domain }}-{{ inventory_hostname }}.yaml"
+            sed "s/default/{{ cluster_name }}/g" > \
+            "/home/ubuntu/.kube/{{ cluster_name }}-{{ inventory_hostname }}.yaml"
           args:
             executable: /bin/bash
-            creates: "/home/ubuntu/.kube/{{ cluster_env_domain }}-{{ inventory_hostname }}.yaml"
+            creates: "/home/ubuntu/.kube/{{ cluster_name }}-{{ inventory_hostname }}.yaml"
 
         - name: Set kubeconfig ownership and permissions
           file:
-            path: "/home/ubuntu/.kube/{{ cluster_env_domain }}-{{ inventory_hostname }}.yaml"
+            path: "/home/ubuntu/.kube/{{ cluster_name }}-{{ inventory_hostname }}.yaml"
             owner: ubuntu
             group: ubuntu
             mode: '0444'
@@ -578,14 +578,14 @@
       until: node_count.stdout | int >= (groups['rke2_cluster'] | length)
       become_user: ubuntu
       environment:
-        KUBECONFIG: "/home/ubuntu/.kube/{{ cluster_env_domain }}-{{ inventory_hostname }}.yaml"
+        KUBECONFIG: "/home/ubuntu/.kube/{{ cluster_name }}-{{ inventory_hostname }}.yaml"
 
     - name: Display cluster status
       shell: kubectl get nodes -o wide
       register: cluster_status
       become_user: ubuntu
       environment:
-        KUBECONFIG: "/home/ubuntu/.kube/{{ cluster_env_domain }}-{{ inventory_hostname }}.yaml"
+        KUBECONFIG: "/home/ubuntu/.kube/{{ cluster_name }}-{{ inventory_hostname }}.yaml"
 
     - name: Show cluster nodes
       debug:
@@ -596,7 +596,7 @@
       when: enable_rancher_import | bool
       become_user: ubuntu
       environment:
-        KUBECONFIG: "/home/ubuntu/.kube/{{ cluster_env_domain }}-{{ inventory_hostname }}.yaml"
+        KUBECONFIG: "/home/ubuntu/.kube/{{ cluster_name }}-{{ inventory_hostname }}.yaml"
       ignore_errors: yes
 
     - name: Final success message
