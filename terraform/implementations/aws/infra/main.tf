@@ -37,6 +37,7 @@ module "mosip_infra" {
   rancher_import_url           = var.rancher_import_url
   k8s_infra_repo_url           = var.k8s_infra_repo_url
   k8s_infra_branch             = var.k8s_infra_branch
+  rke2_version                 = var.rke2_version
 
   # PostgreSQL Configuration
   enable_postgresql_setup = var.enable_postgresql_setup

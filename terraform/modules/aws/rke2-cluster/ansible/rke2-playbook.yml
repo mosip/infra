@@ -1,18 +1,54 @@
 ---
+# Global variables shared across all plays
+- name: Set Global Variables
+  hosts: all
+  gather_facts: no
+  tasks:
+    - name: Generate cluster token (deterministic based on cluster name)
+      set_fact:
+        cluster_token: "{{ cluster_name | hash('md5') | truncate(32, True, '') }}"
+        cacheable: yes
+
 # Play 1: Install Primary Control Plane Node FIRST (Sequential)
 - name: Install Primary RKE2 Control Plane Node
   hosts: control_plane[0]  # Only the first control plane node
   become: yes
-  gather_facts: no  # Disable automatic fact gathering to avoid hanging
+  gather_facts: yes  # Enable fact gathering to get ansible_default_ipv4
   serial: 1  # Ensure only one node runs at a time
   vars:
-    rke2_version: "v1.28.9+rke2r1"
+    rke2_version: "{{ install_rke2_version | default('v1.28.9+rke2r1') }}"
     rke2_config_dir: "/etc/rancher/rke2"
     rke2_data_dir: "/var/lib/rancher/rke2"
     env_file_path: "/etc/environment"
     log_file: "/tmp/rke2-setup.log"
 
   tasks:
+    - name: Check if PRIMARY RKE2 server is already running
+      systemd:
+        name: rke2-server
+      register: primary_rke2_status
+      failed_when: false
+
+    - name: Skip PRIMARY installation if already active
+      block:
+        - name: Log PRIMARY already active
+          debug:
+            msg: "🔄 PRIMARY RKE2 server is already active - skipping primary installation"
+        
+        - name: Log PRIMARY skip to file
+          lineinfile:
+            path: "{{ log_file }}"
+            line: "=== PRIMARY Control Plane ALREADY ACTIVE - Skipped at {{ ansible_date_time.iso8601 }} ==="
+            create: yes
+        
+        - name: End PRIMARY play early
+          meta: end_play
+      when: primary_rke2_status.status is defined and primary_rke2_status.status.ActiveState == "active"
+
+    - name: Set PRIMARY control plane service type
+      set_fact:
+        rke2_service: "rke2-server"
+
     - name: "🚀 GITHUB ACTIONS DEBUG - Manual fact gathering with timeout"
       setup:
         gather_subset:
@@ -23,6 +59,10 @@
       async: 300  # 5 minute timeout
       poll: 10
       register: fact_gathering_result
+
+    - name: Get primary control plane IP
+      set_fact:
+        primary_control_plane_ip: "{{ hostvars[groups['control_plane'][0]]['ansible_default_ipv4']['address'] }}"
 
     - name: "🔍 GITHUB ACTIONS DEBUG - Show basic node information"
       debug:
@@ -127,6 +167,7 @@
     - name: Download and install RKE2
       shell: |
         {{ bash_opts }}
+        export INSTALL_RKE2_VERSION="{{ rke2_version }}"
         curl -sfL https://get.rke2.io | sh -
       args:
         executable: /bin/bash
@@ -137,15 +178,16 @@
         repo: "{{ k8s_infra_repo_url }}"
         dest: "/home/ubuntu/k8s-infra"
         version: "{{ k8s_infra_branch }}"
-        force: yes
+        force: no
+        update: yes
       become_user: ubuntu
       ignore_errors: yes
 
     - name: Copy RKE2 config templates
       shell: |
         {{ bash_opts }}
-        cd /home/ubuntu/k8s-infra/rke2/rke2-cluster-configuration
-        cp *.template {{ rke2_config_dir }}/
+        cd /home/ubuntu/k8s-infra/k8-cluster/on-prem/rke2
+        cp -n *.template {{ rke2_config_dir }}/ || true
       args:
         executable: /bin/bash
       ignore_errors: yes
@@ -155,6 +197,18 @@
         src: "{{ rke2_config_dir }}/rke2-server-control-plane-primary.conf.template"
         dest: "{{ rke2_config_dir }}/config.yaml"
         remote_src: yes
+        force: no
+        backup: yes
+
+    - name: Replace placeholders in PRIMARY config
+      replace:
+        path: "{{ rke2_config_dir }}/config.yaml"
+        regexp: "{{ item.regexp }}"
+        replace: "{{ item.replace }}"
+      loop:
+        - { regexp: '<configure-some-token-here>', replace: '{{ cluster_token }}' }
+        - { regexp: '<node-name>', replace: '{{ inventory_hostname }}' }
+        - { regexp: '<node-internal-ip>', replace: '{{ ansible_default_ipv4.address }}' }
 
     - name: Enable and start PRIMARY RKE2 server
       systemd:
@@ -165,6 +219,21 @@
     - name: Wait for PRIMARY RKE2 server to stabilize
       wait_for:
         timeout: 180  # 3 minutes for primary to be ready
+
+    - name: Verify PRIMARY RKE2 server service is active
+      systemd:
+        name: rke2-server
+        state: started
+      register: rke2_service_status
+      
+    - name: Check PRIMARY RKE2 server status with systemctl
+      shell: sudo systemctl status rke2-server --no-pager
+      register: rke2_status_output
+      failed_when: false
+      
+    - name: Display PRIMARY RKE2 server status
+      debug:
+        msg: "{{ rke2_status_output.stdout_lines }}"
 
     - name: Wait for PRIMARY kubeconfig to be available
       wait_for:
@@ -179,6 +248,7 @@
             dest: "/bin/kubectl"
             remote_src: yes
             mode: '0755'
+            force: no
 
         - name: Create .kube directory
           file:
@@ -196,6 +266,7 @@
             "/home/ubuntu/.kube/{{ cluster_env_domain }}-{{ inventory_hostname }}.yaml"
           args:
             executable: /bin/bash
+            creates: "/home/ubuntu/.kube/{{ cluster_env_domain }}-{{ inventory_hostname }}.yaml"
 
         - name: Set kubeconfig ownership and permissions
           file:
@@ -226,13 +297,38 @@
   gather_facts: yes
   strategy: free  # This enables parallel execution across all hosts
   vars:
-    rke2_version: "v1.28.9+rke2r1"
+    rke2_version: "{{ install_rke2_version | default('v1.28.9+rke2r1') }}"
     rke2_config_dir: "/etc/rancher/rke2"
     rke2_data_dir: "/var/lib/rancher/rke2"
     env_file_path: "/etc/environment"
     log_file: "/tmp/rke2-setup.log"
 
   tasks:
+    - name: Determine expected RKE2 service for this node
+      set_fact:
+        expected_rke2_service: "{{ 'rke2-server' if node_role == 'control_plane' else 'rke2-agent' }}"
+
+    - name: Check if RKE2 service is already running
+      systemd:
+        name: "{{ expected_rke2_service }}"
+      register: node_rke2_status
+      failed_when: false
+
+    - name: Skip node installation if already active
+      block:
+        - name: Log node already active
+          debug:
+            msg: "🔄 {{ node_role | upper }} RKE2 service {{ expected_rke2_service }} is already active - skipping installation"
+        
+        - name: Log node skip to file
+          lineinfile:
+            path: "{{ log_file }}"
+            line: "=== {{ node_role | upper }} {{ expected_rke2_service }} ALREADY ACTIVE - Skipped at {{ ansible_date_time.iso8601 }} ==="
+            create: yes
+        
+        - name: End node play early
+          meta: end_host
+      when: node_rke2_status.status is defined and node_rke2_status.status.ActiveState == "active"
     - name: Set error handling for bash
       set_fact:
         bash_opts: "set -e && set -o errexit && set -o nounset && set -o errtrace && set -o pipefail"
@@ -284,6 +380,7 @@
     - name: Download and install RKE2
       shell: |
         {{ bash_opts }}
+        export INSTALL_RKE2_VERSION="{{ rke2_version }}"
         curl -sfL https://get.rke2.io | sh -
       args:
         executable: /bin/bash
@@ -294,15 +391,16 @@
         repo: "{{ k8s_infra_repo_url }}"
         dest: "/home/ubuntu/k8s-infra"
         version: "{{ k8s_infra_branch }}"
-        force: yes
+        force: no
+        update: yes
       become_user: ubuntu
       ignore_errors: yes
 
     - name: Copy RKE2 config templates
       shell: |
         {{ bash_opts }}
-        cd /home/ubuntu/k8s-infra/rke2/rke2-cluster-configuration
-        cp *.template {{ rke2_config_dir }}/
+        cd /home/ubuntu/k8s-infra/k8-cluster/on-prem/rke2
+        cp -n *.template {{ rke2_config_dir }}/ || true
       args:
         executable: /bin/bash
       ignore_errors: yes
@@ -314,6 +412,19 @@
             src: "{{ rke2_config_dir }}/rke2-server-control-plane.subsequent.conf.template"
             dest: "{{ rke2_config_dir }}/config.yaml"
             remote_src: yes
+            force: no
+            backup: yes
+
+        - name: Replace placeholders in subsequent control plane config
+          replace:
+            path: "{{ rke2_config_dir }}/config.yaml"
+            regexp: "{{ item.regexp }}"
+            replace: "{{ item.replace }}"
+          loop:
+            - { regexp: '<configure-some-token-here>', replace: '{{ cluster_token }}' }
+            - { regexp: '<node-name>', replace: '{{ inventory_hostname }}' }
+            - { regexp: '<node-internal-ip>', replace: '{{ ansible_default_ipv4.address }}' }
+            - { regexp: '<primary-server-ip>', replace: '{{ hostvars[groups["control_plane"][0]]["ansible_default_ipv4"]["address"] }}' }
             
         - name: Set RKE2 service type for subsequent control plane
           lineinfile:
@@ -332,6 +443,19 @@
             src: "{{ rke2_config_dir }}/rke2-etcd-agents.conf.template"
             dest: "{{ rke2_config_dir }}/config.yaml"
             remote_src: yes
+            force: no
+            backup: yes
+
+        - name: Replace placeholders in ETCD config
+          replace:
+            path: "{{ rke2_config_dir }}/config.yaml"
+            regexp: "{{ item.regexp }}"
+            replace: "{{ item.replace }}"
+          loop:
+            - { regexp: '<configure-some-token-here>', replace: '{{ cluster_token }}' }
+            - { regexp: '<node-name>', replace: '{{ inventory_hostname }}' }
+            - { regexp: '<node-internal-ip>', replace: '{{ ansible_default_ipv4.address }}' }
+            - { regexp: '<primary-server-ip>', replace: '{{ hostvars[groups["control_plane"][0]]["ansible_default_ipv4"]["address"] }}' }
             
         - name: Set RKE2 service type for ETCD
           lineinfile:
@@ -350,6 +474,19 @@
             src: "{{ rke2_config_dir }}/rke2-agents.conf.template"
             dest: "{{ rke2_config_dir }}/config.yaml"
             remote_src: yes
+            force: no
+            backup: yes
+
+        - name: Replace placeholders in worker config
+          replace:
+            path: "{{ rke2_config_dir }}/config.yaml"
+            regexp: "{{ item.regexp }}"
+            replace: "{{ item.replace }}"
+          loop:
+            - { regexp: '<configure-some-token-here>', replace: '{{ cluster_token }}' }
+            - { regexp: '<node-name>', replace: '{{ inventory_hostname }}' }
+            - { regexp: '<node-internal-ip>', replace: '{{ ansible_default_ipv4.address }}' }
+            - { regexp: '<primary-server-ip>', replace: '{{ hostvars[groups["control_plane"][0]]["ansible_default_ipv4"]["address"] }}' }
             
         - name: Set RKE2 service type for workers
           lineinfile:
@@ -371,6 +508,21 @@
       wait_for:
         timeout: 120
 
+    - name: Verify RKE2 service is active
+      systemd:
+        name: "{{ rke2_service }}"
+        state: started
+      register: rke2_service_status
+      
+    - name: Check RKE2 service status with systemctl
+      shell: sudo systemctl status {{ rke2_service }} --no-pager
+      register: rke2_status_output
+      failed_when: false
+      
+    - name: Display RKE2 service status
+      debug:
+        msg: "{{ rke2_status_output.stdout_lines }}"
+
     - name: Setup kubectl configuration (for control plane nodes only)
       block:
         - name: Copy kubectl binary
@@ -379,6 +531,7 @@
             dest: "/bin/kubectl"
             remote_src: yes
             mode: '0755'
+            force: no
 
         - name: Create .kube directory
           file:
@@ -396,6 +549,7 @@
             "/home/ubuntu/.kube/{{ cluster_env_domain }}-{{ inventory_hostname }}.yaml"
           args:
             executable: /bin/bash
+            creates: "/home/ubuntu/.kube/{{ cluster_env_domain }}-{{ inventory_hostname }}.yaml"
 
         - name: Set kubeconfig ownership and permissions
           file:

@@ -496,6 +496,8 @@ module "rke2-setup" {
   RANCHER_IMPORT_URL      = var.RANCHER_IMPORT_URL
   K8S_INFRA_REPO_URL      = var.K8S_INFRA_REPO_URL
   ENABLE_RANCHER_IMPORT   = var.ENABLE_RANCHER_IMPORT
+  RKE2_VERSION            = var.RKE2_VERSION
+  CLUSTER_NAME            = var.CLUSTER_NAME
 }
 module "nfs-setup" {
   depends_on          = [module.aws-resource-creation, module.rke2-setup]

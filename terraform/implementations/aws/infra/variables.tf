@@ -106,6 +106,16 @@ variable "k8s_infra_branch" {
   type        = string
 }
 
+variable "rke2_version" {
+  description = "RKE2 version to install"
+  type        = string
+  default     = "v1.32.8+rke2r1"
+  validation {
+    condition     = can(regex("^v[0-9]+\\.[0-9]+\\.[0-9]+\\+rke2r[0-9]+$", var.rke2_version))
+    error_message = "RKE2 version must be in format 'vX.Y.Z+rke2rN' (e.g., 'v1.28.9+rke2r1')"
+  }
+}
+
 variable "k8s_instance_type" {
   description = "Instance type for K8s nodes"
   type        = string

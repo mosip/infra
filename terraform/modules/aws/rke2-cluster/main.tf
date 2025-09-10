@@ -11,6 +11,17 @@ variable "K8S_INFRA_REPO_URL" {
 
 variable "K8S_INFRA_BRANCH" { type = string }
 
+variable "RKE2_VERSION" {
+  description = "RKE2 version to install"
+  type        = string
+  default     = "v1.32.8+rke2r1"
+}
+
+variable "CLUSTER_NAME" {
+  description = "Name of the cluster for node naming"
+  type        = string
+}
+
 variable "ENABLE_RANCHER_IMPORT" {
   description = "Enable Rancher import after cluster setup"
   type        = bool
@@ -26,18 +37,8 @@ variable "RANCHER_IMPORT_URL" {
     error_message = "The RANCHER_IMPORT_URL must be in the format: '\"kubectl apply -f https://rancher.mosip.net/v3/import/<ID>.yaml\"'"
   }
 }
-# Generate a random string (token)
-resource "random_string" "K8S_TOKEN" {
-  length  = 32    # Length of the token
-  upper   = true  # Include uppercase letters
-  lower   = true  # Include lowercase letters
-  numeric = true  # Include numbers
-  special = false # Include special characters (true/false)
-  # override_special = "$%&^@#"
-  # min_numeric = 5
-  # min_upper = 5
-  # min_lower = 5
-}
+# Token generation handled by ansible for better security and distribution
+# Ansible generates token once on primary node and distributes to all subsequent nodes
 
 locals {
   CONTROL_PLANE_NODE_1        = element([for key, value in var.K8S_CLUSTER_PRIVATE_IPS : value if length(regexall(".*CONTROL-PLANE-NODE-1", key)) > 0], 0)
@@ -49,12 +50,12 @@ locals {
     CONTROL_PLANE_NODE_1        = local.CONTROL_PLANE_NODE_1
     WORK_DIR                    = "/home/ubuntu/"
     RKE2_CONFIG_DIR             = "/etc/rancher/rke2"
-    INSTALL_RKE2_VERSION        = "v1.28.9+rke2r1"
+    INSTALL_RKE2_VERSION        = var.RKE2_VERSION
     K8S_INFRA_REPO_URL          = var.K8S_INFRA_REPO_URL
     K8S_INFRA_BRANCH            = var.K8S_INFRA_BRANCH
     RKE2_LOCATION               = "/home/ubuntu/k8s-infra/k8-cluster/on-prem/rke2/"
     K8S_CLUSTER_PRIVATE_IPS_STR = local.K8S_CLUSTER_PRIVATE_IPS_STR
-    K8S_TOKEN                   = random_string.K8S_TOKEN.result
+    CLUSTER_NAME                = var.CLUSTER_NAME
     ENABLE_RANCHER_IMPORT       = var.ENABLE_RANCHER_IMPORT ? "true" : "false"
   }
 
@@ -90,10 +91,11 @@ resource "local_file" "ssh_private_key" {
 # Generate Ansible inventory from Terraform data
 resource "local_file" "ansible_inventory" {
   content = templatefile("${path.module}/ansible/inventory.yml.tpl", {
-    cluster_name         = random_string.K8S_TOKEN.result  # Using token as cluster identifier
+    cluster_name         = var.CLUSTER_NAME               # Using actual cluster name
     cluster_env_domain   = "mosip.local"                  # You can make this a variable
     k8s_infra_repo_url   = var.K8S_INFRA_REPO_URL
     k8s_infra_branch     = var.K8S_INFRA_BRANCH
+    install_rke2_version = var.RKE2_VERSION
     enable_rancher_import = var.ENABLE_RANCHER_IMPORT
     rancher_import_url   = var.ENABLE_RANCHER_IMPORT ? var.RANCHER_IMPORT_URL : ""
     
@@ -137,6 +139,7 @@ resource "null_resource" "rke2_ansible_installation" {
       ANSIBLE_HOST_KEY_CHECKING = "False"
       ANSIBLE_SSH_RETRIES      = "3"
       ANSIBLE_TIMEOUT          = "30"
+      INSTALL_RKE2_VERSION     = var.RKE2_VERSION
     }
   }
 
@@ -159,45 +162,19 @@ resource "null_resource" "download_kubeconfig_files" {
     command = <<-EOT
       cd ${path.module}/ansible
       
-      # Create local kubeconfig directory
-      mkdir -p ./kubeconfigs
-      
-      # Download kubeconfig files from all nodes
-      ansible rke2_cluster -i inventory.yml 
-        -u ubuntu 
-        --private-key=ssh_key 
-        --ssh-common-args='-o StrictHostKeyChecking=no' 
-        -m fetch 
-        -a "src=/home/ubuntu/.kube/{{ cluster_env_domain }}-{{ inventory_hostname }}.yaml dest=./kubeconfigs/ flat=yes" 
+      # Download kubeconfig files from all nodes to terraform working directory
+      ansible rke2_cluster -i inventory.yml \
+        -u ubuntu \
+        --private-key=ssh_key \
+        --ssh-common-args='-o StrictHostKeyChecking=no' \
+        -m fetch \
+        -a "src=/home/ubuntu/.kube/{{ inventory_hostname }}.yaml dest=../../../../implementations/aws/infra/ flat=yes" \
         || echo "Some kubeconfig downloads may have failed - this is expected for worker nodes"
     EOT
   }
 }
 
-# Optional: Download primary kubeconfig for immediate use
-resource "null_resource" "download_primary_kubeconfig" {
-  depends_on = [null_resource.rke2_ansible_installation]
-  
-  provisioner "local-exec" {
-    command = <<-EOT
-      cd ${path.module}/ansible
-      
-      # Get the first control plane node IP
-      CONTROL_PLANE_IP=$(cat inventory.yml | grep -A 5 "control_plane:" | grep "ansible_host:" | head -1 | awk '{print $2}')
-      
-      if [ ! -z "$CONTROL_PLANE_IP" ]; then
-        echo "Downloading primary kubeconfig from $CONTROL_PLANE_IP"
-        scp -o StrictHostKeyChecking=no -i ssh_key ubuntu@$CONTROL_PLANE_IP:/etc/rancher/rke2/rke2.yaml ./primary-kubeconfig.yaml || true
-        
-        # Update server IP in kubeconfig
-        if [ -f "./primary-kubeconfig.yaml" ]; then
-          sed -i "s/127.0.0.1/$CONTROL_PLANE_IP/g" ./primary-kubeconfig.yaml
-          echo "Primary kubeconfig saved to: ${path.module}/ansible/primary-kubeconfig.yaml"
-        fi
-      fi
-    EOT
-  }
-}
+# Removed primary kubeconfig download - keeping only node-specific kubeconfigs
 
 output "CONTROL_PLANE_NODE_1" {
   value = local.CONTROL_PLANE_NODE_1
@@ -207,9 +184,8 @@ output "K8S_CLUSTER_PRIVATE_IPS_STR" {
   value = local.K8S_CLUSTER_PRIVATE_IPS_STR
 }
 
-output "K8S_TOKEN" {
-  value = random_string.K8S_TOKEN.result
-}
+# Token generation and management handled by ansible
+# No terraform output needed as ansible manages token internally
 
 output "ANSIBLE_INVENTORY_PATH" {
   value = "${path.module}/ansible/inventory.yml"

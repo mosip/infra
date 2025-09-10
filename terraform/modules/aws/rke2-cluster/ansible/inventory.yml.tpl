@@ -5,6 +5,7 @@ all:
     cluster_env_domain: "${cluster_env_domain}"
     k8s_infra_repo_url: "${k8s_infra_repo_url}"
     k8s_infra_branch: "${k8s_infra_branch}"
+    install_rke2_version: "${install_rke2_version}"
     enable_rancher_import: ${enable_rancher_import}
     rancher_import_url: "${rancher_import_url}"
     ansible_user: ubuntu

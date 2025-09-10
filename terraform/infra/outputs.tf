@@ -64,17 +64,8 @@ output "control_plane_node_1" {
   )
 }
 
-output "k8s_token" {
-  description = "Kubernetes cluster token"
-  value = var.cloud_provider == "aws" ? (
-    length(module.aws_infra) > 0 ? module.aws_infra[0].k8s_token : ""
-    ) : var.cloud_provider == "azure" ? (
-    length(module.azure_infra) > 0 ? module.azure_infra[0].k8s_token : ""
-    ) : (
-    length(module.gcp_infra) > 0 ? module.gcp_infra[0].k8s_token : ""
-  )
-  sensitive = true
-}
+# Token generation handled by ansible - no terraform output needed
+# output "k8s_token" removed as ansible manages token internally
 
 output "vpc_id" {
   description = "VPC/Network ID"

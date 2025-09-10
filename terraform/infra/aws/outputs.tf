@@ -24,11 +24,8 @@ output "control_plane_node_1" {
   value       = module.aws_infrastructure.CONTROL_PLANE_NODE_1
 }
 
-output "k8s_token" {
-  description = "Kubernetes cluster token"
-  value       = module.aws_infrastructure.K8S_TOKEN
-  sensitive   = true
-}
+# Token generation handled by ansible - no terraform output needed
+# output "k8s_token" removed as ansible manages token internally
 
 output "vpc_id" {
   description = "VPC ID"

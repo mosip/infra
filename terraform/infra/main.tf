@@ -44,6 +44,7 @@ module "aws_infra" {
   rancher_import_url            = var.rancher_import_url
   k8s_infra_repo_url            = var.k8s_infra_repo_url
   k8s_infra_branch              = var.k8s_infra_branch
+  rke2_version                  = var.rke2_version
   nginx_node_root_volume_size   = var.nginx_node_root_volume_size
   nginx_node_ebs_volume_size    = var.nginx_node_ebs_volume_size
   nginx_node_ebs_volume_size_2  = var.nginx_node_ebs_volume_size_2

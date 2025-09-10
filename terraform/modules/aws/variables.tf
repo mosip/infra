@@ -107,6 +107,16 @@ variable "K8S_INFRA_BRANCH" {
   default = "develop"
 }
 
+variable "RKE2_VERSION" {
+  description = "RKE2 version to install"
+  type        = string
+  default     = "v1.32.8+rke2r1"
+  validation {
+    condition     = can(regex("^v[0-9]+\\.[0-9]+\\.[0-9]+\\+rke2r[0-9]+$", var.RKE2_VERSION))
+    error_message = "RKE2 version must be in format 'vX.Y.Z+rke2rN' (e.g., 'v1.28.9+rke2r1')"
+  }
+}
+
 # AWS Configuration
 variable "aws_region" {
   description = "AWS region"

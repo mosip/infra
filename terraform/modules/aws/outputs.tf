@@ -42,10 +42,8 @@ output "K8S_CLUSTER_PRIVATE_IPS_STR" {
   value = module.rke2-setup.K8S_CLUSTER_PRIVATE_IPS_STR
 }
 
-output "K8S_TOKEN" {
-  value     = module.rke2-setup.K8S_TOKEN
-  sensitive = true
-}
+# Token generation handled by ansible - no output needed
+# K8S_TOKEN removed as ansible manages token internally
 
 # VPC Information
 output "VPC_ID" {

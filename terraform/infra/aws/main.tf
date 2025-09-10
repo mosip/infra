@@ -32,6 +32,7 @@ module "aws_infrastructure" {
   ZONE_ID                       = var.zone_id
   K8S_INFRA_REPO_URL            = var.k8s_infra_repo_url
   K8S_INFRA_BRANCH              = var.k8s_infra_branch
+  RKE2_VERSION                  = var.rke2_version
   vpc_name                      = var.vpc_name
   NGINX_NODE_ROOT_VOLUME_SIZE   = var.nginx_node_root_volume_size
   NGINX_NODE_EBS_VOLUME_SIZE    = var.nginx_node_ebs_volume_size
