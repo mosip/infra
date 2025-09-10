@@ -162,13 +162,17 @@ resource "null_resource" "download_kubeconfig_files" {
     command = <<-EOT
       cd ${path.module}/ansible
       
-      # Download kubeconfig files from all nodes to terraform working directory
+      # Download kubeconfig files from all nodes to terraform implementations directory
+      # Use absolute path resolution to find the terraform working directory
+      KUBECONFIG_DEST="$(cd ../../../../implementations/aws/infra && pwd)"
+      echo "Downloading kubeconfig files to: $KUBECONFIG_DEST"
+      
       ansible rke2_cluster -i inventory.yml \
         -u ubuntu \
         --private-key=ssh_key \
         --ssh-common-args='-o StrictHostKeyChecking=no' \
         -m fetch \
-        -a "src=/home/ubuntu/.kube/{{ inventory_hostname }}.yaml dest=../../../../implementations/aws/infra/ flat=yes" \
+        -a "src=/home/ubuntu/.kube/{{ cluster_env_domain }}-{{ inventory_hostname }}.yaml dest=$KUBECONFIG_DEST/ flat=yes" \
         || echo "Some kubeconfig downloads may have failed - this is expected for worker nodes"
     EOT
   }
