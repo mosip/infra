@@ -127,6 +127,13 @@ resource "null_resource" "rke2_ansible_installation" {
     local_file.ansible_inventory
   ]
 
+  # Trigger re-run when cluster composition changes
+  triggers = {
+    cluster_nodes = join(",", [for k, v in var.K8S_CLUSTER_PRIVATE_IPS : "${k}=${v}"])
+    inventory_content = local_file.ansible_inventory.content_sha256
+    rke2_version = var.RKE2_VERSION
+  }
+
   provisioner "local-exec" {
     command = "${path.module}/ansible/run-ansible.sh '${path.module}/ansible' 'inventory.yml' 'ssh_key' 'rke2-playbook.yml'"
     

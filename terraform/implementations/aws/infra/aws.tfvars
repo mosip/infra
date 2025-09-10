@@ -1,7 +1,7 @@
 # Environment name (infra component)
-cluster_name = "soil9"
+cluster_name = "soil11"
 # MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "soil9.mosip.net"
+cluster_env_domain = "soil11.mosip.net"
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
 mosip_email_id = "chandra.mishra@technoforte.co.in"
 # SSH login key name for AWS node instances (ex: my-ssh-key)
@@ -16,9 +16,9 @@ aws_provider_region = "ap-south-1"
 specific_availability_zones = ["ap-south-1a"]
 
 # The instance type for Kubernetes nodes (control plane, worker, etcd)
-k8s_instance_type = "t3.2xlarge"
+k8s_instance_type = "t3a.2xlarge"
 # The instance type for Nginx server (load balancer)
-nginx_instance_type = "t3.2xlarge"
+nginx_instance_type = "t3a.2xlarge"
 # The Route 53 hosted zone ID
 zone_id = "Z090954828SJIEL6P5406"
 
@@ -42,9 +42,9 @@ k8s_instance_root_volume_size = 64
 # Control-plane, ETCD, Worker
 k8s_control_plane_node_count = 3
 # ETCD, Worker
-k8s_etcd_node_count = 1
+k8s_etcd_node_count = 3
 # Worker
-k8s_worker_node_count = 1
+k8s_worker_node_count = 2
 
 # RKE2 Version Configuration
 rke2_version = "v1.28.9+rke2r1"
