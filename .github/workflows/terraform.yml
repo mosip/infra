@@ -76,7 +76,7 @@ env:
 
 jobs:
   terraform:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # 16 vCPU, 64GB RAM for maximum performance
     # Use dynamic environment based on current branch name
     environment: ${{ github.ref_name }}
     defaults:

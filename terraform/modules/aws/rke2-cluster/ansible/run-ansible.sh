@@ -198,7 +198,7 @@ timeout 2700 ansible-playbook \
     -u ubuntu \
     --private-key="$SSH_KEY_FILE" \
     --ssh-common-args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -o ServerAliveCountMax=5 -o ConnectTimeout=30' \
-    -vvvv \
+    -v \
     --diff \
     --timeout=900 \
     "$PLAYBOOK_FILE" 2>&1 | tee "$LOG_FILE" | tee "$GITHUB_WORKSPACE_LOG"
