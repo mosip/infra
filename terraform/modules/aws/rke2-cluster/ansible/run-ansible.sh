@@ -92,7 +92,7 @@ echo "🌐 NETWORK CONNECTIVITY TEST:"
 echo "============================="
 # Test connectivity to nodes before starting
 echo "📍 Extracting IPs from inventory file..."
-CLUSTER_IPS=$(grep -oP 'ansible_host=\K[0-9.]+' "$INVENTORY_FILE" || true)
+CLUSTER_IPS=$(grep -oP 'ansible_host:\s*\K[0-9.]+' "$INVENTORY_FILE" || true)
 echo "📋 Found IPs: $CLUSTER_IPS"
 FAILED_NODES=0
 
@@ -192,7 +192,7 @@ echo "🎬 STARTING ANSIBLE EXECUTION..."
 echo "==============================="
 
 # Add timeout wrapper for GitHub Actions (max 30 minutes)
-echo "⏰ Setting up 30-minute timeout for GitHub Actions..."
+echo "⏰ Setting up 25-minute timeout for GitHub Actions..."
 echo "🚀 EXECUTING ANSIBLE COMMAND (with security filters):"
 echo "ansible-playbook -i $INVENTORY_FILE -u ubuntu --private-key=[HIDDEN] [secure deployment]"
 echo ""
@@ -201,13 +201,19 @@ echo "📡 This may take 15-30 minutes for RKE2 installation..."
 echo "🔄 Real-time output follows:"
 echo "=================================================================================="
 
-# Execute ansible-playbook with timeout (45 minutes = 2700 seconds)
-timeout 2700 ansible-playbook \
+# Debug: Show current working directory and files
+echo "🔍 DEBUG: Current working directory: $(pwd)"
+echo "🔍 DEBUG: Available files: $(ls -la | head -10)"
+echo "🔍 DEBUG: Ansible version: $(ansible-playbook --version | head -1)"
+echo "=================================================================================="
+
+# Execute ansible-playbook with timeout (25 minutes = 1500 seconds for faster failure detection)
+timeout 1500 ansible-playbook \
     -i "$INVENTORY_FILE" \
     -u ubuntu \
     --private-key="$SSH_KEY_FILE" \
-    --ssh-common-args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -o ServerAliveCountMax=5 -o ConnectTimeout=30 -o LogLevel=ERROR' \
-    --timeout=900 \
+    --ssh-common-args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ConnectTimeout=15 -o LogLevel=ERROR' \
+    --timeout=600 \
     --extra-vars "ansible_ssh_common_args='-o LogLevel=ERROR'" \
     "$PLAYBOOK_FILE" 2>&1 | sed -E 's/(private.?key|password|secret|token|credential)=[^[:space:]]*/\1=[HIDDEN]/gi' | tee "$LOG_FILE" | tee "$GITHUB_WORKSPACE_LOG"
 
@@ -216,7 +222,7 @@ ANSIBLE_EXIT_CODE=${PIPESTATUS[0]}
 # Check if it was killed by timeout
 if [ $ANSIBLE_EXIT_CODE -eq 124 ]; then
     echo ""
-    echo "⏰ TIMEOUT: Ansible execution exceeded 45 minutes and was terminated"
+    echo "⏰ TIMEOUT: Ansible execution exceeded 25 minutes and was terminated"
     echo "This suggests the playbook is hanging or nodes are not responding properly"
     ANSIBLE_EXIT_CODE=1
 fi
