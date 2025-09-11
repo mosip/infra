@@ -1,0 +1,59 @@
+---
+all:
+  vars:
+    cluster_name: "soil15"
+    cluster_env_domain: "mosip.local"
+    k8s_infra_repo_url: "https://github.com/mosip/k8s-infra.git"
+    k8s_infra_branch: "MOSIP-42914"
+    install_rke2_version: "v1.28.9+rke2r1"
+    enable_rancher_import: false
+    rancher_import_url: ""
+    ansible_user: ubuntu
+    ansible_ssh_private_key_file: ./ssh_key
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+    
+  children:
+    control_plane:
+      hosts:
+        soil15-CONTROL-PLANE-NODE-1:
+          ansible_host: 10.0.3.115
+          node_role: control_plane
+          is_primary: true
+          node_index: 0
+        soil15-CONTROL-PLANE-NODE-2:
+          ansible_host: 10.0.3.91
+          node_role: control_plane
+          is_primary: false
+          node_index: 1
+        soil15-CONTROL-PLANE-NODE-3:
+          ansible_host: 10.0.3.188
+          node_role: control_plane
+          is_primary: false
+          node_index: 2
+    
+    etcd:
+      hosts:
+        soil15-ETCD-NODE-1:
+          ansible_host: 10.0.3.65
+          node_role: etcd
+        soil15-ETCD-NODE-2:
+          ansible_host: 10.0.3.4
+          node_role: etcd
+        soil15-ETCD-NODE-3:
+          ansible_host: 10.0.3.22
+          node_role: etcd
+    
+    workers:
+      hosts:
+        soil15-WORKER-NODE-1:
+          ansible_host: 10.0.3.7
+          node_role: worker
+        soil15-WORKER-NODE-2:
+          ansible_host: 10.0.3.9
+          node_role: worker
+
+    rke2_cluster:
+      children:
+        control_plane:
+        etcd:
+        workers:
