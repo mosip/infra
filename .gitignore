@@ -56,6 +56,10 @@ tmp/
 id_rsa*
 *.p12
 *.pfx
+ssh_key
+ssh_key.*
+private_key
+private_key.*
 
 # Environment files
 .env
