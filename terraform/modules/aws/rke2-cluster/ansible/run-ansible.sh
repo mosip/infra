@@ -144,14 +144,14 @@ fi
 
 echo "🎯 ANSIBLE ENVIRONMENT SETUP:"
 echo "============================="
-# Set comprehensive logging environment variables optimized for CI/CD
-export ANSIBLE_DEBUG=True
-export ANSIBLE_VERBOSE_TO_STDERR=True
-export ANSIBLE_DISPLAY_SKIPPED_HOSTS=True
-export ANSIBLE_DISPLAY_OK_HOSTS=True
+# Set optimized environment variables for production deployment with security
+export ANSIBLE_DEBUG=False
+export ANSIBLE_VERBOSE_TO_STDERR=False
+export ANSIBLE_DISPLAY_SKIPPED_HOSTS=False
+export ANSIBLE_DISPLAY_OK_HOSTS=False
 export ANSIBLE_DISPLAY_FAILED_STDERR=True
-export ANSIBLE_STDOUT_CALLBACK=yaml
-export ANSIBLE_CALLBACK_WHITELIST=profile_tasks,timer
+export ANSIBLE_STDOUT_CALLBACK=minimal
+export ANSIBLE_CALLBACK_WHITELIST=timer
 export ANSIBLE_FORCE_COLOR=True
 export ANSIBLE_HOST_KEY_CHECKING=False
 export ANSIBLE_SSH_RETRIES=2
@@ -159,13 +159,22 @@ export ANSIBLE_TIMEOUT=120
 export ANSIBLE_GATHER_TIMEOUT=300
 export ANSIBLE_SSH_PIPELINING=True
 
+# Security: Hide sensitive information in logs
+export ANSIBLE_NO_LOG=True
+export ANSIBLE_HIDE_CMDLINE_FROM_PS=True
+export ANSIBLE_PARAMIKO_RECORD_HOST_KEYS=False
+export ANSIBLE_LOG_FILTER=".*password.*,.*secret.*,.*key.*,.*token.*,.*credential.*"
+export ANSIBLE_DEPRECATION_WARNINGS=False
+export ANSIBLE_COMMAND_WARNINGS=False
+export ANSIBLE_SYSTEM_WARNINGS=False
+
 echo "Ansible Version:"
 ansible-playbook --version
 echo ""
 
-echo "🔥 STARTING PLAYBOOK EXECUTION WITH FULL DEBUGGING:"
-echo "=================================================="
-echo "This will show every step, task, and connection detail..."
+echo "� STARTING RKE2 CLUSTER DEPLOYMENT:"
+echo "===================================="
+echo "This will deploy RKE2 with minimal logging for clean output..."
 echo ""
 
 # Create a unique log file with timestamp for GitHub Actions
@@ -184,8 +193,8 @@ echo "==============================="
 
 # Add timeout wrapper for GitHub Actions (max 30 minutes)
 echo "⏰ Setting up 30-minute timeout for GitHub Actions..."
-echo "🚀 EXECUTING ANSIBLE COMMAND:"
-echo "ansible-playbook -i $INVENTORY_FILE -u ubuntu --private-key=$SSH_KEY_FILE [with debug flags]"
+echo "🚀 EXECUTING ANSIBLE COMMAND (with security filters):"
+echo "ansible-playbook -i $INVENTORY_FILE -u ubuntu --private-key=[HIDDEN] [secure deployment]"
 echo ""
 echo "⏱️  Starting at: $(date)"
 echo "📡 This may take 15-30 minutes for RKE2 installation..."
@@ -197,11 +206,10 @@ timeout 2700 ansible-playbook \
     -i "$INVENTORY_FILE" \
     -u ubuntu \
     --private-key="$SSH_KEY_FILE" \
-    --ssh-common-args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -o ServerAliveCountMax=5 -o ConnectTimeout=30' \
-    -v \
-    --diff \
+    --ssh-common-args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -o ServerAliveCountMax=5 -o ConnectTimeout=30 -o LogLevel=ERROR' \
     --timeout=900 \
-    "$PLAYBOOK_FILE" 2>&1 | tee "$LOG_FILE" | tee "$GITHUB_WORKSPACE_LOG"
+    --extra-vars "ansible_ssh_common_args='-o LogLevel=ERROR'" \
+    "$PLAYBOOK_FILE" 2>&1 | sed -E 's/(private.?key|password|secret|token|credential)=[^[:space:]]*/\1=[HIDDEN]/gi' | tee "$LOG_FILE" | tee "$GITHUB_WORKSPACE_LOG"
 
 ANSIBLE_EXIT_CODE=${PIPESTATUS[0]}
 

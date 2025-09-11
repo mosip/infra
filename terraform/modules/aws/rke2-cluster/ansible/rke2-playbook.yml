@@ -36,6 +36,7 @@
       set_fact:
         cluster_token: "{{ cluster_name | hash('md5') | truncate(32, True, '') }}"
         cacheable: yes
+      no_log: true
 
 # Play 1: Install Primary Control Plane Node FIRST (Sequential)
 - name: Install Primary RKE2 Control Plane Node
@@ -216,6 +217,7 @@
         - { regexp: '<configure-some-token-here>', replace: '{{ cluster_token }}' }
         - { regexp: '<node-name>', replace: '{{ inventory_hostname }}' }
         - { regexp: '<node-internal-ip>', replace: '{{ ansible_default_ipv4.address }}' }
+      no_log: true
 
     - name: Start and enable RKE2 service
       systemd:
@@ -282,6 +284,7 @@
           args:
             executable: /bin/bash
             creates: "/home/ubuntu/.kube/{{ inventory_hostname }}.yaml"
+          no_log: true
 
         - name: Set kubeconfig ownership and permissions
           file:
@@ -440,6 +443,7 @@
             - { regexp: '<node-name>', replace: '{{ inventory_hostname }}' }
             - { regexp: '<node-internal-ip>', replace: '{{ ansible_default_ipv4.address }}' }
             - { regexp: '<primary-server-ip>', replace: '{{ hostvars[groups["control_plane"][0]]["ansible_default_ipv4"]["address"] }}' }
+          no_log: true
             
         - name: Set RKE2 service type for subsequent control plane
           lineinfile:
@@ -471,6 +475,7 @@
             - { regexp: '<node-name>', replace: '{{ inventory_hostname }}' }
             - { regexp: '<node-internal-ip>', replace: '{{ ansible_default_ipv4.address }}' }
             - { regexp: '<primary-server-ip>', replace: '{{ hostvars[groups["control_plane"][0]]["ansible_default_ipv4"]["address"] }}' }
+          no_log: true
             
         - name: Set RKE2 service type for ETCD
           lineinfile:
@@ -502,6 +507,7 @@
             - { regexp: '<node-name>', replace: '{{ inventory_hostname }}' }
             - { regexp: '<node-internal-ip>', replace: '{{ ansible_default_ipv4.address }}' }
             - { regexp: '<primary-server-ip>', replace: '{{ hostvars[groups["control_plane"][0]]["ansible_default_ipv4"]["address"] }}' }
+          no_log: true
             
         - name: Set RKE2 service type for workers
           lineinfile:
