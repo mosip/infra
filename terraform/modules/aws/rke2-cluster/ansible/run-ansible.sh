@@ -1,9 +1,37 @@
 #!/bin/bash
 
-set -e
+# Enable strict error handling with immediate exit on any failure
+set -eEuo pipefail
+# Exit immediately on any error, undefined variable, or pipe failure
+# -e: exit on error
+# -E: inherit error traps  
+# -u: exit on undefined variable
+# -o pipefail: exit if any command in pipeline fails
 
 # Script to run Ansible playbook for RKE2 installation
 # This script is called by Terraform's local-exec provisioner
+
+# Error trap function for immediate error reporting
+error_exit() {
+    local line_no=$1
+    local error_code=$2
+    echo ""
+    echo "🚨 IMMEDIATE FAILURE DETECTED 🚨"
+    echo "================================="
+    echo "❌ Script failed at line $line_no with exit code $error_code"
+    echo "❌ Timestamp: $(date)"
+    echo "❌ Command that failed: ${BASH_COMMAND}"
+    echo ""
+    echo "🔍 DEBUGGING INFO:"
+    echo "  - Working directory: $(pwd)"
+    echo "  - User: $(whoami)"
+    echo "  - Environment: ${GITHUB_ACTIONS:+GitHub Actions}${GITHUB_ACTIONS:-Local}"
+    echo ""
+    exit $error_code
+}
+
+# Set trap for immediate error reporting
+trap 'error_exit $LINENO $?' ERR
 
 ANSIBLE_DIR="$1"
 INVENTORY_FILE="$2"
@@ -15,6 +43,48 @@ echo "Ansible Directory: $ANSIBLE_DIR"
 echo "Inventory File: $INVENTORY_FILE"
 echo "SSH Key File: $SSH_KEY_FILE"
 echo "Playbook File: $PLAYBOOK_FILE"
+
+echo ""
+echo "🔍 IMMEDIATE VALIDATION CHECKS:"
+echo "==============================="
+
+# Immediate validation - fail fast if anything is wrong
+if [ ! -f "$INVENTORY_FILE" ]; then
+    echo "❌ IMMEDIATE FAILURE: Inventory file not found: $INVENTORY_FILE"
+    exit 1
+fi
+
+if [ ! -f "$SSH_KEY_FILE" ]; then
+    echo "❌ IMMEDIATE FAILURE: SSH key file not found: $SSH_KEY_FILE"
+    exit 1
+fi
+
+if [ ! -f "$PLAYBOOK_FILE" ]; then
+    echo "❌ IMMEDIATE FAILURE: Playbook file not found: $PLAYBOOK_FILE"
+    exit 1
+fi
+
+# Check SSH key permissions immediately
+SSH_KEY_PERMS=$(stat -c %a "$SSH_KEY_FILE")
+if [ "$SSH_KEY_PERMS" != "600" ]; then
+    echo "❌ IMMEDIATE FAILURE: SSH key has incorrect permissions: $SSH_KEY_PERMS (should be 600)"
+    echo "Fixing SSH key permissions..."
+    chmod 600 "$SSH_KEY_FILE" || {
+        echo "❌ IMMEDIATE FAILURE: Cannot fix SSH key permissions"
+        exit 1
+    }
+    echo "✅ SSH key permissions fixed"
+fi
+
+# Verify SSH key is readable (without displaying contents)
+if [ ! -r "$SSH_KEY_FILE" ]; then
+    echo "❌ IMMEDIATE FAILURE: SSH key file is not readable: $SSH_KEY_FILE"
+    exit 1
+fi
+
+echo "✅ SSH key file exists and is readable"
+echo "✅ All immediate validation checks passed"
+echo ""
 
 cd "$ANSIBLE_DIR"
 
@@ -173,11 +243,11 @@ export ANSIBLE_TIMEOUT=120
 export ANSIBLE_GATHER_TIMEOUT=300
 export ANSIBLE_SSH_PIPELINING=True
 
-# Security: Hide sensitive information in logs
-export ANSIBLE_NO_LOG=True
+# Security: Hide sensitive information in logs (TEMPORARILY DISABLED FOR DEBUGGING)
+export ANSIBLE_NO_LOG=False  # CHANGED: Enable logs for debugging
 export ANSIBLE_HIDE_CMDLINE_FROM_PS=True
 export ANSIBLE_PARAMIKO_RECORD_HOST_KEYS=False
-export ANSIBLE_LOG_FILTER=".*password.*,.*secret.*,.*key.*,.*token.*,.*credential.*"
+export ANSIBLE_LOG_FILTER=""  # CHANGED: Remove log filtering for debugging
 export ANSIBLE_DEPRECATION_WARNINGS=False
 export ANSIBLE_COMMAND_WARNINGS=False
 export ANSIBLE_SYSTEM_WARNINGS=False
@@ -221,24 +291,67 @@ echo "🔍 DEBUG: Available files: $(ls -la | head -10)"
 echo "🔍 DEBUG: Ansible version: $(ansible-playbook --version | head -1)"
 echo "=================================================================================="
 
-# Execute ansible-playbook with timeout (25 minutes = 1500 seconds for faster failure detection)
-timeout 1500 ansible-playbook \
+# Add background progress monitor for GitHub Actions
+if [ -n "$GITHUB_ACTIONS" ]; then
+    echo "🕐 Progress monitor enabled for GitHub Actions visibility..."
+    (
+        sleep 120  # Wait 2 minutes before first update
+        while true; do
+            if ps aux | grep -q "ansible-playbook.*rke2-playbook.yml" | grep -v grep; then
+                echo "⏰ $(date): Ansible still running... (normal for RKE2 installation)"
+                echo "   📊 Process status: ACTIVE"
+            fi
+            sleep 180  # Update every 3 minutes
+        done
+    ) &
+    PROGRESS_PID=$!
+fi
+
+# Execute ansible-playbook without timeout since SSH connectivity is stable
+# Using single fork for immediate error visibility and fail-fast behavior
+echo "🚀 Starting Ansible execution with immediate error reporting..."
+ansible-playbook \
     -i "$INVENTORY_FILE" \
     -u ubuntu \
     --private-key="$SSH_KEY_FILE" \
-    --ssh-common-args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ConnectTimeout=15 -o LogLevel=ERROR' \
-    --timeout=600 \
-    --extra-vars "ansible_ssh_common_args='-o LogLevel=ERROR'" \
-    "$PLAYBOOK_FILE" 2>&1 | sed -E 's/(private.?key|password|secret|token|credential)=[^[:space:]]*/\1=[HIDDEN]/gi' | tee "$LOG_FILE" | tee "$GITHUB_WORKSPACE_LOG"
+    --forks=1 \
+    --ssh-common-args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=60 -o ServerAliveCountMax=10' \
+    -v \
+    "$PLAYBOOK_FILE" 2>&1 | \
+    while IFS= read -r line; do
+        # Immediate error detection and reporting
+        if [[ "$line" =~ "FAILED\!" ]] || [[ "$line" =~ "fatal:" ]] || [[ "$line" =~ "ERROR!" ]]; then
+            echo ""
+            echo "🚨 IMMEDIATE ANSIBLE FAILURE DETECTED 🚨"
+            echo "========================================"
+            echo "❌ $line"
+            echo "❌ Timestamp: $(date)"
+            echo ""
+            # Still log to files but exit immediately
+            echo "$line" | tee -a "$LOG_FILE" | tee -a "$GITHUB_WORKSPACE_LOG"
+            exit 1
+        fi
+        
+        # Show progress indicators for GitHub Actions
+        if [[ "$line" =~ "PLAY \[" ]]; then
+            echo "🎭 $line"
+        elif [[ "$line" =~ "TASK \[" ]]; then
+            echo "📋 $line"
+        elif [[ "$line" =~ "PLAY RECAP" ]]; then
+            echo "📊 $line"
+        elif [[ "$line" =~ "changed:" ]] && [[ ! "$line" =~ "censored" ]]; then
+            echo "✅ $line"
+        else
+            # Log everything to file but only show important stuff to console in GitHub Actions
+            echo "$line"
+        fi
+    done | tee "$LOG_FILE" | tee "$GITHUB_WORKSPACE_LOG"
 
 ANSIBLE_EXIT_CODE=${PIPESTATUS[0]}
 
-# Check if it was killed by timeout
-if [ $ANSIBLE_EXIT_CODE -eq 124 ]; then
-    echo ""
-    echo "⏰ TIMEOUT: Ansible execution exceeded 25 minutes and was terminated"
-    echo "This suggests the playbook is hanging or nodes are not responding properly"
-    ANSIBLE_EXIT_CODE=1
+# Clean up progress monitor
+if [ -n "$PROGRESS_PID" ]; then
+    kill $PROGRESS_PID 2>/dev/null || true
 fi
 
 echo ""
