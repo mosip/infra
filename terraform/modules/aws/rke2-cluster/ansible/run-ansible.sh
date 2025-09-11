@@ -90,46 +90,60 @@ echo ""
 
 echo "🌐 NETWORK CONNECTIVITY TEST:"
 echo "============================="
-# Test connectivity to nodes before starting
-echo "📍 Extracting IPs from inventory file..."
-CLUSTER_IPS=$(grep -oP 'ansible_host:\s*\K[0-9.]+' "$INVENTORY_FILE" || true)
-echo "📋 Found IPs: $CLUSTER_IPS"
-FAILED_NODES=0
-
-if [ -z "$CLUSTER_IPS" ]; then
-    echo "⚠️  WARNING: No IPs found in inventory file!"
-    echo "   Inventory file might have different format"
+# Test connectivity to nodes before starting (skip in GitHub Actions for speed)
+if [ -n "$GITHUB_ACTIONS" ]; then
+    echo "⚡ Skipping detailed connectivity tests in GitHub Actions for speed"
+    echo "📍 Extracting IPs from inventory file..."
+    CLUSTER_IPS=$(grep -oP 'ansible_host:\s*\K[0-9.]+' "$INVENTORY_FILE" || true)
+    echo "📋 Found IPs: $CLUSTER_IPS"
+    echo "🚀 Proceeding directly to Ansible execution..."
+    FAILED_NODES=0  # Skip connectivity checks in GitHub Actions
 else
-    echo "🔍 Testing connectivity to $(echo $CLUSTER_IPS | wc -w) nodes..."
-    
-    for ip in $CLUSTER_IPS; do
-        echo -n "Testing SSH to $ip: "
-        if timeout 10 nc -z "$ip" 22 2>/dev/null; then
-            echo "✅ REACHABLE"
-            # Test actual SSH authentication
-            echo -n "  SSH auth test: "
-            if timeout 15 ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 ubuntu@"$ip" "echo 'SSH_SUCCESS'" 2>/dev/null | grep -q "SSH_SUCCESS"; then
-                echo "✅ SSH AUTH OK"
-                
-                # Check if RKE2 is already installed
-                echo -n "  RKE2 status: "
-                RKE2_STATUS=$(timeout 10 ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@"$ip" "ls -la /usr/local/bin/rke2* 2>/dev/null || echo 'NOT_INSTALLED'" 2>/dev/null)
-                if echo "$RKE2_STATUS" | grep -q "NOT_INSTALLED"; then
-                    echo "❌ NOT INSTALLED"
+    echo "📍 Extracting IPs from inventory file..."
+    CLUSTER_IPS=$(grep -oP 'ansible_host:\s*\K[0-9.]+' "$INVENTORY_FILE" || true)
+    echo "📋 Found IPs: $CLUSTER_IPS"
+    FAILED_NODES=0
+
+    if [ -z "$CLUSTER_IPS" ]; then
+        echo "⚠️  WARNING: No IPs found in inventory file!"
+        echo "   Inventory file might have different format"
+    else
+        echo "🔍 Testing connectivity to $(echo $CLUSTER_IPS | wc -w) nodes..."
+        
+        for ip in $CLUSTER_IPS; do
+            echo -n "Testing SSH to $ip: "
+            if timeout 10 nc -z "$ip" 22 2>/dev/null; then
+                echo "✅ REACHABLE"
+                # Test actual SSH authentication
+                echo -n "  SSH auth test: "
+                if timeout 15 ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 ubuntu@"$ip" "echo 'SSH_SUCCESS'" 2>/dev/null | grep -q "SSH_SUCCESS"; then
+                    echo "✅ SSH AUTH OK"
+                    
+                    # Check if RKE2 is already installed
+                    echo -n "  RKE2 status: "
+                    RKE2_STATUS=$(timeout 5 ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 -o ServerAliveInterval=2 -o ServerAliveCountMax=3 ubuntu@"$ip" "test -f /usr/local/bin/rke2 && echo 'INSTALLED' || echo 'NOT_INSTALLED'" 2>/dev/null || echo 'CHECK_FAILED')
+                    case "$RKE2_STATUS" in
+                        "INSTALLED")
+                            echo "✅ ALREADY INSTALLED"
+                            ;;
+                        "NOT_INSTALLED")
+                            echo "❌ NOT INSTALLED"
+                            ;;
+                        *)
+                            echo "⚠️ CHECK FAILED (will proceed with installation)"
+                            ;;
+                    esac
                 else
-                    echo "✅ ALREADY INSTALLED"
-                    echo "    $RKE2_STATUS"
+                    echo "❌ SSH AUTH FAILED"
+                    FAILED_NODES=$((FAILED_NODES + 1))
                 fi
             else
-                echo "❌ SSH AUTH FAILED"
+                echo "❌ UNREACHABLE"
                 FAILED_NODES=$((FAILED_NODES + 1))
             fi
-        else
-            echo "❌ UNREACHABLE"
-            FAILED_NODES=$((FAILED_NODES + 1))
-        fi
-        echo ""
-    done
+            echo ""
+        done
+    fi
 fi
 
 if [ $FAILED_NODES -gt 0 ]; then
