@@ -141,7 +141,7 @@ resource "null_resource" "rke2_ansible_installation" {
   }
 
   provisioner "local-exec" {
-    command = "./ansible/run-ansible.sh '${path.module}/ansible' 'inventory.yml' 'ssh_key' 'rke2-playbook.yml'"
+    command = "./ansible/run-ansible.sh '${path.module}/ansible' '${path.module}/ansible/inventory.yml' '${path.module}/ansible/ssh_key' '${path.module}/ansible/rke2-playbook.yml'"
     working_dir = path.module
     
     environment = {
