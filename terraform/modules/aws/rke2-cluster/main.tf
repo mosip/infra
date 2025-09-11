@@ -134,21 +134,30 @@ resource "null_resource" "rke2_ansible_installation" {
     rke2_version = var.RKE2_VERSION
   }
 
+  # Ensure Ansible script has execute permissions on GitHub Actions runners
   provisioner "local-exec" {
-    command = "${path.module}/ansible/run-ansible.sh '${path.module}/ansible' 'inventory.yml' 'ssh_key' 'rke2-playbook.yml'"
+    command = "chmod +x ${path.module}/ansible/run-ansible.sh"
+    working_dir = path.module
+  }
+
+  provisioner "local-exec" {
+    command = "./ansible/run-ansible.sh '${path.module}/ansible' 'inventory.yml' 'ssh_key' 'rke2-playbook.yml'"
+    working_dir = path.module
     
     environment = {
       ANSIBLE_HOST_KEY_CHECKING = "False"
       ANSIBLE_SSH_RETRIES      = "3"
       ANSIBLE_TIMEOUT          = "30"
       INSTALL_RKE2_VERSION     = var.RKE2_VERSION
+      PATH                     = "${pathexpand("~/.local/bin")}:${join(":", ["/usr/local/bin", "/usr/bin", "/bin"])}"
     }
   }
 
   # Clean up sensitive files after execution
   provisioner "local-exec" {
     when    = destroy
-    command = "rm -f ${path.module}/ansible/ssh_key"
+    command = "rm -f ./ansible/ssh_key"
+    working_dir = path.module
   }
 }
 
@@ -166,9 +175,14 @@ resource "null_resource" "download_kubeconfig_files" {
   }
 
   provisioner "local-exec" {
+    working_dir = "${path.module}/ansible"
+    
+    environment = {
+      ANSIBLE_HOST_KEY_CHECKING = "False"
+      PATH                     = "${pathexpand("~/.local/bin")}:${join(":", ["/usr/local/bin", "/usr/bin", "/bin"])}"
+    }
+    
     command = <<-EOT
-      cd ${path.module}/ansible
-      
       # First ensure kubectl is available and kubeconfig files are created
       echo "Setting up kubectl and kubeconfig files on nodes..."
       
@@ -196,21 +210,84 @@ resource "null_resource" "download_kubeconfig_files" {
         --private-key=ssh_key \
         --ssh-common-args='-o StrictHostKeyChecking=no' \
         -b -m shell \
-        -a "NODE_IP=\$(hostname -I | awk '{print \$1}'); cp /etc/rancher/rke2/rke2.yaml /home/ubuntu/.kube/{{ inventory_hostname }}.yaml && sed -i \"s/127.0.0.1/\$NODE_IP/g\" /home/ubuntu/.kube/{{ inventory_hostname }}.yaml && sed -i 's/default/soil10/g' /home/ubuntu/.kube/{{ inventory_hostname }}.yaml && chown ubuntu:ubuntu /home/ubuntu/.kube/{{ inventory_hostname }}.yaml" \
+        -a "NODE_IP=\$(hostname -I | awk '{print \$1}'); cp /etc/rancher/rke2/rke2.yaml /home/ubuntu/.kube/{{ inventory_hostname }}.yaml && sed -i \"s/127.0.0.1/\$NODE_IP/g\" /home/ubuntu/.kube/{{ inventory_hostname }}.yaml && sed -i 's/default/${var.CLUSTER_NAME}/g' /home/ubuntu/.kube/{{ inventory_hostname }}.yaml && chown ubuntu:ubuntu /home/ubuntu/.kube/{{ inventory_hostname }}.yaml" \
         || echo "kubeconfig generation may have failed"
       
-      # Download kubeconfig files from all nodes to terraform implementations directory
-      # Use absolute path resolution to find the terraform working directory
-      KUBECONFIG_DEST="$(cd ../../../../implementations/aws/infra && pwd)"
-      echo "Downloading kubeconfig files to: $KUBECONFIG_DEST"
+      # Download kubeconfig files from all nodes to current ansible directory
+      echo "Downloading kubeconfig files to current directory..."
       
       ansible rke2_cluster -i inventory.yml \
         -u ubuntu \
         --private-key=ssh_key \
         --ssh-common-args='-o StrictHostKeyChecking=no' \
         -m fetch \
-        -a "src=/home/ubuntu/.kube/{{ inventory_hostname }}.yaml dest=$KUBECONFIG_DEST/ flat=yes" \
+        -a "src=/home/ubuntu/.kube/{{ inventory_hostname }}.yaml dest=./ flat=yes" \
         || echo "Some kubeconfig downloads may have failed - this is expected for worker nodes"
+    EOT
+  }
+}
+
+# Copy primary kubeconfig to terraform working directory and user's .kube directory
+resource "null_resource" "setup_kubeconfig" {
+  depends_on = [null_resource.download_kubeconfig_files]
+  
+  triggers = {
+    kubeconfig_ready = null_resource.download_kubeconfig_files.id
+  }
+
+  provisioner "local-exec" {
+    working_dir = "${path.module}/ansible"
+    
+    command = <<-EOT
+      # Find the primary control plane kubeconfig file (first in sorted order)
+      PRIMARY_CONTROL_PLANE_KEY=$(echo '${jsonencode([
+        for key in sort([
+          for k, v in var.K8S_CLUSTER_PRIVATE_IPS : k 
+          if length(regexall(".*CONTROL-PLANE-NODE.*", k)) > 0
+        ]) : key
+      ])}' | jq -r '.[0]')
+      
+      PRIMARY_KUBECONFIG="$PRIMARY_CONTROL_PLANE_KEY.yaml"
+      
+      if [ -f "$PRIMARY_KUBECONFIG" ]; then
+        echo "Setting up kubeconfig for cluster ${var.CLUSTER_NAME}..."
+        echo "Primary control plane: $PRIMARY_CONTROL_PLANE_KEY"
+        
+        # Copy to terraform working directory (where terraform apply was run) - preserve original filename
+        # From ansible/ directory, need to go up 4 levels to reach implementations/aws/infra/
+        cp "$PRIMARY_KUBECONFIG" "../../../../implementations/aws/infra/$PRIMARY_KUBECONFIG"
+        
+        # Also create a simplified symlink for convenience
+        ln -sf "$PRIMARY_KUBECONFIG" "../../../../implementations/aws/infra/${var.CLUSTER_NAME}.yaml"
+        
+        # Create user's .kube directory if it doesn't exist
+        mkdir -p ~/.kube
+        
+        # Copy to user's .kube directory - preserve original filename
+        cp "$PRIMARY_KUBECONFIG" ~/.kube/$PRIMARY_KUBECONFIG
+        
+        # Also create a simplified symlink for convenience
+        ln -sf "$PRIMARY_KUBECONFIG" ~/.kube/${var.CLUSTER_NAME}.yaml
+        
+        # Update current kubectl context to the new cluster
+        export KUBECONFIG=~/.kube/${var.CLUSTER_NAME}.yaml
+        
+        echo "Kubeconfig files created:"
+        echo "  - Terraform directory: ../../../../implementations/aws/infra/$PRIMARY_KUBECONFIG"
+        echo "  - Terraform symlink: ../../../../implementations/aws/infra/${var.CLUSTER_NAME}.yaml"
+        echo "  - User kube directory: ~/.kube/$PRIMARY_KUBECONFIG"
+        echo "  - User symlink: ~/.kube/${var.CLUSTER_NAME}.yaml"
+        echo ""
+        echo "To use this cluster, run either:"
+        echo "  export KUBECONFIG=~/.kube/$PRIMARY_KUBECONFIG"
+        echo "  # OR"
+        echo "  export KUBECONFIG=~/.kube/${var.CLUSTER_NAME}.yaml"
+        echo "  kubectl get nodes"
+      else
+        echo "Warning: Primary kubeconfig file not found: $PRIMARY_KUBECONFIG"
+        echo "Available files:"
+        ls -la *.yaml || echo "No kubeconfig files found"
+      fi
     EOT
   }
 }
@@ -233,7 +310,26 @@ output "ANSIBLE_INVENTORY_PATH" {
 }
 
 output "PRIMARY_KUBECONFIG_PATH" {
-  value = "${path.module}/ansible/primary-kubeconfig.yaml"
+  value = "${path.module}/../../../../implementations/aws/infra/${sort([
+    for k, v in var.K8S_CLUSTER_PRIVATE_IPS : k 
+    if length(regexall(".*CONTROL-PLANE-NODE.*", k)) > 0
+  ])[0]}.yaml"
+  description = "Path to the primary kubeconfig file in the terraform working directory (original filename)"
+}
+
+output "PRIMARY_KUBECONFIG_SYMLINK" {
+  value = "${path.module}/../../../../implementations/aws/infra/${var.CLUSTER_NAME}.yaml"
+  description = "Path to the kubeconfig symlink in the terraform working directory (simplified name)"
+}
+
+output "USER_KUBECONFIG_PATH" {
+  value = "~/.kube/${var.CLUSTER_NAME}.yaml"
+  description = "Path to the kubeconfig file in user's .kube directory"
+}
+
+output "KUBECONFIG_SETUP_COMMAND" {
+  value = "export KUBECONFIG=~/.kube/${var.CLUSTER_NAME}.yaml"
+  description = "Command to set the kubectl context to this cluster"
 }
 
 output "PRIMARY_CONTROL_PLANE_IP" {
