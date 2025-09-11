@@ -86,6 +86,17 @@ echo "✅ SSH key file exists and is readable"
 echo "✅ All immediate validation checks passed"
 echo ""
 
+# Convert relative paths to absolute paths before changing directory
+INVENTORY_FILE=$(realpath "$INVENTORY_FILE")
+SSH_KEY_FILE=$(realpath "$SSH_KEY_FILE")
+PLAYBOOK_FILE=$(realpath "$PLAYBOOK_FILE")
+
+echo "🔄 Converted to absolute paths:"
+echo "  Inventory: $INVENTORY_FILE"
+echo "  SSH Key: $SSH_KEY_FILE"
+echo "  Playbook: $PLAYBOOK_FILE"
+echo ""
+
 cd "$ANSIBLE_DIR"
 
 # Check if ansible is installed
@@ -138,9 +149,6 @@ else
     ansible-playbook --version | head -1
 fi
 
-# Set proper permissions for SSH key
-chmod 600 "$SSH_KEY_FILE"
-
 # Run the Ansible playbook with maximum debugging for GitHub Actions
 echo "=== 🚀 ANSIBLE RKE2 INSTALLATION STARTING ==="
 echo "GitHub Actions Environment Detected"
@@ -161,7 +169,7 @@ echo ""
 echo "🌐 NETWORK CONNECTIVITY TEST:"
 echo "============================="
 # Test connectivity to nodes before starting (skip in GitHub Actions for speed)
-if [ -n "$GITHUB_ACTIONS" ]; then
+if [ -n "${GITHUB_ACTIONS:-}" ]; then
     echo "⚡ Skipping detailed connectivity tests in GitHub Actions for speed"
     echo "📍 Extracting IPs from inventory file..."
     CLUSTER_IPS=$(grep -oP 'ansible_host:\s*\K[0-9.]+' "$INVENTORY_FILE" || true)
@@ -292,7 +300,7 @@ echo "🔍 DEBUG: Ansible version: $(ansible-playbook --version | head -1)"
 echo "=================================================================================="
 
 # Add background progress monitor for GitHub Actions
-if [ -n "$GITHUB_ACTIONS" ]; then
+if [ -n "${GITHUB_ACTIONS:-}" ]; then
     echo "🕐 Progress monitor enabled for GitHub Actions visibility..."
     (
         sleep 120  # Wait 2 minutes before first update
@@ -387,7 +395,7 @@ else
     echo "========================"
     
     # Copy log to workspace for artifact download
-    if [ -f "$LOG_FILE" ] && [ -n "$GITHUB_WORKSPACE" ]; then
+    if [ -f "$LOG_FILE" ] && [ -n "${GITHUB_WORKSPACE:-}" ]; then
         cp "$LOG_FILE" "$GITHUB_WORKSPACE_LOG" 2>/dev/null || true
         echo "  • Full debug log available as GitHub Actions artifact"
     fi
@@ -413,12 +421,12 @@ echo "==================="
 echo "Logs are available in multiple locations for debugging:"
 echo "  • Real-time: GitHub Actions console output (above)"
 echo "  • Ephemeral: $LOG_FILE (in runner /tmp - not downloadable)"
-if [ -n "$GITHUB_WORKSPACE" ]; then
+if [ -n "${GITHUB_WORKSPACE:-}" ]; then
     echo "  • Persistent: $GITHUB_WORKSPACE_LOG (downloadable as artifact)"
 fi
 
 # Ensure workspace log exists for artifact creation
-if [ -n "$GITHUB_WORKSPACE" ] && [ -f "$LOG_FILE" ]; then
+if [ -n "${GITHUB_WORKSPACE:-}" ] && [ -f "$LOG_FILE" ]; then
     cp "$LOG_FILE" "$GITHUB_WORKSPACE_LOG" 2>/dev/null || true
     echo ""
     echo "✅ Debug log copied to workspace for artifact download"
