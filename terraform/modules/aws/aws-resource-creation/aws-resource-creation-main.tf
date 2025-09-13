@@ -57,7 +57,7 @@ resource "aws_security_group" "security-group" {
     from_port        = 51820
     to_port          = 51820
     protocol         = "udp"
-    cidr_blocks      = ["0.0.0.0/0"]
+    cidr_blocks      = [var.WIREGUARD_CIDR]
     ipv6_cidr_blocks = []
   }
   egress {
@@ -77,11 +77,11 @@ resource "aws_security_group" "security-group" {
     ipv6_cidr_blocks = []
   }
   egress {
-    description      = "Allow all required internal communication to VPC CIDR"
+    description      = "Allow all required internal communication (VPC + Pod Networks)"
     from_port        = 0
     to_port          = 0
     protocol         = "-1"
-    cidr_blocks      = ["0.0.0.0/0"]
+    cidr_blocks      = [var.network_cidr, "10.42.0.0/16", "10.43.0.0/16"]
     ipv6_cidr_blocks = []
   }
   # Add more egress blocks for other trusted external IPs/services as needed

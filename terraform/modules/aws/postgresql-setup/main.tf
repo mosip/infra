@@ -1,6 +1,7 @@
 # PostgreSQL Setup Module - Runs after RKE2 cluster is ready
 
 variable "NGINX_PUBLIC_IP" { type = string }
+variable "NGINX_PRIVATE_IP" { type = string }
 variable "SSH_PRIVATE_KEY" { type = string }
 variable "NGINX_NODE_EBS_VOLUME_SIZE_2" { type = number }
 
@@ -69,7 +70,7 @@ resource "null_resource" "PostgreSQL-ansible-setup" {
 
   connection {
     type        = "ssh"
-    host        = var.NGINX_PUBLIC_IP
+    host        = var.NGINX_PRIVATE_IP # Use private IP for WireGuard access
     user        = "ubuntu"
     private_key = var.SSH_PRIVATE_KEY
     timeout     = "15m" # Fast timeout for PostgreSQL setup
@@ -124,7 +125,7 @@ chmod 600 /tmp/nginx-key
 
 # Create local directory and download YAML files from nginx node
 mkdir -p /tmp/postgresql-secrets
-scp -i /tmp/nginx-key -o StrictHostKeyChecking=no ubuntu@${var.NGINX_PUBLIC_IP}:/tmp/postgresql-secrets/*.yml /tmp/postgresql-secrets/
+scp -i /tmp/nginx-key -o StrictHostKeyChecking=no ubuntu@${var.NGINX_PRIVATE_IP}:/tmp/postgresql-secrets/*.yml /tmp/postgresql-secrets/
 
 # Clean up nginx key
 rm -f /tmp/nginx-key
@@ -171,8 +172,4 @@ EOF
     ]
   }
 
-  # Cleanup local files
-  provisioner "local-exec" {
-    command = "rm -rf /tmp/postgresql-secrets"
-  }
 }

@@ -145,8 +145,8 @@ fi
 echo "🎯 ANSIBLE ENVIRONMENT SETUP:"
 echo "============================="
 # Set comprehensive logging environment variables optimized for CI/CD
-export ANSIBLE_DEBUG=True
-export ANSIBLE_VERBOSE_TO_STDERR=True
+export ANSIBLE_DEBUG=false
+export ANSIBLE_VERBOSE_TO_STDERR=false
 export ANSIBLE_DISPLAY_SKIPPED_HOSTS=True
 export ANSIBLE_DISPLAY_OK_HOSTS=True
 export ANSIBLE_DISPLAY_FAILED_STDERR=True
@@ -198,7 +198,6 @@ timeout 2700 ansible-playbook \
     -u ubuntu \
     --private-key="$SSH_KEY_FILE" \
     --ssh-common-args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -o ServerAliveCountMax=5 -o ConnectTimeout=30' \
-    -v \
     --diff \
     --timeout=900 \
     "$PLAYBOOK_FILE" 2>&1 | tee "$LOG_FILE" | tee "$GITHUB_WORKSPACE_LOG"

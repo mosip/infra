@@ -91,28 +91,28 @@ resource "local_file" "ssh_private_key" {
 # Generate Ansible inventory from Terraform data
 resource "local_file" "ansible_inventory" {
   content = templatefile("${path.module}/ansible/inventory.yml.tpl", {
-    cluster_name         = var.CLUSTER_NAME               # Using actual cluster name
-    cluster_env_domain   = "mosip.local"                  # You can make this a variable
-    k8s_infra_repo_url   = var.K8S_INFRA_REPO_URL
-    k8s_infra_branch     = var.K8S_INFRA_BRANCH
-    install_rke2_version = var.RKE2_VERSION
+    cluster_name          = var.CLUSTER_NAME # Using actual cluster name
+    cluster_env_domain    = "mosip.local"    # You can make this a variable
+    k8s_infra_repo_url    = var.K8S_INFRA_REPO_URL
+    k8s_infra_branch      = var.K8S_INFRA_BRANCH
+    install_rke2_version  = var.RKE2_VERSION
     enable_rancher_import = var.ENABLE_RANCHER_IMPORT
-    rancher_import_url   = var.ENABLE_RANCHER_IMPORT ? var.RANCHER_IMPORT_URL : ""
-    
+    rancher_import_url    = var.ENABLE_RANCHER_IMPORT ? var.RANCHER_IMPORT_URL : ""
+
     # Separate IPs by node type with explicit primary selection
     # Sort by key name to ensure CONTROL-PLANE-NODE-1 is always primary
     control_plane_ips = [
       for key in sort([
-        for k, v in var.K8S_CLUSTER_PRIVATE_IPS : k 
+        for k, v in var.K8S_CLUSTER_PRIVATE_IPS : k
         if length(regexall(".*CONTROL-PLANE-NODE.*", k)) > 0
       ]) : var.K8S_CLUSTER_PRIVATE_IPS[key]
     ]
     etcd_ips = [
-      for key, value in var.K8S_CLUSTER_PRIVATE_IPS : value 
+      for key, value in var.K8S_CLUSTER_PRIVATE_IPS : value
       if length(regexall(".*ETCD-NODE.*", key)) > 0
     ]
     worker_ips = [
-      for key, value in var.K8S_CLUSTER_PRIVATE_IPS : value 
+      for key, value in var.K8S_CLUSTER_PRIVATE_IPS : value
       if length(regexall(".*WORKER-NODE.*", key)) > 0
     ]
   })
@@ -129,34 +129,34 @@ resource "null_resource" "rke2_ansible_installation" {
 
   # Trigger re-run when cluster composition changes
   triggers = {
-    cluster_nodes = join(",", [for k, v in var.K8S_CLUSTER_PRIVATE_IPS : "${k}=${v}"])
+    cluster_nodes     = join(",", [for k, v in var.K8S_CLUSTER_PRIVATE_IPS : "${k}=${v}"])
     inventory_content = local_file.ansible_inventory.content_sha256
-    rke2_version = var.RKE2_VERSION
+    rke2_version      = var.RKE2_VERSION
   }
 
   # Ensure Ansible script has execute permissions on GitHub Actions runners
   provisioner "local-exec" {
-    command = "chmod +x ${path.module}/ansible/run-ansible.sh"
+    command     = "chmod +x ${path.module}/ansible/run-ansible.sh"
     working_dir = path.module
   }
 
   provisioner "local-exec" {
-    command = "./ansible/run-ansible.sh '${path.module}/ansible' 'inventory.yml' 'ssh_key' 'rke2-playbook.yml'"
+    command     = "./ansible/run-ansible.sh '${path.module}/ansible' 'inventory.yml' 'ssh_key' 'rke2-playbook.yml'"
     working_dir = path.module
-    
+
     environment = {
       ANSIBLE_HOST_KEY_CHECKING = "False"
-      ANSIBLE_SSH_RETRIES      = "3"
-      ANSIBLE_TIMEOUT          = "30"
-      INSTALL_RKE2_VERSION     = var.RKE2_VERSION
-      PATH                     = "${pathexpand("~/.local/bin")}:${join(":", ["/usr/local/bin", "/usr/bin", "/bin"])}"
+      ANSIBLE_SSH_RETRIES       = "3"
+      ANSIBLE_TIMEOUT           = "30"
+      INSTALL_RKE2_VERSION      = var.RKE2_VERSION
+      PATH                      = "${pathexpand("~/.local/bin")}:${join(":", ["/usr/local/bin", "/usr/bin", "/bin"])}"
     }
   }
 
   # Clean up sensitive files after execution
   provisioner "local-exec" {
-    when    = destroy
-    command = "rm -f ./ansible/ssh_key"
+    when        = destroy
+    command     = "rm -f ./ansible/ssh_key"
     working_dir = path.module
   }
 }
@@ -168,7 +168,7 @@ resource "null_resource" "download_kubeconfig_files" {
     local_file.ansible_inventory,
     null_resource.rke2_ansible_installation
   ]
-  
+
   # Download kubeconfig files after cluster installation
   triggers = {
     cluster_ready = null_resource.rke2_ansible_installation.id
@@ -176,12 +176,12 @@ resource "null_resource" "download_kubeconfig_files" {
 
   provisioner "local-exec" {
     working_dir = "${path.module}/ansible"
-    
+
     environment = {
       ANSIBLE_HOST_KEY_CHECKING = "False"
-      PATH                     = "${pathexpand("~/.local/bin")}:${join(":", ["/usr/local/bin", "/usr/bin", "/bin"])}"
+      PATH                      = "${pathexpand("~/.local/bin")}:${join(":", ["/usr/local/bin", "/usr/bin", "/bin"])}"
     }
-    
+
     command = <<-EOT
       # First ensure kubectl is available and kubeconfig files are created
       echo "Setting up kubectl and kubeconfig files on nodes..."
@@ -230,22 +230,22 @@ resource "null_resource" "download_kubeconfig_files" {
 # Copy primary kubeconfig to terraform working directory and user's .kube directory
 resource "null_resource" "setup_kubeconfig" {
   depends_on = [null_resource.download_kubeconfig_files]
-  
+
   triggers = {
     kubeconfig_ready = null_resource.download_kubeconfig_files.id
   }
 
   provisioner "local-exec" {
     working_dir = "${path.module}/ansible"
-    
+
     command = <<-EOT
       # Find the primary control plane kubeconfig file (first in sorted order)
       PRIMARY_CONTROL_PLANE_KEY=$(echo '${jsonencode([
-        for key in sort([
-          for k, v in var.K8S_CLUSTER_PRIVATE_IPS : k 
-          if length(regexall(".*CONTROL-PLANE-NODE.*", k)) > 0
-        ]) : key
-      ])}' | jq -r '.[0]')
+    for key in sort([
+      for k, v in var.K8S_CLUSTER_PRIVATE_IPS : k
+      if length(regexall(".*CONTROL-PLANE-NODE.*", k)) > 0
+    ]) : key
+])}' | jq -r '.[0]')
       
       PRIMARY_KUBECONFIG="$PRIMARY_CONTROL_PLANE_KEY.yaml"
       
@@ -289,7 +289,7 @@ resource "null_resource" "setup_kubeconfig" {
         ls -la *.yaml || echo "No kubeconfig files found"
       fi
     EOT
-  }
+}
 }
 
 # Removed primary kubeconfig download - keeping only node-specific kubeconfigs
@@ -311,36 +311,36 @@ output "ANSIBLE_INVENTORY_PATH" {
 
 output "PRIMARY_KUBECONFIG_PATH" {
   value = "${path.module}/../../../../implementations/aws/infra/${sort([
-    for k, v in var.K8S_CLUSTER_PRIVATE_IPS : k 
+    for k, v in var.K8S_CLUSTER_PRIVATE_IPS : k
     if length(regexall(".*CONTROL-PLANE-NODE.*", k)) > 0
   ])[0]}.yaml"
   description = "Path to the primary kubeconfig file in the terraform working directory (original filename)"
 }
 
 output "PRIMARY_KUBECONFIG_SYMLINK" {
-  value = "${path.module}/../../../../implementations/aws/infra/${var.CLUSTER_NAME}.yaml"
+  value       = "${path.module}/../../../../implementations/aws/infra/${var.CLUSTER_NAME}.yaml"
   description = "Path to the kubeconfig symlink in the terraform working directory (simplified name)"
 }
 
 output "USER_KUBECONFIG_PATH" {
-  value = "~/.kube/${var.CLUSTER_NAME}.yaml"
+  value       = "~/.kube/${var.CLUSTER_NAME}.yaml"
   description = "Path to the kubeconfig file in user's .kube directory"
 }
 
 output "KUBECONFIG_SETUP_COMMAND" {
-  value = "export KUBECONFIG=~/.kube/${var.CLUSTER_NAME}.yaml"
+  value       = "export KUBECONFIG=~/.kube/${var.CLUSTER_NAME}.yaml"
   description = "Command to set the kubectl context to this cluster"
 }
 
 output "PRIMARY_CONTROL_PLANE_IP" {
   value = length([
     for key in sort([
-      for k, v in var.K8S_CLUSTER_PRIVATE_IPS : k 
+      for k, v in var.K8S_CLUSTER_PRIVATE_IPS : k
       if length(regexall(".*CONTROL-PLANE-NODE.*", k)) > 0
     ]) : var.K8S_CLUSTER_PRIVATE_IPS[key]
-  ]) > 0 ? [
+    ]) > 0 ? [
     for key in sort([
-      for k, v in var.K8S_CLUSTER_PRIVATE_IPS : k 
+      for k, v in var.K8S_CLUSTER_PRIVATE_IPS : k
       if length(regexall(".*CONTROL-PLANE-NODE.*", k)) > 0
     ]) : var.K8S_CLUSTER_PRIVATE_IPS[key]
   ][0] : "No control plane nodes found"
@@ -350,7 +350,7 @@ output "PRIMARY_CONTROL_PLANE_IP" {
 output "CONTROL_PLANE_SELECTION_ORDER" {
   value = [
     for key in sort([
-      for k, v in var.K8S_CLUSTER_PRIVATE_IPS : k 
+      for k, v in var.K8S_CLUSTER_PRIVATE_IPS : k
       if length(regexall(".*CONTROL-PLANE-NODE.*", k)) > 0
     ]) : "${key} -> ${var.K8S_CLUSTER_PRIVATE_IPS[key]}"
   ]

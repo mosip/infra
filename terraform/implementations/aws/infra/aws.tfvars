@@ -1,7 +1,7 @@
 # Environment name (infra component)
-cluster_name = "soil16"
+cluster_name = "soilmulti1234"
 # MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "soil16.mosip.net"
+cluster_env_domain = "soilmulti1234.mosip.net"
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
 mosip_email_id = "chandra.mishra@technoforte.co.in"
 # SSH login key name for AWS node instances (ex: my-ssh-key)
@@ -13,7 +13,7 @@ aws_provider_region = "ap-south-1"
 # If empty, uses all available AZs in the region
 # Example: ["ap-south-1a", "ap-south-1b"] for specific AZs
 # Example: [] for all available AZs in the region
-specific_availability_zones = ["ap-south-1a"]
+specific_availability_zones = []
 
 # The instance type for Kubernetes nodes (control plane, worker, etcd)
 k8s_instance_type = "t3a.2xlarge"
@@ -40,11 +40,11 @@ nginx_node_ebs_volume_size_2 = 200 # Enable second EBS volume for PostgreSQL tes
 k8s_instance_root_volume_size = 64
 
 # Control-plane, ETCD, Worker
-k8s_control_plane_node_count = 3
+k8s_control_plane_node_count = 4
 # ETCD, Worker
 k8s_etcd_node_count = 3
 # Worker
-k8s_worker_node_count = 2
+k8s_worker_node_count = 3
 
 # RKE2 Version Configuration
 rke2_version = "v1.28.9+rke2r1"
@@ -78,5 +78,3 @@ mosip_infra_branch = "develop"
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
 vpc_name = "mosip-boxes"
 
-# SSH private key is passed via environment variable TF_VAR_ssh_private_key
-# ssh_private_key = "set via TF_VAR_ssh_private_key environment variable"

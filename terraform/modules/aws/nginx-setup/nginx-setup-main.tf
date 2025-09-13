@@ -1,4 +1,5 @@
 variable "NGINX_PUBLIC_IP" { type = string }
+variable "NGINX_PRIVATE_IP" { type = string }
 variable "CLUSTER_ENV_DOMAIN" { type = string }
 variable "MOSIP_K8S_CLUSTER_NODES_PRIVATE_IP_LIST" { type = string }
 variable "MOSIP_PUBLIC_DOMAIN_LIST" { type = string }
@@ -54,9 +55,11 @@ resource "null_resource" "Nginx-setup" {
   }
   connection {
     type        = "ssh"
-    host        = var.NGINX_PUBLIC_IP
-    user        = "ubuntu"            # Change based on the AMI used
-    private_key = var.SSH_PRIVATE_KEY # content of your private key
+    host        = var.NGINX_PRIVATE_IP # Use private IP - works through WireGuard
+    user        = "ubuntu"
+    private_key = var.SSH_PRIVATE_KEY
+    timeout     = "10m"
+    agent       = false
   }
   provisioner "file" {
     source      = "${path.module}/nginx-setup.sh"
