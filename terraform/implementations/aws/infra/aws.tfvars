@@ -1,7 +1,7 @@
 # Environment name (infra component)
-cluster_name = "soil19"
+cluster_name = "soil20"
 # MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "soil19.mosip.net"
+cluster_env_domain = "soil20.mosip.net"
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
 mosip_email_id = "chandra.mishra@technoforte.co.in"
 # SSH login key name for AWS node instances (ex: my-ssh-key)
@@ -35,16 +35,16 @@ nginx_node_root_volume_size = 24
 # NGINX node's EBS volume size
 nginx_node_ebs_volume_size = 300
 # NGINX node's second EBS volume size (optional - set to 0 to disable)
-nginx_node_ebs_volume_size_2 = 200 # Enable second EBS volume for PostgreSQL testing
+nginx_node_ebs_volume_size_2 = 0 # Enable second EBS volume for PostgreSQL testing
 # Kubernetes nodes Root volume size
 k8s_instance_root_volume_size = 64
 
 # Control-plane, ETCD, Worker
-k8s_control_plane_node_count = 3
+k8s_control_plane_node_count = 1
 # ETCD, Worker
-k8s_etcd_node_count = 3
+k8s_etcd_node_count = 0
 # Worker
-k8s_worker_node_count = 2
+k8s_worker_node_count = 0
 
 # RKE2 Version Configuration
 rke2_version = "v1.28.9+rke2r1"
