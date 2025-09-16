@@ -16,17 +16,17 @@ all:
     control_plane:
       hosts:
         soil37-CONTROL-PLANE-NODE-1:
-          ansible_host: 10.0.3.184
+          ansible_host: 10.0.3.228
           node_role: control_plane
           is_primary: true
           node_index: 0
         soil37-CONTROL-PLANE-NODE-2:
-          ansible_host: 10.0.4.215
+          ansible_host: 10.0.4.244
           node_role: control_plane
           is_primary: false
           node_index: 1
         soil37-CONTROL-PLANE-NODE-3:
-          ansible_host: 10.0.3.6
+          ansible_host: 10.0.3.246
           node_role: control_plane
           is_primary: false
           node_index: 2
@@ -34,22 +34,22 @@ all:
     etcd:
       hosts:
         soil37-ETCD-NODE-1:
-          ansible_host: 10.0.3.93
+          ansible_host: 10.0.3.234
           node_role: etcd
         soil37-ETCD-NODE-2:
-          ansible_host: 10.0.4.68
+          ansible_host: 10.0.4.125
           node_role: etcd
         soil37-ETCD-NODE-3:
-          ansible_host: 10.0.3.150
+          ansible_host: 10.0.3.200
           node_role: etcd
     
     workers:
       hosts:
         soil37-WORKER-NODE-1:
-          ansible_host: 10.0.3.204
+          ansible_host: 10.0.3.196
           node_role: worker
         soil37-WORKER-NODE-2:
-          ansible_host: 10.0.4.5
+          ansible_host: 10.0.4.223
           node_role: worker
 
     rke2_cluster:
