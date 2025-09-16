@@ -55,7 +55,7 @@ subdomain_public = []
 
 subdomain_internal = [
   "rancher",
-  "keycloak"
+  "keycloak",
   "iam"
 ]
 
