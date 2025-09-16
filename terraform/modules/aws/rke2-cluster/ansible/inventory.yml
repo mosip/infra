@@ -1,7 +1,7 @@
 ---
 all:
   vars:
-    cluster_name: "soil36"
+    cluster_name: "soil37"
     cluster_env_domain: "mosip.local"
     k8s_infra_repo_url: "https://github.com/mosip/k8s-infra.git"
     k8s_infra_branch: "MOSIP-42914"
@@ -15,41 +15,41 @@ all:
   children:
     control_plane:
       hosts:
-        soil36-CONTROL-PLANE-NODE-1:
-          ansible_host: 10.0.3.56
+        soil37-CONTROL-PLANE-NODE-1:
+          ansible_host: 10.0.3.184
           node_role: control_plane
           is_primary: true
           node_index: 0
-        soil36-CONTROL-PLANE-NODE-2:
-          ansible_host: 10.0.4.115
+        soil37-CONTROL-PLANE-NODE-2:
+          ansible_host: 10.0.4.215
           node_role: control_plane
           is_primary: false
           node_index: 1
-        soil36-CONTROL-PLANE-NODE-3:
-          ansible_host: 10.0.3.175
+        soil37-CONTROL-PLANE-NODE-3:
+          ansible_host: 10.0.3.6
           node_role: control_plane
           is_primary: false
           node_index: 2
     
     etcd:
       hosts:
-        soil36-ETCD-NODE-1:
-          ansible_host: 10.0.3.94
+        soil37-ETCD-NODE-1:
+          ansible_host: 10.0.3.93
           node_role: etcd
-        soil36-ETCD-NODE-2:
-          ansible_host: 10.0.4.121
+        soil37-ETCD-NODE-2:
+          ansible_host: 10.0.4.68
           node_role: etcd
-        soil36-ETCD-NODE-3:
-          ansible_host: 10.0.3.53
+        soil37-ETCD-NODE-3:
+          ansible_host: 10.0.3.150
           node_role: etcd
     
     workers:
       hosts:
-        soil36-WORKER-NODE-1:
-          ansible_host: 10.0.3.243
+        soil37-WORKER-NODE-1:
+          ansible_host: 10.0.3.204
           node_role: worker
-        soil36-WORKER-NODE-2:
-          ansible_host: 10.0.4.93
+        soil37-WORKER-NODE-2:
+          ansible_host: 10.0.4.5
           node_role: worker
 
     rke2_cluster:
