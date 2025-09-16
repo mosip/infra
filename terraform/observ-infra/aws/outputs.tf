@@ -24,11 +24,8 @@ output "CONTROL_PLANE_NODE_1" {
   value       = module.aws_observation_infrastructure.CONTROL_PLANE_NODE_1
 }
 
-output "K8S_TOKEN" {
-  description = "K8s cluster token"
-  value       = module.aws_observation_infrastructure.K8S_TOKEN
-  sensitive   = true
-}
+# Token generation handled by ansible - no terraform output needed
+# K8S_TOKEN removed as ansible manages token internally
 
 # Add missing outputs for compatibility
 output "control_plane_node_1" {
@@ -36,11 +33,8 @@ output "control_plane_node_1" {
   value       = module.aws_observation_infrastructure.CONTROL_PLANE_NODE_1
 }
 
-output "k8s_token" {
-  description = "K8s cluster token (lowercase alias)"
-  value       = module.aws_observation_infrastructure.K8S_TOKEN
-  sensitive   = true
-}
+# Token generation handled by ansible - no terraform output needed
+# k8s_token removed as ansible manages token internally
 
 output "vpc_id" {
   description = "VPC ID (lowercase alias)"

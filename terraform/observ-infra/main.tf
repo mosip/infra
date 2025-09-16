@@ -44,6 +44,7 @@ module "aws_observ_infra" {
   rancher_import_url            = var.rancher_import_url
   k8s_infra_repo_url            = var.k8s_infra_repo_url
   k8s_infra_branch              = var.k8s_infra_branch
+  rke2_version                  = var.rke2_version
   nginx_node_root_volume_size   = var.nginx_node_root_volume_size
   nginx_node_ebs_volume_size    = var.nginx_node_ebs_volume_size
   nginx_node_ebs_volume_size_2  = var.nginx_node_ebs_volume_size_2
@@ -51,6 +52,16 @@ module "aws_observ_infra" {
 
   network_cidr   = var.network_cidr
   WIREGUARD_CIDR = var.WIREGUARD_CIDR
+
+  # PostgreSQL Configuration (passed for consistency, disabled in observ-infra)
+  postgresql_version = var.postgresql_version
+  storage_device     = var.storage_device
+  mount_point        = var.mount_point
+  postgresql_port    = var.postgresql_port
+
+  # MOSIP Infrastructure Repository Configuration
+  mosip_infra_repo_url = var.mosip_infra_repo_url
+  mosip_infra_branch   = var.mosip_infra_branch
 
   # Rancher and Keycloak Configuration
   enable_rancher_keycloak_integration = var.enable_rancher_keycloak_integration

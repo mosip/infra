@@ -83,6 +83,44 @@ variable "enable_rancher_import" {
   description = "Set to true to enable Rancher import"
 }
 
+# RKE2 Configuration
+variable "rke2_version" {
+  description = "RKE2 version to install"
+  type        = string
+}
+
+# PostgreSQL Configuration (for module consistency, though disabled in observ-infra)
+variable "postgresql_version" {
+  description = "PostgreSQL version to install"
+  type        = string
+}
+
+variable "storage_device" {
+  description = "Storage device path for PostgreSQL data"
+  type        = string
+}
+
+variable "mount_point" {
+  description = "Mount point for PostgreSQL data directory"
+  type        = string
+}
+
+variable "postgresql_port" {
+  description = "PostgreSQL port configuration"
+  type        = string
+}
+
+# MOSIP Infrastructure Repository Configuration
+variable "mosip_infra_repo_url" {
+  description = "URL of the MOSIP infrastructure repository"
+  type        = string
+}
+
+variable "mosip_infra_branch" {
+  description = "Branch of the MOSIP infrastructure repository"
+  type        = string
+}
+
 # Rancher and Keycloak Configuration Variables
 variable "enable_rancher_keycloak_integration" {
   description = "Enable Rancher and Keycloak installation"

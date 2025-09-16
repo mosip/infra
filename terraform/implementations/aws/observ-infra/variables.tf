@@ -206,3 +206,52 @@ variable "rancher_bootstrap_password" {
   default     = "admin"
   sensitive   = true
 }
+
+# RKE2 Configuration
+variable "rke2_version" {
+  description = "RKE2 version to install"
+  type        = string
+  default     = "v1.32.8+rke2r1"
+  validation {
+    condition     = can(regex("^v[0-9]+\\.[0-9]+\\.[0-9]+\\+rke2r[0-9]+$", var.rke2_version))
+    error_message = "RKE2 version must be in format 'vX.Y.Z+rke2rN' (e.g., 'v1.28.9+rke2r1')"
+  }
+}
+
+# PostgreSQL Configuration (for consistency with infra, though disabled in observ-infra)
+variable "postgresql_version" {
+  description = "PostgreSQL version to install (not used in observ-infra, but maintained for module consistency)"
+  type        = string
+  default     = "15"
+}
+
+variable "storage_device" {
+  description = "Storage device path for PostgreSQL data (not used in observ-infra, but maintained for module consistency)"
+  type        = string
+  default     = "/dev/nvme2n1"
+}
+
+variable "mount_point" {
+  description = "Mount point for PostgreSQL data directory (not used in observ-infra, but maintained for module consistency)"
+  type        = string
+  default     = "/srv/postgres"
+}
+
+variable "postgresql_port" {
+  description = "PostgreSQL port configuration (not used in observ-infra, but maintained for module consistency)"
+  type        = string
+  default     = "5433"
+}
+
+# MOSIP Infrastructure Repository Configuration
+variable "mosip_infra_repo_url" {
+  description = "URL of the MOSIP infrastructure repository"
+  type        = string
+  default     = "https://github.com/bhumi46/mosip-infra.git"
+}
+
+variable "mosip_infra_branch" {
+  description = "Branch of the MOSIP infrastructure repository"
+  type        = string
+  default     = "develop"
+}

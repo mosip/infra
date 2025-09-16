@@ -32,6 +32,7 @@ module "aws_observation_infrastructure" {
   ZONE_ID                       = var.zone_id
   K8S_INFRA_REPO_URL            = var.k8s_infra_repo_url
   K8S_INFRA_BRANCH              = var.k8s_infra_branch
+  RKE2_VERSION                  = var.rke2_version
   vpc_name                      = var.vpc_name
   NGINX_NODE_ROOT_VOLUME_SIZE   = var.nginx_node_root_volume_size
   NGINX_NODE_EBS_VOLUME_SIZE    = var.nginx_node_ebs_volume_size
@@ -40,8 +41,16 @@ module "aws_observation_infrastructure" {
   network_cidr                  = var.network_cidr
   WIREGUARD_CIDR                = var.WIREGUARD_CIDR
 
-  # Disable PostgreSQL setup for observ-infra
+  # Disable PostgreSQL setup for observ-infra (but pass variables for module consistency)
   enable_postgresql_setup = false
+  postgresql_version      = var.postgresql_version
+  storage_device          = var.storage_device
+  mount_point             = var.mount_point
+  postgresql_port         = var.postgresql_port
+
+  # MOSIP Infrastructure Repository Configuration
+  mosip_infra_repo_url = var.mosip_infra_repo_url
+  mosip_infra_branch   = var.mosip_infra_branch
 }
 
 # Rancher and Keycloak Integration (only for observ-infra)

@@ -5,7 +5,7 @@
 cloud_provider = "aws"
 
 # Environment name (observability component)
-cluster_name = "soil-observ"
+cluster_name = "observ"
 
 # MOSIP domain
 cluster_env_domain = "observ.mosip.net"
@@ -32,7 +32,7 @@ k8s_worker_node_count        = 0
 
 # Minimal instance types for observability
 k8s_instance_type   = "t3a.2xlarge"
-nginx_instance_type = "t3a.large"
+nginx_instance_type = "t3a.2xlarge"
 
 # AMI ID (Ubuntu 24.04 LTS in ap-south-1)
 ami = "ami-0ad21ae1d0696ad58"
@@ -62,6 +62,9 @@ subdomain_internal = [
 k8s_infra_repo_url = "https://github.com/bhumi46/k8s-infra.git"
 k8s_infra_branch   = "develop"
 
+# RKE2 Version Configuration
+rke2_version = "v1.28.9+rke2r1"
+
 # Rancher UI configuration (hostname will be dynamically created from cluster_env_domain)
 rancher_hostname           = "rancher.observ.mosip.net" # Will default to rancher.testvpc.mosip.net
 rancher_bootstrap_password = "admin"
@@ -77,9 +80,11 @@ enable_rancher_import = false
 rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/dzshvnb6br7qtf267zsrr9xsw6tnb2vt4x68g79r2wzsnfgvkjq2jk_c-m-b5249w76.yaml\""
 
 # Security group CIDRs
-network_cidr   = "10.0.0.0/16" # Use your actual VPC CIDR
-WIREGUARD_CIDR = "10.0.0.0/24" # Use your actual WireGuard VPN CIDR
+network_cidr   = "10.0.0.0/8" # Use your actual VPC CIDR
+WIREGUARD_CIDR = "10.0.0.0/8" # Use your actual WireGuard VPN CIDR
 
+
+enable_postgresql_setup = false # Enable PostgreSQL setup for main infra
 # PostgreSQL Configuration (used when second EBS volume is enabled)
 postgresql_version = "15"
 storage_device     = "/dev/nvme2n1"

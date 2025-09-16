@@ -29,11 +29,8 @@ output "control_plane_node_1" {
   value       = module.mosip_observ_infra.control_plane_node_1
 }
 
-output "k8s_token" {
-  description = "Kubernetes observation cluster token"
-  value       = module.mosip_observ_infra.k8s_token
-  sensitive   = true
-}
+# Token generation handled by ansible - no terraform output needed
+# k8s_token removed as ansible manages token internally
 
 output "vpc_id" {
   description = "VPC ID for observation infrastructure"
