@@ -254,33 +254,41 @@ resource "null_resource" "setup_kubeconfig" {
         echo "Primary control plane: $PRIMARY_CONTROL_PLANE_KEY"
         
         # Copy to terraform working directory (where terraform apply was run) - preserve original filename
-        # Use more robust path calculation to determine the correct target directory
-        # First, find the actual working directory by looking for key terraform files
-        if [ -f "../../../../terraform.tfstate" ] || [ -f "../../../../*.tfstate" ]; then
-          TARGET_DIR="../../../../"
+        # Find the terraform working directory by checking for backend.tf files
+        echo "Current ansible directory: $(pwd)"
+        
+        # Check multiple possible paths for backend.tf to determine correct implementation directory
+        if [ -f "../../../../implementations/aws/observ-infra/backend.tf" ]; then
+          TARGET_DIR="../../../../implementations/aws/observ-infra"
           DETECTED_DIR="observ-infra"
-        elif [ -f "../../../../../terraform.tfstate" ] || [ -f "../../../../../*.tfstate" ]; then
-          TARGET_DIR="../../../../../"
+          echo "Detection method: found observ-infra backend.tf"
+        elif [ -f "../../../../implementations/aws/infra/backend.tf" ]; then
+          TARGET_DIR="../../../../implementations/aws/infra"
           DETECTED_DIR="infra"
+          echo "Detection method: found infra backend.tf"
         else
-          # Fallback: try to detect from directory structure
-          WORKING_DIR=$(pwd)
-          if [[ "$WORKING_DIR" == *"/observ-infra/"* ]]; then
-            TARGET_DIR="../../../../"
-            DETECTED_DIR="observ-infra"
-          elif [[ "$WORKING_DIR" == *"/infra/"* ]]; then
-            TARGET_DIR="../../../../../"
-            DETECTED_DIR="infra"
+          # Fallback: check if we can find any backend.tf and determine from content
+          BACKEND_FILE=$(find ../../../../implementations/aws -name "backend.tf" | head -1)
+          if [ -n "$BACKEND_FILE" ]; then
+            BACKEND_DIR=$(dirname "$BACKEND_FILE")
+            if [[ "$BACKEND_FILE" == *"observ-infra"* ]]; then
+              TARGET_DIR="$BACKEND_DIR"
+              DETECTED_DIR="observ-infra (found via search)"
+            else
+              TARGET_DIR="$BACKEND_DIR"
+              DETECTED_DIR="infra (found via search)"
+            fi
+            echo "Detection method: found backend.tf at $BACKEND_FILE"
           else
             # Final fallback
-            TARGET_DIR="../../../../"
+            TARGET_DIR="../../../../implementations/aws/observ-infra"
             DETECTED_DIR="observ-infra (fallback)"
+            echo "Detection method: fallback"
           fi
         fi
         
         echo "Detected implementation type: $DETECTED_DIR"
         echo "Target directory: $TARGET_DIR"
-        echo "Current working directory: $(pwd)"
         
         # Ensure target directory exists
         mkdir -p "$TARGET_DIR"
