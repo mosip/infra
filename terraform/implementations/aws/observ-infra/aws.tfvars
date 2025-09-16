@@ -56,6 +56,7 @@ subdomain_public = []
 subdomain_internal = [
   "rancher",
   "keycloak"
+  "iam"
 ]
 
 # Repository configuration
@@ -70,7 +71,7 @@ rancher_hostname           = "rancher.observ.mosip.net" # Will default to ranche
 rancher_bootstrap_password = "admin"
 
 # Keycloak configuration (hostname will be dynamically created from cluster_env_domain)  
-keycloak_hostname = "keycloak.observ.mosip.net" # Will default to iam.testvpc.mosip.net
+keycloak_hostname = "iam.observ.mosip.net" # Will default to iam.testvpc.mosip.net
 
 # Enable Rancher-Keycloak integration for observability cluster
 enable_rancher_keycloak_integration = true
