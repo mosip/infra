@@ -67,11 +67,11 @@ k8s_infra_branch   = "develop"
 rke2_version = "v1.28.9+rke2r1"
 
 # Rancher UI configuration (hostname will be dynamically created from cluster_env_domain)
-rancher_hostname           = "rancher.observ.mosip.net" # Will default to rancher.testvpc.mosip.net
+rancher_hostname           = "rancher.obs.mosip.net" # Will default to rancher.testvpc.mosip.net
 rancher_bootstrap_password = "admin"
 
 # Keycloak configuration (hostname will be dynamically created from cluster_env_domain)  
-keycloak_hostname = "iam.observ.mosip.net" # Will default to iam.testvpc.mosip.net
+keycloak_hostname = "iam.obs.mosip.net" # Will default to iam.testvpc.mosip.net
 
 # Enable Rancher-Keycloak integration for observability cluster
 enable_rancher_keycloak_integration = true
