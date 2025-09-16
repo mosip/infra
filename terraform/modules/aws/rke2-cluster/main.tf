@@ -254,13 +254,36 @@ resource "null_resource" "setup_kubeconfig" {
         echo "Primary control plane: $PRIMARY_CONTROL_PLANE_KEY"
         
         # Copy to terraform working directory (where terraform apply was run) - preserve original filename
-        # Use relative path calculation to determine if we're in 'infra' or 'observ-infra' directory
-        # From ansible/ directory: ../../../.. takes us to implementations/aws/
-        # Then we check if we're in infra/ or observ-infra/ subdirectory
-        CURRENT_IMPL_DIR=$(basename "$(realpath ../../../../)")
-        TARGET_DIR="../../../../$CURRENT_IMPL_DIR"
-        echo "Detected implementation directory: $CURRENT_IMPL_DIR"
+        # Use more robust path calculation to determine the correct target directory
+        # First, find the actual working directory by looking for key terraform files
+        if [ -f "../../../../terraform.tfstate" ] || [ -f "../../../../*.tfstate" ]; then
+          TARGET_DIR="../../../../"
+          DETECTED_DIR="observ-infra"
+        elif [ -f "../../../../../terraform.tfstate" ] || [ -f "../../../../../*.tfstate" ]; then
+          TARGET_DIR="../../../../../"
+          DETECTED_DIR="infra"
+        else
+          # Fallback: try to detect from directory structure
+          WORKING_DIR=$(pwd)
+          if [[ "$WORKING_DIR" == *"/observ-infra/"* ]]; then
+            TARGET_DIR="../../../../"
+            DETECTED_DIR="observ-infra"
+          elif [[ "$WORKING_DIR" == *"/infra/"* ]]; then
+            TARGET_DIR="../../../../../"
+            DETECTED_DIR="infra"
+          else
+            # Final fallback
+            TARGET_DIR="../../../../"
+            DETECTED_DIR="observ-infra (fallback)"
+          fi
+        fi
+        
+        echo "Detected implementation type: $DETECTED_DIR"
         echo "Target directory: $TARGET_DIR"
+        echo "Current working directory: $(pwd)"
+        
+        # Ensure target directory exists
+        mkdir -p "$TARGET_DIR"
         
         cp "$PRIMARY_KUBECONFIG" "$TARGET_DIR/$PRIMARY_KUBECONFIG"
         
