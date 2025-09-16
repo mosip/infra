@@ -22,7 +22,13 @@ all:
           node_index: 0
     
     
+    workers:
+      hosts:
+        obsdev-WORKER-NODE-1:
+          ansible_host: 10.0.3.101
+          node_role: worker
 
     rke2_cluster:
       children:
         control_plane:
+        workers:
