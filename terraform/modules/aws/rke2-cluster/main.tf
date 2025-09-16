@@ -254,11 +254,18 @@ resource "null_resource" "setup_kubeconfig" {
         echo "Primary control plane: $PRIMARY_CONTROL_PLANE_KEY"
         
         # Copy to terraform working directory (where terraform apply was run) - preserve original filename
-        # From ansible/ directory, need to go up 4 levels to reach implementations/aws/infra/
-        cp "$PRIMARY_KUBECONFIG" "../../../../implementations/aws/infra/$PRIMARY_KUBECONFIG"
+        # Use relative path calculation to determine if we're in 'infra' or 'observ-infra' directory
+        # From ansible/ directory: ../../../.. takes us to implementations/aws/
+        # Then we check if we're in infra/ or observ-infra/ subdirectory
+        CURRENT_IMPL_DIR=$(basename "$(realpath ../../../../)")
+        TARGET_DIR="../../../../$CURRENT_IMPL_DIR"
+        echo "Detected implementation directory: $CURRENT_IMPL_DIR"
+        echo "Target directory: $TARGET_DIR"
+        
+        cp "$PRIMARY_KUBECONFIG" "$TARGET_DIR/$PRIMARY_KUBECONFIG"
         
         # Also create a simplified symlink for convenience
-        ln -sf "$PRIMARY_KUBECONFIG" "../../../../implementations/aws/infra/${var.CLUSTER_NAME}.yaml"
+        ln -sf "$PRIMARY_KUBECONFIG" "$TARGET_DIR/${var.CLUSTER_NAME}.yaml"
         
         # Create user's .kube directory if it doesn't exist
         mkdir -p ~/.kube
@@ -273,8 +280,8 @@ resource "null_resource" "setup_kubeconfig" {
         export KUBECONFIG=~/.kube/${var.CLUSTER_NAME}.yaml
         
         echo "Kubeconfig files created:"
-        echo "  - Terraform directory: ../../../../implementations/aws/infra/$PRIMARY_KUBECONFIG"
-        echo "  - Terraform symlink: ../../../../implementations/aws/infra/${var.CLUSTER_NAME}.yaml"
+        echo "  - Terraform directory: $TARGET_DIR/$PRIMARY_KUBECONFIG"
+        echo "  - Terraform symlink: $TARGET_DIR/${var.CLUSTER_NAME}.yaml"
         echo "  - User kube directory: ~/.kube/$PRIMARY_KUBECONFIG"
         echo "  - User symlink: ~/.kube/${var.CLUSTER_NAME}.yaml"
         echo ""
