@@ -1,0 +1,28 @@
+---
+all:
+  vars:
+    cluster_name: "soil33"
+    cluster_env_domain: "mosip.local"
+    k8s_infra_repo_url: "https://github.com/mosip/k8s-infra.git"
+    k8s_infra_branch: "MOSIP-42914"
+    install_rke2_version: "v1.28.9+rke2r1"
+    enable_rancher_import: false
+    rancher_import_url: ""
+    ansible_user: ubuntu
+    ansible_ssh_private_key_file: ./ssh_key
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+    
+  children:
+    control_plane:
+      hosts:
+        soil33-CONTROL-PLANE-NODE-1:
+          ansible_host: 10.0.3.242
+          node_role: control_plane
+          is_primary: true
+          node_index: 0
+    
+    
+
+    rke2_cluster:
+      children:
+        control_plane:
