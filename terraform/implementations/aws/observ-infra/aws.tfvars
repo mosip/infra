@@ -84,8 +84,6 @@ rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/
 network_cidr   = "10.0.0.0/8" # Use your actual VPC CIDR
 WIREGUARD_CIDR = "10.0.0.0/8" # Use your actual WireGuard VPN CIDR
 
-
-enable_postgresql_setup = false # Enable PostgreSQL setup for main infra
 # PostgreSQL Configuration (used when second EBS volume is enabled)
 postgresql_version = "15"
 storage_device     = "/dev/nvme2n1"
