@@ -53,7 +53,7 @@ rke2_version = "v1.28.9+rke2r1"
 enable_rancher_import = false
 
 # Security group CIDRs
-network_cidr   = "10.0.0.0/8"   # Use your actual VPC CIDR
+network_cidr   = "10.0.0.0/8" # Use your actual VPC CIDR
 WIREGUARD_CIDR = "10.0.0.0/8" # Use your actual WireGuard VPN CIDR
 
 # Rancher Import URL
