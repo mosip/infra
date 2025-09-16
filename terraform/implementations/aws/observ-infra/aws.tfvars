@@ -5,10 +5,10 @@
 cloud_provider = "aws"
 
 # Environment name (observability component)
-cluster_name = "obs"
+cluster_name = "obsdev"
 
 # MOSIP domain
-cluster_env_domain = "obs.mosip.net"
+cluster_env_domain = "obsdev.mosip.net"
 
 # Email-ID for SSL certificate notifications
 mosip_email_id = "chandra.mishra@technoforte.co.in"
@@ -93,3 +93,4 @@ postgresql_port    = "5433"
 # MOSIP Infrastructure Repository Configuration
 mosip_infra_repo_url = "https://github.com/bhumi46/mosip-infra.git"
 mosip_infra_branch   = "develop"
+
