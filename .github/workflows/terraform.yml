@@ -315,7 +315,7 @@ jobs:
           # Verify installation
           ansible --version
           echo "✅ Ansible installed successfully for GitHub Actions runner"
-        if: "${{ inputs.TERRAFORM_COMPONENT == 'infra' }}"
+        if: "${{ inputs.TERRAFORM_COMPONENT == 'infra' || inputs.TERRAFORM_COMPONENT == 'observ-infra' }}"
 
       - name: Terraform Plan
         id: plan
