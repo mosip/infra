@@ -196,7 +196,6 @@ TF_WG_CONFIG: |
 
 # Notifications (optional)
 SLACK_WEBHOOK_URL: "https://hooks.slack.com/services/..."  # Slack notifications
-GITHUB_TOKEN: "ghp_..."                                    # GitHub token for API access
 ```
 
 #### Helmsman Secrets
