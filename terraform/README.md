@@ -1,6 +1,12 @@
 # MOSIP Terraform Infrastructure
 
+<div align="center">
+
 ![MOSIP Infrastructure](../docs/_images/mosip-cloud-agnostic-banner.png)
+
+*Terraform-based Infrastructure as Code for MOSIP Platform*
+
+</div>
 
 This directory contains **Terraform code** for deploying MOSIP (Modular Open Source Identity Platform) infrastructure. **Complete implementation is available for AWS**, while **Azure and GCP have placeholder structures** available for community contributions. The architecture separates infrastructure into three distinct components for clear isolation and management.
 
@@ -10,7 +16,13 @@ This directory contains **Terraform code** for deploying MOSIP (Modular Open Sou
 
 ### Three-Component Architecture
 
+<div align="center">
+
 ![MOSIP Three-Component Architecture](../docs/_images/mosip-rke2-architecture.svg)
+
+*Cloud-Agnostic RKE2 Infrastructure Deployment Model*
+
+</div>
 
 The MOSIP infrastructure follows a clean three-component architecture with isolated state management using **local backend with GPG encryption**:
 
