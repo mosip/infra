@@ -77,6 +77,52 @@ graph TB
 
 > **Note:** Complete Terraform scripts are available only for **AWS**. For **Azure and GCP**, only placeholder structures are configured - community contributions are welcome to implement full functionality.
 
+## Architecture Overview
+
+### Infrastructure Layer (Terraform)
+
+```
+terraform/
+├── base-infra/          # Foundation infrastructure (VPC, networking, security)
+├── observ-infra/        # Management cluster with Rancher UI (Optional)
+├── infra/               # MOSIP Kubernetes clusters
+├── modules/             # Reusable Terraform modules
+│   ├── aws/             # AWS-specific modules
+│   ├── azure/           # Azure-specific modules
+│   └── gcp/             # GCP-specific modules
+└── implementations/     # Cloud-specific implementations
+    ├── aws/             # AWS deployment configurations
+    ├── azure/           # Azure deployment configurations
+    └── gcp/             # GCP deployment configurations
+```
+
+### Application Layer (Helmsman)
+
+```
+Helmsman/
+├── dsf/                 # Desired State Files for deployments
+│   ├── prereq-dsf.yaml  # Prerequisites (monitoring, Istio, logging)
+│   ├── external-dsf.yaml # External dependencies (PostgreSQL, Keycloak, MinIO, ActiveMQ, Kafka)
+│   ├── mosip-dsf.yaml   # MOSIP core services (Identity, Auth, Registration)
+│   └── testrigs-dsf.yaml # Testing suite (API, DSL, UI test rigs)
+├── hooks/               # Deployment automation scripts
+└── utils/               # Utilities and configurations
+    ├── istio-addons/    # Service mesh components
+    ├── logging/         # Logging stack configurations
+    └── monitoring/      # Monitoring and alerting setup
+```
+
+### Automation Layer (GitHub Actions)
+
+```
+.github/workflows/
+├── terraform.yml        # Infrastructure provisioning workflow
+├── terraform-destroy.yml # Infrastructure cleanup workflow
+├── helmsman_external.yml # External dependencies deployment
+├── helmsman_mosip.yml   # MOSIP core services deployment
+└── helmsman_testrigs.yml # Testing infrastructure deployment
+```
+
 ## Prerequisites
 
 ### Required Cloud Provider Account
@@ -660,6 +706,10 @@ Add the required secrets as follows:
    ```yaml
    # Kubernetes Access (Environment Secret)
    KUBECONFIG: "<contents-of-kubeconfig-file>"
+   
+   # WireGuard Cluster Access for Helmsman
+   CLUSTER_WIREGUARD_WG0: "peer1-wireguard-config"  # Helmsman cluster access (peer1)
+   CLUSTER_WIREGUARD_WG1: "peer2-wireguard-config"  # Helmsman cluster access (peer2)
    ```
    
    **Repository Secrets (global):**
@@ -741,52 +791,6 @@ The Quick Start Guide provides the essential deployment flow. For comprehensive 
 - **Security Configurations**: See respective component READMEs for security hardening options
 
 > **💡 Pro Tip**: Each component directory contains detailed documentation tailored to that specific technology stack. Start with this Quick Start Guide, then dive into component-specific docs as needed.
-
-## Architecture Overview
-
-### Infrastructure Layer (Terraform)
-
-```
-terraform/
-├── base-infra/          # Foundation infrastructure (VPC, networking, security)
-├── observ-infra/        # Management cluster with Rancher UI (Optional)
-├── infra/               # MOSIP Kubernetes clusters
-├── modules/             # Reusable Terraform modules
-│   ├── aws/             # AWS-specific modules
-│   ├── azure/           # Azure-specific modules
-│   └── gcp/             # GCP-specific modules
-└── implementations/     # Cloud-specific implementations
-    ├── aws/             # AWS deployment configurations
-    ├── azure/           # Azure deployment configurations
-    └── gcp/             # GCP deployment configurations
-```
-
-### Application Layer (Helmsman)
-
-```
-Helmsman/
-├── dsf/                 # Desired State Files for deployments
-│   ├── prereq-dsf.yaml  # Prerequisites (monitoring, Istio, logging)
-│   ├── external-dsf.yaml # External dependencies (PostgreSQL, Keycloak, MinIO, ActiveMQ, Kafka)
-│   ├── mosip-dsf.yaml   # MOSIP core services (Identity, Auth, Registration)
-│   └── testrigs-dsf.yaml # Testing suite (API, DSL, UI test rigs)
-├── hooks/               # Deployment automation scripts
-└── utils/               # Utilities and configurations
-    ├── istio-addons/    # Service mesh components
-    ├── logging/         # Logging stack configurations
-    └── monitoring/      # Monitoring and alerting setup
-```
-
-### Automation Layer (GitHub Actions)
-
-```
-.github/workflows/
-├── terraform.yml        # Infrastructure provisioning workflow
-├── terraform-destroy.yml # Infrastructure cleanup workflow
-├── helmsman_external.yml # External dependencies deployment
-├── helmsman_mosip.yml   # MOSIP core services deployment
-└── helmsman_testrigs.yml # Testing infrastructure deployment
-```
 
 ## Known Limitations
 
