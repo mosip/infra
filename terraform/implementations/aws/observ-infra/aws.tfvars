@@ -5,10 +5,10 @@
 cloud_provider = "aws"
 
 # Environment name (observability component)
-cluster_name = "obsdev"
+cluster_name = "observation"
 
 # MOSIP domain
-cluster_env_domain = "obsdev.mosip.net"
+cluster_env_domain = "observation.mosip.net"
 
 # Email-ID for SSL certificate notifications
 mosip_email_id = "chandra.mishra@technoforte.co.in"
@@ -45,7 +45,7 @@ vpc_name = "mosip-boxes"
 
 # Minimal storage configuration
 nginx_node_root_volume_size = 20  # Smaller than infra (24)
-nginx_node_ebs_volume_size  = 100 # Smaller than infra (300)
+nginx_node_ebs_volume_size  = 50 # Smaller than infra (300)
 # Second EBS volume for PostgreSQL (disabled for observ-infra)
 nginx_node_ebs_volume_size_2  = 0  # Disabled for observability infrastructure
 k8s_instance_root_volume_size = 32 # Smaller than infra (64)
@@ -67,14 +67,14 @@ k8s_infra_branch   = "develop"
 rke2_version = "v1.28.9+rke2r1"
 
 # Rancher UI configuration (hostname will be dynamically created from cluster_env_domain)
-rancher_hostname           = "rancher.obsdev.mosip.net" # Will default to rancher.testvpc.mosip.net
+rancher_hostname           = "rancher.observation.mosip.net" # Will default to rancher.testvpc.mosip.net
 rancher_bootstrap_password = "admin"
 
 # Keycloak configuration (hostname will be dynamically created from cluster_env_domain)  
-keycloak_hostname = "iam.obsdev.mosip.net" # Will default to iam.testvpc.mosip.net
+keycloak_hostname = "iam.observation.mosip.net" # Will default to iam.testvpc.mosip.net
 
 # Enable Rancher-Keycloak integration for observability cluster
-enable_rancher_keycloak_integration = true
+enable_rancher_keycloak_integration = false
 
 # Rancher import (same as infra)
 enable_rancher_import = false
