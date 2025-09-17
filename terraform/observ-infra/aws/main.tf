@@ -54,18 +54,19 @@ module "aws_observation_infrastructure" {
 }
 
 # Rancher and Keycloak Integration (only for observ-infra)
-module "rancher_keycloak_setup" {
-  count      = var.enable_rancher_keycloak_integration ? 1 : 0
-  depends_on = [module.aws_observation_infrastructure]
-  source     = "../../modules/aws/rancher-keycloak-setup"
-
-  SSH_PRIVATE_KEY            = var.ssh_private_key
-  CLUSTER_NAME               = var.cluster_name
-  CLUSTER_ENV_DOMAIN         = var.cluster_env_domain
-  RANCHER_HOSTNAME           = var.rancher_hostname
-  KEYCLOAK_HOSTNAME          = var.keycloak_hostname
-  RANCHER_BOOTSTRAP_PASSWORD = var.rancher_bootstrap_password
-  ENABLE_RANCHER_KEYCLOAK    = var.enable_rancher_keycloak_integration
-  CONTROL_PLANE_IPS          = [module.aws_observation_infrastructure.CONTROL_PLANE_NODE_1]
-  NGINX_PUBLIC_IP            = module.aws_observation_infrastructure.NGINX_PUBLIC_IP
-}
+# NOTE: Disabled since only AWS resource creation is needed (no RKE2/NGINX modules)
+# module "rancher_keycloak_setup" {
+#   count      = var.enable_rancher_keycloak_integration ? 1 : 0
+#   depends_on = [module.aws_observation_infrastructure]
+#   source     = "../../modules/aws/rancher-keycloak-setup"
+#
+#   SSH_PRIVATE_KEY            = var.ssh_private_key
+#   CLUSTER_NAME               = var.cluster_name
+#   CLUSTER_ENV_DOMAIN         = var.cluster_env_domain
+#   RANCHER_HOSTNAME           = var.rancher_hostname
+#   KEYCLOAK_HOSTNAME          = var.keycloak_hostname
+#   RANCHER_BOOTSTRAP_PASSWORD = var.rancher_bootstrap_password
+#   ENABLE_RANCHER_KEYCLOAK    = var.enable_rancher_keycloak_integration
+#   CONTROL_PLANE_IPS          = [values(module.aws_observation_infrastructure.K8S_CLUSTER_IPS)[0]]
+#   NGINX_PUBLIC_IP            = module.aws_observation_infrastructure.NGINX_PUBLIC_IP
+# }

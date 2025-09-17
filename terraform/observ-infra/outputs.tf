@@ -55,14 +55,8 @@ output "nginx_private_ip" {
 }
 
 output "control_plane_node_1" {
-  description = "First control plane node information for observation cluster"
-  value = var.cloud_provider == "aws" ? (
-    length(module.aws_observ_infra) > 0 ? module.aws_observ_infra[0].control_plane_node_1 : ""
-    ) : var.cloud_provider == "azure" ? (
-    length(module.azure_observ_infra) > 0 ? module.azure_observ_infra[0].control_plane_node_1 : ""
-    ) : (
-    length(module.gcp_observ_infra) > 0 ? module.gcp_observ_infra[0].control_plane_node_1 : ""
-  )
+  description = "First control plane node information for observation cluster - DISABLED (only AWS resource creation enabled)"
+  value = "DISABLED - control_plane_node_1 not available with AWS resource creation only"
 }
 
 # Token generation handled by ansible - no terraform output needed
@@ -102,38 +96,20 @@ output "kubeconfig_path" {
   )
 }
 
-# Rancher and Keycloak Integration Outputs
+# Rancher and Keycloak Integration Outputs - DISABLED (only AWS resource creation enabled)
 output "rancher_url" {
-  description = "URL for accessing Rancher UI"
-  value = var.cloud_provider == "aws" ? (
-    length(module.aws_observ_infra) > 0 ? module.aws_observ_infra[0].rancher_url : "Not available"
-    ) : var.cloud_provider == "azure" ? (
-    length(module.azure_observ_infra) > 0 ? module.azure_observ_infra[0].rancher_url : "Not available"
-    ) : (
-    length(module.gcp_observ_infra) > 0 ? module.gcp_observ_infra[0].rancher_url : "Not available"
-  )
+  description = "URL for accessing Rancher UI - DISABLED"
+  value = "DISABLED - Rancher integration not available with AWS resource creation only"
 }
 
 output "keycloak_url" {
-  description = "URL for accessing Keycloak"
-  value = var.cloud_provider == "aws" ? (
-    length(module.aws_observ_infra) > 0 ? module.aws_observ_infra[0].keycloak_url : "Not available"
-    ) : var.cloud_provider == "azure" ? (
-    length(module.azure_observ_infra) > 0 ? module.azure_observ_infra[0].keycloak_url : "Not available"
-    ) : (
-    length(module.gcp_observ_infra) > 0 ? module.gcp_observ_infra[0].keycloak_url : "Not available"
-  )
+  description = "URL for accessing Keycloak - DISABLED"
+  value = "DISABLED - Keycloak integration not available with AWS resource creation only"
 }
 
 output "rancher_bootstrap_password" {
-  description = "Bootstrap password for Rancher UI"
-  value = var.cloud_provider == "aws" ? (
-    length(module.aws_observ_infra) > 0 ? module.aws_observ_infra[0].rancher_bootstrap_password : "N/A"
-    ) : var.cloud_provider == "azure" ? (
-    length(module.azure_observ_infra) > 0 ? module.azure_observ_infra[0].rancher_bootstrap_password : "N/A"
-    ) : (
-    length(module.gcp_observ_infra) > 0 ? module.gcp_observ_infra[0].rancher_bootstrap_password : "N/A"
-  )
+  description = "Bootstrap password for Rancher UI - DISABLED"
+  value = "DISABLED - Rancher integration not available with AWS resource creation only"
   sensitive = true
 }
 

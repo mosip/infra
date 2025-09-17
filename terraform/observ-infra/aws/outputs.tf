@@ -19,19 +19,21 @@ output "NGINX_PRIVATE_IP" {
   value       = module.aws_observation_infrastructure.NGINX_PRIVATE_IP
 }
 
-output "CONTROL_PLANE_NODE_1" {
-  description = "First control plane node information"
-  value       = module.aws_observation_infrastructure.CONTROL_PLANE_NODE_1
-}
+# CONTROL_PLANE_NODE_1 output removed - not available with AWS resource creation only
+# output "CONTROL_PLANE_NODE_1" {
+#   description = "First control plane node information"
+#   value       = module.aws_observation_infrastructure.CONTROL_PLANE_NODE_1
+# }
 
 # Token generation handled by ansible - no terraform output needed
 # K8S_TOKEN removed as ansible manages token internally
 
 # Add missing outputs for compatibility
-output "control_plane_node_1" {
-  description = "First control plane node information (lowercase alias)"
-  value       = module.aws_observation_infrastructure.CONTROL_PLANE_NODE_1
-}
+# CONTROL_PLANE_NODE_1 output removed - not available with AWS resource creation only
+# output "control_plane_node_1" {
+#   description = "First control plane node information (lowercase alias)"
+#   value       = module.aws_observation_infrastructure.CONTROL_PLANE_NODE_1
+# }
 
 # Token generation handled by ansible - no terraform output needed
 # k8s_token removed as ansible manages token internally
@@ -41,33 +43,33 @@ output "vpc_id" {
   value       = module.aws_observation_infrastructure.VPC_ID
 }
 
-# Rancher and Keycloak outputs
-output "rancher_url" {
-  description = "URL for accessing Rancher UI"
-  value       = var.enable_rancher_keycloak_integration && length(module.rancher_keycloak_setup) > 0 ? module.rancher_keycloak_setup[0].rancher_url : "Rancher integration disabled"
-}
+# Rancher and Keycloak outputs - disabled since modules are commented out
+# output "rancher_url" {
+#   description = "URL for accessing Rancher UI"
+#   value       = "Rancher integration disabled - only AWS resource creation enabled"
+# }
 
-output "keycloak_url" {
-  description = "URL for accessing Keycloak"
-  value       = var.enable_rancher_keycloak_integration && length(module.rancher_keycloak_setup) > 0 ? module.rancher_keycloak_setup[0].keycloak_url : "Keycloak integration disabled"
-}
+# output "keycloak_url" {
+#   description = "URL for accessing Keycloak"
+#   value       = "Keycloak integration disabled - only AWS resource creation enabled"
+# }
 
-output "rancher_bootstrap_password" {
-  description = "Bootstrap password for Rancher UI"
-  value       = var.enable_rancher_keycloak_integration && length(module.rancher_keycloak_setup) > 0 ? module.rancher_keycloak_setup[0].rancher_bootstrap_password : "N/A"
-  sensitive   = true
-}
+# output "rancher_bootstrap_password" {
+#   description = "Bootstrap password for Rancher UI"
+#   value       = "N/A - Rancher integration disabled"
+#   sensitive   = true
+# }
 
-output "rancher_keycloak_status" {
-  description = "Status of Rancher and Keycloak installation"
-  value       = var.enable_rancher_keycloak_integration && length(module.rancher_keycloak_setup) > 0 ? module.rancher_keycloak_setup[0].installation_status : "Rancher and Keycloak integration disabled"
-}
+# output "rancher_keycloak_status" {
+#   description = "Status of Rancher and Keycloak installation"
+#   value       = "Rancher and Keycloak integration disabled - only AWS resource creation enabled"
+# }
 
-output "rancher_keycloak_next_steps" {
-  description = "Next steps after Rancher and Keycloak installation"
-  value       = var.enable_rancher_keycloak_integration && length(module.rancher_keycloak_setup) > 0 ? module.rancher_keycloak_setup[0].next_steps : ["Rancher and Keycloak integration disabled"]
-  sensitive   = true
-}
+# output "rancher_keycloak_next_steps" {
+#   description = "Next steps after Rancher and Keycloak installation"
+#   value       = ["Rancher and Keycloak integration disabled - only AWS resource creation enabled"]
+#   sensitive   = true
+# }
 
 # Infrastructure outputs
 output "cluster_ready" {
