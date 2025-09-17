@@ -4,7 +4,7 @@
 
 > **Complete MOSIP platform rapid deployment with infrastructure provisioning, dependency setup, and service deployment**
 
-This repository provides a **3-step rapid deployment model** for MOSIP (Modular Open Source Identity Platform) with enhanced security features including GPG encryption for local backends and integrated PostgreSQL setup via Terraform modules.
+This repository provides a **3-step rapid deployment model** for MOSIP (Modular Open Source Identity Platform) with enhanced security features including GPG (GNU Privacy Guard) encryption for local backends and integrated PostgreSQL setup via Terraform modules.
 
 ## Complete Deployment Flow
 
@@ -12,10 +12,10 @@ This repository provides a **3-step rapid deployment model** for MOSIP (Modular 
 graph TB
     %% Prerequisites
     A[Fork Repository] --> B[Configure Secrets]
-    B --> C[Select Cloud Provider<br/>AWS/Azure/GCP]
+    B --> C[Select Cloud Provider<br/>AWS/Azure/GCP/etc.]
     
     %% Infrastructure Phase
-    C --> D[Terraform: Base Infrastructure<br/>VPC, Networking, Jumpserver, WireGuard]
+    C --> D[Run Terraform Scripts for Base Infrastructure<br/>VPC, Networking, Jumpserver, WireGuard]
     D --> E{Deploy Observability?}
     E -->|Yes| F[Terraform: Observability Infrastructure<br/>Rancher UI, Keycloak, Monitoring]
     E -->|No| G[Configure PostgreSQL Setup]
@@ -23,8 +23,8 @@ graph TB
     
     %% PostgreSQL Configuration
     G --> H{PostgreSQL Deployment Choice}
-    H -->|Production| I[Set enable_postgresql_setup = true<br/>External PostgreSQL via Terraform]
-    H -->|Development| J[Set enable_postgresql_setup = false<br/>Container PostgreSQL via Helmsman]
+    H -->|Standalone| I[Set enable_postgresql_setup = true<br/>External PostgreSQL via Terraform]
+    H -->|Containerization| J[Set enable_postgresql_setup = false<br/>Container PostgreSQL via Helmsman]
     
     %% Terraform Infrastructure Deployment
     I --> K[Terraform: MOSIP Infrastructure<br/>+ Auto PostgreSQL Setup via Ansible]
@@ -34,24 +34,24 @@ graph TB
     
     %% Helmsman Configuration
     M --> N{PostgreSQL Setup Complete?}
-    N -->|External PostgreSQL| O[Configure Helmsman DSF Files<br/>postgresql.enabled = false]
-    N -->|Container PostgreSQL| P[Configure Helmsman DSF Files<br/>postgresql.enabled = true]
+    N -->|External PostgreSQL| O[Update Helmsman DSF Files<br/>postgresql.enabled = false]
+    N -->|Container PostgreSQL| P[Update Helmsman DSF Files<br/>postgresql.enabled = true]
     
     %% Helmsman Deployment Phase
-    O --> Q[Helmsman: Prerequisites<br/>Monitoring, Istio, Logging]
+    O --> Q[Deploy Helmsman: Prerequisites<br/>Monitoring, Istio, Logging]
     P --> Q
-    Q --> R[Helmsman: External Dependencies<br/>PostgreSQL containers, Keycloak, MinIO, Kafka]
+    Q --> R[Deploy Helmsman: External Dependencies<br/>PostgreSQL containers, Keycloak, MinIO, Kafka]
     
     %% MOSIP Services
-    R --> S[Helmsman: MOSIP Core Services<br/>Registration, Authentication, ID Repository]
+    R --> S[Deploy Helmsman: MOSIP Core Services<br/>Registration, Authentication, ID Repository]
     S --> T{Deploy Test Rigs?}
-    T -->|Yes| U[Helmsman: Test Rigs<br/>API Testing, UI Testing, DSL Testing]
+    T -->|Yes| U[Deploy Helmsman: Test Rigs<br/>API Testing, UI Testing, DSL Testing]
     T -->|No| V[Verify Deployment]
     U --> V
     
     %% Final Verification
     V --> W[Access MOSIP Platform<br/>Web UI, APIs, Admin Console]
-    W --> X[Complete MOSIP Platform<br/>Ready for Production]
+    W --> X[Complete MOSIP Platform]
     
     %% Styling
     classDef prereq fill:#fff3e0,stroke:#ff8f00,stroke-width:2px
@@ -80,6 +80,39 @@ graph TB
 - **AWS account** with appropriate permissions (fully supported)
 - Azure or GCP account (placeholder implementations - community contributions needed)
 - Service account/access keys with infrastructure creation rights
+
+### Required AWS Permissions
+
+**Essential AWS IAM permissions required for complete MOSIP deployment:**
+
+**Core Infrastructure Services:**
+- **VPC Management**: VPC, Subnets, Internet Gateways, NAT Gateways, Route Tables
+- **EC2 Services**: Instance management, Security Groups, Key Pairs, EBS Volumes
+- **Route 53**: DNS management, Hosted Zones, Record Sets
+- **ELB**: Load Balancers (ALB/NLB), Target Groups, Listeners
+- **IAM**: Role creation, Policy management, Instance Profiles
+
+**Recommended IAM Policy:**
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:*",
+        "vpc:*",
+        "route53:*",
+        "iam:*",
+        "s3:*"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+> **Security Note:** For production environments, consider using more restrictive policies with specific resource ARNs and condition statements.
 
 ### Required Secrets for Rapid Deployment
 
@@ -197,10 +230,54 @@ Add the required secrets as follows:
 
    - Go to **Actions** → **Terraform Base Infrastructure**
    - Click **Run workflow**
-   - Select your branch and cloud provider
-   - Choose action: `apply`
+   - **Configure workflow parameters:**
+     - **Branch**: Select your deployment branch (e.g., `release-0.1.0`)
+     - **Cloud Provider**: Select `aws` (Azure/GCP are placeholder implementations)
+     - **Component**: Select `base-infra` (creates VPC, networking, jump server, WireGuard)
+     - **Backend**: Choose backend configuration:
+       - `local` - GPG-encrypted local state (recommended for development)
+       - `s3` - Remote S3 backend (recommended for production)
+     - **Action**: Select `apply` to deploy infrastructure
+   
+   **Component Details:**
+   - **VPC & Networking**: Creates secure network foundation
+   - **Jump Server**: Bastion host for secure access
+   - **WireGuard VPN**: Encrypted private network access
+   - **Security Groups**: Network access controls
+   - **Route Tables**: Network traffic routing
 
-#### Step 3b: Observability Infrastructure (Optional)
+#### Step 3b: WireGuard VPN Setup (Required for Private Network Access)
+
+**After base infrastructure deployment**, set up WireGuard VPN for secure access to private infrastructure:
+
+> **📋 Detailed Setup Guide:** [WireGuard Setup Documentation](terraform/base-infra/WIREGUARD_SETUP.md)
+
+**Quick Setup Overview:**
+1. **SSH to Jump Server:** Access the deployed jump server
+2. **Configure Peers:** Assign and customize WireGuard peer configurations 
+   - Create **peer1** configuration for Terraform access
+   - Create **peer2** configuration for Helmsman access
+3. **Install Client:** Set up WireGuard client on your PC/Mac
+4. **Update Environment Secrets:** Add WireGuard configurations to your GitHub environment secrets:
+   - `TF_WG_CONFIG` - For Terraform infrastructure deployments
+   - `CLUSTER_WIREGUARD_WG0` - For Helmsman cluster access (peer1)
+   - `CLUSTER_WIREGUARD_WG1` - For Helmsman cluster access (peer2)
+5. **Verify Connection:** Test private IP connectivity
+
+**Why WireGuard is Required:**
+- **Private Network Access:** Connect to Kubernetes cluster via private IPs
+- **Enhanced Security:** Encrypted VPN tunnel for all infrastructure access  
+- **Terraform Integration:** Required for subsequent infrastructure deployments
+- **Helmsman Connectivity:** Enables secure cluster access for service deployments
+
+> **⚠️ Important:** Complete WireGuard setup and configure `TF_WG_CONFIG` environment secret before proceeding to observability or MOSIP infrastructure deployment.
+
+#### Step 3c: Observability Infrastructure (Optional - In Development)
+
+> **⚠️ Development Status:** 
+> - This component is currently **optional** and under active development
+> - Will be **stabilized in the next release**
+> - For production deployments, you may skip this step
 
 1. **Update observ-infra variables:**
 
@@ -216,7 +293,7 @@ Add the required secrets as follows:
    - Actions → **Terraform Observability Infrastructure**
    - Select cloud provider and run `apply`
 
-#### Step 3c: MOSIP Infrastructure
+#### Step 3d: MOSIP Infrastructure
 
 1. **Update infra variables in `terraform/implementations/aws/infra/aws.tfvars`:**
 
@@ -704,43 +781,6 @@ Helmsman/
 ```
 
 > **Note**: PostgreSQL secrets are automatically handled by Terraform modules - no separate workflow required!
-
----
-
-## Quick Start Guide
-
-### 1. Fork & Configure Repository
-
-```bash
-# Fork this repository to your GitHub account
-# Configure required GitHub secrets
-# Create environment-specific branch (optional)
-```
-
-### 2. Deploy Infrastructure
-
-```bash
-# Navigate to GitHub Actions
-# Run "terraform plan / apply" workflow
-# Select target cloud provider and environment
-# Monitor deployment progress
-```
-
-### 3. Deploy Dependencies & MOSIP
-
-```bash
-# Run "helmsman external" workflow (prerequisites + external dependencies in parallel)
-# Run "helmsman mosip" workflow (core MOSIP services)  
-# Run "helmsman testrigs" workflow (testing infrastructure)
-```
-
-### 4. Access MOSIP Platform
-
-```bash
-# Access Rancher UI (if observ-infra deployed)
-# Access MOSIP services via configured domain
-# Run automated tests via deployed test rigs
-```
 
 ---
 
