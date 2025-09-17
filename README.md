@@ -89,7 +89,6 @@ graph TB
 - **VPC Management**: VPC, Subnets, Internet Gateways, NAT Gateways, Route Tables
 - **EC2 Services**: Instance management, Security Groups, Key Pairs, EBS Volumes
 - **Route 53**: DNS management, Hosted Zones, Record Sets
-- **ELB**: Load Balancers (ALB/NLB), Target Groups, Listeners
 - **IAM**: Role creation, Policy management, Instance Profiles
 
 **Recommended IAM Policy:**
@@ -245,6 +244,27 @@ Add the required secrets as follows:
    - **WireGuard VPN**: Encrypted private network access
    - **Security Groups**: Network access controls
    - **Route Tables**: Network traffic routing
+
+#### GitHub Actions Workflow Parameters Reference
+
+**Common Parameters for All Terraform Workflows:**
+
+- **`CLOUD_PROVIDER`**: `aws` | `azure` | `gcp` (cloud platform selection)
+- **`TERRAFORM_COMPONENT`**: `base-infra` | `infra` | `observ-infra` (infrastructure component)
+- **`SSH_PRIVATE_KEY`**: GitHub secret name containing SSH private key for instance access
+- **`TERRAFORM_APPLY`**: `true`/`false` (apply changes or plan-only mode)
+
+**Backend Configuration Options:**
+
+- **`local`**: GPG-encrypted local state storage (recommended for development and small teams)
+  - State files stored in repository with GPG encryption
+  - No external dependencies required
+  - Automatic encryption/decryption via GitHub Actions
+
+- **`s3`**: Remote S3 backend storage (recommended for production and large teams)  
+  - Centralized state storage in AWS S3
+  - DynamoDB state locking support
+  - Cross-team collaboration friendly
 
 #### Step 3b: WireGuard VPN Setup (Required for Private Network Access)
 
@@ -405,13 +425,40 @@ Add the required secrets as follows:
    > - The `nginx_node_ebs_volume_size_2` is required when `enable_postgresql_setup = true`
 2. **Run main infra via GitHub Actions:**
 
-   - Actions → **Terraform Infrastructure**
-   - Select cloud provider and run `apply`
-   - If `enable_postgresql_setup = true`, Terraform will automatically:
-     - Provision dedicated EBS volume for PostgreSQL
-     - Install and configure PostgreSQL 15 via Ansible
-     - Setup security and backup configurations
-     - Make PostgreSQL ready for MOSIP services
+   - Go to **Actions** → **Terraform Infrastructure**
+   - Click **Run workflow**
+   - **Configure workflow parameters:**
+     - **Branch**: Select your deployment branch (e.g., `release-0.1.0`)
+     - **Cloud Provider**: Select `aws` (Azure/GCP are placeholder implementations)
+     - **Component**: Select `infra` (MOSIP application infrastructure)
+     - **Backend**: Choose backend configuration:
+       - `local` - GPG-encrypted local state (recommended for development)
+       - `s3` - Remote S3 backend (recommended for production)
+     - **Action**: Select `apply` to deploy infrastructure
+   
+   **Component Details:**
+   - **infra**: Creates MOSIP Kubernetes cluster, PostgreSQL (if enabled), networking, and application infrastructure
+   
+   **PostgreSQL Configuration in `aws.tfvars`:**
+   ```hcl
+   # PostgreSQL Configuration (used when second EBS volume is enabled)
+   enable_postgresql_setup = true # Enable PostgreSQL setup for main infra
+   postgresql_version      = "15"
+   storage_device          = "/dev/nvme2n1"
+   mount_point             = "/srv/postgres"
+   postgresql_port         = "5433"
+   
+   # NGINX node's second EBS volume size (required for PostgreSQL)
+   nginx_node_ebs_volume_size_2 = 200 # Enable second EBS volume for PostgreSQL
+   ```
+   
+   **If `enable_postgresql_setup = true`, Terraform will automatically:**
+   - Provision dedicated EBS volume for PostgreSQL on nginx node
+   - Install and configure PostgreSQL 15 via Ansible playbooks
+   - Setup security configurations and user access controls
+   - Configure backup and recovery mechanisms  
+   - Make PostgreSQL ready for MOSIP services connectivity
+   - No manual PostgreSQL secret management required!
 
 ### 4. Helmsman Deployment
 
@@ -432,9 +479,12 @@ Add the required secrets as follows:
 
 3. **Update prereq-dsf.yaml:**
 
-   - **Search and replace the following values:**
+   **Critical Updates Required:**
+   - **Domain Validation (Double-check):**
      - `<sandbox>` → your cluster name (e.g., `soil`)
      - `sandbox.xyz.net` → your domain name (e.g., `soil.mosip.net`)
+   - **Chart Versions:** Verify and update to latest stable versions
+   - **Namespace Configuration:** Ensure proper namespace isolation
 
    > **Note:** Maintain consistency with your Terraform configuration:
    > - `<sandbox>` should match `cluster_name` in `aws.tfvars` 
@@ -452,9 +502,13 @@ Add the required secrets as follows:
    ```
 4. **Update external-dsf.yaml:**
 
-   - **Search and replace the following values:**
+   **Critical Updates Required:**
+   - **Domain Validation (Double-check):**
      - `<sandbox>` → your cluster name (e.g., `soil`)
      - `sandbox.xyz.net` → your domain name (e.g., `soil.mosip.net`)
+   - **Chart Versions:** Update Helm chart versions to latest stable releases
+   - **Database Branch:** Verify correct branch for DB scripts and schema
+   - **PostgreSQL Configuration:** Match with Terraform `enable_postgresql_setup` setting
 
    > **Note:** Maintain consistency with your Terraform configuration:
    > - `<sandbox>` should match `cluster_name` in `aws.tfvars` 
@@ -503,9 +557,14 @@ Add the required secrets as follows:
    ```
 5. **Update mosip-dsf.yaml:**
 
-   - **Search and replace the following values:**
+   **Critical Updates Required:**
+   - **Domain Validation (Double-check):**
      - `<sandbox>` → your cluster name (e.g., `soil`)
      - `sandbox.xyz.net` → your domain name (e.g., `soil.mosip.net`)
+   - **Chart Versions:** Update MOSIP service chart versions to compatible releases
+   - **Database Branch:** Ensure correct MOSIP DB scripts branch matches deployment version
+   - **Service Dependencies:** Verify all required external services are properly configured
+   - **Resource Limits:** Adjust CPU/memory limits based on environment requirements
 
    > **Note:** Maintain consistency with your Terraform configuration:
    > - `<sandbox>` should match `cluster_name` in `aws.tfvars` 
@@ -522,13 +581,40 @@ Add the required secrets as follows:
        enabled: true
    ```
 
-> **Note:** Apply the same search and replace pattern to **all DSF files** including `testrigs-dsf.yaml` if you plan to deploy test rigs:
+6. **Update testrigs-dsf.yaml (if deploying test environment):**
+
+   **Critical Updates Required:**
+   - **Domain Validation (Double-check):**
+     - `<sandbox>` → your cluster name (e.g., `soil`)
+     - `sandbox.xyz.net` → your domain name (e.g., `soil.mosip.net`)
+   - **Test Chart Versions:** Update test rig chart versions to match MOSIP service versions
+   - **Database Branch:** Ensure test DB scripts use correct branch
+   - **Test Configuration:** Update test endpoints, API versions, and test data paths
+   - **Resource Allocation:** Configure appropriate test environment resource limits
+
+> **⚠️ Critical Validation Checklist for All DSF Files:**
+>
+> **Domain Configuration (Validate Twice):**
 > - `<sandbox>` → your cluster name (e.g., `soil`)
 > - `sandbox.xyz.net` → your domain name (e.g., `soil.mosip.net`)
+> - Verify domain DNS resolution is working
+> - Ensure SSL certificate coverage for all subdomains
 >
-> **Important:** Ensure consistency with your Terraform configuration:
-> - `<sandbox>` should match `cluster_name` in `terraform/implementations/aws/infra/aws.tfvars`
-> - `sandbox.xyz.net` should match `cluster_env_domain` in `terraform/implementations/aws/infra/aws.tfvars`
+> **Version Management:**
+> - **Chart Versions**: Update all Helm chart versions to latest compatible releases
+> - **Database Branch**: Verify DB scripts branch matches your MOSIP deployment version
+> - **Service Versions**: Ensure MOSIP service versions are compatible across all DSF files
+>
+> **Configuration Consistency:**
+> - `<sandbox>` must match `cluster_name` in `terraform/implementations/aws/infra/aws.tfvars`
+> - `sandbox.xyz.net` must match `cluster_env_domain` in `terraform/implementations/aws/infra/aws.tfvars`
+> - PostgreSQL settings must align with `enable_postgresql_setup` in Terraform configuration
+>
+> **Environment-Specific Updates:**
+> - Resource limits and requests based on environment capacity
+> - Storage class configurations for persistent volumes
+> - Ingress controller and load balancer settings
+> - Security context and RBAC configurations
 
 #### Step 4b: Configure Repository Secrets for Helmsman
 
@@ -556,6 +642,7 @@ Add the required secrets as follows:
    **Example kubeconfig file location:**
    ```
    terraform/implementations/aws/infra/kubeconfig_<cluster-name>
+   terraform/implementations/aws/infra/<cluster-name>-role.yaml
    ```
    
    **Branch Environment Configuration:**
@@ -594,29 +681,22 @@ Add the required secrets as follows:
 
 #### Step 4c: Run Helmsman Deployments via GitHub Actions
 
-1. **Deploy Prerequisites & External Dependencies (Parallel Deployment):**
-   
-   **Option A: Run Both Workflows Simultaneously (Recommended)**
-   - Actions → **Helmsman External Dependencies** 
-   - Select DSF file: `prereq-dsf.yaml`
+1. **Deploy Prerequisites & External Dependencies:**
+   - Actions → **Helmsman External Dependencies** (`helmsman_external.yml`)
+   - This workflow handles both:
+     - Prerequisites: `prereq-dsf.yaml` (monitoring, Istio, logging)
+     - External Dependencies: `external-dsf.yaml` (databases, message queues, storage)
    - Mode: `apply`
    
-   **At the same time (in parallel):**
-   - Actions → **Helmsman External Dependencies**
-   - Select DSF file: `external-dsf.yaml` 
-   - Mode: `apply`
-   
-   **Option B: Sequential Deployment (if preferred)**
-   - First run: `prereq-dsf.yaml` → Mode: `apply`
-   - Then run: `external-dsf.yaml` → Mode: `apply`
+   > **Note**: The `helmsman_external.yml` workflow deploys both prereq and external dependencies in the correct sequence automatically.
 
 2. **Deploy MOSIP Services:**
-   - Actions → **Helmsman Deployment**
+   - Actions → **Helmsman MOSIP Deployment** (`helmsman_mosip.yml`)
    - Select DSF file: `mosip-dsf.yaml`
    - Mode: `apply`
 
 3. **Deploy Test Rigs** (Optional):
-   - Actions → **Helmsman Deployment**  
+   - Actions → **Helmsman Test Rigs** (`helmsman_testrigs.yml`)  
    - Select DSF file: `testrigs-dsf.yaml`
    - Mode: `apply`
 
@@ -628,111 +708,35 @@ kubectl get nodes
 kubectl get namespaces
 
 # Check MOSIP services
+# Check MOSIP services
 kubectl get pods -n mosip
 kubectl get services -n istio-system
 ```
 
-## Rapid Deployment Model
+### 6. Next Steps & Detailed Documentation
 
-### Step 1: Infrastructure Creation (Terraform)
+The Quick Start Guide provides the essential deployment flow. For comprehensive configuration options, troubleshooting, and advanced features, refer to the detailed component documentation:
 
-**Create cloud infrastructure using Terraform with enhanced security**
+#### 📁 **Terraform Infrastructure Documentation**
+- **Location**: [`terraform/README.md`](terraform/README.md)
+- **Contents**: Detailed variable explanations, multi-cloud configurations, state management, security best practices
+- **Use Cases**: Custom infrastructure configurations, production deployments, troubleshooting infrastructure issues
 
-**New Features:**
+#### 📁 **Helmsman Deployment Documentation**  
+- **Location**: [`Helmsman/README.md`](Helmsman/README.md)
+- **Contents**: Complete DSF configuration reference, hook scripts, environment management, customization options
+- **Use Cases**: Custom service configurations, environment-specific deployments, service scaling and tuning
 
-- **GPG Encryption** for local Terraform state backend
-- **Optional External PostgreSQL** support in infrastructure components
-- **Enhanced State Management** with encryption
+#### 📁 **WireGuard VPN Setup Guide**
+- **Location**: [`terraform/base-infra/WIREGUARD_SETUP.md`](terraform/base-infra/WIREGUARD_SETUP.md)
+- **Contents**: Step-by-step VPN configuration, multi-peer setup, client installation, troubleshooting
+- **Use Cases**: Private network access, secure infrastructure connectivity, peer management
 
-**Infrastructure Components:**
+#### 📋 **Component-Specific Guides**
+- **GitHub Actions Workflows**: [`.github/workflows/`](.github/workflows/) - Complete CI/CD pipeline documentation
+- **Security Configurations**: See respective component READMEs for security hardening options
 
-1. **base-infra** - Foundation infrastructure (VPC, networking, security)
-2. **observ-infra** - Management cluster with Rancher UI (Optional)
-3. **infra** - MOSIP application clusters with optional external PostgreSQL
-
-**GitHub Actions Integration:**
-
-- Automated infrastructure provisioning with GPG encrypted state
-- Branch-based environment isolation
-- Optional Rancher cluster import automation
-- **AWS fully supported** - Azure and GCP placeholder implementations (community contributions welcome)
-
-**[Complete Terraform Documentation](terraform/README.md)**
-
----
-
-### Step 2: External Dependencies & Monitoring (Helmsman)
-
-**Deploy prerequisites and external dependencies using Helmsman**
-
-**Deployment Sequence (Parallel Deployment Supported):**
-
-1. **prereq-dsf** - Deploy prerequisites (monitoring, Istio, logging)
-2. **external-dsf** - Deploy external dependencies (databases, message queues, storage)
-
-> **Performance Tip**: prereq-dsf and external-dsf can be deployed **in parallel** since they don't have dependencies on each other. This reduces total deployment time by ~40%.
-
-**What gets deployed:**
-
-**Prerequisites (prereq-dsf):**
-
-- **Monitoring stack** (Rancher monitoring, Grafana, AlertManager)
-- **Logging infrastructure** (Cattle logging system)
-- **Service mesh** (Istio) and networking components
-
-**External Dependencies (external-dsf):**
-
-- **Databases** (PostgreSQL with initialization or external connection)
-- **Identity & Access** (Keycloak)
-- **Security** (SoftHSM, ClamAV antivirus)
-- **Object Storage** (MinIO)
-- **Message Queues** (ActiveMQ, Kafka with UI)
-- **Supporting services** (S3, message gateways, CAPTCHA, landing page)
-
-**[Complete Helmsman Documentation](Helmsman/README.md)**
-
----
-
-### Step 3: MOSIP Core Services & Testing (Helmsman + GitHub Actions)
-
-**Deploy MOSIP core services and testing infrastructure**
-
-**MOSIP Core Deployment:**
-
-1. **mosip-dsf** - Deploy MOSIP core services (Identity, Authentication, etc.)
-
-**PostgreSQL Integration:**
-
-- **External PostgreSQL**: Automatically configured by Terraform modules (no manual secret management required)
-- **Container PostgreSQL**: Deployed via Helmsman external-dsf configuration
-
-**Testing Infrastructure (GitHub Actions):**
-
-- **testrigs-dsf** - Automated deployment of testing suite:
-  - **API Test Rig** - API testing automation
-  - **DSL Test Rig** - Domain-specific language testing
-  - **UI Test Rig** - User interface testing automation
-
-**[Helmsman DSF Documentation](Helmsman/dsf/README.md)**
-
----
-
-## GitHub Actions Automation
-
-### Infrastructure Automation
-
-- **terraform.yml** - Automated infrastructure provisioning
-- **terraform-destroy.yml** - Infrastructure cleanup automation
-
-### Application Deployment Automation
-
-- **helmsman_external.yml** - External dependencies deployment
-- **helmsman_mosip.yml** - MOSIP core services deployment
-- **helmsman_testrigs.yml** - Testing infrastructure deployment
-
-**[GitHub Actions Documentation](.github/workflows/README.md)**
-
----
+> **💡 Pro Tip**: Each component directory contains detailed documentation tailored to that specific technology stack. Start with this Quick Start Guide, then dive into component-specific docs as needed.
 
 ## Architecture Overview
 
@@ -780,48 +784,6 @@ Helmsman/
 └── helmsman_testrigs.yml # Testing infrastructure deployment
 ```
 
-> **Note**: PostgreSQL secrets are automatically handled by Terraform modules - no separate workflow required!
-
----
-
-## Detailed Documentation
-
-| Component                | Purpose                     | Documentation                                                               |
-| ------------------------ | --------------------------- | --------------------------------------------------------------------------- |
-| **Terraform**      | Infrastructure provisioning | [terraform/README.md](terraform/README.md)                                     |
-| **Helmsman**       | Application deployment      | [Helmsman/README.md](Helmsman/README.md)                                       |
-| **GitHub Actions** | CI/CD automation            | [.github/workflows/README.md](.github/workflows/README.md)                     |
-| **Architecture**   | Visual diagrams             | [docs/_images/ARCHITECTURE_DIAGRAMS.md](docs/_images/ARCHITECTURE_DIAGRAMS.md) |
-
----
-
-## Optional Components
-
-### Rancher Management (observ-infra)
-
-- **Purpose**: Centralized Kubernetes cluster management
-- **Features**: Multi-cluster UI, RBAC, monitoring dashboards
-- **Deployment**: Optional during infrastructure provisioning
-- **Import**: MOSIP clusters can be optionally imported to Rancher
-
-### Advanced Monitoring
-
-- **Infrastructure monitoring** via cloud-native tools
-- **Application monitoring** via Prometheus/Grafana
-- **Log aggregation** via ELK/EFK stack
-- **Alerting** via AlertManager integration
-
----
-
-## Support & Troubleshooting
-
-### Common Issues
-
-- **Infrastructure failures**: Check Terraform logs in GitHub Actions
-- **Deployment failures**: Review Helmsman logs and Kubernetes events
-- **Access issues**: Verify DNS configuration and SSL certificates
-- **Test failures**: Check test rig logs and service dependencies
-
 ## Known Limitations
 
 ### 1. Docker Registry Rate Limits
@@ -829,7 +791,7 @@ Helmsman/
 
 **Symptoms:**
 - Image pulling takes excessively long
-- "ErrImagePull" deployment errors
+- "ErrImagePull" deployment errors  
 - Pods stuck in "ContainerCreating" state for 3+ minutes
 - Rate limit error messages from Docker Hub
 
@@ -875,15 +837,6 @@ Failed to pull image "docker.io/mosipid/pre-registration-batchjob:1.2.0.3": fail
    ```
 4. **Mirror Registries**: Use alternative container registries or mirrors
 5. **Rate Limit Increase**: Consider Docker Hub paid plans for higher limits
-
-**Monitoring Tools:**
-- **Rancher Dashboard**: Cluster management and pod monitoring
-- **Lens (Open Source)**: Kubernetes IDE for enhanced observability
-  - Download: [Lens Desktop](https://k8slens.dev/)
-  - Features: Real-time monitoring, pod logs, resource management
-- **kubectl**: Command-line monitoring and debugging
-
-**Reference**: [Docker Hub Rate Limiting](https://www.docker.com/increase-rate-limit)
 
 ### AWS Capacity Issues
 
@@ -940,7 +893,7 @@ specific_availability_zones = []  # Use empty array to allow all AZs
 **What needs to be implemented:**
 - VPC/VNet/Network creation and configuration
 - Security groups and firewall rules  
-- Load balancer and compute instance provisioning
+- NGINX load balancer and compute instance provisioning
 - Storage and networking resource management
 - Cloud-specific PostgreSQL integration
 
