@@ -720,7 +720,114 @@ Helmsman/
 - **Access issues**: Verify DNS configuration and SSL certificates
 - **Test failures**: Check test rig logs and service dependencies
 
-### Community Contributions
+## Known Limitations
+
+### 1. Docker Registry Rate Limits
+**Issue**: Docker Hub imposes rate limits on anonymous pulls which can cause deployment failures.
+
+**Symptoms:**
+- Image pulling takes excessively long
+- "ErrImagePull" deployment errors
+- Pods stuck in "ContainerCreating" state for 3+ minutes
+- Rate limit error messages from Docker Hub
+
+### 2. Manual Intervention Requirements
+**Issue**: Partner onboarding process requires manual execution after the first automated attempt via Helmsman.
+
+**Impact**: Additional administrator intervention needed to complete onboarding workflow.
+
+### 3. AWS Infrastructure Capacity
+**Issue**: AWS may have insufficient instance capacity in specific availability zones for requested instance types.
+
+**Symptoms:** "InsufficientInstanceCapacity" errors during EC2 instance creation.
+
+### 4. Service Dependencies
+**Issue**: Deployment success depends on external service availability.
+
+**Critical Services:**
+- GitHub (for Actions workflows and repository access)
+- Let's Encrypt (for SSL certificate generation)
+
+---
+
+## Troubleshooting Guides
+
+### Docker Registry Issues
+
+**Error Examples:**
+```
+Error: ErrImagePull
+Failed to pull image "docker.io/mosipid/pre-registration-batchjob:1.2.0.3": failed to pull and unpack image "docker.io/mosipid/pre-registration-batchjob:1.2.0.3": failed to copy: httpReadSeeker: failed open: unexpected status code https://registry-1.docker.io/v2/mosipid/pre-registration-batchjob/manifests/sha256:a934cab79ac1cb364c8782b56cfec987c460ad74acc7b45143022d97bb09626a: 429 Too Many Requests - Server message: toomanyrequests: You have reached your unauthenticated pull rate limit. https://www.docker.com/increase-rate-limit
+```
+
+**Solutions:**
+1. **Docker Hub Authentication**: Configure Docker Hub credentials in your cluster
+2. **Retry Deployments**: Re-run failed Helmsman deployments after waiting period
+3. **Manual Pod Restart**: If any pod remains in "ContainerCreating" state for more than 3 minutes:
+   ```bash
+   # Delete the stuck pod to trigger recreation
+   kubectl delete pod <pod-name> -n <namespace>
+   
+   # Check pod status
+   kubectl get pods -n <namespace> -w
+   ```
+4. **Mirror Registries**: Use alternative container registries or mirrors
+5. **Rate Limit Increase**: Consider Docker Hub paid plans for higher limits
+
+**Monitoring Tools:**
+- **Rancher Dashboard**: Cluster management and pod monitoring
+- **Lens (Open Source)**: Kubernetes IDE for enhanced observability
+  - Download: [Lens Desktop](https://k8slens.dev/)
+  - Features: Real-time monitoring, pod logs, resource management
+- **kubectl**: Command-line monitoring and debugging
+
+**Reference**: [Docker Hub Rate Limiting](https://www.docker.com/increase-rate-limit)
+
+### AWS Capacity Issues
+
+**Error Example:**
+```
+Error: creating EC2 Instance: InsufficientInstanceCapacity: We currently do not have sufficient t3a.2xlarge capacity in the Availability Zone you requested (ap-south-1a). Our system will be working on provisioning additional capacity. You can currently get t3a.2xlarge capacity by not specifying an Availability Zone in your request or choosing ap-south-1b, ap-south-1c.
+status code: 500, request id: 0b0423e2-0906-4096-a03c-41df5c00f5a8
+```
+
+**Solution**: Configure Terraform to use all available availability zones in `aws.tfvars`:
+```hcl
+# Specific availability zones for VM deployment (optional)
+# If empty, uses all available AZs in the region
+# Example: ["ap-south-1a", "ap-south-1b"] for specific AZs
+# Example: [] for all available AZs in the region
+specific_availability_zones = []  # Use empty array to allow all AZs
+```
+
+**Best Practice**: Always set `specific_availability_zones = []` to allow AWS to select from all available zones with capacity.
+
+### Partner Onboarding
+
+**Manual Steps Required**: Partner onboarding requires administrator intervention after initial Helmsman deployment.
+
+**Solution**: Plan for manual partner onboarding steps in your deployment timeline.
+
+**Documentation**: [MOSIP Partner Onboarding Guide](https://github.com/mosip/mosip-infra/tree/v1.2.0.2/deployment/v3/mosip/partner-onboarder)
+
+### Service Status Verification
+
+**Pre-deployment Checklist**: Verify essential services are operational before starting deployment.
+
+**Required Service Status:**
+- **GitHub Status**: [https://githubstatus.com](https://githubstatus.com) - Must be **GREEN**
+- **Let's Encrypt Status**: [https://letsencrypt.status.io](https://letsencrypt.status.io) - Must be **GREEN**
+
+**Deployment Impact**: Service outages can cause failures in:
+- GitHub Actions workflows
+- Repository access and downloads
+- SSL certificate generation and renewal
+
+**Action**: Wait for all services to show "All Systems Operational" before beginning deployment.
+
+---
+
+## Community Contributions
 
 **Help expand multi-cloud support!**
 
