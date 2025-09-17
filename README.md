@@ -218,21 +218,114 @@ Add the required secrets as follows:
 
 #### Step 3c: MOSIP Infrastructure
 
-1. **Update infra variables:**
+1. **Update infra variables in `terraform/implementations/aws/infra/aws.tfvars`:**
+
+   Complete configuration example with detailed explanations:
 
    ```hcl
-   # terraform/implementations/aws/infra/aws.tfvars
-   cluster_name = "mosip-cluster"
-   node_instance_type = "t3.xlarge"
-   min_nodes = 3
-   max_nodes = 10
+   # Environment name (infra component)
+   cluster_name = "soil38"
+   # MOSIP's domain (ex: sandbox.xyz.net)
+   cluster_env_domain = "soil38.mosip.net"
+   # Email-ID will be used by certbot to notify SSL certificate expiry via email
+   mosip_email_id = "chandra.mishra@technoforte.co.in"
+   # SSH login key name for AWS node instances (ex: my-ssh-key)
+   ssh_key_name = "mosip-aws"
+   # The AWS region for resource creation
+   aws_provider_region = "ap-south-1"
 
-   # PostgreSQL Configuration
-   enable_postgresql_setup = true    # true = External PostgreSQL, false = Container PostgreSQL
-   nginx_node_ebs_volume_size_2 = 200  # EBS volume size for PostgreSQL data (required if enable_postgresql_setup = true)
-   postgresql_version = "15"         # PostgreSQL version
-   postgresql_port = "5433"          # PostgreSQL port
+   # Specific availability zones for VM deployment (optional)
+   # If empty, uses all available AZs in the region
+   # Example: ["ap-south-1a", "ap-south-1b"] for specific AZs
+   # Example: [] for all available AZs in the region
+   specific_availability_zones = []
+
+   # The instance type for Kubernetes nodes (control plane, worker, etcd)
+   k8s_instance_type = "t3a.2xlarge"
+   # The instance type for Nginx server (load balancer)
+   nginx_instance_type = "t3a.2xlarge"
+   # The Route 53 hosted zone ID
+   zone_id = "Z090954828SJIEL6P5406"
+
+   ## UBUNTU 24.04
+   # The Amazon Machine Image ID for the instances
+   ami = "ami-0ad21ae1d0696ad58"
+
+   # Repo K8S-INFRA URL
+   k8s_infra_repo_url = "https://github.com/mosip/k8s-infra.git"
+   # Repo K8S-INFRA branch
+   k8s_infra_branch = "MOSIP-42914"
+   # NGINX Node's Root volume size
+   nginx_node_root_volume_size = 24
+   # NGINX node's EBS volume size
+   nginx_node_ebs_volume_size = 300
+   # NGINX node's second EBS volume size (optional - set to 0 to disable)
+   nginx_node_ebs_volume_size_2 = 200 # Enable second EBS volume for PostgreSQL testing
+   # Kubernetes nodes Root volume size
+   k8s_instance_root_volume_size = 64
+
+   # Control-plane, ETCD, Worker
+   k8s_control_plane_node_count = 3
+   # ETCD, Worker
+   k8s_etcd_node_count = 3
+   # Worker
+   k8s_worker_node_count = 2
+
+   # RKE2 Version Configuration
+   rke2_version = "v1.28.9+rke2r1"
+
+   # Rancher Import Configuration
+   enable_rancher_import = false
+
+   # Security group CIDRs
+   network_cidr   = "10.0.0.0/8" # Use your actual VPC CIDR
+   WIREGUARD_CIDR = "10.0.0.0/8" # Use your actual WireGuard VPN CIDR
+
+   # Rancher Import URL
+   rancher_import_url = "\"kubectl apply -f https://rancher.mosip.net/v3/import/dzshvnb6br7qtf267zsrr9xsw6tnb2vt4x68g79r2wzsnfgvkjq2jk_c-m-b5249w76.yaml\""
+   # DNS Records to map
+   subdomain_public   = ["resident", "prereg", "esignet", "healthservices", "signup"]
+   subdomain_internal = ["admin", "iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio", "regclient", "compliance"]
+
+   # PostgreSQL Configuration (used when second EBS volume is enabled)
+   enable_postgresql_setup = true # Enable PostgreSQL setup for main infra
+   postgresql_version      = "15"
+   storage_device          = "/dev/nvme2n1"
+   mount_point             = "/srv/postgres"
+   postgresql_port         = "5433"
+
+   # MOSIP Infrastructure Repository Configuration
+   mosip_infra_repo_url = "https://github.com/mosip/mosip-infra.git"
+   mosip_infra_branch = "develop"
+
+   # VPC Configuration - Existing VPC to use (discovered by Name tag)
+   vpc_name = "mosip-boxes"
    ```
+
+   **Key Configuration Variables Explained:**
+
+   | Variable | Description | Example Value |
+   |----------|-------------|---------------|
+   | `cluster_name` | Unique identifier for your MOSIP cluster | `"soil38"` |
+   | `cluster_env_domain` | Domain name for MOSIP services access | `"soil38.mosip.net"` |
+   | `mosip_email_id` | Email for SSL certificate notifications | `"admin@example.com"` |
+   | `ssh_key_name` | AWS EC2 key pair name for SSH access | `"mosip-aws"` |
+   | `aws_provider_region` | AWS region for resource deployment | `"ap-south-1"` |
+   | `zone_id` | Route 53 hosted zone ID for DNS management | `"Z090954828SJIEL6P5406"` |
+   | `k8s_instance_type` | EC2 instance type for Kubernetes nodes | `"t3a.2xlarge"` |
+   | `nginx_instance_type` | EC2 instance type for load balancer | `"t3a.2xlarge"` |
+   | `ami` | Amazon Machine Image ID (Ubuntu 24.04) | `"ami-0ad21ae1d0696ad58"` |
+   | `enable_postgresql_setup` | External PostgreSQL setup via Terraform | `true` (external) / `false` (container) |
+   | `nginx_node_ebs_volume_size_2` | EBS volume size for PostgreSQL data (GB) | `200` |
+   | `postgresql_version` | PostgreSQL version to install | `"15"` |
+   | `postgresql_port` | PostgreSQL service port | `"5433"` |
+   | `vpc_name` | Existing VPC name tag to use | `"mosip-boxes"` |
+
+   > **Important Notes:**
+   > - Ensure `cluster_name` and `cluster_env_domain` match values used in Helmsman DSF files
+   > - Set `enable_postgresql_setup = true` for production deployments with external PostgreSQL
+   > - Set `enable_postgresql_setup = false` for development deployments with containerized PostgreSQL
+   > - The `nginx_node_ebs_volume_size_2` is required when `enable_postgresql_setup = true`
 2. **Run main infra via GitHub Actions:**
 
    - Actions → **Terraform Infrastructure**
@@ -247,11 +340,28 @@ Add the required secrets as follows:
 
 #### Step 4a: Update DSF Configuration Files
 
-```bash
-cd Helmsman/dsf/
-```
+1. **Clone the MOSIP infra repository and navigate to Helmsman directory:**
 
-1. **Update prereq-dsf.yaml:**
+   ```bash
+   git clone https://github.com/mosip/infra.git
+   cd infra/Helmsman
+   ```
+
+2. **Navigate to DSF configuration directory:**
+
+   ```bash
+   cd dsf/
+   ```
+
+3. **Update prereq-dsf.yaml:**
+
+   - **Search and replace the following values:**
+     - `<sandbox>` → your cluster name (e.g., `soil`)
+     - `sandbox.xyz.net` → your domain name (e.g., `soil.mosip.net`)
+
+   > **Note:** Maintain consistency with your Terraform configuration:
+   > - `<sandbox>` should match `cluster_name` in `aws.tfvars` 
+   > - `sandbox.xyz.net` should match `cluster_env_domain` in `aws.tfvars`
 
    ```yaml
    # Configure monitoring, Istio, logging
@@ -263,7 +373,44 @@ cd Helmsman/dsf/
        enabled: true
        namespace: cattle-monitoring-system
    ```
-2. **Update external-dsf.yaml:**
+4. **Update external-dsf.yaml:**
+
+   - **Search and replace the following values:**
+     - `<sandbox>` → your cluster name (e.g., `soil`)
+     - `sandbox.xyz.net` → your domain name (e.g., `soil.mosip.net`)
+
+   > **Note:** Maintain consistency with your Terraform configuration:
+   > - `<sandbox>` should match `cluster_name` in `aws.tfvars` 
+   > - `sandbox.xyz.net` should match `cluster_env_domain` in `aws.tfvars`
+
+   - **Configure reCAPTCHA keys:**
+     
+     1. **Create reCAPTCHA keys for each domain:**
+        - Go to [Google reCAPTCHA Admin](https://www.google.com/recaptcha/admin/create)
+        - Create reCAPTCHA v2 ("I'm not a robot" Checkbox) for each domain:
+          - **PreReg domain**: `prereg.your-domain.net` (e.g., `prereg.soil.mosip.net`)
+          - **Admin domain**: `admin.your-domain.net` (e.g., `admin.soil.mosip.net`)
+          - **Resident domain**: `resident.your-domain.net` (e.g., `resident.soil.mosip.net`)
+
+     2. **Update captcha-setup.sh arguments in external-dsf.yaml (around line 315):**
+        ```yaml
+        hooks:
+          postInstall: "$WORKDIR/hooks/captcha-setup.sh PREREG_SITE_KEY PREREG_SECRET_KEY ADMIN_SITE_KEY ADMIN_SECRET_KEY RESIDENT_SITE_KEY RESIDENT_SECRET_KEY"
+        ```
+        
+        **Arguments order:**
+        - **Argument 1**: PreReg site key
+        - **Argument 2**: PreReg secret key  
+        - **Argument 3**: Admin site key
+        - **Argument 4**: Admin secret key
+        - **Argument 5**: Resident site key
+        - **Argument 6**: Resident secret key
+
+     3. **Example configuration:**
+        ```yaml
+        hooks:
+          postInstall: "$WORKDIR/hooks/captcha-setup.sh 6LfkAMwrAAAAAATB1WhkIhzuAVMtOs9VWabODoZ_ 6LfkAMwrAAAAAHQAT93nTGcLKa-h3XYhGoNSG-NL 6LdNAcwrAAAAAETGWvz-3I12vZ5V8vPJLu2ct9CO 6LdNAcwrAAAAAE4iWGJ-g6Dc2HreeJdIwAl5h1iL 6LdRAcwrAAAAAFUEHHKK5D_bSrwAPqdqAJqo4mCk 6LdRAcwrAAAAAOeVl6yHGBCBA8ye9GsUOy4pi9s9"
+        ```
 
    ```yaml
    # Configure external dependencies
@@ -277,7 +424,15 @@ cd Helmsman/dsf/
      kafka:
        enabled: true
    ```
-3. **Update mosip-dsf.yaml:**
+5. **Update mosip-dsf.yaml:**
+
+   - **Search and replace the following values:**
+     - `<sandbox>` → your cluster name (e.g., `soil`)
+     - `sandbox.xyz.net` → your domain name (e.g., `soil.mosip.net`)
+
+   > **Note:** Maintain consistency with your Terraform configuration:
+   > - `<sandbox>` should match `cluster_name` in `aws.tfvars` 
+   > - `sandbox.xyz.net` should match `cluster_env_domain` in `aws.tfvars`
 
    ```yaml
    # Configure MOSIP services  
@@ -289,6 +444,14 @@ cd Helmsman/dsf/
      kernel:
        enabled: true
    ```
+
+> **Note:** Apply the same search and replace pattern to **all DSF files** including `testrigs-dsf.yaml` if you plan to deploy test rigs:
+> - `<sandbox>` → your cluster name (e.g., `soil`)
+> - `sandbox.xyz.net` → your domain name (e.g., `soil.mosip.net`)
+>
+> **Important:** Ensure consistency with your Terraform configuration:
+> - `<sandbox>` should match `cluster_name` in `terraform/implementations/aws/infra/aws.tfvars`
+> - `sandbox.xyz.net` should match `cluster_env_domain` in `terraform/implementations/aws/infra/aws.tfvars`
 
 #### Step 4b: Run Helmsman Deployments via GitHub Actions
 
