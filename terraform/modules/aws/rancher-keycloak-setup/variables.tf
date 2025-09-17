@@ -3,16 +3,6 @@ variable "SSH_PRIVATE_KEY" {
   type        = string
 }
 
-variable "K8S_INFRA_REPO_URL" {
-  description = "URL of the k8s-infra repository"
-  type        = string
-}
-
-variable "K8S_INFRA_BRANCH" {
-  description = "Branch of the k8s-infra repository"
-  type        = string
-}
-
 variable "CLUSTER_NAME" {
   description = "Name of the cluster"
   type        = string

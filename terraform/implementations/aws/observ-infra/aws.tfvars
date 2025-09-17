@@ -59,10 +59,6 @@ subdomain_internal = [
   "iam"
 ]
 
-# Repository configuration
-k8s_infra_repo_url = "https://github.com/bhumi46/k8s-infra.git"
-k8s_infra_branch   = "develop"
-
 # RKE2 Version Configuration
 rke2_version = "v1.28.9+rke2r1"
 

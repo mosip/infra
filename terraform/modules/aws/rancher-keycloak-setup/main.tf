@@ -32,11 +32,14 @@ resource "null_resource" "install_rancher" {
     inline = [
       "set -e",
       "echo 'Setting up Rancher UI...'",
+      
+      # Set KUBECONFIG environment variable for all kubectl commands
+      "export KUBECONFIG=/etc/rancher/rke2/rke2.yaml",
 
       # Wait for kubectl to be available and check version
-      "timeout 300 bash -c 'until kubectl get nodes; do sleep 5; done'",
+      "timeout 300 bash -c 'until sudo -E kubectl get nodes; do sleep 5; done'",
       "echo 'Kubectl version:'",
-      "kubectl version --client",
+      "sudo -E kubectl version --client",
 
       # Check if helm is installed, if not install it
       "echo 'Checking Helm installation...'",
@@ -49,23 +52,29 @@ resource "null_resource" "install_rancher" {
       "  helm version",
       "fi",
 
+      # Create required namespaces
+      "echo 'Creating required namespaces...'",
+      "sudo -E kubectl create namespace cattle-system --dry-run=client -o yaml | sudo -E kubectl apply -f -",
+      "sudo -E kubectl create namespace keycloak --dry-run=client -o yaml | sudo -E kubectl apply -f -",
+      "sudo -E kubectl create namespace ingress-nginx --dry-run=client -o yaml | sudo -E kubectl apply -f -",
+
       # Install ingress-nginx
       "echo 'Installing ingress-nginx...'",
-      "helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx",
-      "helm repo update",
-      "helm install ingress-nginx ingress-nginx/ingress-nginx --namespace ingress-nginx --version 4.10.0 --create-namespace --set controller.service.type=NodePort --set controller.service.nodePorts.http=30080 --set controller.service.nodePorts.https=30443 --set controller.config.use-forwarded-headers=true",
+      "sudo -E helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx",
+      "sudo -E helm repo update",
+      "sudo -E helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx --namespace ingress-nginx --version 4.10.0 --set controller.service.type=NodePort --set controller.service.nodePorts.http=30080 --set controller.service.nodePorts.https=30443 --set controller.config.use-forwarded-headers=true",
 
       # Add Rancher Helm repository
       "echo 'Adding Rancher Helm repository...'",
-      "helm repo add rancher-latest https://releases.rancher.com/server-charts/latest",
-      "helm repo update",
+      "sudo -E helm repo add rancher-latest https://releases.rancher.com/server-charts/latest",
+      "sudo -E helm repo update",
 
-      # Install Rancher with updated configuration
+      # Install Rancher with updated configuration (using fixed password for debugging)
       "echo 'Installing Rancher...'",
-      "helm install rancher rancher-stable/rancher --namespace cattle-system --version=2.8.3 --create-namespace --kube-version 1.28.9 --set hostname=${var.RANCHER_HOSTNAME != "" ? var.RANCHER_HOSTNAME : "rancher.${var.CLUSTER_ENV_DOMAIN}"} --set ingress.enabled=true --set ingress.includeDefaultExtraAnnotations=true --set ingress.extraAnnotations.'kubernetes\\.io/ingress\\.class'=nginx --set rancherImage=rancher/rancher --set replicas=2 --set tls=external --set-string bootstrapPassword=${var.RANCHER_BOOTSTRAP_PASSWORD}",
+      "sudo -E helm upgrade --install rancher rancher-latest/rancher --namespace cattle-system --version=2.8.3 --set hostname=${var.RANCHER_HOSTNAME != "" ? var.RANCHER_HOSTNAME : "rancher.${var.CLUSTER_ENV_DOMAIN}"} --set ingress.enabled=true --set ingress.includeDefaultExtraAnnotations=true --set ingress.extraAnnotations.'kubernetes\\.io/ingress\\.class'=nginx --set rancherImage=rancher/rancher --set replicas=2 --set tls=external --set-string bootstrapPassword=admin123",
 
       # Wait for Rancher to be ready
-      "kubectl wait --for=condition=ready pod -l app=rancher --timeout=600s -n cattle-system",
+      "sudo -E kubectl wait --for=condition=ready pod -l app=rancher --timeout=600s -n cattle-system",
 
       "echo 'Rancher UI installation completed successfully'"
     ]
@@ -74,6 +83,7 @@ resource "null_resource" "install_rancher" {
   triggers = {
     rancher_hostname = var.RANCHER_HOSTNAME != "" ? var.RANCHER_HOSTNAME : "rancher.${var.CLUSTER_ENV_DOMAIN}"
     cluster_name     = var.CLUSTER_NAME
+    always_run       = timestamp() # Force re-execution to ensure services are actually installed
   }
 }
 
@@ -93,29 +103,30 @@ resource "null_resource" "install_keycloak" {
     inline = [
       "set -e",
       "echo 'Setting up Keycloak installation...'",
+      
+      # Set KUBECONFIG environment variable for all kubectl commands
+      "export KUBECONFIG=/etc/rancher/rke2/rke2.yaml",
 
-      # Clone k8s-infra repository if not already present
-      "cd /home/ubuntu",
-      "if [ ! -d 'k8s-infra' ]; then",
-      "  git clone ${var.K8S_INFRA_REPO_URL}",
-      "fi",
-      "cd k8s-infra",
-      "git fetch origin",
-      "git checkout ${var.K8S_INFRA_BRANCH}",
-      "git pull origin ${var.K8S_INFRA_BRANCH}",
+      # Wait for kubectl to be available and check version
+      "timeout 300 bash -c 'until sudo -E kubectl get nodes; do sleep 5; done'",
+      "echo 'Kubectl version:'",
+      "sudo -E kubectl version --client",
 
-      # Navigate to Keycloak installation directory
-      "cd observation/keycloak",
+      # Create keycloak namespace if it doesn't exist
+      "echo 'Creating Keycloak namespace...'",
+      "sudo -E kubectl create namespace keycloak --dry-run=client -o yaml | sudo -E kubectl apply -f -",
 
-      # Make sure the install script is executable
-      "chmod +x install.sh",
+      # Add Bitnami Helm repository for Keycloak
+      "echo 'Adding Bitnami Helm repository...'",
+      "sudo -E helm repo add bitnami https://charts.bitnami.com/bitnami",
+      "sudo -E helm repo update",
 
-      # Run Keycloak installation
+      # Install Keycloak using Helm
       "echo 'Installing Keycloak...'",
-      "./install.sh ${var.KEYCLOAK_HOSTNAME != "" ? var.KEYCLOAK_HOSTNAME : "iam.${var.CLUSTER_ENV_DOMAIN}"}",
+      "sudo -E helm upgrade --install keycloak bitnami/keycloak --namespace keycloak --version 17.3.6 --set auth.adminUser=admin --set auth.adminPassword=admin123 --set service.type=ClusterIP --set ingress.enabled=true --set ingress.ingressClassName=nginx --set ingress.hostname=${var.KEYCLOAK_HOSTNAME != "" ? var.KEYCLOAK_HOSTNAME : "iam.${var.CLUSTER_ENV_DOMAIN}"} --set ingress.tls=true --set ingress.annotations.'cert-manager\\.io/cluster-issuer'=letsencrypt-prod --set ingress.annotations.'nginx\\.ingress\\.kubernetes\\.io/proxy-buffer-size'=128k --set postgresql.auth.postgresPassword=postgres123 --set postgresql.auth.database=keycloak",
 
       # Wait for Keycloak to be ready
-      "kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=keycloak --timeout=600s -n keycloak || true",
+      "sudo -E kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=keycloak --timeout=600s -n keycloak",
 
       "echo 'Keycloak installation completed successfully'"
     ]
@@ -123,9 +134,8 @@ resource "null_resource" "install_keycloak" {
 
   triggers = {
     keycloak_hostname = var.KEYCLOAK_HOSTNAME != "" ? var.KEYCLOAK_HOSTNAME : "iam.${var.CLUSTER_ENV_DOMAIN}"
-    k8s_infra_repo    = var.K8S_INFRA_REPO_URL
-    k8s_infra_branch  = var.K8S_INFRA_BRANCH
     cluster_name      = var.CLUSTER_NAME
+    always_run        = timestamp() # Force re-execution to ensure services are actually installed
   }
 }
 
@@ -143,10 +153,11 @@ resource "null_resource" "get_rancher_info" {
 
   provisioner "remote-exec" {
     inline = [
+      "export KUBECONFIG=/etc/rancher/rke2/rke2.yaml",
       "echo 'Rancher UI Status:'",
-      "kubectl get pods -n cattle-system | grep rancher",
+      "sudo -E kubectl get pods -n cattle-system | grep rancher",
       "echo 'Rancher URL: https://${var.RANCHER_HOSTNAME != "" ? var.RANCHER_HOSTNAME : "rancher.${var.CLUSTER_ENV_DOMAIN}"}'",
-      "echo 'Bootstrap Password: ${var.RANCHER_BOOTSTRAP_PASSWORD}'"
+      "echo 'Bootstrap Password: admin123'"
     ]
   }
 }
@@ -165,8 +176,9 @@ resource "null_resource" "get_keycloak_info" {
 
   provisioner "remote-exec" {
     inline = [
+      "export KUBECONFIG=/etc/rancher/rke2/rke2.yaml",
       "echo 'Keycloak Status:'",
-      "kubectl get pods -n keycloak | grep keycloak || echo 'Keycloak pods not found'",
+      "sudo -E kubectl get pods -n keycloak | grep keycloak || echo 'Keycloak pods not found'",
       "echo 'Keycloak URL: https://${var.KEYCLOAK_HOSTNAME != "" ? var.KEYCLOAK_HOSTNAME : "iam.${var.CLUSTER_ENV_DOMAIN}"}'",
       "echo 'Access Keycloak admin console with credentials provided by the installation script'"
     ]

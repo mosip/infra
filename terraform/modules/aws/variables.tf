@@ -96,11 +96,7 @@ variable "ZONE_ID" { type = string }
 variable "K8S_INFRA_REPO_URL" {
   description = "The URL of the Kubernetes infrastructure GitHub repository"
   type        = string
-
-  validation {
-    condition     = can(regex("^https://github\\.com/.+/.+\\.git$", var.K8S_INFRA_REPO_URL))
-    error_message = "The K8S_INFRA_REPO_URL must be a valid GitHub repository URL ending with .git"
-  }
+  default     = "https://github.com/mosip/k8s-infra.git"
 }
 variable "K8S_INFRA_BRANCH" {
   type    = string

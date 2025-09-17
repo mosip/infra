@@ -60,8 +60,6 @@ module "rancher_keycloak_setup" {
   source     = "../../modules/aws/rancher-keycloak-setup"
 
   SSH_PRIVATE_KEY            = var.ssh_private_key
-  K8S_INFRA_REPO_URL         = var.k8s_infra_repo_url
-  K8S_INFRA_BRANCH           = var.k8s_infra_branch
   CLUSTER_NAME               = var.cluster_name
   CLUSTER_ENV_DOMAIN         = var.cluster_env_domain
   RANCHER_HOSTNAME           = var.rancher_hostname
