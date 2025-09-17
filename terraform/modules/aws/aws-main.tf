@@ -178,7 +178,7 @@ module "aws-resource-creation" {
         from_port : 9000,
         to_port : 9000,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
+        cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = ["::/0"]
       },
       {
@@ -186,7 +186,7 @@ module "aws-resource-creation" {
         from_port : 5432,
         to_port : 5432,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
+        cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = ["::/0"]
       },
       {
@@ -194,7 +194,7 @@ module "aws-resource-creation" {
         from_port : 5433,
         to_port : 5433,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
+        cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = ["::/0"]
       },
       {
@@ -202,7 +202,7 @@ module "aws-resource-creation" {
         from_port : 61616,
         to_port : 61616,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
+        cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = ["::/0"]
       },
       {
@@ -210,7 +210,7 @@ module "aws-resource-creation" {
         from_port : 2049,
         to_port : 2049,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
+        cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = ["::/0"]
       },
       {
@@ -218,7 +218,7 @@ module "aws-resource-creation" {
         from_port : 2049,
         to_port : 2049,
         protocol : "UDP",
-        cidr_blocks      = ["0.0.0.0/0"],
+        cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = ["::/0"]
       },
     ]
@@ -244,7 +244,7 @@ module "aws-resource-creation" {
         from_port : 6443,
         to_port : 6443,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
+        cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = ["::/0"]
       },
       {
@@ -252,7 +252,7 @@ module "aws-resource-creation" {
         from_port : 9345,
         to_port : 9345,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
+        cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = ["::/0"]
       },
       {
@@ -260,7 +260,7 @@ module "aws-resource-creation" {
         from_port : 10250,
         to_port : 10250,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
+        cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = ["::/0"]
       },
       {
@@ -268,7 +268,7 @@ module "aws-resource-creation" {
         from_port : 2379,
         to_port : 2379,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
+        cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = ["::/0"]
       },
       {
@@ -276,7 +276,7 @@ module "aws-resource-creation" {
         from_port : 2380,
         to_port : 2380,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
+        cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = ["::/0"]
       },
       {
@@ -284,7 +284,7 @@ module "aws-resource-creation" {
         from_port : 2381,
         to_port : 2381,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
+        cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = ["::/0"]
       },
       {
@@ -292,7 +292,7 @@ module "aws-resource-creation" {
         from_port : 30000,
         to_port : 32767,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
+        cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = ["::/0"]
       },
       {
@@ -300,7 +300,7 @@ module "aws-resource-creation" {
         from_port : 8472,
         to_port : 8472,
         protocol : "UDP",
-        cidr_blocks      = ["0.0.0.0/0"],
+        cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = ["::/0"]
       },
       {
@@ -308,7 +308,7 @@ module "aws-resource-creation" {
         from_port : 9099,
         to_port : 9099,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
+        cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = ["::/0"]
       },
       {
@@ -316,7 +316,7 @@ module "aws-resource-creation" {
         from_port : 5433,
         to_port : 5433,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
+        cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = ["::/0"]
       },
     ]
@@ -342,7 +342,7 @@ module "aws-resource-creation" {
         from_port : 10250,
         to_port : 10250,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
+        cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = ["::/0"]
       },
       {
@@ -350,7 +350,7 @@ module "aws-resource-creation" {
         from_port : 30000,
         to_port : 32767,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
+        cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = ["::/0"]
       },
       {
@@ -358,7 +358,7 @@ module "aws-resource-creation" {
         from_port : 2379,
         to_port : 2379,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
+        cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = ["::/0"]
       },
       {
@@ -366,7 +366,7 @@ module "aws-resource-creation" {
         from_port : 2380,
         to_port : 2380,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
+        cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = ["::/0"]
       },
       {
@@ -374,7 +374,7 @@ module "aws-resource-creation" {
         from_port : 2381,
         to_port : 2381,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
+        cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = ["::/0"]
       },
       {
@@ -382,7 +382,7 @@ module "aws-resource-creation" {
         from_port : 8472,
         to_port : 8472,
         protocol : "UDP",
-        cidr_blocks      = ["0.0.0.0/0"],
+        cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = ["::/0"]
       },
       {
@@ -390,7 +390,7 @@ module "aws-resource-creation" {
         from_port : 9099,
         to_port : 9099,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
+        cidr_blocks      = [var.network_cidr]],
         ipv6_cidr_blocks = ["::/0"]
       },
       {
@@ -398,7 +398,7 @@ module "aws-resource-creation" {
         from_port : 5433,
         to_port : 5433,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
+        cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = ["::/0"]
       },
     ]
@@ -424,7 +424,7 @@ module "aws-resource-creation" {
         from_port : 10250,
         to_port : 10250,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
+        cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = ["::/0"]
       },
       {
@@ -432,7 +432,7 @@ module "aws-resource-creation" {
         from_port : 30000,
         to_port : 32767,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
+        cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = ["::/0"]
       },
       {
@@ -440,7 +440,7 @@ module "aws-resource-creation" {
         from_port : 8472,
         to_port : 8472,
         protocol : "UDP",
-        cidr_blocks      = ["0.0.0.0/0"],
+        cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = ["::/0"]
       },
       {
@@ -448,7 +448,7 @@ module "aws-resource-creation" {
         from_port : 9099,
         to_port : 9099,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
+        cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = ["::/0"]
       },
       {
@@ -456,7 +456,7 @@ module "aws-resource-creation" {
         from_port : 5433,
         to_port : 5433,
         protocol : "TCP",
-        cidr_blocks      = ["0.0.0.0/0"],
+        cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = ["::/0"]
       },
     ]
@@ -467,68 +467,4 @@ module "aws-resource-creation" {
   K8S_CONTROL_PLANE_NODE_COUNT = var.K8S_CONTROL_PLANE_NODE_COUNT
   K8S_ETCD_NODE_COUNT          = var.K8S_ETCD_NODE_COUNT
   K8S_WORKER_NODE_COUNT        = var.K8S_WORKER_NODE_COUNT
-}
-
-
-module "nginx-setup" {
-  depends_on = [module.aws-resource-creation]
-  #source     = "github.com/mosip/mosip-infra//deployment/v3/terraform/aws/modules/nginx-setup?ref=develop"
-  source                                  = "./nginx-setup"
-  NGINX_PUBLIC_IP                         = module.aws-resource-creation.NGINX_PUBLIC_IP
-  NGINX_PRIVATE_IP                        = module.aws-resource-creation.NGINX_PRIVATE_IP
-  CLUSTER_ENV_DOMAIN                      = var.CLUSTER_ENV_DOMAIN
-  MOSIP_K8S_CLUSTER_NODES_PRIVATE_IP_LIST = module.aws-resource-creation.MOSIP_K8S_CLUSTER_NODES_PRIVATE_IP_LIST
-  MOSIP_PUBLIC_DOMAIN_LIST                = module.aws-resource-creation.MOSIP_PUBLIC_DOMAIN_LIST
-  CERTBOT_EMAIL                           = var.MOSIP_EMAIL_ID
-  SSH_PRIVATE_KEY                         = var.SSH_PRIVATE_KEY
-  K8S_INFRA_BRANCH                        = var.K8S_INFRA_BRANCH
-  K8S_INFRA_REPO_URL                      = var.K8S_INFRA_REPO_URL
-}
-
-
-module "rke2-setup" {
-  depends_on = [module.aws-resource-creation, module.nginx-setup]
-  #source     = "github.com/mosip/mosip-infra//deployment/v3/terraform/aws/modules/rke2-setup?ref=develop"
-  source = "./rke2-cluster"
-
-  SSH_PRIVATE_KEY         = var.SSH_PRIVATE_KEY
-  K8S_INFRA_BRANCH        = var.K8S_INFRA_BRANCH
-  K8S_CLUSTER_PRIVATE_IPS = module.aws-resource-creation.K8S_CLUSTER_PRIVATE_IPS
-  RANCHER_IMPORT_URL      = var.RANCHER_IMPORT_URL
-  K8S_INFRA_REPO_URL      = var.K8S_INFRA_REPO_URL
-  ENABLE_RANCHER_IMPORT   = var.ENABLE_RANCHER_IMPORT
-  RKE2_VERSION            = var.RKE2_VERSION
-  CLUSTER_NAME            = var.CLUSTER_NAME
-}
-module "nfs-setup" {
-  depends_on          = [module.aws-resource-creation, module.rke2-setup]
-  source              = "./nfs-setup"
-  NFS_SERVER_LOCATION = "/srv/nfs/mosip/${var.CLUSTER_ENV_DOMAIN}"
-  NFS_SERVER          = module.aws-resource-creation.NGINX_PRIVATE_IP
-  SSH_PRIVATE_KEY     = var.SSH_PRIVATE_KEY
-  K8S_INFRA_REPO_URL  = var.K8S_INFRA_REPO_URL
-  K8S_INFRA_BRANCH    = var.K8S_INFRA_BRANCH
-  CLUSTER_NAME        = var.CLUSTER_NAME
-}
-
-module "postgresql-setup" {
-  count      = var.enable_postgresql_setup && var.nginx_node_ebs_volume_size_2 > 0 ? 1 : 0
-  depends_on = [module.aws-resource-creation, module.nginx-setup, module.rke2-setup, module.nfs-setup]
-  source     = "./postgresql-setup"
-
-  NGINX_PUBLIC_IP              = module.aws-resource-creation.NGINX_PUBLIC_IP
-  NGINX_PRIVATE_IP             = module.aws-resource-creation.NGINX_PRIVATE_IP
-  SSH_PRIVATE_KEY              = var.SSH_PRIVATE_KEY
-  NGINX_NODE_EBS_VOLUME_SIZE_2 = var.nginx_node_ebs_volume_size_2
-  POSTGRESQL_VERSION           = var.postgresql_version
-  STORAGE_DEVICE               = var.storage_device
-  MOUNT_POINT                  = var.mount_point
-  POSTGRESQL_PORT              = var.postgresql_port
-  NETWORK_CIDR                 = var.network_cidr
-  MOSIP_INFRA_REPO_URL         = var.mosip_infra_repo_url
-  MOSIP_INFRA_BRANCH           = var.mosip_infra_branch
-
-  # Control plane configuration for PostgreSQL K8s deployment
-  CONTROL_PLANE_HOST = [for instance in module.aws-resource-creation.K8S_CLUSTER_PRIVATE_IPS : instance][0]
-  CONTROL_PLANE_USER = "ubuntu"
 }
