@@ -44,7 +44,7 @@ zone_id = "Z090954828SJIEL6P5406"
 vpc_name = "mosip-boxes"
 
 # Minimal storage configuration
-nginx_node_root_volume_size = 20  # Smaller than infra (24)
+nginx_node_root_volume_size = 20 # Smaller than infra (24)
 nginx_node_ebs_volume_size  = 50 # Smaller than infra (300)
 # Second EBS volume for PostgreSQL (disabled for observ-infra)
 nginx_node_ebs_volume_size_2  = 0  # Disabled for observability infrastructure
