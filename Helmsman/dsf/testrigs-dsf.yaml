@@ -1,0 +1,201 @@
+helmDefaults:
+  tillerNamespace: kube-system
+  tillerless: true
+  install: true
+
+helmRepos:
+  bitnami: https://charts.bitnami.com/bitnami
+  mosip: https://mosip.github.io/mosip-helm
+
+# Note: Based on your requirement disable the namespaces which you want to use, by default all the namespaces are protected.
+namespaces:
+  apitestrig:
+    protected: false
+  packetcreator:
+    protected: false
+  dslrig:
+    protected: false
+  uitestrig:
+    protected: false
+
+apps:
+  packetcreator:
+    namespace: packetcreator
+    enabled: true
+    version: 12.1.0
+    chart: mosip/packetcreator
+    set:
+      # image.repository: "mosipqa/dsl-packetcreator"
+      # image.tag: "1.2.1.x"
+      resources.limits.cpu: "1"
+      resources.limits.memory: "6000Mi"
+      resources.requests.cpu: "800m"
+      resources.requests.memory: "6000Mi"
+      enable_insecure: false
+      ingress.enabled: false
+      ## If ingress enabled, provide ingress host value i.e., PACKETCREATOR_HOST
+      ingress.host: "<PACKETCREATOR_HOST>"
+      istio.enabled: true
+    wait: true
+    timeout: 2800
+    priority: -4
+    hooks:
+      preInstall: "$WORKDIR/hooks/packetcreator-setup.sh"
+      
+  apitestrig:
+    namespace: apitestrig
+    enabled: true
+    version: 0.0.1-develop
+    chart: mosip/apitestrig
+    set:
+      crontime: "0 2 * * *"
+      apitestrig.configmaps.s3.s3-host: 'http://minio.minio:9000'
+      apitestrig.configmaps.s3.s3-user-key: 'admin'
+      apitestrig.configmaps.s3.s3-region: ''
+      apitestrig.configmaps.db.db-server: "api-internal.soil38.mosip.net"
+      apitestrig.configmaps.db.db-su-user: "postgres"
+      apitestrig.configmaps.db.db-port: "5433"
+      apitestrig.configmaps.apitestrig.ENV_USER: "api-internal.soil38"
+      apitestrig.configmaps.apitestrig.ENV_ENDPOINT: "https://api-internal.soil38.mosip.net"
+      apitestrig.configmaps.apitestrig.ENV_TESTLEVEL: "smokeAndRegression"
+      apitestrig.configmaps.apitestrig.reportExpirationInDays: "3"
+      apitestrig.configmaps.apitestrig.slack-webhook-url: "https://hooks.slack.com/services/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"
+      apitestrig.configmaps.apitestrig.eSignetDeployed: "no"
+      apitestrig.configmaps.apitestrig.NS: apitestrig
+      apitestrig.configmaps.apitestrig.servicesNotDeployed: 'esignet'
+
+      modules.prereg.enabled: true
+      modules.prereg.image.repository: mosipid/apitest-prereg
+      modules.prereg.image.tag: 1.2.0.3
+      modules.prereg.image.pullPolicy: Always
+
+      modules.masterdata.enabled: true
+      modules.masterdata.image.repository: mosipid/apitest-masterdata
+      modules.masterdata.image.tag: 1.2.1.3
+      modules.masterdata.image.pullPolicy: Always
+
+      modules.idrepo.enabled: true
+      modules.idrepo.image.repository: mosipid/apitest-idrepo
+      modules.idrepo.image.tag: 1.2.2.2
+      modules.idrepo.image.pullPolicy: Always
+
+      modules.partner.enabled: true
+      modules.partner.image.repository: mosipid/apitest-pms
+      modules.partner.image.tag: 1.2.2.2
+      modules.partner.image.pullPolicy: Always
+
+      modules.pms.enabled: false
+      modules.pms.image.repository: mosipid/apitest-pms
+      modules.pms.image.tag: 1.3.0-beta.1
+      modules.pms.image.pullPolicy: Always
+
+      modules.resident.enabled: true
+      modules.resident.image.repository: mosipid/apitest-resident
+      modules.resident.image.tag: 1.2.1.2
+      modules.resident.image.pullPolicy: Always
+
+      modules.auth.enabled: true
+      modules.auth.image.repository: mosipqa/apitest-auth
+      modules.auth.image.tag: 1.2.1.x
+      modules.auth.image.pullPolicy: Always
+
+      modules.esignet.enabled: false
+      modules.esignet.image.repository: mosipid/apitest-esignet
+      modules.esignet.image.tag: 1.5.1
+      modules.esignet.image.pullPolicy: Always
+
+      modules.mimoto.enabled: false
+      modules.mimoto.image.repository: mosipid/apitest-mimoto
+      modules.mimoto.image.tag: 0.17.1
+      modules.mimoto.image.pullPolicy: Always
+
+      modules.injicertify.enabled: false
+      modules.injicertify.image.repository: mosipid/apitest-injicertify
+      modules.injicertify.image.tag: 0.11.0
+      modules.injicertify.image.pullPolicy: Always
+
+      modules.esignet-signup.enabled: false
+      modules.esignet-signup.image.repository: mosipid/apitest-esignet-signup
+      modules.esignet-signup.image.tag: 1.1.1
+      modules.esignet-signup.image.pullPolicy: Always
+
+      modules.variables.push_reports_to_s3: "yes"
+    priority: -3
+    hooks:
+      preInstall: "$WORKDIR/hooks/apitestrig-setup.sh"
+  dslorchestrator:
+    namespace: dslrig
+    enabled: true
+    version: 12.1.0
+    chart: mosip/dslorchestrator
+    set:
+      # image.repository: "mosipqa/dsl-orchestrator"
+      # image.tag: "1.2.1.x"
+      crontime: "0 4 * * *"
+      dslorchestrator.configmaps.s3.s3-host: 'http://minio.minio:9000'
+      dslorchestrator.configmaps.s3.s3-user-key: 'admin'
+      dslorchestrator.configmaps.s3.s3-region: ''
+      dslorchestrator.configmaps.db.db-server: "api-internal.soil38.mosip.net"
+      dslorchestrator.configmaps.db.db-su-user: "postgres"
+      dslorchestrator.configmaps.db.db-port: "5433"
+      dslorchestrator.configmaps.dslorchestrator.USER: "api-internal.soil38"
+      dslorchestrator.configmaps.dslorchestrator.ENDPOINT: "https://api-internal.soil38.mosip.net"
+      dslorchestrator.configmaps.dslorchestrator.packetUtilityBaseUrl: "http://packetcreator.packetcreator:80/v1/packetcreator"
+      dslorchestrator.configmaps.dslorchestrator.reportExpirationInDays: "3"
+      dslorchestrator.configmaps.dslorchestrator.NS: "dslrig"
+      dslorchestrator.configmaps.dslorchestrator.servicesNotDeployed: "esignet"
+      dslorchestrator.configmaps.dslorchestrator.eSignetDeployed: "no"
+      dslorchestrator.configmaps.dslorchestrator.threadCount: "2"
+      dslorchestrator.configmaps.dslorchestrator.scenariosToSkip: "I-194,I-198,I-199,I-200,I-201,I-202,I-203,I-204,I-206,I-207,I-145,I-156,I-158"
+      enable_insecure: false
+    priority: -2
+    hooks:
+      preInstall: "$WORKDIR/hooks/dslrig-setup.sh"
+  uitestrig:
+    namespace: uitestrig
+    enabled: true
+    version: 0.0.1-develop
+    chart: mosip/uitestrig
+    set:
+      # image.repository: ""
+      # image.tag: "develop"
+      enable_insecure: false
+      crontime: "0 3 * * *"
+      uitestrig.configmaps.s3.s3-host: "http://minio.minio:9000"
+      uitestrig.configmaps.s3.s3-user-key: "admin"
+      uitestrig.configmaps.s3.s3-region: ""
+      uitestrig.configmaps.db.db-server: "api-internal.soil38.mosip.net"
+      uitestrig.configmaps.db.db-su-user: "postgres"
+      uitestrig.configmaps.db.db-port: "5433"
+      uitestrig.configmaps.uitestrig.apiInternalEndPoint: "https://api-internal.soil38.mosip.net"
+      uitestrig.configmaps.uitestrig.apiEnvUser: "api-internal.soil38.mosip.net"
+      uitestrig.configmaps.uitestrig.PmpPortalPath: "https://pmp.soil38.mosip.net"
+      uitestrig.configmaps.uitestrig.adminPortalPath: "https://admin.soil38.mosip.net"
+      uitestrig.configmaps.uitestrig.residentPortalPath: "https://resident.soil38.mosip.net"
+      uitestrig.configmaps.uitestrig.NS: "uitestrig"
+  
+      modules[0].name: admin-ui
+      modules[0].enabled: true
+      modules[0].image.registry: docker.io
+      modules[0].image.repository: mosipqa/uitest-admin
+      modules[0].image.tag: develop
+      modules[0].image.pullPolicy: Always
+
+      modules[1].name: pmp-ui
+      modules[1].enabled: true
+      modules[1].image.registry: docker.io
+      modules[1].image.repository: mosipqa/uitest-pmp
+      modules[1].image.tag: develop
+      modules[1].image.pullPolicy: Always
+
+      modules[2].name: resident-ui
+      modules[2].enabled: true
+      modules[2].image.registry: docker.io
+      modules[2].image.repository: mosipqa/uitest-resident
+      modules[2].image.tag: develop
+      modules[2].image.pullPolicy: Always
+
+    priority: -1
+    hooks:
+      preInstall: "$WORKDIR/hooks/uitestrig-setup.sh"
+      postInstall: "$WORKDIR/hooks/trigger-test-jobs.sh"
