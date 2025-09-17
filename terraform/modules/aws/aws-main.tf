@@ -390,7 +390,7 @@ module "aws-resource-creation" {
         from_port : 9099,
         to_port : 9099,
         protocol : "TCP",
-        cidr_blocks      = [var.network_cidr]],
+        cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = ["::/0"]
       },
       {
