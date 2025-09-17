@@ -453,7 +453,69 @@ Add the required secrets as follows:
 > - `<sandbox>` should match `cluster_name` in `terraform/implementations/aws/infra/aws.tfvars`
 > - `sandbox.xyz.net` should match `cluster_env_domain` in `terraform/implementations/aws/infra/aws.tfvars`
 
-#### Step 4b: Run Helmsman Deployments via GitHub Actions
+#### Step 4b: Configure Repository Secrets for Helmsman
+
+**After updating all DSF files**, configure the required repository secrets for Helmsman deployments:
+
+1. **Update Repository Branch Configuration:**
+   - Ensure your repository is configured to use the correct branch for Helmsman workflows
+   - Verify GitHub Actions have access to your deployment branch
+
+2. **Configure KUBECONFIG Secret:**
+   
+   **Locate the Kubernetes config file:**
+   ```bash
+   # After Terraform infrastructure deployment completes, find the kubeconfig file in:
+   terraform/implementations/aws/infra/
+   ```
+   
+   **Add KUBECONFIG as Environment Secret:**
+   - Go to your GitHub repository → Settings → Environments
+   - Select or create environment for your branch (e.g., `release-0.1.0`, `main`, `develop`)
+   - Click "Add secret" under Environment secrets
+   - Name: `KUBECONFIG`
+   - Value: Copy the entire contents of the kubeconfig file from `terraform/implementations/aws/infra/`
+   
+   **Example kubeconfig file location:**
+   ```
+   terraform/implementations/aws/infra/kubeconfig_<cluster-name>
+   ```
+   
+   **Branch Environment Configuration:**
+   - Ensure the environment name matches your deployment branch
+   - Configure environment protection rules if needed
+   - Verify Helmsman workflows reference the correct environment
+
+3. **Required Environment Secrets for Helmsman:**
+   
+   **Environment Secrets (branch-specific):**
+   ```yaml
+   # Kubernetes Access (Environment Secret)
+   KUBECONFIG: "<contents-of-kubeconfig-file>"
+   ```
+   
+   **Repository Secrets (global):**
+   ```yaml
+   # GPG Encryption (if using encrypted backends)
+   GPG_PASSPHRASE: "your-gpg-passphrase"
+   
+   # AWS Credentials (if not using OIDC)
+   AWS_ACCESS_KEY_ID: "AKIA..."
+   AWS_SECRET_ACCESS_KEY: "..."
+   ```
+
+4. **Verify Secret Configuration:**
+   - Ensure KUBECONFIG is configured as environment secret for your branch
+   - Verify repository secrets are properly configured
+   - Test repository access from GitHub Actions
+   - Verify KUBECONFIG provides cluster access
+
+> **Important:** 
+> - **KUBECONFIG**: Must be added as Environment Secret tied to your deployment branch name
+> - **Branch Environment**: Ensure environment name matches your branch (e.g., `release-0.1.0`)
+> - **File Source**: KUBECONFIG file is generated after successful Terraform infrastructure deployment
+
+#### Step 4c: Run Helmsman Deployments via GitHub Actions
 
 1. **Deploy Prerequisites & External Dependencies (Parallel Deployment):**
    
