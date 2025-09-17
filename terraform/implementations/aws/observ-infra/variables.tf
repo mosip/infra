@@ -103,7 +103,7 @@ variable "k8s_infra_repo_url" {
 variable "k8s_infra_branch" {
   description = "Branch of the K8s infrastructure repository"
   type        = string
-  default     = "main"
+  default     = "develop"
 }
 
 variable "k8s_instance_type" {
