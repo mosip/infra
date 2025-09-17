@@ -13,7 +13,7 @@ aws_provider_region = "ap-south-1"
 # If empty, uses all available AZs in the region
 # Example: ["ap-south-1a", "ap-south-1b"] for specific AZs
 # Example: [] for all available AZs in the region
-specific_availability_zones = []kubectl apply -f https://rancher.observation.mosip.net/v3/import/b94jcxqdddb9k9p7rj4kzf4c7xkkqnvrz886wx9pf44btvwjs5bnzt_c-m-flzdgnth.yaml
+specific_availability_zones = []
 
 # The instance type for Kubernetes nodes (control plane, worker, etcd)
 k8s_instance_type = "t3a.2xlarge"
