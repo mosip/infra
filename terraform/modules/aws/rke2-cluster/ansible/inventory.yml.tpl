@@ -7,7 +7,7 @@ all:
     k8s_infra_branch: "${k8s_infra_branch}"
     install_rke2_version: "${install_rke2_version}"
     enable_rancher_import: ${enable_rancher_import}
-    rancher_import_url: "${rancher_import_url}"
+    rancher_import_url: ${rancher_import_url}
     ansible_user: ubuntu
     ansible_ssh_private_key_file: ./ssh_key
     ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
