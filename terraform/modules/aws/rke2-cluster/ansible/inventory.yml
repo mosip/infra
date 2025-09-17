@@ -7,7 +7,7 @@ all:
     k8s_infra_branch: "MOSIP-42914"
     install_rke2_version: "v1.28.9+rke2r1"
     enable_rancher_import: true
-    rancher_import_url: ""kubectl apply -f https://rancher.observation.mosip.net/v3/import/spf7kdk8wslkr8vx45dsznm5s6x6mdmqfk8rs99lwxmspqfktngrjt_c-m-mxbvj8lp.yaml""
+    rancher_import_url: "kubectl apply -f https://rancher.observation.mosip.net/v3/import/spf7kdk8wslkr8vx45dsznm5s6x6mdmqfk8rs99lwxmspqfktngrjt_c-m-mxbvj8lp.yaml"
     ansible_user: ubuntu
     ansible_ssh_private_key_file: ./ssh_key
     ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
