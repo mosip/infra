@@ -95,8 +95,8 @@ apps:
       modules.resident.image.pullPolicy: Always
 
       modules.auth.enabled: true
-      modules.auth.image.repository: mosipqa/apitest-auth
-      modules.auth.image.tag: 1.2.1.x
+      modules.auth.image.repository: mosipid/apitest-auth
+      modules.auth.image.tag: 1.2.1.2-beta.1
       modules.auth.image.pullPolicy: Always
 
       modules.esignet.enabled: false
