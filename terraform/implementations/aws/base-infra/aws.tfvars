@@ -6,13 +6,13 @@
 cloud_provider = "aws"
 
 # Environment name
-jumpserver_name = "mosip-wg-testvpc"
+jumpserver_name = "<jumpserver_name>"
 
 # Email-ID for SSL certificate notifications
-mosip_email_id = "chandra.mishra@technoforte.co.in"
+mosip_email_id = "<mosip_email_id>"
 
 # SSH key name for AWS instances
-ssh_key_name = "mosip-aws"
+ssh_key_name = "<ssh_key_name>"
 
 # AWS region
 aws_provider_region = "ap-south-1"
@@ -21,7 +21,7 @@ aws_provider_region = "ap-south-1"
 jumpserver_instance_type = "t3.medium"
 
 # Jump server AMI ID (required)
-jumpserver_ami_id = "ami-0ad21ae1d0696ad58"
+jumpserver_ami_id = "ami-xxxxxxxxxxxxxx"
 
 # Whether to create an Elastic IP for the jump server
 create_jumpserver_eip = false

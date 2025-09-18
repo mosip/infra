@@ -1,11 +1,11 @@
 # Environment name (infra component)
-cluster_name = "soil41"
+cluster_name = "<cluster_name>"
 # MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "soil41.mosip.net"
+cluster_env_domain = "<cluster_name>.xxxxx.net"
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
-mosip_email_id = "chandra.mishra@technoforte.co.in"
+mosip_email_id = "<mosip_email_id>"
 # SSH login key name for AWS node instances (ex: my-ssh-key)
-ssh_key_name = "mosip-aws"
+ssh_key_name = "<ssh_key_name>"
 # The AWS region for resource creation
 aws_provider_region = "ap-south-1"
 
@@ -20,16 +20,16 @@ k8s_instance_type = "t3a.2xlarge"
 # The instance type for Nginx server (load balancer)
 nginx_instance_type = "t3a.2xlarge"
 # The Route 53 hosted zone ID
-zone_id = "Z090954828SJIEL6P5406"
+zone_id = "<route53_zone_id>"
 
 ## UBUNTU 24.04
 # The Amazon Machine Image ID for the instances
-ami = "ami-0ad21ae1d0696ad58"
+ami = "ami-xxxxxxxxxxxx" # Ubuntu 24.04 LTS AMI ID for ap-south-1
 
 # Repo K8S-INFRA URL
 k8s_infra_repo_url = "https://github.com/mosip/k8s-infra.git"
 # Repo K8S-INFRA branch
-k8s_infra_branch = "MOSIP-42914"
+k8s_infra_branch = "<branch_name>"
 # NGINX Node's Root volume size
 nginx_node_root_volume_size = 24
 # NGINX node's EBS volume size
@@ -56,7 +56,7 @@ WIREGUARD_CIDR = "10.0.0.0/8" # Use your actual WireGuard VPN CIDR
 
 # Rancher Import URL
 # Rancher Import Configuration
-enable_rancher_import = true
+enable_rancher_import = false
 rancher_import_url    = "\"kubectl apply -f https://rancher.observation.mosip.net/v3/import/b94jcxqdddb9k9p7rj4kzf4c7xkkqnvrz886wx9pf44btvwjs5bnzt_c-m-flzdgnth.yaml\""
 # DNS Records to map
 subdomain_public   = ["resident", "prereg", "esignet", "healthservices", "signup"]
@@ -70,11 +70,11 @@ mount_point             = "/srv/postgres"
 postgresql_port         = "5433"
 
 # MOSIP Infrastructure Repository Configuration
-mosip_infra_repo_url = "https://github.com/bhumi46/mosip-infra.git"
+mosip_infra_repo_url = "https://github.com/mosip/mosip-infra.git"
 
-mosip_infra_branch = "develop"
+mosip_infra_branch = "<branch_name>"
 
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
-vpc_name = "mosip-boxes"
+vpc_name = "<vpc_name>"
 
