@@ -87,8 +87,11 @@ variable "rancher_import_url" {
   description = "Rancher import URL for kubectl apply"
   type        = string
   validation {
-    condition     = can(regex("^\"kubectl apply -f https://rancher\\.mosip\\.net/v3/import/[a-zA-Z0-9_\\-]+\\.yaml\"$", var.rancher_import_url))
-    error_message = "The RANCHER_IMPORT_URL must be in the format: '\"kubectl apply -f https://rancher.mosip.net/v3/import/<ID>.yaml\"'"
+    condition = (
+      can(regex("^\"kubectl apply -f https://rancher\\.mosip\\.net/v3/import/[a-zA-Z0-9_\\-]+\\.yaml\"$", var.rancher_import_url)) ||
+      can(regex("^\"kubectl apply -f https://rancher\\.[a-zA-Z0-9\\*\\.\\-]+\\.net/v3/import/[a-zA-Z0-9_\\-]+\\.yaml\"$", var.rancher_import_url))
+    )
+    error_message = "The RANCHER_IMPORT_URL must be in the format: '\"kubectl apply -f https://rancher.mosip.net/v3/import/<ID>.yaml\"' or '\"kubectl apply -f https://rancher.***.net/v3/import/<ID>.yaml\"'"
   }
 }
 
