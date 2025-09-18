@@ -168,6 +168,10 @@ apps:
       image.repository: "mosipid/mosip-artemis-keycloak"
       image.tag: "1.2.0.1"
       image.pullPolicy: "Always"
+      # Override Postgres image
+      postgresql.image.registry: "docker.io"
+      postgresql.image.repository: "mosipint/postgresql"
+      postgresql.image.tag: "14.2.0-debian-10-r70"
       service.type: "ClusterIP"
       auth.adminUser: "admin"
       extraEnvVars[0].name: "KEYCLOAK_EXTRA_ARGS"
@@ -259,6 +263,8 @@ apps:
     version: 10.1.6
     chart: mosip/minio
     set:
+      image.repository: "mosipint/minio"
+      image.tag: "2022.2.7-debian-10-r0"
       metrics.serviceMonitor.enabled: "true"
       extraEnvVars[0].name: "MINIO_PROMETHEUS_URL"
       extraEnvVars[0].value: "http://rancher-monitoring-prometheus.cattle-monitoring-system:9090"
@@ -312,7 +318,7 @@ apps:
     timeout: 1200
     priority: -8
     hooks:
-      postInstall: "$WORKDIR/hooks/captcha-setup.sh  6LfkAMwrAAAAAATB1WhkIhzuAVMtOs9VWabODoZ_ 6LfkAMwrAAAAAHQAT93nTGcLKa-h3XYhGoNSG-NL 6LdNAcwrAAAAAETGWvz-3I12vZ5V8vPJLu2ct9CO 6LdNAcwrAAAAAE4iWGJ-g6Dc2HreeJdIwAl5h1iL 6LdRAcwrAAAAAFUEHHKK5D_bSrwAPqdqAJqo4mCk 6LdRAcwrAAAAAOeVl6yHGBCBA8ye9GsUOy4pi9s9"
+      postInstall: "$WORKDIR/hooks/captcha-setup.sh  <prereg-site-key> <prereg-secret-key> <admin-site-key> <admin-secret-key> <resident-site-key> <resident-secret-key"
   # Note: Create a google recaptcha v2 ("I am not a Robot") from Google Recaptcha Admin.
   # Pass the captcha site and secret key in the above post install script as an argument.To create site and secret key below is the link:
   # https://cloud.google.com/security/products/recaptcha
@@ -324,6 +330,11 @@ apps:
     version: 18.3.1
     chart: bitnami/kafka
     set:
+      # Add these for image overrides
+      image.repository: "mosipint/kafka"
+      image.tag: "3.2.1-debian-11-r9"
+      zookeeper.image.repository: "mosipint/zookeeper"
+      zookeeper.image.tag: "3.8.0-debian-11-r30"
       clusterDomain: "cluster.local"
       logRetentionBytes: "_1073741824"
       defaultReplicationFactor: "3"
@@ -360,6 +371,9 @@ apps:
     version: 0.4.2
     chart: kafka-ui/kafka-ui
     set:
+      # Add these for image overrides
+      # image.repository: "docker.io/provectuslabs/kafka-ui"
+      # image.tag: "v0.4.0"
       envs.config.KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "kafka.kafka:9092"
       envs.config.KAFKA_CLUSTERS_0_NAME: "main_kafka"
       envs.config.KAFKA_CLUSTERS_0_ZOOKEEPER: "kafka-zookeeper.kafka:2181"

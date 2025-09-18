@@ -163,6 +163,24 @@ Helmsman/
 
 > **Security Note:** For production environments, consider using more restrictive policies with specific resource ARNs and condition statements.
 
+### Required AWS Instance Types
+
+**Default Instance Configuration:**
+- **NGINX Instance Type**: `t3a.2xlarge` (Load balancer and reverse proxy)
+- **Kubernetes Instance Type**: `t3a.2xlarge` (Control plane, ETCD, and worker nodes)
+
+**Instance Family Details:**
+- **t3a Instance Family**: AMD EPYC processors with burstable performance
+- **2xlarge Configuration**: 8 vCPUs, 32 GiB RAM, up to 2,880 Mbps network performance
+- **Use Cases**: Suitable for production workloads with moderate to high CPU utilization
+
+**Alternative Instance Types:**
+- **Development/Testing**: `t3a.large` (4 vCPUs, 16 GiB RAM) - for smaller environments
+- **Production/High-Load**: `t3a.4xlarge` (16 vCPUs, 64 GiB RAM) - for high-traffic deployments
+- **Cost-Optimized**: `t3.2xlarge` (Intel processors) or `t3a.xlarge` for budget constraints
+
+> **Configuration Note:** Instance types can be customized in `terraform/implementations/aws/infra/aws.tfvars` by modifying `k8s_instance_type` and `nginx_instance_type` variables.
+
 ### Required Secrets for Rapid Deployment
 
 > **Secret Configuration Types:**
