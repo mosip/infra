@@ -154,7 +154,7 @@ apps:
   uitestrig:
     namespace: uitestrig
     enabled: true
-    version: 0.0.1-develop
+    version: 12.0.2
     chart: mosip/uitestrig
     set:
       # image.repository: ""
@@ -173,27 +173,6 @@ apps:
       uitestrig.configmaps.uitestrig.adminPortalPath: "https://admin.sandbox.xyz.net"
       uitestrig.configmaps.uitestrig.residentPortalPath: "https://resident.sandbox.xyz.net"
       uitestrig.configmaps.uitestrig.NS: "uitestrig"
-  
-      modules[0].name: admin-ui
-      modules[0].enabled: true
-      modules[0].image.registry: docker.io
-      modules[0].image.repository: mosipqa/uitest-admin
-      modules[0].image.tag: develop
-      modules[0].image.pullPolicy: Always
-
-      modules[1].name: pmp-ui
-      modules[1].enabled: true
-      modules[1].image.registry: docker.io
-      modules[1].image.repository: mosipqa/uitest-pmp
-      modules[1].image.tag: develop
-      modules[1].image.pullPolicy: Always
-
-      modules[2].name: resident-ui
-      modules[2].enabled: true
-      modules[2].image.registry: docker.io
-      modules[2].image.repository: mosipqa/uitest-resident
-      modules[2].image.tag: develop
-      modules[2].image.pullPolicy: Always
 
     priority: -1
     hooks:
