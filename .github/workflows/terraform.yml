@@ -35,6 +35,7 @@ on:
           - base-infra
           - infra
           - observ-infra
+        default: infra
       BACKEND_TYPE:
         description: 'Choose Terraform backend type'
         required: true
