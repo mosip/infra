@@ -1,12 +1,8 @@
-# MOSIP Rapid Deployment
-
-<div align="center">
-
-![MOSIP Infrastructure](docs/_images/mosip-cloud-agnostic-banner.png)
-
-*Complete MOSIP platform rapid deployment with infrastructure provisioning, dependency setup, and service deployment*
-
+<div align="left">
+  <img src="docs/_images/MOSIP_Black.svg" alt="MOSIP Logo" width="200"/>
 </div>
+
+# MOSIP Rapid Deployment
 
 This repository provides a **3-step rapid deployment model** for MOSIP (Modular Open Source Identity Platform) with enhanced security features including GPG (GNU Privacy Guard) encryption for local backends and integrated PostgreSQL setup via Terraform modules.
 
