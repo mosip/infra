@@ -49,11 +49,6 @@ graph TB
     class M,N,O success
     class E,K decision
 ```
-    class D,F,G terraform
-    class H,I,J,L helmsman
-    class M,N,O success
-    class E,K decision
-```
 
 > **Note:** Complete Terraform scripts are available only for **AWS**. For **Azure and GCP**, only placeholder structures are configured - community contributions are welcome to implement full functionality.
 
