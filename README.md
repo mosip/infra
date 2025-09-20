@@ -49,11 +49,6 @@ graph TB
     class M,N,O success
     class E,K decision
 ```
-    class D,F,G terraform
-    class H,I,J,L helmsman
-    class M,N,O success
-    class E,K decision
-```
 
 > **Note:** Complete Terraform scripts are available only for **AWS**. For **Azure and GCP**, only placeholder structures are configured - community contributions are welcome to implement full functionality.
 
@@ -68,8 +63,14 @@ terraform/
 ├── infra/               # MOSIP Kubernetes clusters
 ├── modules/             # Reusable Terraform modules
 │   ├── aws/             # AWS-specific modules
-│   ├── azure/           # Azure-specific modules
-│   └── gcp/             # GCP-specific modules
+│   │   ├── aws-resource-creation/    # VPC, subnets, security groups, EC2 instances
+│   │   ├── nginx-setup/             # Load balancer and reverse proxy configuration
+│   │   ├── postgresql-setup/        # PostgreSQL database setup and configuration
+│   │   ├── rke2-cluster/           # RKE2 Kubernetes cluster provisioning
+│   │   ├── rancher-keycloak-setup/ # Identity management and SSO setup
+│   │   └── nfs-setup/              # Network File System configuration
+│   ├── azure/           # Azure-specific modules (placeholder - community contributions needed)
+│   └── gcp/             # GCP-specific modules (placeholder - community contributions needed)
 └── implementations/     # Cloud-specific implementations
     ├── aws/             # AWS deployment configurations
     ├── azure/           # Azure deployment configurations
@@ -82,14 +83,14 @@ terraform/
 Helmsman/
 ├── dsf/                 # Desired State Files for deployments
 │   ├── prereq-dsf.yaml  # Prerequisites (monitoring, Istio, logging)
-│   ├── external-dsf.yaml # External dependencies (PostgreSQL, Keycloak, MinIO, ActiveMQ, Kafka)
-│   ├── mosip-dsf.yaml   # MOSIP core services (Identity, Auth, Registration)
+│   ├── external-dsf.yaml # External dependencies (PostgreSQL, Keycloak, MinIO, ActiveMQ, Kafka, etc.)
+│   ├── mosip-dsf.yaml   # MOSIP core services
 │   └── testrigs-dsf.yaml # Testing suite (API, DSL, UI test rigs)
-├── hooks/               # Deployment automation scripts
+├── hooks/               # Scripts needed for automated deployment
 └── utils/               # Utilities and configurations
     ├── istio-addons/    # Service mesh components
-    ├── logging/         # Logging stack configurations
-    └── monitoring/      # Monitoring and alerting setup
+    ├── logging/         # Logging stack configurations (optional)
+    └── monitoring/      # Monitoring and alerting setup (optional)
 ```
 
 ### Automation Layer (GitHub Actions)
@@ -104,6 +105,8 @@ Helmsman/
 ```
 
 ## Prerequisites
+
+> **Note:** As of now we support AWS based automated deployment. We are looking for community contribution around terraform modules and changes for other cloud service providers.
 
 ### Required Cloud Provider Account
 
@@ -158,6 +161,10 @@ Helmsman/
 - **Development/Testing**: `t3a.large` (4 vCPUs, 16 GiB RAM) - for smaller environments
 - **Production/High-Load**: `t3a.4xlarge` (16 vCPUs, 64 GiB RAM) - for high-traffic deployments
 - **Cost-Optimized**: `t3.2xlarge` (Intel processors) or `t3a.xlarge` for budget constraints
+
+**NGINX Instance Type Recommendations:**
+- **With External PostgreSQL**: `t3a.2xlarge` (recommended for PostgreSQL hosting)
+- **Without External PostgreSQL**: `t3a.xlarge` or `t3a.medium` (sufficient for load balancing only)
 
 > **Configuration Note:** Instance types can be customized in `terraform/implementations/aws/infra/aws.tfvars` by modifying `k8s_instance_type` and `nginx_instance_type` variables.
 
@@ -337,30 +344,9 @@ Add the required secrets as follows:
 - **Terraform Integration:** Required for subsequent infrastructure deployments
 - **Helmsman Connectivity:** Enables secure cluster access for service deployments
 
-> **⚠️ Important:** Complete WireGuard setup and configure `TF_WG_CONFIG` environment secret before proceeding to observability or MOSIP infrastructure deployment.
+> **⚠️ Important:** Complete WireGuard setup and configure `TF_WG_CONFIG` environment secret before proceeding to MOSIP infrastructure deployment.
 
-#### Step 3c: Observability Infrastructure (Optional - In Development)
-
-> **⚠️ Development Status:** 
-> - This component is currently **optional** and under active development
-> - Will be **stabilized in the next release**
-> - For production deployments, you may skip this step
-
-1. **Update observ-infra variables:**
-
-   ```hcl
-   # terraform/observ-infra/aws/terraform.tfvars
-   cluster_name = "mosip-observability"
-   node_instance_type = "t3.large"
-   min_nodes = 1
-   max_nodes = 3
-   ```
-2. **Run observ-infra via GitHub Actions:**
-
-   - Actions → **Terraform Observability Infrastructure**
-   - Select cloud provider and run `apply`
-
-#### Step 3d: MOSIP Infrastructure
+#### Step 3c: MOSIP Infrastructure
 
 1. **Update infra variables in `terraform/implementations/aws/infra/aws.tfvars`:**
 
