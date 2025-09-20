@@ -948,9 +948,9 @@ This section provides baseline test execution numbers for MOSIP test rigs to hel
 ### API Testing Baseline
 
 ```
-auth:        T-612 | P-589 | S-0  | F-2  | I-5  | KI-16 (initial run)
+auth:        T-612 | P-589 | S-0  | F-2  | I-5  | KI-16
 
-resident:    T-1142| P-580 | S-535 | F-14  | I-0  | KI-12 (without esignet, initial run)
+resident:    T-1142| P-580 | S-535 | F-14  | I-0  | KI-12
 
 idrepo:      T-414 | P-315 | S-0   | F-1   | I-78 | KI-20
 
@@ -961,7 +961,7 @@ prereg:      T-288 | P-277 | S-0   | F-0   | I-2  | KI-9
 masterdata:
   - fra:     T-945 | P-907 | S-0   | F-0   | I-15 | KI-23
   - ara:     T-945 | P-895 | S-0   | F-0   | I-15 | KI-35
-  - eng:     T-945 | P-922 | S-0   | F-1   | I-0  | KI-22 (test data issue)
+  - eng:     T-945 | P-922 | S-0   | F-1   | I-0  | KI-22
 ```
 
 ### DSL Testing Baseline
@@ -969,7 +969,7 @@ masterdata:
 ```
 DSL (sanity):   T-3   | P-3   | S-0 | F-0  | KI-0
 
-DSL (full run):  T-204 | P-127 | S-0 | F-30 | I-12 | KI-27 (8 threads)
+DSL (full run):  T-204 | P-163 | S-0 | F-2 | I-12 | KI-27
 ```
 
 ---
