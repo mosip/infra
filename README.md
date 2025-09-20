@@ -19,60 +19,44 @@ graph TB
     B --> C[Select Cloud Provider<br/>AWS/Azure/GCP/etc.]
     
     %% Infrastructure Phase
-    C --> D[Run Terraform Scripts for Base Infrastructure<br/>VPC, Networking, Jumpserver, WireGuard]
+    C --> D[Run Terraform: base-infra<br/>VPC, Networking, Jumpserver, WireGuard<br/>One-time deployment]
     D --> E{Deploy Observability?}
-    E -->|Yes| F[Terraform: Observability Infrastructure<br/>Rancher UI, Keycloak, Monitoring]
-    E -->|No| G[Configure PostgreSQL Setup]
-    F --> G[Configure PostgreSQL Setup]
-    
-    %% PostgreSQL Configuration
-    G --> H{PostgreSQL Deployment Choice}
-    H -->|Standalone| I[Set enable_postgresql_setup = true<br/>External PostgreSQL via Terraform]
-    H -->|Containerization| J[Set enable_postgresql_setup = false<br/>Container PostgreSQL via Helmsman]
-    
-    %% Terraform Infrastructure Deployment
-    I --> K[Terraform: MOSIP Infrastructure<br/>+ Auto PostgreSQL Setup via Ansible]
-    J --> L[Terraform: MOSIP Infrastructure<br/>Kubernetes Cluster Only]
-    K --> M[Run Terraform via GitHub Actions<br/>GPG Encrypted State Management]
-    L --> M
-    
-    %% Helmsman Configuration
-    M --> N{PostgreSQL Setup Complete?}
-    N -->|External PostgreSQL| O[Update Helmsman DSF Files<br/>postgresql.enabled = false]
-    N -->|Container PostgreSQL| P[Update Helmsman DSF Files<br/>postgresql.enabled = true]
+    E -->|Yes| F[Run Terraform: observ-infra<br/>Rancher UI, Keycloak, Monitoring<br/>Can be destroyed/recreated]
+    E -->|No| G[Run Terraform: infra<br/>Complete MOSIP Infrastructure Setup<br/>Can be destroyed/recreated]
+    F --> G
     
     %% Helmsman Deployment Phase
-    O --> Q[Deploy Helmsman: Prerequisites<br/>Monitoring, Istio, Logging]
-    P --> Q
-    Q --> R[Deploy Helmsman: External Dependencies<br/>PostgreSQL containers, Keycloak, MinIO, Kafka]
+    G --> H[Deploy Helmsman: Prerequisites<br/>Monitoring, Istio, Logging]
+    H --> I[Deploy Helmsman: External Dependencies<br/>PostgreSQL containers, Keycloak, MinIO, Kafka]
     
     %% MOSIP Services
-    R --> S[Deploy Helmsman: MOSIP Core Services<br/>Registration, Authentication, ID Repository]
-    S --> T{Deploy Test Rigs?}
-    T -->|Yes| U[Deploy Helmsman: Test Rigs<br/>API Testing, UI Testing, DSL Testing]
-    T -->|No| V[Verify Deployment]
-    U --> V
+    I --> J[Deploy Helmsman: MOSIP Core Services]
+    J --> K{Deploy Test Rigs?}
+    K -->|Yes| L[Deploy Helmsman: Test Rigs<br/>API Testing, UI Testing, DSL Testing]
+    K -->|No| M[Verify Deployment]
+    L --> M
     
     %% Final Verification
-    V --> W[Access MOSIP Platform<br/>Web UI, APIs, Admin Console]
-    W --> X[Complete MOSIP Platform]
+    M --> N[Access MOSIP Platform<br/>Web UI, APIs, Admin Console]
+    N --> O[Complete MOSIP Platform]
     
     %% Styling
     classDef prereq fill:#fff3e0,stroke:#ff8f00,stroke-width:2px
     classDef terraform fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
     classDef helmsman fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    classDef postgres fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
     classDef success fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
     classDef decision fill:#fce4ec,stroke:#c2185b,stroke-width:2px
-    classDef config fill:#f1f8e9,stroke:#689f38,stroke-width:2px
     
     class A,B,C prereq
-    class D,F,I,J,K,L,M terraform
-    class O,P,Q,R,S,U helmsman
-    class G,H,N postgres
-    class V,W,X success
-    class E,H,N,T decision
-    class G,O,P config
+    class D,F,G terraform
+    class H,I,J,L helmsman
+    class M,N,O success
+    class E,K decision
+```
+    class D,F,G terraform
+    class H,I,J,L helmsman
+    class M,N,O success
+    class E,K decision
 ```
 
 > **Note:** Complete Terraform scripts are available only for **AWS**. For **Azure and GCP**, only placeholder structures are configured - community contributions are welcome to implement full functionality.
