@@ -192,6 +192,12 @@ GPG_PASSPHRASE: "your-gpg-passphrase"  # Required for GPG encryption
 # Cloud Provider Credentials
 AWS_ACCESS_KEY_ID: "AKIA..."           # AWS Access Key ID
 AWS_SECRET_ACCESS_KEY: "..."           # AWS Secret Access Key
+
+# SSH Private Key (must match ssh_key_name in tfvars)
+YOUR_SSH_KEY_NAME: |                   # Replace YOUR_SSH_KEY_NAME with actual ssh_key_name value
+  -----BEGIN RSA PRIVATE KEY-----
+  your-ssh-private-key-content
+  -----END RSA PRIVATE KEY-----
 ```
 
 **Environment Secrets** (configured per deployment environment):
@@ -269,6 +275,7 @@ Add the required secrets as follows:
   - `GPG_PASSPHRASE`
   - `AWS_ACCESS_KEY_ID`
   - `AWS_SECRET_ACCESS_KEY`
+  - `YOUR_SSH_KEY_NAME` (replace with actual ssh_key_name value from tfvars, e.g., `mosip-aws`)
 - **Environment Secrets** (Settings > Secrets and variables > Actions > Environment secrets):
 
   - All other secrets mentioned in the Prerequisites section above (KUBECONFIG, WireGuard configs, etc.)
@@ -474,6 +481,7 @@ Add the required secrets as follows:
    > - Set `enable_postgresql_setup = true` for production deployments with external PostgreSQL
    > - Set `enable_postgresql_setup = false` for development deployments with containerized PostgreSQL
    > - The `nginx_node_ebs_volume_size_2` is required when `enable_postgresql_setup = true`
+   > - **SSH Key Configuration**: The `ssh_key_name` value must match the repository secret name containing your SSH private key (e.g., if `ssh_key_name = "mosip-aws"`, create repository secret named `mosip-aws` with your SSH private key content)
    >
 2. **Run main infra via GitHub Actions:**
 
