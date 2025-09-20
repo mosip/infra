@@ -382,7 +382,6 @@ terraform/
 │       ├── base-infra/                      # GCP base infrastructure
 │       ├── infra/                           # GCP MOSIP infrastructure
 │       └── observ-infra/                    # GCP observation infrastructure
-└── CLOUD_AGNOSTIC_README.md             # Detailed technical documentation
 ```
 
 ## State Management
@@ -620,7 +619,6 @@ modules/
 
 ### Getting Help
 
-- Check [CLOUD_AGNOSTIC_README.md](CLOUD_AGNOSTIC_README.md) for detailed technical docs
 - Review [GitHub Actions Workflows](../.github/workflows/README.md) for CI/CD details
 - Open issues for bugs or feature requests
 
