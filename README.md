@@ -972,13 +972,6 @@ DSL (sanity):   T-3   | P-3   | S-0 | F-0  | KI-0
 DSL (full run):  T-204 | P-127 | S-0 | F-30 | I-12 | KI-27 (8 threads)
 ```
 
-### Notes
-
-- Baseline numbers are from reference deployments and may vary based on environment configuration
-- Known Issues (KI) represent expected test failures due to environment limitations or test data constraints
-- Performance may vary based on infrastructure specifications and network conditions
-- Regular updates to baseline numbers will be provided with new releases
-
 ---
 
 ## Community Contributions
