@@ -13,36 +13,36 @@ graph TB
     %% Prerequisites
     A[Fork Repository] --> B[Configure Secrets]
     B --> C[Select Cloud Provider<br/>AWS/Azure/GCP/etc.]
-    
+  
     %% Infrastructure Phase
     C --> D[Run Terraform: base-infra<br/>VPC, Networking, Jumpserver, WireGuard<br/>One-time deployment]
     D --> E{Deploy Observability?}
     E -->|Yes| F[Run Terraform: observ-infra<br/>Rancher UI, Keycloak, Monitoring<br/>Can be destroyed/recreated]
     E -->|No| G[Run Terraform: infra<br/>Complete MOSIP Infrastructure Setup<br/>Can be destroyed/recreated]
     F --> G
-    
+  
     %% Helmsman Deployment Phase
     G --> H[Deploy Helmsman: Prerequisites<br/>Monitoring, Istio, Logging]
     H --> I[Deploy Helmsman: External Dependencies<br/>PostgreSQL containers, Keycloak, MinIO, Kafka]
-    
+  
     %% MOSIP Services
     I --> J[Deploy Helmsman: MOSIP Core Services]
     J --> K{Deploy Test Rigs?}
     K -->|Yes| L[Deploy Helmsman: Test Rigs<br/>API Testing, UI Testing, DSL Testing]
     K -->|No| M[Verify Deployment]
     L --> M
-    
+  
     %% Final Verification
     M --> N[Access MOSIP Platform<br/>Web UI, APIs, Admin Console]
     N --> O[Complete MOSIP Platform]
-    
+  
     %% Styling
     classDef prereq fill:#fff3e0,stroke:#ff8f00,stroke-width:2px
     classDef terraform fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
     classDef helmsman fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
     classDef success fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
     classDef decision fill:#fce4ec,stroke:#c2185b,stroke-width:2px
-    
+  
     class A,B,C prereq
     class D,F,G terraform
     class H,I,J,L helmsman
@@ -119,12 +119,14 @@ Helmsman/
 **Essential AWS IAM permissions required for complete MOSIP deployment:**
 
 **Core Infrastructure Services:**
+
 - **VPC Management**: VPC, Subnets, Internet Gateways, NAT Gateways, Route Tables
 - **EC2 Services**: Instance management, Security Groups, Key Pairs, EBS Volumes
 - **Route 53**: DNS management, Hosted Zones, Record Sets
 - **IAM**: Role creation, Policy management, Instance Profiles
 
 **Recommended IAM Policy:**
+
 ```json
 {
   "Version": "2012-10-17",
@@ -149,20 +151,24 @@ Helmsman/
 ### Required AWS Instance Types
 
 **Default Instance Configuration:**
+
 - **NGINX Instance Type**: `t3a.2xlarge` (Load balancer and reverse proxy)
 - **Kubernetes Instance Type**: `t3a.2xlarge` (Control plane, ETCD, and worker nodes)
 
 **Instance Family Details:**
+
 - **t3a Instance Family**: AMD EPYC processors with burstable performance
 - **2xlarge Configuration**: 8 vCPUs, 32 GiB RAM, up to 2,880 Mbps network performance
 - **Use Cases**: Suitable for production workloads with moderate to high CPU utilization
 
 **Alternative Instance Types:**
+
 - **Development/Testing**: `t3a.large` (4 vCPUs, 16 GiB RAM) - for smaller environments
 - **Production/High-Load**: `t3a.4xlarge` (16 vCPUs, 64 GiB RAM) - for high-traffic deployments
 - **Cost-Optimized**: `t3.2xlarge` (Intel processors) or `t3a.xlarge` for budget constraints
 
 **NGINX Instance Type Recommendations:**
+
 - **With External PostgreSQL**: `t3a.2xlarge` (recommended for PostgreSQL hosting)
 - **Without External PostgreSQL**: `t3a.xlarge` or `t3a.medium` (sufficient for load balancing only)
 
@@ -171,12 +177,14 @@ Helmsman/
 ### Required Secrets for Rapid Deployment
 
 > **Secret Configuration Types:**
+>
 > - **Repository Secrets**: Global secrets shared across all environments (set once in GitHub repo settings)
 > - **Environment Secrets**: Environment-specific secrets (configured per deployment environment)
 
 #### Terraform Secrets
 
 **Repository Secrets** (configured in GitHub repository settings):
+
 ```yaml
 # GPG Encryption (for local backend)
 GPG_PASSPHRASE: "your-gpg-passphrase"  # Required for GPG encryption
@@ -187,6 +195,7 @@ AWS_SECRET_ACCESS_KEY: "..."           # AWS Secret Access Key
 ```
 
 **Environment Secrets** (configured per deployment environment):
+
 ```yaml
 # WireGuard VPN (optional - for infrastructure access)
 TF_WG_CONFIG: |
@@ -206,6 +215,7 @@ SLACK_WEBHOOK_URL: "https://hooks.slack.com/services/..."  # Slack notifications
 #### Helmsman Secrets
 
 **Environment Secrets** (configured per deployment environment):
+
 ```yaml
 # Kubernetes Access
 KUBECONFIG: "apiVersion: v1..."  # Complete kubeconfig file content
@@ -253,12 +263,14 @@ Navigate to your repository → **Settings** → **Secrets and variables** → *
 **Configure Repository & Environment Secrets:**
 
 Add the required secrets as follows:
-- **Repository Secrets** (Settings > Secrets and variables > Actions > Repository secrets):
-  - `GPG_PASSPHRASE`
-  - `AWS_ACCESS_KEY_ID` 
-  - `AWS_SECRET_ACCESS_KEY`
 
+- **Repository Secrets** (Settings > Secrets and variables > Actions > Repository secrets):
+
+  - `GPG_PASSPHRASE`
+  - `AWS_ACCESS_KEY_ID`
+  - `AWS_SECRET_ACCESS_KEY`
 - **Environment Secrets** (Settings > Secrets and variables > Actions > Environment secrets):
+
   - All other secrets mentioned in the Prerequisites section above (KUBECONFIG, WireGuard configs, etc.)
 
 ### 3. Terraform Infrastructure Deployment
@@ -291,8 +303,9 @@ Add the required secrets as follows:
        - `local` - GPG-encrypted local state (recommended for development)
        - `s3` - Remote S3 backend (recommended for production)
      - **Action**: Select `apply` to deploy infrastructure
-   
+
    **Component Details:**
+
    - **VPC & Networking**: Creates secure network foundation
    - **Jump Server**: Bastion host for secure access
    - **WireGuard VPN**: Encrypted private network access
@@ -311,11 +324,12 @@ Add the required secrets as follows:
 **Backend Configuration Options:**
 
 - **`local`**: GPG-encrypted local state storage (recommended for development and small teams)
+
   - State files stored in repository with GPG encryption
   - No external dependencies required
   - Automatic encryption/decryption via GitHub Actions
+- **`s3`**: Remote S3 backend storage (recommended for production and large teams)
 
-- **`s3`**: Remote S3 backend storage (recommended for production and large teams)  
   - Centralized state storage in AWS S3
   - DynamoDB state locking support
   - Cross-team collaboration friendly
@@ -327,8 +341,9 @@ Add the required secrets as follows:
 > **📋 Detailed Setup Guide:** [WireGuard Setup Documentation](terraform/base-infra/WIREGUARD_SETUP.md)
 
 **Quick Setup Overview:**
+
 1. **SSH to Jump Server:** Access the deployed jump server
-2. **Configure Peers:** Assign and customize WireGuard peer configurations 
+2. **Configure Peers:** Assign and customize WireGuard peer configurations
    - Create **peer1** configuration for Terraform access
    - Create **peer2** configuration for Helmsman access
 3. **Install Client:** Set up WireGuard client on your PC/Mac
@@ -339,8 +354,9 @@ Add the required secrets as follows:
 5. **Verify Connection:** Test private IP connectivity
 
 **Why WireGuard is Required:**
+
 - **Private Network Access:** Connect to Kubernetes cluster via private IPs
-- **Enhanced Security:** Encrypted VPN tunnel for all infrastructure access  
+- **Enhanced Security:** Encrypted VPN tunnel for all infrastructure access
 - **Terraform Integration:** Required for subsequent infrastructure deployments
 - **Helmsman Connectivity:** Enables secure cluster access for service deployments
 
@@ -434,28 +450,31 @@ Add the required secrets as follows:
 
    **Key Configuration Variables Explained:**
 
-   | Variable | Description | Example Value |
-   |----------|-------------|---------------|
-   | `cluster_name` | Unique identifier for your MOSIP cluster | `"soil38"` |
-   | `cluster_env_domain` | Domain name for MOSIP services access | `"soil38.mosip.net"` |
-   | `mosip_email_id` | Email for SSL certificate notifications | `"admin@example.com"` |
-   | `ssh_key_name` | AWS EC2 key pair name for SSH access | `"mosip-aws"` |
-   | `aws_provider_region` | AWS region for resource deployment | `"ap-south-1"` |
-   | `zone_id` | Route 53 hosted zone ID for DNS management | `"Z090954828SJIEL6P5406"` |
-   | `k8s_instance_type` | EC2 instance type for Kubernetes nodes | `"t3a.2xlarge"` |
-   | `nginx_instance_type` | EC2 instance type for load balancer | `"t3a.2xlarge"` |
-   | `ami` | Amazon Machine Image ID (Ubuntu 24.04) | `"ami-0ad21ae1d0696ad58"` |
-   | `enable_postgresql_setup` | External PostgreSQL setup via Terraform | `true` (external) / `false` (container) |
-   | `nginx_node_ebs_volume_size_2` | EBS volume size for PostgreSQL data (GB) | `200` |
-   | `postgresql_version` | PostgreSQL version to install | `"15"` |
-   | `postgresql_port` | PostgreSQL service port | `"5433"` |
-   | `vpc_name` | Existing VPC name tag to use | `"mosip-boxes"` |
+   | Variable                         | Description                                | Example Value                               |
+   | -------------------------------- | ------------------------------------------ | ------------------------------------------- |
+   | `cluster_name`                 | Unique identifier for your MOSIP cluster   | `"soil38"`                                |
+   | `cluster_env_domain`           | Domain name for MOSIP services access      | `"soil38.mosip.net"`                      |
+   | `mosip_email_id`               | Email for SSL certificate notifications    | `"admin@example.com"`                     |
+   | `ssh_key_name`                 | AWS EC2 key pair name for SSH access       | `"mosip-aws"`                             |
+   | `aws_provider_region`          | AWS region for resource deployment         | `"ap-south-1"`                            |
+   | `zone_id`                      | Route 53 hosted zone ID for DNS management | `"Z090954828SJIEL6P5406"`                 |
+   | `k8s_instance_type`            | EC2 instance type for Kubernetes nodes     | `"t3a.2xlarge"`                           |
+   | `nginx_instance_type`          | EC2 instance type for load balancer        | `"t3a.2xlarge"`                           |
+   | `ami`                          | Amazon Machine Image ID (Ubuntu 24.04)     | `"ami-0ad21ae1d0696ad58"`                 |
+   | `enable_postgresql_setup`      | External PostgreSQL setup via Terraform    | `true` (external) / `false` (container) |
+   | `nginx_node_ebs_volume_size_2` | EBS volume size for PostgreSQL data (GB)   | `200`                                     |
+   | `postgresql_version`           | PostgreSQL version to install              | `"15"`                                    |
+   | `postgresql_port`              | PostgreSQL service port                    | `"5433"`                                  |
+   | `vpc_name`                     | Existing VPC name tag to use               | `"mosip-boxes"`                           |
+
 
    > **Important Notes:**
+   >
    > - Ensure `cluster_name` and `cluster_env_domain` match values used in Helmsman DSF files
    > - Set `enable_postgresql_setup = true` for production deployments with external PostgreSQL
    > - Set `enable_postgresql_setup = false` for development deployments with containerized PostgreSQL
    > - The `nginx_node_ebs_volume_size_2` is required when `enable_postgresql_setup = true`
+   >
 2. **Run main infra via GitHub Actions:**
 
    - Go to **Actions** → **Terraform Infrastructure**
@@ -468,11 +487,13 @@ Add the required secrets as follows:
        - `local` - GPG-encrypted local state (recommended for development)
        - `s3` - Remote S3 backend (recommended for production)
      - **Action**: Select `apply` to deploy infrastructure
-   
+
    **Component Details:**
+
    - **infra**: Creates MOSIP Kubernetes cluster, PostgreSQL (if enabled), networking, and application infrastructure
-   
+
    **PostgreSQL Configuration in `aws.tfvars`:**
+
    ```hcl
    # PostgreSQL Configuration (used when second EBS volume is enabled)
    enable_postgresql_setup = true # Enable PostgreSQL setup for main infra
@@ -480,16 +501,17 @@ Add the required secrets as follows:
    storage_device          = "/dev/nvme2n1"
    mount_point             = "/srv/postgres"
    postgresql_port         = "5433"
-   
+
    # NGINX node's second EBS volume size (required for PostgreSQL)
    nginx_node_ebs_volume_size_2 = 200 # Enable second EBS volume for PostgreSQL
    ```
-   
+
    **If `enable_postgresql_setup = true`, Terraform will automatically:**
+
    - Provision dedicated EBS volume for PostgreSQL on nginx node
    - Install and configure PostgreSQL 15 via Ansible playbooks
    - Setup security configurations and user access controls
-   - Configure backup and recovery mechanisms  
+   - Configure backup and recovery mechanisms
    - Make PostgreSQL ready for MOSIP services connectivity
    - No manual PostgreSQL secret management required!
 
@@ -503,16 +525,15 @@ Add the required secrets as follows:
    git clone https://github.com/mosip/infra.git
    cd infra/Helmsman
    ```
-
 2. **Navigate to DSF configuration directory:**
 
    ```bash
    cd dsf/
    ```
-
 3. **Update prereq-dsf.yaml:**
 
    **Critical Updates Required:**
+
    - **Domain Validation (Double-check):**
      - `<sandbox>` → your cluster name (e.g., `soil`)
      - `sandbox.xyz.net` → your domain name (e.g., `soil.mosip.net`)
@@ -520,8 +541,10 @@ Add the required secrets as follows:
    - **Namespace Configuration:** Ensure proper namespace isolation
 
    > **Note:** Maintain consistency with your Terraform configuration:
-   > - `<sandbox>` should match `cluster_name` in `aws.tfvars` 
+   >
+   > - `<sandbox>` should match `cluster_name` in `aws.tfvars`
    > - `sandbox.xyz.net` should match `cluster_env_domain` in `aws.tfvars`
+   >
 
    ```yaml
    # Configure monitoring, Istio, logging
@@ -536,6 +559,7 @@ Add the required secrets as follows:
 4. **Update external-dsf.yaml:**
 
    **Critical Updates Required:**
+
    - **Domain Validation (Double-check):**
      - `<sandbox>` → your cluster name (e.g., `soil`)
      - `sandbox.xyz.net` → your domain name (e.g., `soil.mosip.net`)
@@ -544,33 +568,37 @@ Add the required secrets as follows:
    - **PostgreSQL Configuration:** Match with Terraform `enable_postgresql_setup` setting
 
    > **Note:** Maintain consistency with your Terraform configuration:
-   > - `<sandbox>` should match `cluster_name` in `aws.tfvars` 
+   >
+   > - `<sandbox>` should match `cluster_name` in `aws.tfvars`
    > - `sandbox.xyz.net` should match `cluster_env_domain` in `aws.tfvars`
+   >
 
    - **Configure reCAPTCHA keys:**
-     
+
      1. **Create reCAPTCHA keys for each domain:**
+
         - Go to [Google reCAPTCHA Admin](https://www.google.com/recaptcha/admin/create)
         - Create reCAPTCHA v2 ("I'm not a robot" Checkbox) for each domain:
           - **PreReg domain**: `prereg.your-domain.net` (e.g., `prereg.soil.mosip.net`)
           - **Admin domain**: `admin.your-domain.net` (e.g., `admin.soil.mosip.net`)
           - **Resident domain**: `resident.your-domain.net` (e.g., `resident.soil.mosip.net`)
-
      2. **Update captcha-setup.sh arguments in external-dsf.yaml (around line 315):**
+
         ```yaml
         hooks:
           postInstall: "$WORKDIR/hooks/captcha-setup.sh PREREG_SITE_KEY PREREG_SECRET_KEY ADMIN_SITE_KEY ADMIN_SECRET_KEY RESIDENT_SITE_KEY RESIDENT_SECRET_KEY"
         ```
-        
+
         **Arguments order:**
+
         - **Argument 1**: PreReg site key
-        - **Argument 2**: PreReg secret key  
+        - **Argument 2**: PreReg secret key
         - **Argument 3**: Admin site key
         - **Argument 4**: Admin secret key
         - **Argument 5**: Resident site key
         - **Argument 6**: Resident secret key
-
      3. **Example configuration:**
+
         ```yaml
         hooks:
           postInstall: "$WORKDIR/hooks/captcha-setup.sh 6LfkAMwrAAAAAATB1WhkIhzuAVMtOs9VWabODoZ_ 6LfkAMwrAAAAAHQAT93nTGcLKa-h3XYhGoNSG-NL 6LdNAcwrAAAAAETGWvz-3I12vZ5V8vPJLu2ct9CO 6LdNAcwrAAAAAE4iWGJ-g6Dc2HreeJdIwAl5h1iL 6LdRAcwrAAAAAFUEHHKK5D_bSrwAPqdqAJqo4mCk 6LdRAcwrAAAAAOeVl6yHGBCBA8ye9GsUOy4pi9s9"
@@ -591,6 +619,7 @@ Add the required secrets as follows:
 5. **Update mosip-dsf.yaml:**
 
    **Critical Updates Required:**
+
    - **Domain Validation (Double-check):**
      - `<sandbox>` → your cluster name (e.g., `soil`)
      - `sandbox.xyz.net` → your domain name (e.g., `soil.mosip.net`)
@@ -600,8 +629,10 @@ Add the required secrets as follows:
    - **Resource Limits:** Adjust CPU/memory limits based on environment requirements
 
    > **Note:** Maintain consistency with your Terraform configuration:
-   > - `<sandbox>` should match `cluster_name` in `aws.tfvars` 
+   >
+   > - `<sandbox>` should match `cluster_name` in `aws.tfvars`
    > - `sandbox.xyz.net` should match `cluster_env_domain` in `aws.tfvars`
+   >
 
    ```yaml
    # Configure MOSIP services  
@@ -613,10 +644,10 @@ Add the required secrets as follows:
      kernel:
        enabled: true
    ```
-
 6. **Update testrigs-dsf.yaml (if deploying test environment):**
 
    **Critical Updates Required:**
+
    - **Domain Validation (Double-check):**
      - `<sandbox>` → your cluster name (e.g., `soil`)
      - `sandbox.xyz.net` → your domain name (e.g., `soil.mosip.net`)
@@ -628,22 +659,26 @@ Add the required secrets as follows:
 > **⚠️ Critical Validation Checklist for All DSF Files:**
 >
 > **Domain Configuration (Validate Twice):**
+>
 > - `<sandbox>` → your cluster name (e.g., `soil`)
 > - `sandbox.xyz.net` → your domain name (e.g., `soil.mosip.net`)
 > - Verify domain DNS resolution is working
 > - Ensure SSL certificate coverage for all subdomains
 >
 > **Version Management:**
+>
 > - **Chart Versions**: Update all Helm chart versions to latest compatible releases
 > - **Database Branch**: Verify DB scripts branch matches your MOSIP deployment version
 > - **Service Versions**: Ensure MOSIP service versions are compatible across all DSF files
 >
 > **Configuration Consistency:**
+>
 > - `<sandbox>` must match `cluster_name` in `terraform/implementations/aws/infra/aws.tfvars`
 > - `sandbox.xyz.net` must match `cluster_env_domain` in `terraform/implementations/aws/infra/aws.tfvars`
 > - PostgreSQL settings must align with `enable_postgresql_setup` in Terraform configuration
 >
 > **Environment-Specific Updates:**
+>
 > - Resource limits and requests based on environment capacity
 > - Storage class configurations for persistent volumes
 > - Ingress controller and load balancer settings
@@ -654,64 +689,70 @@ Add the required secrets as follows:
 **After updating all DSF files**, configure the required repository secrets for Helmsman deployments:
 
 1. **Update Repository Branch Configuration:**
+
    - Ensure your repository is configured to use the correct branch for Helmsman workflows
    - Verify GitHub Actions have access to your deployment branch
-
 2. **Configure KUBECONFIG Secret:**
-   
+
    **Locate the Kubernetes config file:**
+
    ```bash
    # After Terraform infrastructure deployment completes, find the kubeconfig file in:
    terraform/implementations/aws/infra/
    ```
-   
+
    **Add KUBECONFIG as Environment Secret:**
+
    - Go to your GitHub repository → Settings → Environments
    - Select or create environment for your branch (e.g., `release-0.1.0`, `main`, `develop`)
    - Click "Add secret" under Environment secrets
    - Name: `KUBECONFIG`
    - Value: Copy the entire contents of the kubeconfig file from `terraform/implementations/aws/infra/`
-   
+
    **Example kubeconfig file location:**
+
    ```
    terraform/implementations/aws/infra/kubeconfig_<cluster-name>
    terraform/implementations/aws/infra/<cluster-name>-role.yaml
    ```
-   
+
    **Branch Environment Configuration:**
+
    - Ensure the environment name matches your deployment branch
    - Configure environment protection rules if needed
    - Verify Helmsman workflows reference the correct environment
-
 3. **Required Environment Secrets for Helmsman:**
-   
+
    **Environment Secrets (branch-specific):**
+
    ```yaml
    # Kubernetes Access (Environment Secret)
    KUBECONFIG: "<contents-of-kubeconfig-file>"
-   
+
    # WireGuard Cluster Access for Helmsman
    CLUSTER_WIREGUARD_WG0: "peer1-wireguard-config"  # Helmsman cluster access (peer1)
    CLUSTER_WIREGUARD_WG1: "peer2-wireguard-config"  # Helmsman cluster access (peer2)
    ```
-   
+
    **Repository Secrets (global):**
+
    ```yaml
    # GPG Encryption (if using encrypted backends)
    GPG_PASSPHRASE: "your-gpg-passphrase"
-   
+
    # AWS Credentials (if not using OIDC)
    AWS_ACCESS_KEY_ID: "AKIA..."
    AWS_SECRET_ACCESS_KEY: "..."
    ```
-
 4. **Verify Secret Configuration:**
+
    - Ensure KUBECONFIG is configured as environment secret for your branch
    - Verify repository secrets are properly configured
    - Test repository access from GitHub Actions
    - Verify KUBECONFIG provides cluster access
 
-> **Important:** 
+> **Important:**
+>
 > - **KUBECONFIG**: Must be added as Environment Secret tied to your deployment branch name
 > - **Branch Environment**: Ensure environment name matches your branch (e.g., `release-0.1.0`)
 > - **File Source**: KUBECONFIG file is generated after successful Terraform infrastructure deployment
@@ -719,21 +760,23 @@ Add the required secrets as follows:
 #### Step 4c: Run Helmsman Deployments via GitHub Actions
 
 1. **Deploy Prerequisites & External Dependencies:**
+
    - Actions → **Helmsman External Dependencies** (`helmsman_external.yml`)
    - This workflow handles both:
      - Prerequisites: `prereq-dsf.yaml` (monitoring, Istio, logging)
      - External Dependencies: `external-dsf.yaml` (databases, message queues, storage)
    - Mode: `apply`
-   
-   > **Note**: The `helmsman_external.yml` workflow deploys both prereq and external dependencies in the correct sequence automatically.
 
+   > **Note**: The `helmsman_external.yml` workflow deploys both prereq and external dependencies in the correct sequence automatically.
+   >
 2. **Deploy MOSIP Services:**
+
    - Actions → **Helmsman MOSIP Deployment** (`helmsman_mosip.yml`)
    - Select DSF file: `mosip-dsf.yaml`
    - Mode: `apply`
-
 3. **Deploy Test Rigs** (Optional):
-   - Actions → **Helmsman Test Rigs** (`helmsman_testrigs.yml`)  
+
+   - Actions → **Helmsman Test Rigs** (`helmsman_testrigs.yml`)
    - Select DSF file: `testrigs-dsf.yaml`
    - Mode: `apply`
 
@@ -755,21 +798,25 @@ kubectl get services -n istio-system
 The Quick Start Guide provides the essential deployment flow. For comprehensive configuration options, troubleshooting, and advanced features, refer to the detailed component documentation:
 
 #### 📁 **Terraform Infrastructure Documentation**
+
 - **Location**: [`terraform/README.md`](terraform/README.md)
 - **Contents**: Detailed variable explanations, multi-cloud configurations, state management, security best practices
 - **Use Cases**: Custom infrastructure configurations, production deployments, troubleshooting infrastructure issues
 
-#### 📁 **Helmsman Deployment Documentation**  
+#### 📁 **Helmsman Deployment Documentation**
+
 - **Location**: [`Helmsman/README.md`](Helmsman/README.md)
 - **Contents**: Complete DSF configuration reference, hook scripts, environment management, customization options
 - **Use Cases**: Custom service configurations, environment-specific deployments, service scaling and tuning
 
 #### 📁 **WireGuard VPN Setup Guide**
+
 - **Location**: [`terraform/base-infra/WIREGUARD_SETUP.md`](terraform/base-infra/WIREGUARD_SETUP.md)
 - **Contents**: Step-by-step VPN configuration, multi-peer setup, client installation, troubleshooting
 - **Use Cases**: Private network access, secure infrastructure connectivity, peer management
 
 #### 📋 **Component-Specific Guides**
+
 - **GitHub Actions Workflows**: [`.github/workflows/`](.github/workflows/) - Complete CI/CD pipeline documentation
 - **Security Configurations**: See respective component READMEs for security hardening options
 
@@ -778,28 +825,34 @@ The Quick Start Guide provides the essential deployment flow. For comprehensive 
 ## Known Limitations
 
 ### 1. Docker Registry Rate Limits
+
 **Issue**: Docker Hub imposes rate limits on anonymous pulls which can cause deployment failures.
 
 **Symptoms:**
+
 - Image pulling takes excessively long
-- "ErrImagePull" deployment errors  
+- "ErrImagePull" deployment errors
 - Pods stuck in "ContainerCreating" state for 3+ minutes
 - Rate limit error messages from Docker Hub
 
 ### 2. Manual Intervention Requirements
+
 **Issue**: Partner onboarding process requires manual execution after the first automated attempt via Helmsman.
 
 **Impact**: Additional administrator intervention needed to complete onboarding workflow.
 
 ### 3. AWS Infrastructure Capacity
+
 **Issue**: AWS may have insufficient instance capacity in specific availability zones for requested instance types.
 
 **Symptoms:** "InsufficientInstanceCapacity" errors during EC2 instance creation.
 
 ### 4. Service Dependencies
+
 **Issue**: Deployment success depends on external service availability.
 
 **Critical Services:**
+
 - GitHub (for Actions workflows and repository access)
 - Let's Encrypt (for SSL certificate generation)
 
@@ -810,19 +863,21 @@ The Quick Start Guide provides the essential deployment flow. For comprehensive 
 ### Docker Registry Issues
 
 **Error Examples:**
+
 ```
 Error: ErrImagePull
 Failed to pull image "docker.io/mosipid/pre-registration-batchjob:1.2.0.3": failed to pull and unpack image "docker.io/mosipid/pre-registration-batchjob:1.2.0.3": failed to copy: httpReadSeeker: failed open: unexpected status code https://registry-1.docker.io/v2/mosipid/pre-registration-batchjob/manifests/sha256:a934cab79ac1cb364c8782b56cfec987c460ad74acc7b45143022d97bb09626a: 429 Too Many Requests - Server message: toomanyrequests: You have reached your unauthenticated pull rate limit. https://www.docker.com/increase-rate-limit
 ```
 
 **Solutions:**
+
 1. **Docker Hub Authentication**: Configure Docker Hub credentials in your cluster
 2. **Retry Deployments**: Re-run failed Helmsman deployments after waiting period
 3. **Manual Pod Restart**: If any pod remains in "ContainerCreating" state for more than 3 minutes:
    ```bash
    # Delete the stuck pod to trigger recreation
    kubectl delete pod <pod-name> -n <namespace>
-   
+
    # Check pod status
    kubectl get pods -n <namespace> -w
    ```
@@ -832,12 +887,14 @@ Failed to pull image "docker.io/mosipid/pre-registration-batchjob:1.2.0.3": fail
 ### AWS Capacity Issues
 
 **Error Example:**
+
 ```
 Error: creating EC2 Instance: InsufficientInstanceCapacity: We currently do not have sufficient t3a.2xlarge capacity in the Availability Zone you requested (ap-south-1a). Our system will be working on provisioning additional capacity. You can currently get t3a.2xlarge capacity by not specifying an Availability Zone in your request or choosing ap-south-1b, ap-south-1c.
 status code: 500, request id: 0b0423e2-0906-4096-a03c-41df5c00f5a8
 ```
 
 **Solution**: Configure Terraform to use all available availability zones in `aws.tfvars`:
+
 ```hcl
 # Specific availability zones for VM deployment (optional)
 # If empty, uses all available AZs in the region
@@ -861,15 +918,59 @@ specific_availability_zones = []  # Use empty array to allow all AZs
 **Pre-deployment Checklist**: Verify essential services are operational before starting deployment.
 
 **Required Service Status:**
+
 - **GitHub Status**: [https://githubstatus.com](https://githubstatus.com) - Must be **GREEN**
 - **Let's Encrypt Status**: [https://letsencrypt.status.io](https://letsencrypt.status.io) - Must be **GREEN**
 
 **Deployment Impact**: Service outages can cause failures in:
+
 - GitHub Actions workflows
 - Repository access and downloads
 - SSL certificate generation and renewal
 
 **Action**: Wait for all services to show "All Systems Operational" before beginning deployment.
+
+---
+
+## Testrig Baseline Numbers
+
+This section provides baseline test execution numbers for MOSIP test rigs to help validate deployment success and track performance trends.
+
+### Test Result Legend
+
+- **T** = Total Tests
+- **P** = Passed Tests
+- **S** = Skipped Tests
+- **F** = Failed Tests
+- **I** = Ignored Tests
+- **KI** = Known Issues
+
+### API Testing Baseline
+
+```
+auth:        T-612 | P-589 | S-0  | F-2  | I-5  | KI-16 (initial run)
+
+resident:    T-1142| P-580 | S-535 | F-14  | I-0  | KI-12 (without esignet, initial run)
+
+idrepo:      T-414 | P-315 | S-0   | F-1   | I-78 | KI-20
+
+pms:         T-509 | P-480 | S-0   | F-2   | I-15 | KI-12
+
+prereg:      T-288 | P-277 | S-0   | F-0   | I-2  | KI-9
+
+masterdata:
+  - fra:     T-945 | P-907 | S-0   | F-0   | I-15 | KI-23
+  - ara:     T-945 | P-895 | S-0   | F-0   | I-15 | KI-35
+  - eng:     T-945 | P-922 | S-0   | F-1   | I-0  | KI-22 (test data issue)
+```
+
+### DSL Testing Baseline
+
+```
+DSL (sanity):   T-3   | P-3   | S-0 | F-0  | KI-0
+
+DSL (full run):  T-204 | P-127 | S-0 | F-30 | I-12 | KI-27 (8 threads)
+```
 
 ---
 
@@ -882,15 +983,17 @@ specific_availability_zones = []  # Use empty array to allow all AZs
 - **GCP**: Placeholder structures available - [contribute here](terraform/base-infra/gcp/)
 
 **What needs to be implemented:**
+
 - VPC/VNet/Network creation and configuration
-- Security groups and firewall rules  
+- Security groups and firewall rules
 - NGINX load balancer and compute instance provisioning
 - Storage and networking resource management
 - Cloud-specific PostgreSQL integration
 
 **Contribution areas:**
+
 - `terraform/base-infra/{azure,gcp}/` - Base infrastructure modules
-- `terraform/infra/{azure,gcp}/` - MOSIP cluster infrastructure  
+- `terraform/infra/{azure,gcp}/` - MOSIP cluster infrastructure
 - `terraform/observ-infra/{azure,gcp}/` - Monitoring infrastructure
 - `terraform/modules/{azure,gcp}/` - Reusable cloud modules
 
