@@ -73,8 +73,8 @@ apps:
       master.persistence.size: "4Gi"
       master.resources.requests.memory: "728Mi"
       kibana.persistence.enabled: "false"
-      sysctlImage.repository: "bitnamilegacy/os-shell"
-      sysctlImage.tag: "latest"
+      sysctlImage.repository: "mosipint/os-shell"
+      sysctlImage.tag: "12-debian-12-r46"
     wait: true
     timeout: 900
     priority: -4
