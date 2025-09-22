@@ -235,9 +235,9 @@ The following secrets are required to run this workflow:
 
 ---
 
-## Debugging and Logs
+## Logs
 
-- The workflow runs with `--debug` mode enabled for Helmsman to provide detailed logs.
+- The workflow runs Helmsman in standard mode for clean output and better performance.
 - Logs can be viewed in the "Actions" tab of the repository under the respective workflow run.
 
 ---

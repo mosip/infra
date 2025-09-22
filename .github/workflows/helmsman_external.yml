@@ -210,7 +210,7 @@ jobs:
           echo "Using kubeconfig: $KUBECONFIG"
           
           # Run helmsman with the determined mode
-          helmsman --debug --${HELMSMAN_MODE} -f $WORKDIR/dsf/${{ matrix.dsf_files }}
+          helmsman --${HELMSMAN_MODE} -f $WORKDIR/dsf/${{ matrix.dsf_files }}
       - name: Health Check External Pods
         run: |
           set -e

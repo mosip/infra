@@ -49,14 +49,10 @@ To plan and execute the plan:
 
 ```helmsman --apply -f example.yaml```
 
-To show debugging details:
-
-```helmsman --debug --apply -f example.yaml```
-
 To run a dry-run:
 
-```helmsman --debug --dry-run -f example.yaml```
+```helmsman --dry-run -f example.yaml```
 
 To limit execution to specific application:
 
-```helmsman --debug --dry-run --target artifactory -f example.yaml```
+```helmsman --dry-run --target artifactory -f example.yaml```
