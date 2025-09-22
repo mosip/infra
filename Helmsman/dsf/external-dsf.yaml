@@ -42,7 +42,7 @@ apps:
     chart: bitnami/postgresql
     wait: true
     priority: -16
-    valuesFiles: "$WORKDIR/utils/postgres-values.yaml"
+    valuesFile: "$WORKDIR/utils/postgres-values.yaml"
     timeout: 1200
 
   istio-addons-psql:
@@ -193,7 +193,7 @@ apps:
   keycloak-init:
     namespace: keycloak
     enabled: true
-    version: 0.0.1-develop
+    version: 12.0.2-develop
     chart: mosip/keycloak-init
     set:
       # image.repository: "mosipid/keycloak-init"
