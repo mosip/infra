@@ -62,14 +62,14 @@ apps:
   conf-secrets:
     namespace: conf-secrets 
     enabled: true
-    version: v1.3.0-beta.2
+    version: 12.0.3-develop
     chart: mosip/conf-secrets
     priority: -20
 
   config-server:
     namespace: config-server
     enabled: true
-    version: 12.0.1
+    version: 12.0.3-develop
     chart: mosip/config-server
     valuesFile: "$WORKDIR/utils/config-server-values.yaml"
     wait: true
@@ -164,11 +164,11 @@ apps:
   keymanager:
     namespace: keymanager
     enabled: true
-    version: 12.0.1
+    version: 12.1.0
     chart: mosip/keymanager
-    set:
-      image.repository: "mosipid/kernel-keymanager-service"
-      image.tag: "1.2.1.0"
+    # set:
+    #   image.repository: "mosipid/kernel-keymanager-service"
+    #   image.tag: "1.2.1.0"
     #   persistence.enabled: "false"
     #   volumePermissions.enabled: "false"
     #   persistence.size: "<volume_size>"
@@ -280,7 +280,7 @@ apps:
   masterdata:
     namespace: kernel
     enabled: true
-    version: 12.1.3
+    version: 12.1.2
     chart: mosip/masterdata
     set:
       # image.repository: "mosipid/kernel-masterdata-service"
@@ -290,6 +290,7 @@ apps:
       resources.requests.cpu: "200m"
       resources.requests.memory: "2000Mi"
       istio.corsPolicy.allowOrigins[0].exact: "https://admin.sandbox.xyz.net"
+    wait: true
     priority: -10
     timeout: 1200
 
@@ -333,7 +334,7 @@ apps:
   syncdata:
     namespace: kernel
     enabled: true
-    version: 12.1.3
+    version: 12.1.2
     chart: mosip/syncdata
     set:
       # image.repository: "mosipid/kernel-syncdata-service"
@@ -399,32 +400,32 @@ apps:
   prereg-gateway:
     namespace: prereg
     enabled: true
-    version: 12.0.1
+    version: 12.0.3
     chart: mosip/prereg-gateway
     set:
       istio.hosts[0]: "prereg.sandbox.xyz.net"
     priority: -9
     timeout: 1200
 
-  prereg-captcha:
-    namespace: prereg
-    enabled: true
-    version: 12.0.1
-    chart: mosip/prereg-captcha
-    set:
-      image.repository: "mosipid/pre-registration-captcha-service"
-      image.tag: "1.2.0.2"
-    priority: -9
-    timeout: 1200
+  # prereg-captcha:
+  #   namespace: prereg
+  #   enabled: true
+  #   version: 12.0.1
+  #   chart: mosip/prereg-captcha
+  #   set:
+  #     image.repository: "mosipid/pre-registration-captcha-service"
+  #     image.tag: "1.2.0.2"
+  #   priority: -9
+  #   timeout: 1200
 
   prereg-application:
     namespace: prereg
     enabled: true
-    version: 12.0.1
+    version: 12.0.3
     chart: mosip/prereg-application
-    set:
-      image.repository: "mosipid/pre-registration-application-service"
-      image.tag: "1.2.0.2"
+    # set:
+    #   image.repository: "mosipid/pre-registration-application-service"
+    #   image.tag: "1.2.0.2"
     priority: -9
     timeout: 1200
 
@@ -715,7 +716,7 @@ apps:
       resources.limits.cpu: "500m"
       resources.limits.memory: "4000Mi"
       resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"
+      resources.requests.memory: "4000Mi"
       startupProbe.failureThreshold: 60
       livenessProbe.periodSeconds: "30"
     timeout: 1200
@@ -856,7 +857,7 @@ apps:
   admin-hotlist:
     namespace: admin
     enabled: true
-    version: 12.1.3
+    version: 12.1.2
     chart: mosip/admin-hotlist
     set:
       # image.repository: "mosipid/hotlist-service"
@@ -872,15 +873,15 @@ apps:
   admin-service:
     namespace: admin
     enabled: true
-    version: 12.1.3
+    version: 12.1.2
     chart: mosip/admin-service
     set:
       # image.repository: "mosipid/admin-service"
       # image.tag: "1.2.1.2"
       resources.limits.cpu: "500m"
-      resources.limits.memory: "1500Mi"
-      resources.requests.cpu: "300m"
-      resources.requests.memory: "1500Mi"
+      resources.limits.memory: "2000Mi"
+      resources.requests.cpu: "500m"
+      resources.requests.memory: "2000Mi"
       istio.corsPolicy.allowOrigins[0].prefix: "https://admin.sandbox.xyz.net"
       startupProbe.failureThreshold: 60
     timeout: 1200
@@ -983,11 +984,11 @@ apps:
   digitalcard:
     namespace: digitalcard
     enabled: true
-    version: 1.3.0-beta.1
+    version: 12.0.1
     chart: mosip/digitalcard
-    set:
-     image.repository: "mosipid/digital-card-service"
-     image.tag: "1.2.0.1"
+    # set:
+    #  image.repository: "mosipid/digital-card-service"
+    #  image.tag: "1.2.0.1"
     timeout: 1200
     priority: -5
 
@@ -995,11 +996,11 @@ apps:
   resident:
     namespace: resident
     enabled: true
-    version: 12.1.1
+    version: 12.1.2
     chart: mosip/resident
     set:
-      image.repository: "mosipid/resident-service"
-      image.tag: "1.2.1.2"
+      # image.repository: "mosipid/resident-service"
+      # image.tag: "1.2.1.2"
       resources.requests.cpu: "300m"
       resources.requests.memory: "2000Mi"
       startupProbe.failureThreshold: "60"
@@ -1074,7 +1075,7 @@ apps:
   mosip-file-server:
     namespace: mosip-file-server
     enabled: true
-    version: 0.0.1-develop
+    version: 12.0.2-develop
     chart: mosip/mosip-file-server
     set:
       image.repository: "mosipid/mosip-file-server"
