@@ -1,6 +1,6 @@
 gitRepo:
   uri: https://github.com/mosip/mosip-config
-  version: testgrid
+  version: release-1.2.4.3
   ## Folders within the base repo where properties may be found.
   searchFolders: ""
   private: false
