@@ -63,7 +63,7 @@ apps:
       global.kibanaEnabled: "true"
       kibana.image.repository: "mosipint/kibana"
       kibana.image.tag: "7.17.2-debian-10-r0"
-      kibana.image.pullPolicy: IfNotPresent     
+      kibana.image.pullPolicy: IfNotPresent
       data.heapSize: "728m"
       data.persistence.enabled: "true"
       data.persistence.size: "64Gi"
