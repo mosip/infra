@@ -2,6 +2,8 @@
 
 This repository contains a GitHub Actions workflow to deploy external services and mosip services of MOSIP using Helmsman. we have two workflow's i,e `helmsman_external.yml` and `helmsman_mosip.yml`.
 
+> **⚠️ Important**: Always use `apply` mode for MOSIP deployments. The `dry-run` mode will fail because MOSIP services depend on shared configmaps and secrets from other namespaces that are not available during dry-run validation.
+
 ## helmsman_external.yml 
 
 This GitHub Actions workflow automates the deployment of external services for the [MOSIP](https://www.mosip.io/) platform using [Helmsman](https://github.com/Praqma/helmsman) and [Helm](https://helm.sh/).
@@ -26,8 +28,9 @@ The deployment is done in a matrix strategy to handle multiple configuration fil
 - **Description**: Choose the mode in which Helmsman runs.
 - **Required**: Yes
 - **Default**: `dry-run`
+- **Recommended**: `apply` (dry-run will fail due to namespace dependencies)
 - **Options**:
-    - `dry-run`: Simulates the deployment without making changes.
+    - `dry-run`: Simulates the deployment without making changes (will fail for MOSIP).
     - `apply`: Applies the deployment changes.
 
 ### Secrets
@@ -71,16 +74,72 @@ The following secrets are required to run this workflow:
 
 10. **Trigger helmsman mosip workflow via API**
 - Sets the current default branch to the one triggering the workflow via Manual Dispatch.
-- Dispatches the `helmsman_mosip.yml` workflow using the GitHub REST API.       
+- Dispatches the `helmsman_mosip.yml` workflow using the GitHub REST API.
+- **Automatic Flow**: Upon successful completion of prerequisites and external dependencies, the MOSIP services workflow is automatically triggered.
+- **Error Handling**: If the automatic trigger fails, the MOSIP deployment can be manually triggered from the Actions tab.
+
+### Deployment Flow & Error Handling
+
+**Parallel Deployment Strategy:**
+- Prerequisites (`prereq-dsf.yaml`) and External Dependencies (`external-dsf.yaml`) are deployed in parallel for optimal deployment time
+- Both must complete successfully before MOSIP services deployment is triggered
+
+**Automatic Trigger Mechanism:**
+- Upon successful completion of both prerequisite and external dependency deployments, the workflow automatically triggers `helmsman_mosip.yml`
+- This ensures proper sequencing and reduces manual intervention
+
+**Error Recovery:**
+- If automatic trigger fails: Manually run "Helmsman MOSIP Deployment" from Actions tab
+- If onboarding processes fail: Manual re-onboarding is required (see limitations in main README)
+- Monitor deployment logs for any failures requiring intervention       
 
 ### Triggering the Workflow Manually
 1. Navigate to the "Actions" tab in your repository.
 2. Select the `Deploy External Services` workflow.
 3. Click on "Run workflow."
-4. Choose the mode (`dry-run` or `apply`) and start the workflow.
+4. Choose the mode (`apply` recommended - avoid `dry-run` as it will fail) and start the workflow.
 
 ### Triggering on Push
 - Commit and push changes to `deployment/v3/helmsman/dsf/prereq-dsf.yaml` and `deployment/v3/helmsman/dsf/external-dsf.yaml` to automatically trigger the workflow.
+
+---
+
+## Complete Deployment Sequence Overview
+
+### Phase 1: Prerequisites & External Dependencies (Parallel)
+1. **Prerequisites Deployment** (`prereq-dsf.yaml`):
+   - Monitoring stack (Rancher monitoring, Grafana, AlertManager)
+   - Logging infrastructure (Cattle logging system)
+   - Service mesh (Istio) and networking components
+
+2. **External Dependencies Deployment** (`external-dsf.yaml`):
+   - Databases (PostgreSQL with initialization)
+   - Identity & Access (Keycloak)
+   - Security (SoftHSM, ClamAV antivirus)
+   - Object Storage (MinIO)
+   - Message Queues (ActiveMQ, Kafka with UI)
+
+### Phase 2: MOSIP Services (Automatic Trigger)
+- **Trigger Condition**: Both prerequisites and external dependencies complete successfully
+- **Deployment**: MOSIP core services (`mosip-dsf.yaml`)
+- **Fallback**: Manual trigger available if automatic fails
+
+### Phase 3: Pre-Test Verification (Manual)
+Before deploying test rigs, verify:
+```bash
+# Check all pods are running
+kubectl get pods --all-namespaces | grep -v Running | grep -v Completed
+
+# Verify specific namespaces
+kubectl get pods -n mosip
+kubectl get pods -n keycloak
+kubectl get pods -n postgres
+```
+
+### Phase 4: Test Rigs Deployment (Manual)
+- **Prerequisites**: All core services pods in `Running` state
+- **Action**: Manual trigger of test rigs workflow
+- **Important**: Handle any failed onboarding processes before test rig deployment
 
 ---
 
@@ -91,8 +150,11 @@ This GitHub Actions workflow automates the deployment of mosip services for the 
 ### Workflow Overview
 
 The workflow is triggered by:
-- **Manual Dispatch**: Allowing users to select the mode (`dry-run` or `apply`).
+- **Automatic Trigger**: Automatically initiated by the successful completion of `helmsman_external.yml` workflow
+- **Manual Dispatch**: Allowing users to select the mode (`dry-run` or `apply`) as a fallback option
 - **Push Events**: Monitoring changes in the `deployment/v3/helmsman/dsf/mosip-dsf.yaml`.
+
+> **Note**: The preferred trigger method is automatic via the external dependencies workflow to ensure proper deployment sequencing.
 
 ### Inputs to be provided to run workflow.
 
@@ -105,8 +167,9 @@ The workflow is triggered by:
 - **Description**: Choose the mode in which Helmsman runs.
 - **Required**: Yes
 - **Default**: `dry-run`
+- **Recommended**: `apply` (dry-run will fail due to namespace dependencies)
 - **Options**:
-    - `dry-run`: Simulates the deployment without making changes.
+    - `dry-run`: Simulates the deployment without making changes (will fail for MOSIP).
     - `apply`: Applies the deployment changes.
 
 ### Secrets
@@ -155,6 +218,21 @@ The following secrets are required to run this workflow:
 ### Triggering on Push
 - Commit and push changes to `deployment/v3/helmsman/dsf/prereq-dsf.yaml` and `deployment/v3/helmsman/dsf/external-dsf.yaml` to automatically trigger the workflow.
 
+### Triggering the MOSIP Workflow
+
+**Automatic Trigger (Recommended):**
+- The MOSIP services workflow is automatically triggered upon successful completion of the `helmsman_external.yml` workflow
+- No manual intervention required if external dependencies deploy successfully
+
+**Manual Trigger (Fallback):**
+1. Navigate to the "Actions" tab in your repository
+2. Select the `Deploy MOSIP Services` workflow
+3. Click on "Run workflow"
+4. Choose the mode (`apply` recommended - avoid `dry-run` as it will fail) and start the workflow
+
+**Push Trigger:**
+- Commit and push changes to `deployment/v3/helmsman/dsf/mosip-dsf.yaml` to automatically trigger the workflow
+
 ---
 
 ## Debugging and Logs
@@ -163,8 +241,3 @@ The following secrets are required to run this workflow:
 - Logs can be viewed in the "Actions" tab of the repository under the respective workflow run.
 
 ---
-
-> **Note:**
-> - This directory is a **work-in-progress** and currently **experimental**.
-> - It is subject to changes as we continue to refine the deployment process.
-> - Contributions and feedback are welcome as part of ongoing development!

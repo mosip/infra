@@ -767,26 +767,54 @@ Add the required secrets as follows:
 
 #### Step 4c: Run Helmsman Deployments via GitHub Actions
 
+The Helmsman deployment process follows a specific sequence with automated triggers and error handling mechanisms:
+
+> **⚠️ Important**: Always use `apply` mode for Helmsman deployments. The `dry-run` mode will fail due to dependencies on shared configmaps and secrets from other namespaces that are not available during dry-run validation.
+
 1. **Deploy Prerequisites & External Dependencies:**
 
    - Actions → **Helmsman External Dependencies** (`helmsman_external.yml`)
-   - This workflow handles both:
-     - Prerequisites: `prereq-dsf.yaml` (monitoring, Istio, logging)
-     - External Dependencies: `external-dsf.yaml` (databases, message queues, storage)
-   - Mode: `apply`
+   - This workflow handles both deployments in parallel:
+     - **Prerequisites**: `prereq-dsf.yaml` (monitoring, Istio, logging)
+     - **External Dependencies**: `external-dsf.yaml` (databases, message queues, storage)
+   - Mode: `apply` (required - dry-run will fail)
+   - **Automatic Trigger**: Upon successful completion, this workflow automatically triggers the MOSIP services deployment
 
-   > **Note**: The `helmsman_external.yml` workflow deploys both prereq and external dependencies in the correct sequence automatically.
-   >
-2. **Deploy MOSIP Services:**
+   > **Note**: The `helmsman_external.yml` workflow deploys both prereq and external dependencies in parallel for optimal deployment time.
 
-   - Actions → **Helmsman MOSIP Deployment** (`helmsman_mosip.yml`)
-   - Select DSF file: `mosip-dsf.yaml`
-   - Mode: `apply`
-3. **Deploy Test Rigs** (Optional):
+2. **Deploy MOSIP Services (Automated):**
 
+   - **Automatically triggered** after successful completion of step 1
+   - Workflow: **Helmsman MOSIP Deployment** (`helmsman_mosip.yml`)
+   - DSF file: `mosip-dsf.yaml`
+   - Mode: `apply` (required - dry-run will fail due to namespace dependencies)
+   
+   **Error Handling:**
+   - If the automatic trigger fails, manually trigger: Actions → **Helmsman MOSIP Deployment**
+   - If onboarding processes fail during deployment, manual re-onboarding is required (see limitations section)
+
+3. **Verify All Pods are Running:**
+
+   Before proceeding to test rigs, ensure all MOSIP services are properly deployed:
+   
+   ```bash
+   # Check all MOSIP pods are running
+   kubectl get pods -n mosip
+   kubectl get pods -n keycloak
+   kubectl get pods -n postgres
+   
+   # Ensure no pods are in pending/error state
+   kubectl get pods --all-namespaces | grep -v Running | grep -v Completed
+   ```
+
+4. **Deploy Test Rigs (Manual):**
+
+   - **Prerequisites**: All pods from steps 1-2 must be in `Running` state
    - Actions → **Helmsman Test Rigs** (`helmsman_testrigs.yml`)
    - Select DSF file: `testrigs-dsf.yaml`
-   - Mode: `apply`
+   - Mode: `apply` (required - dry-run will fail due to namespace dependencies)
+   
+   > **Important**: Test rigs should only be deployed after verifying all core services are running successfully. Failed onboarding processes must be manually re-executed before test rig deployment.
 
 ### 5. Verify Deployment
 
@@ -848,6 +876,17 @@ The Quick Start Guide provides the essential deployment flow. For comprehensive 
 **Issue**: Partner onboarding process requires manual execution after the first automated attempt via Helmsman.
 
 **Impact**: Additional administrator intervention needed to complete onboarding workflow.
+
+**Details:**
+- **Failed Onboarding Recovery**: If partner onboarding fails during the automated MOSIP deployment, manual re-onboarding is required before proceeding to test rig deployment
+- **Pre-Test Rig Requirements**: All pods must be verified as running and stable before triggering test rig deployments
+- **Manual Verification Steps**: Administrator must check pod status across all namespaces (mosip, keycloak, postgres) before proceeding with test rigs
+
+**Required Actions:**
+1. Monitor deployment logs for onboarding failures
+2. Execute manual re-onboarding procedures for failed cases
+3. Verify all services are operational before test rig deployment
+4. Ensure no pods remain in pending or error states
 
 ### 3. AWS Infrastructure Capacity
 
