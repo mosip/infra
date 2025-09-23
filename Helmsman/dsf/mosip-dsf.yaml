@@ -407,16 +407,16 @@ apps:
     priority: -9
     timeout: 1200
 
-  # prereg-captcha:
-  #   namespace: prereg
-  #   enabled: true
-  #   version: 12.0.1
-  #   chart: mosip/prereg-captcha
-  #   set:
-  #     image.repository: "mosipid/pre-registration-captcha-service"
-  #     image.tag: "1.2.0.2"
-  #   priority: -9
-  #   timeout: 1200
+  prereg-captcha:
+    namespace: prereg
+    enabled: true
+    version: 12.0.1
+    chart: mosip/prereg-captcha
+    set:
+      image.repository: "mosipid/pre-registration-captcha-service"
+      image.tag: "1.2.0.2"
+    priority: -9
+    timeout: 1200
 
   prereg-application:
     namespace: prereg
