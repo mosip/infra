@@ -3,7 +3,7 @@ cluster_name = "rdp2"
 # MOSIP's domain (ex: sandbox.xyz.net)
 cluster_env_domain = "rdp2.mosip.net"
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
-mosip_email_id = "<chandra.mishra@technoforte.co.in>"
+mosip_email_id = "chandra.mishra@technoforte.co.in"
 # SSH login key name for AWS node instances (ex: my-ssh-key)
 ssh_key_name = "mosip-aws"
 # The AWS region for resource creation
