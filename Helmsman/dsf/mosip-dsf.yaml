@@ -74,7 +74,7 @@ apps:
     version: 12.0.3-develop
     chart: mosip/config-server
     set:
-      image.registry: "harbor.mosip.net" 
+      image.repository: "harbor.mosip.net/mosipid/config-server"
     valuesFile: "$WORKDIR/utils/config-server-values.yaml"
     wait: true
     timeout: 1200
@@ -236,8 +236,7 @@ apps:
     version: 12.0.1
     chart: mosip/masterdata-loader
     set:
-      image.registry: "harbor.mosip.net" 
-      # image.repository: "mosipqa/masterdata-loader"
+      image.repository: "harbor.mosip.net/mosipid/masterdata-loader"
       # image.tag: "develop"
       mosipDataGithubBranch: "v1.2.2.0"
       mosipDataGithubRepo: "https://github.com/mosip/mosip-data"
