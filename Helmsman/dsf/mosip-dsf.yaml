@@ -64,6 +64,8 @@ apps:
     enabled: true
     version: 12.0.3-develop
     chart: mosip/conf-secrets
+    set:
+      image.registry: "harbor.mosip.net" 
     priority: -20
 
   config-server:
@@ -71,6 +73,8 @@ apps:
     enabled: true
     version: 12.0.3-develop
     chart: mosip/config-server
+    set:
+      image.registry: "harbor.mosip.net" 
     valuesFile: "$WORKDIR/utils/config-server-values.yaml"
     wait: true
     timeout: 1200
@@ -83,7 +87,8 @@ apps:
     enabled: true
     version: 12.0.4
     chart: mosip/artifactory
-    # set:
+    set:
+      image.registry: "harbor.mosip.net" 
     #   image.repository: "mosipid/artifactory-server"
     #   image.tag: "1.4.1-ES"
     wait: true
