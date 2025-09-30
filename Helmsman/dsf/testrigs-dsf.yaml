@@ -25,6 +25,7 @@ apps:
     version: 12.1.0
     chart: mosip/packetcreator
     set:
+      image.registry: "harbor.mosip.net" 
       # image.repository: "mosipqa/dsl-packetcreator"
       # image.tag: "1.2.1.x"
       resources.limits.cpu: "1"
@@ -48,6 +49,7 @@ apps:
     version: 0.0.1-develop
     chart: mosip/apitestrig
     set:
+      image.registry: "harbor.mosip.net" 
       crontime: "0 2 * * *"
       apitestrig.configmaps.s3.s3-host: 'http://minio.minio:9000'
       apitestrig.configmaps.s3.s3-user-key: 'admin'
@@ -129,6 +131,7 @@ apps:
     version: 12.1.0
     chart: mosip/dslorchestrator
     set:
+      image.registry: "harbor.mosip.net" 
       # image.repository: "mosipqa/dsl-orchestrator"
       # image.tag: "1.2.1.x"
       crontime: "0 4 * * *"
@@ -157,6 +160,7 @@ apps:
     version: 12.0.2
     chart: mosip/uitestrig
     set:
+      image.registry: "harbor.mosip.net" 
       # image.repository: ""
       # image.tag: "develop"
       enable_insecure: false
