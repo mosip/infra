@@ -1076,7 +1076,7 @@ The Helmsman deployment process follows a specific sequence with automated trigg
  
  ```bash
  # Check all MOSIP pods are running
- kubectl get pods -n mosip
+ kubectl get pods -A
  kubectl get pods -n keycloak
  kubectl get pods -n postgres
  
@@ -1101,8 +1101,7 @@ kubectl get nodes
 kubectl get namespaces
 
 # Check MOSIP services
-# Check MOSIP services
-kubectl get pods -n mosip
+kubectl get pods -A
 kubectl get services -n istio-system
 ```
 

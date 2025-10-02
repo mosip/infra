@@ -400,7 +400,7 @@ READY: X/X (e.g., 1/1, 2/2)
 
 **Check MOSIP Pods:**
 ```bash
-kubectl get pods -n mosip
+kubectl get pods -A
 ```
 
 **Expected Output:**
@@ -427,8 +427,8 @@ idrepo-identity-0 1/1 Running 0
 
 1. **Verify All Services Running**
  ```bash
- # Check MOSIP namespace
- kubectl get pods -n mosip | grep -v Running | grep -v Completed
+ # Check all namespaces
+ kubectl get pods -A | grep -v Running | grep -v Completed
  # Should return nothing!
  
  # Check external services

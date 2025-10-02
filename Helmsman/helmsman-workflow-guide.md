@@ -131,7 +131,7 @@ Before deploying test rigs, verify:
 kubectl get pods --all-namespaces | grep -v Running | grep -v Completed
 
 # Verify specific namespaces
-kubectl get pods -n mosip
+kubectl get pods -A
 kubectl get pods -n keycloak
 kubectl get pods -n postgres
 ```

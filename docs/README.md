@@ -271,7 +271,7 @@ kubectl get namespaces
 kubectl get pods --all-namespaces
 
 # Check specific services
-kubectl get pods -n mosip
+kubectl get pods -A
 kubectl get pods -n postgres
 kubectl get svc -n istio-system
 
