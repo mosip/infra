@@ -688,6 +688,145 @@ Your Computer → VPN Tunnel → ✅ Access private servers securely
  > - The `nginx_node_ebs_volume_size_2` is required when `enable_postgresql_setup = true`
  > - **SSH Key Configuration**: The `ssh_key_name` value must match the repository secret name containing your SSH private key (e.g., if `ssh_key_name = "mosip-aws"`, create repository secret named `mosip-aws` with your SSH private key content)
  >
+
+#### Rancher Import Configuration (Optional)
+
+If you have deployed **observ-infra** (Rancher management cluster), you can import your main infra cluster into Rancher for centralized monitoring and management.
+
+**Step 1: Deploy observ-infra (if not already done)**
+
+```bash
+# Deploy Rancher management cluster first
+Actions → Terraform Infrastructure → Run workflow
+Parameters:
+├─ Component: observ-infra
+├─ Cloud Provider: aws
+└─ Backend: local
+```
+
+Wait for observ-infra deployment to complete (~15-20 minutes).
+
+**Step 2: Generate Rancher Import URL**
+
+1. **Access Rancher UI:**
+   ```
+   https://rancher.your-domain.net
+   ```
+   Login with credentials from observ-infra deployment.
+
+2. **Navigate to Cluster Import:**
+   ```
+   Rancher UI → Cluster Management → Import Existing
+   ```
+
+3. **Select Import Method:**
+   ```
+   Click: "Import any Kubernetes cluster" → Generic
+   ```
+
+4. **Configure Cluster Import:**
+   ```
+   Cluster Name: soil38 (use your cluster_name from aws.tfvars)
+   
+   Click: "Create"
+   ```
+
+5. **Copy the kubectl apply command:**
+   
+   Rancher will generate a command like:
+   ```bash
+   kubectl apply -f https://rancher.mosip.net/v3/import/dzshvnb6br7qtf267zsrr9xsw6tnb2vt4x68g79r2wzsnfgvkjq2jk_c-m-b5249w76.yaml
+   ```
+
+**Step 3: Update aws.tfvars**
+
+Add the generated command to your `aws.tfvars` file:
+
+```hcl
+# Enable Rancher import
+enable_rancher_import = true
+
+# Paste the kubectl apply command from Rancher UI
+# IMPORTANT: Use proper escaping - wrap the entire command in quotes with escaped inner quotes
+rancher_import_url = "\"kubectl apply -f https://rancher.mosip.net/v3/import/dzshvnb6br7qtf267zsrr9xsw6tnb2vt4x68g79r2wzsnfgvkjq2jk_c-m-b5249w76.yaml\""
+```
+
+**⚠️ Critical: Proper String Escaping**
+
+The `rancher_import_url` requires special escaping to avoid Terraform indentation errors:
+
+✅ **Correct format:**
+```hcl
+rancher_import_url = "\"kubectl apply -f https://rancher.example.com/v3/import/TOKEN.yaml\""
+```
+
+❌ **Wrong format (will cause errors):**
+```hcl
+rancher_import_url = "kubectl apply -f https://rancher.example.com/v3/import/TOKEN.yaml"
+```
+
+**Step 4: Deploy/Update Main Infra**
+
+After updating `aws.tfvars`, deploy or update your main infra cluster:
+
+```bash
+Actions → Terraform Infrastructure → Run workflow
+Parameters:
+├─ Component: infra
+└─ enable_rancher_import: true (in aws.tfvars)
+```
+
+**Step 5: Verify Import in Rancher UI**
+
+After deployment completes:
+
+1. Go to Rancher UI: `https://rancher.your-domain.net`
+2. Navigate to: **Cluster Management**
+3. Your cluster should appear in the list with status: **Active**
+4. Click on the cluster name to view:
+   - Node status
+   - Pod metrics
+   - Resource utilization
+   - Monitoring dashboards
+
+**Benefits of Rancher Import:**
+
+- ✅ Centralized cluster monitoring
+- ✅ Visual pod/node management
+- ✅ Built-in monitoring dashboards
+- ✅ RBAC management through UI
+- ✅ Kubernetes resource browser
+- ✅ Log aggregation
+- ✅ Multi-cluster management
+
+**Troubleshooting Rancher Import:**
+
+If import fails, check:
+
+```bash
+# Verify cluster is accessible
+kubectl get nodes
+
+# Check if rancher-agent pods are running
+kubectl get pods -n cattle-system
+
+# View rancher-agent logs
+kubectl logs -n cattle-system -l app=cattle-cluster-agent
+
+# Common issues:
+# 1. Network connectivity between clusters
+# 2. Firewall rules blocking Rancher server access
+# 3. Incorrect import URL or expired token
+```
+
+To regenerate import URL if needed:
+1. Go to Rancher UI → Cluster Management
+2. Find your cluster (it may show as "Unavailable")
+3. Click ⋮ (three dots) → Edit Config
+4. Copy the new registration command
+
+---
+
 2. **Run main infra via GitHub Actions:**
 
  - Go to **Actions** → **Terraform Infrastructure**
