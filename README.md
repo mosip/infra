@@ -30,16 +30,6 @@ We've created comprehensive beginner-friendly guides to help you succeed:
 - **Error about clusterid?** → [DSF Configuration Guide](docs/DSF_CONFIGURATION_GUIDE.md#critical-configuration-clusterid)
 - **Need to delete everything?** → [Environment Destruction Guide](docs/ENVIRONMENT_DESTRUCTION_GUIDE.md)
 
-**What Makes These Guides Beginner-Friendly:**
-
-- ✅ Plain language explanations (no jargon without explanation)
-- ✅ Step-by-step instructions with examples
-- ✅ Visual navigation guides for GitHub interface
-- ✅ Links to official documentation for each tool
-- ✅ Troubleshooting sections for common issues
-- ✅ "What you should see" at each step
-- ✅ Checklists to track progress
-
 ---
 
 ## Complete Deployment Flow
