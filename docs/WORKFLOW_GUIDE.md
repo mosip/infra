@@ -526,7 +526,7 @@ Backend: [local | s3]
 | Backend | Storage Location | Best For | Encryption |
 |---------|-----------------|----------|------------|
 | `local` | GitHub repository | Development, small teams | GPG encrypted |
-| `s3` | AWS S3 bucket | Production, large teams | AWS KMS |
+| `s3` | AWS S3 bucket | Production, large teams | S3 server-side encryption |
 
 **Recommendations**:
 - Development → `local`
