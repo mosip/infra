@@ -4,12 +4,104 @@ This guide provides comprehensive instructions for safely destroying and decommi
 
 ## Table of Contents
 
-1. [When to Destroy an Environment](#when-to-destroy-an-environment)
-2. [Pre-Destruction Checklist](#pre-destruction-checklist)
-3. [Destruction Order (Critical!)](#destruction-order-critical)
-4. [Step-by-Step Destruction](#step-by-step-destruction)
-5. [Verification and Cleanup](#verification-and-cleanup)
-6. [Cost Monitoring](#cost-monitoring)
+1. [Quick Destruction (No Data Backup Required)](#quick-destruction-no-data-backup-required)
+2. [When to Destroy an Environment](#when-to-destroy-an-environment)
+3. [Pre-Destruction Checklist](#pre-destruction-checklist)
+4. [Destruction Order (Critical!)](#destruction-order-critical)
+5. [Step-by-Step Destruction](#step-by-step-destruction)
+6. [Verification and Cleanup](#verification-and-cleanup)
+7. [Cost Monitoring](#cost-monitoring)
+
+---
+
+## Quick Destruction (No Data Backup Required)
+
+### Fast Complete Teardown: 6-10 Minutes
+
+If you **don't need to backup any data** and want to destroy everything quickly, use the Terraform Destroy workflow directly. This will delete all resources in one go.
+
+**Use this method when:**
+- ✅ Testing/development environment with no valuable data
+- ✅ Failed deployment that needs complete cleanup
+- ✅ Temporary demo environment
+- ✅ You've already backed up necessary data
+
+**⚠️ WARNING**: This is irreversible! All data, configurations, and resources will be permanently deleted.
+
+### Steps for Quick Destruction
+
+#### 1. Go to GitHub Actions
+
+Navigate to: **Repository → Actions → Terraform Infrastructure Destroy**
+
+#### 2. Run the Destroy Workflow
+
+Click **"Run workflow"** and configure:
+
+```
+Parameters:
+├─ Branch: release-0.1.0 (or your deployment branch)
+├─ Cloud Provider: aws
+├─ Component: infra
+└─ Backend: local (or s3, match your deployment configuration)
+```
+
+#### 3. Wait for Completion
+
+- **Total Time**: 6-10 minutes
+- Monitor the workflow logs in real-time
+- The workflow will automatically destroy:
+  - All Kubernetes resources (pods, services, deployments)
+  - RKE2 Kubernetes cluster
+  - EC2 instances (control plane and worker nodes)
+  - Load balancers and network interfaces
+  - Security groups
+  - EBS volumes
+  - All associated AWS resources
+
+#### 4. Verify Complete Deletion
+
+After the workflow completes successfully:
+
+```bash
+# Check AWS EC2 instances (should show terminated)
+aws ec2 describe-instances --filters "Name=tag:Name,Values=*mosip*" --query 'Reservations[].Instances[].[InstanceId,State.Name,Tags[?Key==`Name`].Value|[0]]' --output table
+
+# Check for any remaining resources
+aws ec2 describe-volumes --filters "Name=tag:Name,Values=*mosip*" --output table
+aws elb describe-load-balancers --output table | grep mosip
+```
+
+#### 5. Optional: Destroy Base Infrastructure
+
+If you also want to delete the VPC and networking (base-infra):
+
+1. Go to **Actions → Terraform Infrastructure Destroy**
+2. Run workflow with:
+   ```
+   Component: base-infra
+   ```
+3. Wait 5-8 minutes for completion
+
+### What Gets Deleted
+
+The quick destruction removes:
+- ✅ All Kubernetes namespaces and resources
+- ✅ MOSIP services (prereg, regproc, IDA, etc.)
+- ✅ External services (PostgreSQL, Keycloak, MinIO, Kafka)
+- ✅ Kubernetes cluster (RKE2)
+- ✅ All EC2 instances
+- ✅ Load balancers (nginx ingress)
+- ✅ EBS volumes (including database storage)
+- ✅ Security groups
+- ✅ Network interfaces
+
+### Cost Savings
+
+After quick destruction:
+- **Immediate**: All compute and storage costs stop
+- **Within hours**: AWS billing reflects terminated resources
+- **Monitor**: Check AWS Cost Explorer after 24 hours to confirm
 
 ---
 
