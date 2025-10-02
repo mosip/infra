@@ -25,48 +25,48 @@ Successfully implemented automated Rancher UI and Keycloak installation **ONLY f
 
 ```
 terraform/
-├── modules/aws/                          # CLEAN - No Rancher/Keycloak
-│   ├── aws-main.tf                      # ✅ Clean, ends at nfs-setup
-│   ├── variables.tf                     # ✅ No Rancher/Keycloak vars
-│   ├── outputs.tf                       # ✅ No Rancher/Keycloak outputs
-│   └── rancher-keycloak-setup/          # ✅ Isolated module
-│       ├── main.tf                      # Rancher/Keycloak logic
-│       ├── variables.tf                 # Setup variables
-│       └── outputs.tf                   # Setup outputs
-├── observ-infra/                        # ONLY PLACE WITH INTEGRATION
-│   ├── variables.tf                     # ✅ Has Rancher/Keycloak vars
-│   ├── outputs.tf                       # ✅ Has Rancher/Keycloak outputs
-│   └── aws/
-│       ├── main.tf                      # ✅ Calls rancher-keycloak-setup
-│       ├── variables.tf                 # ✅ Has Rancher/Keycloak vars
-│       └── outputs.tf                   # ✅ Has Rancher/Keycloak outputs
-├── infra/                               # ✅ CLEAN - No Rancher/Keycloak
-│   ├── main.tf                          # Only calls main AWS module
-│   ├── variables.tf                     # No Rancher/Keycloak vars
-│   └── outputs.tf                       # No Rancher/Keycloak outputs
+├── modules/aws/ # CLEAN - No Rancher/Keycloak
+│ ├── aws-main.tf # ✅ Clean, ends at nfs-setup
+│ ├── variables.tf # ✅ No Rancher/Keycloak vars
+│ ├── outputs.tf # ✅ No Rancher/Keycloak outputs
+│ └── rancher-keycloak-setup/ # ✅ Isolated module
+│ ├── main.tf # Rancher/Keycloak logic
+│ ├── variables.tf # Setup variables
+│ └── outputs.tf # Setup outputs
+├── observ-infra/ # ONLY PLACE WITH INTEGRATION
+│ ├── variables.tf # ✅ Has Rancher/Keycloak vars
+│ ├── outputs.tf # ✅ Has Rancher/Keycloak outputs
+│ └── aws/
+│ ├── main.tf # ✅ Calls rancher-keycloak-setup
+│ ├── variables.tf # ✅ Has Rancher/Keycloak vars
+│ └── outputs.tf # ✅ Has Rancher/Keycloak outputs
+├── infra/ # ✅ CLEAN - No Rancher/Keycloak
+│ ├── main.tf # Only calls main AWS module
+│ ├── variables.tf # No Rancher/Keycloak vars
+│ └── outputs.tf # No Rancher/Keycloak outputs
 └── implementations/
-    ├── aws/infra/                       # ✅ CLEAN - No Rancher/Keycloak
-    └── aws/observ-infra/                # ✅ ONLY PLACE WITH INTEGRATION
-        ├── aws.tfvars                   # Has Rancher/Keycloak config
-        ├── variables.tf                 # Has Rancher/Keycloak vars
-        └── outputs.tf                   # Has Rancher/Keycloak outputs
+ ├── aws/infra/ # ✅ CLEAN - No Rancher/Keycloak
+ └── aws/observ-infra/ # ✅ ONLY PLACE WITH INTEGRATION
+ ├── aws.tfvars # Has Rancher/Keycloak config
+ ├── variables.tf # Has Rancher/Keycloak vars
+ └── outputs.tf # Has Rancher/Keycloak outputs
 ```
 
 ## Execution Flow (observ-infra only)
 
 ```
 1. AWS Infrastructure (via main AWS module)
-   ├── VPC/Subnet discovery
-   ├── EC2 instances creation
-   ├── NGINX setup
-   ├── RKE2 cluster setup
-   └── NFS setup
-   
+ ├── VPC/Subnet discovery
+ ├── EC2 instances creation
+ ├── NGINX setup
+ ├── RKE2 cluster setup
+ └── NFS setup
+ 
 2. Rancher-Keycloak Setup (observ-infra specific)
-   ├── Install cert-manager
-   ├── Install Rancher UI via Helm
-   ├── Clone k8s-infra repository
-   └── Install Keycloak via script
+ ├── Install cert-manager
+ ├── Install Rancher UI via Helm
+ ├── Clone k8s-infra repository
+ └── Install Keycloak via script
 ```
 
 ## Configuration (observ-infra only)
@@ -74,20 +74,20 @@ terraform/
 ### Enable/Disable Integration
 ```hcl
 # In aws.tfvars (observ-infra)
-enable_rancher_keycloak_integration = true   # Enable for observ-infra
-rancher_hostname = ""                        # Defaults to rancher.testvpc.mosip.net
-keycloak_hostname = ""                       # Defaults to iam.testvpc.mosip.net
+enable_rancher_keycloak_integration = true # Enable for observ-infra
+rancher_hostname = "" # Defaults to rancher.testvpc.mosip.net
+keycloak_hostname = "" # Defaults to iam.testvpc.mosip.net
 rancher_bootstrap_password = "admin"
 ```
 
 ### Disable Integration
 ```hcl
-enable_rancher_keycloak_integration = false  # No Rancher/Keycloak installation
+enable_rancher_keycloak_integration = false # No Rancher/Keycloak installation
 ```
 
 ## What Each Deployment Does
 
-### 🏗️ **Main Infra Deployment** (`terraform/implementations/aws/infra/`)
+### **Main Infra Deployment** (`terraform/implementations/aws/infra/`)
 ```bash
 terraform apply -var-file="aws.tfvars"
 ```
@@ -108,7 +108,7 @@ terraform apply -var-file="aws.tfvars"
 - **+ Keycloak** at https://iam.testvpc.mosip.net
 - Ready for observability tools integration
 
-### 🔧 **Base-Infra Deployment** (`terraform/implementations/aws/base-infra/`)
+### **Base-Infra Deployment** (`terraform/implementations/aws/base-infra/`)
 ```bash
 terraform apply -var-file="aws.tfvars"
 ```
@@ -154,7 +154,7 @@ terraform apply -var-file="aws.tfvars"
 ### 2. **Verify Main Infra Remains Clean**
 ```bash
 cd terraform/implementations/aws/infra
-terraform plan -var-file="aws.tfvars"  # Should show NO Rancher/Keycloak
+terraform plan -var-file="aws.tfvars" # Should show NO Rancher/Keycloak
 ```
 
 ### 3. **Access Applications (observ-infra only)**
@@ -169,4 +169,4 @@ terraform plan -var-file="aws.tfvars"  # Should show NO Rancher/Keycloak
 - Professional, isolated, maintainable implementation
 - Ready for production deployment
 
-The implementation now perfectly meets the requirement: **Rancher-Keycloak integration only for observ-infra, not for infra or base-infra.** 🎯
+The implementation now perfectly meets the requirement: **Rancher-Keycloak integration only for observ-infra, not for infra or base-infra.** 
