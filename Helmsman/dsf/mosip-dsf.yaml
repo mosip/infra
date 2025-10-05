@@ -1043,8 +1043,12 @@ apps:
       image.registry: "harbor.mosip.net" 
     #   image.repository: "mosipdev/print"
     #   image.tag: "release-1.3.x"
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "3000Mi"
+      resources.requests.cpu: "500m"
+      resources.requests.memory: "2000Mi" 
     timeout: 1200
-    priority: -5
+    priority: -3
 
 
   digitalcard:
@@ -1057,7 +1061,7 @@ apps:
     #  image.repository: "mosipid/digital-card-service"
     #  image.tag: "1.2.0.1"
     timeout: 1200
-    priority: -5
+    priority: -3
 
 
   resident:
