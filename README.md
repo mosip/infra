@@ -689,6 +689,33 @@ Your Computer → VPN Tunnel → ✅ Access private servers securely
  > - **SSH Key Configuration**: The `ssh_key_name` value must match the repository secret name containing your SSH private key (e.g., if `ssh_key_name = "mosip-aws"`, create repository secret named `mosip-aws` with your SSH private key content)
  >
 
+**Component Details:**
+
+- **infra**: Creates MOSIP Kubernetes cluster, PostgreSQL (if enabled), networking, and application infrastructure
+
+**PostgreSQL Configuration in `aws.tfvars`:**
+
+```hcl
+# PostgreSQL Configuration (used when second EBS volume is enabled)
+enable_postgresql_setup = true # Enable PostgreSQL setup for main infra
+postgresql_version = "15"
+storage_device = "/dev/nvme2n1"
+mount_point = "/srv/postgres"
+postgresql_port = "5433"
+
+# NGINX node's second EBS volume size (required for PostgreSQL)
+nginx_node_ebs_volume_size_2 = 200 # Enable second EBS volume for PostgreSQL
+```
+
+**If `enable_postgresql_setup = true`, Terraform will automatically:**
+
+- Provision dedicated EBS volume for PostgreSQL on nginx node
+- Install and configure PostgreSQL 15 via Ansible playbooks
+- Setup security configurations and user access controls
+- Configure backup and recovery mechanisms
+- Make PostgreSQL ready for MOSIP services connectivity
+- No manual PostgreSQL secret management required!
+
 #### Rancher Import Configuration (Optional)
 
 If you have deployed **observ-infra** (Rancher management cluster), you can import your main infra cluster into Rancher for centralized monitoring and management.
@@ -840,32 +867,7 @@ To regenerate import URL if needed:
  - `s3` - Remote S3 backend (recommended for production)
  - **Action**: Select `apply` to deploy infrastructure
 
- **Component Details:**
 
- - **infra**: Creates MOSIP Kubernetes cluster, PostgreSQL (if enabled), networking, and application infrastructure
-
- **PostgreSQL Configuration in `aws.tfvars`:**
-
- ```hcl
- # PostgreSQL Configuration (used when second EBS volume is enabled)
- enable_postgresql_setup = true # Enable PostgreSQL setup for main infra
- postgresql_version = "15"
- storage_device = "/dev/nvme2n1"
- mount_point = "/srv/postgres"
- postgresql_port = "5433"
-
- # NGINX node's second EBS volume size (required for PostgreSQL)
- nginx_node_ebs_volume_size_2 = 200 # Enable second EBS volume for PostgreSQL
- ```
-
- **If `enable_postgresql_setup = true`, Terraform will automatically:**
-
- - Provision dedicated EBS volume for PostgreSQL on nginx node
- - Install and configure PostgreSQL 15 via Ansible playbooks
- - Setup security configurations and user access controls
- - Configure backup and recovery mechanisms
- - Make PostgreSQL ready for MOSIP services connectivity
- - No manual PostgreSQL secret management required!
 
 ### 4. Helmsman Deployment
 
@@ -1157,11 +1159,11 @@ The Helmsman deployment process follows a specific sequence with automated trigg
 
 **Understanding Workflow Names:**
 
-| Documentation Says | Actual Workflow Name in GitHub | Where to Find |
-|-------------------|-------------------------------|---------------|
-| "Helmsman External Dependencies" | "Deploy External services of mosip using Helmsman" | Actions → Left sidebar |
-| "Helmsman MOSIP Deployment" | "Deploy MOSIP services using Helmsman" | Actions → Left sidebar |
-| "Helmsman Test Rigs" | "Deploy Test Rigs" or "Helmsman Test Rigs" | Actions → Left sidebar |
+| Actual Workflow Name in GitHub | Where to Find |
+|-------------------------------|---------------|
+| "Deploy External services of mosip using Helmsman" | Actions → Left sidebar |
+| "Deploy MOSIP services using Helmsman" | Actions → Left sidebar |
+| "Deploy Testrigs of mosip using Helmsman" | Actions → Left sidebar |
 
 > **Can't find the workflow?** Look for keywords like "External", "MOSIP", or "Deploy" in the left sidebar. See [Workflow Guide](docs/WORKFLOW_GUIDE.md#understanding-workflow-basics) for navigation help!
 
@@ -1191,12 +1193,12 @@ The Helmsman deployment process follows a specific sequence with automated trigg
 2. **Deploy MOSIP Services (Automated):**
 
  - **Automatically triggered** after successful completion of step 1
- - Workflow: **Helmsman MOSIP Deployment** (`helmsman_mosip.yml`)
+ - Workflow: **Deploy MOSIP services using Helmsman** (`helmsman_mosip.yml`)
  - DSF file: `mosip-dsf.yaml`
  - Mode: `apply` (required - dry-run will fail due to namespace dependencies)
  
  **Error Handling:**
- - If the automatic trigger fails, manually trigger: Actions → **Helmsman MOSIP Deployment**
+ - If the automatic trigger fails, manually trigger: Actions → **Deploy MOSIP services using Helmsman**
  - If onboarding processes fail during deployment, manual re-onboarding is required (see limitations section)
 
 3. **Verify All Pods are Running:**
@@ -1216,7 +1218,7 @@ The Helmsman deployment process follows a specific sequence with automated trigg
 4. **Deploy Test Rigs (Manual):**
 
  - **Prerequisites**: All pods from steps 1-2 must be in `Running` state
- - Actions → **Helmsman Test Rigs** (`helmsman_testrigs.yml`)
+ - Actions → **Deploy Testrigs of mosip using Helmsman** (`helmsman_testrigs.yml`)
  - Select DSF file: `testrigs-dsf.yaml`
  - Mode: `apply` (required - dry-run will fail due to namespace dependencies)
  

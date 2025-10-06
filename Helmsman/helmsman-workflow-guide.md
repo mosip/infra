@@ -89,7 +89,7 @@ The following secrets are required to run this workflow:
 - This ensures proper sequencing and reduces manual intervention
 
 **Error Recovery:**
-- If automatic trigger fails: Manually run "Helmsman MOSIP Deployment" from Actions tab
+- If automatic trigger fails: Manually run "Deploy MOSIP services using Helmsman" from Actions tab
 - If onboarding processes fail: Manual re-onboarding is required (see limitations in main README)
 - Monitor deployment logs for any failures requiring intervention 
 

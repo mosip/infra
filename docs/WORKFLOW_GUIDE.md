@@ -341,7 +341,7 @@ READY: X/X (e.g., 1/1, 2/2)
 
 **What it does**: Deploys all MOSIP application services
 
-**Workflow Name**: `Helmsman MOSIP Deployment` or `Deploy MOSIP services using Helmsman`
+**Workflow Name**: `Deploy MOSIP services using Helmsman`
 
 #### Step-by-Step Navigation
 
@@ -355,7 +355,7 @@ READY: X/X (e.g., 1/1, 2/2)
 2. **Find the Workflow**
  ```
  GitHub Actions → Left Sidebar → Look for:
- - "Helmsman MOSIP Deployment" (common name)
+ - "Deploy MOSIP services using Helmsman"
  - "Deploy MOSIP services using Helmsman" (alternative)
  - Keywords: "MOSIP" or "Services"
  ```
