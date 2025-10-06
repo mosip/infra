@@ -430,6 +430,8 @@ Before running any Terraform workflow, understand these modes:
  - Stores state in your GitHub repository (encrypted)
  - `s3` - Remote S3 backend (recommended for production)
  - Stores state in AWS S3 bucket (centralized)
+ - **SSH_PRIVATE_KEY**: GitHub secret name containing SSH private key for instance access
+ - Must match the `ssh_key_name` in your terraform.tfvars
  - **Terraform apply**: 
  - ☐ **Unchecked** - Dry run (preview only, no changes made)
  - ✅ **Checked** - Apply (actually creates infrastructure)
@@ -865,6 +867,8 @@ To regenerate import URL if needed:
  - **Backend**: Choose backend configuration:
  - `local` - GPG-encrypted local state (recommended for development)
  - `s3` - Remote S3 backend (recommended for production)
+ - **SSH_PRIVATE_KEY**: GitHub secret name containing SSH private key for instance access
+ - Must match the `ssh_key_name` in your terraform.tfvars
  - **Action**: Select `apply` to deploy infrastructure
 
 
