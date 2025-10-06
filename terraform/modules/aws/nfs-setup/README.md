@@ -10,10 +10,10 @@ The module configures the NFS server and deploys the necessary components to ena
 * Terraform version: `v1.8.4`
 * AWS Account
 * AWS CLI configured with appropriate credentials
-  ```
-  $ export AWS_ACCESS_KEY_ID=<AWS_ACCESS_KEY_ID>
-  $ export AWS_SECRET_ACCESS_KEY=<AWS_SECRET_ACCESS_KEY>
-  ```
+ ```
+ $ export AWS_ACCESS_KEY_ID=<AWS_ACCESS_KEY_ID>
+ $ export AWS_SECRET_ACCESS_KEY=<AWS_SECRET_ACCESS_KEY>
+ ```
 * Ensure SSH key created for accessing EC2 instances on AWS.
 * Ensure you have access to the private SSH key that corresponds to the public key used when launching the EC2 instance.
 * Domain and DNS: Ensure that you have a domain and that its DNS is managed by Route 53.
@@ -28,32 +28,32 @@ The module configures the NFS server and deploys the necessary components to ena
 
 * Initialize Terraform
 
-  ```
-  terraform init
-  ```
+ ```
+ terraform init
+ ```
 * Terraform validate & plan the terraform scripts:
 
-  ```
-  terraform validate
-  ```
+ ```
+ terraform validate
+ ```
 
-  ```
-  terraform plan
-  ```
+ ```
+ terraform plan
+ ```
 * Apply the Terraform configuration:
 
-  ```
-  terraform apply
-  ```
+ ```
+ terraform apply
+ ```
 
 ## Destroy
 
 To destroy AWS resources, follow the steps below:
 
 * Ensure to have `terraform.tfstate` file.
-  ```
-  terraform destroy
-  ```
+ ```
+ terraform destroy
+ ```
 
 ## Input Variables
 
@@ -69,11 +69,11 @@ To destroy AWS resources, follow the steps below:
 #### nfs-setup-main.tf
 
 * **null_resource.nfs-server-setup**:
-  This resource uses SSH to connect to the NFS server and runs the install-nfs-server.sh script to configure the NFS server.
-  The script logs its output to a file `/tmp/nfs-server-log` on the server.
+ This resource uses SSH to connect to the NFS server and runs the install-nfs-server.sh script to configure the NFS server.
+ The script logs its output to a file `/tmp/nfs-server-log` on the server.
 * **null_resource.nfs-csi-setup**:
-  This resource runs the nfs-csi.sh script locally after the NFS server has been set up.
-  The script configures the NFS CSI driver and logs its output locally `./tmp/nfs-csi-log`.
+ This resource runs the nfs-csi.sh script locally after the NFS server has been set up.
+ The script configures the NFS CSI driver and logs its output locally `./tmp/nfs-csi-log`.
 
 #### nfs-csi.sh
 
