@@ -51,7 +51,7 @@ apps:
     version: 0.1.0
     chart: $WORKDIR/utils/istio-addons/postgres-istio-addons-0.1.0.tgz
     set:
-      postgresHost: "postgres.sandbox.xyz.net"
+      postgresHost: "postgres.rdt1.mosip.net"
     wait: true
     priority: -4
     timeout: 1200
@@ -66,77 +66,77 @@ apps:
       dbUserPasswords.dbuserPassword: ""
       databases.mosip_master.enabled: "true"
       databases.mosip_master.branch: "v1.2.1.3"
-      databases.mosip_master.host: "postgres.sandbox.xyz.net"
+      databases.mosip_master.host: "postgres.rdt1.mosip.net"
       databases.mosip_master.port: 5433
 
       databases.mosip_audit.enabled: "true"
       databases.mosip_audit.branch: "v1.2.0.1"
-      databases.mosip_audit.host: "postgres.sandbox.xyz.net"
+      databases.mosip_audit.host: "postgres.rdt1.mosip.net"
       databases.mosip_audit.port: 5433
 
       databases.mosip_keymgr.enabled: "true"
       databases.mosip_keymgr.branch: "v1.2.1.0"
-      databases.mosip_keymgr.host: "postgres.sandbox.xyz.net"
+      databases.mosip_keymgr.host: "postgres.rdt1.mosip.net"
       databases.mosip_keymgr.port: 5433
 
       databases.mosip_kernel.enabled: "true"
       databases.mosip_kernel.branch: " v1.2.0.2"
-      databases.mosip_kernel.host: "postgres.sandbox.xyz.net"
+      databases.mosip_kernel.host: "postgres.rdt1.mosip.net"
       databases.mosip_kernel.port: 5433
 
       databases.mosip_idmap.enabled: "true"
       databases.mosip_idmap.branch: "v1.2.2.3"
-      databases.mosip_idmap.host: "postgres.sandbox.xyz.net"
+      databases.mosip_idmap.host: "postgres.rdt1.mosip.net"
       databases.mosip_idmap.port: 5433
 
       databases.mosip_prereg.enabled: "true"
       databases.mosip_prereg.branch: "v1.2.0.3"
-      databases.mosip_prereg.host: "postgres.sandbox.xyz.net"
+      databases.mosip_prereg.host: "postgres.rdt1.mosip.net"
       databases.mosip_prereg.port: 5433
 
       databases.mosip_idrepo.enabled: "true"
       databases.mosip_idrepo.branch: "v1.2.2.3"
-      databases.mosip_idrepo.host: "postgres.sandbox.xyz.net"
+      databases.mosip_idrepo.host: "postgres.rdt1.mosip.net"
       databases.mosip_idrepo.port: 5433
 
       databases.mosip_ida.enabled: "true"
       databases.mosip_ida.branch: "v1.2.1.2-beta.1"
-      databases.mosip_ida.host: "postgres.sandbox.xyz.net"
+      databases.mosip_ida.host: "postgres.rdt1.mosip.net"
       databases.mosip_ida.port: 5433
 
       databases.mosip_credential.enabled: "true"
       databases.mosip_credential.branch: "v1.2.2.3"
-      databases.mosip_credential.host: "postgres.sandbox.xyz.net"
+      databases.mosip_credential.host: "postgres.rdt1.mosip.net"
       databases.mosip_credential.port: 5433
 
       databases.mosip_regprc.enabled: "true"
       databases.mosip_regprc.branch: "v1.2.1.2"
-      databases.mosip_regprc.host: "postgres.sandbox.xyz.net"
+      databases.mosip_regprc.host: "postgres.rdt1.mosip.net"
       databases.mosip_regprc.port: 5433
 
       databases.mosip_pms.enabled: "true"
       databases.mosip_pms.branch: "release-1.3.x"
-      databases.mosip_pms.host: "postgres.sandbox.xyz.net"
+      databases.mosip_pms.host: "postgres.rdt1.mosip.net"
       databases.mosip_pms.port: 5433
 
       databases.mosip_hotlist.enabled: "true"
       databases.mosip_hotlist.branch: "v1.2.1.3"
-      databases.mosip_hotlist.host: "postgres.sandbox.xyz.net"
+      databases.mosip_hotlist.host: "postgres.rdt1.mosip.net"
       databases.mosip_hotlist.port: 5433
 
       databases.mosip_resident.enabled: "true"
       databases.mosip_resident.branch: "v1.2.1.2"
-      databases.mosip_resident.host: "postgres.sandbox.xyz.net"
+      databases.mosip_resident.host: "postgres.rdt1.mosip.net"
       databases.mosip_resident.port: 5433
 
       databases.mosip_otp.enabled: "true"
       databases.mosip_otp.branch: "release-1.3.x"
-      databases.mosip_otp.host: "postgres.sandbox.xyz.net"
+      databases.mosip_otp.host: "postgres.rdt1.mosip.net"
       databases.mosip_otp.port: 5433
 
       databases.mosip_digitalcard.enabled: "true"
       databases.mosip_digitalcard.branch: "v1.2.0.1"
-      databases.mosip_digitalcard.host: "postgres.sandbox.xyz.net"
+      databases.mosip_digitalcard.host: "postgres.rdt1.mosip.net"
       databases.mosip_digitalcard.port: 5433
     wait: true
     timeout: 1200
@@ -185,7 +185,7 @@ apps:
     version: 0.1.0
     chart: $WORKDIR/utils/istio-addons/iam-istio-addons-0.1.0.tgz
     set:
-      keycloakExternalHost: "iam.sandbox.xyz.net"
+      keycloakExternalHost: "iam.rdt1.mosip.net"
       keycloakInternalHost: "keycloak.keycloak"
       service: "keycloak"
     wait: true
@@ -200,9 +200,9 @@ apps:
     set: 
       image.repository: "harbor.mosip.net/mosipqa/keycloak-init"
       # image.tag: "1.2.0.1"
-      keycloakExternalHost: "iam.sandbox.xyz.net"
+      keycloakExternalHost: "iam.rdt1.mosip.net"
       keycloakInternalHost: "keycloak.keycloak"
-      keycloak.realms.mosip.realm_config.attributes.frontendUrl: "https://iam.sandbox.xyz.net/auth"
+      keycloak.realms.mosip.realm_config.attributes.frontendUrl: "https://iam.rdt1.mosip.net/auth"
       keycloak.realms.mosip.realm_config.smtpServer.auth: "false"
       keycloak.realms.mosip.realm_config.smtpServer.host: "smtp.gmail.com"
       keycloak.realms.mosip.realm_config.smtpServer.port: "465"
@@ -268,7 +268,7 @@ apps:
     version: 1.2.0
     chart: $WORKDIR/utils/istio-addons/minio-istio-addons-1.2.0.tgz
     set:
-      externalHost: "minio.sandbox.xyz.net"
+      externalHost: "minio.rdt1.mosip.net"
     wait: true
     timeout: 1200
     hooks:
@@ -299,14 +299,14 @@ apps:
     set:
       image.registry: "harbor.mosip.net"    
       istio.enabled: "true"
-      istio.hosts[0]: "activemq.sandbox.xyz.net"
+      istio.hosts[0]: "activemq.rdt1.mosip.net"
       istio.ingressController.name: "ingressgateway-internal"
       istio.prefix: ""
     wait: true
     timeout: 1200
     priority: -8
     hooks:
-      postInstall: "$WORKDIR/hooks/captcha-setup.sh  <prereg-site-key> <prereg-secret-key> <admin-site-key> <admin-secret-key> <resident-site-key> <resident-secret-key"
+      postInstall: "$WORKDIR/hooks/captcha-setup.sh  6LfqKeArAAAAAGERQ27RS9MyJkmnt5PYrP6qByVk 6LfqKeArAAAAAPMVt5mFmXpYzVsgd1RhR3TqX56x 6LdrK-ArAAAAAGEF6v-3hRykdoDoWiXd_npRgRHc 6LdrK-ArAAAAAPiUpqPndwYYY7b6PhPiC6O_En7t 6LfkK-ArAAAAACj8VjTEy_Gpr_ZOLIkTvh9Slne5 6LfkK-ArAAAAAAp7ojYOk1mN4qdjKXLF4LBZ11jV"
   # Note: Create a google recaptcha v2 ("I am not a Robot") from Google Recaptcha Admin.
   # Pass the captcha site and secret key in the above post install script as an argument.To create site and secret key below is the link:
   # https://cloud.google.com/security/products/recaptcha
@@ -382,7 +382,7 @@ apps:
     version: 1.2.0
     chart: $WORKDIR/utils/istio-addons/kafka-istio-addons-1.2.0.tgz
     set:
-      kafkaUiHost: "kafka.sandbox.xyz.net"
+      kafkaUiHost: "kafka.rdt1.mosip.net"
       installName: "kafka-ui"
     wait: true
     timeout: 1200
@@ -397,28 +397,28 @@ apps:
     chart: mosip/landing-page
     set:
       landing.version: "develop"
-      landing.name: "<sandbox>"
-      landing.api: "api.sandbox.xyz.net"
-      landing.apiInternal: "api-internal.sandbox.xyz.net"
-      landing.admin: "admin.sandbox.xyz.net"
-      landing.prereg: "prereg.sandbox.xyz.net"
-      landing.kafka: "kafka.sandbox.xyz.net"
-      landing.kibana: "kibana.sandbox.xyz.net"
-      landing.activemq: "activemq.sandbox.xyz.net"
-      landing.minio: "minio.sandbox.xyz.net"
-      landing.keycloak: "iam.sandbox.xyz.net"
-      landing.regclient: "regclient.sandbox.xyz.net"
-      landing.postgres.host: "postgres.sandbox.xyz.net"
+      landing.name: "rdt1"
+      landing.api: "api.rdt1.mosip.net"
+      landing.apiInternal: "api-internal.rdt1.mosip.net"
+      landing.admin: "admin.rdt1.mosip.net"
+      landing.prereg: "prereg.rdt1.mosip.net"
+      landing.kafka: "kafka.rdt1.mosip.net"
+      landing.kibana: "kibana.rdt1.mosip.net"
+      landing.activemq: "activemq.rdt1.mosip.net"
+      landing.minio: "minio.rdt1.mosip.net"
+      landing.keycloak: "iam.rdt1.mosip.net"
+      landing.regclient: "regclient.rdt1.mosip.net"
+      landing.postgres.host: "postgres.rdt1.mosip.net"
       landing.postgres.port: "5433"
-      landing.compliance: "compliance.sandbox.xyz.net"
-      landing.pmp: "pmp.sandbox.xyz.net"
-      landing.resident: "resident.sandbox.xyz.net"
-      landing.esignet: "esignet.sandbox.xyz.net"
-      landing.smtp: "smtp.sandbox.xyz.net"
-      landing.healthservices: "healthservices.sandbox.xyz.net"
-      landing.injiweb: "injiweb.sandbox.xyz.net"
-      landing.injiverify: "injiverify.sandbox.xyz.net"
-      istio.host: "<sandbox>.mosip.net"
+      landing.compliance: "compliance.rdt1.mosip.net"
+      landing.pmp: "pmp.rdt1.mosip.net"
+      landing.resident: "resident.rdt1.mosip.net"
+      landing.esignet: "esignet.rdt1.mosip.net"
+      landing.smtp: "smtp.rdt1.mosip.net"
+      landing.healthservices: "healthservices.rdt1.mosip.net"
+      landing.injiweb: "injiweb.rdt1.mosip.net"
+      landing.injiverify: "injiverify.rdt1.mosip.net"
+      istio.host: "rdt1.mosip.net"
     wait: true
     timeout: 1200
     hooks:
