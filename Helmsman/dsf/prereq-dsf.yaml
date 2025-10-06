@@ -33,17 +33,17 @@ apps:
     timeout: 900
     priority: -6
     hooks:
-      postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh <sandbox> helmsman"
-      postUpgrade: "$WORKDIR/hooks/install-istio-and-httpbin.sh <sandbox> helmsman"
+      postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh rdt1 helmsman"
+      postUpgrade: "$WORKDIR/hooks/install-istio-and-httpbin.sh rdt1 helmsman"
 
   rancher-monitoring:
     namespace: cattle-monitoring-system
-    enabled: false
+    enabled: true
     version: 103.1.0+up45.31.1
     chart: mosip/rancher-monitoring
     set:
-      grafana.global.cattle.clusterId: "c-m-pbrcfglw"
-      global.cattle.clusterId: "c-m-pbrcfglw"
+      grafana.global.cattle.clusterId: "c-m-mz5dn6nt"
+      global.cattle.clusterId: "c-m-mz5dn6nt"
     wait: true
     valuesFile: "$WORKDIR/utils/monitoring_values.yaml"  
     priority: -5
@@ -87,7 +87,7 @@ apps:
     version: 0.1.0
     chart: $WORKDIR/utils/istio-addons/logging-istio-addons-0.1.0.tgz
     set:
-      kibanaHost: "kibana.sandbox.xyz.net"
+      kibanaHost: "kibana.rdt1.mosip.net"
       installName: "elasticsearch-kibana"
     wait: true
     priority: -3
