@@ -52,7 +52,7 @@ on:
         description: 'Enable state locking cleanup (must match the setting used during creation)'
         required: false
         type: boolean
-        default: true
+        default: false
       SSH_PRIVATE_KEY:
         description: 'The GitHub secret containing the private key of the SSH key named in the preceding input variable `SSH_PRIVATE_KEY` is used for SSH login purposes on nginx node.'
         required: true
