@@ -1073,24 +1073,22 @@ To regenerate import URL if needed:
  terraform/implementations/aws/infra/
 ```
 
- **Add KUBECONFIG as Environment Secret:**
-
-- Go to your GitHub repository → Settings → Environments
-- Select or create environment for your branch (e.g., `release-0.1.0`, `main`, `develop`)
-- Click "Add secret" under Environment secrets
-- Name: `KUBECONFIG`
-- Value: Copy the entire contents of the kubeconfig file from `terraform/implementations/aws/infra/`
-
- **Example kubeconfig file location:**
+**Example kubeconfig file location:**
 
 ```
  terraform/implementations/aws/infra/kubeconfig_<cluster-name>
  terraform/implementations/aws/infra/<cluster-name>-role.yaml
 ```
 
- **Branch Environment Configuration:**
+ **Add KUBECONFIG as Environment Secret:**
 
-- Ensure the environment name matches your deployment branch
+- Go to your GitHub repository → Settings → Environments
+- Select or create environment for your branch (e.g., `release-0.1.0`, `main`, `develop`)
+- Click "Add secret" under Environment secrets
+- Name: `KUBECONFIG`
+ - Value: Copy the entire contents of the kubeconfig file from `terraform/implementations/aws/infra/`
+
+ **Branch Environment Configuration:- Ensure the environment name matches your deployment branch
 - Configure environment protection rules if needed
 - Verify Helmsman workflows reference the correct environment
 
