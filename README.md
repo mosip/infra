@@ -718,20 +718,7 @@ nginx_node_ebs_volume_size_2 = 200 # Enable second EBS volume for PostgreSQL
 
 If you have deployed **observ-infra** (Rancher management cluster), you can import your main infra cluster into Rancher for centralized monitoring and management.
 
-**Step 1: Deploy observ-infra (if not already done)**
-
-```bash
-# Deploy Rancher management cluster first
-Actions → Terraform Infrastructure → Run workflow
-Parameters:
-├─ Component: observ-infra
-├─ Cloud Provider: aws
-└─ Backend: local
-```
-
-Wait for observ-infra deployment to complete (~15-20 minutes).
-
-**Step 2: Generate Rancher Import URL**
+**Step 1: Generate Rancher Import URL**
 
 1. **Access Rancher UI:**
 
