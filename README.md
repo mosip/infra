@@ -898,13 +898,15 @@ To regenerate import URL if needed:
 
 3. **Update prereq-dsf.yaml:**
 
- > **IMPORTANT CONFIGURATION:** This file requires **clusterid** configuration! See [DSF Configuration Guide - clusterid](docs/DSF_CONFIGURATION_GUIDE.md#critical-configuration-clusterid)
+ > **IMPORTANT CONFIGURATION:** This file requires **clusterid** configuration **only if you're using Rancher UI** (when `rancher_import = true`)! See [DSF Configuration Guide - clusterid](docs/DSF_CONFIGURATION_GUIDE.md#critical-configuration-clusterid)
 
  **Critical Updates Required:**
 
- - **clusterid Configuration (CRITICAL!):**
+ - **clusterid Configuration (OPTIONAL - only if using Rancher):**
+ - **When needed?** Only if `rancher_import = true` in your terraform configuration
+ - **Skip if:** Deploying without Rancher UI (`rancher_import = false`) - ignore this entire section
  - **What is this?** Unique identifier for your Rancher-managed cluster
- - **Why needed?** Monitoring dashboards won't work without it
+ - **Why needed?** Monitoring dashboards won't work without it in Rancher deployments
  - **How to find:** See [DSF Guide - Finding clusterid](docs/DSF_CONFIGURATION_GUIDE.md#how-to-find-your-clusterid)
  - **Location in file:** Around line 40-45
  - **What to change:**
