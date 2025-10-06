@@ -1121,7 +1121,7 @@ apps:
       extraEnvVarsCM[1]: "keycloak-env-vars"
       extraEnvVarsCM[2]: "keycloak-host"
       onboarding.modules[0].name: "ida"
-      onboarding.modules[0].enabled: false
+      onboarding.modules[0].enabled: true
       onboarding.modules[1].name: "print"
       onboarding.modules[1].enabled: true
       onboarding.modules[2].name: "abis"
@@ -1129,9 +1129,9 @@ apps:
       onboarding.modules[3].name: "resident"
       onboarding.modules[3].enabled: true
       onboarding.modules[4].name: "mobileid"
-      onboarding.modules[4].enabled: false
+      onboarding.modules[4].enabled: true
       onboarding.modules[5].name: "digitalcard"
-      onboarding.modules[5].enabled: false
+      onboarding.modules[5].enabled: true
       onboarding.modules[6].name: "esignet"
       onboarding.modules[6].enabled: false
       onboarding.modules[7].name: "demo-oidc"
@@ -1139,7 +1139,7 @@ apps:
       onboarding.modules[8].name: "resident-oidc"
       onboarding.modules[8].enabled: false
       onboarding.modules[9].name: "mimoto-keybinding"
-      onboarding.modules[9].enabled: false
+      onboarding.modules[9].enabled: true
     wait: true
     timeout: 1200
     priority: -2
