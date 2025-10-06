@@ -1,7 +1,7 @@
 # Environment name (infra component)
-cluster_name = "rdp1"
+cluster_name = "rdp2"
 # MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "rdp1.mosip.net"
+cluster_env_domain = "rdp2.mosip.net"
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
 mosip_email_id = "chandra.mishra@technoforte.co.in"
 # SSH login key name for AWS node instances (ex: my-ssh-key)
@@ -57,7 +57,7 @@ WIREGUARD_CIDR = "10.0.0.0/8" # Use your actual WireGuard VPN CIDR
 # Rancher Import URL
 # Rancher Import Configuration
 enable_rancher_import = true
-rancher_import_url    = "\"kubectl apply -f https://rancher.observation.mosip.net/v3/import/lhnv5pldz777ksr2p9tnc46fthqv6fdbwzh47bz8k9jtlhtmk7xmnp_c-m-h9wbhzs8.yaml\""
+rancher_import_url    = "\"kubectl apply -f https://rancher.observation.mosip.net/v3/import/7wcfv4fd9k4dttjx6wqdzdvzsv6pkxbfl46b5m8bq6z7fvz9chj5gx_c-m-gvhc4pgv.yaml\""
 # DNS Records to map
 subdomain_public   = ["resident", "prereg", "esignet", "healthservices", "signup"]
 subdomain_internal = ["admin", "iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio", "regclient", "compliance"]
