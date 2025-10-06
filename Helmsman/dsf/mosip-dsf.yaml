@@ -1121,7 +1121,7 @@ apps:
       extraEnvVarsCM[1]: "keycloak-env-vars"
       extraEnvVarsCM[2]: "keycloak-host"
       onboarding.modules[0].name: "ida"
-      onboarding.modules[0].enabled: true
+      onboarding.modules[0].enabled: false
       onboarding.modules[1].name: "print"
       onboarding.modules[1].enabled: true
       onboarding.modules[2].name: "abis"
