@@ -64,8 +64,6 @@ apps:
     enabled: true
     version: 12.0.3-develop
     chart: mosip/conf-secrets
-    set:
-      image.registry: "harbor.mosip.net" 
     priority: -20
 
   config-server:
@@ -73,8 +71,6 @@ apps:
     enabled: true
     version: 12.0.3-develop
     chart: mosip/config-server
-    set:
-      image.repository: "harbor.mosip.net/mosipid/config-server"
     valuesFile: "$WORKDIR/utils/config-server-values.yaml"
     wait: true
     timeout: 1200
@@ -87,8 +83,7 @@ apps:
     enabled: true
     version: 12.0.4
     chart: mosip/artifactory
-    set:
-      image.registry: "harbor.mosip.net" 
+    # set:
     #   image.repository: "mosipid/artifactory-server"
     #   image.tag: "1.4.1-ES"
     wait: true
@@ -109,7 +104,6 @@ apps:
     version: 0.1.0-beta.1
     chart: mosip/captcha
     set:
-      image.registry: "harbor.mosip.net" 
       # image.repository: "mosipdev/captcha-validation-service"
       # image.tag: "develop"
       extraEnvVars[0].name: MOSIP_CAPTCHA_SECRET_PREREGISTRATION
@@ -127,7 +121,6 @@ apps:
     version: 12.0.2
     chart: mosip/mock-abis
     set:
-      image.registry: "harbor.mosip.net" 
       startupProbe.failureThreshold: 60
     #   image.repository: ""
     #   image.tag: ""
@@ -141,7 +134,6 @@ apps:
     version: 12.0.2
     chart: mosip/mock-mv
     set:
-      image.registry: "harbor.mosip.net" 
       resources.requests.cpu: 200m
       resources.requests.memory: 1500Mi
     #   image.repository: ""
@@ -156,7 +148,6 @@ apps:
     version: 12.0.1
     chart: mosip/keygen
     set:
-      image.registry: "harbor.mosip.net" 
       # image.repository: "mosipdev/keys-generator"
       # image.tag: "MOSIP-41674"
       springConfigNameEnv: "kernel" 
@@ -175,8 +166,7 @@ apps:
     enabled: true
     version: 12.1.0
     chart: mosip/keymanager
-    set:
-      image.registry: "harbor.mosip.net" 
+    # set:
     #   image.repository: "mosipid/kernel-keymanager-service"
     #   image.tag: "1.2.1.0"
     #   persistence.enabled: "false"
@@ -195,8 +185,7 @@ apps:
     enabled: true
     version: 12.0.1
     chart: mosip/websub-consolidator
-    set:
-      image.registry: "harbor.mosip.net" 
+    # set:
     #  image.repository: "mosipqa/consolidator-websub-service"
     #  image.tag: "1.3.x"
     wait: true
@@ -209,8 +198,7 @@ apps:
     enabled: true
     version: 12.0.1
     chart: mosip/websub
-    set:
-      image.registry: "harbor.mosip.net" 
+    # set:
     #   image.repository: "mosipqa/websub-service"
     #   image.tag: "1.3.x"
     timeout: 1200
@@ -222,7 +210,6 @@ apps:
     version: 1.0.0
     chart: mosip/mock-smtp
     set:
-      image.registry: "harbor.mosip.net" 
       # image.repository: "mosipdev/mock-smtp"
       # image.tag: "1.0.0"
       istio.hosts[0]: "smtp.sandbox.xyz.net"
@@ -236,7 +223,7 @@ apps:
     version: 12.0.1
     chart: mosip/masterdata-loader
     set:
-      image.repository: "harbor.mosip.net/mosipid/masterdata-loader"
+      # image.repository: "mosipqa/masterdata-loader"
       # image.tag: "develop"
       mosipDataGithubBranch: "v1.2.2.0"
       mosipDataGithubRepo: "https://github.com/mosip/mosip-data"
@@ -253,8 +240,7 @@ apps:
     enabled: true
     version: 12.0.2
     chart: mosip/authmanager
-    set:
-      image.registry: "harbor.mosip.net" 
+    # set:
     #   image.repository: "mosipdev/kernel-auth-service"
     #   image.tag: "develop"
     priority: -10
@@ -266,8 +252,7 @@ apps:
     enabled: true
     version: 12.0.1
     chart: mosip/auditmanager
-    set:
-      image.registry: "harbor.mosip.net" 
+    # set:
     #   image.repository: "mosipdev/kernel-auditmanager-service"
     #   image.tag: "release-1.3.x"
     priority: -10
@@ -280,7 +265,6 @@ apps:
     version: 12.0.2
     chart: mosip/idgenerator
     set:
-      image.registry: "harbor.mosip.net" 
       # image.repository: "bn1997/kernel-idgenerator-service"
       # image.tag: "develop"
       resources.limits.cpu: "1"
@@ -299,7 +283,6 @@ apps:
     version: 12.1.2
     chart: mosip/masterdata
     set:
-      image.registry: "harbor.mosip.net" 
       # image.repository: "mosipid/kernel-masterdata-service"
       # image.tag: "1.2.1.2"
       resources.limits.cpu: "600m"
@@ -317,8 +300,7 @@ apps:
     enabled: true
     version: 12.0.1
     chart: mosip/otpmanager
-    set:
-      image.registry: "harbor.mosip.net" 
+    # set:
     #   image.repository: ""
     #   image.tag: ""
     priority: -10
@@ -330,8 +312,7 @@ apps:
     enabled: true
     version: 12.0.2
     chart: mosip/pridgenerator
-    set:
-      image.registry: "harbor.mosip.net" 
+    # set:
     #   image.repository: ""
     #   image.tag: ""
     priority: -10
@@ -343,8 +324,7 @@ apps:
     enabled: true
     version: 12.0.2
     chart: mosip/ridgenerator
-    set:
-      image.registry: "harbor.mosip.net" 
+    # set:
     #   image.repository: ""
     #   image.tag: ""
     priority: -10
@@ -357,7 +337,6 @@ apps:
     version: 12.1.2
     chart: mosip/syncdata
     set:
-      image.registry: "harbor.mosip.net" 
       # image.repository: "mosipid/kernel-syncdata-service"
       # image.tag: "1.2.1.2"
       resources.limits.cpu: "500m"
@@ -374,8 +353,7 @@ apps:
     enabled: true
     version: 12.0.2
     chart: mosip/notifier
-    set:
-      image.registry: "harbor.mosip.net" 
+    # set:
     #   image.repository: ""
     #   image.tag: ""
     priority: -10
@@ -388,12 +366,10 @@ apps:
     version: 12.0.1
     chart: mosip/biosdk-service
     set:
-      image.registry: "harbor.mosip.net" 
       # image.repository: "mosipid/biosdk-server"
       # image.tag: "12.0.1"
       biosdk.zippedLibUrl: "http://artifactory.artifactory/artifactory/libs-release-local/biosdk/biosdk-lib.zip"
       biosdk.bioapiImpl: "io.mosip.mock.sdk.impl.SampleSDKV2"
-    wait: true  
     priority: -10
     timeout: 1200
 
@@ -403,11 +379,9 @@ apps:
     enabled: true
     version: 12.0.4
     chart: mosip/packetmanager
-    set:
-      image.registry: "harbor.mosip.net" 
+    # set:
     #   image.repository: "mosipid/commons-packet-service"
     #   image.tag: "1.2.0.3"
-    wait: true
     priority: -10
     timeout: 1200
 
@@ -417,11 +391,9 @@ apps:
     enabled: true
     version: 12.0.2
     chart: mosip/datashare
-    set:
-      image.registry: "harbor.mosip.net" 
+    # set:
     #   image.repository: "mosipid/data-share-service"
     #   image.tag: "1.2.0.1"
-    wait: true
     priority: -10
     timeout: 1200
 
@@ -431,7 +403,6 @@ apps:
     version: 12.0.3
     chart: mosip/prereg-gateway
     set:
-      image.registry: "harbor.mosip.net" 
       istio.hosts[0]: "prereg.sandbox.xyz.net"
     priority: -9
     timeout: 1200
@@ -442,7 +413,6 @@ apps:
     version: 12.0.1
     chart: mosip/prereg-captcha
     set:
-      image.registry: "harbor.mosip.net" 
       image.repository: "mosipid/pre-registration-captcha-service"
       image.tag: "1.2.0.2"
     priority: -9
@@ -453,8 +423,7 @@ apps:
     enabled: true
     version: 12.0.3
     chart: mosip/prereg-application
-    set:
-      image.registry: "harbor.mosip.net"  
+    # set:
     #   image.repository: "mosipid/pre-registration-application-service"
     #   image.tag: "1.2.0.2"
     priority: -9
@@ -467,7 +436,6 @@ apps:
     version: 12.0.2
     chart: mosip/prereg-booking
     set:
-      image.registry: "harbor.mosip.net" 
       image.repository: "mosipid/pre-registration-booking-service"
       image.tag: "1.2.0.2"
     priority: -9
@@ -478,8 +446,7 @@ apps:
     enabled: true
     version: 12.0.3
     chart: mosip/prereg-datasync
-    set:
-      image.registry: "harbor.mosip.net" 
+    # set:
     #   image.repository: "mosipid/pre-registration-datasync-service"
     #   image.tag: "1.2.0.2"
     priority: -9
@@ -491,8 +458,7 @@ apps:
     enabled: true
     version: 12.0.3
     chart: mosip/prereg-batchjob
-    set:
-      image.registry: "harbor.mosip.net" 
+    # set:
     #   image.repository: "mosipid/pre-registration-batchjob"
     #   image.tag: "1.2.0.2"
     priority: -9
@@ -506,7 +472,6 @@ apps:
     version: 12.0.1
     chart: mosip/prereg-ui
     set:
-      image.registry: "harbor.mosip.net" 
       # image.repository: ""
       # image.tag: ""
       prereg.apiHost: "prereg.sandbox.xyz.net"
@@ -519,8 +484,7 @@ apps:
     enabled: true
     version: 12.2.3
     chart: mosip/idrepo-saltgen
-    set:
-      image.registry: "harbor.mosip.net" 
+    # set:
     #   image.repository: ""
     #   image.tag: ""
     #timeout: 240
@@ -534,7 +498,6 @@ apps:
     version: 12.2.3
     chart: mosip/credential
     set:
-      image.registry: "harbor.mosip.net" 
       # image.repository: "mosipid/credential-service"
       # image.tag: "1.2.2.2"
       resources.limits.cpu: "500m"
@@ -550,7 +513,6 @@ apps:
     version: 12.2.3
     chart: mosip/credentialrequest
     set:
-      image.registry: "harbor.mosip.net" 
       # image.repository: "mosipid/credential-request-generator"
       # image.tag: "1.2.2.2"
       resources.limits.cpu: "1"
@@ -560,13 +522,13 @@ apps:
     priority: -7
     timeout: 1200
   
+
   identity:
     namespace: idrepo
     enabled: true
     version: 12.2.3
     chart: mosip/identity
-    set:
-      image.registry: "harbor.mosip.net" 
+    # set:
     #   image.repository: "mosipid/id-repository-identity-service"
     #   image.tag: "1.2.2.2"
     priority: -7
@@ -577,8 +539,7 @@ apps:
     enabled: true
     version: 12.2.3
     chart: mosip/vid
-    set:
-      image.registry: "harbor.mosip.net" 
+    # set:
     #   image.repository: "mosipid/id-repository-vid-service"
     #   image.tag: "1.2.2.2"
     priority: -6
@@ -604,7 +565,6 @@ apps:
     version: 12.2.2
     chart: mosip/pms-partner
     set:
-      image.registry: "harbor.mosip.net" 
       # image.repository: "mosipid/partner-management-service"
       # image.tag: "1.2.2.1"
       istio.corsPolicy.allowOrigins[0].prefix: "https://pmp.sandbox.xyz.net"
@@ -618,7 +578,6 @@ apps:
     version: 12.2.2
     chart: mosip/pms-policy
     set:
-      image.registry: "harbor.mosip.net" 
       # image.repository: "mosipid/partner-management-service"
       # image.tag: "1.2.2.1"
       istio.corsPolicy.allowOrigins[0].prefix: "https://pmp.sandbox.xyz.net"
@@ -646,7 +605,6 @@ apps:
     version: 12.2.2
     chart: mosip/pmp-revamp-ui
     set:
-      image.registry: "harbor.mosip.net" 
       # image.repository: "mosipqa/pmp-revamp-ui"
       # image.tag: "develop"
       pmp_revamp.react_app_partner_manager_api_base_url: "https://api-internal.sandbox.xyz.net/v1/partnermanager"
@@ -663,7 +621,6 @@ apps:
     version: 12.1.2
     chart: mosip/regproc-salt
     set:
-      image.registry: "harbor.mosip.net" 
       image.repository: "mosipid/kernel-salt-generator"
       image.tag: "1.2.0.2"
     priority: -9
@@ -676,7 +633,6 @@ apps:
     version: 12.1.2
     chart: mosip/regproc-workflow
     set:
-      image.registry: "harbor.mosip.net" 
       resources.limits.cpu: "500m"
       resources.limits.memory: "3000Mi"
       resources.requests.cpu: "200m"
@@ -695,7 +651,6 @@ apps:
     version: 12.1.2
     chart: mosip/regproc-status
     set:
-      image.registry: "harbor.mosip.net" 
       resources.limits.cpu: "500m"
       resources.limits.memory: "4000Mi"
       resources.requests.cpu: "100m"
@@ -712,7 +667,6 @@ apps:
     version: 12.1.2
     chart: mosip/regproc-camel
     set:
-      image.registry: "harbor.mosip.net" 
       resources.limits.cpu: "1"
       resources.limits.memory: "2000Mi"
       resources.requests.cpu: "100m"
@@ -727,7 +681,6 @@ apps:
     version: 12.1.2
     chart: mosip/regproc-pktserver
     set:
-      image.registry: "harbor.mosip.net" 
       resources.limits.cpu: "500m"
       resources.limits.memory: "1250Mi"
       resources.requests.cpu: "500m"
@@ -742,7 +695,6 @@ apps:
     version: 12.1.2
     chart: mosip/regproc-group1
     set:
-      image.registry: "harbor.mosip.net" 
       resources.limits.cpu: "1"
       resources.limits.memory: "5000Mi"
       resources.requests.cpu: "100m"
@@ -759,7 +711,6 @@ apps:
     version: 12.1.2
     chart: mosip/regproc-group2
     set:
-      image.registry: "harbor.mosip.net" 
     #   image.repository: ""
     #   image.tag: ""
       resources.limits.cpu: "500m"
@@ -777,7 +728,6 @@ apps:
     version: 12.1.2
     chart: mosip/regproc-group3
     set:
-      image.registry: "harbor.mosip.net" 
       resources.limits.cpu: "500m"
       resources.limits.memory: "3000Mi"
       resources.requests.cpu: "500m"
@@ -792,7 +742,6 @@ apps:
     version: 12.1.2
     chart: mosip/regproc-group4
     set:
-      image.registry: "harbor.mosip.net" 
       resources.limits.cpu: "500m"
       resources.limits.memory: "4000Mi"
       resources.requests.cpu: "500m"
@@ -807,7 +756,6 @@ apps:
     version: 12.1.2
     chart: mosip/regproc-group5
     set:
-      image.registry: "harbor.mosip.net" 
       resources.limits.cpu: "500m"
       resources.limits.memory: "4000Mi"
       resources.requests.cpu: "500m"
@@ -822,7 +770,6 @@ apps:
     version: 12.1.2
     chart: mosip/regproc-group6
     set:
-      image.registry: "harbor.mosip.net" 
       resources.limits.cpu: "500m"
       resources.limits.memory: "4000Mi"
       resources.requests.cpu: "500m"
@@ -837,7 +784,6 @@ apps:
     version: 12.1.2
     chart: mosip/regproc-group7
     set:
-      image.registry: "harbor.mosip.net" 
       resources.limits.cpu: "500m"
       resources.limits.memory: "4000Mi"
       resources.requests.cpu: "500m"
@@ -852,7 +798,6 @@ apps:
     version: 12.1.2
     chart: mosip/regproc-trans
     set:
-      image.registry: "harbor.mosip.net" 
       resources.limits.cpu: "500m"
       resources.limits.memory: "2500Mi"
       resources.requests.cpu: "100m"
@@ -867,7 +812,6 @@ apps:
     version: 12.1.2
     chart: mosip/regproc-notifier
     set:
-      image.registry: "harbor.mosip.net" 
       resources.limits.cpu: "500m"
       resources.limits.memory: "1500Mi"
       resources.requests.cpu: "500m"
@@ -884,7 +828,6 @@ apps:
     version: 12.1.2
     chart: mosip/regproc-reprocess
     set:
-      image.registry: "harbor.mosip.net" 
       resources.limits.cpu: "500m"
       resources.limits.memory: "2500Mi"
       resources.requests.cpu: "100m"
@@ -901,7 +844,6 @@ apps:
     version: 12.1.2
     chart: mosip/regproc-landingzone
     set:
-      image.registry: "harbor.mosip.net" 
       resources.limits.cpu: "500m"
       resources.limits.memory: "4000Mi"
       resources.requests.cpu: "100m"
@@ -918,7 +860,6 @@ apps:
     version: 12.1.2
     chart: mosip/admin-hotlist
     set:
-      image.registry: "harbor.mosip.net" 
       # image.repository: "mosipid/hotlist-service"
       # image.tag: "1.2.1.2"
       resources.limits.cpu: "500m"
@@ -935,7 +876,6 @@ apps:
     version: 12.1.2
     chart: mosip/admin-service
     set:
-      image.registry: "harbor.mosip.net" 
       # image.repository: "mosipid/admin-service"
       # image.tag: "1.2.1.2"
       resources.limits.cpu: "500m"
@@ -954,7 +894,6 @@ apps:
     version: 12.0.1
     chart: mosip/admin-ui
     set:
-      image.registry: "harbor.mosip.net" 
       # image.repository: "mosipqa/admin-ui"
       # image.tag: "1.3.x"
       admin.apiUrl: "https://api-internal.sandbox.xyz.net/v1/"
@@ -969,7 +908,6 @@ apps:
     version: 12.0.1
     chart: mosip/keygen
     set:
-      image.registry: "harbor.mosip.net" 
       springConfigNameEnv: "id-authentication" 
       softHsmCM: "softhsm-ida-share"
       # persistence.enabled: false
@@ -986,8 +924,7 @@ apps:
     enabled: true
     version: 12.1.2-beta.1
     chart: mosip/ida-auth
-    set:
-      image.registry: "harbor.mosip.net" 
+    # set:
     #   image.repository: "mosipid/authentication-service"
     #   image.tag: "1.2.1.0"
       # enable_insecure: "false"
@@ -1005,8 +942,7 @@ apps:
     enabled: true
     version: 12.1.2-beta.1
     chart: mosip/ida-internal
-    set:
-      image.registry: "harbor.mosip.net" 
+    # set:
     #   image.repository: "mosipid/authentication-internal-service"
     #   image.tag: "1.2.1.0"
       # enable_insecure: "false"
@@ -1022,8 +958,7 @@ apps:
     enabled: true
     version: 12.1.2-beta.1
     chart: mosip/ida-otp
-    set:
-      image.registry: "harbor.mosip.net" 
+    # set:
     #   image.repository: "mosipid/authentication-otp-service"
     #   image.tag: "1.2.1.0"
       # enable_insecure: false
@@ -1039,16 +974,11 @@ apps:
     enabled: true
     version: 12.0.1
     chart: mosip/print-service
-    set:
-      image.registry: "harbor.mosip.net" 
+    # set:
     #   image.repository: "mosipdev/print"
     #   image.tag: "release-1.3.x"
-      resources.limits.cpu: "500m"
-      resources.limits.memory: "3000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "2000Mi" 
     timeout: 1200
-    priority: -3
+    priority: -5
 
 
   digitalcard:
@@ -1056,12 +986,11 @@ apps:
     enabled: true
     version: 12.0.1
     chart: mosip/digitalcard
-    set:
-      image.registry: "harbor.mosip.net" 
+    # set:
     #  image.repository: "mosipid/digital-card-service"
     #  image.tag: "1.2.0.1"
     timeout: 1200
-    priority: -3
+    priority: -5
 
 
   resident:
@@ -1070,7 +999,6 @@ apps:
     version: 12.1.2
     chart: mosip/resident
     set:
-      image.registry: "harbor.mosip.net" 
       # image.repository: "mosipid/resident-service"
       # image.tag: "1.2.1.2"
       resources.requests.cpu: "300m"
@@ -1089,7 +1017,6 @@ apps:
     version: 0.9.1
     chart: mosip/resident-ui
     set:
-      image.registry: "harbor.mosip.net" 
       # image.repository: "mosipdev2/resident-ui"
       # image.tag: "release-0.9.x"
       resident.apiHost: "api-internal.sandbox.xyz.net"
@@ -1104,7 +1031,6 @@ apps:
     version: 12.0.1
     chart: mosip/partner-onboarder
     set:
-      image.registry: "harbor.mosip.net" 
       # image.repository: "mosipqa/partner-onboarder"
       # image.tag: "develop"
       # onboarding.configmaps.onboarding.enable_insecure: "false"
@@ -1152,7 +1078,6 @@ apps:
     version: 12.0.2-develop
     chart: mosip/mosip-file-server
     set:
-      image.registry: "harbor.mosip.net" 
       image.repository: "mosipid/mosip-file-server"
       image.tag: "1.2.0.1"
       mosipfileserver.host: "api.sandbox.xyz.net"
@@ -1169,7 +1094,6 @@ apps:
     version: 1.3.0-beta.1
     chart: mosip/regclient
     set:
-      image.registry: "harbor.mosip.net" 
       startupProbe.failureThreshold: "60"
       image.repository: "mosipid/registration-client"
       image.tag: "1.2.0.2"
