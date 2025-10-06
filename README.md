@@ -364,16 +364,16 @@ Add the required secrets as follows:
 
 > **New to Terraform workflows?** Check our [Workflow Guide](docs/WORKFLOW_GUIDE.md) for visual step-by-step instructions on navigating GitHub Actions!
 
-#### Understanding Terraform Apply vs Dry Run
+#### Understanding Terraform Apply vs Terraform Plan
 
 Before running any Terraform workflow, understand these modes:
 
 | Mode                                      | What It Does                                   | When to Use                                | Visual             |
 | ----------------------------------------- | ---------------------------------------------- | ------------------------------------------ | ------------------ |
-| **Dry Run** (checkbox unchecked ☐) | Shows what WOULD happen without making changes | Testing configurations, previewing changes | ☐ Terraform apply |
+| **Terraform Plan** (checkbox unchecked ☐) | Shows what WOULD happen without making changes | Testing configurations, previewing changes | ☐ Terraform apply |
 | **Apply** (checkbox checked ✅)     | Actually creates/modifies infrastructure       | Real deployments, making actual changes    | ✅ Terraform apply |
 
-**Tip**: Always do a dry run first to preview changes, then run with apply checked to actually deploy!
+**Tip**: Always run terraform plan first to preview changes, then run with apply checked to actually deploy!
 
 #### Step 3a: Base Infrastructure
 
@@ -425,9 +425,9 @@ Before running any Terraform workflow, understand these modes:
 - **SSH_PRIVATE_KEY**: GitHub secret name containing SSH private key for instance access
 - Must match the `ssh_key_name` in your terraform.tfvars
 - **Terraform apply**:
-- ☐ **Unchecked** - Dry run (preview only, no changes made)
+- ☐ **Unchecked** - Terraform plan (preview only, no changes made)
 - ✅ **Checked** - Apply (actually creates infrastructure)
-- **First time?** Uncheck for dry run, then run again with checked
+- **First time?** Uncheck for terraform plan, then run again with checked
 
  **What You Should See:**
 
@@ -855,7 +855,7 @@ To regenerate import URL if needed:
 3. Click ⋮ (three dots) → Edit Config
 4. Copy the new registration command
 
-### 4. Helmsman Deployment#### Step 4a: Update DSF Configuration Files
+### 4. Helmsman Deployment
 
 > **What is DSF?** DSF (Desired State File) is like a recipe that tells Helmsman what applications to install and how to configure them. [Learn more](docs/GLOSSARY.md#dsf-desired-state-file)
 >
@@ -1105,17 +1105,6 @@ To regenerate import URL if needed:
  CLUSTER_WIREGUARD_WG1: "peer2-wireguard-config" # Helmsman cluster access (peer2)
 ```
 
- **Repository Secrets (global):**
-
-```yaml
- # GPG Encryption (if using encrypted backends)
- GPG_PASSPHRASE: "your-gpg-passphrase"
-
- # AWS Credentials (if not using OIDC)
- AWS_ACCESS_KEY_ID: "AKIA..."
- AWS_SECRET_ACCESS_KEY: "..."
-```
-
 4. **Verify Secret Configuration:**
 
 - Ensure KUBECONFIG is configured as environment secret for your branch
@@ -1183,7 +1172,6 @@ The Helmsman deployment process follows a specific sequence with automated trigg
  **Error Handling:**
 
 - If the automatic trigger fails, manually trigger: Actions → **Deploy MOSIP services using Helmsman**
-- If onboarding processes fail during deployment, manual re-onboarding is required (see limitations section)
 
 3. **Verify All Pods are Running:**
 
@@ -1199,16 +1187,33 @@ The Helmsman deployment process follows a specific sequence with automated trigg
  kubectl get pods --all-namespaces | grep -v Running | grep -v Completed
 ```
 
-4. **Deploy Test Rigs (Manual):**
+4. **Handle Onboarding Failures (If Required):**
 
-- **Prerequisites**: All pods from steps 1-2 must be in `Running` state
+> **⚠️ Important**: The partner-onboarder pod will run successfully, but you must check the onboarding reports in MinIO to verify if all partners were onboarded correctly. Failed onboardings must be manually re-executed before deploying test rigs.
+
+**When to check and rerun onboarding:**
+- After the partner-onboarder pod completes (check MinIO reports for failures)
+- When onboarding reports show failed partner registrations
+- Before deploying test rigs to ensure all prerequisites are met
+
+**How to check onboarding status and rerun if needed:**
+
+Refer to the comprehensive [MOSIP Onboarding Guide](docs/ONBOARDING_GUIDE.md) for detailed instructions on:
+- [Verifying partner-onboarder pod completion](docs/ONBOARDING_GUIDE.md#step-1-verify-partner-onboarder-pod-completion)
+- [How to access MinIO and check onboarding reports](docs/ONBOARDING_GUIDE.md#step-2-access-minio-to-check-onboarding-reports)
+- [Checking onboarding reports in MinIO](docs/ONBOARDING_GUIDE.md#step-3-check-onboarding-reports-in-minio)
+- [How to delete failed jobs and rerun partner-onboarder](docs/ONBOARDING_GUIDE.md#manual-partner-re-onboarding-procedures)
+- [Updating mosip-dsf.yaml to retry failed modules](docs/ONBOARDING_GUIDE.md#step-2-update-mosip-dsfyaml-configuration)
+- [Verification steps after rerunning](docs/ONBOARDING_GUIDE.md#step-4-verify-success-in-minio-reports)
+
+5. **Deploy Test Rigs (Manual):**
+
+- **Prerequisites**: All pods from steps 1-2 must be in `Running` state and onboarding completed successfully
 - Actions → **Deploy Testrigs of mosip using Helmsman** (`helmsman_testrigs.yml`)
 - Select DSF file: `testrigs-dsf.yaml`
 - Mode: `apply` (required - dry-run will fail due to namespace dependencies)
 
-> **Important**: Test rigs should only be deployed after verifying all core services are running successfully. Failed onboarding processes must be manually re-executed before test rig deployment.
-
-### 5. Verify Deployment
+### 6. Verify Deployment
 
 ```bash
 # Check cluster status
