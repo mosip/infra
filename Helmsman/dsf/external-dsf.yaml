@@ -62,7 +62,6 @@ apps:
     version: 12.0.1
     chart: mosip/postgres-init
     set:
-      image.repository: "harbor.mosip.net/mosipid/postgres-init"
       dbUserPasswords.dbuserPassword: ""
       databases.mosip_master.enabled: "true"
       databases.mosip_master.branch: "v1.2.1.3"
@@ -148,12 +147,11 @@ apps:
     version: 7.1.18
     chart: mosip/keycloak
     set:
-      image.registry: "harbor.mosip.net"
       image.repository: "mosipid/mosip-artemis-keycloak"
       image.tag: "1.2.0.1"
       image.pullPolicy: "Always"
       # Override Postgres image
-      postgresql.image.registry: "harbor.mosip.net"
+      postgresql.image.registry: "docker.io"
       postgresql.image.repository: "mosipint/postgresql"
       postgresql.image.tag: "14.2.0-debian-10-r70"
       service.type: "ClusterIP"
@@ -197,8 +195,8 @@ apps:
     enabled: true
     version: 12.0.2-develop
     chart: mosip/keycloak-init
-    set: 
-      image.repository: "harbor.mosip.net/mosipqa/keycloak-init"
+    set:
+      # image.repository: "mosipid/keycloak-init"
       # image.tag: "1.2.0.1"
       keycloakExternalHost: "iam.sandbox.xyz.net"
       keycloakInternalHost: "keycloak.keycloak"
@@ -219,7 +217,6 @@ apps:
     version: 12.0.1
     chart: mosip/softhsm
     set:
-      image.repository: "harbor.mosip.net/mosipid/softhsm" 
       # resources.limits.cpu: "250m"
       # resources.limits.memory: "1Gi"
       resources.requests.cpu: "100m"
@@ -234,7 +231,6 @@ apps:
     version: 12.0.1
     chart: mosip/softhsm
     set:
-      image.repository: "harbor.mosip.net/mosipid/softhsm"
       # resources.limits.cpu: "250m"
       # resources.limits.memory: "1Gi"
       resources.requests.cpu: "100m"
@@ -249,7 +245,6 @@ apps:
     version: 10.1.6
     chart: mosip/minio
     set:
-      image.registry: "harbor.mosip.net"
       image.repository: "mosipint/minio"
       image.tag: "2022.2.7-debian-10-r0"
       metrics.serviceMonitor.enabled: "true"
@@ -296,8 +291,7 @@ apps:
     enabled: true
     version: 0.0.2
     chart: mosip/activemq-artemis
-    set:
-      image.registry: "harbor.mosip.net"    
+    set: 
       istio.enabled: "true"
       istio.hosts[0]: "activemq.sandbox.xyz.net"
       istio.ingressController.name: "ingressgateway-internal"
@@ -318,11 +312,9 @@ apps:
     version: 18.3.1
     chart: bitnami/kafka
     set:
-      image.registry: "harbor.mosip.net"
       # Add these for image overrides
       image.repository: "mosipint/kafka"
       image.tag: "3.2.1-debian-11-r9"
-      zookeeper.image.registry: "harbor.mosip.net"
       zookeeper.image.repository: "mosipint/zookeeper"
       zookeeper.image.tag: "3.8.0-debian-11-r30"
       clusterDomain: "cluster.local"
