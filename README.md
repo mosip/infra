@@ -798,14 +798,24 @@ rancher_import_url = "kubectl apply -f https://rancher.example.com/v3/import/TOK
 
 After updating `aws.tfvars`, deploy or update your main infra cluster:
 
-```bash
-Actions → Terraform Infrastructure → Run workflow
-Parameters:
-├─ Component: infra
-└─ enable_rancher_import: true (in aws.tfvars)
-```
+2. **Run main infra via GitHub Actions:**
 
-**Step 5: Verify Import in Rancher UI**
+- Go to **Actions** → **Terraform Infrastructure**
+- Click **Run workflow**
+- **Configure workflow parameters:**
+- **Branch**: Select your deployment branch (e.g., `release-0.1.0`)
+- **Cloud Provider**: Select `aws` (Azure/GCP are placeholder implementations)
+- **Component**: Select `infra` (MOSIP application infrastructure)
+- **Backend**: Choose backend configuration:
+- `local` - GPG-encrypted local state (recommended for development)
+- `s3` - Remote S3 backend (recommended for production)
+- **SSH_PRIVATE_KEY**: GitHub secret name containing SSH private key for instance access
+- Must match the `ssh_key_name` in your terraform.tfvars
+ - **Action**: Select `apply` to deploy infrastructure
+
+**Verify Rancher Import (Only if rancher_import = true):**
+
+> **Note:** Skip this entire section if you deployed without Rancher UI (`rancher_import = false`)
 
 After deployment completes:
 
@@ -845,26 +855,7 @@ To regenerate import URL if needed:
 3. Click ⋮ (three dots) → Edit Config
 4. Copy the new registration command
 
----
-
-2. **Run main infra via GitHub Actions:**
-
-- Go to **Actions** → **Terraform Infrastructure**
-- Click **Run workflow**
-- **Configure workflow parameters:**
-- **Branch**: Select your deployment branch (e.g., `release-0.1.0`)
-- **Cloud Provider**: Select `aws` (Azure/GCP are placeholder implementations)
-- **Component**: Select `infra` (MOSIP application infrastructure)
-- **Backend**: Choose backend configuration:
-- `local` - GPG-encrypted local state (recommended for development)
-- `s3` - Remote S3 backend (recommended for production)
-- **SSH_PRIVATE_KEY**: GitHub secret name containing SSH private key for instance access
-- Must match the `ssh_key_name` in your terraform.tfvars
-- **Action**: Select `apply` to deploy infrastructure
-
-### 4. Helmsman Deployment
-
-#### Step 4a: Update DSF Configuration Files
+### 4. Helmsman Deployment#### Step 4a: Update DSF Configuration Files
 
 > **What is DSF?** DSF (Desired State File) is like a recipe that tells Helmsman what applications to install and how to configure them. [Learn more](docs/GLOSSARY.md#dsf-desired-state-file)
 >
