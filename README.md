@@ -1206,7 +1206,7 @@ After test rigs deployment completes:
 1. **Update cron schedules**: Update the cron time for all CronJobs in the `dslrig`, `apitestrig`, and `uitestrig` namespaces as needed
 2. **Trigger DSL orchestrator**: 
    ```bash
-   kubectl create job --from=cronjob/cronjob-dslrigorchestrater-full dslrig-manual-run -n dslrig
+   kubectl create job --from=cronjob/cronjob-dslorchestrator-full dslrig-manual-run -n dslrig
    ```
    > **Note**: This job will run for more than 3 hours. Monitor progress with:
    > ```bash
