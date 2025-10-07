@@ -842,7 +842,8 @@ To regenerate import URL if needed:
 3. Click ⋮ (three dots) → Edit Config
 4. Copy the new registration command
 
-### 4. Helmsman Deployment
+   ```
+   Cluster Name: soil38 (use your cluster_name from aws.tfvars)
 
 > **What is DSF?** DSF (Desired State File) is like a recipe that tells Helmsman what applications to install and how to configure them. [Learn more](docs/GLOSSARY.md#dsf-desired-state-file)
 >
@@ -850,7 +851,7 @@ To regenerate import URL if needed:
 
 **Time required:** 20-30 minutes to update all files
 
-1. **Clone the MOSIP infra repository and navigate to Helmsman directory:**
+   Rancher will generate a command like:
 
 ```bash
  git clone https://github.com/mosip/infra.git
