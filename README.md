@@ -368,10 +368,10 @@ Add the required secrets as follows:
 
 Before running any Terraform workflow, understand these modes:
 
-| Mode                                      | What It Does                                   | When to Use                                | Visual             |
-| ----------------------------------------- | ---------------------------------------------- | ------------------------------------------ | ------------------ |
+| Mode                                             | What It Does                                   | When to Use                                | Visual             |
+| ------------------------------------------------ | ---------------------------------------------- | ------------------------------------------ | ------------------ |
 | **Terraform Plan** (checkbox unchecked ☐) | Shows what WOULD happen without making changes | Testing configurations, previewing changes | ☐ Terraform apply |
-| **Apply** (checkbox checked ✅)     | Actually creates/modifies infrastructure       | Real deployments, making actual changes    | ✅ Terraform apply |
+| **Apply** (checkbox checked ✅)            | Actually creates/modifies infrastructure       | Real deployments, making actual changes    | ✅ Terraform apply |
 
 **Tip**: Always run terraform plan first to preview changes, then run with apply checked to actually deploy!
 
@@ -406,6 +406,8 @@ Before running any Terraform workflow, understand these modes:
 3. **Run base-infra via GitHub Actions:**
 
 > **Detailed Navigation Guide**: See [Workflow Guide - Terraform Workflows](docs/WORKFLOW_GUIDE.md#workflow-1-base-infrastructure) for step-by-step screenshots
+
+![Base Infrastructure Terraform Apply](docs/_images/base-infra-terraform-apply.png)
 
 - Go to **Actions** → **Terraform Base Infrastructure**
 - **Can't find it?** Look in the left sidebar under "All workflows"
@@ -787,6 +789,8 @@ After updating `aws.tfvars`, deploy or update your main infra cluster:
 
 2. **Run main infra via GitHub Actions:**
 
+![Infrastructure Terraform Apply](docs/_images/infra-terraform-apply.png)
+
 - Go to **Actions** → **Terraform Infrastructure**
 - Click **Run workflow**
 - **Configure workflow parameters:**
@@ -798,7 +802,7 @@ After updating `aws.tfvars`, deploy or update your main infra cluster:
 - `s3` - Remote S3 backend (recommended for production)
 - **SSH_PRIVATE_KEY**: GitHub secret name containing SSH private key for instance access
 - Must match the `ssh_key_name` in your terraform.tfvars
- - **Action**: Select `apply` to deploy infrastructure
+- **Action**: Select `apply` to deploy infrastructure
 
 **Verify Rancher Import (Only if rancher_import = true):**
 
@@ -1074,9 +1078,10 @@ To regenerate import URL if needed:
 - Select or create environment for your branch (e.g., `release-0.1.0`, `main`, `develop`)
 - Click "Add secret" under Environment secrets
 - Name: `KUBECONFIG`
- - Value: Copy the entire contents of the kubeconfig file from `terraform/implementations/aws/infra/`
+- Value: Copy the entire contents of the kubeconfig file from `terraform/implementations/aws/infra/`
 
  **Branch Environment Configuration:- Ensure the environment name matches your deployment branch
+
 - Configure environment protection rules if needed
 - Verify Helmsman workflows reference the correct environment
 
@@ -1130,6 +1135,8 @@ The Helmsman deployment process follows a specific sequence with automated trigg
 
 > **Detailed Steps:** [Workflow Guide - Prerequisites &amp; External Dependencies](docs/WORKFLOW_GUIDE.md#workflow-1-prerequisites--external-dependencies)
 
+![Deploy External Services - Helmsman](docs/_images/helmsman-external-services.png)
+
 - Actions → **"Deploy External services of mosip using Helmsman"** (or "Helmsman External Dependencies")
 - **Can't find it?** Search for "External" in the workflows list
 - This workflow handles both deployments in parallel:
@@ -1180,6 +1187,7 @@ The Helmsman deployment process follows a specific sequence with automated trigg
 > **⚠️ Important**: The partner-onboarder pod will run successfully, but you must check the onboarding reports in MinIO to verify if all partners were onboarded correctly. Failed onboardings must be manually re-executed before deploying test rigs.
 
 **When to check and rerun onboarding:**
+
 - After the partner-onboarder pod completes (check MinIO reports for failures)
 - When onboarding reports show failed partner registrations
 - Before deploying test rigs to ensure all prerequisites are met
@@ -1187,6 +1195,7 @@ The Helmsman deployment process follows a specific sequence with automated trigg
 **How to check onboarding status and rerun if needed:**
 
 Refer to the comprehensive [MOSIP Onboarding Guide](docs/ONBOARDING_GUIDE.md) for detailed instructions on:
+
 - [Verifying partner-onboarder pod completion](docs/ONBOARDING_GUIDE.md#step-1-verify-partner-onboarder-pod-completion)
 - [How to access MinIO and check onboarding reports](docs/ONBOARDING_GUIDE.md#step-2-access-minio-to-check-onboarding-reports)
 - [Checking onboarding reports in MinIO](docs/ONBOARDING_GUIDE.md#step-3-check-onboarding-reports-in-minio)
@@ -1196,6 +1205,8 @@ Refer to the comprehensive [MOSIP Onboarding Guide](docs/ONBOARDING_GUIDE.md) fo
 
 5. **Deploy Test Rigs (Manual):**
 
+![Deploy Test Rigs - Helmsman](docs/_images/helmsman-testrigs.png)
+
 - **Prerequisites**: All pods from steps 1-2 must be in `Running` state and onboarding completed successfully
 - Actions → **Deploy Testrigs of mosip using Helmsman** (`helmsman_testrigs.yml`)
 - Select DSF file: `testrigs-dsf.yaml`
@@ -1204,15 +1215,19 @@ Refer to the comprehensive [MOSIP Onboarding Guide](docs/ONBOARDING_GUIDE.md) fo
 **Post-Deployment Steps:**
 
 After test rigs deployment completes:
+
 1. **Update cron schedules**: Update the cron time for all CronJobs in the `dslrig`, `apitestrig`, and `uitestrig` namespaces as needed
-2. **Trigger DSL orchestrator**: 
+2. **Trigger DSL orchestrator**:
    ```bash
    kubectl create job --from=cronjob/cronjob-dslorchestrator-full dslrig-manual-run -n dslrig
    ```
+
    > **Note**: This job will run for more than 3 hours. Monitor progress with:
+   >
    > ```bash
    > kubectl logs -f job/dslrig-manual-run -n dslrig
    > ```
+   >
 
 ### 6. Verify Deployment
 
