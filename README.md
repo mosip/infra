@@ -28,29 +28,29 @@ We've created comprehensive beginner-friendly guides to help you succeed:
 graph TB
  %% Prerequisites
  A[Fork Repository] --> B[Configure Secrets]
- B --> C[Select Cloud Provider<br/>AWS/Azure/GCP/etc.]
+ B --> C[Select Cloud Provider]
  
  %% Infrastructure Phase
- C --> D[Run Terraform: base-infra<br/>VPC, Networking, Jumpserver, WireGuard<br/>One-time deployment]
- D --> E{Deploy Observability?}
- E -->|Yes| F[Run Terraform: observ-infra<br/>Rancher UI, Keycloak, Monitoring<br/>Can be destroyed/recreated]
- E -->|No| G[Run Terraform: infra<br/>Complete MOSIP Infrastructure Setup<br/>Can be destroyed/recreated]
+ C --> D[Terraform: base-infra<br/>VPC, Networking, WireGuard]
+ D --> E{Deploy<br/>Observability?}
+ E -->|Yes| F[Terraform: observ-infra<br/>Rancher UI, Monitoring]
+ E -->|No| G[Terraform: infra<br/>MOSIP Infrastructure]
  F --> G
  
  %% Helmsman Deployment Phase
- G --> H[Deploy Helmsman: Prerequisites<br/>Monitoring, Istio, Logging]
- H --> I[Deploy Helmsman: External Dependencies<br/>PostgreSQL containers, Keycloak, MinIO, Kafka]
+ G --> H[Helmsman: Prerequisites<br/>Monitoring, Istio, Logging]
+ H --> I[Helmsman: External Deps<br/>PostgreSQL, Keycloak, MinIO]
  
  %% MOSIP Services
- I --> J[Deploy Helmsman: MOSIP Core Services]
- J --> K{Deploy Test Rigs?}
- K -->|Yes| L[Deploy Helmsman: Test Rigs<br/>API Testing, UI Testing, DSL Testing]
+ I --> J[Helmsman: MOSIP Services]
+ J --> K{Deploy<br/>Test Rigs?}
+ K -->|Yes| L[Helmsman: Test Rigs<br/>API, UI, DSL Testing]
  K -->|No| M[Verify Deployment]
  L --> M
  
  %% Final Verification
- M --> N[Access MOSIP Platform<br/>Web UI, APIs, Admin Console]
- N --> O[Complete MOSIP Platform]
+ M --> N[Access MOSIP Platform]
+ N --> O[Deployment Complete]
  
  %% Styling
  classDef prereq fill:#fff3e0,stroke:#ff8f00,stroke-width:2px
