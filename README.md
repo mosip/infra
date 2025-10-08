@@ -917,6 +917,7 @@ To regenerate import URL if needed:
 ```
 
  **Need detailed help?** [DSF Configuration Guide - Prerequisites](docs/DSF_CONFIGURATION_GUIDE.md#prerequisites-dsf-configuration)
+
 4. **Update external-dsf.yaml:**
 
  **Critical Updates Required:**
