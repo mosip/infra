@@ -33,12 +33,12 @@ apps:
     timeout: 900
     priority: -6
     hooks:
-      postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh <sandbox> helmsman"
-      postUpgrade: "$WORKDIR/hooks/install-istio-and-httpbin.sh <sandbox> helmsman"
+      postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh dev helmsman"
+      postUpgrade: "$WORKDIR/hooks/install-istio-and-httpbin.sh dev helmsman"
 
   rancher-monitoring:
     namespace: cattle-monitoring-system
-    enabled: false
+    enabled: true
     version: 103.1.0+up45.31.1
     chart: mosip/rancher-monitoring
     set:
@@ -85,7 +85,7 @@ apps:
     version: 0.1.0
     chart: $WORKDIR/utils/istio-addons/logging-istio-addons-0.1.0.tgz
     set:
-      kibanaHost: "kibana.sandbox.xyz.net"
+      kibanaHost: "kibana.dev.mosip.net"
       installName: "elasticsearch-kibana"
     wait: true
     priority: -3
