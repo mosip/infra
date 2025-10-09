@@ -219,7 +219,7 @@ apps:
     set:
       # image.repository: "mosipdev/mock-smtp"
       # image.tag: "1.0.0"
-      istio.hosts[0]: "smtp.sandbox.xyz.net"
+      istio.hosts[0]: "smtp.dev.mosip.net"
     priority: -12
     timeout: 1200
 
@@ -235,7 +235,7 @@ apps:
       mosipDataGithubBranch: "release-1.3.x"
       mosipDataGithubRepo: "https://github.com/mosip/mosip-data"
       mosipDataXlsfolderPath: "/home/mosip/mosip-data/mosip_master/xlsx"
-      db.host: "postgres.sandbox.xyz.net"
+      db.host: "postgres.dev.mosip.net"
       db.port: 5433
     wait: true
     priority: -11
@@ -296,7 +296,7 @@ apps:
       resources.limits.memory: "4000Mi"
       resources.requests.cpu: "200m"
       resources.requests.memory: "2000Mi"
-      istio.corsPolicy.allowOrigins[0].exact: "https://admin.sandbox.xyz.net"
+      istio.corsPolicy.allowOrigins[0].exact: "https://admin.dev.mosip.net"
     wait: true
     priority: -10
     timeout: 1200
@@ -410,7 +410,7 @@ apps:
     version: 1.3.0-beta.1
     chart: mosip/prereg-gateway
     set:
-      istio.hosts[0]: "prereg.sandbox.xyz.net"
+      istio.hosts[0]: "prereg.dev.mosip.net"
     priority: -9
     timeout: 1200
 
@@ -481,7 +481,7 @@ apps:
     set:
       image.repository: "mosipid/pre-registration-ui"
       image.tag: "1.3.0-beta.1"
-      prereg.apiHost: "prereg.sandbox.xyz.net"
+      prereg.apiHost: "prereg.dev.mosip.net"
     priority: -9
     timeout: 1200
 
@@ -574,7 +574,7 @@ apps:
     set:
       image.repository: "mosipid/partner-management-service"
       image.tag: "1.2.2.2"
-      istio.corsPolicy.allowOrigins[0].prefix: "https://pmp.sandbox.xyz.net"
+      istio.corsPolicy.allowOrigins[0].prefix: "https://pmp.dev.mosip.net"
     priority: -9
     timeout: 1200
 
@@ -587,7 +587,7 @@ apps:
     set:
       image.repository: "mosipid/policy-management-service"
       image.tag: "1.2.2.2"
-      istio.corsPolicy.allowOrigins[0].prefix: "https://pmp.sandbox.xyz.net"
+      istio.corsPolicy.allowOrigins[0].prefix: "https://pmp.dev.mosip.net"
     priority: -9
     timeout: 1200
 
@@ -600,8 +600,8 @@ apps:
     set:
       image.repository: "mosipid/pmp-ui"
       image.tag: "1.2.0.1"
-      pmp.apiUrl: "https://api-internal.sandbox.xyz.net/"
-      istio.hosts[0]: "pmp.sandbox.xyz.net"
+      pmp.apiUrl: "https://api-internal.dev.mosip.net/"
+      istio.hosts[0]: "pmp.dev.mosip.net"
     priority: -9
     timeout: 1200
 
@@ -614,11 +614,11 @@ apps:
     set:
       # image.repository: "mosipqa/pmp-revamp-ui"
       # image.tag: "develop"
-      pmp_revamp.react_app_partner_manager_api_base_url: "https://api-internal.sandbox.xyz.net/v1/partnermanager"
-      pmp_revamp.react_app_policy_manager_api_base_url: "https://api-internal.sandbox.xyz.net/v1/policymanager"
+      pmp_revamp.react_app_partner_manager_api_base_url: "https://api-internal.dev.mosip.net/v1/partnermanager"
+      pmp_revamp.react_app_policy_manager_api_base_url: "https://api-internal.dev.mosip.net/v1/policymanager"
       pmp_revamp.pms_partner_manager_internal_service_url: "http://pms-partner.pms/v1/partnermanager"
       pmp_revamp.pms_policy_manager_internal_service_url: "http://pms-policy.pms/v1/policymanager"
-      istio.hosts[0]: "pmp.sandbox.xyz.net"
+      istio.hosts[0]: "pmp.dev.mosip.net"
     priority: -9
     timeout: 1200
 
@@ -907,7 +907,7 @@ apps:
       resources.limits.memory: "2000Mi"
       resources.requests.cpu: "500m"
       resources.requests.memory: "2000Mi"
-      istio.corsPolicy.allowOrigins[0].prefix: "https://admin.sandbox.xyz.net"
+      istio.corsPolicy.allowOrigins[0].prefix: "https://admin.dev.mosip.net"
       startupProbe.failureThreshold: 60
     timeout: 1200
     priority: -9
@@ -921,8 +921,8 @@ apps:
     set:
       image.repository: "mosipqa/admin-ui"
       image.tag: "1.3.x"
-      admin.apiUrl: "https://api-internal.sandbox.xyz.net/v1/"
-      istio.hosts[0]: "admin.sandbox.xyz.net"
+      admin.apiUrl: "https://api-internal.dev.mosip.net/v1/"
+      istio.hosts[0]: "admin.dev.mosip.net"
     timeout: 1200
     priority: -9
 
@@ -1031,7 +1031,7 @@ apps:
       resources.requests.cpu: "300m"
       resources.requests.memory: "2000Mi"
       startupProbe.failureThreshold: "60"
-      istio.corsPolicy.allowOrigins[0].prefix: "https://resident.sandbox.xyz.net"
+      istio.corsPolicy.allowOrigins[0].prefix: "https://resident.dev.mosip.net"
     timeout: 1200
     wait: true
     priority: -4
@@ -1046,8 +1046,8 @@ apps:
     set:
       # image.repository: "mosipdev2/resident-ui"
       # image.tag: "release-0.9.x"
-      resident.apiHost: "api-internal.sandbox.xyz.net"
-      istio.hosts[0]: "resident.sandbox.xyz.net"
+      resident.apiHost: "api-internal.dev.mosip.net"
+      istio.hosts[0]: "resident.dev.mosip.net"
     wait: true
     timeout: 1200
     priority: -3
@@ -1068,7 +1068,7 @@ apps:
       onboarding.configmaps.s3.s3-bucket-name: "onboarder"
       #onboarding.secrets.s3.s3-user-secret: "password"
       # onboarding.volumes.reports.nfs.server: "<nfs_server>"
-      # # provide NFS directory to store reports from NFS server (e.g. /srv/nfs/<sandbox>/onboarder/), make sure permission is 777 for the folder: " nfs_path
+      # # provide NFS directory to store reports from NFS server (e.g. /srv/nfs/dev/onboarder/), make sure permission is 777 for the folder: " nfs_path
       # onboarding.volumes.reports.nfs.path: "<nfs_path>"
       extraEnvVarsCM[0]: "global"
       extraEnvVarsCM[1]: "keycloak-env-vars"
@@ -1107,10 +1107,10 @@ apps:
     set:
       image.repository: "mosipqa/mosip-file-server"
       image.tag: "develop"
-      mosipfileserver.host: "api.sandbox.xyz.net"
+      mosipfileserver.host: "api.dev.mosip.net"
       # mosipfileserver.secrets.KEYCLOAK_CLIENT_SECRET: ""
-      istio.corsPolicy.allowOrigins[0].prefix: "https://api.sandbox.xyz.net"
-      istio.corsPolicy.allowOrigins[1].prefix: "https://api-internal.sandbox.xyz.net"
+      istio.corsPolicy.allowOrigins[0].prefix: "https://api.dev.mosip.net"
+      istio.corsPolicy.allowOrigins[1].prefix: "https://api-internal.dev.mosip.net"
       istio.corsPolicy.allowOrigins[2].prefix: "https://verifiablecredential.io"
     priority: -1
     timeout: 1200
@@ -1125,9 +1125,9 @@ apps:
       image.repository: "mosipdev2/registration-client"
       image.tag: "release-1.3.x"
       regclient.version: "1.2.0.2"
-      regclient.upgradeServerUrl: "https://regclient.sandbox.xyz.net"
-      regclient.healthCheckUrl: "https://api-internal.sandbox.xyz.net/v1/syncdata/actuator/health"
-      regclient.hostName: "api-internal.sandbox.xyz.net"
-      istio.host: "regclient.sandbox.xyz.net"
+      regclient.upgradeServerUrl: "https://regclient.dev.mosip.net"
+      regclient.healthCheckUrl: "https://api-internal.dev.mosip.net/v1/syncdata/actuator/health"
+      regclient.hostName: "api-internal.dev.mosip.net"
+      istio.host: "regclient.dev.mosip.net"
     priority: -1
     timeout: 1200
