@@ -22,11 +22,11 @@ apps:
   packetcreator:
     namespace: packetcreator
     enabled: true
-    version: 12.1.0
+    version: 0.0.1-develop
     chart: mosip/packetcreator
     set:
-      # image.repository: "mosipqa/dsl-packetcreator"
-      # image.tag: "1.2.1.x"
+      image.repository: "mosipdev/dsl-packetcreator"
+      image.tag: "MOSIP-42917"
       resources.limits.cpu: "1"
       resources.limits.memory: "6000Mi"
       resources.requests.cpu: "800m"
@@ -52,11 +52,11 @@ apps:
       apitestrig.configmaps.s3.s3-host: 'http://minio.minio:9000'
       apitestrig.configmaps.s3.s3-user-key: 'admin'
       apitestrig.configmaps.s3.s3-region: ''
-      apitestrig.configmaps.db.db-server: "api-internal.sandbox.xyz.net"
+      apitestrig.configmaps.db.db-server: "api-internal.dev.mosip.net"
       apitestrig.configmaps.db.db-su-user: "postgres"
       apitestrig.configmaps.db.db-port: "5433"
-      apitestrig.configmaps.apitestrig.ENV_USER: "api-internal.<sandbox>"
-      apitestrig.configmaps.apitestrig.ENV_ENDPOINT: "https://api-internal.sandbox.xyz.net"
+      apitestrig.configmaps.apitestrig.ENV_USER: "api-internal.dev"
+      apitestrig.configmaps.apitestrig.ENV_ENDPOINT: "https://api-internal.dev.mosip.net"
       apitestrig.configmaps.apitestrig.ENV_TESTLEVEL: "smokeAndRegression"
       apitestrig.configmaps.apitestrig.reportExpirationInDays: "3"
       apitestrig.configmaps.apitestrig.slack-webhook-url: "https://hooks.slack.com/services/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"
@@ -65,13 +65,13 @@ apps:
       apitestrig.configmaps.apitestrig.servicesNotDeployed: 'esignet'
 
       modules.prereg.enabled: true
-      modules.prereg.image.repository: mosipid/apitest-prereg
-      modules.prereg.image.tag: 1.2.0.3
+      modules.prereg.image.repository: mosipqa/apitest-prereg
+      modules.prereg.image.tag: 1.3.x
       modules.prereg.image.pullPolicy: Always
 
       modules.masterdata.enabled: true
       modules.masterdata.image.repository: mosipid/apitest-masterdata
-      modules.masterdata.image.tag: 1.2.1.3
+      modules.masterdata.image.tag: 1.3.0-beta.2
       modules.masterdata.image.pullPolicy: Always
 
       modules.idrepo.enabled: true
@@ -86,7 +86,7 @@ apps:
 
       modules.pms.enabled: false
       modules.pms.image.repository: mosipid/apitest-pms
-      modules.pms.image.tag: 1.3.0-beta.1
+      modules.pms.image.tag: 1.2.2.2
       modules.pms.image.pullPolicy: Always
 
       modules.resident.enabled: true
@@ -96,7 +96,7 @@ apps:
 
       modules.auth.enabled: true
       modules.auth.image.repository: mosipid/apitest-auth
-      modules.auth.image.tag: 1.2.1.2-beta.1
+      modules.auth.image.tag: 1.3.0-beta.2
       modules.auth.image.pullPolicy: Always
 
       modules.esignet.enabled: false
@@ -126,20 +126,20 @@ apps:
   dslorchestrator:
     namespace: dslrig
     enabled: true
-    version: 12.1.0
+    version: 0.0.1-develop
     chart: mosip/dslorchestrator
     set:
-      # image.repository: "mosipqa/dsl-orchestrator"
-      # image.tag: "1.2.1.x"
+      image.repository: "mosipdev/dsl-orchestrator"
+      image.tag: "MOSIP-42917"
       crontime: "0 4 * * *"
       dslorchestrator.configmaps.s3.s3-host: 'http://minio.minio:9000'
       dslorchestrator.configmaps.s3.s3-user-key: 'admin'
       dslorchestrator.configmaps.s3.s3-region: ''
-      dslorchestrator.configmaps.db.db-server: "api-internal.sandbox.xyz.net"
+      dslorchestrator.configmaps.db.db-server: "api-internal.dev.mosip.net"
       dslorchestrator.configmaps.db.db-su-user: "postgres"
       dslorchestrator.configmaps.db.db-port: "5433"
-      dslorchestrator.configmaps.dslorchestrator.USER: "api-internal.<sandbox>"
-      dslorchestrator.configmaps.dslorchestrator.ENDPOINT: "https://api-internal.sandbox.xyz.net"
+      dslorchestrator.configmaps.dslorchestrator.USER: "api-internal.dev"
+      dslorchestrator.configmaps.dslorchestrator.ENDPOINT: "https://api-internal.dev.mosip.net"
       dslorchestrator.configmaps.dslorchestrator.packetUtilityBaseUrl: "http://packetcreator.packetcreator:80/v1/packetcreator"
       dslorchestrator.configmaps.dslorchestrator.reportExpirationInDays: "3"
       dslorchestrator.configmaps.dslorchestrator.NS: "dslrig"
@@ -164,14 +164,14 @@ apps:
       uitestrig.configmaps.s3.s3-host: "http://minio.minio:9000"
       uitestrig.configmaps.s3.s3-user-key: "admin"
       uitestrig.configmaps.s3.s3-region: ""
-      uitestrig.configmaps.db.db-server: "api-internal.sandbox.xyz.net"
+      uitestrig.configmaps.db.db-server: "api-internal.dev.mosip.net"
       uitestrig.configmaps.db.db-su-user: "postgres"
       uitestrig.configmaps.db.db-port: "5433"
-      uitestrig.configmaps.uitestrig.apiInternalEndPoint: "https://api-internal.sandbox.xyz.net"
-      uitestrig.configmaps.uitestrig.apiEnvUser: "api-internal.sandbox.xyz.net"
-      uitestrig.configmaps.uitestrig.PmpPortalPath: "https://pmp.sandbox.xyz.net"
-      uitestrig.configmaps.uitestrig.adminPortalPath: "https://admin.sandbox.xyz.net"
-      uitestrig.configmaps.uitestrig.residentPortalPath: "https://resident.sandbox.xyz.net"
+      uitestrig.configmaps.uitestrig.apiInternalEndPoint: "https://api-internal.dev.mosip.net"
+      uitestrig.configmaps.uitestrig.apiEnvUser: "api-internal.dev.mosip.net"
+      uitestrig.configmaps.uitestrig.PmpPortalPath: "https://pmp.dev.mosip.net"
+      uitestrig.configmaps.uitestrig.adminPortalPath: "https://admin.dev.mosip.net"
+      uitestrig.configmaps.uitestrig.residentPortalPath: "https://resident.dev.mosip.net"
       uitestrig.configmaps.uitestrig.NS: "uitestrig"
 
     priority: -1
