@@ -25,6 +25,7 @@ apps:
     version: 12.1.0
     chart: mosip/packetcreator
     set:
+      image.registry: "harbor.mosip.net" 
       # image.repository: "mosipqa/dsl-packetcreator"
       # image.tag: "1.2.1.x"
       resources.limits.cpu: "1"
@@ -48,6 +49,7 @@ apps:
     version: 0.0.1-develop
     chart: mosip/apitestrig
     set:
+      image.registry: "harbor.mosip.net" 
       crontime: "0 2 * * *"
       apitestrig.configmaps.s3.s3-host: 'http://minio.minio:9000'
       apitestrig.configmaps.s3.s3-user-key: 'admin'
@@ -65,22 +67,22 @@ apps:
       apitestrig.configmaps.apitestrig.servicesNotDeployed: 'esignet'
 
       modules.prereg.enabled: true
-      modules.prereg.image.repository: mosipid/apitest-prereg
+      modules.prereg.image.repository: "harbor.mosip.net/mosipid/apitest-prereg"
       modules.prereg.image.tag: 1.2.0.3
       modules.prereg.image.pullPolicy: Always
 
       modules.masterdata.enabled: true
-      modules.masterdata.image.repository: mosipid/apitest-masterdata
+      modules.masterdata.image.repository: "harbor.mosip.net/mosipid/apitest-masterdata"
       modules.masterdata.image.tag: 1.2.1.3
       modules.masterdata.image.pullPolicy: Always
 
       modules.idrepo.enabled: true
-      modules.idrepo.image.repository: mosipid/apitest-idrepo
+      modules.idrepo.image.repository: "harbor.mosip.net/mosipid/apitest-idrepo"
       modules.idrepo.image.tag: 1.2.2.2
       modules.idrepo.image.pullPolicy: Always
 
       modules.partner.enabled: true
-      modules.partner.image.repository: mosipid/apitest-pms
+      modules.partner.image.repository: "harbor.mosip.net/mosipid/apitest-pms"
       modules.partner.image.tag: 1.2.2.2
       modules.partner.image.pullPolicy: Always
 
@@ -90,12 +92,12 @@ apps:
       modules.pms.image.pullPolicy: Always
 
       modules.resident.enabled: true
-      modules.resident.image.repository: mosipid/apitest-resident
+      modules.resident.image.repository: "harbor.mosip.net/mosipid/apitest-resident"
       modules.resident.image.tag: 1.2.1.2
       modules.resident.image.pullPolicy: Always
 
       modules.auth.enabled: true
-      modules.auth.image.repository: mosipid/apitest-auth
+      modules.auth.image.repository: "harbor.mosip.net/mosipid/apitest-auth"
       modules.auth.image.tag: 1.2.1.2-beta.1
       modules.auth.image.pullPolicy: Always
 
@@ -129,6 +131,7 @@ apps:
     version: 12.1.0
     chart: mosip/dslorchestrator
     set:
+      image.registry: "harbor.mosip.net" 
       # image.repository: "mosipqa/dsl-orchestrator"
       # image.tag: "1.2.1.x"
       crontime: "0 4 * * *"
@@ -157,6 +160,7 @@ apps:
     version: 12.0.2
     chart: mosip/uitestrig
     set:
+      image.registry: "harbor.mosip.net" 
       # image.repository: ""
       # image.tag: "develop"
       enable_insecure: false
