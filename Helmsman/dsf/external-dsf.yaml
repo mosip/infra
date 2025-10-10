@@ -242,7 +242,7 @@ apps:
   minio:
     namespace: minio
     enabled: true
-    version: 10.1.6
+    version: 15.0.6
     chart: mosip/minio
     set:
       image.repository: "mosipint/minio"
@@ -312,7 +312,7 @@ apps:
   kafka: 
     namespace: kafka
     enabled: true
-    version: 18.3.1
+    version: 26.11.4
     chart: bitnami/kafka
     set:
       # Add these for image overrides
@@ -346,6 +346,17 @@ apps:
       startupProbe.timeoutSeconds: "1"
       startupProbe.failureThreshold: "30"
       startupProbe.successThreshold: "1"
+      # KRaft mode (disabled - using Zookeeper)
+      kraft.enabled: "false"
+      # Controller settings (not used in Zookeeper mode)
+      controller.replicaCount: "0"
+      # Broker settings
+      broker.replicaCount: "5"
+      # Listeners configuration
+      listeners.client.name: "CLIENT"
+      listeners.client.containerPort: "9092"
+      listeners.client.protocol: "PLAINTEXT"
+      listeners.client.sslClientAuth: ""
     wait: true
     timeout: 1200
     priority: -7
@@ -353,7 +364,7 @@ apps:
   kafka-ui:
     namespace: kafka
     enabled: true
-    version: 0.4.2
+    version: 0.7.1
     chart: kafka-ui/kafka-ui
     set:
       #Add these for image overrides
