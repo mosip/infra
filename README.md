@@ -28,29 +28,29 @@ We've created comprehensive beginner-friendly guides to help you succeed:
 graph TB
  %% Prerequisites
  A[Fork Repository] --> B[Configure Secrets]
- B --> C[Select Cloud Provider<br/>AWS/Azure/GCP/etc.]
+ B --> C[Select Cloud Provider]
  
  %% Infrastructure Phase
- C --> D[Run Terraform: base-infra<br/>VPC, Networking, Jumpserver, WireGuard<br/>One-time deployment]
- D --> E{Deploy Observability?}
- E -->|Yes| F[Run Terraform: observ-infra<br/>Rancher UI, Keycloak, Monitoring<br/>Can be destroyed/recreated]
- E -->|No| G[Run Terraform: infra<br/>Complete MOSIP Infrastructure Setup<br/>Can be destroyed/recreated]
+ C --> D[Terraform: base-infra<br/>VPC, Networking, WireGuard]
+ D --> E{Deploy<br/>Observability?}
+ E -->|Yes| F[Terraform: observ-infra<br/>Rancher UI, Monitoring]
+ E -->|No| G[Terraform: infra<br/>MOSIP Infrastructure]
  F --> G
  
  %% Helmsman Deployment Phase
- G --> H[Deploy Helmsman: Prerequisites<br/>Monitoring, Istio, Logging]
- H --> I[Deploy Helmsman: External Dependencies<br/>PostgreSQL containers, Keycloak, MinIO, Kafka]
+ G --> H[Helmsman: Prerequisites<br/>Monitoring, Istio, Logging]
+ H --> I[Helmsman: External Deps<br/>PostgreSQL, Keycloak, MinIO]
  
  %% MOSIP Services
- I --> J[Deploy Helmsman: MOSIP Core Services]
- J --> K{Deploy Test Rigs?}
- K -->|Yes| L[Deploy Helmsman: Test Rigs<br/>API Testing, UI Testing, DSL Testing]
+ I --> J[Helmsman: MOSIP Services]
+ J --> K{Deploy<br/>Test Rigs?}
+ K -->|Yes| L[Helmsman: Test Rigs<br/>API, UI, DSL Testing]
  K -->|No| M[Verify Deployment]
  L --> M
  
  %% Final Verification
- M --> N[Access MOSIP Platform<br/>Web UI, APIs, Admin Console]
- N --> O[Complete MOSIP Platform]
+ M --> N[Access MOSIP Platform]
+ N --> O[Deployment Complete]
  
  %% Styling
  classDef prereq fill:#fff3e0,stroke:#ff8f00,stroke-width:2px
@@ -364,16 +364,16 @@ Add the required secrets as follows:
 
 > **New to Terraform workflows?** Check our [Workflow Guide](docs/WORKFLOW_GUIDE.md) for visual step-by-step instructions on navigating GitHub Actions!
 
-#### Understanding Terraform Apply vs Dry Run
+#### Understanding Terraform Apply vs Terraform Plan
 
 Before running any Terraform workflow, understand these modes:
 
-| Mode                                      | What It Does                                   | When to Use                                | Visual             |
-| ----------------------------------------- | ---------------------------------------------- | ------------------------------------------ | ------------------ |
-| **Dry Run** (checkbox unchecked ☐) | Shows what WOULD happen without making changes | Testing configurations, previewing changes | ☐ Terraform apply |
-| **Apply** (checkbox checked ✅)     | Actually creates/modifies infrastructure       | Real deployments, making actual changes    | ✅ Terraform apply |
+| Mode                                             | What It Does                                   | When to Use                                | Visual             |
+| ------------------------------------------------ | ---------------------------------------------- | ------------------------------------------ | ------------------ |
+| **Terraform Plan** (checkbox unchecked ☐) | Shows what WOULD happen without making changes | Testing configurations, previewing changes | ☐ Terraform apply |
+| **Apply** (checkbox checked ✅)            | Actually creates/modifies infrastructure       | Real deployments, making actual changes    | ✅ Terraform apply |
 
-**Tip**: Always do a dry run first to preview changes, then run with apply checked to actually deploy!
+**Tip**: Always run terraform plan first to preview changes, then run with apply checked to actually deploy!
 
 #### Step 3a: Base Infrastructure
 
@@ -407,6 +407,8 @@ Before running any Terraform workflow, understand these modes:
 
 > **Detailed Navigation Guide**: See [Workflow Guide - Terraform Workflows](docs/WORKFLOW_GUIDE.md#workflow-1-base-infrastructure) for step-by-step screenshots
 
+![Base Infrastructure Terraform Apply](docs/_images/base-infra-terraform-apply.png)
+
 - Go to **Actions** → **Terraform Base Infrastructure**
 - **Can't find it?** Look in the left sidebar under "All workflows"
 - Click **Run workflow** (green button on the right)
@@ -425,9 +427,9 @@ Before running any Terraform workflow, understand these modes:
 - **SSH_PRIVATE_KEY**: GitHub secret name containing SSH private key for instance access
 - Must match the `ssh_key_name` in your terraform.tfvars
 - **Terraform apply**:
-- ☐ **Unchecked** - Dry run (preview only, no changes made)
+- ☐ **Unchecked** - Terraform plan (preview only, no changes made)
 - ✅ **Checked** - Apply (actually creates infrastructure)
-- **First time?** Uncheck for dry run, then run again with checked
+- **First time?** Uncheck for terraform plan, then run again with checked
 
  **What You Should See:**
 
@@ -718,20 +720,7 @@ nginx_node_ebs_volume_size_2 = 200 # Enable second EBS volume for PostgreSQL
 
 If you have deployed **observ-infra** (Rancher management cluster), you can import your main infra cluster into Rancher for centralized monitoring and management.
 
-**Step 1: Deploy observ-infra (if not already done)**
-
-```bash
-# Deploy Rancher management cluster first
-Actions → Terraform Infrastructure → Run workflow
-Parameters:
-├─ Component: observ-infra
-├─ Cloud Provider: aws
-└─ Backend: local
-```
-
-Wait for observ-infra deployment to complete (~15-20 minutes).
-
-**Step 2: Generate Rancher Import URL**
+**Step 1: Generate Rancher Import URL**
 
 1. **Access Rancher UI:**
 
@@ -800,6 +789,8 @@ After updating `aws.tfvars`, deploy or update your main infra cluster:
 
 2. **Run main infra via GitHub Actions:**
 
+![Infrastructure Terraform Apply](docs/_images/infra-terraform-apply.png)
+
 - Go to **Actions** → **Terraform Infrastructure**
 - Click **Run workflow**
 - **Configure workflow parameters:**
@@ -811,7 +802,7 @@ After updating `aws.tfvars`, deploy or update your main infra cluster:
 - `s3` - Remote S3 backend (recommended for production)
 - **SSH_PRIVATE_KEY**: GitHub secret name containing SSH private key for instance access
 - Must match the `ssh_key_name` in your terraform.tfvars
- - **Action**: Select `apply` to deploy infrastructure
+- **Action**: Select `apply` to deploy infrastructure
 
 **Verify Rancher Import (Only if rancher_import = true):**
 
@@ -855,15 +846,18 @@ To regenerate import URL if needed:
 3. Click ⋮ (three dots) → Edit Config
 4. Copy the new registration command
 
-### 4. Helmsman Deployment#### Step 4a: Update DSF Configuration Files
+   ```
+   Cluster Name: soil38 (use your cluster_name from aws.tfvars)
+
+### 4. Helmsman Deployment
 
 > **What is DSF?** DSF (Desired State File) is like a recipe that tells Helmsman what applications to install and how to configure them. [Learn more](docs/GLOSSARY.md#dsf-desired-state-file)
 >
 > **Detailed DSF Guide:** [DSF Configuration Guide](docs/DSF_CONFIGURATION_GUIDE.md) - Comprehensive guide with examples and explanations!
 
-**Time required:** 20-30 minutes to update all files
+#### Step 4a: Update DSF Configuration Files
 
-1. **Clone the MOSIP infra repository and navigate to Helmsman directory:**
+1. **Clone the repository (if not already done):**
 
 ```bash
  git clone https://github.com/mosip/infra.git
@@ -925,6 +919,7 @@ To regenerate import URL if needed:
 ```
 
  **Need detailed help?** [DSF Configuration Guide - Prerequisites](docs/DSF_CONFIGURATION_GUIDE.md#prerequisites-dsf-configuration)
+
 4. **Update external-dsf.yaml:**
 
  **Critical Updates Required:**
@@ -1086,9 +1081,10 @@ To regenerate import URL if needed:
 - Select or create environment for your branch (e.g., `release-0.1.0`, `main`, `develop`)
 - Click "Add secret" under Environment secrets
 - Name: `KUBECONFIG`
- - Value: Copy the entire contents of the kubeconfig file from `terraform/implementations/aws/infra/`
+- Value: Copy the entire contents of the kubeconfig file from `terraform/implementations/aws/infra/`
 
  **Branch Environment Configuration:- Ensure the environment name matches your deployment branch
+
 - Configure environment protection rules if needed
 - Verify Helmsman workflows reference the correct environment
 
@@ -1103,17 +1099,6 @@ To regenerate import URL if needed:
  # WireGuard Cluster Access for Helmsman
  CLUSTER_WIREGUARD_WG0: "peer1-wireguard-config" # Helmsman cluster access (peer1)
  CLUSTER_WIREGUARD_WG1: "peer2-wireguard-config" # Helmsman cluster access (peer2)
-```
-
- **Repository Secrets (global):**
-
-```yaml
- # GPG Encryption (if using encrypted backends)
- GPG_PASSPHRASE: "your-gpg-passphrase"
-
- # AWS Credentials (if not using OIDC)
- AWS_ACCESS_KEY_ID: "AKIA..."
- AWS_SECRET_ACCESS_KEY: "..."
 ```
 
 4. **Verify Secret Configuration:**
@@ -1153,6 +1138,8 @@ The Helmsman deployment process follows a specific sequence with automated trigg
 
 > **Detailed Steps:** [Workflow Guide - Prerequisites &amp; External Dependencies](docs/WORKFLOW_GUIDE.md#workflow-1-prerequisites--external-dependencies)
 
+![Deploy External Services - Helmsman](docs/_images/helmsman-external-services.png)
+
 - Actions → **"Deploy External services of mosip using Helmsman"** (or "Helmsman External Dependencies")
 - **Can't find it?** Search for "External" in the workflows list
 - This workflow handles both deployments in parallel:
@@ -1183,7 +1170,6 @@ The Helmsman deployment process follows a specific sequence with automated trigg
  **Error Handling:**
 
 - If the automatic trigger fails, manually trigger: Actions → **Deploy MOSIP services using Helmsman**
-- If onboarding processes fail during deployment, manual re-onboarding is required (see limitations section)
 
 3. **Verify All Pods are Running:**
 
@@ -1199,16 +1185,54 @@ The Helmsman deployment process follows a specific sequence with automated trigg
  kubectl get pods --all-namespaces | grep -v Running | grep -v Completed
 ```
 
-4. **Deploy Test Rigs (Manual):**
+4. **Handle Onboarding Failures (If Required):**
 
-- **Prerequisites**: All pods from steps 1-2 must be in `Running` state
+> **⚠️ Important**: The partner-onboarder pod will run successfully, but you must check the onboarding reports in MinIO to verify if all partners were onboarded correctly. Failed onboardings must be manually re-executed before deploying test rigs.
+
+**When to check and rerun onboarding:**
+
+- After the partner-onboarder pod completes (check MinIO reports for failures)
+- When onboarding reports show failed partner registrations
+- Before deploying test rigs to ensure all prerequisites are met
+
+**How to check onboarding status and rerun if needed:**
+
+Refer to the comprehensive [MOSIP Onboarding Guide](docs/ONBOARDING_GUIDE.md) for detailed instructions on:
+
+- [Verifying partner-onboarder pod completion](docs/ONBOARDING_GUIDE.md#step-1-verify-partner-onboarder-pod-completion)
+- [How to access MinIO and check onboarding reports](docs/ONBOARDING_GUIDE.md#step-2-access-minio-to-check-onboarding-reports)
+- [Checking onboarding reports in MinIO](docs/ONBOARDING_GUIDE.md#step-3-check-onboarding-reports-in-minio)
+- [How to delete failed jobs and rerun partner-onboarder](docs/ONBOARDING_GUIDE.md#manual-partner-re-onboarding-procedures)
+- [Updating mosip-dsf.yaml to retry failed modules](docs/ONBOARDING_GUIDE.md#step-2-update-mosip-dsfyaml-configuration)
+- [Verification steps after rerunning](docs/ONBOARDING_GUIDE.md#step-4-verify-success-in-minio-reports)
+
+5. **Deploy Test Rigs (Manual):**
+
+![Deploy Test Rigs - Helmsman](docs/_images/helmsman-testrigs.png)
+
+- **Prerequisites**: All pods from steps 1-2 must be in `Running` state and onboarding completed successfully
 - Actions → **Deploy Testrigs of mosip using Helmsman** (`helmsman_testrigs.yml`)
 - Select DSF file: `testrigs-dsf.yaml`
 - Mode: `apply` (required - dry-run will fail due to namespace dependencies)
 
-> **Important**: Test rigs should only be deployed after verifying all core services are running successfully. Failed onboarding processes must be manually re-executed before test rig deployment.
+**Post-Deployment Steps:**
 
-### 5. Verify Deployment
+After test rigs deployment completes:
+
+1. **Update cron schedules**: Update the cron time for all CronJobs in the `dslrig`, `apitestrig`, and `uitestrig` namespaces as needed
+2. **Trigger DSL orchestrator**:
+   ```bash
+   kubectl create job --from=cronjob/cronjob-dslorchestrator-full dslrig-manual-run -n dslrig
+   ```
+
+   > **Note**: This job will run for more than 3 hours. Monitor progress with:
+   >
+   > ```bash
+   > kubectl logs -f job/dslrig-manual-run -n dslrig
+   > ```
+   >
+
+### 6. Verify Deployment
 
 ```bash
 # Check cluster status
