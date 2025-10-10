@@ -152,11 +152,11 @@ apps:
   kernel-keygen:
     namespace: keymanager
     enabled: true
-    version: 1.3.0-beta.2
+    version: 1.3.0-beta.4-develop
     chart: mosip/keygen
     set:
-      image.repository: "mosipid/keys-generator"
-      image.tag: "1.3.0-beta.2"
+      image.repository: "mosipdev/keys-generator"
+      image.tag: "release-1.3.x"
       springConfigNameEnv: "kernel" 
       softHsmCM: "softhsm-kernel-share"
       # persistence.enabled: "false"
@@ -227,11 +227,11 @@ apps:
   masterdata-loader:
     namespace: masterdata-loader
     enabled: true
-    version: 0.0.1-develop
+    version: 1.3.0-beta.1-develop
     chart: mosip/masterdata-loader
     set:
-      image.repository: "mosipqa/masterdata-loader"
-      image.tag: "develop"
+      image.repository: "mosipdev/masterdata-loader"
+      image.tag: "release-1.3.x"
       mosipDataGithubBranch: "release-1.3.x"
       mosipDataGithubRepo: "https://github.com/mosip/mosip-data"
       mosipDataXlsfolderPath: "/home/mosip/mosip-data/mosip_master/xlsx"
@@ -489,11 +489,11 @@ apps:
   idrepo-saltgen:
     namespace: idrepo
     enabled: true
-    version: 1.3.0-beta.1
+    version: 0.0.1-develop
     chart: mosip/idrepo-saltgen
     set:
-      image.repository: "mosipid/id-repository-salt-generator"
-      image.tag: "1.3.0-beta.1"
+      image.repository: "mosipdev/id-repository-salt-generator"
+      image.tag: "release-1.3.x"
     #timeout: 240
     priority: -9
     timeout: 1200
@@ -625,11 +625,11 @@ apps:
   regproc-salt:
     namespace: regproc
     enabled: true
-    version: 1.3.0-beta.1
+    version: 1.3.0-beta.3-develop
     chart: mosip/regproc-salt
     set:
-      image.repository: "mosipid/kernel-salt-generator"
-      image.tag: "1.3.0-beta.1"
+      image.repository: "mosipdev/kernel-salt-generator"
+      image.tag: "release-1.3.x"
     priority: -9
     timeout: 1200
 
@@ -930,11 +930,11 @@ apps:
   ida-keygen:
     namespace: ida
     enabled: true
-    version: 12.0.1
+    version: 1.3.0-beta.4-develop
     chart: mosip/keygen
     set:
-      image.repository: "mosipid/keys-generator"
-      image.tag: "1.3.0-beta.2"
+      image.repository: "mosipdev/keys-generator"
+      image.tag: "release-1.3.x"
       springConfigNameEnv: "id-authentication" 
       softHsmCM: "softhsm-ida-share"
       # persistence.enabled: false
