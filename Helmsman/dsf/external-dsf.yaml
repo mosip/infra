@@ -63,12 +63,12 @@ apps:
     chart: mosip/postgres-init
     set:
       dbUserPasswords.dbuserPassword: ""
-      databases.mosip_master.enabled: "true"
+      databases.mosip_master.enabled: "false"
       databases.mosip_master.branch: "release-1.3.x"
       databases.mosip_master.host: "postgres.dev.mosip.net"
       databases.mosip_master.port: 5433
 
-      databases.mosip_audit.enabled: "true"
+      databases.mosip_audit.enabled: "false"
       databases.mosip_audit.branch: "release-1.3.x"
       databases.mosip_audit.host: "postgres.dev.mosip.net"
       databases.mosip_audit.port: 5433
