@@ -294,6 +294,7 @@ apps:
     set:
       image.repository: "mosipqa/activemq-artemis"
       image.tag: "1.1.5"
+      persistence.storageClass: "nfs-csi-activemq"
       istio.enabled: "true"
       istio.hosts[0]: "activemq.dev.mosip.net"
       istio.ingressController.name: "ingressgateway-internal"
