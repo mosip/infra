@@ -245,6 +245,7 @@ apps:
     version: 15.0.6
     chart: mosip/minio
     set:
+      global.security.allowInsecureImages: true
       image.repository: "mosipint/minio"
       image.tag: "2025.2.28-debian-12-r1"
       metrics.serviceMonitor.enabled: "true"
