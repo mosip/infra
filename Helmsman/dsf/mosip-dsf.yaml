@@ -1118,13 +1118,13 @@ apps:
   regclient:
     namespace: regclient
     enabled: true
-    version: 1.3.0-beta.1
+    version: 1.3.0-beta.2-develop
     chart: mosip/regclient
     set:
       startupProbe.failureThreshold: "60"
       image.repository: "mosipdev2/registration-client"
       image.tag: "release-1.3.x"
-      regclient.version: "1.2.0.2"
+      regclient.version: "1.3.0-SNAPSHOT"
       regclient.upgradeServerUrl: "https://regclient.dev.mosip.net"
       regclient.healthCheckUrl: "https://api-internal.dev.mosip.net/v1/syncdata/actuator/health"
       regclient.hostName: "api-internal.dev.mosip.net"
