@@ -327,6 +327,10 @@ Before running any Terraform workflow, understand these modes:
 
 **Tip**: Always run terraform plan first to preview changes, then run with apply checked to actually deploy!
 
+#### Things to Know While Working with Terraform Workflows
+
+For detailed information about GitHub Actions workflow parameters, terraform modes, and best practices, see: [Terraform Workflow Guide](docs/TERRAFORM_WORKFLOW_GUIDE.md)
+
 #### Step 3a: Base Infrastructure
 
 **What this creates:**
@@ -361,26 +365,26 @@ Before running any Terraform workflow, understand these modes:
 
 ![Base Infrastructure Terraform Apply](docs/_images/base-infra-terraform-apply.png)
 
-- Go to **Actions** → **Terraform Base Infrastructure**
+- Go to **Actions** → **terraform plan/apply** (1)
 - **Can't find it?** Look in the left sidebar under "All workflows"
 - Click **Run workflow** (green button on the right)
 - **Configure workflow parameters:**
-- **Branch**: Select your deployment branch (e.g., `release-0.1.0`)
+- **Branch**: Select your deployment branch (e.g., `release-0.1.0`) (2)
 - **What's this?** The branch of code to use for deployment
-- **Cloud Provider**: Select `aws` (Azure/GCP are placeholder implementations)
+- **Cloud Provider**: Select `aws` (Azure/GCP are placeholder implementations) (3)
 - **Important**: Only `aws` is fully functional
-- **Component**: Select `base-infra` (creates VPC, networking, jump server, WireGuard)
+- **Component**: Select `base-infra` (creates VPC, networking, jump server, WireGuard) (4)
 - **What's this?** Which part of infrastructure to build
 - **Backend**: Choose backend configuration:
-- `local` - GPG-encrypted local state (recommended for development)
+- `local` - GPG-encrypted local state (recommended for development) (5)
 - Stores state in your GitHub repository (encrypted)
-- `s3` - Remote S3 backend (recommended for production)
+- `s3` - Remote S3 backend (recommended for production) (6)
 - Stores state in AWS S3 bucket (centralized)
-- **SSH_PRIVATE_KEY**: GitHub secret name containing SSH private key for instance access
+- **SSH_PRIVATE_KEY**: GitHub secret name containing SSH private key for instance access (7)
 - Must match the `ssh_key_name` in your terraform.tfvars
 - **Terraform apply**:
-- ☐ **Unchecked** - Terraform plan (preview only, no changes made)
-- ✅ **Checked** - Apply (actually creates infrastructure)
+- ☐ **Unchecked** - Terraform plan (preview only, no changes made) (8)
+- ✅ **Checked** - Apply (actually creates infrastructure) (8)
 - **First time?** Uncheck for terraform plan, then run again with checked
 
  **What You Should See:**
@@ -399,69 +403,6 @@ Before running any Terraform workflow, understand these modes:
 - **Route Tables**: Network traffic routing
 
  **Need more help?** [Workflow Guide](docs/WORKFLOW_GUIDE.md)
-
-#### GitHub Actions Workflow Parameters Reference
-
-> **Visual Guide:** See [Workflow Guide - Workflow Parameters Explained](docs/WORKFLOW_GUIDE.md#workflow-parameters-explained) for detailed explanations with examples!
-
-**Common Parameters for All Terraform Workflows:**
-
-- **`CLOUD_PROVIDER`**: `aws` | `azure` | `gcp` (cloud platform selection)
-- **Choose**: `aws` (only fully functional option)
-- Azure/GCP are placeholder implementations
-- **`TERRAFORM_COMPONENT`**: `base-infra` | `infra` | `observ-infra` (infrastructure component)
-- **base-infra**: VPC, networking, jump server (deploy FIRST)
-- **observ-infra**: Rancher management cluster (optional)
-- **infra**: MOSIP Kubernetes cluster (main deployment)
-- **`SSH_PRIVATE_KEY`**: GitHub secret name containing SSH private key for instance access
-- Must match the `ssh_key_name` in your terraform.tfvars
-- [How to create SSH keys](docs/SECRET_GENERATION_GUIDE.md#1-ssh-keys)
-- **`TERRAFORM_APPLY`**: Checkbox ☐ or ✅ (apply changes or plan-only mode)
-- ☐ **Unchecked** = Dry run (preview only, **no infrastructure changes**)
-- ✅ **Checked** = Apply (actually creates infrastructure, **real changes**)
-- **Visual Explanation:**
-
-```
- ☐ Unchecked → Terraform Plan Only
- → Shows: "Will create 25 resources"
- → Does: Nothing (preview only)
- → AWS: No changes made
- 
- ✅ Checked → Terraform Apply
- → Shows: "Creating resources..."
- → Does: Creates actual infrastructure
- → AWS: Servers, networks, databases created
- → Cost: Billing starts
-```
-
-- **Relationship with Rancher Import:**
-
-```
- If Terraform Apply = ✅ AND Rancher Import = True
- → Infrastructure deployed AND cluster imported to Rancher UI
- 
- If Terraform Apply = ✅ AND Rancher Import = False 
- → Infrastructure deployed but cluster runs standalone
- 
- If Terraform Apply = ☐ (unchecked - dry run)
- → Nothing happens, just shows plan
- → Rancher Import setting is ignored
-```
-
-**Backend Configuration Options:**
-
-- **`local`**: GPG-encrypted local state storage (recommended for development and small teams)
-- State files stored in repository with GPG encryption
-- No external dependencies required
-- Automatic encryption/decryption via GitHub Actions
-- **Best for**: Development, testing, small teams
-- **Requires**: GPG_PASSPHRASE secret
-- **`s3`**: Remote S3 backend storage (recommended for production and large teams)
-- Centralized state storage in AWS S3
-- DynamoDB state locking support
-- Cross-team collaboration friendly
-- **Best for**: Production, large teams, multiple environments
-- **Requires**: S3 bucket and DynamoDB table setup
 
 #### Step 3b: WireGuard VPN Setup (Required for Private Network Access)
 
@@ -513,6 +454,21 @@ Before running any Terraform workflow, understand these modes:
 - **Enhanced Security:** Encrypted VPN tunnel for all infrastructure access (256-bit encryption)
 - **Terraform Integration:** Required for subsequent infrastructure deployments
 - **Helmsman Connectivity:** Enables secure cluster access for service deployments
+
+**Backend Configuration Options:**
+
+- **`local`**: GPG-encrypted local state storage (recommended for development and small teams)
+- State files stored in repository with GPG encryption
+- No external dependencies required
+- Automatic encryption/decryption via GitHub Actions
+- **Best for**: Development, testing, small teams
+- **Requires**: GPG_PASSPHRASE secret
+- **`s3`**: Remote S3 backend storage (recommended for production and large teams)
+- Centralized state storage in AWS S3
+- DynamoDB state locking support
+- Cross-team collaboration friendly
+- **Best for**: Production, large teams, multiple environments
+- **Requires**: S3 bucket and DynamoDB table setup
 
 **Visual Explanation:**
 
