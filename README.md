@@ -6,6 +6,10 @@
 
 This repository provides a **3-step rapid deployment model** for MOSIP (Modular Open Source Identity Platform) with enhanced security features including GPG (GNU Privacy Guard) encryption for local backends and integrated PostgreSQL setup via Terraform modules.
 
+## Architecture Overview
+
+For detailed MOSIP platform architecture and design principles, visit: [MOSIP Platform Architecture](https://docs.mosip.io/1.2.0/setup/deploymentnew/v3-installation/1.2.0.2/overview-and-architecture#architecture-diagram)
+
 **Complete Documentation Index:** [View All Documentation](docs/README.md)
 
 **First Time Deploying? Start Here!**
@@ -67,58 +71,6 @@ graph TB
 ```
 
 > **Note:** Complete Terraform scripts are available only for **AWS**. For **Azure and GCP**, only placeholder structures are configured - community contributions are welcome to implement full functionality.
-
-## Architecture Overview
-
-### Infrastructure Layer (Terraform)
-
-```
-terraform/
-├── base-infra/ # Foundation infrastructure (VPC, networking, security)
-├── observ-infra/ # Management cluster with Rancher UI (Optional)
-├── infra/ # MOSIP Kubernetes clusters
-├── modules/ # Reusable Terraform modules
-│ ├── aws/ # AWS-specific modules
-│ │ ├── aws-resource-creation/ # VPC, subnets, security groups, EC2 instances
-│ │ ├── nginx-setup/ # Load balancer and reverse proxy configuration
-│ │ ├── postgresql-setup/ # PostgreSQL database setup and configuration
-│ │ ├── rke2-cluster/ # RKE2 Kubernetes cluster provisioning
-│ │ ├── rancher-keycloak-setup/ # Identity management and SSO setup
-│ │ └── nfs-setup/ # Network File System configuration
-│ ├── azure/ # Azure-specific modules (placeholder - community contributions needed)
-│ └── gcp/ # GCP-specific modules (placeholder - community contributions needed)
-└── implementations/ # Cloud-specific implementations
- ├── aws/ # AWS deployment configurations
- ├── azure/ # Azure deployment configurations
- └── gcp/ # GCP deployment configurations
-```
-
-### Application Layer (Helmsman)
-
-```
-Helmsman/
-├── dsf/ # Desired State Files for deployments
-│ ├── prereq-dsf.yaml # Prerequisites (monitoring, Istio, logging)
-│ ├── external-dsf.yaml # External dependencies (PostgreSQL, Keycloak, MinIO, ActiveMQ, Kafka, etc.)
-│ ├── mosip-dsf.yaml # MOSIP core services
-│ └── testrigs-dsf.yaml # Testing suite (API, DSL, UI test rigs)
-├── hooks/ # Scripts needed for automated deployment
-└── utils/ # Utilities and configurations
- ├── istio-addons/ # Service mesh components
- ├── logging/ # Logging stack configurations (optional)
- └── monitoring/ # Monitoring and alerting setup (optional)
-```
-
-### Automation Layer (GitHub Actions)
-
-```
-.github/workflows/
-├── terraform.yml # Infrastructure provisioning workflow
-├── terraform-destroy.yml # Infrastructure cleanup workflow
-├── helmsman_external.yml # External dependencies deployment
-├── helmsman_mosip.yml # MOSIP core services deployment
-└── helmsman_testrigs.yml # Testing infrastructure deployment
-```
 
 ## Prerequisites
 
@@ -849,6 +801,8 @@ To regenerate import URL if needed:
    ```
    Cluster Name: soil38 (use your cluster_name from aws.tfvars)
 
+   ```
+
 ### 4. Helmsman Deployment
 
 > **What is DSF?** DSF (Desired State File) is like a recipe that tells Helmsman what applications to install and how to configure them. [Learn more](docs/GLOSSARY.md#dsf-desired-state-file)
@@ -1212,6 +1166,7 @@ After test rigs deployment completes:
 
 1. **Update cron schedules**: Update the cron time for all CronJobs in the `dslrig`, `apitestrig`, and `uitestrig` namespaces as needed
 2. **Trigger DSL orchestrator**:
+
    ```bash
    kubectl create job --from=cronjob/cronjob-dslorchestrator-full dslrig-manual-run -n dslrig
    ```
