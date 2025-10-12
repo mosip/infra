@@ -1195,16 +1195,7 @@ The Helmsman deployment process follows a specific sequence with automated trigg
 - When onboarding reports show failed partner registrations
 - Before deploying test rigs to ensure all prerequisites are met
 
-**How to check onboarding status and rerun if needed:**
-
-Refer to the comprehensive [MOSIP Onboarding Guide](docs/ONBOARDING_GUIDE.md) for detailed instructions on:
-
-- [Verifying partner-onboarder pod completion](docs/ONBOARDING_GUIDE.md#step-1-verify-partner-onboarder-pod-completion)
-- [How to access MinIO and check onboarding reports](docs/ONBOARDING_GUIDE.md#step-2-access-minio-to-check-onboarding-reports)
-- [Checking onboarding reports in MinIO](docs/ONBOARDING_GUIDE.md#step-3-check-onboarding-reports-in-minio)
-- [How to delete failed jobs and rerun partner-onboarder](docs/ONBOARDING_GUIDE.md#manual-partner-re-onboarding-procedures)
-- [Updating mosip-dsf.yaml to retry failed modules](docs/ONBOARDING_GUIDE.md#step-2-update-mosip-dsfyaml-configuration)
-- [Verification steps after rerunning](docs/ONBOARDING_GUIDE.md#step-4-verify-success-in-minio-reports)
+**How to check onboarding status and rerun if needed:** Refer to the comprehensive [MOSIP Onboarding Guide](docs/ONBOARDING_GUIDE.md) for detailed troubleshooting and retry procedures.
 
 5. **Deploy Test Rigs (Manual):**
 
@@ -1244,51 +1235,13 @@ kubectl get pods -A
 kubectl get services -n istio-system
 ```
 
-### 6. Environment Destruction and Cleanup
+### 7. Environment Destruction and Cleanup
 
-> **Need to destroy your environment?** See our [Environment Destruction Guide](docs/ENVIRONMENT_DESTRUCTION_GUIDE.md) for safe teardown procedures!
-
-**When you need to destroy/decommission an environment:**
-
-- Development/testing environment no longer needed
-- Failed deployment requires clean restart
-- Cost optimization (shutting down unused resources)
-- Recreating infrastructure with new configuration
-
-**What the guide covers:**
-
-- ✅ **Safe destruction order** - Destroy in reverse order to avoid orphaned resources
-- ✅ **Step-by-step commands** - Exact commands for Helmsman and Terraform cleanup
-- ✅ **Backup procedures** - How to save data before destruction
-- ✅ **Cost verification** - Ensure all resources are deleted to stop billing
-- ✅ **Troubleshooting** - Fix common deletion issues
-
-**Quick Destruction Summary:**
-
-```
-Destruction Order (Reverse of Deployment):
-
-1. Test Rigs ← Destroy FIRST
-2. MOSIP Services ← Destroy SECOND 
-3. External Services ← Destroy THIRD
-4. Prerequisites ← Destroy FOURTH
-5. Infrastructure ← Destroy FIFTH (Kubernetes cluster)
-6. Base Infrastructure ← Destroy LAST (VPC, networking)
-```
-
-**Time required:** 1-2 hours for complete cleanup
-
-**Important:**
-
-- Always backup data before destroying production environments
-- Verify all AWS resources are deleted to avoid unexpected costs
-- Follow the guide's checklist to ensure complete cleanup
-
-**[View Complete Destruction Guide](docs/ENVIRONMENT_DESTRUCTION_GUIDE.md)**
+For safe teardown procedures and complete cleanup steps, see our [Environment Destruction Guide](docs/ENVIRONMENT_DESTRUCTION_GUIDE.md).
 
 ---
 
-### 7. Next Steps & Detailed Documentation
+### 8. Next Steps & Detailed Documentation
 
 The Quick Start Guide provides the essential deployment flow. For comprehensive configuration options, troubleshooting, and advanced features, refer to the detailed component documentation:
 
@@ -1300,7 +1253,7 @@ The Quick Start Guide provides the essential deployment flow. For comprehensive 
 
 #### **Helmsman Deployment Documentation**
 
-- **Location**: [`Helmsman/README.md`](Helmsman/README.md)
+- **Location**: [`Helmsman/dsf/README.md`](Helmsman/dsf/README.md)
 - **Contents**: Complete DSF configuration reference, hook scripts, environment management, customization options
 - **Use Cases**: Custom service configurations, environment-specific deployments, service scaling and tuning
 
