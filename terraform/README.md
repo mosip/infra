@@ -21,21 +21,21 @@ graph TB
  AWS_BASE[base-infra<br/>VPC + WireGuard]
  AWS_OBS[observ-infra<br/>Rancher + Keycloak]
  AWS_INFRA[infra<br/>MOSIP K8s Cluster]
- AWS_STATE[(AWS S3<br/>State Files)]
+ AWS_STATE[(AWS <br/>State Files)]
  end
  
  subgraph "Azure Cloud"
  AZ_BASE[base-infra<br/>VNet + WireGuard]
  AZ_OBS[observ-infra<br/>Rancher + Keycloak]
  AZ_INFRA[infra<br/>MOSIP RKE2 Cluster]
- AZ_STATE[(Azure Storage<br/>State Files)]
+ AZ_STATE[(Azure <br/>State Files)]
  end
  
  subgraph "GCP Cloud"
  GCP_BASE[base-infra<br/>VPC + WireGuard]
  GCP_OBS[observ-infra<br/>Rancher + Keycloak]
  GCP_INFRA[infra<br/>MOSIP RKE2 Cluster]
- GCP_STATE[(GCS<br/>State Files)]
+ GCP_STATE[(GCP<br/>State Files)]
  end
  end
  
