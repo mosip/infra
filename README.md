@@ -455,20 +455,6 @@ For detailed information about GitHub Actions workflow parameters, terraform mod
 - **Terraform Integration:** Required for subsequent infrastructure deployments
 - **Helmsman Connectivity:** Enables secure cluster access for service deployments
 
-**Backend Configuration Options:**
-
-- **`local`**: GPG-encrypted local state storage (recommended for development and small teams)
-- State files stored in repository with GPG encryption
-- No external dependencies required
-- Automatic encryption/decryption via GitHub Actions
-- **Best for**: Development, testing, small teams
-- **Requires**: GPG_PASSPHRASE secret
-- **`s3`**: Remote S3 backend storage (recommended for production and large teams)
-- Centralized state storage in AWS S3
-- DynamoDB state locking support
-- Cross-team collaboration friendly
-- **Best for**: Production, large teams, multiple environments
-- **Requires**: S3 bucket and DynamoDB table setup
 
 **Visual Explanation:**
 
