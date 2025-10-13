@@ -367,28 +367,27 @@ For detailed information about GitHub Actions workflow parameters, terraform mod
 
 ![Base Infrastructure Terraform Apply](docs/_images/base-infra-terraform-apply.png)
 
-**(1)** Go to **Actions** → **terraform plan/apply**
-    - **Can't find it?** Look in the left sidebar under "All workflows"
-    - Click **Run workflow** (green button on the right)
-    - **Configure workflow parameters:**
-**(2)** **Branch**: Select your deployment branch (e.g., `release-0.1.0`)
-    - **What's this?** The branch of code to use for deployment
-**(3)** **Cloud Provider**: Select `aws` (Azure/GCP are placeholder implementations)
-    - **Important**: Only `aws` is fully functional
-**(4)** **Component**: Select `base-infra` (creates VPC, networking, jump server, WireGuard)
-    - **What's this?** Which part of infrastructure to build
-**Backend**: Choose backend configuration:
-**(5)** `local` - GPG-encrypted local state (recommended for development)
-    Stores state in your GitHub repository (encrypted)
-**(6)** `s3` - Remote S3 backend (recommended for production)
-    Stores state in AWS S3 bucket (centralized)
-**(7)** **SSH_PRIVATE_KEY**: GitHub secret name containing SSH private key for instance access
-    Must match the `ssh_key_name` in your terraform.tfvars
-**Terraform apply**:
-**(8)** ☐ **Unchecked** - Terraform plan (preview only, no changes made)
-**(8)** ✅ **Checked** - Apply (actually creates infrastructure)
-  **First time?** Uncheck for terraform plan, then run again with checked
-**(9)** Run Workflow
+- **(1)** Go to **Actions** → **terraform plan/apply**
+  - **Can't find it?** Look in the left sidebar under "All workflows"
+  - Click **Run workflow** (green button on the right)
+  - **Configure workflow parameters:**
+- **(2)** **Branch**: Select your deployment branch (e.g., `release-0.1.0`)
+  - **What's this?** The branch of code to use for deployment
+- **(3)** **Cloud Provider**: Select `aws` (Azure/GCP are placeholder implementations)
+  - **Important**: Only `aws` is fully functional
+- **(4)** **Component**: Select `base-infra` (creates VPC, networking, jump server, WireGuard)
+  - **What's this?** Which part of infrastructure to build
+- **Backend**: Choose backend configuration:
+  - **(5)** `local` - GPG-encrypted local state (recommended for development)
+    - Stores state in your GitHub repository (encrypted)
+  - **(6)** `s3` - Remote S3 backend (recommended for production)
+    - Stores state in AWS S3 bucket (centralized)
+- **(7)** **SSH_PRIVATE_KEY**: GitHub secret name containing SSH private key for instance access
+  - Must match the `ssh_key_name` in your terraform.tfvars
+- **Terraform apply**:
+  - **(8)** ☐ **Unchecked** - Terraform plan (preview only, no changes made)
+  - **(8)** ✅ **Checked** - Apply (actually creates infrastructure)
+  - **First time?** Uncheck for terraform plan, then run again with checked
 
  **What You Should See:**
 
@@ -687,19 +686,18 @@ After updating `aws.tfvars`, deploy or update your main infra cluster:
 
 ![Infrastructure Terraform Apply](docs/_images/infra-terraform-apply.png)
 
-**(1)** Go to **Actions** → **terraform plan/apply**
-    - Click **Run workflow**
-**Configure workflow parameters:**
-**(2)** **Branch**: Select your deployment branch (e.g., `release-0.1.0`)
-**(3)** **Cloud Provider**: Select `aws` (Azure/GCP are placeholder implementations)
-**(4)** **Component**: Select `infra` (MOSIP application infrastructure)
-**Backend**: Choose backend configuration:
-**(5)** `local` - GPG-encrypted local state (recommended for development)
-**(6)** `s3` - Remote S3 backend (recommended for production)
-**(7)** **SSH_PRIVATE_KEY**: GitHub secret name containing SSH private key for instance access
-    - Must match the `ssh_key_name` in your terraform.tfvars
-**(8)** **Action**: Select `apply` to deploy infrastructure
-**(9)** Run Workflow
+- **(1)** Go to **Actions** → **terraform plan/apply**
+- **(2)** Click **Run workflow**
+- **(3)** **Configure workflow parameters:**
+- **(4)** **Branch**: Select your deployment branch (e.g., `release-0.1.0`)
+- **(5)** **Cloud Provider**: Select `aws` (Azure/GCP are placeholder implementations)
+- **(6)** **Component**: Select `infra` (MOSIP application infrastructure)
+- **(7)** **Backend**: Choose backend configuration:
+  - `local` - GPG-encrypted local state (recommended for development)
+  - `s3` - Remote S3 backend (recommended for production)
+- **(8)** **SSH_PRIVATE_KEY**: GitHub secret name containing SSH private key for instance access
+  - Must match the `ssh_key_name` in your terraform.tfvars
+- **(9)** **Action**: Select `apply` to deploy infrastructure
 
 **Verify Rancher Import (Only if rancher_import = true):**
 
@@ -1039,16 +1037,17 @@ The Helmsman deployment process follows a specific sequence with automated trigg
 
 ![Deploy External Services - Helmsman](docs/_images/helmsman-external-services.png)
 
-**(1)** Actions → **"Deploy External services of mosip using Helmsman"** (or "Helmsman External Dependencies")
-**(2)** **Select Run workflow**
-**(3)** **Select Branch**
-This workflow handles both deployments in parallel:
-**Prerequisites**: `prereq-dsf.yaml` (monitoring, Istio, logging)
-**External Dependencies**: `external-dsf.yaml` (databases, message queues, storage)
-**(4)** **Mode**: `apply` (required - dry-run will fail!)
-    - **Important:** DO NOT select dry-run mode for Helmsman
-    - **Time required:** 20-40 minutes
-    - **Automatic Trigger**: Upon successful completion, this workflow automatically triggers the MOSIP services deployment
+- **(1)** Actions → **"Deploy External services of mosip using Helmsman"** (or "Helmsman External Dependencies")
+  - **Can't find it?** Search for "External" in the workflows list
+- **(2)** **Select Run workflow**
+- **(3)** **Select Branch**
+- This workflow handles both deployments in parallel:
+  - **Prerequisites**: `prereq-dsf.yaml` (monitoring, Istio, logging)
+  - **External Dependencies**: `external-dsf.yaml` (databases, message queues, storage)
+- **(4)** **Mode**: `apply` (required - dry-run will fail!)
+  - **Important:** DO NOT select dry-run mode for Helmsman
+  - **Time required:** 20-40 minutes
+  - **Automatic Trigger**: Upon successful completion, this workflow automatically triggers the MOSIP services deployment
 
  **What You Should See:**
 
@@ -1102,10 +1101,10 @@ This workflow handles both deployments in parallel:
 ![Deploy Test Rigs - Helmsman](docs/_images/helmsman-testrigs.png)
 
 - **Prerequisites**: All pods from steps 1-2 must be in `Running` state and onboarding completed successfully
-**(1)** Actions → **Deploy Testrigs of mosip using Helmsman** (`helmsman_testrigs.yml`)
-**(2)** workflow - **select Run workflow in right side**
-**(3)** Branch - **Select Branch**
-**(4)** Mode: `apply` (required - dry-run will fail due to namespace dependencies)
+- **(1)** Actions → **Deploy Testrigs of mosip using Helmsman** (`helmsman_testrigs.yml`)
+- **(2)** workflow - **select Run workflow in right side**
+- **(3)** Branch - **Select Branch**
+- **(4)** Mode: `apply` (required - dry-run will fail due to namespace dependencies)
 
 **Post-Deployment Steps:**
 
