@@ -6,75 +6,9 @@ This directory contains **Terraform code** for deploying MOSIP (Modular Open Sou
 
 ## Architecture Overview
 
-### Three-Component Architecture
-
 The MOSIP infrastructure follows a clean three-component architecture with isolated state management using **local backend with GPG encryption**:
 
-```mermaid
-graph TB
- subgraph "GitHub Actions Orchestration"
- GHA[GitHub Actions<br/>Central Deployment Control]
- end
- 
- subgraph "Multi-Cloud Infrastructure"
- subgraph "AWS Cloud"
- AWS_BASE[base-infra<br/>VPC + WireGuard]
- AWS_OBS[observ-infra<br/>Rancher + Keycloak]
- AWS_INFRA[infra<br/>MOSIP K8s Cluster]
- AWS_STATE[(AWS <br/>State Files)]
- end
- 
- subgraph "Azure Cloud"
- AZ_BASE[base-infra<br/>VNet + WireGuard]
- AZ_OBS[observ-infra<br/>Rancher + Keycloak]
- AZ_INFRA[infra<br/>MOSIP RKE2 Cluster]
- AZ_STATE[(Azure <br/>State Files)]
- end
- 
- subgraph "GCP Cloud"
- GCP_BASE[base-infra<br/>VPC + WireGuard]
- GCP_OBS[observ-infra<br/>Rancher + Keycloak]
- GCP_INFRA[infra<br/>MOSIP RKE2 Cluster]
- GCP_STATE[(GCP<br/>State Files)]
- end
- end
- 
- GHA --> AWS_BASE
- GHA --> AZ_BASE
- GHA --> GCP_BASE
- 
- AWS_BASE --> AWS_OBS
- AWS_BASE --> AWS_INFRA
- AWS_OBS -.->|Import| AWS_INFRA
- AWS_BASE -.-> AWS_STATE
- AWS_OBS -.-> AWS_STATE
- AWS_INFRA -.-> AWS_STATE
- 
- AZ_BASE --> AZ_OBS
- AZ_BASE --> AZ_INFRA
- AZ_OBS -.->|Import| AZ_INFRA
- AZ_BASE -.-> AZ_STATE
- AZ_OBS -.-> AZ_STATE
- AZ_INFRA -.-> AZ_STATE
- 
- GCP_BASE --> GCP_OBS
- GCP_BASE --> GCP_INFRA
- GCP_OBS -.->|Import| GCP_INFRA
- GCP_BASE -.-> GCP_STATE
- GCP_OBS -.-> GCP_STATE
- GCP_INFRA -.-> GCP_STATE
- 
- style GHA fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:#fff
- style AWS_BASE fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
- style AWS_OBS fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000000
- style AWS_INFRA fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000000
- style AZ_BASE fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
- style AZ_OBS fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000000
- style AZ_INFRA fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000000
- style GCP_BASE fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
- style GCP_OBS fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000000
- style GCP_INFRA fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000000
-```
+![MOSIP Terraform Architecture](../docs/_images/terraform-light.draw.io.png)
 
 **Component Relationships:**
 

@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36" version="28.2.6">
+  <diagram name="MOSIP Terraform Architecture" id="mosip-terraform-arch">
+    <mxGraphModel dx="1426" dy="728" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="gha-container" value="GitHub Actions Orchestration" style="swimlane;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;strokeWidth=2;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="530" y="50" width="280" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="gha-box" value="GitHub Actions&#xa;Central Deployment Control" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1976D2;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;" parent="gha-container" vertex="1">
+          <mxGeometry x="35" y="30" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="multicloud-container" value="Multi-Cloud Infrastructure" style="swimlane;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=2;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="20" y="200" width="1300" height="480" as="geometry" />
+        </mxCell>
+        <mxCell id="aws-container" value="AWS Cloud" style="swimlane;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#F57C00;strokeWidth=2;fontStyle=1;" parent="multicloud-container" vertex="1">
+          <mxGeometry x="40" y="50" width="380" height="400" as="geometry" />
+        </mxCell>
+        <mxCell id="aws-base" value="base-infra&#xa;VPC + WireGuard" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1F5FE;strokeColor=#01579B;strokeWidth=2;" parent="aws-container" vertex="1">
+          <mxGeometry x="130" y="40" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="aws-obs" value="observ-infra&#xa;Rancher + Keycloak" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#F57C00;strokeWidth=2;" parent="aws-container" vertex="1">
+          <mxGeometry x="10" y="140" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="aws-infra" value="infra&#xa;MOSIP K8s Cluster" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#4A148C;strokeWidth=2;" parent="aws-container" vertex="1">
+          <mxGeometry x="230" y="140" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="aws-state" value="S3 Bucket&#xa;Remote State" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#FFE0B2;strokeColor=#FF8F00;strokeWidth=2;" parent="aws-container" vertex="1">
+          <mxGeometry x="130" y="280" width="140" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="azure-container" value="Azure Cloud" style="swimlane;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;strokeWidth=2;fontStyle=1;" parent="multicloud-container" vertex="1">
+          <mxGeometry x="460" y="50" width="380" height="400" as="geometry" />
+        </mxCell>
+        <mxCell id="azure-base" value="base-infra&#xa;VNet + WireGuard" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1F5FE;strokeColor=#01579B;strokeWidth=2;" parent="azure-container" vertex="1">
+          <mxGeometry x="130" y="40" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="azure-obs" value="observ-infra&#xa;Rancher + Keycloak" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#F57C00;strokeWidth=2;" parent="azure-container" vertex="1">
+          <mxGeometry x="10" y="140" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="azure-infra" value="infra&#xa;MOSIP RKE2 Cluster" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#4A148C;strokeWidth=2;" parent="azure-container" vertex="1">
+          <mxGeometry x="230" y="140" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="azure-state" value="Storage Account&#xa;Remote State" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#E1F5FE;strokeColor=#0288D1;strokeWidth=2;" parent="azure-container" vertex="1">
+          <mxGeometry x="130" y="280" width="140" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="gcp-container" value="GCP Cloud" style="swimlane;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#7B1FA2;strokeWidth=2;fontStyle=1;" parent="multicloud-container" vertex="1">
+          <mxGeometry x="880" y="50" width="380" height="400" as="geometry" />
+        </mxCell>
+        <mxCell id="gcp-base" value="base-infra&#xa;VPC + WireGuard" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1F5FE;strokeColor=#01579B;strokeWidth=2;" parent="gcp-container" vertex="1">
+          <mxGeometry x="130" y="40" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="gcp-obs" value="observ-infra&#xa;Rancher + Keycloak" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#F57C00;strokeWidth=2;" parent="gcp-container" vertex="1">
+          <mxGeometry x="10" y="140" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="gcp-infra" value="infra&#xa;MOSIP RKE2 Cluster" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#4A148C;strokeWidth=2;" parent="gcp-container" vertex="1">
+          <mxGeometry x="230" y="140" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="gcp-state" value="Cloud Storage&#xa;Remote State" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#F3E5F5;strokeColor=#8E24AA;strokeWidth=2;" parent="gcp-container" vertex="1">
+          <mxGeometry x="130" y="280" width="140" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="gha-to-aws" value="Deploy AWS" style="endArrow=classic;html=1;rounded=0;strokeWidth=3;strokeColor=#1976D2;endSize=10;fontColor=#1976D2;fontStyle=1;fontSize=10;entryX=0.689;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" target="aws-container" edge="1">
+          <mxGeometry x="0.1" y="5" width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="600" y="130" as="sourcePoint" />
+            <mxPoint x="570" y="60" as="targetPoint" />
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="gha-to-azure" value="Deploy Azure" style="endArrow=classic;html=1;rounded=0;strokeWidth=3;strokeColor=#1976D2;endSize=10;fontColor=#1976D2;fontStyle=1;fontSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.779;entryY=-0.007;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="gha-container" target="azure-container" edge="1">
+          <mxGeometry y="5" width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="590" y="110" as="sourcePoint" />
+            <mxPoint x="640" y="60" as="targetPoint" />
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="gha-to-gcp" value="Deploy GCP" style="endArrow=classic;html=1;rounded=0;strokeWidth=3;strokeColor=#1976D2;endSize=10;fontColor=#1976D2;fontStyle=1;fontSize=10;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.429;entryY=-0.007;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="gha-container" target="gcp-container" edge="1">
+          <mxGeometry x="-0.1" y="5" width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="660" y="110" as="sourcePoint" />
+            <mxPoint x="710" y="60" as="targetPoint" />
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="aws-base-to-obs" value="Provisions" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#F57C00;endSize=8;fontColor=#F57C00;fontStyle=1;fontSize=9;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="aws-base" target="aws-obs" edge="1">
+          <mxGeometry x="0.15" y="-10" width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="130" y="290" as="sourcePoint" />
+            <mxPoint x="80" y="340" as="targetPoint" />
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="aws-base-to-infra" value="Provisions" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#4A148C;endSize=8;fontColor=#4A148C;fontStyle=1;fontSize=9;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="aws-base" target="aws-infra" edge="1">
+          <mxGeometry x="-0.15" y="-10" width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="250" y="290" as="sourcePoint" />
+            <mxPoint x="300" y="340" as="targetPoint" />
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="aws-obs-to-infra" value="Import Config (Optional)" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#2196F3;dashed=1;dashPattern=8 5;endSize=7;fontColor=#1976D2;fontStyle=1;fontSize=9;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="aws-obs" target="aws-infra" edge="1">
+          <mxGeometry x="0.1" y="-8" width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="160" y="355" as="sourcePoint" />
+            <mxPoint x="210" y="305" as="targetPoint" />
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="aws-base-to-state" value="Remote State" style="endArrow=classic;html=1;rounded=0;strokeWidth=1;strokeColor=#FF8F00;dashed=1;dashPattern=5 3;endSize=6;fontColor=#FF8F00;fontSize=8;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="aws-base" target="aws-state" edge="1">
+          <mxGeometry x="0.1" y="-5" width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="150" y="300" as="sourcePoint" />
+            <mxPoint x="200" y="250" as="targetPoint" />
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="aws-obs-to-state" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=1;strokeColor=#FF8F00;dashed=1;dashPattern=5 3;endSize=6;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="aws-obs" target="aws-state" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="80" y="400" as="sourcePoint" />
+            <mxPoint x="130" y="480" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="aws-infra-to-state" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=1;strokeColor=#FF8F00;dashed=1;dashPattern=5 3;endSize=6;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="aws-infra" target="aws-state" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="270" y="400" as="sourcePoint" />
+            <mxPoint x="220" y="480" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="aws-to-local-state" value="Local Backup" style="endArrow=classic;html=1;rounded=0;strokeWidth=1;strokeColor=#388E3C;dashed=1;dashPattern=3 3;endSize=6;fontColor=#388E3C;fontSize=8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.203;entryY=-0.025;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="aws-state" target="local-state-container" edge="1">
+          <mxGeometry x="0.1" y="-5" width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="230" y="650" as="sourcePoint" />
+            <mxPoint x="170" y="720" as="targetPoint" />
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="azure-base-to-obs" value="Provisions" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#F57C00;endSize=8;fontColor=#F57C00;fontStyle=1;fontSize=9;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="azure-base" target="azure-obs" edge="1">
+          <mxGeometry x="0.15" y="-10" width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="500" y="290" as="sourcePoint" />
+            <mxPoint x="450" y="340" as="targetPoint" />
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="azure-base-to-infra" value="Provisions" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#4A148C;endSize=8;fontColor=#4A148C;fontStyle=1;fontSize=9;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="azure-base" target="azure-infra" edge="1">
+          <mxGeometry x="-0.15" y="-10" width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="620" y="290" as="sourcePoint" />
+            <mxPoint x="670" y="340" as="targetPoint" />
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="azure-obs-to-infra" value="Import Config (Optional)" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#2196F3;dashed=1;dashPattern=8 5;endSize=7;fontColor=#1976D2;fontStyle=1;fontSize=9;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="azure-obs" target="azure-infra" edge="1">
+          <mxGeometry x="0.1" y="-8" width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="540" y="355" as="sourcePoint" />
+            <mxPoint x="580" y="355" as="targetPoint" />
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="azure-base-to-state" value="Remote State" style="endArrow=classic;html=1;rounded=0;strokeWidth=1;strokeColor=#0288D1;dashed=1;dashPattern=5 3;endSize=6;fontColor=#0288D1;fontSize=8;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="azure-base" target="azure-state" edge="1">
+          <mxGeometry x="0.1" y="-5" width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="530" y="300" as="sourcePoint" />
+            <mxPoint x="580" y="250" as="targetPoint" />
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="azure-obs-to-state" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=1;strokeColor=#0288D1;dashed=1;dashPattern=5 3;endSize=6;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="azure-obs" target="azure-state" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="480" y="400" as="sourcePoint" />
+            <mxPoint x="500" y="480" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="azure-infra-to-state" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=1;strokeColor=#0288D1;dashed=1;dashPattern=5 3;endSize=6;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="azure-infra" target="azure-state" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="640" y="400" as="sourcePoint" />
+            <mxPoint x="620" y="480" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="azure-to-local-state" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=1;strokeColor=#388E3C;dashed=1;dashPattern=3 3;endSize=6;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.533;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="azure-state" target="local-state-container" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="610" y="650" as="sourcePoint" />
+            <mxPoint x="170" y="720" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="gcp-base-to-obs" value="Provisions" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#F57C00;endSize=8;fontColor=#F57C00;fontStyle=1;fontSize=9;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="gcp-base" target="gcp-obs" edge="1">
+          <mxGeometry x="0.15" y="-10" width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="870" y="290" as="sourcePoint" />
+            <mxPoint x="820" y="340" as="targetPoint" />
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="gcp-base-to-infra" value="Provisions" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#4A148C;endSize=8;fontColor=#4A148C;fontStyle=1;fontSize=9;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="gcp-base" target="gcp-infra" edge="1">
+          <mxGeometry x="-0.15" y="-10" width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="990" y="290" as="sourcePoint" />
+            <mxPoint x="1040" y="340" as="targetPoint" />
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="gcp-obs-to-infra" value="Import Config (Optional)" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#2196F3;dashed=1;dashPattern=8 5;endSize=7;fontColor=#1976D2;fontStyle=1;fontSize=9;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="gcp-obs" target="gcp-infra" edge="1">
+          <mxGeometry x="0.1" y="-8" width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="910" y="355" as="sourcePoint" />
+            <mxPoint x="950" y="355" as="targetPoint" />
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="gcp-base-to-state" value="Remote State" style="endArrow=classic;html=1;rounded=0;strokeWidth=1;strokeColor=#8E24AA;dashed=1;dashPattern=5 3;endSize=6;fontColor=#8E24AA;fontSize=8;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="gcp-base" target="gcp-state" edge="1">
+          <mxGeometry x="0.1" y="-5" width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="900" y="300" as="sourcePoint" />
+            <mxPoint x="950" y="250" as="targetPoint" />
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="gcp-obs-to-state" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=1;strokeColor=#8E24AA;dashed=1;dashPattern=5 3;endSize=6;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="gcp-obs" target="gcp-state" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="850" y="400" as="sourcePoint" />
+            <mxPoint x="870" y="480" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="gcp-infra-to-state" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=1;strokeColor=#8E24AA;dashed=1;dashPattern=5 3;endSize=6;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="gcp-infra" target="gcp-state" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1010" y="400" as="sourcePoint" />
+            <mxPoint x="990" y="480" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="gcp-to-local-state" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=1;strokeColor=#388E3C;dashed=1;dashPattern=3 3;endSize=6;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.73;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="gcp-state" target="local-state-container" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1010" y="650" as="sourcePoint" />
+            <mxPoint x="170" y="720" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="local-state-container" value="Local State Management" style="swimlane;whiteSpace=wrap;html=1;fillColor=#E8F5E8;strokeColor=#388E3C;strokeWidth=2;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="520" y="740" width="300" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="local-state" value="GitHub Repository&#xa;Encrypted State Files&#xa;(Local Backup)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#E8F5E8;strokeColor=#388E3C;strokeWidth=2;" parent="local-state-container" vertex="1">
+          <mxGeometry x="80" y="30" width="140" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-container" value="Legend" style="swimlane;whiteSpace=wrap;html=1;fillColor=#F0F0F0;strokeColor=#666666;strokeWidth=1;fontStyle=1;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="1360" y="40" width="200" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-deploy" value="Deployment Flow" style="endArrow=classic;html=1;strokeWidth=3;strokeColor=#1976D2;endSize=10;fontColor=#1976D2;fontSize=9;" parent="legend-container" edge="1">
+          <mxGeometry x="0.1" width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="20" y="30" as="sourcePoint" />
+            <mxPoint x="80" y="30" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend-provision" value="Provisioning" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#F57C00;endSize=8;fontColor=#F57C00;fontSize=9;" parent="legend-container" edge="1">
+          <mxGeometry x="0.1" width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="20" y="60" as="sourcePoint" />
+            <mxPoint x="80" y="60" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend-import" value="Import Config (Optional)" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#2196F3;dashed=1;dashPattern=8 5;endSize=7;fontColor=#1976D2;fontSize=9;fontStyle=1;" parent="legend-container" edge="1">
+          <mxGeometry x="0.1" width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="20" y="90" as="sourcePoint" />
+            <mxPoint x="80" y="90" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend-remote-state" value="Remote State (Cloud)" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#FF8F00;dashed=1;dashPattern=5 3;endSize=6;fontColor=#FF8F00;fontSize=9;" parent="legend-container" edge="1">
+          <mxGeometry x="0.1" width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="20" y="120" as="sourcePoint" />
+            <mxPoint x="80" y="120" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend-local-state" value="Local State Backup" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#388E3C;dashed=1;dashPattern=3 3;endSize=6;fontColor=#388E3C;fontSize=9;" parent="legend-container" edge="1">
+          <mxGeometry x="0.1" width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="20" y="150" as="sourcePoint" />
+            <mxPoint x="80" y="150" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

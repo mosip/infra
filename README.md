@@ -10,7 +10,6 @@ This repository provides a **3-step rapid deployment model** for MOSIP (Modular 
 
 For detailed MOSIP platform architecture Diagram, visit: [MOSIP Platform Architecture](https://docs.mosip.io/1.2.0/setup/deploymentnew/v3-installation/1.2.0.2/overview-and-architecture#architecture-diagram)
 
-**Complete Documentation Index:** [View All Documentation](docs/README.md)
 
 **First Time Deploying? Start Here!**
 
@@ -23,6 +22,8 @@ We've created comprehensive beginner-friendly guides to help you succeed:
 | **[Workflow Guide](docs/WORKFLOW_GUIDE.md)**                               | Visual walkthrough of GitHub Actions workflows with screenshots and navigation help        | During deployment - run workflows correctly         |
 | **[DSF Configuration Guide](docs/DSF_CONFIGURATION_GUIDE.md)**             | How to configure Helmsman files including clusterid and domain settings                    | Before Helmsman deployment - configure applications |
 | **[Environment Destruction Guide](docs/ENVIRONMENT_DESTRUCTION_GUIDE.md)** | Safe teardown procedures, backup steps, and cost monitoring                                | After deployment - clean up resources               |
+
+**Complete Documentation Index:** [View All Documentation](docs/README.md)
 
 ---
 
@@ -285,7 +286,7 @@ CLUSTER_WIREGUARD_WG1: |
 
 > **Note**: PostgreSQL secrets are no longer required! PostgreSQL setup is handled automatically by Terraform modules and Ansible scripts based on your `enable_postgresql_setup` configuration.
 
-## Quick Start Guide
+## Deployment Steps Guide
 
 ### 1. Fork and Setup Repository
 
@@ -1135,13 +1136,15 @@ kubectl get pods -A
 kubectl get services -n istio-system
 ```
 
-### 7. Environment Destruction and Cleanup
+---
+
+## Environment Destruction and Cleanup
 
 For safe teardown procedures and complete cleanup steps, see our [Environment Destruction Guide](docs/ENVIRONMENT_DESTRUCTION_GUIDE.md).
 
 ---
 
-### 8. Next Steps & Detailed Documentation
+## Next Steps & Detailed Documentation
 
 The Quick Start Guide provides the essential deployment flow. For comprehensive configuration options, troubleshooting, and advanced features, refer to the detailed component documentation:
 
