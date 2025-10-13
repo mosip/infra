@@ -8,7 +8,7 @@ This repository provides a **3-step rapid deployment model** for MOSIP (Modular 
 
 ## Architecture Overview
 
-For detailed MOSIP platform architecture and design principles, visit: [MOSIP Platform Architecture](https://docs.mosip.io/1.2.0/setup/deploymentnew/v3-installation/1.2.0.2/overview-and-architecture#architecture-diagram)
+For detailed MOSIP platform architecture Diagram, visit: [MOSIP Platform Architecture](https://docs.mosip.io/1.2.0/setup/deploymentnew/v3-installation/1.2.0.2/overview-and-architecture#architecture-diagram)
 
 **Complete Documentation Index:** [View All Documentation](docs/README.md)
 
