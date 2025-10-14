@@ -514,18 +514,18 @@ hooks:
 #### Repository Secrets
 - **Scope**: Available to all branches and environments
 - **Use case**: Cloud credentials, SSH keys, GPG passphrase
-- **Where to add**: Settings > Secrets and variables > Actions > Repository secrets
+- **Where to add**: Settings → Secrets and variables → Actions → Repository secrets
 
 #### Environment Secrets
 - **Scope**: Specific to a deployment environment/branch
 - **Use case**: KUBECONFIG, WireGuard configs (different per environment)
-- **Where to add**: Settings > Secrets and variables > Actions > Environments
+- **Where to add**: Settings → Secrets and variables → Actions → Environments
 
 ### Step-by-Step: Adding Repository Secrets
 
 1. **Navigate to Repository Settings**
  ```
- Your Repository > Settings > Secrets and variables > Actions
+ Your Repository → Settings → Secrets and variables → Actions
  ```
 
 2. **Click "Repository secrets" Tab**

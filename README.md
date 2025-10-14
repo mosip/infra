@@ -10,6 +10,12 @@ This repository provides a **3-step rapid deployment model** for MOSIP (Modular 
 
 For detailed MOSIP platform architecture Diagram, visit: [MOSIP Platform Architecture](https://docs.mosip.io/1.2.0/setup/deploymentnew/v3-installation/1.2.0.2/overview-and-architecture#architecture-diagram)
 
+**Terraform Architecture:**  
+[View Terraform Architecture Diagram](docs/_images/terraform-light.draw.io.png)
+
+**Helmsman Architecture:**  
+[View Helmsman Architecture Diagram](docs/_images/updated-Helmsman.drawio.png)
+
 **First Time Deploying? Start Here!**
 
 We've created comprehensive beginner-friendly guides to help you succeed:
@@ -306,12 +312,12 @@ Navigate to your repository → **Settings** → **Secrets and variables** → *
 
 Add the required secrets as follows:
 
-- **Repository Secrets** (Settings > Secrets and variables > Actions > Repository secrets):
+- **Repository Secrets** (Settings → Secrets and variables → Actions → Repository secrets):
 - `GPG_PASSPHRASE`
 - `AWS_ACCESS_KEY_ID`
 - `AWS_SECRET_ACCESS_KEY`
 - `YOUR_SSH_KEY_NAME` (replace with actual ssh_key_name value from tfvars, e.g., `mosip-aws`)
-- **Environment Secrets** (Settings > Secrets and variables > Actions > Environment secrets):
+- **Environment Secrets** (Settings → Secrets and variables → Actions → Environment secrets):
 - All other secrets mentioned in the Prerequisites section above (KUBECONFIG, WireGuard configs, etc.)
 
 ### 3. Terraform Infrastructure Deployment
