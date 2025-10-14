@@ -1156,7 +1156,7 @@ For safe teardown procedures and complete cleanup steps, see our [Environment De
 
 ## Next Steps & Detailed Documentation
 
-The Quick Start Guide provides the essential deployment flow. For comprehensive configuration options, troubleshooting, and advanced features, refer to the detailed component documentation:
+The Deploymen Steps Guide provides the essential deployment flow. For comprehensive configuration options, troubleshooting, and advanced features, refer to the detailed component documentation:
 
 #### **Terraform Infrastructure Documentation**
 

@@ -17,14 +17,64 @@ This guide provides step-by-step instructions for generating all required secret
 ## 1. SSH Keys
 
 ### What is it?
-SSH (Secure Shell) keys are used to securely connect to your servers without using passwords. You need SSH keys to access EC2 instances created by Terraform.
+SSH (Secure Shell) keys are used to securely connect to your servers without using passwords. You need an SSH key pair to access EC2 instances created by Terraform.
 
 ### Why do you need it?
 - To access jump servers and Kubernetes nodes
 - For automated deployments via GitHub Actions
 - For troubleshooting and maintenance tasks
 
-### How to Generate SSH Keys
+### Two Approaches to Setup SSH Keys
+
+You can use **either** approach below. **We recommend Option A** for simplicity.
+
+---
+
+### ✅ **Option A: Create Key Pair in AWS (Recommended - Simpler)**
+
+This is the easiest approach - AWS creates the key pair for you.
+
+#### Steps:
+
+1. **Create Key Pair in AWS Console**
+   ```
+   1. Go to AWS Console → EC2 → Key Pairs
+   2. Click "Create key pair"
+   3. Name: mosip-aws (or your preferred name)
+   4. Key pair type: RSA
+   5. Private key format: .pem
+   6. Click "Create key pair"
+   7. AWS will automatically download the .pem file - SAVE THIS FILE SECURELY!
+   ```
+
+2. **Add Private Key (.pem) to GitHub Secrets**
+   ```bash
+   # View the content of your downloaded .pem file:
+   cat ~/Downloads/mosip-aws.pem
+   
+   # Copy the entire content (including BEGIN and END lines)
+   # Add as Repository Secret in GitHub:
+   # - Name: mosip-aws (must match the key pair name you created)
+   # - Value: (paste the entire .pem file content)
+   ```
+
+3. **Update Terraform Configuration**
+   ```hcl
+   # In terraform/implementations/aws/infra/aws.tfvars
+   ssh_key_name = "mosip-aws" # Must match the AWS key pair name
+   ```
+
+#### ✅ Advantages:
+- Simpler - only 3 steps
+- No need to generate keys locally
+- No need to import public key to AWS
+- AWS manages the key pair for you
+
+---
+
+### **Option B: Generate Locally and Import to AWS**
+
+This approach gives you more control over key generation.
 
 #### On Linux/Mac:
 
@@ -34,18 +84,17 @@ ssh-keygen -t rsa -b 4096 -C "your-email@example.com" -f ~/.ssh/mosip-aws
 
 # This creates two files:
 # - ~/.ssh/mosip-aws (private key - keep this SECRET)
-# - ~/.ssh/mosip-aws.pub (public key - this is safe to share)
+# - ~/.ssh/mosip-aws.pub (public key - safe to share)
 ```
 
 #### On Windows:
 
-**Option 1: Using Git Bash or WSL**
+**Using Git Bash or WSL:**
 ```bash
-# Open Git Bash or WSL terminal
 ssh-keygen -t rsa -b 4096 -C "your-email@example.com" -f ~/.ssh/mosip-aws
 ```
 
-**Option 2: Using PuTTYgen**
+**Using PuTTYgen:**
 1. Download and install [PuTTY](https://www.putty.org/)
 2. Open PuTTYgen
 3. Click "Generate" and move mouse randomly
@@ -53,23 +102,17 @@ ssh-keygen -t rsa -b 4096 -C "your-email@example.com" -f ~/.ssh/mosip-aws
 5. Save private key (keep secret)
 6. Copy public key text for AWS
 
-### Official Documentation
-- **GitHub SSH Guide**: https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent
-- **AWS EC2 Key Pairs**: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/create-key-pairs.html
-
-### Where to Use It
-
-#### 1. Add Public Key to AWS
+#### Import to AWS:
 ```bash
-# First, upload the PUBLIC key to AWS:
-# 1. Go to AWS Console > EC2 > Key Pairs
-# 2. Click "Actions" > "Import key pair"
-# 3. Name it (e.g., "mosip-aws")
-# 4. Paste contents of ~/.ssh/mosip-aws.pub
-# 5. Click "Import"
+# Upload the PUBLIC key to AWS:
+1. Go to AWS Console → EC2 → Key Pairs
+2. Click "Actions" → "Import key pair"
+3. Name it (e.g., "mosip-aws")
+4. Paste contents of ~/.ssh/mosip-aws.pub
+5. Click "Import"
 ```
 
-#### 2. Add Private Key to GitHub Secrets
+#### Add Private Key to GitHub Secrets:
 ```bash
 # Copy private key content
 cat ~/.ssh/mosip-aws
@@ -79,15 +122,22 @@ cat ~/.ssh/mosip-aws
 # Value: (paste the entire private key including BEGIN and END lines)
 ```
 
-#### 3. Update Terraform Configuration
+#### Update Terraform Configuration:
 ```hcl
 # In terraform/implementations/aws/infra/aws.tfvars
 ssh_key_name = "mosip-aws" # Must match the name in AWS and GitHub secret
 ```
 
+---
+
+### Official Documentation
+- **AWS EC2 Key Pairs**: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/create-key-pairs.html
+- **GitHub SSH Guide**: https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent
+
 ### Common Pitfalls
-- ❌ Using the public key as GitHub secret (use private key!)
-- ❌ Mismatched names between AWS, GitHub secret, and tfvars
+- ❌ Using the public key as GitHub secret (use private key or .pem file!)
+- ❌ Mismatched names between AWS key pair name, GitHub secret name, and ssh_key_name in tfvars
+- ❌ Losing the .pem file after downloading (cannot be re-downloaded from AWS)
 - ❌ Not including BEGIN/END lines when copying private key
 - ❌ Adding extra spaces or newlines when pasting key
 
