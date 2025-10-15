@@ -11,8 +11,7 @@ This repository provides a **3-step rapid deployment model** for MOSIP (Modular 
 - **Helmsman** deploys and manages all MOSIP services and applications on Kubernetes using Helm charts, providing centralized control through Desired State Files (DSF).
 
 ## Architecture Overview
- Component: Select base-infra (creates VPC, networking, jump server, WireGuard)
-What's this? Which part of infrastructure to build
+
 For detailed MOSIP platform architecture Diagram, visit: [MOSIP Platform Architecture](https://docs.mosip.io/1.2.0/setup/deploymentnew/v3-installation/1.2.0.2/overview-and-architecture#architecture-diagram)
 
 **Terraform Architecture:**  
