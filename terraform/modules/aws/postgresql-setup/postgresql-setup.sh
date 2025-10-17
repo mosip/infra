@@ -254,7 +254,7 @@ ansible --version || echo "Ansible: Not available"
 # Clone MOSIP infrastructure repository with retry logic
 echo 'Cloning Repository...'
 cd /tmp
-rm -rf mosip-infra
+rm -rf infra
 
 echo "Cloning from: $MOSIP_INFRA_REPO_URL"
 echo "Branch: $MOSIP_INFRA_BRANCH"
@@ -270,7 +270,7 @@ git clone "$MOSIP_INFRA_REPO_URL" || {
     }
 }
 
-cd mosip-infra
+cd infra
 git checkout "$MOSIP_INFRA_BRANCH" || {
     echo "Branch checkout failed for branch: $MOSIP_INFRA_BRANCH"
     echo 'Available branches:'
@@ -283,13 +283,13 @@ echo "Successfully cloned and checked out branch: $MOSIP_INFRA_BRANCH"
 # Navigate to PostgreSQL Ansible directory
 echo 'Navigating to PostgreSQL Ansible Directory...'
 echo 'Current directory structure:'
-find /tmp/mosip-infra -name '*postgres*' -type d 2>/dev/null || echo 'No postgres directories found'
+find /tmp/infra -name '*postgres*' -type d 2>/dev/null || echo 'No postgres directories found'
 
-POSTGRES_ANSIBLE_DIR="/tmp/infra/utils/ansible"
+POSTGRES_ANSIBLE_DIR="/tmp/infra/Helmsman/utils/ansible"
 if [ ! -d "$POSTGRES_ANSIBLE_DIR" ]; then
     echo "PostgreSQL Ansible directory not found at: $POSTGRES_ANSIBLE_DIR"
     echo 'Available directories under deployment:'
-    find /tmp/mosip-infra -name 'deployment' -type d -exec find {} -type d \; 2>/dev/null | head -20
+    find /tmp/infra -name 'utils' -type d -exec find {} -type d \; 2>/dev/null | head -20
     exit 1
 fi
 
@@ -884,7 +884,7 @@ echo ''
 echo '=== [CLEANUP] Cleaning up temporary files ==='
 # Clean up sensitive information 
 echo '[CLEAN] Cleaning up temporary files...'
-rm -rf /tmp/mosip-infra 2>/dev/null || true
+rm -rf /tmp/infra 2>/dev/null || true
 rm -f /tmp/postgresql-ansible.log 2>/dev/null || true
 
 # Keep the generated YAML files for reference (they will be cleaned up by control plane script)
