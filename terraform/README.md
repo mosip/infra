@@ -1,96 +1,14 @@
 # MOSIP Terraform Infrastructure
 
-<div align="center">
-
-![MOSIP Infrastructure](../docs/_images/mosip-cloud-agnostic-banner.png)
-
 *Terraform-based Infrastructure as Code for MOSIP Platform*
-
-</div>
 
 This directory contains **Terraform code** for deploying MOSIP (Modular Open Source Identity Platform) infrastructure. **Complete implementation is available for AWS**, while **Azure and GCP have placeholder structures** available for community contributions. The architecture separates infrastructure into three distinct components for clear isolation and management.
 
 ## Architecture Overview
 
-**For detailed architecture diagrams and deployment flows, see: [ARCHITECTURE_DIAGRAMS.md](../docs/_images/ARCHITECTURE_DIAGRAMS.md)**
-
-### Three-Component Architecture
-
-<div align="center">
-
-![MOSIP Three-Component Architecture](../docs/_images/mosip-rke2-architecture.svg)
-
-*Cloud-Agnostic RKE2 Infrastructure Deployment Model*
-
-</div>
-
 The MOSIP infrastructure follows a clean three-component architecture with isolated state management using **local backend with GPG encryption**:
 
-```mermaid
-graph TB
- subgraph "GitHub Actions Orchestration"
- GHA[GitHub Actions<br/>Central Deployment Control]
- end
- 
- subgraph "Multi-Cloud Infrastructure"
- subgraph "AWS Cloud"
- AWS_BASE[base-infra<br/>VPC + WireGuard]
- AWS_OBS[observ-infra<br/>Rancher + Keycloak]
- AWS_INFRA[infra<br/>MOSIP K8s Cluster]
- AWS_STATE[(AWS S3<br/>State Files)]
- end
- 
- subgraph "Azure Cloud"
- AZ_BASE[base-infra<br/>VNet + WireGuard]
- AZ_OBS[observ-infra<br/>Rancher + Keycloak]
- AZ_INFRA[infra<br/>MOSIP RKE2 Cluster]
- AZ_STATE[(Azure Storage<br/>State Files)]
- end
- 
- subgraph "GCP Cloud"
- GCP_BASE[base-infra<br/>VPC + WireGuard]
- GCP_OBS[observ-infra<br/>Rancher + Keycloak]
- GCP_INFRA[infra<br/>MOSIP RKE2 Cluster]
- GCP_STATE[(GCS<br/>State Files)]
- end
- end
- 
- GHA --> AWS_BASE
- GHA --> AZ_BASE
- GHA --> GCP_BASE
- 
- AWS_BASE --> AWS_OBS
- AWS_BASE --> AWS_INFRA
- AWS_OBS -.->|Import| AWS_INFRA
- AWS_BASE -.-> AWS_STATE
- AWS_OBS -.-> AWS_STATE
- AWS_INFRA -.-> AWS_STATE
- 
- AZ_BASE --> AZ_OBS
- AZ_BASE --> AZ_INFRA
- AZ_OBS -.->|Import| AZ_INFRA
- AZ_BASE -.-> AZ_STATE
- AZ_OBS -.-> AZ_STATE
- AZ_INFRA -.-> AZ_STATE
- 
- GCP_BASE --> GCP_OBS
- GCP_BASE --> GCP_INFRA
- GCP_OBS -.->|Import| GCP_INFRA
- GCP_BASE -.-> GCP_STATE
- GCP_OBS -.-> GCP_STATE
- GCP_INFRA -.-> GCP_STATE
- 
- style GHA fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:#fff
- style AWS_BASE fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
- style AWS_OBS fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000000
- style AWS_INFRA fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000000
- style AZ_BASE fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
- style AZ_OBS fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000000
- style AZ_INFRA fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000000
- style GCP_BASE fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
- style GCP_OBS fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000000
- style GCP_INFRA fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000000
-```
+![MOSIP Terraform Architecture](../docs/_images/terraform-light.draw.io.png)
 
 **Component Relationships:**
 
@@ -309,79 +227,54 @@ https://rancher.your-domain.mosip.net # Rancher UI
 https://keycloak.your-domain.mosip.net # Keycloak Management
 ```
 
-## Directory Structure
+### Infrastructure Layer (Terraform)
 
 ```
 terraform/
-├── README.md # This file
-├── base-infra/ # Foundational infrastructure
-│ ├── main.tf # Cloud selector for base infrastructure
-│ ├── variables.tf # Common base infrastructure variables
-│ ├── outputs.tf # Common base infrastructure outputs
-│ ├── aws/ # AWS base infrastructure
-│ │ ├── main.tf # AWS VPC, subnets, jumpserver, WireGuard
-│ │ ├── variables.tf # AWS-specific base variables
-│ │ └── outputs.tf # AWS base infrastructure outputs
-│ ├── azure/ # Azure base infrastructure (placeholder)
-│ └── gcp/ # GCP base infrastructure (placeholder)
-├── infra/ # MOSIP infrastructure interface
-│ ├── main.tf # Cloud selector for MOSIP infrastructure
-│ ├── variables.tf # Common MOSIP variables
-│ ├── outputs.tf # Common MOSIP outputs
-│ ├── aws/ # AWS MOSIP infrastructure interface
-│ │ ├── main.tf # Calls AWS modules for MOSIP services
-│ │ ├── variables.tf # AWS-specific MOSIP variables
-│ │ └── outputs.tf # AWS MOSIP outputs
-│ ├── azure/ # Azure MOSIP infrastructure (placeholder)
-│ └── gcp/ # GCP MOSIP infrastructure (placeholder)
-├── observ-infra/ # Observation infrastructure interface
-│ ├── main.tf # Cloud selector for observation infrastructure
-│ ├── variables.tf # Common observation variables
-│ ├── outputs.tf # Common observation outputs
-│ ├── aws/ # AWS observation infrastructure interface
-│ │ ├── main.tf # Calls AWS modules for Rancher UI, Keycloak
-│ │ ├── variables.tf # AWS-specific observation variables
-│ │ └── outputs.tf # AWS observation outputs
-│ ├── azure/ # Azure observation infrastructure (placeholder)
-│ └── gcp/ # GCP observation infrastructure (placeholder)
-├── modules/ # Reusable infrastructure modules
+├── base-infra/ # Foundation infrastructure (VPC, networking, security)
+├── observ-infra/ # Management cluster with Rancher UI (Optional)
+├── infra/ # MOSIP Kubernetes clusters
+├── modules/ # Reusable Terraform modules
 │ ├── aws/ # AWS-specific modules
-│ │ ├── main.tf # AWS module interface
-│ │ ├── variables.tf # AWS module variables
-│ │ ├── outputs.tf # AWS module outputs
-│ │ ├── aws-resource-creation/ # Core AWS resources
-│ │ ├── nginx-setup/ # NGINX load balancer setup
-│ │ ├── rke2-cluster/ # RKE2 Kubernetes cluster
-│ │ ├── nfs-setup/ # NFS storage setup
-│ │ ├── postgresql-setup/ # External PostgreSQL 15 database setup
-│ │ └── rancher-keycloak-setup/ # Rancher UI + Keycloak integration
-│ ├── azure/ # Azure modules (placeholder)
-│ └── gcp/ # GCP modules (placeholder)
-├── implementations/ # Deployable configurations
-│ ├── aws/ # AWS implementations
-│ │ ├── base-infra/ # AWS base infrastructure deployment
-│ │ │ ├── main.tf # Points to base-infra/aws
-│ │ │ ├── variables.tf # AWS base configuration
-│ │ │ ├── outputs.tf # AWS base outputs
-│ │ │ └── aws.tfvars # AWS base configuration values
-│ │ ├── infra/ # AWS MOSIP infrastructure deployment
-│ │ │ ├── main.tf # Points to infra/aws
-│ │ │ ├── variables.tf # AWS MOSIP configuration
-│ │ │ ├── outputs.tf # AWS MOSIP outputs
-│ │ │ └── aws.tfvars # AWS MOSIP configuration values
-│ │ └── observ-infra/ # AWS observation infrastructure deployment
-│ │ ├── main.tf # Points to observ-infra/aws
-│ │ ├── variables.tf # AWS observation configuration
-│ │ ├── outputs.tf # AWS observation outputs
-│ │ └── aws.tfvars # AWS observation configuration values
-│ ├── azure/ # Azure implementations
-│ │ ├── base-infra/ # Azure base infrastructure
-│ │ ├── infra/ # Azure MOSIP infrastructure
-│ │ └── observ-infra/ # Azure observation infrastructure
-│ └── gcp/ # GCP implementations
-│ ├── base-infra/ # GCP base infrastructure
-│ ├── infra/ # GCP MOSIP infrastructure
-│ └── observ-infra/ # GCP observation infrastructure
+│ │ ├── aws-resource-creation/ # VPC, subnets, security groups, EC2 instances
+│ │ ├── nginx-setup/ # Load balancer and reverse proxy configuration
+│ │ ├── postgresql-setup/ # PostgreSQL database setup and configuration
+│ │ ├── rke2-cluster/ # RKE2 Kubernetes cluster provisioning
+│ │ ├── rancher-keycloak-setup/ # Identity management and SSO setup
+│ │ └── nfs-setup/ # Network File System configuration
+│ ├── azure/ # Azure-specific modules (placeholder - community contributions needed)
+│ └── gcp/ # GCP-specific modules (placeholder - community contributions needed)
+└── implementations/ # Cloud-specific implementations
+ ├── aws/ # AWS deployment configurations
+ ├── azure/ # Azure deployment configurations
+ └── gcp/ # GCP deployment configurations
+```
+
+### Application Layer (Helmsman)
+
+```
+Helmsman/
+├── dsf/ # Desired State Files for deployments
+│ ├── prereq-dsf.yaml # Prerequisites (monitoring, Istio, logging)
+│ ├── external-dsf.yaml # External dependencies (PostgreSQL, Keycloak, MinIO, ActiveMQ, Kafka, etc.)
+│ ├── mosip-dsf.yaml # MOSIP core services
+│ └── testrigs-dsf.yaml # Testing suite (API, DSL, UI test rigs)
+├── hooks/ # Scripts needed for automated deployment
+└── utils/ # Utilities and configurations
+ ├── istio-addons/ # Service mesh components
+ ├── logging/ # Logging stack configurations (optional)
+ └── monitoring/ # Monitoring and alerting setup (optional)
+```
+
+### Automation Layer (GitHub Actions)
+
+```
+.github/workflows/
+├── terraform.yml # Infrastructure provisioning workflow
+├── terraform-destroy.yml # Infrastructure cleanup workflow
+├── helmsman_external.yml # External dependencies deployment
+├── helmsman_mosip.yml # MOSIP core services deployment
+└── helmsman_testrigs.yml # Testing infrastructure deployment
 ```
 
 ## State Management

@@ -6,19 +6,19 @@
 
 This repository provides a **3-step rapid deployment model** for MOSIP (Modular Open Source Identity Platform) with enhanced security features including GPG (GNU Privacy Guard) encryption for local backends and integrated PostgreSQL setup via Terraform modules.
 
-**Complete Documentation Index:** [View All Documentation](docs/README.md)
+### Key Components:
+- **Terraform** provisions the complete cloud infrastructure including VPCs, RKE2 Kubernetes clusters, databases, and networking components with a high-level declarative approach.
+- **Helmsman** deploys and manages all MOSIP services and applications on Kubernetes using Helm charts, providing centralized control through Desired State Files (DSF).
 
-**First Time Deploying? Start Here!**
+## Architecture Overview
 
-We've created comprehensive beginner-friendly guides to help you succeed:
+For detailed MOSIP platform architecture Diagram, visit: [MOSIP Platform Architecture](https://docs.mosip.io/1.2.0/setup/deploymentnew/v3-installation/1.2.0.2/overview-and-architecture#architecture-diagram)
 
-| Guide                                                                         | What You'll Learn                                                                          | When to Read                                        |
-| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | --------------------------------------------------- |
-| **[Glossary](docs/GLOSSARY.md)**                                           | Plain-language explanations of all technical terms (AWS, Kubernetes, Terraform, VPN, etc.) | Before you start - understand the terminology       |
-| **[Secret Generation Guide](docs/SECRET_GENERATION_GUIDE.md)**             | Step-by-step instructions to generate SSH keys, AWS credentials, GPG passwords, and more   | Before deployment - setup required secrets          |
-| **[Workflow Guide](docs/WORKFLOW_GUIDE.md)**                               | Visual walkthrough of GitHub Actions workflows with screenshots and navigation help        | During deployment - run workflows correctly         |
-| **[DSF Configuration Guide](docs/DSF_CONFIGURATION_GUIDE.md)**             | How to configure Helmsman files including clusterid and domain settings                    | Before Helmsman deployment - configure applications |
-| **[Environment Destruction Guide](docs/ENVIRONMENT_DESTRUCTION_GUIDE.md)** | Safe teardown procedures, backup steps, and cost monitoring                                | After deployment - clean up resources               |
+**Terraform Architecture:**  
+[View Terraform Architecture Diagram](docs/_images/terraform-light.draw.io.png)
+
+**Helmsman Architecture:**  
+[View Helmsman Architecture Diagram](docs/_images/updated-Helmsman.drawio.png)
 
 ---
 
@@ -68,61 +68,21 @@ graph TB
 
 > **Note:** Complete Terraform scripts are available only for **AWS**. For **Azure and GCP**, only placeholder structures are configured - community contributions are welcome to implement full functionality.
 
-## Architecture Overview
-
-### Infrastructure Layer (Terraform)
-
-```
-terraform/
-├── base-infra/ # Foundation infrastructure (VPC, networking, security)
-├── observ-infra/ # Management cluster with Rancher UI (Optional)
-├── infra/ # MOSIP Kubernetes clusters
-├── modules/ # Reusable Terraform modules
-│ ├── aws/ # AWS-specific modules
-│ │ ├── aws-resource-creation/ # VPC, subnets, security groups, EC2 instances
-│ │ ├── nginx-setup/ # Load balancer and reverse proxy configuration
-│ │ ├── postgresql-setup/ # PostgreSQL database setup and configuration
-│ │ ├── rke2-cluster/ # RKE2 Kubernetes cluster provisioning
-│ │ ├── rancher-keycloak-setup/ # Identity management and SSO setup
-│ │ └── nfs-setup/ # Network File System configuration
-│ ├── azure/ # Azure-specific modules (placeholder - community contributions needed)
-│ └── gcp/ # GCP-specific modules (placeholder - community contributions needed)
-└── implementations/ # Cloud-specific implementations
- ├── aws/ # AWS deployment configurations
- ├── azure/ # Azure deployment configurations
- └── gcp/ # GCP deployment configurations
-```
-
-### Application Layer (Helmsman)
-
-```
-Helmsman/
-├── dsf/ # Desired State Files for deployments
-│ ├── prereq-dsf.yaml # Prerequisites (monitoring, Istio, logging)
-│ ├── external-dsf.yaml # External dependencies (PostgreSQL, Keycloak, MinIO, ActiveMQ, Kafka, etc.)
-│ ├── mosip-dsf.yaml # MOSIP core services
-│ └── testrigs-dsf.yaml # Testing suite (API, DSL, UI test rigs)
-├── hooks/ # Scripts needed for automated deployment
-└── utils/ # Utilities and configurations
- ├── istio-addons/ # Service mesh components
- ├── logging/ # Logging stack configurations (optional)
- └── monitoring/ # Monitoring and alerting setup (optional)
-```
-
-### Automation Layer (GitHub Actions)
-
-```
-.github/workflows/
-├── terraform.yml # Infrastructure provisioning workflow
-├── terraform-destroy.yml # Infrastructure cleanup workflow
-├── helmsman_external.yml # External dependencies deployment
-├── helmsman_mosip.yml # MOSIP core services deployment
-└── helmsman_testrigs.yml # Testing infrastructure deployment
-```
-
 ## Prerequisites
 
-> **New to Cloud Deployment?** Check out our [Glossary](docs/GLOSSARY.md) for beginner-friendly explanations of all technical terms used in this guide!
+**First Time Deploying? Start Here!**
+
+We've created comprehensive beginner-friendly guides to help you succeed:
+
+| Guide                                                                         | What You'll Learn                                                                          | When to Read                                        |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | --------------------------------------------------- |
+| **[Glossary](docs/GLOSSARY.md)**                                           | Plain-language explanations of all technical terms (AWS, Kubernetes, Terraform, VPN, etc.) | Before you start - understand the terminology       |
+| **[Secret Generation Guide](docs/SECRET_GENERATION_GUIDE.md)**             | Step-by-step instructions to generate SSH keys, AWS credentials, GPG passwords, and more   | Before deployment - setup required secrets          |
+| **[Workflow Guide](docs/WORKFLOW_GUIDE.md)**                               | Visual walkthrough of GitHub Actions workflows with screenshots and navigation help        | During deployment - run workflows correctly         |
+| **[DSF Configuration Guide](docs/DSF_CONFIGURATION_GUIDE.md)**             | How to configure Helmsman files including clusterid and domain settings                    | Before Helmsman deployment - configure applications |
+| **[Environment Destruction Guide](docs/ENVIRONMENT_DESTRUCTION_GUIDE.md)** | Safe teardown procedures, backup steps, and cost monitoring                                | After deployment - clean up resources               |
+
+**Complete Documentation Index:** [View All Documentation](docs/README.md)
 
 > **Note:** As of now we support AWS based automated deployment. We are looking for community contribution around terraform modules and changes for other cloud service providers.
 
@@ -132,13 +92,13 @@ Helmsman/
 > - Basic understanding of cloud concepts ([See our Glossary](docs/GLOSSARY.md))
 > - GitHub account for running automated workflows
 
-### Required Cloud Provider Account
+1. ### Cloud Provider Account (Required)
 
 - **AWS account** with appropriate permissions (fully supported) - [How to create AWS account](https://aws.amazon.com/premiumsupport/knowledge-center/create-and-activate-aws-account/)
 - Azure or GCP account (placeholder implementations - community contributions needed)
 - Service account/access keys with infrastructure creation rights
 
-### Required AWS Permissions
+2. ### AWS Permissions (Required)
 
 **Essential AWS IAM permissions required for complete MOSIP deployment:**
 
@@ -172,7 +132,7 @@ Helmsman/
 
 > **Security Note:** For production environments, consider using more restrictive policies with specific resource ARNs and condition statements.
 
-### Required AWS Instance Types
+3. ### AWS Instance Types (Required)
 
 **Default Instance Configuration:**
 
@@ -198,7 +158,7 @@ Helmsman/
 
 > **Configuration Note:** Instance types can be customized in `terraform/implementations/aws/infra/aws.tfvars` by modifying `k8s_instance_type` and `nginx_instance_type` variables.
 
-### Required Secrets for Rapid Deployment
+4. ### Secrets for Rapid Deployment (Required)
 
 > **Need help generating secrets?** See our comprehensive [Secret Generation Guide](docs/SECRET_GENERATION_GUIDE.md) for step-by-step instructions with screenshots and examples!
 
@@ -285,6 +245,8 @@ SLACK_WEBHOOK_URL: "https://hooks.slack.com/services/..." # Slack notifications
 **Environment Secrets** (configured per deployment environment):
 
 > **Important**: These are generated AFTER infrastructure deployment, not before!
+>
+> ## Next Steps & Detailed Documentation
 
 ```yaml
 # Kubernetes Access
@@ -333,7 +295,7 @@ CLUSTER_WIREGUARD_WG1: |
 
 > **Note**: PostgreSQL secrets are no longer required! PostgreSQL setup is handled automatically by Terraform modules and Ansible scripts based on your `enable_postgresql_setup` configuration.
 
-## Quick Start Guide
+## Deployment Steps Guide
 
 ### 1. Fork and Setup Repository
 
@@ -352,12 +314,12 @@ Navigate to your repository → **Settings** → **Secrets and variables** → *
 
 Add the required secrets as follows:
 
-- **Repository Secrets** (Settings > Secrets and variables > Actions > Repository secrets):
+- **Repository Secrets** (Settings → Secrets and variables → Actions → Repository secrets):
 - `GPG_PASSPHRASE`
 - `AWS_ACCESS_KEY_ID`
 - `AWS_SECRET_ACCESS_KEY`
 - `YOUR_SSH_KEY_NAME` (replace with actual ssh_key_name value from tfvars, e.g., `mosip-aws`)
-- **Environment Secrets** (Settings > Secrets and variables > Actions > Environment secrets):
+- **Environment Secrets** (Settings → Secrets and variables → Actions → Environment secrets):
 - All other secrets mentioned in the Prerequisites section above (KUBECONFIG, WireGuard configs, etc.)
 
 ### 3. Terraform Infrastructure Deployment
@@ -374,6 +336,10 @@ Before running any Terraform workflow, understand these modes:
 | **Apply** (checkbox checked ✅)            | Actually creates/modifies infrastructure       | Real deployments, making actual changes    | ✅ Terraform apply |
 
 **Tip**: Always run terraform plan first to preview changes, then run with apply checked to actually deploy!
+
+#### Things to Know While Working with Terraform Workflows
+
+For detailed information about GitHub Actions workflow parameters, terraform modes, and best practices, see: [Terraform Workflow Guide](docs/TERRAFORM_WORKFLOW_GUIDE.md)
 
 #### Step 3a: Base Infrastructure
 
@@ -409,27 +375,34 @@ Before running any Terraform workflow, understand these modes:
 
 ![Base Infrastructure Terraform Apply](docs/_images/base-infra-terraform-apply.png)
 
-- Go to **Actions** → **Terraform Base Infrastructure**
-- **Can't find it?** Look in the left sidebar under "All workflows"
-- Click **Run workflow** (green button on the right)
-- **Configure workflow parameters:**
-- **Branch**: Select your deployment branch (e.g., `release-0.1.0`)
-- **What's this?** The branch of code to use for deployment
-- **Cloud Provider**: Select `aws` (Azure/GCP are placeholder implementations)
-- **Important**: Only `aws` is fully functional
-- **Component**: Select `base-infra` (creates VPC, networking, jump server, WireGuard)
-- **What's this?** Which part of infrastructure to build
+- **(1)** Go to **Actions** → **terraform plan/apply**
+  - **Can't find it?** Look in the left sidebar under "All workflows"
+  - Click **Run workflow** (green button on the right)
+  - **Configure workflow parameters:**
+- **(2)** **Branch**: Select your deployment branch (e.g., `release-0.1.0`)
+  - **What's this?** The branch of code to use for deployment
+- **(3)** **Cloud Provider**: Select `aws` (Azure/GCP are placeholder implementations)
+  - **Important**: Only `aws` is fully functional
+- **(4)** **Component**: Select `base-infra` (creates VPC, networking, jump server, WireGuard)
+  - **What's this?** Select which infrastructure component to build.
+  - Selecting `base-infra` triggers the creation of the core infrastructure components listed below:
+    - **VPC & Networking**: Secure network foundation
+    - **Jump Server**: Bastion host for secure access
+    - **WireGuard VPN**: Encrypted private network access
+    - **Security Groups**: Network access controls
+    - **Route Tables**: Network traffic routing
 - **Backend**: Choose backend configuration:
-- `local` - GPG-encrypted local state (recommended for development)
-- Stores state in your GitHub repository (encrypted)
-- `s3` - Remote S3 backend (recommended for production)
-- Stores state in AWS S3 bucket (centralized)
-- **SSH_PRIVATE_KEY**: GitHub secret name containing SSH private key for instance access
-- Must match the `ssh_key_name` in your terraform.tfvars
+  - **(5)** `local` - GPG-encrypted local state (recommended for development)
+    - Stores state in your GitHub repository (encrypted)
+  - **(6)** `s3` - Remote S3 backend (recommended for production)
+    - Stores state in AWS S3 bucket (centralized)
+- **(7)** **SSH_PRIVATE_KEY**: GitHub secret name containing SSH private key for instance access
+  - Must match the `ssh_key_name` in your terraform.tfvars
 - **Terraform apply**:
-- ☐ **Unchecked** - Terraform plan (preview only, no changes made)
-- ✅ **Checked** - Apply (actually creates infrastructure)
-- **First time?** Uncheck for terraform plan, then run again with checked
+  - **(8)** ☐ **Unchecked**  — Plan mode: runs terraform plan (shows changes without applying).
+  - **(8)** ✅ **Checked**  — Apply mode: runs terraform apply (creates/updates infrastructure).
+  - Tip: For your first deployment, run in plan mode first to review changes. If the plan looks correct, re-run the workflow with Apply checked.
+- **(9)** **Run Workflow**
 
  **What You Should See:**
 
@@ -438,78 +411,8 @@ Before running any Terraform workflow, understand these modes:
 - ✅ Green checkmark when complete
 - ✅ Infrastructure created in AWS
 
- **Component Details:**
-
-- **VPC & Networking**: Creates secure network foundation
-- **Jump Server**: Bastion host for secure access
-- **WireGuard VPN**: Encrypted private network access
-- **Security Groups**: Network access controls
-- **Route Tables**: Network traffic routing
 
  **Need more help?** [Workflow Guide](docs/WORKFLOW_GUIDE.md)
-
-#### GitHub Actions Workflow Parameters Reference
-
-> **Visual Guide:** See [Workflow Guide - Workflow Parameters Explained](docs/WORKFLOW_GUIDE.md#workflow-parameters-explained) for detailed explanations with examples!
-
-**Common Parameters for All Terraform Workflows:**
-
-- **`CLOUD_PROVIDER`**: `aws` | `azure` | `gcp` (cloud platform selection)
-- **Choose**: `aws` (only fully functional option)
-- Azure/GCP are placeholder implementations
-- **`TERRAFORM_COMPONENT`**: `base-infra` | `infra` | `observ-infra` (infrastructure component)
-- **base-infra**: VPC, networking, jump server (deploy FIRST)
-- **observ-infra**: Rancher management cluster (optional)
-- **infra**: MOSIP Kubernetes cluster (main deployment)
-- **`SSH_PRIVATE_KEY`**: GitHub secret name containing SSH private key for instance access
-- Must match the `ssh_key_name` in your terraform.tfvars
-- [How to create SSH keys](docs/SECRET_GENERATION_GUIDE.md#1-ssh-keys)
-- **`TERRAFORM_APPLY`**: Checkbox ☐ or ✅ (apply changes or plan-only mode)
-- ☐ **Unchecked** = Dry run (preview only, **no infrastructure changes**)
-- ✅ **Checked** = Apply (actually creates infrastructure, **real changes**)
-- **Visual Explanation:**
-
-```
- ☐ Unchecked → Terraform Plan Only
- → Shows: "Will create 25 resources"
- → Does: Nothing (preview only)
- → AWS: No changes made
- 
- ✅ Checked → Terraform Apply
- → Shows: "Creating resources..."
- → Does: Creates actual infrastructure
- → AWS: Servers, networks, databases created
- → Cost: Billing starts
-```
-
-- **Relationship with Rancher Import:**
-
-```
- If Terraform Apply = ✅ AND Rancher Import = True
- → Infrastructure deployed AND cluster imported to Rancher UI
- 
- If Terraform Apply = ✅ AND Rancher Import = False 
- → Infrastructure deployed but cluster runs standalone
- 
- If Terraform Apply = ☐ (unchecked - dry run)
- → Nothing happens, just shows plan
- → Rancher Import setting is ignored
-```
-
-**Backend Configuration Options:**
-
-- **`local`**: GPG-encrypted local state storage (recommended for development and small teams)
-- State files stored in repository with GPG encryption
-- No external dependencies required
-- Automatic encryption/decryption via GitHub Actions
-- **Best for**: Development, testing, small teams
-- **Requires**: GPG_PASSPHRASE secret
-- **`s3`**: Remote S3 backend storage (recommended for production and large teams)
-- Centralized state storage in AWS S3
-- DynamoDB state locking support
-- Cross-team collaboration friendly
-- **Best for**: Production, large teams, multiple environments
-- **Requires**: S3 bucket and DynamoDB table setup
 
 #### Step 3b: WireGuard VPN Setup (Required for Private Network Access)
 
@@ -562,21 +465,15 @@ Before running any Terraform workflow, understand these modes:
 - **Terraform Integration:** Required for subsequent infrastructure deployments
 - **Helmsman Connectivity:** Enables secure cluster access for service deployments
 
-**Visual Explanation:**
 
-```
-Without WireGuard:
-Your Computer → ❌ Can't reach private servers
-
-With WireGuard:
-Your Computer → VPN Tunnel → ✅ Access private servers securely
-```
 
 > **Important:** Complete WireGuard setup and configure `TF_WG_CONFIG` environment secret before proceeding to MOSIP infrastructure deployment.
 >
 > **Need help?** Check the [detailed WireGuard guide](terraform/base-infra/WIREGUARD_SETUP.md) with screenshots!
 
 #### Step 3c: MOSIP Infrastructure
+
+This step creates MOSIP Kubernetes cluster, PostgreSQL (if enabled), networking, and application infrastructure
 
 1. **Update infra variables in `terraform/implementations/aws/infra/aws.tfvars`:**
 
@@ -684,37 +581,18 @@ Your Computer → VPN Tunnel → ✅ Access private servers securely
 > **Important Notes:**
 >
 > - Ensure `cluster_name` and `cluster_env_domain` match values used in Helmsman DSF files
-> - Set `enable_postgresql_setup = true` for production deployments with external PostgreSQL
+> - Set `enable_postgresql_setup = true` for production deployments with external PostgreSQL,If enable_postgresql_setup = true, Terraform will automatically:
+    - Provision dedicated EBS volume for PostgreSQL on nginx node
+    - Install and configure PostgreSQL 15 via Ansible playbooks
+    - Setup security configurations and user access controls
+    - Configure backup and recovery mechanisms
+    - Make PostgreSQL ready for MOSIP services connectivity
+    - No manual PostgreSQL secret management required!
+
 > - Set `enable_postgresql_setup = false` for development deployments with containerized PostgreSQL
 > - The `nginx_node_ebs_volume_size_2` is required when `enable_postgresql_setup = true`
 > - **SSH Key Configuration**: The `ssh_key_name` value must match the repository secret name containing your SSH private key (e.g., if `ssh_key_name = "mosip-aws"`, create repository secret named `mosip-aws` with your SSH private key content)
 
-**Component Details:**
-
-- **infra**: Creates MOSIP Kubernetes cluster, PostgreSQL (if enabled), networking, and application infrastructure
-
-**PostgreSQL Configuration in `aws.tfvars`:**
-
-```hcl
-# PostgreSQL Configuration (used when second EBS volume is enabled)
-enable_postgresql_setup = true # Enable PostgreSQL setup for main infra
-postgresql_version = "15"
-storage_device = "/dev/nvme2n1"
-mount_point = "/srv/postgres"
-postgresql_port = "5433"
-
-# NGINX node's second EBS volume size (required for PostgreSQL)
-nginx_node_ebs_volume_size_2 = 200 # Enable second EBS volume for PostgreSQL
-```
-
-**If `enable_postgresql_setup = true`, Terraform will automatically:**
-
-- Provision dedicated EBS volume for PostgreSQL on nginx node
-- Install and configure PostgreSQL 15 via Ansible playbooks
-- Setup security configurations and user access controls
-- Configure backup and recovery mechanisms
-- Make PostgreSQL ready for MOSIP services connectivity
-- No manual PostgreSQL secret management required!
 
 #### Rancher Import Configuration (Optional)
 
@@ -754,7 +632,7 @@ If you have deployed **observ-infra** (Rancher management cluster), you can impo
    kubectl apply -f https://rancher.mosip.net/v3/import/dzshvnb6br7qtf267zsrr9xsw6tnb2vt4x68g79r2wzsnfgvkjq2jk_c-m-b5249w76.yaml
    ```
 
-**Step 3: Update aws.tfvars**
+**Step 2: Update aws.tfvars**
 
 Add the generated command to your `aws.tfvars` file:
 
@@ -783,7 +661,7 @@ rancher_import_url = "\"kubectl apply -f https://rancher.example.com/v3/import/T
 rancher_import_url = "kubectl apply -f https://rancher.example.com/v3/import/TOKEN.yaml"
 ```
 
-**Step 4: Deploy/Update Main Infra**
+**Step 3: Deploy/Update Main Infra**
 
 After updating `aws.tfvars`, deploy or update your main infra cluster:
 
@@ -791,18 +669,21 @@ After updating `aws.tfvars`, deploy or update your main infra cluster:
 
 ![Infrastructure Terraform Apply](docs/_images/infra-terraform-apply.png)
 
-- Go to **Actions** → **Terraform Infrastructure**
-- Click **Run workflow**
-- **Configure workflow parameters:**
-- **Branch**: Select your deployment branch (e.g., `release-0.1.0`)
-- **Cloud Provider**: Select `aws` (Azure/GCP are placeholder implementations)
-- **Component**: Select `infra` (MOSIP application infrastructure)
-- **Backend**: Choose backend configuration:
-- `local` - GPG-encrypted local state (recommended for development)
-- `s3` - Remote S3 backend (recommended for production)
-- **SSH_PRIVATE_KEY**: GitHub secret name containing SSH private key for instance access
-- Must match the `ssh_key_name` in your terraform.tfvars
-- **Action**: Select `apply` to deploy infrastructure
+- **(1)** Go to **Actions** → **terraform plan/apply**
+- **(2)** Click **Run workflow**
+- **(3)** **Branch**: Select your deployment branch (e.g., `release-0.1.0`)
+- **(4)** **Cloud Provider**: Select `aws` (Azure/GCP are placeholder implementations)
+- **(5)** **Component**: Select `infra` (MOSIP application infrastructure)
+- **(6)** **Backend**: Choose backend configuration:
+  - `local` - GPG-encrypted local state (recommended for development)
+  - `s3` - Remote S3 backend (recommended for production)
+- **(7)** **SSH_PRIVATE_KEY**: GitHub secret name containing SSH private key for instance access
+  - Must match the `ssh_key_name` in your terraform.tfvars
+- **Terraform apply**:
+  - **(8)** ☐ **Unchecked**  — Plan mode: runs terraform plan (shows changes without applying).
+  - **(8)** ✅ **Checked**  — Apply mode: runs terraform apply (creates/updates infrastructure).
+  - Tip: For your first deployment, run in plan mode first to review changes. If the plan looks correct, re-run the workflow with Apply checked.
+- **(9)** **Run Workflow**
 
 **Verify Rancher Import (Only if rancher_import = true):**
 
@@ -848,6 +729,8 @@ To regenerate import URL if needed:
 
    ```
    Cluster Name: soil38 (use your cluster_name from aws.tfvars)
+
+   ```
 
 ### 4. Helmsman Deployment
 
@@ -1140,15 +1023,17 @@ The Helmsman deployment process follows a specific sequence with automated trigg
 
 ![Deploy External Services - Helmsman](docs/_images/helmsman-external-services.png)
 
-- Actions → **"Deploy External services of mosip using Helmsman"** (or "Helmsman External Dependencies")
-- **Can't find it?** Search for "External" in the workflows list
+- **(1)** Actions → **"Deploy External services of mosip using Helmsman"** (or "Helmsman External Dependencies")
+  - **Can't find it?** Search for "External" in the workflows list
+- **(2)** **Select Run workflow**
+- **(3)** **Select Branch**
 - This workflow handles both deployments in parallel:
-- **Prerequisites**: `prereq-dsf.yaml` (monitoring, Istio, logging)
-- **External Dependencies**: `external-dsf.yaml` (databases, message queues, storage)
-- **Mode**: `apply` (required - dry-run will fail!)
-- **Important:** DO NOT select dry-run mode for Helmsman
-- **Time required:** 20-40 minutes
-- **Automatic Trigger**: Upon successful completion, this workflow automatically triggers the MOSIP services deployment
+  - **Prerequisites**: `prereq-dsf.yaml` (monitoring, Istio, logging)
+  - **External Dependencies**: `external-dsf.yaml` (databases, message queues, storage)
+- **(4)** **Mode**: `apply` (required - dry-run will fail!)
+  - **Important:** DO NOT select dry-run mode for Helmsman
+  - **Time required:** 20-40 minutes
+  - **Automatic Trigger**: Upon successful completion, this workflow automatically triggers the MOSIP services deployment
 
  **What You Should See:**
 
@@ -1195,25 +1080,17 @@ The Helmsman deployment process follows a specific sequence with automated trigg
 - When onboarding reports show failed partner registrations
 - Before deploying test rigs to ensure all prerequisites are met
 
-**How to check onboarding status and rerun if needed:**
-
-Refer to the comprehensive [MOSIP Onboarding Guide](docs/ONBOARDING_GUIDE.md) for detailed instructions on:
-
-- [Verifying partner-onboarder pod completion](docs/ONBOARDING_GUIDE.md#step-1-verify-partner-onboarder-pod-completion)
-- [How to access MinIO and check onboarding reports](docs/ONBOARDING_GUIDE.md#step-2-access-minio-to-check-onboarding-reports)
-- [Checking onboarding reports in MinIO](docs/ONBOARDING_GUIDE.md#step-3-check-onboarding-reports-in-minio)
-- [How to delete failed jobs and rerun partner-onboarder](docs/ONBOARDING_GUIDE.md#manual-partner-re-onboarding-procedures)
-- [Updating mosip-dsf.yaml to retry failed modules](docs/ONBOARDING_GUIDE.md#step-2-update-mosip-dsfyaml-configuration)
-- [Verification steps after rerunning](docs/ONBOARDING_GUIDE.md#step-4-verify-success-in-minio-reports)
+**How to check onboarding status and rerun if needed:** Refer to the comprehensive [MOSIP Onboarding Guide](docs/ONBOARDING_GUIDE.md) for detailed troubleshooting and retry procedures.
 
 5. **Deploy Test Rigs (Manual):**
 
 ![Deploy Test Rigs - Helmsman](docs/_images/helmsman-testrigs.png)
 
 - **Prerequisites**: All pods from steps 1-2 must be in `Running` state and onboarding completed successfully
-- Actions → **Deploy Testrigs of mosip using Helmsman** (`helmsman_testrigs.yml`)
-- Select DSF file: `testrigs-dsf.yaml`
-- Mode: `apply` (required - dry-run will fail due to namespace dependencies)
+- **(1)** Actions → **Deploy Testrigs of mosip using Helmsman** (`helmsman_testrigs.yml`)
+- **(2)** workflow - **select Run workflow in right side**
+- **(3)** Branch - **Select Branch**
+- **(4)** Mode: `apply` (required - dry-run will fail due to namespace dependencies)
 
 **Post-Deployment Steps:**
 
@@ -1221,6 +1098,7 @@ After test rigs deployment completes:
 
 1. **Update cron schedules**: Update the cron time for all CronJobs in the `dslrig`, `apitestrig`, and `uitestrig` namespaces as needed
 2. **Trigger DSL orchestrator**:
+
    ```bash
    kubectl create job --from=cronjob/cronjob-dslorchestrator-full dslrig-manual-run -n dslrig
    ```
@@ -1244,53 +1122,17 @@ kubectl get pods -A
 kubectl get services -n istio-system
 ```
 
-### 6. Environment Destruction and Cleanup
+---
 
-> **Need to destroy your environment?** See our [Environment Destruction Guide](docs/ENVIRONMENT_DESTRUCTION_GUIDE.md) for safe teardown procedures!
+## Environment Destruction and Cleanup
 
-**When you need to destroy/decommission an environment:**
-
-- Development/testing environment no longer needed
-- Failed deployment requires clean restart
-- Cost optimization (shutting down unused resources)
-- Recreating infrastructure with new configuration
-
-**What the guide covers:**
-
-- ✅ **Safe destruction order** - Destroy in reverse order to avoid orphaned resources
-- ✅ **Step-by-step commands** - Exact commands for Helmsman and Terraform cleanup
-- ✅ **Backup procedures** - How to save data before destruction
-- ✅ **Cost verification** - Ensure all resources are deleted to stop billing
-- ✅ **Troubleshooting** - Fix common deletion issues
-
-**Quick Destruction Summary:**
-
-```
-Destruction Order (Reverse of Deployment):
-
-1. Test Rigs ← Destroy FIRST
-2. MOSIP Services ← Destroy SECOND 
-3. External Services ← Destroy THIRD
-4. Prerequisites ← Destroy FOURTH
-5. Infrastructure ← Destroy FIFTH (Kubernetes cluster)
-6. Base Infrastructure ← Destroy LAST (VPC, networking)
-```
-
-**Time required:** 1-2 hours for complete cleanup
-
-**Important:**
-
-- Always backup data before destroying production environments
-- Verify all AWS resources are deleted to avoid unexpected costs
-- Follow the guide's checklist to ensure complete cleanup
-
-**[View Complete Destruction Guide](docs/ENVIRONMENT_DESTRUCTION_GUIDE.md)**
+For safe teardown procedures and complete cleanup steps, see our [Environment Destruction Guide](docs/ENVIRONMENT_DESTRUCTION_GUIDE.md).
 
 ---
 
-### 7. Next Steps & Detailed Documentation
+## Next Steps & Detailed Documentation
 
-The Quick Start Guide provides the essential deployment flow. For comprehensive configuration options, troubleshooting, and advanced features, refer to the detailed component documentation:
+The Deployment Steps Guide provides the essential deployment flow. For comprehensive configuration options, troubleshooting, and advanced features, refer to the detailed component documentation:
 
 #### **Terraform Infrastructure Documentation**
 
@@ -1300,7 +1142,7 @@ The Quick Start Guide provides the essential deployment flow. For comprehensive 
 
 #### **Helmsman Deployment Documentation**
 
-- **Location**: [`Helmsman/README.md`](Helmsman/README.md)
+- **Location**: [`Helmsman/dsf/README.md`](Helmsman/dsf/README.md)
 - **Contents**: Complete DSF configuration reference, hook scripts, environment management, customization options
 - **Use Cases**: Custom service configurations, environment-specific deployments, service scaling and tuning
 
@@ -1441,71 +1283,6 @@ specific_availability_zones = [] # Use empty array to allow all AZs
 **Action**: Wait for all services to show "All Systems Operational" before beginning deployment.
 
 ---
-
-## Testrig Baseline Numbers
-
-This section provides baseline test execution numbers for MOSIP test rigs to help validate deployment success and track performance trends.
-
-### Test Result Legend
-
-- **T** = Total Tests
-- **P** = Passed Tests
-- **S** = Skipped Tests
-- **F** = Failed Tests
-- **I** = Ignored Tests
-- **KI** = Known Issues
-
-### API Testing Baseline
-
-```
-auth: T-612 | P-589 | S-0 | F-2 | I-5 | KI-16
-
-resident: T-1142| P-580 | S-535 | F-14 | I-0 | KI-12
-
-idrepo: T-414 | P-315 | S-0 | F-1 | I-78 | KI-20
-
-pms: T-509 | P-480 | S-0 | F-2 | I-15 | KI-12
-
-prereg: T-288 | P-277 | S-0 | F-0 | I-2 | KI-9
-
-masterdata:
- - fra: T-945 | P-907 | S-0 | F-0 | I-15 | KI-23
- - ara: T-945 | P-895 | S-0 | F-0 | I-15 | KI-35
- - eng: T-945 | P-922 | S-0 | F-1 | I-0 | KI-22
-```
-
-### DSL Testing Baseline
-
-```
-DSL (sanity): T-3 | P-3 | S-0 | F-0 | KI-0
-
-DSL (full run): T-204 | P-163 | S-0 | F-2 | I-12 | KI-27
-```
-
----
-
-## Community Contributions
-
-**Help expand multi-cloud support!**
-
-- **AWS**: Fully implemented and production-ready
-- **Azure**: Placeholder structures available - [contribute here](terraform/base-infra/azure/)
-- **GCP**: Placeholder structures available - [contribute here](terraform/base-infra/gcp/)
-
-**What needs to be implemented:**
-
-- VPC/VNet/Network creation and configuration
-- Security groups and firewall rules
-- NGINX load balancer and compute instance provisioning
-- Storage and networking resource management
-- Cloud-specific PostgreSQL integration
-
-**Contribution areas:**
-
-- `terraform/base-infra/{azure,gcp}/` - Base infrastructure modules
-- `terraform/infra/{azure,gcp}/` - MOSIP cluster infrastructure
-- `terraform/observ-infra/{azure,gcp}/` - Monitoring infrastructure
-- `terraform/modules/{azure,gcp}/` - Reusable cloud modules
 
 ### Getting Help
 
