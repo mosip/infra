@@ -285,7 +285,7 @@ echo 'Navigating to PostgreSQL Ansible Directory...'
 echo 'Current directory structure:'
 find /tmp/mosip-infra -name '*postgres*' -type d 2>/dev/null || echo 'No postgres directories found'
 
-POSTGRES_ANSIBLE_DIR="/tmp/mosip-infra/deployment/v3/external/postgres/ansible"
+POSTGRES_ANSIBLE_DIR="/tmp/infra/utils/ansible"
 if [ ! -d "$POSTGRES_ANSIBLE_DIR" ]; then
     echo "PostgreSQL Ansible directory not found at: $POSTGRES_ANSIBLE_DIR"
     echo 'Available directories under deployment:'
