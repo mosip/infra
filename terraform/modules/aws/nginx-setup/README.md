@@ -10,10 +10,10 @@ It fetches SSL certificates using Certbot and integrates with Kubernetes infrast
 * Terraform version: `v1.8.4`
 * AWS Account
 * AWS CLI configured with appropriate credentials
-  ```
-  $ export AWS_ACCESS_KEY_ID=<AWS_ACCESS_KEY_ID>
-  $ export AWS_SECRET_ACCESS_KEY=<AWS_SECRET_ACCESS_KEY>
-  ```
+ ```
+ $ export AWS_ACCESS_KEY_ID=<AWS_ACCESS_KEY_ID>
+ $ export AWS_SECRET_ACCESS_KEY=<AWS_SECRET_ACCESS_KEY>
+ ```
 * Ensure SSH key created for accessing EC2 instances on AWS.
 * Ensure you have access to the private SSH key that corresponds to the public key used when launching the EC2 instance.
 * Domain and DNS: Ensure that you have a domain and that its DNS is managed by Route 53.
@@ -28,32 +28,32 @@ It fetches SSL certificates using Certbot and integrates with Kubernetes infrast
 
 * Initialize Terraform
 
-  ```
-  terraform init
-  ```
+ ```
+ terraform init
+ ```
 * Terraform validate & plan the terraform scripts:
 
-  ```
-  terraform validate
-  ```
+ ```
+ terraform validate
+ ```
 
-  ```
-  terraform plan -var-file="aws.tfvars"
-  ```
+ ```
+ terraform plan -var-file="aws.tfvars"
+ ```
 * Apply the Terraform configuration:
 
-  ```
-  terraform apply -var-file="aws.tfvars"
-  ```
+ ```
+ terraform apply -var-file="aws.tfvars"
+ ```
 
 ## Destroy
 
 To destroy AWS resources, follow the steps below:
 
 * Ensure to have `terraform.tfstate` file.
-  ```
-  terraform destroy
-  ```
+ ```
+ terraform destroy
+ ```
 
 ## Input Variables
 
@@ -72,12 +72,12 @@ The script `main.tf` defines a local variable NGINX_CONFIG containing various co
 #### main.tf
 
 * **null_resource "Nginx-setup"**: This resource performs the following actions:
-  * `Triggers`: Sets up triggers based on the hash of the Kubernetes cluster nodes' private IP list and the public domain list.
-  * `Connection`: Defines the SSH connection parameters for the EC2 instance.
-  * `File Provisioner`: Uploads the nginx-setup.sh script to the EC2 instance.
-  * `Remote Exec Provisioner`: Executes the necessary commands to:
-  * Set environment variables.
-  * Run the nginx-setup.sh script.
+ * `Triggers`: Sets up triggers based on the hash of the Kubernetes cluster nodes' private IP list and the public domain list.
+ * `Connection`: Defines the SSH connection parameters for the EC2 instance.
+ * `File Provisioner`: Uploads the nginx-setup.sh script to the EC2 instance.
+ * `Remote Exec Provisioner`: Executes the necessary commands to:
+ * Set environment variables.
+ * Run the nginx-setup.sh script.
 
 #### nginx-setup.sh:
 

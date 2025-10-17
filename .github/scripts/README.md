@@ -127,8 +127,8 @@ These scripts handle complex operations that would otherwise make workflow files
 
 ### generate-pg-secrets.sh
 
-**Status**: Legacy - No longer used  
-**Reason**: PostgreSQL configuration now handled via Terraform variables (`enable_postgresql_setup`)  
+**Status**: Legacy - No longer used 
+**Reason**: PostgreSQL configuration now handled via Terraform variables (`enable_postgresql_setup`) 
 **Replacement**: Configure PostgreSQL in `terraform/implementations/{cloud}/{component}/{cloud}.tfvars`
 
 ## Placeholder Scripts
@@ -157,36 +157,36 @@ Some scripts are empty placeholders for future functionality:
 
 ```mermaid
 graph TD
-    A[Workflow Start] --> B[setup-gpg.sh]
-    B --> C{Backend Type?}
-    C -->|Local| D[decrypt-state.sh]
-    C -->|Remote| E[setup-cloud-storage.sh]
-    D --> F[configure-backend.sh]
-    E --> F
-    F --> G[Terraform Operations]
-    G --> H[encrypt-state.sh]
-    G --> I[cleanup-state-locking.sh]
-    H --> J[Workflow End]
-    I --> J
+ A[Workflow Start] --> B[setup-gpg.sh]
+ B --> C{Backend Type?}
+ C -->|Local| D[decrypt-state.sh]
+ C -->|Remote| E[setup-cloud-storage.sh]
+ D --> F[configure-backend.sh]
+ E --> F
+ F --> G[Terraform Operations]
+ G --> H[encrypt-state.sh]
+ G --> I[cleanup-state-locking.sh]
+ H --> J[Workflow End]
+ I --> J
 ```
 
 ## Directory Structure
 
 ```
 .github/scripts/
-├── README.md                           # This file - scripts documentation
-├── configure-backend.sh               # Backend configuration generation
-├── setup-cloud-storage.sh             # Remote storage setup
-├── encrypt-state.sh                   # GPG state encryption
-├── decrypt-state.sh                   # GPG state decryption
-├── setup-gpg.sh                       # GPG environment setup
-├── cleanup-state-locking.sh           # State lock cleanup
-├── generate-pg-secrets.sh             # Legacy PostgreSQL secrets
-├── test-infrastructure.sh             # Comprehensive testing
-├── validate-workflow-integration.sh   # Workflow validation
-├── test-*.sh                          # Various test scripts
-├── setup-s3-backend.sh                # Empty placeholder
-└── setup-remote-storage.sh            # Empty placeholder
+├── README.md # This file - scripts documentation
+├── configure-backend.sh # Backend configuration generation
+├── setup-cloud-storage.sh # Remote storage setup
+├── encrypt-state.sh # GPG state encryption
+├── decrypt-state.sh # GPG state decryption
+├── setup-gpg.sh # GPG environment setup
+├── cleanup-state-locking.sh # State lock cleanup
+├── generate-pg-secrets.sh # Legacy PostgreSQL secrets
+├── test-infrastructure.sh # Comprehensive testing
+├── validate-workflow-integration.sh # Workflow validation
+├── test-*.sh # Various test scripts
+├── setup-s3-backend.sh # Empty placeholder
+└── setup-remote-storage.sh # Empty placeholder
 ```
 
 ## Usage from Workflows
@@ -195,14 +195,14 @@ Scripts are called from GitHub Actions workflows with proper error handling:
 
 ```yaml
 - name: Setup GPG
-  run: |
-    chmod +x .github/scripts/setup-gpg.sh
-    .github/scripts/setup-gpg.sh --passphrase "${{ secrets.GPG_PASSPHRASE }}"
+ run: |
+ chmod +x .github/scripts/setup-gpg.sh
+ .github/scripts/setup-gpg.sh --passphrase "${{ secrets.GPG_PASSPHRASE }}"
 
 - name: Decrypt State
-  run: |
-    chmod +x .github/scripts/decrypt-state.sh
-    .github/scripts/decrypt-state.sh --backend-type local --passphrase "${{ secrets.GPG_PASSPHRASE }}"
+ run: |
+ chmod +x .github/scripts/decrypt-state.sh
+ .github/scripts/decrypt-state.sh --backend-type local --passphrase "${{ secrets.GPG_PASSPHRASE }}"
 ```
 
 ## Script Development Guidelines

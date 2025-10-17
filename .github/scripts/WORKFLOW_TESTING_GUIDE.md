@@ -15,7 +15,7 @@ This guide demonstrates how to test and use the modernized MOSIP Terraform infra
 
 ### Test Coverage
 - **Providers**: AWS, Azure, GCP (all 3)
-- **Components**: base-infra, infra, observ-infra (all 3)  
+- **Components**: base-infra, infra, observ-infra (all 3) 
 - **Backends**: local, remote (both)
 - **Workflows**: terraform.yml, terraform-destroy.yml (both)
 
@@ -32,9 +32,9 @@ This guide demonstrates how to test and use the modernized MOSIP Terraform infra
 ### Notable Differences
 
 1. **Cloud Storage Setup**: 
-   - `terraform.yml` uses `setup-cloud-storage.sh` (creates storage)
-   - `terraform-destroy.yml` has custom storage checking logic (reads existing storage)
-   - **This is correct behavior** - destroy doesn't need to create storage
+ - `terraform.yml` uses `setup-cloud-storage.sh` (creates storage)
+ - `terraform-destroy.yml` has custom storage checking logic (reads existing storage)
+ - **This is correct behavior** - destroy doesn't need to create storage
 
 ### Test Environment Limitations
 
@@ -50,7 +50,7 @@ This guide demonstrates how to test and use the modernized MOSIP Terraform infra
 # Run complete infrastructure validation
 .github/scripts/test-infrastructure.sh
 
-# Run workflow integration validation  
+# Run workflow integration validation 
 .github/scripts/validate-workflow-integration.sh
 
 # Run end-to-end workflow simulation
@@ -65,24 +65,24 @@ This guide demonstrates how to test and use the modernized MOSIP Terraform infra
 ```yaml
 Workflow: terraform plan / apply
 Inputs:
-  CLOUD_PROVIDER: aws
-  TERRAFORM_COMPONENT: infra
-  BACKEND_TYPE: local
-  REMOTE_BACKEND_CONFIG: (empty)
-  SSH_PRIVATE_KEY: YOUR_SSH_SECRET_NAME
-  TERRAFORM_APPLY: false  # Plan only first
+ CLOUD_PROVIDER: aws
+ TERRAFORM_COMPONENT: infra
+ BACKEND_TYPE: local
+ REMOTE_BACKEND_CONFIG: (empty)
+ SSH_PRIVATE_KEY: YOUR_SSH_SECRET_NAME
+ TERRAFORM_APPLY: false # Plan only first
 ```
 
 **Step 2: Remote Backend Test**
 ```yaml
-Workflow: terraform plan / apply  
+Workflow: terraform plan / apply 
 Inputs:
-  CLOUD_PROVIDER: aws
-  TERRAFORM_COMPONENT: infra
-  BACKEND_TYPE: remote
-  REMOTE_BACKEND_CONFIG: aws:your-bucket-name:us-east-1
-  SSH_PRIVATE_KEY: YOUR_SSH_SECRET_NAME
-  TERRAFORM_APPLY: false  # Plan only first
+ CLOUD_PROVIDER: aws
+ TERRAFORM_COMPONENT: infra
+ BACKEND_TYPE: remote
+ REMOTE_BACKEND_CONFIG: aws:your-bucket-name:us-east-1
+ SSH_PRIVATE_KEY: YOUR_SSH_SECRET_NAME
+ TERRAFORM_APPLY: false # Plan only first
 ```
 
 #### Testing terraform-destroy.yml Workflow
@@ -91,24 +91,24 @@ Inputs:
 ```yaml
 Workflow: terraform destroy
 Inputs:
-  CLOUD_PROVIDER: aws
-  TERRAFORM_COMPONENT: infra
-  BACKEND_TYPE: local
-  REMOTE_BACKEND_CONFIG: (empty)
-  SSH_PRIVATE_KEY: YOUR_SSH_SECRET_NAME
-  TERRAFORM_DESTROY: false  # Dry run first
+ CLOUD_PROVIDER: aws
+ TERRAFORM_COMPONENT: infra
+ BACKEND_TYPE: local
+ REMOTE_BACKEND_CONFIG: (empty)
+ SSH_PRIVATE_KEY: YOUR_SSH_SECRET_NAME
+ TERRAFORM_DESTROY: false # Dry run first
 ```
 
 **Step 2: Actual Destroy**
 ```yaml
 Workflow: terraform destroy
 Inputs:
-  CLOUD_PROVIDER: aws
-  TERRAFORM_COMPONENT: infra
-  BACKEND_TYPE: local
-  REMOTE_BACKEND_CONFIG: (empty)
-  SSH_PRIVATE_KEY: YOUR_SSH_SECRET_NAME
-  TERRAFORM_DESTROY: true  # Confirm destruction
+ CLOUD_PROVIDER: aws
+ TERRAFORM_COMPONENT: infra
+ BACKEND_TYPE: local
+ REMOTE_BACKEND_CONFIG: (empty)
+ SSH_PRIVATE_KEY: YOUR_SSH_SECRET_NAME
+ TERRAFORM_DESTROY: true # Confirm destruction
 ```
 
 ### 3. Multi-Cloud Testing Matrix
@@ -150,7 +150,7 @@ gcp:mosip-base-infra-state:us-central1
 **Application Infrastructure (Medium Security)**
 ```
 aws:mosip-infra-state:us-east-1
-azure:mosip-infra-rg:mosipinfra:terraform-state  
+azure:mosip-infra-rg:mosipinfra:terraform-state 
 gcp:mosip-infra-state:us-central1
 ```
 
@@ -183,7 +183,7 @@ aws:mosip-dev-infra:us-east-1
 ### 1. Testing Order
 
 1. **Start with Local Backends** - No cloud dependencies
-2. **Test Each Component Separately** - base-infra → infra → observ-infra  
+2. **Test Each Component Separately** - base-infra → infra → observ-infra 
 3. **Test Remote Backends** - After local testing succeeds
 4. **Test Destroy Workflows** - After successful deployments
 
@@ -198,18 +198,18 @@ aws:mosip-dev-infra:us-east-1
 **Deployment Order:**
 ```
 base-infra (VPC, networking) 
-    ↓
+ ↓
 infra (applications, databases)
-    ↓  
+ ↓ 
 observ-infra (monitoring, logging)
 ```
 
 **Destruction Order (reverse):**
 ```
 observ-infra (safe to destroy anytime)
-    ↓
+ ↓
 infra (can be destroyed/recreated)
-    ↓
+ ↓
 base-infra (typically permanent)
 ```
 
@@ -228,7 +228,7 @@ Solution: Add AWS credentials to GitHub secrets
 Error: Not logged into Azure
 Solution: Add Azure service principal to GitHub secrets
 - AZURE_CLIENT_ID
-- AZURE_CLIENT_SECRET  
+- AZURE_CLIENT_SECRET 
 - AZURE_TENANT_ID
 ```
 
@@ -259,7 +259,7 @@ BACKEND_TYPE: remote
 REMOTE_BACKEND_CONFIG: aws:mosip-prod-base:us-east-1
 TERRAFORM_APPLY: true
 
-# Step 2: Deploy application infrastructure  
+# Step 2: Deploy application infrastructure 
 Workflow: terraform plan / apply
 CLOUD_PROVIDER: aws
 TERRAFORM_COMPONENT: infra

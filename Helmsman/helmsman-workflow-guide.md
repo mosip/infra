@@ -2,7 +2,7 @@
 
 This repository contains a GitHub Actions workflow to deploy external services and mosip services of MOSIP using Helmsman. we have two workflow's i,e `helmsman_external.yml` and `helmsman_mosip.yml`.
 
-> **⚠️ Important**: Always use `apply` mode for MOSIP deployments. The `dry-run` mode will fail because MOSIP services depend on shared configmaps and secrets from other namespaces that are not available during dry-run validation.
+> **Important**: Always use `apply` mode for MOSIP deployments. The `dry-run` mode will fail because MOSIP services depend on shared configmaps and secrets from other namespaces that are not available during dry-run validation.
 
 ## helmsman_external.yml 
 
@@ -30,8 +30,8 @@ The deployment is done in a matrix strategy to handle multiple configuration fil
 - **Default**: `dry-run`
 - **Recommended**: `apply` (dry-run will fail due to namespace dependencies)
 - **Options**:
-    - `dry-run`: Simulates the deployment without making changes (will fail for MOSIP).
-    - `apply`: Applies the deployment changes.
+ - `dry-run`: Simulates the deployment without making changes (will fail for MOSIP).
+ - `apply`: Applies the deployment changes.
 
 ### Secrets
 
@@ -89,9 +89,9 @@ The following secrets are required to run this workflow:
 - This ensures proper sequencing and reduces manual intervention
 
 **Error Recovery:**
-- If automatic trigger fails: Manually run "Helmsman MOSIP Deployment" from Actions tab
-- If onboarding processes fail: Manual re-onboarding is required (see limitations in main README)
-- Monitor deployment logs for any failures requiring intervention       
+- If automatic trigger fails: Manually run "Deploy MOSIP services using Helmsman" from Actions tab
+- If onboarding processes fail: Manual re-onboarding is required (see [MOSIP Onboarding Guide](../docs/ONBOARDING_GUIDE.md))
+- Monitor deployment logs for any failures requiring intervention 
 
 ### Triggering the Workflow Manually
 1. Navigate to the "Actions" tab in your repository.
@@ -108,16 +108,16 @@ The following secrets are required to run this workflow:
 
 ### Phase 1: Prerequisites & External Dependencies (Parallel)
 1. **Prerequisites Deployment** (`prereq-dsf.yaml`):
-   - Monitoring stack (Rancher monitoring, Grafana, AlertManager)
-   - Logging infrastructure (Cattle logging system)
-   - Service mesh (Istio) and networking components
+ - Monitoring stack (Rancher monitoring, Grafana, AlertManager)
+ - Logging infrastructure (Cattle logging system)
+ - Service mesh (Istio) and networking components
 
 2. **External Dependencies Deployment** (`external-dsf.yaml`):
-   - Databases (PostgreSQL with initialization)
-   - Identity & Access (Keycloak)
-   - Security (SoftHSM, ClamAV antivirus)
-   - Object Storage (MinIO)
-   - Message Queues (ActiveMQ, Kafka with UI)
+ - Databases (PostgreSQL with initialization)
+ - Identity & Access (Keycloak)
+ - Security (SoftHSM, ClamAV antivirus)
+ - Object Storage (MinIO)
+ - Message Queues (ActiveMQ, Kafka with UI)
 
 ### Phase 2: MOSIP Services (Automatic Trigger)
 - **Trigger Condition**: Both prerequisites and external dependencies complete successfully
@@ -131,7 +131,7 @@ Before deploying test rigs, verify:
 kubectl get pods --all-namespaces | grep -v Running | grep -v Completed
 
 # Verify specific namespaces
-kubectl get pods -n mosip
+kubectl get pods -A
 kubectl get pods -n keycloak
 kubectl get pods -n postgres
 ```
@@ -169,8 +169,8 @@ The workflow is triggered by:
 - **Default**: `dry-run`
 - **Recommended**: `apply` (dry-run will fail due to namespace dependencies)
 - **Options**:
-    - `dry-run`: Simulates the deployment without making changes (will fail for MOSIP).
-    - `apply`: Applies the deployment changes.
+ - `dry-run`: Simulates the deployment without making changes (will fail for MOSIP).
+ - `apply`: Applies the deployment changes.
 
 ### Secrets
 

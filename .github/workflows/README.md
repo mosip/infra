@@ -6,7 +6,7 @@
 
 This directory contains GitHub Actions workflows for automated MOSIP deployment:
 - **Terraform workflows** for infrastructure provisioning (AWS complete, Azure/GCP placeholders)
-- **Helmsman workflows** for application deployment on provisioned infrastructure  
+- **Helmsman workflows** for application deployment on provisioned infrastructure 
 - **GPG encrypted state management** with branch isolation
 - **Sequential workflow execution** with parallel optimization within Helmsman phase
 
@@ -34,20 +34,20 @@ This directory contains GitHub Actions workflows for automated MOSIP deployment:
 
 1. **Navigate**: Actions → "terraform plan / apply"
 2. **Configure Parameters**:
-   ```yaml
-   CLOUD_PROVIDER: aws                    # Currently only AWS fully supported
-   TERRAFORM_COMPONENT: base-infra        # base-infra | infra | observ-infra  
-   BACKEND_TYPE: local                    # local with GPG encryption (recommended)
-   REMOTE_BACKEND_CONFIG: ""              # Not used with local backend
-   SSH_PRIVATE_KEY: SSH_PRIVATE_KEY       # GitHub secret name
-   TERRAFORM_APPLY: true                  # false = plan only
-   ENABLE_STATE_LOCKING: false            # Optional DynamoDB state locking
-   ```
+ ```yaml
+ CLOUD_PROVIDER: aws # Currently only AWS fully supported
+ TERRAFORM_COMPONENT: base-infra # base-infra | infra | observ-infra 
+ BACKEND_TYPE: local # local with GPG encryption (recommended)
+ REMOTE_BACKEND_CONFIG: "" # Not used with local backend
+ SSH_PRIVATE_KEY: SSH_PRIVATE_KEY # GitHub secret name
+ TERRAFORM_APPLY: true # false = plan only
+ ENABLE_STATE_LOCKING: false # Optional DynamoDB state locking
+ ```
 3. **Execute**: Click "Run workflow"
 4. **PostgreSQL Configuration**: Set in `terraform/implementations/aws/infra/aws.tfvars`:
-   ```hcl
-   enable_postgresql_setup = true        # External PostgreSQL via Terraform + Ansible
-   ```
+ ```hcl
+ enable_postgresql_setup = true # External PostgreSQL via Terraform + Ansible
+ ```
 
 ### Step 2: Deploy Prerequisites & External Dependencies (After Infrastructure Ready)
 
@@ -60,7 +60,7 @@ This directory contains GitHub Actions workflows for automated MOSIP deployment:
 
 ### Step 3: Deploy MOSIP Services (After Prerequisites Ready)
 
-1. **Navigate**: Actions → "helmsman mosip services"  
+1. **Navigate**: Actions → "helmsman mosip services" 
 2. **PostgreSQL Integration**: Automatically uses deployed PostgreSQL
 3. **Duration**: ~25-35 minutes
 
@@ -79,10 +79,10 @@ PostgreSQL is configured in Terraform variables, not as a workflow input:
 
 ```hcl
 # terraform/implementations/aws/infra/aws.tfvars
-enable_postgresql_setup = true          # Enable external PostgreSQL
-nginx_node_ebs_volume_size_2 = 200      # EBS volume size for PostgreSQL data
-postgresql_version = "15"               # PostgreSQL version
-postgresql_port = "5433"                # PostgreSQL port
+enable_postgresql_setup = true # Enable external PostgreSQL
+nginx_node_ebs_volume_size_2 = 200 # EBS volume size for PostgreSQL data
+postgresql_version = "15" # PostgreSQL version
+postgresql_port = "5433" # PostgreSQL port
 ```
 
 ### PostgreSQL Deployment Options
@@ -115,15 +115,15 @@ Step 3: Application (Repeatable)
 
 ```mermaid
 graph LR
-    A[base-infra<br/>Foundation] --> B[observ-infra<br/>Management<br/>Optional]
-    A --> C[infra<br/>MOSIP Clusters]
-    B -.->|Import Clusters| C
-    C --> D[Multiple MOSIP<br/>Deployments]
-    
-    style A fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
-    style B fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000000
-    style C fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000000
-    style D fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px,color:#000000
+ A[base-infra<br/>Foundation] --> B[observ-infra<br/>Management<br/>Optional]
+ A --> C[infra<br/>MOSIP Clusters]
+ B -.->|Import Clusters| C
+ C --> D[Multiple MOSIP<br/>Deployments]
+ 
+ style A fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
+ style B fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000000
+ style C fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000000
+ style D fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px,color:#000000
 ```
 
 | Component | Purpose | Deployment Order | Dependencies | Lifecycle |
@@ -136,29 +136,29 @@ graph LR
 
 ```mermaid
 graph TD
-    START[GitHub Actions Trigger] --> VALIDATE[Validate Parameters]
-    VALIDATE --> SETUP[Setup Terraform & Cloud Credentials]
-    SETUP --> BACKEND[Configure Local Backend with GPG]
-    
-    BACKEND --> DECRYPT{Encrypted State Exists?}
-    DECRYPT -->|Yes| DECRYPTSTATE[Decrypt State with GPG]
-    DECRYPT -->|No| INIT[terraform init]
-    DECRYPTSTATE --> INIT
-    
-    INIT --> PLAN[terraform plan]
-    PLAN --> DECISION{Apply or Plan Only?}
-    
-    DECISION -->|Plan Only| OUTPUT[Show Plan Output]
-    DECISION -->|Apply| APPLY[terraform apply]
-    
-    APPLY --> ENCRYPT[Encrypt State with GPG]
-    ENCRYPT --> SUCCESS[Deployment Complete]
-    OUTPUT --> COMPLETE[Workflow Complete]
-    SUCCESS --> COMPLETE
-    
-    style START fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px,color:#000000
-    style APPLY fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000000
-    style SUCCESS fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
+ START[GitHub Actions Trigger] --> VALIDATE[Validate Parameters]
+ VALIDATE --> SETUP[Setup Terraform & Cloud Credentials]
+ SETUP --> BACKEND[Configure Local Backend with GPG]
+ 
+ BACKEND --> DECRYPT{Encrypted State Exists?}
+ DECRYPT -->|Yes| DECRYPTSTATE[Decrypt State with GPG]
+ DECRYPT -->|No| INIT[terraform init]
+ DECRYPTSTATE --> INIT
+ 
+ INIT --> PLAN[terraform plan]
+ PLAN --> DECISION{Apply or Plan Only?}
+ 
+ DECISION -->|Plan Only| OUTPUT[Show Plan Output]
+ DECISION -->|Apply| APPLY[terraform apply]
+ 
+ APPLY --> ENCRYPT[Encrypt State with GPG]
+ ENCRYPT --> SUCCESS[Deployment Complete]
+ OUTPUT --> COMPLETE[Workflow Complete]
+ SUCCESS --> COMPLETE
+ 
+ style START fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px,color:#000000
+ style APPLY fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000000
+ style SUCCESS fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
 ```
 
 **Note**: PostgreSQL setup is handled by Terraform modules and Ansible during the `terraform apply` step based on `enable_postgresql_setup` configuration in `.tfvars` files, not as a separate workflow step.
@@ -190,9 +190,9 @@ terraform/observ-infra/aws-observ-infra-testgrid-terraform.tfstate
 ```bash
 # Required GitHub Secret
 GPG_PRIVATE_KEY: |
-  -----BEGIN PGP PRIVATE KEY BLOCK-----
-  <your-gpg-private-key>
-  -----END PGP PRIVATE KEY BLOCK-----
+ -----BEGIN PGP PRIVATE KEY BLOCK-----
+ <your-gpg-private-key>
+ -----END PGP PRIVATE KEY BLOCK-----
 ```
 
 ## Parameter Reference
@@ -216,7 +216,7 @@ BACKEND_TYPE: local
 # Custom naming: aws-infra-testgrid-terraform.tfstate
 ```
 
-#### Remote Backend (Legacy Support)  
+#### Remote Backend (Legacy Support) 
 ```yaml
 BACKEND_TYPE: remote
 REMOTE_BACKEND_CONFIG: aws:bucket-name:region
@@ -240,15 +240,15 @@ REMOTE_BACKEND_CONFIG: aws:bucket-name:region
 ```yaml
 # GPG Encryption for State Files
 GPG_PRIVATE_KEY: |
-  -----BEGIN PGP PRIVATE KEY BLOCK-----
-  <your-gpg-private-key>
-  -----END PGP PRIVATE KEY BLOCK-----
+ -----BEGIN PGP PRIVATE KEY BLOCK-----
+ <your-gpg-private-key>
+ -----END PGP PRIVATE KEY BLOCK-----
 
 # SSH Access for jumpserver
 SSH_PRIVATE_KEY: |
-  -----BEGIN OPENSSH PRIVATE KEY-----
-  <your-private-key-content>
-  -----END OPENSSH PRIVATE KEY-----
+ -----BEGIN OPENSSH PRIVATE KEY-----
+ <your-private-key-content>
+ -----END OPENSSH PRIVATE KEY-----
 
 # AWS Credentials (Complete Implementation)
 AWS_ACCESS_KEY_ID: AKIA...
@@ -262,11 +262,11 @@ AZURE_TENANT_ID: 12345678-1234-1234-1234-123456789012
 
 # GCP Credentials (Placeholder Implementation)
 GOOGLE_CREDENTIALS: |
-  {
-    "type": "service_account",
-    "project_id": "your-project",
-    ...
-  }
+ {
+ "type": "service_account",
+ "project_id": "your-project",
+ ...
+ }
 
 # Optional: Slack notifications
 SLACK_WEBHOOK_URL: https://hooks.slack.com/services/...
@@ -304,7 +304,7 @@ TERRAFORM_COMPONENT: infra
 BACKEND_TYPE: local
 # State: aws-infra-main-terraform.tfstate.gpg
 
-# Staging deployment (staging branch)  
+# Staging deployment (staging branch) 
 CLOUD_PROVIDER: aws
 TERRAFORM_COMPONENT: infra
 BACKEND_TYPE: local
@@ -315,14 +315,14 @@ BACKEND_TYPE: local
 ```yaml
 # Step 1: Deploy Terraform infrastructure (must complete first)
 Workflow: terraform.yml
-  Component: base-infra → Deploy foundational infrastructure
-  Component: observ-infra → Deploy monitoring cluster (optional)
-  Component: infra → Deploy MOSIP cluster + PostgreSQL
+ Component: base-infra → Deploy foundational infrastructure
+ Component: observ-infra → Deploy monitoring cluster (optional)
+ Component: infra → Deploy MOSIP cluster + PostgreSQL
 
 # Step 2: Deploy Helmsman components (after Terraform complete)
 Workflow: helmsman_external.yml → Parallel deployment:
-  - Prerequisites: Monitoring, Istio, Logging
-  - External Dependencies: PostgreSQL connection, MinIO, Keycloak, Kafka
+ - Prerequisites: Monitoring, Istio, Logging
+ - External Dependencies: PostgreSQL connection, MinIO, Keycloak, Kafka
 
 # Step 3: Deploy MOSIP services (after external dependencies ready)
 Workflow: helmsman_mosip.yml → Deploy MOSIP applications
@@ -369,93 +369,93 @@ Workflow: helmsman_testrigs.yml → Deploy testing infrastructure
 ### GitHub Actions Workflow Sequence
 ```mermaid
 sequenceDiagram
-    participant User
-    participant Terraform Workflows
-    participant Helmsman Workflows
-    participant AWS Infrastructure
-    participant PostgreSQL
-    
-    User->>Terraform Workflows: 1. Deploy base-infra
-    Terraform Workflows->>AWS Infrastructure: Create VPC, WireGuard
-    AWS Infrastructure-->>User: Base infrastructure ready
-    
-    User->>Terraform Workflows: 2. Deploy infra + PostgreSQL
-    Terraform Workflows->>AWS Infrastructure: Create RKE2 cluster
-    Terraform Workflows->>PostgreSQL: Setup PostgreSQL 15 via Ansible
-    AWS Infrastructure-->>User: MOSIP cluster + PostgreSQL ready
-    
-    User->>Helmsman Workflows: 3. Deploy Prerequisites (parallel)
-    User->>Helmsman Workflows: 3. Deploy External Dependencies (parallel)
-    Helmsman Workflows-->>AWS Infrastructure: Install Prerequisites & Dependencies
-    AWS Infrastructure-->>User: Prerequisites & Dependencies ready (70-110 min)
-    
-    User->>Helmsman Workflows: 4. Deploy MOSIP Services
-    Helmsman Workflows->>PostgreSQL: Connect to external database
-    AWS Infrastructure-->>User: MOSIP platform operational
+ participant User
+ participant Terraform Workflows
+ participant Helmsman Workflows
+ participant AWS Infrastructure
+ participant PostgreSQL
+ 
+ User->>Terraform Workflows: 1. Deploy base-infra
+ Terraform Workflows->>AWS Infrastructure: Create VPC, WireGuard
+ AWS Infrastructure-->>User: Base infrastructure ready
+ 
+ User->>Terraform Workflows: 2. Deploy infra + PostgreSQL
+ Terraform Workflows->>AWS Infrastructure: Create RKE2 cluster
+ Terraform Workflows->>PostgreSQL: Setup PostgreSQL 15 via Ansible
+ AWS Infrastructure-->>User: MOSIP cluster + PostgreSQL ready
+ 
+ User->>Helmsman Workflows: 3. Deploy Prerequisites (parallel)
+ User->>Helmsman Workflows: 3. Deploy External Dependencies (parallel)
+ Helmsman Workflows-->>AWS Infrastructure: Install Prerequisites & Dependencies
+ AWS Infrastructure-->>User: Prerequisites & Dependencies ready (70-110 min)
+ 
+ User->>Helmsman Workflows: 4. Deploy MOSIP Services
+ Helmsman Workflows->>PostgreSQL: Connect to external database
+ AWS Infrastructure-->>User: MOSIP platform operational
 ```
 
 ### Workflow Execution Order
 
 1. **Terraform Workflows** (Sequential - Infrastructure Setup):
-   - `terraform.yml` → Deploy base-infra
-   - `terraform.yml` → Deploy observ-infra (optional)
-   - `terraform.yml` → Deploy infra + PostgreSQL
+ - `terraform.yml` → Deploy base-infra
+ - `terraform.yml` → Deploy observ-infra (optional)
+ - `terraform.yml` → Deploy infra + PostgreSQL
 
 2. **Helmsman Workflows** (Can run in parallel after Terraform complete):
-   - `helmsman_external.yml` → Prerequisites + External Dependencies (simultaneous)
-   - `helmsman_mosip.yml` → MOSIP Services (after external dependencies ready)
-   - `helmsman_testrigs.yml` → Test components (optional)
+ - `helmsman_external.yml` → Prerequisites + External Dependencies (simultaneous)
+ - `helmsman_mosip.yml` → MOSIP Services (after external dependencies ready)
+ - `helmsman_testrigs.yml` → Test components (optional)
 
 ### Parallel Deployment Architecture
 ```mermaid
 graph TD
-    A[Terraform Infrastructure Complete] --> B[Helmsman Workflows Triggered]
-    
-    B --> C[Prerequisites Workflow]
-    B --> D[External Dependencies Workflow]
-    
-    C -->|Parallel| E[Monitoring Stack]
-    C -->|Parallel| F[Istio Service Mesh]
-    C -->|Parallel| G[Logging Infrastructure]
-    
-    D -->|Parallel| H[PostgreSQL Connection]
-    D -->|Parallel| I[MinIO Storage]
-    D -->|Parallel| J[Keycloak IAM]
-    D -->|Parallel| K[Kafka Messaging]
-    
-    E --> L[MOSIP Services Deployment]
-    F --> L
-    G --> L
-    H --> L
-    I --> L
-    J --> L
-    K --> L
-    
-    style A fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
-    style B fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px,color:#000000
-    style C fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000000
-    style D fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000000
-    style L fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000000
+ A[Terraform Infrastructure Complete] --> B[Helmsman Workflows Triggered]
+ 
+ B --> C[Prerequisites Workflow]
+ B --> D[External Dependencies Workflow]
+ 
+ C -->|Parallel| E[Monitoring Stack]
+ C -->|Parallel| F[Istio Service Mesh]
+ C -->|Parallel| G[Logging Infrastructure]
+ 
+ D -->|Parallel| H[PostgreSQL Connection]
+ D -->|Parallel| I[MinIO Storage]
+ D -->|Parallel| J[Keycloak IAM]
+ D -->|Parallel| K[Kafka Messaging]
+ 
+ E --> L[MOSIP Services Deployment]
+ F --> L
+ G --> L
+ H --> L
+ I --> L
+ J --> L
+ K --> L
+ 
+ style A fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
+ style B fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px,color:#000000
+ style C fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000000
+ style D fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000000
+ style L fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000000
 ```
 
-**Sequential Dependency**: Terraform workflows must complete before Helmsman workflows  
+**Sequential Dependency**: Terraform workflows must complete before Helmsman workflows 
 **Parallel Optimization**: Prerequisites and External Dependencies run simultaneously via separate Helmsman workflows
 
 ---
 
 ## Support & Best Practices
 
-**Workflow Maintenance**: Keep workflows updated with latest Terraform versions  
-**State Management**: GPG encrypted state with branch-based isolation  
-**Security Reviews**: Regular rotation of GPG keys and cloud credentials  
-**PostgreSQL Management**: Automated setup via Terraform + Ansible integration  
-**Performance Optimization**: Use parallel deployment for 20% faster setup times  
+**Workflow Maintenance**: Keep workflows updated with latest Terraform versions 
+**State Management**: GPG encrypted state with branch-based isolation 
+**Security Reviews**: Regular rotation of GPG keys and cloud credentials 
+**PostgreSQL Management**: Automated setup via Terraform + Ansible integration 
+**Performance Optimization**: Use parallel deployment for 20% faster setup times 
 
 ## Cloud Provider Contribution Guide
 
-**AWS** - Production ready with full feature set  
-**Azure** - [Placeholder implementation](../terraform/base-infra/azure/main.tf) - contributions welcome  
-**GCP** - [Placeholder implementation](../terraform/base-infra/gcp/main.tf) - contributions welcome  
+**AWS** - Production ready with full feature set 
+**Azure** - [Placeholder implementation](../terraform/base-infra/azure/main.tf) - contributions welcome 
+**GCP** - [Placeholder implementation](../terraform/base-infra/gcp/main.tf) - contributions welcome 
 
 **Community contributions needed for Azure and GCP implementations**
 

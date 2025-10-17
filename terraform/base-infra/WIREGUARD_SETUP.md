@@ -37,7 +37,7 @@ ls
 
 **Expected output:**
 ```
-peer1/  peer2/  peer3/  peer4/  peer5/  ...
+peer1/ peer2/ peer3/ peer4/ peer5/ ...
 ```
 
 ### Step 3: Assign and Configure a Peer
@@ -52,7 +52,7 @@ nano assigned.txt
 **Example assigned.txt content:**
 ```
 peer1 : john.doe
-peer2 : jane.smith  
+peer2 : jane.smith 
 peer3 : admin.user
 peer4 : available
 peer5 : available
@@ -88,12 +88,12 @@ AllowedIPs = 0.0.0.0/0
 [Interface]
 PrivateKey = <generated-private-key>
 Address = 10.0.1.4/24
-# DNS = 1.1.1.1  <-- DELETE THIS LINE
+# DNS = 1.1.1.1 <-- DELETE THIS LINE
 
 [Peer]
 PublicKey = <server-public-key>
 Endpoint = <jump-server-public-ip>:51820
-AllowedIPs = 10.10.20.0/23  # <-- UPDATE TO YOUR SUBNET CIDR
+AllowedIPs = 10.10.20.0/23 # <-- UPDATE TO YOUR SUBNET CIDR
 ```
 
 **Required Changes:**
@@ -178,19 +178,19 @@ After setting up WireGuard, you need to create **multiple peer configurations** 
 #### Required Peer Configurations
 
 1. **Create Multiple Peers:**
-   ```bash
-   # Configure peer1 for Terraform access
-   cd /home/ubuntu/wireguard/config/peer1
-   nano peer1.conf
-   
-   # Configure peer2 for Helmsman access  
-   cd /home/ubuntu/wireguard/config/peer2
-   nano peer2.conf
-   ```
+ ```bash
+ # Configure peer1 for Terraform access
+ cd /home/ubuntu/wireguard/config/peer1
+ nano peer1.conf
+ 
+ # Configure peer2 for Helmsman access 
+ cd /home/ubuntu/wireguard/config/peer2
+ nano peer2.conf
+ ```
 
 2. **Apply Same Configuration Changes to Both Peers:**
-   - Delete the DNS IP line
-   - Update AllowedIPs to your subnet CIDR (e.g., `10.10.20.0/23`)
+ - Delete the DNS IP line
+ - Update AllowedIPs to your subnet CIDR (e.g., `10.10.20.0/23`)
 
 #### GitHub Environment Secrets Setup
 
@@ -200,27 +200,27 @@ After setting up WireGuard, you need to create **multiple peer configurations** 
 **Add the following Environment Secrets:**
 
 1. **TF_WG_CONFIG Secret:**
-   - Name: `TF_WG_CONFIG`
-   - Value: Contents of `peer1.conf`
-   - Purpose: Terraform infrastructure deployments via private IPs
+ - Name: `TF_WG_CONFIG`
+ - Value: Contents of `peer1.conf`
+ - Purpose: Terraform infrastructure deployments via private IPs
 
 2. **CLUSTER_WIREGUARD_WG0 Secret:**
-   - Name: `CLUSTER_WIREGUARD_WG0`
-   - Value: Contents of `peer1.conf` 
-   - Purpose: Helmsman cluster access (primary connection)
+ - Name: `CLUSTER_WIREGUARD_WG0`
+ - Value: Contents of `peer1.conf` 
+ - Purpose: Helmsman cluster access (primary connection)
 
 3. **CLUSTER_WIREGUARD_WG1 Secret:**
-   - Name: `CLUSTER_WIREGUARD_WG1`
-   - Value: Contents of `peer2.conf`
-   - Purpose: Helmsman cluster access (secondary connection)
+ - Name: `CLUSTER_WIREGUARD_WG1`
+ - Value: Contents of `peer2.conf`
+ - Purpose: Helmsman cluster access (secondary connection)
 
 #### Secret Configuration Summary
 
 ```yaml
 # Required Environment Secrets for WireGuard Access
-TF_WG_CONFIG: "<peer1-config-content>"              # Terraform workflows
-CLUSTER_WIREGUARD_WG0: "<peer1-config-content>"     # Helmsman primary
-CLUSTER_WIREGUARD_WG1: "<peer2-config-content>"     # Helmsman secondary
+TF_WG_CONFIG: "<peer1-config-content>" # Terraform workflows
+CLUSTER_WIREGUARD_WG0: "<peer1-config-content>" # Helmsman primary
+CLUSTER_WIREGUARD_WG1: "<peer2-config-content>" # Helmsman secondary
 ```
 
 #### Purpose of Multiple Configurations
