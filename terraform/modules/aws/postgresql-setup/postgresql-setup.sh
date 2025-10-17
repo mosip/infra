@@ -283,7 +283,7 @@ echo "Successfully cloned and checked out branch: $MOSIP_INFRA_BRANCH"
 # Navigate to PostgreSQL Ansible directory
 echo 'Navigating to PostgreSQL Ansible Directory...'
 echo 'Current directory structure:'
-find /tmp/infra -name '*postgres*' -type d 2>/dev/null || echo 'No postgres directories found'
+find /tmp/infra -name '*ansible*' -type d 2>/dev/null || echo 'No postgres directories found'
 
 POSTGRES_ANSIBLE_DIR="/tmp/infra/Helmsman/utils/ansible"
 if [ ! -d "$POSTGRES_ANSIBLE_DIR" ]; then
