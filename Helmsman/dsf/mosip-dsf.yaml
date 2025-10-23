@@ -62,14 +62,14 @@ apps:
   conf-secrets:
     namespace: conf-secrets 
     enabled: true
-    version: 12.0.3-develop
+    version: 12.0.3
     chart: mosip/conf-secrets
     priority: -20
 
   config-server:
     namespace: config-server
     enabled: true
-    version: 12.0.3-develop
+    version: 12.0.3
     chart: mosip/config-server
     valuesFile: "$WORKDIR/utils/config-server-values.yaml"
     wait: true
@@ -1075,7 +1075,7 @@ apps:
   mosip-file-server:
     namespace: mosip-file-server
     enabled: true
-    version: 12.0.2-develop
+    version: 12.0.2
     chart: mosip/mosip-file-server
     set:
       image.repository: "mosipid/mosip-file-server"
