@@ -29,7 +29,7 @@ ami = "ami-xxxxxxxxxxxx" # Ubuntu 24.04 LTS AMI ID for ap-south-1
 # Repo K8S-INFRA URL
 k8s_infra_repo_url = "https://github.com/mosip/k8s-infra.git"
 # Repo K8S-INFRA branch
-k8s_infra_branch = "<branch_name>"
+k8s_infra_branch = "v1.2.1.0"
 # NGINX Node's Root volume size
 nginx_node_root_volume_size = 24
 # NGINX node's EBS volume size
@@ -72,9 +72,10 @@ postgresql_port         = "5433"
 # MOSIP Infrastructure Repository Configuration
 mosip_infra_repo_url = "https://github.com/mosip/infra.git"
 
-mosip_infra_branch = "<branch_name>"
+mosip_infra_branch = "v0.1.0-beta.1"
 
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
 vpc_name = "<vpc_name>"
 
+v
