@@ -356,7 +356,7 @@ For detailed information about GitHub Actions workflow parameters, terraform mod
 1. **Update terraform variables:**
 
 ```bash
- # Edit terraform/base-infra/aws/terraform.tfvars (or azure/gcp)
+ # Edit terraform/implementations/aws/base-infra/aws.tfvars (or azure/gcp)
 ```
 
 2. **Configure base-infra variables:**
