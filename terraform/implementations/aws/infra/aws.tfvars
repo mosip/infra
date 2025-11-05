@@ -24,7 +24,7 @@ zone_id = "<route53_zone_id>"
 
 ## UBUNTU 24.04
 # The Amazon Machine Image ID for the instances
-ami = "ami-xxxxxxxxxxxx" # Ubuntu 24.04 LTS AMI ID for ap-south-1
+ami = "ami-0ad21ae1d0696ad58" # use ubuntu 22.04 or ubuntu 24.04,if you choose 24.04 use same ami id to avoid compatibility issues
 
 # Repo K8S-INFRA URL
 k8s_infra_repo_url = "https://github.com/mosip/k8s-infra.git"
@@ -77,5 +77,3 @@ mosip_infra_branch = "v0.1.0-beta.1"
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
 vpc_name = "<vpc_name>"
-
-v
