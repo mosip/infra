@@ -61,7 +61,7 @@ apps:
       image.tag: "7.17.2-debian-10-r4"
       # Kibana configuration and image
       global.kibanaEnabled: "true"
-      kibana.image.repository: "mosipint/kibana"
+      kibana.image.repository: "mosipid/kibana"
       kibana.image.tag: "7.17.2-debian-10-r0"
       kibana.image.pullPolicy: IfNotPresent
       data.heapSize: "728m"
@@ -73,7 +73,7 @@ apps:
       master.persistence.size: "4Gi"
       master.resources.requests.memory: "728Mi"
       kibana.persistence.enabled: "false"
-      sysctlImage.repository: "mosipint/os-shell"
+      sysctlImage.repository: "mosipid/os-shell"
       sysctlImage.tag: "12-debian-12-r46"
     wait: true
     timeout: 900

@@ -114,7 +114,7 @@ apps:
       databases.mosip_regprc.port: 5433
 
       databases.mosip_pms.enabled: "true"
-      databases.mosip_pms.branch: "release-1.3.x"
+      databases.mosip_pms.branch: "v1.3.0-beta.2"
       databases.mosip_pms.host: "postgres.sandbox.xyz.net"
       databases.mosip_pms.port: 5433
 
@@ -129,7 +129,7 @@ apps:
       databases.mosip_resident.port: 5433
 
       databases.mosip_otp.enabled: "true"
-      databases.mosip_otp.branch: "release-1.3.x"
+      databases.mosip_otp.branch: "v1.3.0-beta.1"
       databases.mosip_otp.host: "postgres.sandbox.xyz.net"
       databases.mosip_otp.port: 5433
 
@@ -148,11 +148,11 @@ apps:
     chart: mosip/keycloak
     set:
       image.repository: "mosipid/mosip-artemis-keycloak"
-      image.tag: "1.2.0.1"
+      image.tag: "1.2.0.2"
       image.pullPolicy: "Always"
       # Override Postgres image
       postgresql.image.registry: "docker.io"
-      postgresql.image.repository: "mosipint/postgresql"
+      postgresql.image.repository: "mosipid/postgresql"
       postgresql.image.tag: "14.2.0-debian-10-r70"
       service.type: "ClusterIP"
       auth.adminUser: "admin"
@@ -193,7 +193,7 @@ apps:
   keycloak-init:
     namespace: keycloak
     enabled: true
-    version: 12.0.2-develop
+    version: 12.0.2
     chart: mosip/keycloak-init
     set:
       # image.repository: "mosipid/keycloak-init"
@@ -245,7 +245,7 @@ apps:
     version: 10.1.6
     chart: mosip/minio
     set:
-      image.repository: "mosipint/minio"
+      image.repository: "mosipid/minio"
       image.tag: "2022.2.7-debian-10-r0"
       metrics.serviceMonitor.enabled: "true"
       extraEnvVars[0].name: "MINIO_PROMETHEUS_URL"
@@ -313,9 +313,9 @@ apps:
     chart: bitnami/kafka
     set:
       # Add these for image overrides
-      image.repository: "mosipint/kafka"
+      image.repository: "mosipid/kafka"
       image.tag: "3.2.1-debian-11-r9"
-      zookeeper.image.repository: "mosipint/zookeeper"
+      zookeeper.image.repository: "mosipid/zookeeper"
       zookeeper.image.tag: "3.8.0-debian-11-r30"
       clusterDomain: "cluster.local"
       logRetentionBytes: "_1073741824"
