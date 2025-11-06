@@ -7,6 +7,18 @@ on:
         description: "Type 'destroy' to confirm destruction of MOSIP services"
         required: true
         type: string
+      namespace_selection:
+        description: "Namespace selection"
+        required: true
+        type: choice
+        default: "all"
+        options:
+          - all
+          - specific
+      specific_namespaces:
+        description: "Specific namespaces (comma-separated, e.g., esignet,idrepo,ida). Only used if 'specific' is selected above."
+        required: false
+        type: string
 
 jobs:
   validate-confirmation:
@@ -31,7 +43,7 @@ jobs:
       KUBECTL_PATH: ${{ github.workspace }}/.local/bin/kubectl
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Setup kubectl and kubeconfig
         env:
@@ -125,36 +137,101 @@ jobs:
           echo "Using kubectl: $(which kubectl)"
           echo "Using kubeconfig: $KUBECONFIG"
           
-          echo "🗑️  Destroying MOSIP services..."
-          # Run helmsman with destroy flag
-          helmsman --destroy -f $WORKDIR/dsf/mosip-dsf.yaml
+          echo "🗑️  Step 1: Uninstalling Helm releases..."
+          
+          if [ "${{ github.event.inputs.namespace_selection }}" == "specific" ]; then
+            echo "Uninstalling Helm releases from specific namespaces..."
+            IFS=',' read -ra NAMESPACES <<< "${{ github.event.inputs.specific_namespaces }}"
+            for NS in "${NAMESPACES[@]}"; do
+              NS=$(echo "$NS" | xargs)  # Trim whitespace
+              echo "Processing namespace: $NS"
+              # Get all helm releases in this namespace and uninstall them
+              RELEASES=$(helm list -n "$NS" -q 2>/dev/null || true)
+              if [ -n "$RELEASES" ]; then
+                echo "Found releases in $NS: $RELEASES"
+                for RELEASE in $RELEASES; do
+                  echo "Uninstalling release: $RELEASE from namespace: $NS"
+                  helm uninstall "$RELEASE" -n "$NS" || true
+                done
+              else
+                echo "No Helm releases found in namespace: $NS"
+              fi
+            done
+          else
+            echo "Uninstalling all Helm releases using Helmsman..."
+            helmsman --destroy -f $WORKDIR/dsf/mosip-dsf.yaml
+          fi
+          
+          echo ""
+          echo "🗑️  Step 2: Deleting namespaces..."
+          
+          if [ "${{ github.event.inputs.namespace_selection }}" == "specific" ]; then
+            echo "Deleting specific MOSIP namespaces..."
+            IFS=',' read -ra NAMESPACES <<< "${{ github.event.inputs.specific_namespaces }}"
+            for NS in "${NAMESPACES[@]}"; do
+              NS=$(echo "$NS" | xargs)  # Trim whitespace
+              echo "Deleting namespace: $NS"
+              kubectl delete namespace "$NS" --ignore-not-found=true --timeout=5m
+            done
+          else
+            echo "Deleting all MOSIP namespaces..."
+            MOSIP_NAMESPACES=(
+              admin
+              apitestrig
+              artifactory
+              config-server
+              dslrig
+              esignet
+              idrepo
+              kernel
+              masterdata
+              packet-manager
+              pmp
+              postgresdb
+              print
+              regproc
+              resident
+              uitestrig
+            )
+            for NS in "${MOSIP_NAMESPACES[@]}"; do
+              echo "Deleting namespace: $NS"
+              kubectl delete namespace "$NS" --ignore-not-found=true --timeout=5m
+            done
+          fi
 
       - name: Verify MOSIP Resource Cleanup
         run: |
           echo "Verifying MOSIP resource cleanup..."
           
-          # List of MOSIP namespaces
-          MOSIP_NAMESPACES=(
-            admin
-            apitestrig
-            artifactory
-            config-server
-            dslrig
-            esignet
-            idrepo
-            kernel
-            masterdata
-            packet-manager
-            pmp
-            postgresdb
-            print
-            regproc
-            resident
-            uitestrig
-          )
+          # Determine which namespaces to check
+          if [ "${{ github.event.inputs.namespace_selection }}" == "specific" ]; then
+            echo "Checking specific namespaces..."
+            IFS=',' read -ra MOSIP_NAMESPACES <<< "${{ github.event.inputs.specific_namespaces }}"
+          else
+            # List of all MOSIP namespaces
+            MOSIP_NAMESPACES=(
+              admin
+              apitestrig
+              artifactory
+              config-server
+              dslrig
+              esignet
+              idrepo
+              kernel
+              masterdata
+              packet-manager
+              pmp
+              postgresdb
+              print
+              regproc
+              resident
+              uitestrig
+            )
+          fi
           
           # Check if namespaces still exist
           for NS in "${MOSIP_NAMESPACES[@]}"; do
+            NS=$(echo "$NS" | xargs)  # Trim whitespace
             if kubectl get namespace "$NS" >/dev/null 2>&1; then
               echo "⚠️  Namespace $NS still exists"
               POD_COUNT=$(kubectl get pods -n "$NS" --no-headers 2>/dev/null | wc -l)
@@ -169,33 +246,7 @@ jobs:
           kubectl label namespace default mosip-dsf- --overwrite || true
           echo "✅ MOSIP DSF label removed from default namespace"
 
-      - name: Check for PersistentVolumeClaims
+      - name: Check for PersistentVolumes
         run: |
-          echo "Checking for remaining PersistentVolumeClaims..."
-          kubectl get pvc --all-namespaces | grep -E "(admin|apitestrig|artifactory|config-server|dslrig|esignet|idrepo|kernel|masterdata|packet-manager|pmp|postgresdb|print|regproc|resident|uitestrig)" || echo "No MOSIP PVCs found"
-
-  cleanup-summary:
-    runs-on: ubuntu-latest
-    needs: destroy
-    if: always()
-    steps:
-      - name: Destruction Summary
-        run: |
-          echo "=========================================="
-          echo "🗑️  MOSIP Services Destruction Complete"
-          echo "=========================================="
-          echo ""
-          echo "Destroyed components:"
-          echo "  ✅ All MOSIP core services"
-          echo "  ✅ MOSIP namespaces"
-          echo ""
-          echo "⚠️  Manual cleanup may be needed for:"
-          echo "  - PersistentVolumeClaims (PVCs)"
-          echo "  - PersistentVolumes (PVs)"
-          echo "  - LoadBalancer services"
-          echo ""
-          echo "Commands for manual cleanup:"
-          echo "  kubectl get pvc --all-namespaces"
-          echo "  kubectl get pv"
-          echo "  kubectl get svc --all-namespaces -o wide | grep LoadBalancer"
-          echo "=========================================="
+          echo "Checking for remaining PersistentVolumes..."
+          kubectl get pv | grep -E "(admin|apitestrig|artifactory|config-server|dslrig|esignet|idrepo|kernel|masterdata|packet-manager|pmp|postgresdb|print|regproc|resident|uitestrig)" || echo "No MOSIP PVs found"
