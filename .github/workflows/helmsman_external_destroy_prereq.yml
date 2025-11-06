@@ -60,10 +60,38 @@ jobs:
         run: |
           mkdir -p ${{ github.workspace }}/.local/bin
           mkdir -p ${{ github.workspace }}/.kube
-          curl -LO https://dl.k8s.io/release/v1.31.3/bin/linux/amd64/kubectl
+          
+          # Install kubectl with checksum verification
+          KUBECTL_VERSION="v1.31.3"
+          KUBECTL_URL="https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
+          CHECKSUM_URL="https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl.sha256"
+          
+          # Download kubectl binary
+          curl --fail -LO "${KUBECTL_URL}"
+          
+          # Download and verify checksum
+          curl --fail -LO "${CHECKSUM_URL}"
+          echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check --status
+          
+          if [ $? -ne 0 ]; then
+            echo "❌ Checksum verification failed for kubectl ${KUBECTL_VERSION}"
+            rm -f kubectl kubectl.sha256
+            exit 1
+          fi
+          
+          echo "✅ Checksum verification passed for kubectl ${KUBECTL_VERSION}"
+          
+          # Install kubectl
           chmod +x kubectl
           mv ./kubectl ${{ github.workspace }}/.local/bin/kubectl
+          
+          # Clean up checksum file
+          rm -f kubectl.sha256
+          
+          # Install istioctl
           curl -L https://istio.io/downloadIstio | ISTIO_VERSION=1.22.0 TARGET_ARCH=x86_64 sh -
+          
+          # Setup kubeconfig
           echo "$KUBECONFIG_CONTENT" > ${{ github.workspace }}/.kube/config
           chmod 400 ${{ github.workspace }}/.kube/config
           echo "${{ github.workspace }}/.local/bin" >> $GITHUB_PATH
