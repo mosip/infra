@@ -1,10 +1,10 @@
-name: Destroy External services of MOSIP using Helmsman (external DSF)
+name: Destroy Prerequisite services of MOSIP using Helm
 
 on:
   workflow_dispatch:
     inputs:
       confirmation:
-        description: "Type 'destroy' to confirm destruction of external services"
+        description: "Type 'destroy' to confirm destruction of prerequisite services"
         required: true
         type: string
       namespace_selection:
@@ -16,7 +16,7 @@ on:
           - all
           - specific
       specific_namespaces:
-        description: "Specific namespaces (comma-separated, e.g., keycloak,kafka,minio). Only used if 'specific' is selected above."
+        description: "Specific namespaces (comma-separated, e.g., cattle-logging-system,istio-system). Only used if 'specific' is selected above."
         required: false
         type: string
 
@@ -45,8 +45,8 @@ jobs:
     steps:
       - name: Show target
         run: |
-          echo "🗑️  Destroying external-dsf.yaml"
-          echo "Using WireGuard config: wg1"
+          echo "🗑️  Destroying prereq-dsf.yaml"
+          echo "Using WireGuard config: wg0"
           pwd
 
       - name: Checkout repository
@@ -85,15 +85,15 @@ jobs:
 
       - name: Configure WireGuard
         run: |
-          echo "${{ secrets.CLUSTER_WIREGUARD_WG1 }}" | sudo tee /etc/wireguard/wg1.conf
+          echo "${{ secrets.CLUSTER_WIREGUARD_WG0 }}" | sudo tee /etc/wireguard/wg0.conf
 
       - name: Start WireGuard
         run: |
-          sudo chmod 600 /etc/wireguard/wg1.conf
+          sudo chmod 600 /etc/wireguard/wg0.conf
           sudo chmod 700 /etc/wireguard/
           sudo systemctl daemon-reload || true
-          sudo wg-quick up wg1 || true
-          sudo wg show wg1 || true
+          sudo wg-quick up wg0 || true
+          sudo wg show wg0 || true
 
       - name: Setup Helm
         run: |
@@ -102,29 +102,48 @@ jobs:
           sudo ./get_helm.sh
           helm version --client
 
-      - name: Destroy External Services using Helm
-        run: |
+      - name: Destroy Prerequisite Services using Helm
+        run: |          
           export HOME="${{ github.workspace }}"
           export WORKDIR="$HOME/Helmsman"
           
           # Verify tools are available
           echo "Using kubectl: $(which kubectl)"
+          echo "Using istioctl: $(which istioctl)"
           echo "Using kubeconfig: $KUBECONFIG"
           
-          echo "🗑️  Step 1: Uninstalling Helm releases..."
+          echo "🗑️  Step 1: Uninstalling Istio using istioctl..."
           
           # Determine which namespaces to process
           if [ "${{ github.event.inputs.namespace_selection }}" == "specific" ]; then
             echo "Mode: Specific namespaces"
             IFS=',' read -ra NAMESPACES <<< "${{ github.event.inputs.specific_namespaces }}"
+            # Check if istio-operator or istio-system is in the list
+            if [[ " ${NAMESPACES[@]} " =~ " istio-operator " ]] || [[ " ${NAMESPACES[@]} " =~ " istio-system " ]]; then
+              echo "Uninstalling Istio using istioctl..."
+              istioctl uninstall --purge -y || true
+            fi
           else
-            echo "Mode: All external namespaces"
-            NAMESPACES=(keycloak kafka minio softhsm clamav activemq landing-page)
+            echo "Mode: All prerequisite namespaces"
+            echo "Uninstalling Istio using istioctl..."
+            istioctl uninstall --purge -y || true
+            NAMESPACES=(cattle-logging-system istio-system istio-operator httpbin)
           fi
           
-          # Uninstall Helm releases from selected namespaces
+          echo ""
+          echo "🗑️  Step 2: Uninstalling Helm releases..."
+          
+          # Uninstall Helm releases from selected namespaces (skip istio-operator as it's not managed by Helm)
           for NS in "${NAMESPACES[@]}"; do
             NS=$(echo "$NS" | xargs)  # Trim whitespace
+            
+            # Skip istio-operator as it's managed by istioctl, not Helm
+            if [[ "$NS" == "istio-operator" ]]; then
+              echo ""
+              echo "Skipping Helm uninstall for namespace: $NS (managed by istioctl)"
+              continue
+            fi
+            
             echo ""
             echo "Processing namespace: $NS"
             
@@ -142,7 +161,7 @@ jobs:
           done
           
           echo ""
-          echo "🗑️  Step 2: Deleting namespaces..."
+          echo "🗑️  Step 3: Deleting namespaces..."
           
           # Delete the selected namespaces
           for NS in "${NAMESPACES[@]}"; do
@@ -151,12 +170,12 @@ jobs:
             kubectl delete namespace "$NS" --ignore-not-found=true --timeout=5m
           done
 
-      - name: Verify External Resource Cleanup
+      - name: Verify Prereq Resource Cleanup
         run: |
           if [ "${{ github.event.inputs.namespace_selection }}" == "specific" ]; then
             IFS=',' read -ra NAMESPACES <<< "${{ github.event.inputs.specific_namespaces }}"
           else
-            NAMESPACES=( keycloak kafka minio softhsm clamav activemq landing-page )
+            NAMESPACES=( cattle-logging-system istio-system istio-operator httpbin )
           fi
           
           for NS in "${NAMESPACES[@]}"; do
@@ -168,8 +187,3 @@ jobs:
               echo "✅ Namespace $NS successfully removed"
             fi
           done
-
-      - name: Remove External DSF Label
-        run: |
-          kubectl label namespace default external-dsf- --overwrite || true
-          echo "✅ External DSF label removed from default namespace"

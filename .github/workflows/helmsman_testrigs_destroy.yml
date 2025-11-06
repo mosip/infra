@@ -102,20 +102,6 @@ jobs:
           sudo ./get_helm.sh
           helm version --client
 
-      - name: Install Helmsman
-        run: |
-          curl -L https://github.com/Praqma/helmsman/releases/download/v3.17.1/helmsman_3.17.1_linux_amd64.tar.gz -o helmsman.tar.gz
-          tar xzf helmsman.tar.gz
-          sudo mv helmsman /usr/local/bin
-          
-          # Verify all tools are available
-          echo "All tools verification:"
-          echo "kubectl: $(which kubectl)"
-          echo "helmsman: $(which helmsman)"
-          
-          kubectl version --client
-          helmsman -v
-
       - name: Verify cluster access
         run: |
           # Verify tools are accessible
@@ -128,7 +114,7 @@ jobs:
           kubectl get nodes
           kubectl cluster-info
 
-      - name: Destroy Testrigs using Helmsman
+      - name: Destroy Testrigs using Helm
         run: |          
           export HOME="${{ github.workspace }}"
           export WORKDIR="$HOME/Helmsman"
@@ -139,79 +125,57 @@ jobs:
           
           echo "🗑️  Step 1: Uninstalling Helm releases..."
           
+          # Determine which namespaces to process
           if [ "${{ github.event.inputs.namespace_selection }}" == "specific" ]; then
-            echo "Uninstalling Helm releases from specific namespaces..."
+            echo "Mode: Specific namespaces"
             IFS=',' read -ra NAMESPACES <<< "${{ github.event.inputs.specific_namespaces }}"
-            for NS in "${NAMESPACES[@]}"; do
-              NS=$(echo "$NS" | xargs)  # Trim whitespace
-              echo "Processing namespace: $NS"
-              # Get all helm releases in this namespace and uninstall them
-              RELEASES=$(helm list -n "$NS" -q 2>/dev/null || true)
-              if [ -n "$RELEASES" ]; then
-                echo "Found releases in $NS: $RELEASES"
-                for RELEASE in $RELEASES; do
-                  echo "Uninstalling release: $RELEASE from namespace: $NS"
-                  helm uninstall "$RELEASE" -n "$NS" || true
-                done
-              else
-                echo "No Helm releases found in namespace: $NS"
-              fi
-            done
           else
-            echo "Uninstalling all Helm releases using Helmsman..."
-            helmsman --destroy -f $WORKDIR/dsf/testrigs-dsf.yaml
+            echo "Mode: All testrig namespaces"
+            NAMESPACES=(apitestrig dslrig uitestrig)
           fi
+          
+          # Uninstall Helm releases from selected namespaces
+          for NS in "${NAMESPACES[@]}"; do
+            NS=$(echo "$NS" | xargs)  # Trim whitespace
+            echo ""
+            echo "Processing namespace: $NS"
+            
+            # Get all helm releases in this namespace and uninstall them
+            RELEASES=$(helm list -n "$NS" -q 2>/dev/null || true)
+            if [ -n "$RELEASES" ]; then
+              echo "Found releases in $NS: $RELEASES"
+              for RELEASE in $RELEASES; do
+                echo "  → Uninstalling release: $RELEASE"
+                helm uninstall "$RELEASE" -n "$NS" --wait --timeout=5m || true
+              done
+            else
+              echo "  No Helm releases found in namespace: $NS"
+            fi
+          done
           
           echo ""
           echo "🗑️  Step 2: Deleting namespaces..."
           
-          if [ "${{ github.event.inputs.namespace_selection }}" == "specific" ]; then
-            echo "Deleting specific testrig namespaces..."
-            IFS=',' read -ra NAMESPACES <<< "${{ github.event.inputs.specific_namespaces }}"
-            for NS in "${NAMESPACES[@]}"; do
-              NS=$(echo "$NS" | xargs)  # Trim whitespace
-              echo "Deleting namespace: $NS"
-              kubectl delete namespace "$NS" --ignore-not-found=true --timeout=5m
-            done
-          else
-            echo "Deleting all testrig namespaces..."
-            TESTRIG_NAMESPACES=(
-              apitestrig
-              dslrig
-              uitestrig
-            )
-            for NS in "${TESTRIG_NAMESPACES[@]}"; do
-              echo "Deleting namespace: $NS"
-              kubectl delete namespace "$NS" --ignore-not-found=true --timeout=5m
-            done
-          fi
+          # Delete the selected namespaces
+          for NS in "${NAMESPACES[@]}"; do
+            NS=$(echo "$NS" | xargs)  # Trim whitespace
+            echo "Deleting namespace: $NS"
+            kubectl delete namespace "$NS" --ignore-not-found=true --timeout=5m
+          done
 
       - name: Verify Testrig Resource Cleanup
         run: |
-          echo "Verifying testrig resource cleanup..."
-          
-          # Determine which namespaces to check
           if [ "${{ github.event.inputs.namespace_selection }}" == "specific" ]; then
-            echo "Checking specific namespaces..."
-            IFS=',' read -ra TESTRIG_NAMESPACES <<< "${{ github.event.inputs.specific_namespaces }}"
+            IFS=',' read -ra NAMESPACES <<< "${{ github.event.inputs.specific_namespaces }}"
           else
-            # List of all testrig namespaces
-            TESTRIG_NAMESPACES=(
-              apitestrig
-              dslrig
-              uitestrig
-            )
+            NAMESPACES=( apitestrig dslrig uitestrig )
           fi
           
-          # Check if namespaces still exist
-          for NS in "${TESTRIG_NAMESPACES[@]}"; do
+          for NS in "${NAMESPACES[@]}"; do
             NS=$(echo "$NS" | xargs)  # Trim whitespace
             if kubectl get namespace "$NS" >/dev/null 2>&1; then
               echo "⚠️  Namespace $NS still exists"
-              POD_COUNT=$(kubectl get pods -n "$NS" --no-headers 2>/dev/null | wc -l)
-              JOB_COUNT=$(kubectl get jobs -n "$NS" --no-headers 2>/dev/null | wc -l)
-              echo "    Pods remaining: $POD_COUNT"
-              echo "    Jobs remaining: $JOB_COUNT"
+              kubectl get all -n "$NS"
             else
               echo "✅ Namespace $NS successfully removed"
             fi
@@ -222,17 +186,3 @@ jobs:
           kubectl label namespace default testrigs-dsf- --overwrite || true
           echo "✅ Testrigs DSF label removed from default namespace"
 
-      - name: Check for Testrig Jobs and Pods
-        run: |
-          echo "Checking for remaining testrig jobs and pods..."
-          
-          for NS in apitestrig dslrig uitestrig; do
-            if kubectl get namespace "$NS" >/dev/null 2>&1; then
-              echo ""
-              echo "Namespace: $NS"
-              echo "Jobs:"
-              kubectl get jobs -n "$NS" 2>/dev/null || echo "  No jobs found"
-              echo "Pods:"
-              kubectl get pods -n "$NS" 2>/dev/null || echo "  No pods found"
-            fi
-          done
