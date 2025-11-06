@@ -26,7 +26,7 @@ jobs:
       KUBECTL_PATH: ${{ github.workspace }}/.local/bin/kubectl
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v2
 
       - name: Setup kubectl and kubeconfig
         env:
