@@ -8,7 +8,7 @@ This repository provides a **3-step rapid deployment model** for MOSIP (Modular 
 
 ## Complete Deployment Flow
 
-![MOSIP Deployment Flow](docs/_images/animated-mosip-flow.svg)
+![MOSIP Deployment Flow](https://raw.githubusercontent.com/mosip/infra/refs/heads/testgrid/docs/_images/animated-mosip-flow.svg)
 
 > **Note:** Complete Terraform scripts are available only for **AWS**. For **Azure and GCP**, only placeholder structures are configured - community contributions are welcome to implement full functionality.
 
