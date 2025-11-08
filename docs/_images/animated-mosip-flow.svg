@@ -185,14 +185,14 @@
   <text x="970" y="825" class="node-subtext">API, UI, DSL Testing</text>
   
   <line x1="850" y1="820" x2="780" y2="820" stroke="#4a4a4a" stroke-width="2" class="flow-arrow"/>
-  <line x1="780" y1="820" x2="780" y2="860" stroke="#4a4a4a" stroke-width="2" class="flow-arrow"/>
-  <line x1="780" y1="860" x2="870" y2="860" stroke="#4a4a4a" stroke-width="2" marker-end="url(#arrow)" class="flow-arrow"/>
+  <line x1="780" y1="820" x2="780" y2="885" stroke="#4a4a4a" stroke-width="2" class="flow-arrow"/>
+  <line x1="780" y1="885" x2="710" y2="885" stroke="#4a4a4a" stroke-width="2" class="flow-arrow"/>
   
   <!-- No path to Verify -->
   <line x1="550" y1="820" x2="320" y2="820" stroke="#4a4a4a" stroke-width="2" class="flow-arrow"/>
   <text x="445" y="815" class="label-text" fill="#d32f2f">No</text>
-  <line x1="320" y1="820" x2="320" y2="860" stroke="#4a4a4a" stroke-width="2" class="flow-arrow"/>
-  <line x1="320" y1="860" x2="710" y2="860" stroke="#4a4a4a" stroke-width="2" marker-end="url(#arrow)" class="flow-arrow"/>
+  <line x1="320" y1="820" x2="320" y2="885" stroke="#4a4a4a" stroke-width="2" class="flow-arrow"/>
+  <line x1="320" y1="885" x2="710" y2="885" stroke="#4a4a4a" stroke-width="2" class="flow-arrow"/>
   
   <!-- Row 9: Final Steps -->
   <rect x="710" y="860" width="160" height="50" rx="8" fill="url(#successGrad)" stroke="#388e3c" stroke-width="2"/>
