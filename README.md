@@ -8,68 +8,7 @@ This repository provides a **3-step rapid deployment model** for MOSIP (Modular 
 
 ## Complete Deployment Flow
 
-```mermaid
-graph TB
-    %% Prerequisites
-    A[Fork Repository] --> B[Configure Secrets]
-    B --> C[Select Cloud Provider<br/>AWS/Azure/GCP]
-    
-    %% Infrastructure Phase
-    C --> D[Terraform: Base Infrastructure<br/>VPC, Networking, Jumpserver, WireGuard]
-    D --> E{Deploy Observability?}
-    E -->|Yes| F[Terraform: Observability Infrastructure<br/>Rancher UI, Keycloak, Monitoring]
-    E -->|No| G[Configure PostgreSQL Setup]
-    F --> G[Configure PostgreSQL Setup]
-    
-    %% PostgreSQL Configuration
-    G --> H{PostgreSQL Deployment Choice}
-    H -->|Production| I[Set enable_postgresql_setup = true<br/>External PostgreSQL via Terraform]
-    H -->|Development| J[Set enable_postgresql_setup = false<br/>Container PostgreSQL via Helmsman]
-    
-    %% Terraform Infrastructure Deployment
-    I --> K[Terraform: MOSIP Infrastructure<br/>+ Auto PostgreSQL Setup via Ansible]
-    J --> L[Terraform: MOSIP Infrastructure<br/>Kubernetes Cluster Only]
-    K --> M[Run Terraform via GitHub Actions<br/>GPG Encrypted State Management]
-    L --> M
-    
-    %% Helmsman Configuration
-    M --> N{PostgreSQL Setup Complete?}
-    N -->|External PostgreSQL| O[Configure Helmsman DSF Files<br/>postgresql.enabled = false]
-    N -->|Container PostgreSQL| P[Configure Helmsman DSF Files<br/>postgresql.enabled = true]
-    
-    %% Helmsman Deployment Phase
-    O --> Q[Helmsman: Prerequisites<br/>Monitoring, Istio, Logging]
-    P --> Q
-    Q --> R[Helmsman: External Dependencies<br/>PostgreSQL containers, Keycloak, MinIO, Kafka]
-    
-    %% MOSIP Services
-    R --> S[Helmsman: MOSIP Core Services<br/>Registration, Authentication, ID Repository]
-    S --> T{Deploy Test Rigs?}
-    T -->|Yes| U[Helmsman: Test Rigs<br/>API Testing, UI Testing, DSL Testing]
-    T -->|No| V[Verify Deployment]
-    U --> V
-    
-    %% Final Verification
-    V --> W[Access MOSIP Platform<br/>Web UI, APIs, Admin Console]
-    W --> X[Complete MOSIP Platform<br/>Ready for Production]
-    
-    %% Styling
-    classDef prereq fill:#fff3e0,stroke:#ff8f00,stroke-width:2px
-    classDef terraform fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
-    classDef helmsman fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    classDef postgres fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
-    classDef success fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
-    classDef decision fill:#fce4ec,stroke:#c2185b,stroke-width:2px
-    classDef config fill:#f1f8e9,stroke:#689f38,stroke-width:2px
-    
-    class A,B,C prereq
-    class D,F,I,J,K,L,M terraform
-    class O,P,Q,R,S,U helmsman
-    class G,H,N postgres
-    class V,W,X success
-    class E,H,N,T decision
-    class G,O,P config
-```
+![MOSIP Deployment Flow](docs/_images/animated-mosip-flow.svg)
 
 > **Note:** Complete Terraform scripts are available only for **AWS**. For **Azure and GCP**, only placeholder structures are configured - community contributions are welcome to implement full functionality.
 
@@ -84,12 +23,14 @@ graph TB
 ### Required Secrets for Rapid Deployment
 
 > **Secret Configuration Types:**
+>
 > - **Repository Secrets**: Global secrets shared across all environments (set once in GitHub repo settings)
 > - **Environment Secrets**: Environment-specific secrets (configured per deployment environment)
 
 #### Terraform Secrets
 
 **Repository Secrets** (configured in GitHub repository settings):
+
 ```yaml
 # GPG Encryption (for local backend)
 GPG_PASSPHRASE: "your-gpg-passphrase"  # Required for GPG encryption
@@ -100,6 +41,7 @@ AWS_SECRET_ACCESS_KEY: "..."           # AWS Secret Access Key
 ```
 
 **Environment Secrets** (configured per deployment environment):
+
 ```yaml
 # WireGuard VPN (optional - for infrastructure access)
 TF_WG_CONFIG: |
@@ -120,6 +62,7 @@ GITHUB_TOKEN: "ghp_..."                                    # GitHub token for AP
 #### Helmsman Secrets
 
 **Environment Secrets** (configured per deployment environment):
+
 ```yaml
 # Kubernetes Access
 KUBECONFIG: "apiVersion: v1..."  # Complete kubeconfig file content
@@ -167,12 +110,14 @@ Navigate to your repository → **Settings** → **Secrets and variables** → *
 **Configure Repository & Environment Secrets:**
 
 Add the required secrets as follows:
-- **Repository Secrets** (Settings > Secrets and variables > Actions > Repository secrets):
-  - `GPG_PASSPHRASE`
-  - `AWS_ACCESS_KEY_ID` 
-  - `AWS_SECRET_ACCESS_KEY`
 
+- **Repository Secrets** (Settings > Secrets and variables > Actions > Repository secrets):
+
+  - `GPG_PASSPHRASE`
+  - `AWS_ACCESS_KEY_ID`
+  - `AWS_SECRET_ACCESS_KEY`
 - **Environment Secrets** (Settings > Secrets and variables > Actions > Environment secrets):
+
   - All other secrets mentioned in the Prerequisites section above (KUBECONFIG, WireGuard configs, etc.)
 
 ### 3. Terraform Infrastructure Deployment
@@ -293,28 +238,31 @@ cd Helmsman/dsf/
 #### Step 4b: Run Helmsman Deployments via GitHub Actions
 
 1. **Deploy Prerequisites & External Dependencies (Parallel Deployment):**
-   
+
    **Option A: Run Both Workflows Simultaneously (Recommended)**
-   - Actions → **Helmsman External Dependencies** 
+
+   - Actions → **Helmsman External Dependencies**
    - Select DSF file: `prereq-dsf.yaml`
    - Mode: `apply`
-   
+
    **At the same time (in parallel):**
+
    - Actions → **Helmsman External Dependencies**
-   - Select DSF file: `external-dsf.yaml` 
+   - Select DSF file: `external-dsf.yaml`
    - Mode: `apply`
-   
+
    **Option B: Sequential Deployment (if preferred)**
+
    - First run: `prereq-dsf.yaml` → Mode: `apply`
    - Then run: `external-dsf.yaml` → Mode: `apply`
-
 2. **Deploy MOSIP Services:**
+
    - Actions → **Helmsman Deployment**
    - Select DSF file: `mosip-dsf.yaml`
    - Mode: `apply`
-
 3. **Deploy Test Rigs** (Optional):
-   - Actions → **Helmsman Deployment**  
+
+   - Actions → **Helmsman Deployment**
    - Select DSF file: `testrigs-dsf.yaml`
    - Mode: `apply`
 
@@ -566,15 +514,17 @@ Helmsman/
 - **GCP**: Placeholder structures available - [contribute here](terraform/base-infra/gcp/)
 
 **What needs to be implemented:**
+
 - VPC/VNet/Network creation and configuration
-- Security groups and firewall rules  
+- Security groups and firewall rules
 - Load balancer and compute instance provisioning
 - Storage and networking resource management
 - Cloud-specific PostgreSQL integration
 
 **Contribution areas:**
+
 - `terraform/base-infra/{azure,gcp}/` - Base infrastructure modules
-- `terraform/infra/{azure,gcp}/` - MOSIP cluster infrastructure  
+- `terraform/infra/{azure,gcp}/` - MOSIP cluster infrastructure
 - `terraform/observ-infra/{azure,gcp}/` - Monitoring infrastructure
 - `terraform/modules/{azure,gcp}/` - Reusable cloud modules
 
