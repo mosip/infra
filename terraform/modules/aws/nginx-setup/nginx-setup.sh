@@ -5,7 +5,20 @@ echo "[ Set Log File ] : "
 LOG_FILE="/tmp/nginx-setup-$( date +"%d-%h-%Y-%H-%M" ).log"
 ENV_FILE_PATH="/etc/environment"
 . $ENV_FILE_PATH
-env | grep cluster
+
+# Determine which type of nginx setup based on available variables
+if [ ! -z "$cluster_env_domain" ]; then
+  NGINX_TYPE="mosip"
+  echo "[ Detected NGINX Type: MOSIP ] : "
+  env | grep cluster
+elif [ ! -z "$observation_nginx_certs" ]; then
+  NGINX_TYPE="observability"
+  echo "[ Detected NGINX Type: Observability ] : "
+  env | grep observation
+else
+  echo "[ ERROR: Could not determine NGINX type ] : "
+  exit 1
+fi
 
 # Redirect stdout and stderr to log file
 exec > >(tee -a "$LOG_FILE") 2>&1
@@ -25,9 +38,15 @@ sudo add-apt-repository universe -y
 sudo apt update
 sudo apt-get install letsencrypt certbot python3-certbot-nginx python3-certbot-dns-route53 -y
 
-## Get ssl certificate automatically
-echo "[ Generate SSL certificates from letsencrypt  ] : "
-sudo certbot certonly --dns-route53 -d "*.${cluster_env_domain}" -d "${cluster_env_domain}" --non-interactive --agree-tos --email "$certbot_email"
+if [ "$NGINX_TYPE" == "mosip" ]; then
+  ## Get ssl certificate automatically for MOSIP
+  echo "[ Generate SSL certificates from letsencrypt for MOSIP ] : "
+  sudo certbot certonly --dns-route53 -d "*.${cluster_env_domain}" -d "${cluster_env_domain}" --non-interactive --agree-tos --email "$certbot_email"
+else
+  ## Get ssl certificate automatically for Observability
+  echo "[ Generate SSL certificates from letsencrypt for Observability ] : "
+  sudo certbot certonly --dns-route53 -d "*.${cluster_env_domain}" -d "${cluster_env_domain}" --non-interactive --agree-tos --email "$certbot_email"
+fi
 
 ## start and enable Nginx
 #echo "[ Start & Enable nginx ] : "

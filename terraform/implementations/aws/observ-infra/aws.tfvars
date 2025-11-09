@@ -16,6 +16,16 @@ mosip_email_id = "chandra.mishra@technoforte.co.in"
 # SSH key name for AWS instances
 ssh_key_name = "mosip-aws"
 
+# SSH private key content (required for NGINX setup and provisioning)
+# Update this with the actual private key content from ~/.ssh/mosip-aws or your key location
+# You can read it using: cat ~/.ssh/mosip-aws
+ssh_private_key = <<-EOT
+-----BEGIN OPENSSH PRIVATE KEY-----
+# REPLACE THIS WITH YOUR ACTUAL SSH PRIVATE KEY CONTENT
+# To get your key: cat ~/.ssh/mosip-aws (or your key file path)
+-----END OPENSSH PRIVATE KEY-----
+EOT
+
 # AWS region
 aws_provider_region = "ap-south-1"
 
