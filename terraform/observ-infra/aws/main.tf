@@ -38,6 +38,7 @@ module "aws_observation_infrastructure" {
   nginx_node_ebs_volume_size_2  = var.nginx_node_ebs_volume_size_2
   K8S_INSTANCE_ROOT_VOLUME_SIZE = var.k8s_instance_root_volume_size
   network_cidr                  = var.network_cidr
+  NGINX_TYPE                    = "observability"  # Set NGINX type for observation infrastructure
   WIREGUARD_CIDR                = var.WIREGUARD_CIDR
 
   # Disable PostgreSQL setup for observ-infra
