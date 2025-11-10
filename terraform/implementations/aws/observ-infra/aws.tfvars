@@ -5,26 +5,16 @@
 cloud_provider = "aws"
 
 # Environment name (observability component)
-cluster_name = "soil-observ"
+cluster_name = "soil11"
 
 # MOSIP domain
-cluster_env_domain = "observ.mosip.net"
+cluster_env_domain = "soil11.mosip.net"
 
 # Email-ID for SSL certificate notifications
 mosip_email_id = "chandra.mishra@technoforte.co.in"
 
 # SSH key name for AWS instances
 ssh_key_name = "mosip-aws"
-
-# SSH private key content (required for NGINX setup and provisioning)
-# Update this with the actual private key content from ~/.ssh/mosip-aws or your key location
-# You can read it using: cat ~/.ssh/mosip-aws
-ssh_private_key = <<-EOT
------BEGIN OPENSSH PRIVATE KEY-----
-# REPLACE THIS WITH YOUR ACTUAL SSH PRIVATE KEY CONTENT
-# To get your key: cat ~/.ssh/mosip-aws (or your key file path)
------END OPENSSH PRIVATE KEY-----
-EOT
 
 # AWS region
 aws_provider_region = "ap-south-1"
@@ -54,8 +44,8 @@ zone_id = "Z090954828SJIEL6P5406"
 vpc_name = "mosip-boxes"
 
 # Minimal storage configuration
-nginx_node_root_volume_size = 20  # Smaller than infra (24)
-nginx_node_ebs_volume_size  = 100 # Smaller than infra (300)
+nginx_node_root_volume_size = 24  # Smaller than infra (24)
+nginx_node_ebs_volume_size  = 64 # Smaller than infra (300)
 # Second EBS volume for PostgreSQL (disabled for observ-infra)
 nginx_node_ebs_volume_size_2  = 0  # Disabled for observability infrastructure
 k8s_instance_root_volume_size = 32 # Smaller than infra (64)
@@ -73,12 +63,11 @@ k8s_infra_repo_url = "https://github.com/bhumi46/k8s-infra.git"
 k8s_infra_branch   = "develop"
 
 # Rancher UI configuration (hostname will be dynamically created from cluster_env_domain)
-rancher_hostname           = "rancher.observ.mosip.net" # Will default to rancher.testvpc.mosip.net
+rancher_hostname           = "rancher.soil11.mosip.net" # Will default to rancher.testvpc.mosip.net
 rancher_bootstrap_password = "admin"
 
 # Keycloak configuration (hostname will be dynamically created from cluster_env_domain)  
-keycloak_hostname = "keycloak.observ.mosip.net" # Will default to iam.testvpc.mosip.net
-
+keycloak_hostname = "keycloak.soil11.mosip.net" # Will default to iam.testvpc.mosip.net
 # Enable Rancher-Keycloak integration for observability cluster
 enable_rancher_keycloak_integration = true
 
@@ -87,8 +76,8 @@ enable_rancher_import = false
 rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/dzshvnb6br7qtf267zsrr9xsw6tnb2vt4x68g79r2wzsnfgvkjq2jk_c-m-b5249w76.yaml\""
 
 # Security group CIDRs
-network_cidr   = "10.0.0.0/16" # Use your actual VPC CIDR
-WIREGUARD_CIDR = "10.0.0.0/24" # Use your actual WireGuard VPN CIDR
+network_cidr   = "10.0.0.0/8" # Use your actual VPC CIDR
+WIREGUARD_CIDR = "10.0.0.0/8" # Use your actual WireGuard VPN CIDR
 
 # PostgreSQL Configuration (used when second EBS volume is enabled)
 postgresql_version = "15"

@@ -68,14 +68,10 @@ module "nginx_observability_setup" {
   depends_on = [module.aws_observation_infrastructure]
   source     = "../../modules/aws/nginx-setup"
 
-  NGINX_PUBLIC_IP                       = module.aws_observation_infrastructure.NGINX_PUBLIC_IP
-  NGINX_PRIVATE_IP                      = module.aws_observation_infrastructure.NGINX_PRIVATE_IP
-  CLUSTER_ENV_DOMAIN                    = var.cluster_env_domain
-  MOSIP_K8S_CLUSTER_NODES_PRIVATE_IP_LIST = join(",", [
-    module.aws_observation_infrastructure.CONTROL_PLANE_NODE_1,
-    module.aws_observation_infrastructure.CONTROL_PLANE_NODE_2,
-    module.aws_observation_infrastructure.CONTROL_PLANE_NODE_3
-  ])
+  NGINX_PUBLIC_IP                         = module.aws_observation_infrastructure.NGINX_PUBLIC_IP
+  NGINX_PRIVATE_IP                        = module.aws_observation_infrastructure.NGINX_PRIVATE_IP
+  CLUSTER_ENV_DOMAIN                      = var.cluster_env_domain
+  MOSIP_K8S_CLUSTER_NODES_PRIVATE_IP_LIST = module.aws_observation_infrastructure.CONTROL_PLANE_NODE_1
   MOSIP_PUBLIC_DOMAIN_LIST = join(",", [
     "rancher.${var.cluster_env_domain}",
     "iam.${var.cluster_env_domain}"
@@ -84,5 +80,5 @@ module "nginx_observability_setup" {
   SSH_PRIVATE_KEY    = var.ssh_private_key
   K8S_INFRA_REPO_URL = var.k8s_infra_repo_url
   K8S_INFRA_BRANCH   = var.k8s_infra_branch
-  NGINX_TYPE         = "observability"  # Set type to observability
+  NGINX_TYPE         = "observability" # Set type to observability
 }

@@ -56,4 +56,24 @@ fi
 cd $working_dir
 git clone $k8s_infra_repo_url -b $k8s_infra_branch || true # read it from variables
 cd $nginx_location
+
+# Check if install.sh exists before running it
+if [ ! -f "./install.sh" ]; then
+  echo "[ ERROR: install.sh not found in $nginx_location ] : "
+  echo "[ Current directory: $(pwd) ] : "
+  ls -la
+  exit 1
+fi
+
+echo "[ Running NGINX install script from $nginx_location ] : "
 sudo ./install.sh
+
+# Check if nginx configuration is valid
+echo "[ Testing NGINX configuration ] : "
+sudo nginx -t
+
+# If test passes, start nginx
+echo "[ Starting NGINX service ] : "
+sudo systemctl enable nginx
+sudo systemctl start nginx
+sudo systemctl status nginx

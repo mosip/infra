@@ -29,11 +29,12 @@ output "control_plane_node_1" {
   value       = module.mosip_observ_infra.control_plane_node_1
 }
 
-output "k8s_token" {
-  description = "Kubernetes observation cluster token"
-  value       = module.mosip_observ_infra.k8s_token
-  sensitive   = true
-}
+# K8S token is not available in minimal observability setup
+# output "k8s_token" {
+#   description = "Kubernetes observation cluster token"
+#   value       = module.mosip_observ_infra.k8s_token
+#   sensitive   = true
+# }
 
 output "vpc_id" {
   description = "VPC ID for observation infrastructure"
