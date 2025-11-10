@@ -56,7 +56,10 @@ locals {
     HELM_VERSION     = "helm-v3.15.4-linux-amd64.tar.gz"
     CLUSTER_NAME     = var.CLUSTER_NAME
     DEPLOYMENT_TYPE  = var.DEPLOYMENT_TYPE
-    KUBECONFIG_PATH  = "../../../../implementations/aws/${var.DEPLOYMENT_TYPE}"
+    # Use absolute path from module to reach implementations directory
+    # path.module is at terraform/modules/aws/nfs-setup
+    # We need to reach terraform/implementations/aws/${DEPLOYMENT_TYPE}
+    KUBECONFIG_PATH  = "${path.module}/../../../implementations/aws/${var.DEPLOYMENT_TYPE}"
 
   }
   NFS_ENV_VARS = [
