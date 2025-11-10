@@ -41,13 +41,16 @@ resource "null_resource" "install_rancher" {
       # Check if helm is installed, if not install it
       "echo 'Checking Helm installation...'",
       "if ! command -v helm &> /dev/null; then",
-      "  echo 'Helm not found, installing...'",
-      "  sudo apt update",
-      "  sudo snap install helm --classic",
-      "else",
-      "  echo 'Helm version:'",
-      "  helm version",
+      "  echo 'Helm not found, installing via curl...'",
+      "  curl -fsSL https://get.helm.sh/helm-v3.15.4-linux-amd64.tar.gz -o /tmp/helm.tar.gz",
+      "  tar -xzf /tmp/helm.tar.gz -C /tmp",
+      "  sudo mv /tmp/linux-amd64/helm /usr/local/bin/helm",
+      "  sudo chmod +x /usr/local/bin/helm",
+      "  rm -rf /tmp/helm.tar.gz /tmp/linux-amd64",
+      "  echo 'Helm installed successfully'",
       "fi",
+      "echo 'Helm version:'",
+      "helm version",
 
       # Install ingress-nginx
       "echo 'Installing ingress-nginx...'",

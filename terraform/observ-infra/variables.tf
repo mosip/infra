@@ -76,7 +76,8 @@ variable "mosip_email_id" {
 variable "ssh_private_key" {
   description = "SSH private key for instance access"
   type        = string
-  sensitive   = true
+  # Temporarily disabled for debugging
+  # sensitive   = true
 }
 
 variable "enable_rancher_import" {
@@ -262,5 +263,6 @@ variable "rancher_bootstrap_password" {
   description = "Bootstrap password for Rancher UI"
   type        = string
   default     = "admin"
-  sensitive   = true
+  # Temporarily disabled for debugging
+  # sensitive   = true
 }
