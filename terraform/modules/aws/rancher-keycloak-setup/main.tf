@@ -33,7 +33,8 @@ resource "null_resource" "install_rancher" {
       "set -e",
       "echo 'Setting up Rancher UI...'",
 
-      # Wait for kubectl to be available and check version
+      # Export KUBECONFIG for ubuntu user and wait for kubectl to be available
+      "export KUBECONFIG=~/.kube/${var.CLUSTER_NAME}-CONTROL-PLANE-NODE-1.yaml",
       "timeout 300 bash -c 'until kubectl get nodes; do sleep 5; done'",
       "echo 'Kubectl version:'",
       "kubectl version --client",
@@ -52,23 +53,33 @@ resource "null_resource" "install_rancher" {
       "echo 'Helm version:'",
       "helm version",
 
-      # Install ingress-nginx
-      "echo 'Installing ingress-nginx...'",
-      "helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx",
-      "helm repo update",
-      "helm install ingress-nginx ingress-nginx/ingress-nginx --namespace ingress-nginx --version 4.10.0 --create-namespace --set controller.service.type=NodePort --set controller.service.nodePorts.http=30080 --set controller.service.nodePorts.https=30443 --set controller.config.use-forwarded-headers=true",
+      # Install ingress-nginx only if not already installed
+      "echo 'Checking ingress-nginx installation...'",
+      "if ! helm list -n ingress-nginx | grep -q ingress-nginx; then",
+      "  echo 'Installing ingress-nginx...'",
+      "  helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx",
+      "  helm repo update",
+      "  helm install ingress-nginx ingress-nginx/ingress-nginx --namespace ingress-nginx --version 4.10.0 --create-namespace --set controller.service.type=NodePort --set controller.service.nodePorts.http=30080 --set controller.service.nodePorts.https=30443 --set controller.config.use-forwarded-headers=true",
+      "else",
+      "  echo 'ingress-nginx already installed, skipping...'",
+      "fi",
 
       # Add Rancher Helm repository
       "echo 'Adding Rancher Helm repository...'",
-      "helm repo add rancher-stable https://releases.rancher.com/server-charts/stable",
+      "helm repo add rancher-latest https://releases.rancher.com/server-charts/latest || true",
       "helm repo update",
 
-      # Install Rancher with updated configuration
-      "echo 'Installing Rancher...'",
-      "helm install rancher rancher-latest/rancher --namespace cattle-system --version=2.8.3 --create-namespace --set hostname=${var.RANCHER_HOSTNAME != "" ? var.RANCHER_HOSTNAME : "rancher.${var.CLUSTER_ENV_DOMAIN}"} --set ingress.enabled=true --set ingress.includeDefaultExtraAnnotations=true --set ingress.extraAnnotations.'kubernetes\\.io/ingress\\.class'=nginx --set rancherImage=rancher/rancher --set replicas=1 --set tls=external --set-string bootstrapPassword=${var.RANCHER_BOOTSTRAP_PASSWORD}",
-
-      # Wait for Rancher to be ready
-      "kubectl wait --for=condition=ready pod -l app=rancher --timeout=600s -n cattle-system",
+      # Install Rancher with updated configuration (only if not already installed)
+      "echo 'Checking Rancher installation...'",
+      "if ! helm list -n cattle-system | grep -q rancher; then",
+      "  echo 'Installing Rancher...'",
+      "  export KUBECONFIG=~/.kube/${var.CLUSTER_NAME}-CONTROL-PLANE-NODE-1.yaml",
+      "  helm install rancher rancher-latest/rancher --namespace cattle-system --version=2.8.3 --create-namespace --set hostname=${var.RANCHER_HOSTNAME != "" ? var.RANCHER_HOSTNAME : "rancher.${var.CLUSTER_ENV_DOMAIN}"} --set ingress.enabled=true --set ingress.includeDefaultExtraAnnotations=true --set ingress.extraAnnotations.'kubernetes\\.io/ingress\\.class'=nginx --set rancherImage=rancher/rancher --set replicas=1 --set tls=external --set-string bootstrapPassword=${var.RANCHER_BOOTSTRAP_PASSWORD}",
+      "  # Wait for Rancher to be ready",
+      "  kubectl wait --for=condition=ready pod -l app=rancher --timeout=600s -n cattle-system",
+      "else",
+      "  echo 'Rancher already installed, skipping...'",
+      "fi",
 
       "echo 'Rancher UI installation completed successfully'"
     ]
@@ -96,6 +107,16 @@ resource "null_resource" "install_keycloak" {
     inline = [
       "set -e",
       "echo 'Setting up Keycloak installation...'",
+      
+      # Wait for Rancher to be fully ready
+      "echo 'Verifying Rancher is fully operational...'",
+      "export KUBECONFIG=~/.kube/${var.CLUSTER_NAME}-CONTROL-PLANE-NODE-1.yaml",
+      "kubectl wait --for=condition=ready pod -l app=rancher --timeout=300s -n cattle-system",
+      
+      # Additional wait for Rancher to stabilize
+      "echo 'Waiting 5 minutes for Rancher to stabilize...'",
+      "sleep 300",
+      "echo 'Wait complete, proceeding with Keycloak installation...'",
 
       # Clone k8s-infra repository if not already present
       "cd /home/ubuntu",
@@ -115,6 +136,7 @@ resource "null_resource" "install_keycloak" {
 
       # Run Keycloak installation
       "echo 'Installing Keycloak...'",
+      "export KUBECONFIG=~/.kube/${var.CLUSTER_NAME}-CONTROL-PLANE-NODE-1.yaml",
       "./install.sh ${var.KEYCLOAK_HOSTNAME != "" ? var.KEYCLOAK_HOSTNAME : "iam.${var.CLUSTER_ENV_DOMAIN}"}",
 
       # Wait for Keycloak to be ready
@@ -146,6 +168,7 @@ resource "null_resource" "get_rancher_info" {
 
   provisioner "remote-exec" {
     inline = [
+      "export KUBECONFIG=~/.kube/${var.CLUSTER_NAME}-CONTROL-PLANE-NODE-1.yaml",
       "echo 'Rancher UI Status:'",
       "kubectl get pods -n cattle-system | grep rancher",
       "echo 'Rancher URL: https://${var.RANCHER_HOSTNAME != "" ? var.RANCHER_HOSTNAME : "rancher.${var.CLUSTER_ENV_DOMAIN}"}'",
@@ -168,6 +191,7 @@ resource "null_resource" "get_keycloak_info" {
 
   provisioner "remote-exec" {
     inline = [
+      "export KUBECONFIG=~/.kube/${var.CLUSTER_NAME}-CONTROL-PLANE-NODE-1.yaml",
       "echo 'Keycloak Status:'",
       "kubectl get pods -n keycloak | grep keycloak || echo 'Keycloak pods not found'",
       "echo 'Keycloak URL: https://${var.KEYCLOAK_HOSTNAME != "" ? var.KEYCLOAK_HOSTNAME : "iam.${var.CLUSTER_ENV_DOMAIN}"}'",
