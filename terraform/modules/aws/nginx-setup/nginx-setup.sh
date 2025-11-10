@@ -7,16 +7,19 @@ ENV_FILE_PATH="/etc/environment"
 . $ENV_FILE_PATH
 
 # Determine which type of nginx setup based on available variables
-if [ ! -z "$cluster_env_domain" ]; then
-  NGINX_TYPE="mosip"
-  echo "[ Detected NGINX Type: MOSIP ] : "
-  env | grep cluster
-elif [ ! -z "$observation_nginx_certs" ]; then
+# Check for observability-specific variable first (more specific check)
+if [ ! -z "$observation_nginx_certs" ]; then
   NGINX_TYPE="observability"
   echo "[ Detected NGINX Type: Observability ] : "
   env | grep observation
+elif [ ! -z "$cluster_nginx_certs" ]; then
+  NGINX_TYPE="mosip"
+  echo "[ Detected NGINX Type: MOSIP ] : "
+  env | grep cluster
 else
   echo "[ ERROR: Could not determine NGINX type ] : "
+  echo "[ Available env vars: ]"
+  env | sort
   exit 1
 fi
 
