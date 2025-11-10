@@ -5,10 +5,10 @@
 cloud_provider = "aws"
 
 # Environment name (observability component)
-cluster_name = "soil11"
+cluster_name = "obs1"
 
 # MOSIP domain
-cluster_env_domain = "soil11.mosip.net"
+cluster_env_domain = "obs1.mosip.net"
 
 # Email-ID for SSL certificate notifications
 mosip_email_id = "chandra.mishra@technoforte.co.in"
