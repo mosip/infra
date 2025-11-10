@@ -5,10 +5,10 @@
 cloud_provider = "aws"
 
 # Environment name (observability component)
-cluster_name = "soil11"
+cluster_name = "obs1"
 
 # MOSIP domain
-cluster_env_domain = "soil11.mosip.net"
+cluster_env_domain = "obs1.mosip.net"
 
 # Email-ID for SSL certificate notifications
 mosip_email_id = "chandra.mishra@technoforte.co.in"
@@ -44,7 +44,7 @@ zone_id = "Z090954828SJIEL6P5406"
 vpc_name = "mosip-boxes"
 
 # Minimal storage configuration
-nginx_node_root_volume_size = 24  # Smaller than infra (24)
+nginx_node_root_volume_size = 24 # Smaller than infra (24)
 nginx_node_ebs_volume_size  = 64 # Smaller than infra (300)
 # Second EBS volume for PostgreSQL (disabled for observ-infra)
 nginx_node_ebs_volume_size_2  = 0  # Disabled for observability infrastructure
