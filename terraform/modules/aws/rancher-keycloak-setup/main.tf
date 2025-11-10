@@ -57,12 +57,12 @@ resource "null_resource" "install_rancher" {
 
       # Add Rancher Helm repository
       "echo 'Adding Rancher Helm repository...'",
-      "helm repo add rancher-latest https://releases.rancher.com/server-charts/latest",
+      "helm repo add rancher-stable https://releases.rancher.com/server-charts/stable",
       "helm repo update",
 
       # Install Rancher with updated configuration
       "echo 'Installing Rancher...'",
-      "helm install rancher rancher-stable/rancher --namespace cattle-system --version=2.8.3 --create-namespace --kube-version 1.28.9 --set hostname=${var.RANCHER_HOSTNAME != "" ? var.RANCHER_HOSTNAME : "rancher.${var.CLUSTER_ENV_DOMAIN}"} --set ingress.enabled=true --set ingress.includeDefaultExtraAnnotations=true --set ingress.extraAnnotations.'kubernetes\\.io/ingress\\.class'=nginx --set rancherImage=rancher/rancher --set replicas=2 --set tls=external --set-string bootstrapPassword=${var.RANCHER_BOOTSTRAP_PASSWORD}",
+      "helm install rancher rancher-latest/rancher --namespace cattle-system --version=2.8.3 --create-namespace --set hostname=${var.RANCHER_HOSTNAME != "" ? var.RANCHER_HOSTNAME : "rancher.${var.CLUSTER_ENV_DOMAIN}"} --set ingress.enabled=true --set ingress.includeDefaultExtraAnnotations=true --set ingress.extraAnnotations.'kubernetes\\.io/ingress\\.class'=nginx --set rancherImage=rancher/rancher --set replicas=1 --set tls=external --set-string bootstrapPassword=${var.RANCHER_BOOTSTRAP_PASSWORD}",
 
       # Wait for Rancher to be ready
       "kubectl wait --for=condition=ready pod -l app=rancher --timeout=600s -n cattle-system",

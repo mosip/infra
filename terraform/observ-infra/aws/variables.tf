@@ -78,6 +78,17 @@ variable "k8s_instance_root_volume_size" {
   type        = number
   description = "Root volume size for K8s instances"
 }
+
+variable "rke2_version" {
+  description = "RKE2 version to install"
+  type        = string
+  default     = "v1.28.9+rke2r1"
+  validation {
+    condition     = can(regex("^v[0-9]+\\.[0-9]+\\.[0-9]+\\+rke2r[0-9]+$", var.rke2_version))
+    error_message = "The rke2_version must be in the format: v<major>.<minor>.<patch>+rke2r<build> (e.g., v1.28.9+rke2r1)"
+  }
+}
+
 variable "enable_rancher_import" {
   type        = bool
   description = "Set to true to enable Rancher import"

@@ -62,6 +62,9 @@ subdomain_internal = [
 k8s_infra_repo_url = "https://github.com/bhumi46/k8s-infra.git"
 k8s_infra_branch   = "develop"
 
+# RKE2 Version Configuration
+rke2_version = "v1.28.9+rke2r1"
+
 # Rancher UI configuration (hostname will be dynamically created from cluster_env_domain)
 rancher_hostname           = "rancher.obs2.mosip.net" # Will default to rancher.testvpc.mosip.net
 rancher_bootstrap_password = "admin"
