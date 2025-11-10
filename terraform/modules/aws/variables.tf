@@ -5,6 +5,17 @@ variable "K8S_CONTROL_PLANE_NODE_COUNT" { type = number }
 variable "K8S_ETCD_NODE_COUNT" { type = number }
 variable "K8S_WORKER_NODE_COUNT" { type = number }
 
+# Deployment type (infra or observ-infra)
+variable "DEPLOYMENT_TYPE" {
+  description = "Type of deployment: 'infra' for regular MOSIP infrastructure or 'observ-infra' for observability infrastructure"
+  type        = string
+  default     = "infra"
+  validation {
+    condition     = contains(["infra", "observ-infra"], var.DEPLOYMENT_TYPE)
+    error_message = "DEPLOYMENT_TYPE must be either 'infra' or 'observ-infra'."
+  }
+}
+
 # NGINX deployment type
 variable "NGINX_TYPE" {
   description = "Type of NGINX setup: 'mosip' for full MOSIP deployment or 'observability' for observation tools only"

@@ -39,6 +39,7 @@ module "aws_observation_infrastructure" {
   K8S_INSTANCE_ROOT_VOLUME_SIZE = var.k8s_instance_root_volume_size
   network_cidr                  = var.network_cidr
   NGINX_TYPE                    = "observability"  # Set NGINX type for observation infrastructure
+  DEPLOYMENT_TYPE               = "observ-infra"   # Set deployment type for correct kubeconfig path
   WIREGUARD_CIDR                = var.WIREGUARD_CIDR
 
   # Disable PostgreSQL setup for observ-infra

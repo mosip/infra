@@ -30,6 +30,16 @@ variable "K8S_INFRA_BRANCH" {
 }
 variable "CLUSTER_NAME" { type = string }
 
+variable "DEPLOYMENT_TYPE" {
+  description = "Type of deployment (infra or observ-infra)"
+  type        = string
+  default     = "infra"
+  validation {
+    condition     = contains(["infra", "observ-infra"], var.DEPLOYMENT_TYPE)
+    error_message = "DEPLOYMENT_TYPE must be either 'infra' or 'observ-infra'"
+  }
+}
+
 locals {
   NFS_CONFIG = {
     K8S_INFRA_REPO_URL               = var.K8S_INFRA_REPO_URL
@@ -43,8 +53,10 @@ locals {
     NFS_SERVER_LOG_FILE_PATH = "/tmp/nfs-server-log"
     NFS_CSI_LOG_FILE_PATH    = "/tmp/nfs-csi-log"
 
-    HELM_VERSION = "helm-v3.15.4-linux-amd64.tar.gz"
-    CLUSTER_NAME = var.CLUSTER_NAME
+    HELM_VERSION     = "helm-v3.15.4-linux-amd64.tar.gz"
+    CLUSTER_NAME     = var.CLUSTER_NAME
+    DEPLOYMENT_TYPE  = var.DEPLOYMENT_TYPE
+    KUBECONFIG_PATH  = "../../../../implementations/aws/${var.DEPLOYMENT_TYPE}"
 
   }
   NFS_ENV_VARS = [

@@ -500,6 +500,7 @@ module "rke2-setup" {
   ENABLE_RANCHER_IMPORT   = var.ENABLE_RANCHER_IMPORT
   RKE2_VERSION            = var.RKE2_VERSION
   CLUSTER_NAME            = var.CLUSTER_NAME
+  DEPLOYMENT_TYPE         = var.DEPLOYMENT_TYPE
 }
 module "nfs-setup" {
   depends_on          = [module.aws-resource-creation, module.rke2-setup]
@@ -510,6 +511,7 @@ module "nfs-setup" {
   K8S_INFRA_REPO_URL  = var.K8S_INFRA_REPO_URL
   K8S_INFRA_BRANCH    = var.K8S_INFRA_BRANCH
   CLUSTER_NAME        = var.CLUSTER_NAME
+  DEPLOYMENT_TYPE     = var.DEPLOYMENT_TYPE
 }
 
 module "postgresql-setup" {
