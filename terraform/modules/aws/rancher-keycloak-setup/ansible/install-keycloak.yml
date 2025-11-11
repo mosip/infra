@@ -1,9 +1,11 @@
 ---
 - name: Install Keycloak on RKE2 Cluster
   hosts: control_plane
-  become: no
+  become: yes
   vars:
-    kubeconfig_path: "~/.kube/{{ cluster_name }}-CONTROL-PLANE-NODE-1.yaml"
+    kubeconfig_path: "/etc/rancher/rke2/rke2.yaml"
+    kubectl_path: "/var/lib/rancher/rke2/bin/kubectl"
+    k8s_infra_path: "/home/ubuntu/k8s-infra"
     keycloak_hostname: "{{ keycloak_hostname_var }}"
     k8s_infra_repo: "{{ k8s_infra_repo_url }}"
     k8s_infra_branch: "{{ k8s_infra_branch_name }}"
@@ -15,7 +17,7 @@
         msg: "Starting Keycloak installation..."
 
     - name: Verify Rancher is fully operational
-      shell: kubectl wait --for=condition=ready pod -l app=rancher --timeout=300s -n cattle-system
+      shell: "{{ kubectl_path }} wait --for=condition=ready pod -l app=rancher --timeout=300s -n cattle-system"
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
 
@@ -29,16 +31,38 @@
 
     - name: Check if k8s-infra repository exists
       stat:
-        path: /home/ubuntu/k8s-infra
+        path: "{{ k8s_infra_path }}"
       register: k8s_infra_dir
 
-    - name: Clone k8s-infra repository
+    - name: Update k8s-infra repository if exists
+      become_user: ubuntu
+      shell: |
+        cd {{ k8s_infra_path }}
+        git fetch origin
+        git checkout {{ k8s_infra_branch }}
+        git pull origin {{ k8s_infra_branch }}
+      args:
+        executable: /bin/bash
+      when: k8s_infra_dir.stat.exists
+      ignore_errors: yes
+
+    - name: Clone k8s-infra repository if not exists
+      become_user: ubuntu
       git:
         repo: "{{ k8s_infra_repo }}"
-        dest: /home/ubuntu/k8s-infra
+        dest: "{{ k8s_infra_path }}"
         version: "{{ k8s_infra_branch }}"
         force: yes
-        update: yes
+      when: not k8s_infra_dir.stat.exists
+
+    - name: Ensure k8s-infra directory exists and has correct ownership
+      file:
+        path: "{{ k8s_infra_path }}"
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        recurse: yes
+      when: k8s_infra_dir.stat.exists or not k8s_infra_dir.stat.exists
 
     - name: Verify kubeconfig file exists
       stat:
@@ -55,23 +79,25 @@
         msg: "Kubeconfig file found successfully"
 
     - name: Make install script executable
+      become_user: ubuntu
       file:
-        path: /home/ubuntu/k8s-infra/observation/keycloak/install.sh
+        path: "{{ k8s_infra_path }}/observation/keycloak/install.sh"
         mode: '0755'
 
     - name: Install Keycloak
+      become_user: ubuntu
       shell: |
         export KUBECONFIG={{ kubeconfig_path }}
-        cd /home/ubuntu/k8s-infra/observation/keycloak
+        cd {{ k8s_infra_path }}/observation/keycloak
         ./install.sh {{ keycloak_hostname }}
       args:
         executable: /bin/bash
 
     - name: Wait for Keycloak to be ready
-      shell: kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=keycloak --timeout=600s -n keycloak || true
+      shell: "{{ kubectl_path }} wait --for=condition=ready pod -l app.kubernetes.io/name=keycloak --timeout=600s -n keycloak || true"
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
 
     - name: Keycloak installation completed
       debug:
-        msg: "Keycloak installation completed successfully"
+        msg: "Keycloak installation completed successfully at https://{{ keycloak_hostname }}"
