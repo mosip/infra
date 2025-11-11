@@ -134,13 +134,12 @@ resource "null_resource" "install_keycloak" {
       # Make sure the install script is executable
       "chmod +x install.sh",
 
-      # Run Keycloak installation
+      # Run Keycloak installation with explicit KUBECONFIG
       "echo 'Installing Keycloak...'",
-      "export KUBECONFIG=~/.kube/${var.CLUSTER_NAME}-CONTROL-PLANE-NODE-1.yaml",
-      "./install.sh ${var.KEYCLOAK_HOSTNAME != "" ? var.KEYCLOAK_HOSTNAME : "iam.${var.CLUSTER_ENV_DOMAIN}"}",
+      "KUBECONFIG=~/.kube/${var.CLUSTER_NAME}-CONTROL-PLANE-NODE-1.yaml ./install.sh ${var.KEYCLOAK_HOSTNAME != "" ? var.KEYCLOAK_HOSTNAME : "iam.${var.CLUSTER_ENV_DOMAIN}"}",
 
       # Wait for Keycloak to be ready
-      "kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=keycloak --timeout=600s -n keycloak || true",
+      "KUBECONFIG=~/.kube/${var.CLUSTER_NAME}-CONTROL-PLANE-NODE-1.yaml kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=keycloak --timeout=600s -n keycloak || true",
 
       "echo 'Keycloak installation completed successfully'"
     ]
