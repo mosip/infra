@@ -5,10 +5,10 @@
 cloud_provider = "aws"
 
 # Environment name (observability component)
-cluster_name = "obs3"
+cluster_name = "obs4"
 
 # MOSIP domain
-cluster_env_domain = "obs3.mosip.net"
+cluster_env_domain = "obs4.mosip.net"
 
 # Email-ID for SSL certificate notifications
 mosip_email_id = "chandra.mishra@technoforte.co.in"
@@ -66,11 +66,11 @@ k8s_infra_branch   = "develop"
 rke2_version = "v1.28.9+rke2r1"
 
 # Rancher UI configuration (hostname will be dynamically created from cluster_env_domain)
-rancher_hostname           = "rancher.obs3.mosip.net" # Will default to rancher.testvpc.mosip.net
+rancher_hostname           = "rancher.obs4.mosip.net" # Will default to rancher.testvpc.mosip.net
 rancher_bootstrap_password = "admin"
 
 # Keycloak configuration (hostname will be dynamically created from cluster_env_domain)  
-keycloak_hostname = "keycloak.obs3.mosip.net" # Will default to iam.testvpc.mosip.net
+keycloak_hostname = "keycloak.obs4.mosip.net" # Will default to iam.testvpc.mosip.net
 # Enable Rancher-Keycloak integration for observability cluster
 enable_rancher_keycloak_integration = true
 
