@@ -1,0 +1,26 @@
+---
+- name: Get Keycloak Information
+  hosts: control_plane
+  become: no
+  vars:
+    kubeconfig_path: "~/.kube/{{ cluster_name }}-CONTROL-PLANE-NODE-1.yaml"
+    keycloak_hostname: "{{ keycloak_hostname_var }}"
+
+  tasks:
+    - name: Get Keycloak pod status
+      shell: kubectl get pods -n keycloak | grep keycloak || echo 'Keycloak pods not found'
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: keycloak_pods
+
+    - name: Display Keycloak status
+      debug:
+        msg: "{{ keycloak_pods.stdout_lines }}"
+
+    - name: Display Keycloak URL
+      debug:
+        msg: "Keycloak URL: https://{{ keycloak_hostname }}"
+
+    - name: Display access info
+      debug:
+        msg: "Access Keycloak admin console with credentials provided by the installation script"

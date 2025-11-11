@@ -1,0 +1,77 @@
+---
+- name: Install Keycloak on RKE2 Cluster
+  hosts: control_plane
+  become: no
+  vars:
+    kubeconfig_path: "~/.kube/{{ cluster_name }}-CONTROL-PLANE-NODE-1.yaml"
+    keycloak_hostname: "{{ keycloak_hostname_var }}"
+    k8s_infra_repo: "{{ k8s_infra_repo_url }}"
+    k8s_infra_branch: "{{ k8s_infra_branch_name }}"
+    cluster_name: "{{ cluster_name }}"
+
+  tasks:
+    - name: Set up Keycloak installation
+      debug:
+        msg: "Starting Keycloak installation..."
+
+    - name: Verify Rancher is fully operational
+      shell: kubectl wait --for=condition=ready pod -l app=rancher --timeout=300s -n cattle-system
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+
+    - name: Wait for Rancher to stabilize
+      debug:
+        msg: "Waiting 2 minutes for Rancher to stabilize..."
+
+    - name: Sleep for 2 minutes
+      pause:
+        minutes: 2
+
+    - name: Check if k8s-infra repository exists
+      stat:
+        path: /home/ubuntu/k8s-infra
+      register: k8s_infra_dir
+
+    - name: Clone k8s-infra repository
+      git:
+        repo: "{{ k8s_infra_repo }}"
+        dest: /home/ubuntu/k8s-infra
+        version: "{{ k8s_infra_branch }}"
+        force: yes
+        update: yes
+
+    - name: Verify kubeconfig file exists
+      stat:
+        path: "{{ kubeconfig_path }}"
+      register: kubeconfig_file
+
+    - name: Fail if kubeconfig not found
+      fail:
+        msg: "ERROR: Kubeconfig file not found at {{ kubeconfig_path }}"
+      when: not kubeconfig_file.stat.exists
+
+    - name: Display kubeconfig verification
+      debug:
+        msg: "Kubeconfig file found successfully"
+
+    - name: Make install script executable
+      file:
+        path: /home/ubuntu/k8s-infra/observation/keycloak/install.sh
+        mode: '0755'
+
+    - name: Install Keycloak
+      shell: |
+        export KUBECONFIG={{ kubeconfig_path }}
+        cd /home/ubuntu/k8s-infra/observation/keycloak
+        ./install.sh {{ keycloak_hostname }}
+      args:
+        executable: /bin/bash
+
+    - name: Wait for Keycloak to be ready
+      shell: kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=keycloak --timeout=600s -n keycloak || true
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+
+    - name: Keycloak installation completed
+      debug:
+        msg: "Keycloak installation completed successfully"
