@@ -114,7 +114,7 @@ resource "null_resource" "install_keycloak" {
       "kubectl wait --for=condition=ready pod -l app=rancher --timeout=300s -n cattle-system",
       
       # Additional wait for Rancher to stabilize
-      "echo 'Waiting 5 minutes for Rancher to stabilize...'",
+      "echo 'Waiting 2 minutes for Rancher to stabilize...'",
       "sleep 120",
       "echo 'Wait complete, proceeding with Keycloak installation...'",
 
@@ -146,12 +146,23 @@ resource "null_resource" "install_keycloak" {
       # Set the Keycloak hostname dynamically
       "KEYCLOAK_HOST='${var.KEYCLOAK_HOSTNAME != "" ? var.KEYCLOAK_HOSTNAME : "iam.${var.CLUSTER_ENV_DOMAIN}"}'",
       
-      # Export KUBECONFIG and run Keycloak installation
-      "echo 'Installing Keycloak...'",
+      # Create a wrapper script that sets KUBECONFIG and runs install.sh
+      "echo 'Creating wrapper script for Keycloak installation...'",
+      "cat > /tmp/install_keycloak_wrapper.sh << 'EOF'",
+      "#!/bin/bash",
+      "set -e",
       "export KUBECONFIG=/home/ubuntu/.kube/${var.CLUSTER_NAME}-CONTROL-PLANE-NODE-1.yaml",
-      "./install.sh $KEYCLOAK_HOST",
+      "cd /home/ubuntu/k8s-infra/observation/keycloak",
+      "./install.sh \"$1\"",
+      "EOF",
+      "chmod +x /tmp/install_keycloak_wrapper.sh",
+      
+      # Run the wrapper script
+      "echo 'Installing Keycloak...'",
+      "/tmp/install_keycloak_wrapper.sh \"$KEYCLOAK_HOST\"",
 
       # Wait for Keycloak to be ready
+      "export KUBECONFIG=/home/ubuntu/.kube/${var.CLUSTER_NAME}-CONTROL-PLANE-NODE-1.yaml",
       "kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=keycloak --timeout=600s -n keycloak || true",
 
       "echo 'Keycloak installation completed successfully'"
