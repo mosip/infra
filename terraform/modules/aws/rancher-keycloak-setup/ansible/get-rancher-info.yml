@@ -1,15 +1,16 @@
 ---
 - name: Get Rancher Information
   hosts: control_plane
-  become: no
+  become: yes
   vars:
-    kubeconfig_path: "~/.kube/{{ cluster_name }}-CONTROL-PLANE-NODE-1.yaml"
+    kubeconfig_path: "/etc/rancher/rke2/rke2.yaml"
+    kubectl_path: "/var/lib/rancher/rke2/bin/kubectl"
     rancher_hostname: "{{ rancher_hostname_var }}"
     rancher_bootstrap_password: "{{ rancher_password }}"
 
   tasks:
     - name: Get Rancher pod status
-      shell: kubectl get pods -n cattle-system | grep rancher
+      shell: "{{ kubectl_path }} get pods -n cattle-system | grep rancher"
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
       register: rancher_pods

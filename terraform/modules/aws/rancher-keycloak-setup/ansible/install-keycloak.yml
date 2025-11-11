@@ -78,6 +78,23 @@
       debug:
         msg: "Kubeconfig file found successfully"
 
+    - name: Create .kube directory for ubuntu user
+      file:
+        path: "/home/ubuntu/.kube"
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: '0755'
+
+    - name: Copy kubeconfig to ubuntu home for script access
+      copy:
+        src: "{{ kubeconfig_path }}"
+        dest: "/home/ubuntu/.kube/config"
+        owner: ubuntu
+        group: ubuntu
+        mode: '0600'
+        remote_src: yes
+
     - name: Make install script executable
       become_user: ubuntu
       file:
@@ -87,7 +104,7 @@
     - name: Install Keycloak
       become_user: ubuntu
       shell: |
-        export KUBECONFIG={{ kubeconfig_path }}
+        export KUBECONFIG=/home/ubuntu/.kube/config
         cd {{ k8s_infra_path }}/observation/keycloak
         ./install.sh {{ keycloak_hostname }}
       args:

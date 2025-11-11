@@ -1,14 +1,15 @@
 ---
 - name: Get Keycloak Information
   hosts: control_plane
-  become: no
+  become: yes
   vars:
-    kubeconfig_path: "~/.kube/{{ cluster_name }}-CONTROL-PLANE-NODE-1.yaml"
+    kubeconfig_path: "/etc/rancher/rke2/rke2.yaml"
+    kubectl_path: "/var/lib/rancher/rke2/bin/kubectl"
     keycloak_hostname: "{{ keycloak_hostname_var }}"
 
   tasks:
     - name: Get Keycloak pod status
-      shell: kubectl get pods -n keycloak | grep keycloak || echo 'Keycloak pods not found'
+      shell: "{{ kubectl_path }} get pods -n keycloak | grep keycloak || echo 'Keycloak pods not found'"
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
       register: keycloak_pods
