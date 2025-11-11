@@ -115,7 +115,7 @@ resource "null_resource" "install_keycloak" {
       
       # Additional wait for Rancher to stabilize
       "echo 'Waiting 5 minutes for Rancher to stabilize...'",
-      "sleep 300",
+      "sleep 120",
       "echo 'Wait complete, proceeding with Keycloak installation...'",
 
       # Clone k8s-infra repository if not already present
@@ -134,12 +134,24 @@ resource "null_resource" "install_keycloak" {
       # Make sure the install script is executable
       "chmod +x install.sh",
 
-      # Run Keycloak installation with KUBECONFIG in a bash wrapper
+      # Verify kubeconfig file exists
+      "echo 'Verifying kubeconfig file availability...'",
+      "if [ ! -f /home/ubuntu/.kube/${var.CLUSTER_NAME}-CONTROL-PLANE-NODE-1.yaml ]; then",
+      "  echo 'ERROR: Kubeconfig file not found at /home/ubuntu/.kube/${var.CLUSTER_NAME}-CONTROL-PLANE-NODE-1.yaml'",
+      "  ls -la /home/ubuntu/.kube/ || echo 'Directory /home/ubuntu/.kube/ does not exist'",
+      "  exit 1",
+      "fi",
+      "echo 'Kubeconfig file found successfully'",
+
+      # Set the Keycloak hostname dynamically
+      "KEYCLOAK_HOST='${var.KEYCLOAK_HOSTNAME != "" ? var.KEYCLOAK_HOSTNAME : "iam.${var.CLUSTER_ENV_DOMAIN}"}'",
+      
+      # Export KUBECONFIG and run Keycloak installation
       "echo 'Installing Keycloak...'",
-      "bash -c 'export KUBECONFIG=~/.kube/${var.CLUSTER_NAME}-CONTROL-PLANE-NODE-1.yaml && ./install.sh ${var.KEYCLOAK_HOSTNAME != "" ? var.KEYCLOAK_HOSTNAME : "iam.${var.CLUSTER_ENV_DOMAIN}"}'",
+      "export KUBECONFIG=/home/ubuntu/.kube/${var.CLUSTER_NAME}-CONTROL-PLANE-NODE-1.yaml",
+      "./install.sh $KEYCLOAK_HOST",
 
       # Wait for Keycloak to be ready
-      "export KUBECONFIG=~/.kube/${var.CLUSTER_NAME}-CONTROL-PLANE-NODE-1.yaml",
       "kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=keycloak --timeout=600s -n keycloak || true",
 
       "echo 'Keycloak installation completed successfully'"
