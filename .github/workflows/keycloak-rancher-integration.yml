@@ -1,0 +1,168 @@
+name: Keycloak-Rancher SAML Integration
+
+on:
+  workflow_dispatch:
+    inputs:
+      # Keycloak Configuration
+      keycloak_host:
+        description: 'Keycloak Host URL (e.g., https://keycloak.example.com)'
+        required: true
+        type: string
+      keycloak_realm:
+        description: 'Keycloak Realm'
+        required: false
+        type: string
+        default: 'master'
+      keycloak_admin_user:
+        description: 'Keycloak Admin Username'
+        required: true
+        type: string
+      keycloak_admin_password:
+        description: 'Keycloak Admin Password'
+        required: true
+        type: string
+      keycloak_admin_email:
+        description: 'Keycloak Admin Email'
+        required: false
+        type: string
+        default: 'admin@example.com'
+      keycloak_admin_firstname:
+        description: 'Keycloak Admin First Name'
+        required: false
+        type: string
+        default: 'Admin'
+      
+      # Rancher Configuration
+      rancher_host:
+        description: 'Rancher Host URL (e.g., https://rancher.example.com)'
+        required: true
+        type: string
+      rancher_token:
+        description: 'Rancher API Token'
+        required: true
+        type: string
+      
+      # SSL Configuration
+      ssl_cert_subject:
+        description: 'SSL Certificate Subject'
+        required: false
+        type: string
+        default: '/C=US/ST=State/L=City/O=Organization/CN=rancher'
+      ssl_cert_days:
+        description: 'SSL Certificate Validity Days'
+        required: false
+        type: string
+        default: '1825'
+      ssl_key_size:
+        description: 'SSL Key Size'
+        required: false
+        type: string
+        default: '2048'
+      ssl_key_file:
+        description: 'SSL Key Filename'
+        required: false
+        type: string
+        default: 'myservice.key'
+      ssl_cert_file:
+        description: 'SSL Certificate Filename'
+        required: false
+        type: string
+        default: 'myservice.cert'
+      
+      # SAML Configuration
+      saml_descriptor_file:
+        description: 'SAML Descriptor Filename'
+        required: false
+        type: string
+        default: 'keycloak-saml-descriptor.xml'
+      saml_display_name_field:
+        description: 'SAML Display Name Field'
+        required: false
+        type: string
+        default: 'givenName'
+      saml_username_field:
+        description: 'SAML Username Field'
+        required: false
+        type: string
+        default: 'email'
+      saml_uid_field:
+        description: 'SAML UID Field'
+        required: false
+        type: string
+        default: 'username'
+      saml_groups_field:
+        description: 'SAML Groups Field'
+        required: false
+        type: string
+        default: 'member'
+      saml_access_mode:
+        description: 'SAML Access Mode'
+        required: false
+        type: string
+        default: 'unrestricted'
+      
+      # Force Recreate Option
+      force_recreate:
+        description: 'Force recreate everything (delete existing configurations)'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  setup-integration:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      
+      - name: Install dependencies
+        run: |
+          pip install requests python-dotenv
+      
+      - name: Run Keycloak-Rancher SAML Integration
+        env:
+          # Keycloak Configuration
+          KEYCLOAK_HOST: ${{ inputs.keycloak_host }}
+          KEYCLOAK_REALM: ${{ inputs.keycloak_realm }}
+          KEYCLOAK_ADMIN_USER: ${{ inputs.keycloak_admin_user }}
+          KEYCLOAK_ADMIN_PASSWORD: ${{ inputs.keycloak_admin_password }}
+          KEYCLOAK_ADMIN_EMAIL: ${{ inputs.keycloak_admin_email }}
+          KEYCLOAK_ADMIN_FIRSTNAME: ${{ inputs.keycloak_admin_firstname }}
+          
+          # Rancher Configuration
+          RANCHER_HOST: ${{ inputs.rancher_host }}
+          RANCHER_TOKEN: ${{ inputs.rancher_token }}
+          
+          # SSL Configuration
+          SSL_CERT_SUBJECT: ${{ inputs.ssl_cert_subject }}
+          SSL_CERT_DAYS: ${{ inputs.ssl_cert_days }}
+          SSL_KEY_SIZE: ${{ inputs.ssl_key_size }}
+          SSL_KEY_FILE: ${{ inputs.ssl_key_file }}
+          SSL_CERT_FILE: ${{ inputs.ssl_cert_file }}
+          
+          # SAML Configuration
+          SAML_DESCRIPTOR_FILE: ${{ inputs.saml_descriptor_file }}
+          SAML_DISPLAY_NAME_FIELD: ${{ inputs.saml_display_name_field }}
+          SAML_USERNAME_FIELD: ${{ inputs.saml_username_field }}
+          SAML_UID_FIELD: ${{ inputs.saml_uid_field }}
+          SAML_GROUPS_FIELD: ${{ inputs.saml_groups_field }}
+          SAML_ACCESS_MODE: ${{ inputs.saml_access_mode }}
+          
+          # Force Recreate Option
+          FORCE_RECREATE: ${{ inputs.force_recreate }}
+        run: |
+          python3 Rancher-keycloak-integration/automation_script.py
+      
+      - name: Run Rancher Diagnostics (Optional)
+        if: failure()
+        env:
+          RANCHER_HOST: ${{ inputs.rancher_host }}
+          RANCHER_TOKEN: ${{ inputs.rancher_token }}
+        run: |
+          python3 Rancher-keycloak-integration/rancher_diagnostic.py
