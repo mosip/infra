@@ -3,7 +3,7 @@ name: Keycloak-Rancher SAML Integration
 on:
   workflow_dispatch:
     inputs:
-      # Keycloak Configuration
+      # Keycloak Configuration (Required)
       keycloak_host:
         description: 'Keycloak Host URL (e.g., https://keycloak.example.com)'
         required: true
@@ -21,18 +21,8 @@ on:
         description: 'Keycloak Admin Password'
         required: true
         type: string
-      keycloak_admin_email:
-        description: 'Keycloak Admin Email'
-        required: false
-        type: string
-        default: 'admin@example.com'
-      keycloak_admin_firstname:
-        description: 'Keycloak Admin First Name'
-        required: false
-        type: string
-        default: 'Admin'
       
-      # Rancher Configuration
+      # Rancher Configuration (Required)
       rancher_host:
         description: 'Rancher Host URL (e.g., https://rancher.example.com)'
         required: true
@@ -42,66 +32,25 @@ on:
         required: true
         type: string
       
-      # SSL Configuration
+      # Optional Configuration
+      keycloak_admin_email:
+        description: 'Keycloak Admin Email (default: admin@example.com)'
+        required: false
+        type: string
+        default: 'admin@example.com'
+      
       ssl_cert_subject:
-        description: 'SSL Certificate Subject'
+        description: 'SSL Certificate Subject (default: /C=US/ST=State/L=City/O=Organization/CN=rancher)'
         required: false
         type: string
         default: '/C=US/ST=State/L=City/O=Organization/CN=rancher'
-      ssl_cert_days:
-        description: 'SSL Certificate Validity Days'
-        required: false
-        type: string
-        default: '1825'
-      ssl_key_size:
-        description: 'SSL Key Size'
-        required: false
-        type: string
-        default: '2048'
-      ssl_key_file:
-        description: 'SSL Key Filename'
-        required: false
-        type: string
-        default: 'myservice.key'
-      ssl_cert_file:
-        description: 'SSL Certificate Filename'
-        required: false
-        type: string
-        default: 'myservice.cert'
       
-      # SAML Configuration
-      saml_descriptor_file:
-        description: 'SAML Descriptor Filename'
-        required: false
-        type: string
-        default: 'keycloak-saml-descriptor.xml'
-      saml_display_name_field:
-        description: 'SAML Display Name Field'
-        required: false
-        type: string
-        default: 'givenName'
-      saml_username_field:
-        description: 'SAML Username Field'
-        required: false
-        type: string
-        default: 'email'
-      saml_uid_field:
-        description: 'SAML UID Field'
-        required: false
-        type: string
-        default: 'username'
-      saml_groups_field:
-        description: 'SAML Groups Field'
-        required: false
-        type: string
-        default: 'member'
       saml_access_mode:
-        description: 'SAML Access Mode'
+        description: 'SAML Access Mode (default: unrestricted)'
         required: false
         type: string
         default: 'unrestricted'
       
-      # Force Recreate Option
       force_recreate:
         description: 'Force recreate everything (delete existing configurations)'
         required: false
@@ -133,25 +82,25 @@ jobs:
           KEYCLOAK_ADMIN_USER: ${{ inputs.keycloak_admin_user }}
           KEYCLOAK_ADMIN_PASSWORD: ${{ inputs.keycloak_admin_password }}
           KEYCLOAK_ADMIN_EMAIL: ${{ inputs.keycloak_admin_email }}
-          KEYCLOAK_ADMIN_FIRSTNAME: ${{ inputs.keycloak_admin_firstname }}
+          KEYCLOAK_ADMIN_FIRSTNAME: 'Admin'
           
           # Rancher Configuration
           RANCHER_HOST: ${{ inputs.rancher_host }}
           RANCHER_TOKEN: ${{ inputs.rancher_token }}
           
-          # SSL Configuration
+          # SSL Configuration (using defaults)
           SSL_CERT_SUBJECT: ${{ inputs.ssl_cert_subject }}
-          SSL_CERT_DAYS: ${{ inputs.ssl_cert_days }}
-          SSL_KEY_SIZE: ${{ inputs.ssl_key_size }}
-          SSL_KEY_FILE: ${{ inputs.ssl_key_file }}
-          SSL_CERT_FILE: ${{ inputs.ssl_cert_file }}
+          SSL_CERT_DAYS: '1825'
+          SSL_KEY_SIZE: '2048'
+          SSL_KEY_FILE: 'myservice.key'
+          SSL_CERT_FILE: 'myservice.cert'
           
-          # SAML Configuration
-          SAML_DESCRIPTOR_FILE: ${{ inputs.saml_descriptor_file }}
-          SAML_DISPLAY_NAME_FIELD: ${{ inputs.saml_display_name_field }}
-          SAML_USERNAME_FIELD: ${{ inputs.saml_username_field }}
-          SAML_UID_FIELD: ${{ inputs.saml_uid_field }}
-          SAML_GROUPS_FIELD: ${{ inputs.saml_groups_field }}
+          # SAML Configuration (using defaults)
+          SAML_DESCRIPTOR_FILE: 'keycloak-saml-descriptor.xml'
+          SAML_DISPLAY_NAME_FIELD: 'givenName'
+          SAML_USERNAME_FIELD: 'email'
+          SAML_UID_FIELD: 'username'
+          SAML_GROUPS_FIELD: 'member'
           SAML_ACCESS_MODE: ${{ inputs.saml_access_mode }}
           
           # Force Recreate Option
