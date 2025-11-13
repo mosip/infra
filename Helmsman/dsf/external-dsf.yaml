@@ -389,7 +389,7 @@ apps:
     chart: mosip/landing-page
     set:
       landing.version: "develop"
-      landing.name: "<sandbox>"
+      landing.name: "soil50"
       landing.api: "api.soil50.mosip.net"
       landing.apiInternal: "api-internal.soil50.mosip.net"
       landing.admin: "admin.soil50.mosip.net"
@@ -410,7 +410,7 @@ apps:
       landing.healthservices: "healthservices.soil50.mosip.net"
       landing.injiweb: "injiweb.soil50.mosip.net"
       landing.injiverify: "injiverify.soil50.mosip.net"
-      istio.host: "<sandbox>.mosip.net"
+      istio.host: "soil50.mosip.net"
     wait: true
     timeout: 1200
     hooks:
