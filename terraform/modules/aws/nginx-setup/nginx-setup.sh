@@ -71,12 +71,45 @@ fi
 echo "[ Running NGINX install script from $nginx_location ] : "
 sudo ./install.sh
 
+# AWS-specific fix: In AWS, public IPs cannot be bound to network interfaces
+# The install.sh may have configured NGINX to bind to public IP, we need to replace with private IP
+if [ "$NGINX_TYPE" == "mosip" ] && [ ! -z "${cluster_nginx_public_ip:-}" ] && [ ! -z "${cluster_nginx_internal_ip:-}" ]; then
+  echo "[ AWS Fix: Checking if public IP needs to be replaced with private IP in NGINX configs ] : "
+  echo "[ Public IP (not bindable in AWS): $cluster_nginx_public_ip ] : "
+  echo "[ Private IP (bindable): $cluster_nginx_internal_ip ] : "
+  
+  # Check if any config files contain the public IP
+  if sudo grep -r "$cluster_nginx_public_ip" /etc/nginx/ >/dev/null 2>&1; then
+    echo "[ Found public IP in NGINX configs, replacing with private IP ] : "
+    
+    # Replace in all nginx config files
+    sudo find /etc/nginx/ -type f \( -name "*.conf" -o -name "nginx.conf" \) -exec sed -i "s/$cluster_nginx_public_ip/$cluster_nginx_internal_ip/g" {} \;
+    
+    echo "[ Successfully replaced public IP with private IP ] : "
+  else
+    echo "[ No public IP found in configs, no changes needed ] : "
+  fi
+fi
+
 # Check if nginx configuration is valid
 echo "[ Testing NGINX configuration ] : "
-sudo nginx -t
+if ! sudo nginx -t; then
+  echo "[ ERROR: NGINX configuration test failed ] : "
+  echo "[ Showing NGINX error log ] : "
+  sudo tail -50 /var/log/nginx/error.log || echo "No error log found"
+  exit 1
+fi
 
-# If test passes, start nginx
-echo "[ Starting NGINX service ] : "
-sudo systemctl enable nginx
-sudo systemctl start nginx
-sudo systemctl status nginx
+# The install.sh script should have already started NGINX, just verify it's running
+echo "[ Verifying NGINX service status ] : "
+sudo systemctl status nginx --no-pager || echo "NGINX not running, attempting to start..."
+
+# If NGINX is not running, try to start it
+if ! systemctl is-active --quiet nginx; then
+  echo "[ Starting NGINX service ] : "
+  sudo systemctl enable nginx
+  sudo systemctl start nginx
+fi
+
+echo "[ NGINX setup completed successfully ] : "
+sudo systemctl status nginx --no-pager
