@@ -42,7 +42,7 @@ function post_logging_setup() {
   echo "NOTE: Please update the global ConfigMap with the same Kibana Host as part of the MOSIP external modules deployment."
 
   # Store Kibana Host in a ConfigMap for easy retrieval
-  kubectl -n $NS create configmap kibana-config --from-literal=mosip_kibana_host=$KIBANA_HOST --dry-run=client -o yaml | kubectl apply -f -
+  kubectl -n cattle-logging-system create configmap kibana-config --from-literal=mosip_kibana_host=$KIBANA_HOST --dry-run=client -o yaml | kubectl apply -f -
   echo "Kibana Host stored in ConfigMap: kibana-config"
 
   echo "Configure Rancher FluentD"
