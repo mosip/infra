@@ -42,7 +42,7 @@ function post_logging_setup() {
   kubectl apply -f $WORKDIR/utils/logging/clusterflow-elasticsearch.yaml
 
   echo "Load Dashboards"
-  $WORKDIR/utils/logging/load_kibana_dashboards.sh $WORKDIR/utils/logging/dashboards
+  $WORKDIR/utils/logging/load_kibana_dashboards.sh $WORKDIR/utils/logging/dashboards $KUBECONFIG
   echo "Dashboards loaded"
   return 0
 }

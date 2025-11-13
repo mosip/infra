@@ -2,6 +2,8 @@
 
 Helmsman is a tool which is used to manage kubernetes deployment with helm chart, so basically it provides us a way to manage helm releases including installing, deleting and upgrading helm releases based on our requirement using helmsman configuration file/desired State File (DSF).
 
+![Helmsman Architecture](../docs/_images/updated-Helmsman.drawio.png)
+
 ### Explanation:
 Imagine that we have different applications that we want to run on kubernetes which has it’s own process on how to set it up and run it, so helmsman helps us to keep the instructions within the Desired State File (DSF) and follows the instructions present in configuration file to make sure that the applications/services are setup correctly.
 
@@ -49,19 +51,10 @@ To plan and execute the plan:
 
 ```helmsman --apply -f example.yaml```
 
-To show debugging details:
-
-```helmsman --debug --apply -f example.yaml```
-
 To run a dry-run:
 
-```helmsman --debug --dry-run -f example.yaml```
+```helmsman --dry-run -f example.yaml```
 
 To limit execution to specific application:
 
-```helmsman --debug --dry-run --target artifactory -f example.yaml```
-
-> **Note:**
-> - This directory is a **work-in-progress** and currently **experimental**.
-> - It is subject to changes as we continue to refine the deployment process.
-> - Contributions and feedback are welcome as part of ongoing development!
+```helmsman --dry-run --target artifactory -f example.yaml```
