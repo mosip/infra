@@ -55,8 +55,8 @@ locals {
   # Configuration for Observability
   observability_config = {
     cluster_env_domain            = var.CLUSTER_ENV_DOMAIN
-    observation_nginx_certs       = replace("/etc/letsencrypt/live/${var.CLUSTER_ENV_DOMAIN}/fullchain.pem", "/", "\\/")
-    observation_nginx_cert_key    = replace("/etc/letsencrypt/live/${var.CLUSTER_ENV_DOMAIN}/privkey.pem", "/", "\\/")
+    observation_nginx_certs       = "/etc/letsencrypt/live/${var.CLUSTER_ENV_DOMAIN}/fullchain.pem"
+    observation_nginx_cert_key    = "/etc/letsencrypt/live/${var.CLUSTER_ENV_DOMAIN}/privkey.pem"
     observation_cluster_node_ips  = var.MOSIP_K8S_CLUSTER_NODES_PRIVATE_IP_LIST
     observation_ingress_nodeport  = "30080"
     certbot_email                 = var.CERTBOT_EMAIL
