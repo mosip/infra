@@ -82,6 +82,27 @@ if [ "$NGINX_TYPE" == "mosip" ] && [ ! -z "${cluster_nginx_public_ip:-}" ] && [ 
   echo "[ Public IP variable overridden with private IP ] : "
 fi
 
+# Observability fix: Escape forward slashes in cert paths for sed commands in install.sh
+# The install.sh uses sed with these variables, and forward slashes need to be escaped
+if [ "$NGINX_TYPE" == "observability" ] && [ ! -z "${observation_nginx_certs:-}" ]; then
+  echo "[ Observability Fix: Escaping forward slashes in certificate paths for sed ] : "
+  echo "[ Original cert path: $observation_nginx_certs ] : "
+  echo "[ Original key path: $observation_nginx_cert_key ] : "
+  
+  # Escape forward slashes for sed commands
+  export observation_nginx_certs=$(echo "$observation_nginx_certs" | sed 's/\//\\\//g')
+  export observation_nginx_cert_key=$(echo "$observation_nginx_cert_key" | sed 's/\//\\\//g')
+  
+  # Update environment file
+  sudo sed -i "/observation_nginx_certs/d" /etc/environment
+  sudo sed -i "/observation_nginx_cert_key/d" /etc/environment
+  echo "export observation_nginx_certs=$observation_nginx_certs" | sudo tee -a /etc/environment
+  echo "export observation_nginx_cert_key=$observation_nginx_cert_key" | sudo tee -a /etc/environment
+  
+  echo "[ Escaped cert path: $observation_nginx_certs ] : "
+  echo "[ Escaped key path: $observation_nginx_cert_key ] : "
+fi
+
 echo "[ Running NGINX install script from $nginx_location ] : "
 sudo -E ./install.sh
 
