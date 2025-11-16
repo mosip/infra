@@ -51,7 +51,7 @@ apps:
     version: 0.1.0
     chart: $WORKDIR/utils/istio-addons/postgres-istio-addons-0.1.0.tgz
     set:
-      postgresHost: "postgres.dev.mosip.net"
+      postgresHost: "postgres.qajava21.mosip.net"
     wait: true
     priority: -4
     timeout: 1200
@@ -59,83 +59,83 @@ apps:
   postgres-init:
     namespace: postgres
     enabled: true
-    version: 0.0.1-develop
+    version: 0.0.1-qajava21elop
     chart: mosip/postgres-init
     set:
       dbUserPasswords.dbuserPassword: ""
       databases.mosip_master.enabled: "true"
       databases.mosip_master.branch: "release-1.3.x"
-      databases.mosip_master.host: "postgres.dev.mosip.net"
+      databases.mosip_master.host: "postgres.qajava21.mosip.net"
       databases.mosip_master.port: 5433
 
       databases.mosip_audit.enabled: "true"
       databases.mosip_audit.branch: "release-1.3.x"
-      databases.mosip_audit.host: "postgres.dev.mosip.net"
+      databases.mosip_audit.host: "postgres.qajava21.mosip.net"
       databases.mosip_audit.port: 5433
 
       databases.mosip_keymgr.enabled: "true"
       databases.mosip_keymgr.branch: "release-1.3.x"
-      databases.mosip_keymgr.host: "postgres.dev.mosip.net"
+      databases.mosip_keymgr.host: "postgres.qajava21.mosip.net"
       databases.mosip_keymgr.port: 5433
 
       databases.mosip_kernel.enabled: "true"
       databases.mosip_kernel.branch: "release-1.3.x"
-      databases.mosip_kernel.host: "postgres.dev.mosip.net"
+      databases.mosip_kernel.host: "postgres.qajava21.mosip.net"
       databases.mosip_kernel.port: 5433
 
       databases.mosip_idmap.enabled: "true"
       databases.mosip_idmap.branch: "release-1.3.x"
-      databases.mosip_idmap.host: "postgres.dev.mosip.net"
+      databases.mosip_idmap.host: "postgres.qajava21.mosip.net"
       databases.mosip_idmap.port: 5433
 
       databases.mosip_prereg.enabled: "true"
       databases.mosip_prereg.branch: "release-1.3.x"
-      databases.mosip_prereg.host: "postgres.dev.mosip.net"
+      databases.mosip_prereg.host: "postgres.qajava21.mosip.net"
       databases.mosip_prereg.port: 5433
 
       databases.mosip_idrepo.enabled: "true"
       databases.mosip_idrepo.branch: "release-1.3.x"
-      databases.mosip_idrepo.host: "postgres.dev.mosip.net"
+      databases.mosip_idrepo.host: "postgres.qajava21.mosip.net"
       databases.mosip_idrepo.port: 5433
 
       databases.mosip_ida.enabled: "true"
       databases.mosip_ida.branch: "release-1.3.x"
-      databases.mosip_ida.host: "postgres.dev.mosip.net"
+      databases.mosip_ida.host: "postgres.qajava21.mosip.net"
       databases.mosip_ida.port: 5433
 
       databases.mosip_credential.enabled: "true"
       databases.mosip_credential.branch: "release-1.3.x"
-      databases.mosip_credential.host: "postgres.dev.mosip.net"
+      databases.mosip_credential.host: "postgres.qajava21.mosip.net"
       databases.mosip_credential.port: 5433
 
       databases.mosip_regprc.enabled: "true"
       databases.mosip_regprc.branch: "release-1.3.x"
-      databases.mosip_regprc.host: "postgres.dev.mosip.net"
+      databases.mosip_regprc.host: "postgres.qajava21.mosip.net"
       databases.mosip_regprc.port: 5433
 
       databases.mosip_pms.enabled: "true"
       databases.mosip_pms.branch: "release-1.3.x"
-      databases.mosip_pms.host: "postgres.dev.mosip.net"
+      databases.mosip_pms.host: "postgres.qajava21.mosip.net"
       databases.mosip_pms.port: 5433
 
       databases.mosip_hotlist.enabled: "true"
       databases.mosip_hotlist.branch: "release-1.3.x"
-      databases.mosip_hotlist.host: "postgres.dev.mosip.net"
+      databases.mosip_hotlist.host: "postgres.qajava21.mosip.net"
       databases.mosip_hotlist.port: 5433
 
       databases.mosip_resident.enabled: "true"
       databases.mosip_resident.branch: "release-1.3.x"
-      databases.mosip_resident.host: "postgres.dev.mosip.net"
+      databases.mosip_resident.host: "postgres.qajava21.mosip.net"
       databases.mosip_resident.port: 5433
 
       databases.mosip_otp.enabled: "true"
       databases.mosip_otp.branch: "release-1.3.x"
-      databases.mosip_otp.host: "postgres.dev.mosip.net"
+      databases.mosip_otp.host: "postgres.qajava21.mosip.net"
       databases.mosip_otp.port: 5433
 
       databases.mosip_digitalcard.enabled: "true"
       databases.mosip_digitalcard.branch: "release-1.3.x"
-      databases.mosip_digitalcard.host: "postgres.dev.mosip.net"
+      databases.mosip_digitalcard.host: "postgres.qajava21.mosip.net"
       databases.mosip_digitalcard.port: 5433
     wait: true
     timeout: 1200
@@ -148,7 +148,7 @@ apps:
     chart: mosip/keycloak
     set:
       image.repository: "mosipqa/mosip-artemis-keycloak"
-      image.tag: "develop"
+      image.tag: "qajava21elop"
       image.pullPolicy: "Always"
       # Override Postgres image
       postgresql.image.registry: "docker.io"
@@ -183,7 +183,7 @@ apps:
     version: 0.1.0
     chart: $WORKDIR/utils/istio-addons/iam-istio-addons-0.1.0.tgz
     set:
-      keycloakExternalHost: "iam.dev.mosip.net"
+      keycloakExternalHost: "iam.qajava21.mosip.net"
       keycloakInternalHost: "keycloak.keycloak"
       service: "keycloak"
     wait: true
@@ -193,14 +193,14 @@ apps:
   keycloak-init:
     namespace: keycloak
     enabled: true
-    version: 0.0.1-develop
+    version: 0.0.1-qajava21elop
     chart: mosip/keycloak-init
     set:
       image.repository: "mosipqa/keycloak-init"
-      image.tag: "develop"
-      keycloakExternalHost: "iam.dev.mosip.net"
+      image.tag: "qajava21elop"
+      keycloakExternalHost: "iam.qajava21.mosip.net"
       keycloakInternalHost: "keycloak.keycloak"
-      keycloak.realms.mosip.realm_config.attributes.frontendUrl: "https://iam.dev.mosip.net/auth"
+      keycloak.realms.mosip.realm_config.attributes.frontendUrl: "https://iam.qajava21.mosip.net/auth"
       keycloak.realms.mosip.realm_config.smtpServer.auth: "false"
       keycloak.realms.mosip.realm_config.smtpServer.host: "smtp.gmail.com"
       keycloak.realms.mosip.realm_config.smtpServer.port: "465"
@@ -264,7 +264,7 @@ apps:
     version: 1.2.0
     chart: $WORKDIR/utils/istio-addons/minio-istio-addons-1.2.0.tgz
     set:
-      externalHost: "minio.dev.mosip.net"
+      externalHost: "minio.qajava21.mosip.net"
     wait: true
     timeout: 1200
     hooks:
@@ -297,7 +297,7 @@ apps:
       image.tag: "1.1.5"
       persistence.storageClass: "nfs-csi-activemq"
       istio.enabled: "true"
-      istio.hosts[0]: "activemq.dev.mosip.net"
+      istio.hosts[0]: "activemq.qajava21.mosip.net"
       istio.ingressController.name: "ingressgateway-internal"
       istio.prefix: ""
     wait: true
@@ -389,7 +389,7 @@ apps:
     version: 1.2.0
     chart: $WORKDIR/utils/istio-addons/kafka-istio-addons-1.2.0.tgz
     set:
-      kafkaUiHost: "kafka.dev.mosip.net"
+      kafkaUiHost: "kafka.qajava21.mosip.net"
       installName: "kafka-ui"
     wait: true
     timeout: 1200
@@ -403,29 +403,29 @@ apps:
     version: 12.0.2
     chart: mosip/landing-page
     set:
-      landing.version: "develop"
-      landing.name: "dev"
-      landing.api: "api.dev.mosip.net"
-      landing.apiInternal: "api-internal.dev.mosip.net"
-      landing.admin: "admin.dev.mosip.net"
-      landing.prereg: "prereg.dev.mosip.net"
-      landing.kafka: "kafka.dev.mosip.net"
-      landing.kibana: "kibana.dev.mosip.net"
-      landing.activemq: "activemq.dev.mosip.net"
-      landing.minio: "minio.dev.mosip.net"
-      landing.keycloak: "iam.dev.mosip.net"
-      landing.regclient: "regclient.dev.mosip.net"
-      landing.postgres.host: "postgres.dev.mosip.net"
+      landing.version: "qajava21elop"
+      landing.name: "qajava21"
+      landing.api: "api.qajava21.mosip.net"
+      landing.apiInternal: "api-internal.qajava21.mosip.net"
+      landing.admin: "admin.qajava21.mosip.net"
+      landing.prereg: "prereg.qajava21.mosip.net"
+      landing.kafka: "kafka.qajava21.mosip.net"
+      landing.kibana: "kibana.qajava21.mosip.net"
+      landing.activemq: "activemq.qajava21.mosip.net"
+      landing.minio: "minio.qajava21.mosip.net"
+      landing.keycloak: "iam.qajava21.mosip.net"
+      landing.regclient: "regclient.qajava21.mosip.net"
+      landing.postgres.host: "postgres.qajava21.mosip.net"
       landing.postgres.port: "5433"
-      landing.compliance: "compliance.dev.mosip.net"
-      landing.pmp: "pmp.dev.mosip.net"
-      landing.resident: "resident.dev.mosip.net"
-      landing.esignet: "esignet.dev.mosip.net"
-      landing.smtp: "smtp.dev.mosip.net"
-      landing.healthservices: "healthservices.dev.mosip.net"
-      landing.injiweb: "injiweb.dev.mosip.net"
-      landing.injiverify: "injiverify.dev.mosip.net"
-      istio.host: "dev.mosip.net"
+      landing.compliance: "compliance.qajava21.mosip.net"
+      landing.pmp: "pmp.qajava21.mosip.net"
+      landing.resident: "resident.qajava21.mosip.net"
+      landing.esignet: "esignet.qajava21.mosip.net"
+      landing.smtp: "smtp.qajava21.mosip.net"
+      landing.healthservices: "healthservices.qajava21.mosip.net"
+      landing.injiweb: "injiweb.qajava21.mosip.net"
+      landing.injiverify: "injiverify.qajava21.mosip.net"
+      istio.host: "qajava21.mosip.net"
     wait: true
     timeout: 1200
     hooks:
