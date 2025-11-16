@@ -6,105 +6,1128 @@ helmDefaults:
 helmRepos:
   bitnami: https://charts.bitnami.com/bitnami
   mosip: https://mosip.github.io/mosip-helm
-  banzaicloud-stable: https://charts.helm.sh/stable
 
-# Note: Based on your requirement disable the namespaces which you want to use, by default all the namespaces are protected.
 namespaces:
-  kube-system:
-    protected: true
-  cattle-monitoring-system:
-    protected: true
-  cattle-logging-system:
-    protected: true
-  istio-system:
-    protected: true
-  istio-operator:
-    protected: true
-  httpbin:
-    protected: true
-
+  conf-secrets:
+    protected: false
+  config-server:
+    protected: false
+  artifactory:
+    protected: false
+  captcha:
+    protected: false
+  keymanager:
+    protected: false
+  websub:
+    protected: false
+  mock-smtp:
+    protected: false
+  kernel:
+    protected: false
+  masterdata-loader:
+    protected: false
+  biosdk:
+    protected: false
+  packetmanager:
+    protected: false
+  datashare:
+    protected: false
+  prereg:
+    protected: false
+  idrepo:
+    protected: false
+  pms:
+    protected: false
+  abis:
+    protected: false
+  regproc:
+    protected: false
+  admin:
+    protected: false
+  ida:
+    protected: false
+  print:
+    protected: false
+  digitalcard:
+    protected: false
+  resident:
+    protected: false
+  onboarder:
+    protected: false
+  mosip-file-server:
+    protected: false
+  regclient:
+    protected: false
 apps:
-  rancher-monitoring-crd:
-    namespace: cattle-monitoring-system
+  conf-secrets:
+    namespace: conf-secrets 
     enabled: true
-    version: 103.1.1+up45.31.1
-    chart: mosip/rancher-monitoring-crd
+    version: 1.3.0-beta.3
+    chart: mosip/conf-secrets
+    priority: -29
+
+  config-server:
+    namespace: config-server
+    enabled: true
+    version: 1.3.0-beta.2
+    chart: mosip/config-server
+    set:
+      image.repository: "mosipdev/kernel-config-server"
+      image.tag: "release-1.3.x"
+    valuesFile: "$WORKDIR/utils/config-server-values.yaml"
     wait: true
-    timeout: 900
-    priority: -6
+    timeout: 1200
+    priority: -28
     hooks:
-      postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh <sandbox> helmsman"
-      postUpgrade: "$WORKDIR/hooks/install-istio-and-httpbin.sh <sandbox> helmsman"
+      preInstall: "$WORKDIR/hooks/config-server-setup.sh"
 
-  rancher-monitoring:
-    namespace: cattle-monitoring-system
-    enabled: false
-    version: 103.1.0+up45.31.1
-    chart: mosip/rancher-monitoring
+  artifactory:
+    namespace: artifactory
+    enabled: true
+    version: 1.3.0-beta.2
+    chart: mosip/artifactory
     set:
-      grafana.global.cattle.clusterId: "c-m-pbrcfglw"
-      global.cattle.clusterId: "c-m-pbrcfglw"
+      image.repository: "mosipdev/artifactory-server"
+      image.tag: "release-1.3.x"
     wait: true
-    valuesFile: "$WORKDIR/utils/monitoring_values.yaml"  
-    priority: -5
-    timeout: 600
+    timeout: 1200
+    priority: -26
     hooks:
-      postInstall: "$WORKDIR/hooks/alerting-setup.sh"
+      # For fresh installations
+      preInstall: "kubectl label ns artifactory istio-injection=enabled --overwrite"
+      postInstall: "$WORKDIR/hooks/common-labeling-istio-and-sharing-cm-secrets-among-ns.sh"
+      
+      # For upgrades/retries
+      preUpgrade: "kubectl label ns artifactory istio-injection=enabled --overwrite"
+      postUpgrade: "$WORKDIR/hooks/common-labeling-istio-and-sharing-cm-secrets-among-ns.sh"
 
-  elasticsearch:
-    namespace: cattle-logging-system
+  captcha:
+    namespace: captcha
     enabled: true
-    version: 17.9.25
-    chart: mosip/elasticsearch
+    version: 0.1.0-beta.1
+    chart: mosip/captcha
     set:
-      image.repository: "mosipint/elasticsearch"
-      image.tag: "7.17.2-debian-10-r4"
-      # Kibana configuration and image
-      global.kibanaEnabled: "true"
-      kibana.image.repository: "mosipid/kibana"
-      kibana.image.tag: "7.17.2-debian-10-r0"
-      kibana.image.pullPolicy: IfNotPresent
-      data.heapSize: "728m"
-      data.persistence.enabled: "true"
-      data.persistence.size: "64Gi"
-      data.resources.requests.memory: "512Mi"
-      master.heapSize: "1024m"
-      master.persistence.enabled: "true"
-      master.persistence.size: "4Gi"
-      master.resources.requests.memory: "728Mi"
-      kibana.persistence.enabled: "false"
-      sysctlImage.repository: "mosipid/os-shell"
-      sysctlImage.tag: "12-debian-12-r46"
-    wait: true
-    timeout: 900
-    priority: -4
-
-  istio-addons-logging:
-    namespace: cattle-logging-system
-    enabled: true
-    version: 0.1.0
-    chart: $WORKDIR/utils/istio-addons/logging-istio-addons-0.1.0.tgz
-    set:
-      kibanaHost: "kibana.sandbox.xyz.net"
-      installName: "elasticsearch-kibana"
-    wait: true
-    priority: -3
-
-  rancher-logging-crd:
-    namespace: cattle-logging-system
-    enabled: true
-    version: 103.1.1+up4.4.0
-    chart: mosip/rancher-logging-crd
-    wait: true
-    priority: -2
-
-  rancher-logging:
-    namespace: cattle-logging-system
-    enabled: true
-    version: 103.1.1+up4.4.0
-    chart: mosip/rancher-logging
-    wait: true
-    priority: -1
+      # image.repository: "mosipdev/captcha-validation-service"
+      # image.tag: "develop"
+      extraEnvVars[0].name: MOSIP_CAPTCHA_SECRET_PREREGISTRATION
+      extraEnvVars[0].valueFrom.secretKeyRef.name: mosip-captcha
+      extraEnvVars[0].valueFrom.secretKeyRef.key: prereg-captcha-secret-key
+    priority: -25
     timeout: 1200
     hooks:
-      postInstall: "$WORKDIR/hooks/post_logging-setup.sh"
+      preInstall: "kubectl label ns captcha istio-injection=enabled --overwrite"
+
+
+  mock-abis:
+    namespace: abis
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/mock-abis
+    set:
+      image.repository: "mosipdev/mock-abis"
+      image.tag: "release-1.3.x"
+      startupProbe.failureThreshold: 60
+    #   image.repository: ""
+    #   image.tag: ""
+    timeout: 1200
+    priority: -24
+
+
+  mock-mv:
+    namespace: abis
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/mock-mv
+    set:
+      image.repository: "mosipdev/mock-mv"
+      image.tag: "release-1.3.x"
+      resources.requests.cpu: 200m
+      resources.requests.memory: 1500Mi
+    #   image.repository: ""
+    #   image.tag: ""
+    timeout: 1200
+    priority: -24
+
+
+  kernel-keygen:
+    namespace: keymanager
+    enabled: true
+    version: 1.3.0-beta.4-develop
+    chart: mosip/keygen
+    set:
+      image.repository: "mosipdev/keys-generator"
+      image.tag: "release-1.3.x"
+      springConfigNameEnv: "kernel" 
+      softHsmCM: "softhsm-kernel-share"
+      # persistence.enabled: "false"
+      # volumePermissions.enabled: "false"
+      # persistence.size: "<volume_size>"
+      # persistence.mountDir: "<volume_mount_path>"
+      # persistence.pvc_claim_name: "<PVC_CLAIM_NAME>"
+    wait: true
+    timeout: 1200
+    priority: -23
+
+  keymanager:
+    namespace: keymanager
+    enabled: true
+    version: 1.3.0-beta.2
+    chart: mosip/keymanager
+    set:
+      image.repository: "mosipdev/kernel-keymanager-service"
+      image.tag: "release-1.3.x"
+    #   persistence.enabled: "false"
+    #   volumePermissions.enabled: "false"
+    #   persistence.size: "<volume_size>"
+    #   persistence.mountDir: "<volume_mount_path>"
+    #   persistence.pvc_claim_name: "<PVC_CLAIM_NAME>"
+    wait: true
+    timeout: 1200
+    priority: -22
+    hooks:
+      preInstall: "$WORKDIR/hooks/wait-for-keygen.sh"
+
+  websub-consolidator:
+    namespace: websub
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/websub-consolidator
+    set:
+      image.repository: "mosipdev/consolidator-websub-service"
+      image.tag: "release-1.3.x"
+    wait: true
+    timeout: 1200
+    priority: -21
+
+
+  websub:
+    namespace: websub
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/websub
+    set:
+      image.repository: "mosipdev/websub-service"
+      image.tag: "release-1.3.x"
+    timeout: 1200
+    priority: -20
+
+  mock-smtp:
+    namespace: mock-smtp
+    enabled: true
+    version: 1.0.0
+    chart: mosip/mock-smtp
+    set:
+      # image.repository: "mosipdev/mock-smtp"
+      # image.tag: "1.0.0"
+      istio.hosts[0]: "smtp.dev.mosip.net"
+    priority: -19
+    timeout: 1200
+
+
+  masterdata-loader:
+    namespace: masterdata-loader
+    enabled: true
+    version: 1.3.0-beta.1-develop
+    chart: mosip/masterdata-loader
+    set:
+      image.repository: "mosipdev/masterdata-loader"
+      image.tag: "release-1.3.x"
+      mosipDataGithubBranch: "release-1.3.x"
+      mosipDataGithubRepo: "https://github.com/mosip/mosip-data"
+      mosipDataXlsfolderPath: "/home/mosip/mosip-data/mosip_master/xlsx"
+      db.host: "postgres.dev.mosip.net"
+      db.port: 5433
+    wait: true
+    priority: -18
+    timeout: 1200
+
+
+  authmanager:
+    namespace: kernel
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/authmanager
+    set:
+      image.repository: "gokulraj13/kernel-auth-service"
+      image.tag: "MOSIP-test"
+    priority: -17
+    timeout: 1200
+
+  
+  auditmanager:
+    namespace: kernel
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/auditmanager
+    set:
+      image.repository: "mosipdev/kernel-auditmanager-service"
+      image.tag: "release-1.3.x"
+    priority: -16
+    timeout: 1200
+
+  
+  idgenerator:
+    namespace: kernel
+    enabled: true
+    version: 1.3.0-beta.2
+    chart: mosip/idgenerator
+    set:
+      image.repository: "mosipdev/kernel-idgenerator-service"
+      image.tag: "release-1.3.x"
+      resources.limits.cpu: "1"
+      resources.limits.memory: "3000Mi"
+      resources.requests.cpu: "700m"
+      resources.requests.memory: "2500Mi"
+      startupProbe.failureThreshold: "30"
+      startupProbe.periodSeconds: "10"
+    priority: -15
+    timeout: 1200
+
+  
+  masterdata:
+    namespace: kernel
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/masterdata
+    set:
+      image.repository: "mosipdev/kernel-masterdata-service"
+      image.tag: "release-1.3.x"
+      resources.limits.cpu: "600m"
+      resources.limits.memory: "4000Mi"
+      resources.requests.cpu: "200m"
+      resources.requests.memory: "2000Mi"
+      istio.corsPolicy.allowOrigins[0].exact: "https://admin.dev.mosip.net"
+    wait: true
+    priority: -14
+    timeout: 1200
+
+  
+  otpmanager:
+    namespace: kernel
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/otpmanager
+    set:
+      image.repository: "mosipdev/kernel-otpmanager-service"
+      image.tag: "release-1.3.x"
+    priority: -13
+    timeout: 1200
+
+  
+  pridgenerator:
+    namespace: kernel
+    enabled: true
+    version: 1.3.0-beta.2
+    chart: mosip/pridgenerator
+    set:
+      image.repository: "mosipdev/kernel-pridgenerator-service"
+      image.tag: "release-1.3.x"
+    priority: -12
+    timeout: 1200
+
+  
+  ridgenerator:
+    namespace: kernel
+    enabled: true
+    version: 1.3.0-beta.2
+    chart: mosip/ridgenerator
+    set:
+      image.repository: "mosipdev/kernel-ridgenerator-service"
+      image.tag: "release-1.3.x"
+    priority: -11
+    timeout: 1200
+
+  
+  syncdata:
+    namespace: kernel
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/syncdata
+    set:
+      image.repository: "mosipdev/kernel-syncdata-service"
+      image.tag: "release-1.3.x"
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "5000Mi"
+      resources.requests.cpu: "300m"
+      resources.requests.memory: "2500Mi"
+      startupProbe.failureThreshold: "60"
+    priority: -10
+    timeout: 1200
+
+  
+  notifier:
+    namespace: kernel
+    enabled: true
+    version: 1.3.0-beta.2
+    chart: mosip/notifier
+    set:
+      image.repository: "mosipdev/kernel-notification-service"
+      image.tag: "release-1.3.x"
+    priority: -10
+    timeout: 1200
+
+
+  biosdk-service:
+    namespace: biosdk
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/biosdk-service
+    set:
+      image.repository: "mosipdev/biosdk-server"
+      image.tag: "release-1.3.x"
+      biosdk.zippedLibUrl: "http://artifactory.artifactory/artifactory/libs-release-local/biosdk/biosdk-lib.zip"
+      biosdk.bioapiImpl: "io.mosip.mock.sdk.impl.SampleSDKV2"
+    priority: -10
+    timeout: 1200
+
+  
+  packetmanager:
+    namespace: packetmanager
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/packetmanager
+    set:
+      image.repository: "mosipdev/commons-packet-service"
+      image.tag: "release-1.3.x"
+    priority: -10
+    timeout: 1200
+
+
+  datashare:
+    namespace: datashare
+    enabled: true
+    version: 1.3.0-beta.2
+    chart: mosip/datashare
+    set:
+      image.repository: "mosipdev/data-share-service"
+      image.tag: "release-1.3.x"
+    priority: -10
+    timeout: 1200
+
+  prereg-gateway:
+    namespace: prereg
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/prereg-gateway
+    set:
+      istio.hosts[0]: "prereg.dev.mosip.net"
+    priority: -9
+    timeout: 1200
+
+  prereg-captcha:
+    namespace: prereg
+    enabled: false
+    version: 12.0.1
+    chart: mosip/prereg-captcha
+    set:
+      image.repository: "mosipid/pre-registration-captcha-service"
+      image.tag: "1.2.0.2"
+    priority: -9
+    timeout: 1200
+
+  prereg-application:
+    namespace: prereg
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/prereg-application
+    set:
+      image.repository: "mosipdev/pre-registration-application-service"
+      image.tag: "release-1.3.x"
+    priority: -9
+    timeout: 1200
+
+
+  prereg-booking:
+    namespace: prereg
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/prereg-booking
+    set:
+      image.repository: "mosipdev/pre-registration-booking-service"
+      image.tag: "release-1.3.x"
+    priority: -9
+    timeout: 1200
+
+  prereg-datasync:
+    namespace: prereg
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/prereg-datasync
+    set:
+      image.repository: "mosipdev/pre-registration-datasync-service"
+      image.tag: "release-1.3.x"
+    priority: -9
+    timeout: 1200
+
+
+  prereg-batchjob:
+    namespace: prereg
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/prereg-batchjob
+    set:
+      image.repository: "mosipdev/pre-registration-batchjob"
+      image.tag: "release-1.3.x"
+    priority: -9
+    timeout: 1200
+
+
+
+  prereg-ui:
+    namespace: prereg
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/prereg-ui
+    set:
+      image.repository: "mosipid/pre-registration-ui"
+      image.tag: "1.3.0-beta.1"
+      prereg.apiHost: "prereg.dev.mosip.net"
+    priority: -9
+    timeout: 1200
+
+
+  idrepo-saltgen:
+    namespace: idrepo
+    enabled: true
+    version: 0.0.1-develop
+    chart: mosip/idrepo-saltgen
+    set:
+      image.repository: "mosipdev/id-repository-salt-generator"
+      image.tag: "release-1.3.x"
+    #timeout: 240
+    priority: -9
+    timeout: 1200
+
+
+  credential:
+    namespace: idrepo
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/credential
+    set:
+      image.repository: "mosipdev/credential-service"
+      image.tag: "release-1.3.x"
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "3000Mi"
+      resources.requests.cpu: "200m"
+      resources.requests.memory: "2000Mi"
+    priority: -8
+    timeout: 1200
+
+  credentialrequest:
+    namespace: idrepo
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/credentialrequest
+    set:
+      image.repository: "mosipdev/credential-request-generator"
+      image.tag: "release-1.3.x"
+      resources.limits.cpu: "1"
+      resources.limits.memory: "4000Mi"
+      resources.requests.cpu: "1"
+      resources.requests.memory: "3000Mi"
+    priority: -7
+    timeout: 1200
+  
+
+  identity:
+    namespace: idrepo
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/identity
+    set:
+      image.repository: "mosipdev/id-repository-identity-service"
+      image.tag: "release-1.3.x"
+    priority: -7
+    timeout: 1200
+
+  vid:
+    namespace: idrepo
+    enabled: true
+    version: 12.2.3
+    chart: mosip/vid
+    set:
+      image.repository: "mosipdev/id-repository-vid-service"
+      image.tag: "release-1.3.x"
+    priority: -6
+    timeout: 1200
+
+  # pms-keycloak-init:
+  #   namespace: pms
+  #   enabled: false
+  #   version: 0.0.1-develop
+  #   chart: mosip/keycloak-init
+  #   set:
+  #     # image.repository: ""
+  #     # image.tag: ""
+  #   priority: -8
+  #   timeout: 1200
+  #   hooks:
+  #     preInstall: "$WORKDIR/hooks/pms-keycloak-init.sh" 
+
+
+  pms-partner:
+    namespace: pms
+    enabled: true
+    version: 12.0.1
+    chart: mosip/pms-partner
+    set:
+      image.repository: "mosipid/partner-management-service"
+      image.tag: "1.2.2.2"
+      istio.corsPolicy.allowOrigins[0].prefix: "https://pmp.dev.mosip.net"
+    priority: -9
+    timeout: 1200
+
+
+  pms-policy:
+    namespace: pms
+    enabled: true
+    version: 12.0.1
+    chart: mosip/pms-policy
+    set:
+      image.repository: "mosipid/policy-management-service"
+      image.tag: "1.2.2.2"
+      istio.corsPolicy.allowOrigins[0].prefix: "https://pmp.dev.mosip.net"
+    priority: -9
+    timeout: 1200
+
+
+  pmp-ui:
+    namespace: pms
+    enabled: true
+    version: 12.0.1
+    chart: mosip/pmp-ui
+    set:
+      image.repository: "mosipid/pmp-ui"
+      image.tag: "1.2.0.1"
+      pmp.apiUrl: "https://api-internal.dev.mosip.net/"
+      istio.hosts[0]: "pmp.dev.mosip.net"
+    priority: -9
+    timeout: 1200
+
+
+  pmp-revamp-ui:
+    namespace: pms
+    enabled: false
+    version: 12.2.2
+    chart: mosip/pmp-revamp-ui
+    set:
+      # image.repository: "mosipqa/pmp-revamp-ui"
+      # image.tag: "develop"
+      pmp_revamp.react_app_partner_manager_api_base_url: "https://api-internal.dev.mosip.net/v1/partnermanager"
+      pmp_revamp.react_app_policy_manager_api_base_url: "https://api-internal.dev.mosip.net/v1/policymanager"
+      pmp_revamp.pms_partner_manager_internal_service_url: "http://pms-partner.pms/v1/partnermanager"
+      pmp_revamp.pms_policy_manager_internal_service_url: "http://pms-policy.pms/v1/policymanager"
+      istio.hosts[0]: "pmp.dev.mosip.net"
+    priority: -9
+    timeout: 1200
+
+  regproc-salt:
+    namespace: regproc
+    enabled: true
+    version: 1.3.0-beta.3-develop
+    chart: mosip/regproc-salt
+    set:
+      image.repository: "mosipdev/kernel-salt-generator"
+      image.tag: "release-1.3.x"
+    priority: -9
+    timeout: 1200
+
+  
+  regproc-workflow:
+    namespace: regproc
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/regproc-workflow
+    set:
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "3000Mi"
+      resources.requests.cpu: "200m"
+      resources.requests.memory: "1000Mi"
+      livenessProbe.periodSeconds: "30"
+      image.repository: "mosipdev/registration-processor-workflow-manager-service"
+      image.tag: "release-1.3.x"
+    priority: -8
+    timeout: 1200
+    hooks:
+      preInstall: "$WORKDIR/hooks/wait-for-regprocjob.sh"
+
+  regproc-status:
+    namespace: regproc
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/regproc-status
+    set:
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "4000Mi"
+      resources.requests.cpu: "100m"
+      resources.requests.memory: "1000Mi"
+      livenessProbe.periodSeconds: "30"
+      image.repository: "mosipdev/registration-processor-registration-status-service"
+      image.tag: "release-1.3.x"
+    timeout: 1200
+    priority: -7
+
+  regproc-camel:
+    namespace: regproc
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/regproc-camel
+    set:
+      resources.limits.cpu: "1"
+      resources.limits.memory: "2000Mi"
+      resources.requests.cpu: "100m"
+      resources.requests.memory: "1500Mi"
+      livenessProbe.periodSeconds: "30"
+      image.repository: "mosipdev/registration-processor-common-camel-bridge"
+      image.tag: "release-1.3.x"
+    timeout: 1200
+    priority: -7
+
+  regproc-pktserver:
+    namespace: regproc
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/regproc-pktserver
+    set:
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "1250Mi"
+      resources.requests.cpu: "500m"
+      resources.requests.memory: "1000Mi"
+      livenessProbe.periodSeconds: "30"
+      image.repository: "mosipdev/registration-processor-dmz-packet-server"
+      image.tag: "release-1.3.x"
+    timeout: 1200
+    priority: -7
+
+  regproc-group1:
+    namespace: regproc
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/regproc-group1
+    set:
+      resources.limits.cpu: "1"
+      resources.limits.memory: "5000Mi"
+      resources.requests.cpu: "100m"
+      resources.requests.memory: "1000Mi"
+      persistence.storageClass: nfs-csi
+      persistence.size: 5Gi
+      livenessProbe.periodSeconds: "30"
+      image.repository: "mosipdev/registration-processor-stage-group-1"
+      image.tag: "release-1.3.x"
+    timeout: 1200
+    priority: -7
+
+  regproc-group2:
+    namespace: regproc
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/regproc-group2
+    set:
+      image.repository: "mosipdev/registration-processor-stage-group-2"
+      image.tag: "release-1.3.x"
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "4000Mi"
+      resources.requests.cpu: "500m"
+      resources.requests.memory: "4000Mi"
+      startupProbe.failureThreshold: 60
+      livenessProbe.periodSeconds: "30"
+    timeout: 1200
+    priority: -6
+
+  regproc-group3:
+    namespace: regproc
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/regproc-group3
+    set:
+      image.repository: "mosipdev/registration-processor-stage-group-3"
+      image.tag: "release-1.3.x"
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "3000Mi"
+      resources.requests.cpu: "500m"
+      resources.requests.memory: "3000Mi"
+      livenessProbe.periodSeconds: "30"
+    timeout: 1200
+    priority: -6
+
+  regproc-group4:
+    namespace: regproc
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/regproc-group4
+    set:
+      image.repository: "mosipdev/registration-processor-stage-group-4"
+      image.tag: "release-1.3.x"
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "4000Mi"
+      resources.requests.cpu: "500m"
+      resources.requests.memory: "3000Mi"
+      livenessProbe.periodSeconds: "30"
+    timeout: 1200
+    priority: -6
+
+  regproc-group5:
+    namespace: regproc
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/regproc-group5
+    set:
+      image.repository: "mosipdev/registration-processor-stage-group-5"
+      image.tag: "release-1.3.x"
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "4000Mi"
+      resources.requests.cpu: "500m"
+      resources.requests.memory: "3000Mi"
+      livenessProbe.periodSeconds: "30"
+    timeout: 1200
+    priority: -6
+
+  regproc-group6:
+    namespace: regproc
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/regproc-group6
+    set:
+      image.repository: "mosipdev/registration-processor-stage-group-6"
+      image.tag: "release-1.3.x"
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "4000Mi"
+      resources.requests.cpu: "500m"
+      resources.requests.memory: "3000Mi"
+      livenessProbe.periodSeconds: "30"
+    timeout: 1200
+    priority: -6
+
+  regproc-group7:
+    namespace: regproc
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/regproc-group7
+    set:
+      image.repository: "mosipdev/registration-processor-stage-group-8"
+      image.tag: "release-1.3.x"
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "4000Mi"
+      resources.requests.cpu: "500m"
+      resources.requests.memory: "3000Mi"
+      livenessProbe.periodSeconds: "30"
+    timeout: 1200
+    priority: -6
+
+  regproc-trans:
+    namespace: regproc
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/regproc-trans
+    set:
+      image.repository: "mosipdev/registration-processor-registration-transaction-service"
+      image.tag: "release-1.3.x"
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "2500Mi"
+      resources.requests.cpu: "100m"
+      resources.requests.memory: "1000Mi"
+      livenessProbe.periodSeconds: "30"
+    timeout: 1200
+    priority: -6
+
+  regproc-notifier:
+    namespace: regproc
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/regproc-notifier
+    set:
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "1500Mi"
+      resources.requests.cpu: "500m"
+      resources.requests.memory: "1500Mi"
+      livenessProbe.periodSeconds: "30"
+      image.repository: "mosipdev/registration-processor-notification-service"
+      image.tag: "release-1.3.x"
+    timeout: 1200
+    priority: -6
+
+  regproc-reprocess:
+    namespace: regproc
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/regproc-reprocess
+    set:
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "2500Mi"
+      resources.requests.cpu: "100m"
+      resources.requests.memory: "1000Mi"
+      livenessProbe.periodSeconds: "30"
+      image.repository: "mosipdev/registration-processor-reprocessor"
+      image.tag: "release-1.3.x"
+    timeout: 1200
+    priority: -6
+
+  regproc-landingzone:
+    namespace: regproc
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/regproc-landingzone
+    set:
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "4000Mi"
+      resources.requests.cpu: "100m"
+      resources.requests.memory: "1000Mi"
+      livenessProbe.periodSeconds: "30"
+      image.repository: "mosipdev/registration-processor-landing-zone"
+      image.tag: "release-1.3.x"
+    timeout: 1200
+    priority: -6
+
+  admin-hotlist:
+    namespace: admin
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/admin-hotlist
+    set:
+      image.repository: "mosipdev/hotlist-service"
+      image.tag: "release-1.3.x"
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "1500Mi"
+      resources.requests.cpu: "300m"
+      resources.requests.memory: "1500Mi"
+      startupProbe.failureThreshold: 60
+    timeout: 1200
+    priority: -9
+
+  admin-service:
+    namespace: admin
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/admin-service
+    set:
+      image.repository: "mosipdev/admin-service"
+      image.tag: "release-1.3.x"
+      resources.limits.cpu: "700m"
+      resources.limits.memory: "3000Mi"
+      resources.requests.cpu: "500m"
+      resources.requests.memory: "2000Mi"
+      istio.corsPolicy.allowOrigins[0].prefix: "https://admin.dev.mosip.net"
+      startupProbe.failureThreshold: 60
+    timeout: 1200
+    priority: -9
+
+
+  admin-ui:
+    namespace: admin
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/admin-ui
+    set:
+      image.repository: "mosipqa/admin-ui"
+      image.tag: "1.3.x"
+      admin.apiUrl: "https://api-internal.dev.mosip.net/v1/"
+      istio.hosts[0]: "admin.dev.mosip.net"
+    timeout: 1200
+    priority: -9
+
+
+  ida-keygen:
+    namespace: ida
+    enabled: true
+    version: 1.3.0-beta.4-develop
+    chart: mosip/keygen
+    set:
+      image.repository: "mosipdev/keys-generator"
+      image.tag: "release-1.3.x"
+      springConfigNameEnv: "id-authentication" 
+      softHsmCM: "softhsm-ida-share"
+      # persistence.enabled: false
+      # volumePermissions.enabled: false
+      # persistence.size: <volume_size>
+      # persistence.mountDir: "<volume_mount_path>"
+      # persistence.pvc_claim_name: "<PVC_CLAIM_NAME>"
+    timeout: 1200
+    priority: -9
+
+
+  ida-auth:
+    namespace: ida
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/ida-auth
+    set:
+      image.repository: "mosipdev/authentication-service"
+      image.tag: "release-1.3.x"
+      # enable_insecure: "false"
+      # persistence.enabled: "false"
+      # volumePermissions.enabled: "false"
+      # persistence.mountDir: "<volume_mount_path>"
+      # persistence.existingClaim: "<PVC_CLAIM_NAME>"
+    timeout: 1200
+    priority: -8
+    hooks:
+      preInstall: "$WORKDIR/hooks/wait-for-idajob.sh"
+
+  ida-internal:
+    namespace: ida
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/ida-internal
+    set:
+      image.repository: "mosipdev/authentication-internal-service"
+      image.tag: "release-1.3.x"
+      # enable_insecure: "false"
+      # persistence.enabled: "false"
+      # volumePermissions.enabled: "false"
+      # persistence.mountDir: "<volume_mount_path>"
+      # persistence.existingClaim: "<PVC_CLAIM_NAME>"
+    timeout: 1200
+    priority: -7
+
+  ida-otp:
+    namespace: ida
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/ida-otp
+    set:
+      image.repository: "mosipdev/authentication-otp-service"
+      image.tag: "release-1.3.x"
+      # enable_insecure: false
+      # persistence.enabled: false
+      # volumePermissions.enabled: false
+      # persistence.mountDir: "<volume_mount_path>"
+      # persistence.existingClaim: "<PVC_CLAIM_NAME>"
+    timeout: 1200
+    priority: -6
+
+  print-service:
+    namespace: print
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/print-service
+    set:
+      image.repository: "mosipdev/print"
+      image.tag: "release-1.3.x"
+    timeout: 1200
+    priority: -5
+
+
+  digitalcard:
+    namespace: digitalcard
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/digitalcard
+    set:
+      image.repository: "mosipdev/digital-card-service"
+      image.tag: "release-1.3.x"
+    timeout: 1200
+    priority: -5
+
+
+  resident:
+    namespace: resident
+    enabled: true
+    version: 1.3.0-beta.1
+    chart: mosip/resident
+    set:
+      image.repository: "mosipdev/resident-service"
+      image.tag: "release-1.3.x"
+      resources.requests.cpu: "300m"
+      resources.requests.memory: "2000Mi"
+      startupProbe.failureThreshold: "60"
+      istio.corsPolicy.allowOrigins[0].prefix: "https://resident.dev.mosip.net"
+    timeout: 1200
+    wait: true
+    priority: -4
+    hooks:
+      preInstall: "$WORKDIR/hooks/resident-setup.sh"
+
+  resident-ui:
+    namespace: resident
+    enabled: true
+    version: 0.9.1
+    chart: mosip/resident-ui
+    set:
+      # image.repository: "mosipdev2/resident-ui"
+      # image.tag: "release-0.9.x"
+      resident.apiHost: "api-internal.dev.mosip.net"
+      istio.hosts[0]: "resident.dev.mosip.net"
+    wait: true
+    timeout: 1200
+    priority: -3
+
+  partner-onboarder:
+    namespace: onboarder
+    enabled: true
+    version: 12.0.2
+    chart: mosip/partner-onboarder
+    set:
+      image.repository: "mosipqa/partner-onboarder"
+      image.tag: "develop"
+      # onboarding.configmaps.onboarding.enable_insecure: "false"
+      # onboarding.variables.push_reports_to_s3: "true" 
+      onboarding.configmaps.s3.s3-host: "http://minio.minio:9000" 
+      onboarding.configmaps.s3.s3-user-key: "admin" 
+      onboarding.configmaps.s3.s3-region: ""
+      onboarding.configmaps.s3.s3-bucket-name: "onboarder"
+      #onboarding.secrets.s3.s3-user-secret: "password"
+      # onboarding.volumes.reports.nfs.server: "<nfs_server>"
+      # # provide NFS directory to store reports from NFS server (e.g. /srv/nfs/dev/onboarder/), make sure permission is 777 for the folder: " nfs_path
+      # onboarding.volumes.reports.nfs.path: "<nfs_path>"
+      extraEnvVarsCM[0]: "global"
+      extraEnvVarsCM[1]: "keycloak-env-vars"
+      extraEnvVarsCM[2]: "keycloak-host"
+      onboarding.modules[0].name: "ida"
+      onboarding.modules[0].enabled: false
+      onboarding.modules[1].name: "print"
+      onboarding.modules[1].enabled: true
+      onboarding.modules[2].name: "abis"
+      onboarding.modules[2].enabled: true
+      onboarding.modules[3].name: "resident"
+      onboarding.modules[3].enabled: true
+      onboarding.modules[4].name: "mobileid"
+      onboarding.modules[4].enabled: true
+      onboarding.modules[5].name: "digitalcard"
+      onboarding.modules[5].enabled: false
+      onboarding.modules[6].name: "esignet"
+      onboarding.modules[6].enabled: false
+      onboarding.modules[7].name: "demo-oidc"
+      onboarding.modules[7].enabled: false
+      onboarding.modules[8].name: "resident-oidc"
+      onboarding.modules[8].enabled: false
+      onboarding.modules[9].name: "mimoto-keybinding"
+      onboarding.modules[9].enabled: false
+    wait: true
+    timeout: 1200
+    priority: -2
+    hooks:
+      preInstall: "$WORKDIR/hooks/partner-onboarder-setup.sh"
+  
+  mosip-file-server:
+    namespace: mosip-file-server
+    enabled: true
+    version: 0.0.1-develop
+    chart: mosip/mosip-file-server
+    set:
+      image.repository: "mosipqa/mosip-file-server"
+      image.tag: "develop"
+      mosipfileserver.host: "api.dev.mosip.net"
+      # mosipfileserver.secrets.KEYCLOAK_CLIENT_SECRET: ""
+      istio.corsPolicy.allowOrigins[0].prefix: "https://api.dev.mosip.net"
+      istio.corsPolicy.allowOrigins[1].prefix: "https://api-internal.dev.mosip.net"
+      istio.corsPolicy.allowOrigins[2].prefix: "https://verifiablecredential.io"
+    priority: -1
+    timeout: 1200
+  
+  regclient:
+    namespace: regclient
+    enabled: true
+    version: 1.3.0-beta.2-develop
+    chart: mosip/regclient
+    set:
+      startupProbe.failureThreshold: "60"
+      image.repository: "mosipdev2/registration-client"
+      image.tag: "release-1.3.x"
+      regclient.version: "1.3.0-SNAPSHOT"
+      regclient.upgradeServerUrl: "https://regclient.dev.mosip.net"
+      regclient.healthCheckUrl: "https://api-internal.dev.mosip.net/v1/syncdata/actuator/health"
+      regclient.hostName: "api-internal.dev.mosip.net"
+      istio.host: "regclient.dev.mosip.net"
+    priority: -1
+    timeout: 1200
