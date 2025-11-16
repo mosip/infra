@@ -404,7 +404,7 @@ apps:
     chart: mosip/landing-page
     set:
       landing.version: "develop"
-      landing.name: "dev"
+      landing.name: "qajava21"
       landing.api: "api.qajava21.mosip.net"
       landing.apiInternal: "api-internal.qajava21.mosip.net"
       landing.admin: "admin.qajava21.mosip.net"
