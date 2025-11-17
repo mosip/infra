@@ -1107,8 +1107,8 @@ apps:
     version: 1.3.0-develop
     chart: mosip/mosip-file-server
     set:
-      image.repository: "mosipqa/mosip-file-server"
-      image.tag: "develop"
+      # image.repository: "mosipqa/mosip-file-server"
+      # image.tag: "develop"
       mosipfileserver.host: "api.qajava21.mosip.net"
       # mosipfileserver.secrets.KEYCLOAK_CLIENT_SECRET: ""
       istio.corsPolicy.allowOrigins[0].prefix: "https://api.qajava21.mosip.net"
@@ -1124,8 +1124,8 @@ apps:
     chart: mosip/regclient
     set:
       startupProbe.failureThreshold: "60"
-      image.repository: "mosipdev2/registration-client"
-      image.tag: "release-1.3.x"
+      # image.repository: "mosipdev2/registration-client"
+      # image.tag: "release-1.3.x"
       regclient.version: "1.3.0-SNAPSHOT"
       regclient.upgradeServerUrl: "https://regclient.qajava21.mosip.net"
       regclient.healthCheckUrl: "https://api-internal.qajava21.mosip.net/v1/syncdata/actuator/health"
