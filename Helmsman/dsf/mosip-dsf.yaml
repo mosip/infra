@@ -216,7 +216,7 @@ apps:
     enabled: true
     version: 1.0.0
     chart: mosip/mock-smtp
-    # set:
+    set:
       # image.repository: "mosipdev/mock-smtp"
       # image.tag: "1.0.0"
       istio.hosts[0]: "smtp.qajava21.mosip.net"
