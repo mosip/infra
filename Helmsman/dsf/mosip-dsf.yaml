@@ -216,7 +216,7 @@ apps:
     enabled: true
     version: 1.0.0
     chart: mosip/mock-smtp
-    # set:
+    set:
       # image.repository: "mosipdev/mock-smtp"
       # image.tag: "1.0.0"
       istio.hosts[0]: "smtp.qajava21.mosip.net"
@@ -407,10 +407,12 @@ apps:
   prereg-gateway:
     namespace: prereg
     enabled: true
-    version: 1.3.0-develop
-    chart: mosip/prereg-gateway
+    version: 1.0.0-develop
+    chart: mosip/istio-addons
     set:
-      istio.hosts[0]: "prereg.qajava21.mosip.net"
+      istio.name: "prereg-gateway"
+      istio.ingressController: "ingressgateway" 
+      istio.hosts: "prereg.qajava21.mosip.net"
     priority: -9
     timeout: 1200
 
