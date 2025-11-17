@@ -104,14 +104,14 @@ apps:
   captcha:
     namespace: captcha
     enabled: true
-    version: 1.3.0-develop
+    version: 0.1.0-develop
     chart: mosip/captcha
     set:
       # image.repository: "mosipdev/captcha-validation-service"
       # image.tag: "develop"
-      extraEnvVars[0].name: MOSIP_CAPTCHA_SECRET_PREREGISTRATION
-      extraEnvVars[0].valueFrom.secretKeyRef.name: mosip-captcha
-      extraEnvVars[0].valueFrom.secretKeyRef.key: prereg-captcha-secret-key
+      # extraEnvVars[0].name: MOSIP_CAPTCHA_SECRET_PREREGISTRATION
+      # extraEnvVars[0].valueFrom.secretKeyRef.name: mosip-captcha
+      # extraEnvVars[0].valueFrom.secretKeyRef.key: prereg-captcha-secret-key
     priority: -25
     timeout: 1200
     hooks:
