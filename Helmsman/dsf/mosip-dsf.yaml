@@ -412,7 +412,7 @@ apps:
     set:
       istio.name: "prereg-gateway"
       istio.ingressController: "ingressgateway" 
-      istio.hosts: "prereg.qajava21.mosip.net"
+      istio.host: "prereg.qajava21.mosip.net"
     priority: -9
     timeout: 1200
 
