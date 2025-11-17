@@ -72,8 +72,8 @@ apps:
     version: 1.3.0-develop
     chart: mosip/config-server
     set:
-      image.repository: "mosipdev/kernel-config-server"
-      image.tag: "release-1.3.x"
+      # image.repository: "mosipdev/kernel-config-server"
+      # image.tag: "release-1.3.x"
     valuesFile: "$WORKDIR/utils/config-server-values.yaml"
     wait: true
     timeout: 1200
@@ -86,9 +86,9 @@ apps:
     enabled: true
     version: 1.3.0-develop
     chart: mosip/artifactory
-    set:
-      image.repository: "mosipdev/artifactory-server"
-      image.tag: "release-1.3.x"
+    # set:
+    #   image.repository: "mosipdev/artifactory-server"
+    #   image.tag: "release-1.3.x"
     wait: true
     timeout: 1200
     priority: -26
@@ -106,7 +106,7 @@ apps:
     enabled: true
     version: 0.1.0-develop
     chart: mosip/captcha
-    set:
+    # set:
       # image.repository: "mosipdev/captcha-validation-service"
       # image.tag: "develop"
       # extraEnvVars[0].name: MOSIP_CAPTCHA_SECRET_PREREGISTRATION
@@ -123,10 +123,10 @@ apps:
     enabled: true
     version: 1.3.0-develop
     chart: mosip/mock-abis
-    set:
-      image.repository: "mosipdev/mock-abis"
-      image.tag: "release-1.3.x"
-      startupProbe.failureThreshold: 60
+    # set:
+    #   image.repository: "mosipdev/mock-abis"
+    #   image.tag: "release-1.3.x"
+    #   startupProbe.failureThreshold: 60
     #   image.repository: ""
     #   image.tag: ""
     timeout: 1200
@@ -138,11 +138,11 @@ apps:
     enabled: true
     version: 1.3.0-develop
     chart: mosip/mock-mv
-    set:
-      image.repository: "mosipdev/mock-mv"
-      image.tag: "release-1.3.x"
-      resources.requests.cpu: 200m
-      resources.requests.memory: 1500Mi
+    # set:
+    #   image.repository: "mosipdev/mock-mv"
+    #   image.tag: "release-1.3.x"
+    #   resources.requests.cpu: 200m
+    #   resources.requests.memory: 1500Mi
     #   image.repository: ""
     #   image.tag: ""
     timeout: 1200
@@ -247,7 +247,7 @@ apps:
     enabled: true
     version: 1.3.0-develop
     chart: mosip/authmanager
-    set:
+    # set:
       # image.repository: "gokulraj13/kernel-auth-service"
       # image.tag: "MOSIP-test"
     priority: -17
@@ -259,7 +259,7 @@ apps:
     enabled: true
     version: 1.3.0-develop
     chart: mosip/auditmanager
-    set:
+    # set:
       # image.repository: "mosipdev/kernel-auditmanager-service"
       # image.tag: "release-1.3.x"
     priority: -16
@@ -271,7 +271,7 @@ apps:
     enabled: true
     version: 1.3.0-develop
     chart: mosip/idgenerator
-    set:
+    # set:
       # image.repository: "mosipdev/kernel-idgenerator-service"
       # image.tag: "release-1.3.x"
       # resources.limits.cpu: "1"
@@ -307,7 +307,7 @@ apps:
     enabled: true
     version: 1.3.0-develop
     chart: mosip/otpmanager
-    set:
+    # set:
       # image.repository: "mosipdev/kernel-otpmanager-service"
       # image.tag: "release-1.3.x"
     priority: -13
@@ -319,7 +319,7 @@ apps:
     enabled: true
     version: 1.3.0-develop
     chart: mosip/pridgenerator
-    set:
+    # set:
       # image.repository: "mosipdev/kernel-pridgenerator-service"
       # image.tag: "release-1.3.x"
     priority: -12
@@ -331,7 +331,7 @@ apps:
     enabled: true
     version: 1.3.0-develop
     chart: mosip/ridgenerator
-    set:
+    # set:
       # image.repository: "mosipdev/kernel-ridgenerator-service"
       # image.tag: "release-1.3.x"
     priority: -11
@@ -343,7 +343,7 @@ apps:
     enabled: true
     version: 1.3.0-develop
     chart: mosip/syncdata
-    set:
+    # set:
       # image.repository: "mosipdev/kernel-syncdata-service"
       # image.tag: "release-1.3.x"
       # resources.limits.cpu: "500m"
@@ -360,7 +360,7 @@ apps:
     enabled: true
     version: 1.3.0-develop
     chart: mosip/notifier
-    set:
+    # set:
       # image.repository: "mosipdev/kernel-notification-service"
       # image.tag: "release-1.3.x"
     priority: -10
