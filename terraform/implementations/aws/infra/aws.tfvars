@@ -40,18 +40,18 @@ nginx_node_ebs_volume_size_2 = 200 # Enable second EBS volume for PostgreSQL tes
 k8s_instance_root_volume_size = 64
 
 # Control-plane, ETCD, Worker
-k8s_control_plane_node_count = 3
+k8s_control_plane_node_count = 1
 # ETCD, Worker
-k8s_etcd_node_count = 2
+k8s_etcd_node_count = 1
 # Worker
-k8s_worker_node_count = 2
+k8s_worker_node_count = 1
 
 # RKE2 Version Configuration
 rke2_version = "v1.28.9+rke2r1"
 
 # Security group CIDRs
-network_cidr   = "10.0.0.0/8" # Use your actual VPC CIDR
-WIREGUARD_CIDR = "10.0.0.0/8" # Use your actual WireGuard VPN CIDR
+network_cidr   = "172.32.0.0/8" # Use your actual VPC CIDR
+WIREGUARD_CIDR = "172.32.0.0/8" # Use your actual WireGuard VPN CIDR
 
 
 # Rancher Import URL
@@ -76,5 +76,5 @@ mosip_infra_branch = "testgrid"
 
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
-vpc_name = "mosip-boxes"
+vpc_name = "Default"
 
