@@ -76,5 +76,5 @@ mosip_infra_branch = "testgrid"
 
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
-vpc_name = "Default"
+vpc_name = "default"
 
