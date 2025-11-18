@@ -50,8 +50,8 @@ k8s_worker_node_count = 1
 rke2_version = "v1.28.9+rke2r1"
 
 # Security group CIDRs
-network_cidr   = "172.32.0.0/8" # Use your actual VPC CIDR
-WIREGUARD_CIDR = "172.32.0.0/8" # Use your actual WireGuard VPN CIDR
+network_cidr   = "172.0.0.0/8" # Use your actual VPC CIDR
+WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 
 
 # Rancher Import URL
