@@ -300,7 +300,7 @@ apps:
     timeout: 1200
     priority: -8
     hooks:
-      postInstall: "$WORKDIR/hooks/captcha-setup.sh  <prereg-site-key> <prereg-secret-key> <admin-site-key> <admin-secret-key> <resident-site-key> <resident-secret-key"
+      postInstall: "$WORKDIR/hooks/captcha-setup.sh 6LcyphEsAAAAAMHeQC_RhxOXmP9H_3fQJFzy8DQY 6LcyphEsAAAAAIPIBsYsN8A2MPQZy0S_VB0fBkJH 6LcYpxEsAAAAAFFjkRZ_5BhAW3-m13GB0Ga_SM7M 6LcYpxEsAAAAAFBcNJT_HS2vmrwmLJG_kE7xVTxp 6LcrpxEsAAAAAMgvjijyznbkYm7ibCUxwQJYGANb 6LcrpxEsAAAAAEFhD8Fgr4VmZnlqR_p03SXS8T98"
   # Note: Create a google recaptcha v2 ("I am not a Robot") from Google Recaptcha Admin.
   # Pass the captcha site and secret key in the above post install script as an argument.To create site and secret key below is the link:
   # https://cloud.google.com/security/products/recaptcha
