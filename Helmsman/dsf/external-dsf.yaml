@@ -114,7 +114,7 @@ apps:
       databases.mosip_regprc.port: 5433
 
       databases.mosip_pms.enabled: "true"
-      databases.mosip_pms.branch: "v1.3.0-beta.2"
+      databases.mosip_pms.branch: "release-1.2.2.x"
       databases.mosip_pms.host: "postgres.dev2.mosip.net"
       databases.mosip_pms.port: 5433
 
