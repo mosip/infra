@@ -1,13 +1,13 @@
 ---
 all:
   vars:
-    cluster_name: "soil41"
+    cluster_name: "dev2"
     cluster_env_domain: "mosip.local"
     k8s_infra_repo_url: "https://github.com/mosip/k8s-infra.git"
-    k8s_infra_branch: "MOSIP-42914"
+    k8s_infra_branch: "v1.2.1.0"
     install_rke2_version: "v1.28.9+rke2r1"
     enable_rancher_import: true
-    rancher_import_url: "kubectl apply -f https://rancher.observation.mosip.net/v3/import/b94jcxqdddb9k9p7rj4kzf4c7xkkqnvrz886wx9pf44btvwjs5bnzt_c-m-flzdgnth.yaml"
+    rancher_import_url: "kubectl apply -f https://rancher.mosip.net/v3/import/z4vbg6p5p5m7psdst7vj8z6pn6lxklmv9mxh4k5x2jghv2ss888t7p_c-m-9wh9m4nr.yaml"
     ansible_user: ubuntu
     ansible_ssh_private_key_file: ./ssh_key
     ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
@@ -15,41 +15,41 @@ all:
   children:
     control_plane:
       hosts:
-        soil41-CONTROL-PLANE-NODE-1:
-          ansible_host: 10.0.3.55
+        dev2-CONTROL-PLANE-NODE-1:
+          ansible_host: 172.31.79.12
           node_role: control_plane
           is_primary: true
           node_index: 0
-        soil41-CONTROL-PLANE-NODE-2:
-          ansible_host: 10.0.4.143
+        dev2-CONTROL-PLANE-NODE-2:
+          ansible_host: 172.31.75.46
           node_role: control_plane
           is_primary: false
           node_index: 1
-        soil41-CONTROL-PLANE-NODE-3:
-          ansible_host: 10.0.3.164
+        dev2-CONTROL-PLANE-NODE-3:
+          ansible_host: 172.31.74.193
           node_role: control_plane
           is_primary: false
           node_index: 2
     
     etcd:
       hosts:
-        soil41-ETCD-NODE-1:
-          ansible_host: 10.0.3.130
+        dev2-ETCD-NODE-1:
+          ansible_host: 172.31.65.75
           node_role: etcd
-        soil41-ETCD-NODE-2:
-          ansible_host: 10.0.4.209
+        dev2-ETCD-NODE-2:
+          ansible_host: 172.31.74.228
           node_role: etcd
-        soil41-ETCD-NODE-3:
-          ansible_host: 10.0.3.136
+        dev2-ETCD-NODE-3:
+          ansible_host: 172.31.68.206
           node_role: etcd
     
     workers:
       hosts:
-        soil41-WORKER-NODE-1:
-          ansible_host: 10.0.3.101
+        dev2-WORKER-NODE-1:
+          ansible_host: 172.31.64.154
           node_role: worker
-        soil41-WORKER-NODE-2:
-          ansible_host: 10.0.4.41
+        dev2-WORKER-NODE-2:
+          ansible_host: 172.31.67.243
           node_role: worker
 
     rke2_cluster:
