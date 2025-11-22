@@ -290,11 +290,11 @@ apps:
   activemq:
     namespace: activemq
     enabled: true
-    version: 0.0.2
+    version: 0.0.3
     chart: mosip/activemq-artemis
     set:
-      image.repository: "mosipqa/activemq-artemis"
-      image.tag: "1.1.5"
+      # image.repository: "mosipqa/activemq-artemis"
+      # image.tag: "1.1.5"
       persistence.storageClass: "nfs-csi-activemq"
       istio.enabled: "true"
       istio.hosts[0]: "activemq.qajava21.mosip.net"
