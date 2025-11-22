@@ -7,8 +7,12 @@
 ISTIO_NS=istio-system
 HTTPBIN_NS=httpbin
 
-export ENV="${1:-sandbox}"
+# Use the full domain as ENV
+export ENV="${1:-sandbox.xyz.net}"
 export VERSION="${2:-develop}"
+
+echo "Full domain (ENV): $ENV"
+echo "Version: $VERSION"
 
 # Function to wait for deployment to exist and be ready
 wait_for_deployment() {
