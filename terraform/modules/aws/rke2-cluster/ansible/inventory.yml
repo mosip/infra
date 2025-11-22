@@ -57,6 +57,9 @@ all:
         qajava21-WORKER-NODE-4:
           ansible_host: 10.0.4.67
           node_role: worker
+        qajava21-WORKER-NODE-5:
+          ansible_host: 10.0.4.176
+          node_role: worker
 
     rke2_cluster:
       children:
