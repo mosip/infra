@@ -1,0 +1,217 @@
+name: Destroy Kubernetes Resources (Reusable)
+
+on:
+  workflow_call:
+    inputs:
+      namespace_selection:
+        description: "Namespace selection mode (all or specific)"
+        required: true
+        type: string
+      specific_namespaces:
+        description: "Comma-separated list of specific namespaces"
+        required: false
+        type: string
+      all_namespaces:
+        description: "Space-separated list of all namespaces for this deployment type"
+        required: true
+        type: string
+      dsf_label:
+        description: "DSF label to remove from default namespace (e.g., mosip-dsf, testrigs-dsf)"
+        required: true
+        type: string
+      wireguard_secret_name:
+        description: "Name of the WireGuard secret to use (e.g., CLUSTER_WIREGUARD_WG0)"
+        required: true
+        type: string
+      deployment_type:
+        description: "Type of deployment (e.g., MOSIP, Testrigs)"
+        required: true
+        type: string
+
+jobs:
+  destroy:
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.ref_name }}
+    env:
+      KUBECONFIG: ${{ github.workspace }}/.kube/config
+      PATH: ${{ github.workspace }}/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+      KUBECTL_PATH: ${{ github.workspace }}/.local/bin/kubectl
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl and kubeconfig
+        env:
+          KUBECONFIG_CONTENT: ${{ secrets.KUBECONFIG }}
+        run: |
+          # Create directories
+          mkdir -p ${{ github.workspace }}/.local/bin
+          mkdir -p ${{ github.workspace }}/.kube
+          
+          # Install kubectl with checksum verification
+          KUBECTL_VERSION="v1.31.3"
+          KUBECTL_URL="https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
+          CHECKSUM_URL="https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl.sha256"
+          
+          # Download kubectl binary
+          curl --fail -LO "${KUBECTL_URL}"
+          
+          # Download and verify checksum
+          curl --fail -LO "${CHECKSUM_URL}"
+          echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check --status
+          
+          if [ $? -ne 0 ]; then
+            echo "❌ Checksum verification failed for kubectl ${KUBECTL_VERSION}"
+            rm -f kubectl kubectl.sha256
+            exit 1
+          fi
+          
+          echo "✅ Checksum verification passed for kubectl ${KUBECTL_VERSION}"
+          
+          # Install kubectl
+          chmod +x kubectl
+          mv ./kubectl ${{ github.workspace }}/.local/bin/kubectl
+          
+          # Clean up checksum file
+          rm -f kubectl.sha256
+          
+          # Setup kubeconfig
+          echo "$KUBECONFIG_CONTENT" > ${{ github.workspace }}/.kube/config
+          chmod 400 ${{ github.workspace }}/.kube/config
+          
+          # Add kubectl to GitHub PATH for subsequent steps
+          echo "${{ github.workspace }}/.local/bin" >> $GITHUB_PATH
+          
+          # Export environment variables for immediate use
+          echo "KUBECTL_PATH=${{ github.workspace }}/.local/bin/kubectl" >> $GITHUB_ENV
+          
+          # Verify installation
+          ${{ github.workspace }}/.local/bin/kubectl version --client
+          ${{ github.workspace }}/.local/bin/kubectl config view
+
+      - name: Setup ufw firewall
+        run: |
+          sudo ufw enable || true
+          sudo ufw allow ssh
+          sudo ufw allow 51820/udp
+          sudo ufw status
+
+      - name: Install WireGuard
+        run: sudo apt-get install -y wireguard
+
+      - name: Configure WireGuard
+        env:
+          WG_CONFIG_WG0: ${{ secrets.CLUSTER_WIREGUARD_WG0 }}
+          WG_CONFIG_WG1: ${{ secrets.CLUSTER_WIREGUARD_WG1 }}
+          SECRET_NAME: ${{ inputs.wireguard_secret_name }}
+        run: |
+          # Select the appropriate WireGuard configuration based on secret name
+          if [ "$SECRET_NAME" = "CLUSTER_WIREGUARD_WG0" ]; then
+            echo "$WG_CONFIG_WG0" | sudo tee /etc/wireguard/wg0.conf
+          elif [ "$SECRET_NAME" = "CLUSTER_WIREGUARD_WG1" ]; then
+            echo "$WG_CONFIG_WG1" | sudo tee /etc/wireguard/wg0.conf
+          else
+            echo "❌ Unsupported WireGuard secret: $SECRET_NAME"
+            exit 1
+          fi
+
+      - name: Start WireGuard
+        run: |
+          sudo chmod 600 /etc/wireguard/wg0.conf
+          sudo chmod 700 /etc/wireguard/
+          sudo chmod 644 /lib/systemd/system/wg-quick@.service || true
+          sudo systemctl daemon-reload || true
+          sudo wg-quick up wg0
+          sudo wg show wg0
+
+      - name: Setup Helm
+        run: |
+          curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
+          sudo chmod 700 get_helm.sh
+          sudo ./get_helm.sh
+          helm version --client
+
+      - name: Verify cluster access
+        run: |
+          # Verify tools are accessible
+          echo "Verifying tool availability:"
+          echo "kubectl path: $(which kubectl)"
+          echo "KUBECONFIG: $KUBECONFIG"
+          
+          # Test kubectl functionality
+          kubectl version --client
+          kubectl get nodes
+          kubectl cluster-info
+
+      - name: Destroy ${{ inputs.deployment_type }} Services using Helm
+        run: |
+          export HOME="${{ github.workspace }}"
+          export WORKDIR="$HOME/Helmsman"
+          
+          # Verify tools are available
+          echo "Using kubectl: $(which kubectl)"
+          echo "Using kubeconfig: $KUBECONFIG"
+          
+          echo "🗑️  Step 1: Uninstalling Helm releases..."
+          
+          # Determine which namespaces to process
+          if [ "${{ inputs.namespace_selection }}" == "specific" ]; then
+            echo "Mode: Specific namespaces"
+            IFS=',' read -ra NAMESPACES <<< "${{ inputs.specific_namespaces }}"
+          else
+            echo "Mode: All ${{ inputs.deployment_type }} namespaces"
+            IFS=' ' read -ra NAMESPACES <<< "${{ inputs.all_namespaces }}"
+          fi
+          
+          # Uninstall Helm releases from selected namespaces
+          for NS in "${NAMESPACES[@]}"; do
+            NS=$(echo "$NS" | xargs)  # Trim whitespace
+            echo ""
+            echo "Processing namespace: $NS"
+            
+            # Get all helm releases in this namespace and uninstall them
+            RELEASES=$(helm list -n "$NS" -q 2>/dev/null || true)
+            if [ -n "$RELEASES" ]; then
+              echo "Found releases in $NS: $RELEASES"
+              for RELEASE in $RELEASES; do
+                echo "  → Uninstalling release: $RELEASE"
+                helm uninstall "$RELEASE" -n "$NS" --wait --timeout=5m || true
+              done
+            else
+              echo "  No Helm releases found in namespace: $NS"
+            fi
+          done
+          
+          echo ""
+          echo "🗑️  Step 2: Deleting namespaces..."
+          
+          # Delete the selected namespaces
+          for NS in "${NAMESPACES[@]}"; do
+            NS=$(echo "$NS" | xargs)  # Trim whitespace
+            echo "Deleting namespace: $NS"
+            kubectl delete namespace "$NS" --ignore-not-found=true --timeout=5m
+          done
+
+      - name: Verify ${{ inputs.deployment_type }} Resource Cleanup
+        run: |
+          if [ "${{ inputs.namespace_selection }}" == "specific" ]; then
+            IFS=',' read -ra NAMESPACES <<< "${{ inputs.specific_namespaces }}"
+          else
+            IFS=' ' read -ra NAMESPACES <<< "${{ inputs.all_namespaces }}"
+          fi
+          
+          for NS in "${NAMESPACES[@]}"; do
+            NS=$(echo "$NS" | xargs)  # Trim whitespace
+            if kubectl get namespace "$NS" >/dev/null 2>&1; then
+              echo "⚠️  Namespace $NS still exists"
+              kubectl get all -n "$NS"
+            else
+              echo "✅ Namespace $NS successfully removed"
+            fi
+          done
+
+      - name: Remove ${{ inputs.deployment_type }} DSF Label
+        run: |
+          kubectl label namespace default ${{ inputs.dsf_label }}- --overwrite || true
+          echo "✅ ${{ inputs.deployment_type }} DSF label removed from default namespace"
