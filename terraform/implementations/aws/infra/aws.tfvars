@@ -40,24 +40,24 @@ nginx_node_ebs_volume_size_2 = 200 # Enable second EBS volume for PostgreSQL tes
 k8s_instance_root_volume_size = 64
 
 # Control-plane, ETCD, Worker
-k8s_control_plane_node_count = 1
+k8s_control_plane_node_count = 3
 # ETCD, Worker
-k8s_etcd_node_count = 1
+k8s_etcd_node_count = 3
 # Worker
-k8s_worker_node_count = 1
+k8s_worker_node_count = 2
 
 # RKE2 Version Configuration
 rke2_version = "v1.28.9+rke2r1"
 
 # Security group CIDRs
-network_cidr   = "172.0.0.0/8" # Use your actual VPC CIDR
-WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
+network_cidr   = "10.0.0.0/8" # Use your actual VPC CIDR
+WIREGUARD_CIDR = "10.0.0.0/8" # Use your actual WireGuard VPN CIDR
 
 
 # Rancher Import URL
 # Rancher Import Configuration
 enable_rancher_import = true
-rancher_import_url    = "\"kubectl apply -f https://rancher.obs11.mosip.net/v3/import/6l64fbmb6r49ssk7r56bwcdmmg2c2x5sdvd2vbv7666pmmfxn6fzm9_c-m-t56kkpz7.yaml\""
+rancher_import_url    = "\"kubectl apply -f https://rancher.obs13.mosip.net/v3/import/rz472dzdr9rd7hppbdhhxpd9822smgv6q486mttjd6r5frh7nk5qmz_c-m-v8wczsjl.yaml\""
 # DNS Records to map
 subdomain_public   = ["resident", "prereg", "esignet", "healthservices", "signup"]
 subdomain_internal = ["admin", "iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio", "regclient", "compliance"]
@@ -76,5 +76,5 @@ mosip_infra_branch = "testgrid"
 
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
-vpc_name = "default"
+vpc_name = "mosip-boxes"
 
