@@ -68,7 +68,18 @@ locals {
     #"echo 'export ${key}=${value}' | sudo tee -a /etc/environment"
   ]
 }
+
 resource "null_resource" "nfs-server-setup" {
+  triggers = {
+    # Only recreate if NFS server or location changes
+    nfs_server          = var.NFS_SERVER
+    nfs_server_location = var.NFS_SERVER_LOCATION
+  }
+  
+  lifecycle {
+    create_before_destroy = true
+  }
+  
   connection {
     type        = "ssh"
     host        = var.NFS_SERVER
@@ -87,6 +98,15 @@ resource "null_resource" "nfs-server-setup" {
 
 resource "null_resource" "nfs-csi-setup" {
   depends_on = [null_resource.nfs-server-setup]
+
+  triggers = {
+    # Only recreate if NFS configuration changes
+    nfs_config = null_resource.nfs-server-setup.id
+  }
+  
+  lifecycle {
+    create_before_destroy = true
+  }
 
   provisioner "local-exec" {
     command = join(" && ", concat(local.NFS_ENV_VARS, ["bash ${path.module}/nfs-csi.sh"]))

@@ -78,11 +78,18 @@ locals {
 
 resource "null_resource" "Nginx-setup" {
   triggers = {
-    # node_count_or_hash = module.ec2-resource-creation.node_count
-    # or if you used hash:
-    # node_hash       = md5(var.MOSIP_K8S_CLUSTER_NODES_PRIVATE_IP_LIST)
-    # public_dns_hash = md5(var.MOSIP_PUBLIC_DOMAIN_LIST)
+    # Only recreate when NGINX instance changes or domain configuration changes
+    # Node IPs are NOT in triggers - NGINX dynamically discovers backend nodes
+    nginx_public_ip  = var.NGINX_PUBLIC_IP
+    nginx_private_ip = var.NGINX_PRIVATE_IP
+    domain           = var.CLUSTER_ENV_DOMAIN
+    nginx_type       = var.NGINX_TYPE
   }
+  
+  lifecycle {
+    create_before_destroy = true
+  }
+  
   connection {
     type        = "ssh"
     host        = var.NGINX_PRIVATE_IP # Use private IP - works through WireGuard

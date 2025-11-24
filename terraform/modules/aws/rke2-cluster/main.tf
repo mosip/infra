@@ -140,11 +140,16 @@ resource "null_resource" "rke2_ansible_installation" {
     local_file.ansible_inventory
   ]
 
-  # Trigger re-run when cluster composition changes
+  # Only trigger on RKE2 version changes or inventory changes
+  # Ansible handles node addition/removal idempotently
   triggers = {
-    cluster_nodes     = join(",", [for k, v in var.K8S_CLUSTER_PRIVATE_IPS : "${k}=${v}"])
+    # Removed cluster_nodes - Ansible playbook is idempotent and handles new nodes
     inventory_content = local_file.ansible_inventory.content_sha256
     rke2_version      = var.RKE2_VERSION
+  }
+  
+  lifecycle {
+    create_before_destroy = true
   }
 
   # Ensure Ansible script has execute permissions on GitHub Actions runners

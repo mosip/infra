@@ -617,13 +617,31 @@
       debug:
         msg: "{{ cluster_status.stdout_lines }}"
 
-    - name: Execute Rancher import (if enabled)
-      shell: "{{ rancher_import_url }}"
-      when: enable_rancher_import | bool
+    - name: Check if cluster is already imported to Rancher
+      shell: kubectl get secret -n cattle-system 2>/dev/null | grep -q cattle-credentials
+      register: rancher_already_imported
       become_user: ubuntu
       environment:
         KUBECONFIG: "/home/ubuntu/.kube/{{ inventory_hostname }}.yaml"
       ignore_errors: yes
+      when: enable_rancher_import | bool
+
+    - name: Execute Rancher import (if enabled and not already imported)
+      shell: "{{ rancher_import_url }}"
+      when: 
+        - enable_rancher_import | bool
+        - rancher_already_imported.rc != 0
+      become_user: ubuntu
+      environment:
+        KUBECONFIG: "/home/ubuntu/.kube/{{ inventory_hostname }}.yaml"
+      ignore_errors: yes
+
+    - name: Skip Rancher import (already imported)
+      debug:
+        msg: "✅ Cluster already imported to Rancher - skipping import step"
+      when:
+        - enable_rancher_import | bool
+        - rancher_already_imported.rc == 0
 
     - name: Final success message
       debug:
