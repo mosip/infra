@@ -1,7 +1,7 @@
 # Environment name (infra component)
-cluster_name = "soil54"
+cluster_name = "soil55"
 # MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "soil54.mosip.net"
+cluster_env_domain = "soil55.mosip.net"
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
 mosip_email_id = "chandra.mishra@technoforte.co.in"
 # SSH login key name for AWS node instances (ex: my-ssh-key)
@@ -44,7 +44,7 @@ k8s_control_plane_node_count = 1
 # ETCD, Worker
 k8s_etcd_node_count = 1
 # Worker
-k8s_worker_node_count = 2
+k8s_worker_node_count = 1
 
 # RKE2 Version Configuration
 rke2_version = "v1.28.9+rke2r1"
@@ -57,7 +57,7 @@ WIREGUARD_CIDR = "10.0.0.0/8" # Use your actual WireGuard VPN CIDR
 # Rancher Import URL
 # Rancher Import Configuration
 enable_rancher_import = true
-rancher_import_url    = "\"kubectl apply -f https://rancher.obs13.mosip.net/v3/import/gw6qw26rv8rqxhgpwdwmbkdfv8kpg25zbxhv9p8n89d84rnnlx5hff_c-m-jkmk2x79.yaml\""
+rancher_import_url    = "\"kubectl apply -f https://rancher.obs13.mosip.net/v3/import/p7m7bddwjqknjzvhl6nprz2cd4tdtrrb4r4bln678m9hrfgnmdfcdx_c-m-ntmdglsv.yaml\""
 # DNS Records to map
 subdomain_public   = ["resident", "prereg", "esignet", "healthservices", "signup"]
 subdomain_internal = ["admin", "iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio", "regclient", "compliance"]
