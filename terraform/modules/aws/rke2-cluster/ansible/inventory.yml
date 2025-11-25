@@ -32,6 +32,9 @@ all:
         soil53-WORKER-NODE-1:
           ansible_host: 10.0.4.138
           node_role: worker
+        soil53-WORKER-NODE-2:
+          ansible_host: 10.0.4.217
+          node_role: worker
 
     rke2_cluster:
       children:
