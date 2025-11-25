@@ -66,18 +66,18 @@ apps:
       apitestrig.configmaps.apitestrig.servicesNotDeployed: 'esignet'
 
       modules.prereg.enabled: true
-      modules.prereg.image.repository: mosipqa/apitest-prereg
-      modules.prereg.image.tag: 1.3.x
+      modules.prereg.image.repository: mosipid/apitest-prereg
+      modules.prereg.image.tag: 1.2.0.3
       modules.prereg.image.pullPolicy: Always
 
       modules.masterdata.enabled: true
       modules.masterdata.image.repository: mosipid/apitest-masterdata
-      modules.masterdata.image.tag: 1.3.0-beta.2
+      modules.masterdata.image.tag: 1.2.1.3
       modules.masterdata.image.pullPolicy: Always
 
       modules.idrepo.enabled: true
-      modules.idrepo.image.repository: mosipqa/apitest-idrepo
-      modules.idrepo.image.tag: 1.3.x
+      modules.idrepo.image.repository: mosipid/apitest-idrepo
+      modules.idrepo.image.tag: 1.2.2.4
       modules.idrepo.image.pullPolicy: Always
 
       modules.partner.enabled: true
@@ -91,13 +91,13 @@ apps:
       modules.pms.image.pullPolicy: Always
 
       modules.resident.enabled: true
-      modules.resident.image.repository: mosipqa/apitest-resident
-      modules.resident.image.tag: 1.3.x
+      modules.resident.image.repository: mosipid/apitest-resident
+      modules.resident.image.tag: 1.2.1.2
       modules.resident.image.pullPolicy: Always
 
       modules.auth.enabled: true
       modules.auth.image.repository: mosipid/apitest-auth
-      modules.auth.image.tag: 1.3.0-beta.2
+      modules.auth.image.tag: 1.2.1.2
       modules.auth.image.pullPolicy: Always
 
       modules.esignet.enabled: false
