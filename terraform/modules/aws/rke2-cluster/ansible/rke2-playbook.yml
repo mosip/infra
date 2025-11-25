@@ -619,8 +619,6 @@
 
     - name: Check if Rancher cattle-cluster-agent is already running
       shell: |
-        {% raw %}
-        #!/bin/bash
         set -o pipefail
 
         # If namespace or deployment doesn't exist, we need to import
@@ -638,8 +636,8 @@
         ATTEMPTS=8
         SLEEP=5
         for i in $(seq 1 $ATTEMPTS); do
-          AVAILABLE=$(kubectl get deployment cattle-cluster-agent -n cattle-system -o jsonpath="{.status.availableReplicas}" 2>/dev/null || echo 0)
-          DESIRED=$(kubectl get deployment cattle-cluster-agent -n cattle-system -o jsonpath="{.spec.replicas}" 2>/dev/null || echo 1)
+          AVAILABLE=$(kubectl get deployment cattle-cluster-agent -n cattle-system -o jsonpath="{{ '{{' }}.status.availableReplicas{{ '}}' }}" 2>/dev/null || echo 0)
+          DESIRED=$(kubectl get deployment cattle-cluster-agent -n cattle-system -o jsonpath="{{ '{{' }}.spec.replicas{{ '}}' }}" 2>/dev/null || echo 1)
 
           # Normalize empty values to 0
           AVAILABLE=${AVAILABLE:-0}
@@ -647,33 +645,13 @@
 
           # Check if available replicas meet desired replicas
           if [ "$AVAILABLE" -ge "$DESIRED" ] && [ "$AVAILABLE" -gt 0 ]; then
-            # Additional check: verify pods are running and stable (not recently restarted)
-            POD_CHECK=$(kubectl get pods -n cattle-system -l app=cattle-cluster-agent --field-selector=status.phase=Running -o jsonpath='{range .items[*]}{.status.containerStatuses[0].restartCount}{" "}{.status.startTime}{"\n"}{end}' 2>/dev/null)
+            # Check deployment status without complex jsonpath
+            READY=$(kubectl get deployment cattle-cluster-agent -n cattle-system -o jsonpath="{{ '{{' }}.status.readyReplicas{{ '}}' }}" 2>/dev/null || echo 0)
+            READY=${READY:-0}
             
-            if [ -n "$POD_CHECK" ]; then
-              # Check if any pod was started less than 2 minutes ago (recently restarted)
-              NOW=$(date +%s)
-              RECENT_RESTART=0
-              
-              while IFS= read -r line; do
-                if [ -n "$line" ]; then
-                  START_TIME=$(echo "$line" | awk '{print $2}')
-                  if [ -n "$START_TIME" ]; then
-                    START_EPOCH=$(date -d "$START_TIME" +%s 2>/dev/null || echo 0)
-                    AGE=$((NOW - START_EPOCH))
-                    # If pod is younger than 120 seconds, it's too new
-                    if [ "$AGE" -lt 120 ]; then
-                      RECENT_RESTART=1
-                      break
-                    fi
-                  fi
-                fi
-              done <<< "$POD_CHECK"
-              
-              if [ "$RECENT_RESTART" -eq 0 ]; then
-                echo "ALREADY_IMPORTED"
-                exit 0
-              fi
+            if [ "$READY" -ge "$DESIRED" ] && [ "$READY" -gt 0 ]; then
+              echo "ALREADY_IMPORTED"
+              exit 0
             fi
           fi
 
@@ -683,7 +661,8 @@
 
         # Final check didn't meet readiness; consider import needed
         echo "NEEDS_IMPORT"
-        {% endraw %}
+      args:
+        executable: /bin/bash
       register: rancher_import_check
       become_user: ubuntu
       environment:
