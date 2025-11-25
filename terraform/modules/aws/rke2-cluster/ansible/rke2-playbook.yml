@@ -619,6 +619,7 @@
 
     - name: Check if Rancher cattle-cluster-agent is already running
       shell: |
+        {% raw %}
         #!/bin/bash
         set -o pipefail
 
@@ -647,7 +648,7 @@
           # Check if available replicas meet desired replicas
           if [ "$AVAILABLE" -ge "$DESIRED" ] && [ "$AVAILABLE" -gt 0 ]; then
             # Additional check: verify pods are running and stable (not recently restarted)
-            POD_CHECK=$(kubectl get pods -n cattle-system -l app=cattle-cluster-agent --field-selector=status.phase=Running -o jsonpath='{{range .items[*]}}{{.status.containerStatuses[0].restartCount}}{{" "}}{{.status.startTime}}{{"\n"}}{{end}}' 2>/dev/null)
+            POD_CHECK=$(kubectl get pods -n cattle-system -l app=cattle-cluster-agent --field-selector=status.phase=Running -o jsonpath='{range .items[*]}{.status.containerStatuses[0].restartCount}{" "}{.status.startTime}{"\n"}{end}' 2>/dev/null)
             
             if [ -n "$POD_CHECK" ]; then
               # Check if any pod was started less than 2 minutes ago (recently restarted)
@@ -682,6 +683,7 @@
 
         # Final check didn't meet readiness; consider import needed
         echo "NEEDS_IMPORT"
+        {% endraw %}
       register: rancher_import_check
       become_user: ubuntu
       environment:
