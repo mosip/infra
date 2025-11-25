@@ -617,31 +617,51 @@
       debug:
         msg: "{{ cluster_status.stdout_lines }}"
 
-    - name: Check if cluster is already imported to Rancher
-      shell: kubectl get secret -n cattle-system 2>/dev/null | grep -q cattle-credentials
-      register: rancher_already_imported
+    - name: Check if Rancher cattle-cluster-agent is already running
+      shell: |
+        # Check if cattle-system namespace exists
+        if ! kubectl get namespace cattle-system &>/dev/null; then
+          echo "NEEDS_IMPORT"
+          exit 0
+        fi
+        
+        # Check if cattle-cluster-agent deployment exists and is ready
+        if kubectl get deployment cattle-cluster-agent -n cattle-system &>/dev/null; then
+          READY=$(kubectl get deployment cattle-cluster-agent -n cattle-system -o jsonpath='{.status.readyReplicas}' 2>/dev/null || echo "0")
+          DESIRED=$(kubectl get deployment cattle-cluster-agent -n cattle-system -o jsonpath='{.status.replicas}' 2>/dev/null || echo "1")
+          if [ "$READY" = "$DESIRED" ] && [ "$READY" != "0" ]; then
+            echo "ALREADY_IMPORTED"
+            exit 0
+          fi
+        fi
+        
+        echo "NEEDS_IMPORT"
+      register: rancher_import_check
       become_user: ubuntu
       environment:
         KUBECONFIG: "/home/ubuntu/.kube/{{ inventory_hostname }}.yaml"
       ignore_errors: yes
       when: enable_rancher_import | bool
+      changed_when: false
 
-    - name: Execute Rancher import (if enabled and not already imported)
+    - name: Execute Rancher import (if enabled and needed)
       shell: "{{ rancher_import_url }}"
       when: 
         - enable_rancher_import | bool
-        - rancher_already_imported.rc != 0
+        - rancher_import_check.stdout is defined
+        - "'NEEDS_IMPORT' in rancher_import_check.stdout"
       become_user: ubuntu
       environment:
         KUBECONFIG: "/home/ubuntu/.kube/{{ inventory_hostname }}.yaml"
       ignore_errors: yes
 
-    - name: Skip Rancher import (already imported)
+    - name: Skip Rancher import (already imported and healthy)
       debug:
-        msg: "✅ Cluster already imported to Rancher - skipping import step"
+        msg: "✅ Rancher cattle-cluster-agent is already running and healthy - skipping import to avoid pod restart"
       when:
         - enable_rancher_import | bool
-        - rancher_already_imported.rc == 0
+        - rancher_import_check.stdout is defined
+        - "'ALREADY_IMPORTED' in rancher_import_check.stdout"
 
     - name: Final success message
       debug:
