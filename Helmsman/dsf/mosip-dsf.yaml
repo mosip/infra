@@ -75,12 +75,12 @@ apps:
       # image.repository: "mosipdev/kernel-config-server"
       # image.tag: "release-1.3.x"
       # Resource limits and requests
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
+      resources.limits.cpu: "100m"
+      resources.limits.memory: "900Mi"
+      resources.requests.cpu: "25m"
+      resources.requests.memory: "300Mi"    
       # Java options for heap memory
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"  
+      additionalResources.javaOpts: "-Xms675M -Xmx1125M"  
     valuesFile: "$WORKDIR/utils/config-server-values.yaml"
     wait: true
     timeout: 1200
@@ -96,13 +96,6 @@ apps:
     set:
     #   image.repository: "mosipdev/artifactory-server"
     #   image.tag: "release-1.3.x"
-      # Resource limits and requests
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      # Java options for heap memory
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"      
     wait: true
     timeout: 1200
     priority: -26
@@ -124,12 +117,12 @@ apps:
       # image.repository: "mosipdev/captcha-validation-service"
       # image.tag: "develop"
       # Resource limits and requests
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
+      resources.limits.cpu: "250m"
+      resources.limits.memory: "1500Mi"
+      resources.requests.cpu: "100m"
+      resources.requests.memory: "900Mi"    
       # Java options for heap memory
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"    
+      additionalResources.javaOpts: "-Xms1125M -Xmx1875M"    
       # extraEnvVars[0].name: MOSIP_CAPTCHA_SECRET_PREREGISTRATION
       # extraEnvVars[0].valueFrom.secretKeyRef.name: mosip-captcha
       # extraEnvVars[0].valueFrom.secretKeyRef.key: prereg-captcha-secret-key
@@ -148,12 +141,12 @@ apps:
     #   image.repository: "mosipdev/mock-abis"
     #   image.tag: "release-1.3.x"
       # Resource limits and requests
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
+      resources.limits.cpu: "400m"
+      resources.limits.memory: "2040Mi"
+      resources.requests.cpu: "50m"
+      resources.requests.memory: "300Mi"    
       # Java options for heap memory
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"    
+      additionalResources.javaOpts: "-Xms1530M -Xmx2550M"    
     #   startupProbe.failureThreshold: 60
     #   image.repository: ""
     #   image.tag: ""
@@ -170,12 +163,12 @@ apps:
     #   image.repository: "mosipdev/mock-mv"
     #   image.tag: "release-1.3.x"
       # Resource limits and requests
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
+      resources.limits.cpu: "75m"
+      resources.limits.memory: "720Mi"
+      resources.requests.cpu: "50m"
+      resources.requests.memory: "180Mi"    
       # Java options for heap memory
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"  
+      additionalResources.javaOpts: "-Xms540M -Xmx900M"  
     #   resources.requests.cpu: 200m
     #   resources.requests.memory: 1500Mi
     #   image.repository: ""
@@ -212,12 +205,12 @@ apps:
       # image.repository: "mosipdev/kernel-keymanager-service"
       # image.tag: "release-1.3.x"
       # Resource limits and requests
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
+      resources.limits.cpu: "1000m"
+      resources.limits.memory: "3600Mi"
+      resources.requests.cpu: "250m"
+      resources.requests.memory: "1800Mi"    
       # Java options for heap memory
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"    
+      additionalResources.javaOpts: "-Xms2700M -Xmx4000M"    
     #   persistence.enabled: "false"
     #   volumePermissions.enabled: "false"
     #   persistence.size: "<volume_size>"
@@ -238,12 +231,12 @@ apps:
       # image.repository: "mosipdev/consolidator-websub-service"
       # image.tag: "release-1.3.x"
       # Resource limits and requests
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
+      resources.limits.cpu: "100m"
+      resources.limits.memory: "900Mi"
+      resources.requests.cpu: "100m"
+      resources.requests.memory: "300Mi"    
       # Java options for heap memory
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"  
+      additionalResources.javaOpts: "-Xms675M -Xmx1125M"  
     wait: true
     timeout: 1200
     priority: -21
@@ -258,12 +251,12 @@ apps:
       # image.repository: "mosipdev/websub-service"
       # image.tag: "release-1.3.x"
       # Resource limits and requests
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
+      resources.limits.cpu: "1000m"
+      resources.limits.memory: "3600Mi"
+      resources.requests.cpu: "100m"
+      resources.requests.memory: "600Mi"    
       # Java options for heap memory
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"      
+      additionalResources.javaOpts: "-Xms2700M -Xmx4500M"      
     timeout: 1200
     priority: -20
 
@@ -274,14 +267,7 @@ apps:
     chart: mosip/mock-smtp
     set:
       # image.repository: "mosipdev/mock-smtp"
-      # image.tag: "1.0.0"
-      # Resource limits and requests
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      # Java options for heap memory
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"      
+      # image.tag: "1.0.0"    
       istio.hosts[0]: "smtp.chaos.mosip.net"
     priority: -19
     timeout: 1200
@@ -314,12 +300,12 @@ apps:
       # image.repository: "gokulraj13/kernel-auth-service"
       # image.tag: "MOSIP-test"
       # Resource limits and requests
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "3000Mi"
+      resources.requests.cpu: "150m"
+      resources.requests.memory: "900Mi"    
       # Java options for heap memory
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"    
+      additionalResources.javaOpts: "-Xms2250M -Xmx3750M"    
     priority: -17
     timeout: 1200
 
@@ -333,12 +319,12 @@ apps:
       # image.repository: "mosipdev/kernel-auditmanager-service"
       # image.tag: "release-1.3.x"
       # Resource limits and requests
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
+      resources.limits.cpu: "1000m"
+      resources.limits.memory: "3000Mi"
+      resources.requests.cpu: "150m"
+      resources.requests.memory: "900Mi"    
       # Java options for heap memory
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"  
+      additionalResources.javaOpts: "-Xms2250M -Xmx3750M"  
     priority: -16
     timeout: 1200
 
@@ -349,13 +335,13 @@ apps:
     version: 1.3.0-develop
     chart: mosip/idgenerator
     set:
+      resources.limits.cpu: "250m"
+      resources.limits.memory: "2100Mi"
+      resources.requests.cpu: "50m"
+      resources.requests.memory: "600Mi"    
+      additionalResources.javaOpts: "-Xms1575M -Xmx1575M"    
       # image.repository: "mosipdev/kernel-idgenerator-service"
       # image.tag: "release-1.3.x"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"
       # startupProbe.failureThreshold: "30"
       # startupProbe.periodSeconds: "10"
     priority: -15
@@ -370,11 +356,11 @@ apps:
     set:
       # image.repository: "mosipdev/kernel-masterdata-service"
       # image.tag: "release-1.3.x"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"
+      resources.limits.cpu: "250m"
+      resources.limits.memory: "1350Mi"
+      resources.requests.cpu: "50m"
+      resources.requests.memory: "900Mi"    
+      additionalResources.javaOpts: "-Xms1012.5M -Xmx1687.5M"
       istio.corsPolicy.allowOrigins[0].exact: "https://admin.chaos.mosip.net"
     wait: true
     priority: -14
@@ -389,11 +375,11 @@ apps:
     set:
       # image.repository: "mosipdev/kernel-otpmanager-service"
       # image.tag: "release-1.3.x"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"
+      resources.limits.cpu: "250m"
+      resources.limits.memory: "1860Mi"
+      resources.requests.cpu: "50m"
+      resources.requests.memory: "600Mi"    
+      additionalResources.javaOpts: "-Xms1395M -Xmx2325M"
     priority: -13
     timeout: 1200
 
@@ -406,11 +392,11 @@ apps:
     set:
       # image.repository: "mosipdev/kernel-pridgenerator-service"
       # image.tag: "release-1.3.x"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"  
+      resources.limits.cpu: "750m"
+      resources.limits.memory: "3000Mi"
+      resources.requests.cpu: "250m"
+      resources.requests.memory: "1500Mi"    
+      additionalResources.javaOpts: "-Xms2250M -Xmx2250M"  
     priority: -12
     timeout: 1200
 
@@ -423,11 +409,11 @@ apps:
     set:
       # image.repository: "mosipdev/kernel-ridgenerator-service"
       # image.tag: "release-1.3.x"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"
+      resources.limits.cpu: "150m"
+      resources.limits.memory: "1050Mi"
+      resources.requests.cpu: "50m"
+      resources.requests.memory: "600Mi"
+      additionalResources.javaOpts: "-Xms785M -Xmx785M"
     priority: -11
     timeout: 1200
 
@@ -440,11 +426,11 @@ apps:
     set:
       # image.repository: "mosipdev/kernel-syncdata-service"
       # image.tag: "release-1.3.x"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"
+      resources.limits.cpu: "1000m"
+      resources.limits.memory: "1500Mi"
+      resources.requests.cpu: "50m"
+      resources.requests.memory: "900Mi"
+      additionalResources.javaOpts: "-Xms1125M -Xmx1875M"
       # resources.requests.memory: "2500Mi"
       # startupProbe.failureThreshold: "60"
     priority: -10
@@ -459,11 +445,11 @@ apps:
     set:
       # image.repository: "mosipdev/kernel-notification-service"
       # image.tag: "release-1.3.x"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"      
+      resources.limits.cpu: "750m"
+      resources.limits.memory: "3000Mi"
+      resources.requests.cpu: "250m"
+      resources.requests.memory: "1200Mi"    
+      additionalResources.javaOpts: "-Xms2250M -Xmx2250M"      
     priority: -10
     timeout: 1200
 
@@ -476,11 +462,11 @@ apps:
     set:
       # image.repository: "mosipdev/biosdk-server"
       # image.tag: "release-1.3.x"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"      
+      resources.limits.cpu: "750m"
+      resources.limits.memory: "2400Mi"
+      resources.requests.cpu: "150m"
+      resources.requests.memory: "600Mi"    
+      additionalResources.javaOpts: "-Xms1800M -Xmx3000M"      
       biosdk.zippedLibUrl: "http://artifactory.artifactory/artifactory/libs-release-local/biosdk/biosdk-lib.zip"
       biosdk.bioapiImpl: "io.mosip.mock.sdk.impl.SampleSDKV2"
     priority: -10
@@ -495,11 +481,11 @@ apps:
     set:
     #   image.repository: "mosipdev/commons-packet-service"
     #   image.tag: "release-1.3.x"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"    
+      resources.limits.cpu: "1250m"
+      resources.limits.memory: "2100Mi"
+      resources.requests.cpu: "250m"
+      resources.requests.memory: "614Mi"    
+      additionalResources.javaOpts: "-Xms1575M -Xmx2625M"    
     priority: -10
     timeout: 1200
 
@@ -512,11 +498,11 @@ apps:
     set:
     #   image.repository: "mosipdev/data-share-service"
     #   image.tag: "release-1.3.x"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"    
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "2400Mi"
+      resources.requests.cpu: "250m"
+      resources.requests.memory: "600Mi"    
+      additionalResources.javaOpts: "-Xms1800M -Xmx3000M"    
     priority: -10
     timeout: 1200
 
@@ -540,11 +526,11 @@ apps:
     set:
     #   image.repository: "mosipid/pre-registration-captcha-service"
     #   image.tag: "1.2.0.2"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"    
+      resources.limits.cpu: "250m"
+      resources.limits.memory: "1500Mi"
+      resources.requests.cpu: "100m"
+      resources.requests.memory: "900Mi"    
+      additionalResources.javaOpts: "-Xms1125M -Xmx1875M"    
     priority: -9
     timeout: 1200
 
@@ -556,11 +542,11 @@ apps:
     set:
     #   image.repository: "mosipdev/pre-registration-application-service"
     #   image.tag: "release-1.3.x"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"    
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "1500Mi"
+      resources.requests.cpu: "100m"
+      resources.requests.memory: "900Mi"    
+      additionalResources.javaOpts: "-Xms1125M -Xmx1875M"    
     priority: -9
     timeout: 1200
 
@@ -573,11 +559,11 @@ apps:
     set:
     #   image.repository: "mosipdev/pre-registration-booking-service"
     #   image.tag: "release-1.3.x"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"    
+      resources.limits.cpu: "250m"
+      resources.limits.memory: "1500Mi"
+      resources.requests.cpu: "100m"
+      resources.requests.memory: "600Mi"    
+      additionalResources.javaOpts: "-Xms1125M -Xmx1875M"    
     priority: -9
     timeout: 1200
 
@@ -589,11 +575,11 @@ apps:
     set:
     #   image.repository: "mosipdev/pre-registration-datasync-service"
     #   image.tag: "release-1.3.x"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "1500Mi"
+      resources.requests.cpu: "100m"
+      resources.requests.memory: "600Mi"    
+      additionalResources.javaOpts: "-Xms1125M -Xmx1875M"
     priority: -9
     timeout: 1200
 
@@ -606,11 +592,11 @@ apps:
     set:
     #   image.repository: "mosipdev/pre-registration-batchjob"
     #   image.tag: "release-1.3.x"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"    
+      resources.limits.cpu: "250m"
+      resources.limits.memory: "900Mi"
+      resources.requests.cpu: "100m"
+      resources.requests.memory: "600Mi"    
+      additionalResources.javaOpts: "-Xms675M -Xmx1125M"    
     priority: -9
     timeout: 1200
 
@@ -623,12 +609,7 @@ apps:
     chart: mosip/prereg-ui
     set:
       # image.repository: "mosipid/pre-registration-ui"
-      # image.tag: "1.3.0-beta.1"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"      
+      # image.tag: "1.3.0-beta.1"    
       prereg.apiHost: "prereg.chaos.mosip.net"
     priority: -9
     timeout: 1200
@@ -655,11 +636,11 @@ apps:
     set:
     #   image.repository: "mosipdev/credential-service"
     #   image.tag: "release-1.3.x"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"
+      resources.limits.cpu: "300m"
+      resources.limits.memory: "2280Mi"
+      resources.requests.cpu: "250m"
+      resources.requests.memory: "614Mi"    
+      additionalResources.javaOpts: "-Xms1710M -Xmx2850M"
     priority: -8
     timeout: 1200
 
@@ -671,11 +652,11 @@ apps:
     set:
     #   image.repository: "mosipdev/credential-request-generator"
     #   image.tag: "release-1.3.x"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "3000Mi"
+      resources.requests.cpu: "250m"
+      resources.requests.memory: "1500Mi"    
+      additionalResources.javaOpts: "-Xms2250M -Xmx3750M"
     priority: -7
     timeout: 1200
   
@@ -688,11 +669,11 @@ apps:
     set:
     #   image.repository: "mosipdev/id-repository-identity-service"
     #   image.tag: "release-1.3.x"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"
+      resources.limits.cpu: "1000m"
+      resources.limits.memory: "3000Mi"
+      resources.requests.cpu: "250m"
+      resources.requests.memory: "900Mi"    
+      additionalResources.javaOpts: "-Xms2250M -Xmx3750M"
     priority: -7
     timeout: 1200
 
@@ -704,11 +685,11 @@ apps:
     set:
     #   image.repository: "mosipdev/id-repository-vid-service"
     #   image.tag: "release-1.3.x"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"  
+      resources.limits.cpu: "300m"
+      resources.limits.memory: "1800Mi"
+      resources.requests.cpu: "50m"
+      resources.requests.memory: "900Mi"    
+      additionalResources.javaOpts: "-Xms1350M -Xmx2250M"  
     priority: -6
     timeout: 1200
 
@@ -733,12 +714,7 @@ apps:
     chart: mosip/pms-partner
     set:
       image.repository: "mosipid/partner-management-service"
-      image.tag: "1.2.2.2"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"    
+      image.tag: "1.2.2.2" 
       istio.corsPolicy.allowOrigins[0].prefix: "https://pmp.chaos.mosip.net"
     priority: -9
     timeout: 1200
@@ -751,12 +727,7 @@ apps:
     chart: mosip/pms-policy
     set:
       image.repository: "mosipid/policy-management-service"
-      image.tag: "1.2.2.2"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"    
+      image.tag: "1.2.2.2"   
       istio.corsPolicy.allowOrigins[0].prefix: "https://pmp.chaos.mosip.net"
     priority: -9
     timeout: 1200
@@ -769,11 +740,7 @@ apps:
     chart: mosip/pmp-ui
     set:
       image.repository: "mosipid/pmp-ui"
-      image.tag: "1.2.0.1"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
+      image.tag: "1.2.0.1" 
       pmp.apiUrl: "https://api-internal.chaos.mosip.net/"
       istio.hosts[0]: "pmp.chaos.mosip.net"
     priority: -9
@@ -787,11 +754,7 @@ apps:
     chart: mosip/pmp-revamp-ui
     set:
       # image.repository: "mosipqa/pmp-revamp-ui"
-      # image.tag: "develop"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"  
+      # image.tag: "develop" 
       pmp_revamp.react_app_partner_manager_api_base_url: "https://api-internal.chaos.mosip.net/v1/partnermanager"
       pmp_revamp.react_app_policy_manager_api_base_url: "https://api-internal.chaos.mosip.net/v1/policymanager"
       pmp_revamp.pms_partner_manager_internal_service_url: "http://pms-partner.pms/v1/partnermanager"
@@ -818,11 +781,11 @@ apps:
     version: 1.3.0-develop
     chart: mosip/regproc-workflow
     set:
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"
+      resources.limits.cpu: "400m"
+      resources.limits.memory: "1500Mi"
+      resources.requests.cpu: "150m"
+      resources.requests.memory: "307Mi"    
+      additionalResources.javaOpts: "-Xms1125M -Xmx1875M"
     #   livenessProbe.periodSeconds: "30"
     #   image.repository: "mosipdev/registration-processor-workflow-manager-service"
     #   image.tag: "release-1.3.x"
@@ -837,11 +800,11 @@ apps:
     version: 1.3.0-develop
     chart: mosip/regproc-status
     set:
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"
+      resources.limits.cpu: "350m"
+      resources.limits.memory: "900Mi"
+      resources.requests.cpu: "50m"
+      resources.requests.memory: "600Mi"    
+      additionalResources.javaOpts: "-Xms675M -Xmx1125M"
     #   livenessProbe.periodSeconds: "30"
     #   image.repository: "mosipdev/registration-processor-registration-status-service"
     #   image.tag: "release-1.3.x"
@@ -854,11 +817,11 @@ apps:
     version: 1.3.0-develop
     chart: mosip/regproc-camel
     set:
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "1200Mi"
+      resources.requests.cpu: "50m"
+      resources.requests.memory: "900Mi"    
+      additionalResources.javaOpts: "-Xms900M -Xmx1500M"
     #   livenessProbe.periodSeconds: "30"
     #   image.repository: "mosipdev/registration-processor-common-camel-bridge"
     #   image.tag: "release-1.3.x"
@@ -871,11 +834,11 @@ apps:
     version: 1.3.0-develop
     chart: mosip/regproc-pktserver
     set:
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"
+      resources.limits.cpu: "250m"
+      resources.limits.memory: "720Mi"
+      resources.requests.cpu: "50m"
+      resources.requests.memory: "600Mi"    
+      additionalResources.javaOpts: "-Xms540M -Xmx540M"
     #   livenessProbe.periodSeconds: "30"
     #   image.repository: "mosipdev/registration-processor-dmz-packet-server"
     #   image.tag: "release-1.3.x"
@@ -888,11 +851,11 @@ apps:
     version: 1.3.0-develop
     chart: mosip/regproc-group1
     set:
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "600Mi"
+      resources.requests.cpu: "50m"
+      resources.requests.memory: "600Mi"    
+      additionalResources.javaOpts: "-Xms450M -Xmx750M"
       persistence.storageClass: nfs-csi
       persistence.size: 5Gi
       livenessProbe.periodSeconds: "30"
@@ -909,11 +872,11 @@ apps:
     set:
       # image.repository: "mosipdev/registration-processor-stage-group-2"
       # image.tag: "release-1.3.x"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"
+      resources.limits.cpu: "700m"
+      resources.limits.memory: "1680Mi"
+      resources.requests.cpu: "150m"
+      resources.requests.memory: "307Mi"    
+      additionalResources.javaOpts: "-Xms1260M -Xmx2100M"
       # startupProbe.failureThreshold: 60
       # livenessProbe.periodSeconds: "30"
     timeout: 1200
@@ -927,11 +890,11 @@ apps:
     set:
     #   image.repository: "mosipdev/registration-processor-stage-group-3"
     #   image.tag: "release-1.3.x"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "2400Mi"
+      resources.requests.cpu: "256m"
+      resources.requests.memory: "307Mi"    
+      additionalResources.javaOpts: "-Xms1800M -Xmx3000M"
     #   livenessProbe.periodSeconds: "30"
     timeout: 1200
     priority: -6
@@ -944,11 +907,11 @@ apps:
     set:
     #   image.repository: "mosipdev/registration-processor-stage-group-4"
     #   image.tag: "release-1.3.x"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"
+      resources.limits.cpu: "250m"
+      resources.limits.memory: "2160Mi"
+      resources.requests.cpu: "50m"
+      resources.requests.memory: "600Mi"    
+      additionalResources.javaOpts: "-Xms1620M -Xmx2700M"
     #   livenessProbe.periodSeconds: "30"
     timeout: 1200
     priority: -6
@@ -961,11 +924,11 @@ apps:
     set:
     #   image.repository: "mosipdev/registration-processor-stage-group-5"
     #   image.tag: "release-1.3.x"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"
+      resources.limits.cpu: "400m"
+      resources.limits.memory: "2400Mi"
+      resources.requests.cpu: "50m"
+      resources.requests.memory: "600Mi"    
+      additionalResources.javaOpts: "-Xms1800M -Xmx3000M"
     #   livenessProbe.periodSeconds: "30"
     timeout: 1200
     priority: -6
@@ -978,11 +941,11 @@ apps:
     set:
     #   image.repository: "mosipdev/registration-processor-stage-group-6"
     #   image.tag: "release-1.3.x"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"
+      resources.limits.cpu: "350m"
+      resources.limits.memory: "1800Mi"
+      resources.requests.cpu: "50m"
+      resources.requests.memory: "600Mi" 
+      additionalResources.javaOpts: "-Xms1350M -Xmx2250M"
     #   livenessProbe.periodSeconds: "30"
     timeout: 1200
     priority: -6
@@ -995,11 +958,11 @@ apps:
     set:
     #   image.repository: "mosipdev/registration-processor-stage-group-8"
     #   image.tag: "release-1.3.x"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"
+      resources.limits.cpu: "400m"
+      resources.limits.memory: "1800Mi"
+      resources.requests.cpu: "50m"
+      resources.requests.memory: "600Mi"    
+      additionalResources.javaOpts: "-Xms1350M -Xmx2250M"
     #   livenessProbe.periodSeconds: "30"
     timeout: 1200
     priority: -6
@@ -1012,11 +975,11 @@ apps:
     set:
     #   image.repository: "mosipdev/registration-processor-registration-transaction-service"
     #   image.tag: "release-1.3.x"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"
+      resources.limits.cpu: "250m"
+      resources.limits.memory: "3000Mi"
+      resources.requests.cpu: "50m"
+      resources.requests.memory: "600Mi"    
+      additionalResources.javaOpts: "-Xms2250M -Xmx3750M"
     #   livenessProbe.periodSeconds: "30"
     timeout: 1200
     priority: -6
@@ -1027,11 +990,11 @@ apps:
     version: 1.3.0-develop
     chart: mosip/regproc-notifier
     set:
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"
+      resources.limits.cpu: "250m"
+      resources.limits.memory: "720Mi"
+      resources.requests.cpu: "50m"
+      resources.requests.memory: "600Mi"    
+      additionalResources.javaOpts: "-Xms540M -Xmx900M"
     #   livenessProbe.periodSeconds: "30"
     #   image.repository: "mosipdev/registration-processor-notification-service"
     #   image.tag: "release-1.3.x"
@@ -1044,11 +1007,11 @@ apps:
     version: 1.3.0-develop
     chart: mosip/regproc-reprocess
     set:
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"
+      resources.limits.cpu: "250m"
+      resources.limits.memory: "1500Mi"
+      resources.requests.cpu: "50m"
+      resources.requests.memory: "600Mi"    
+      additionalResources.javaOpts: "-Xms1125M -Xmx1875M"
     #   livenessProbe.periodSeconds: "30"
     #   image.repository: "mosipdev/registration-processor-reprocessor"
     #   image.tag: "release-1.3.x"
@@ -1061,11 +1024,11 @@ apps:
     version: 1.3.0-develop
     chart: mosip/regproc-landingzone
     set:
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"
+      resources.limits.cpu: "250m"
+      resources.limits.memory: "2400Mi"
+      resources.requests.cpu: "50m"
+      resources.requests.memory: "600Mi"    
+      additionalResources.javaOpts: "-Xms1800M -Xmx3000M"
     #   livenessProbe.periodSeconds: "30"
     #   image.repository: "mosipdev/registration-processor-landing-zone"
     #   image.tag: "release-1.3.x"
@@ -1080,11 +1043,11 @@ apps:
     set:
     #   image.repository: "mosipdev/hotlist-service"
     #   image.tag: "release-1.3.x"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"
+      resources.limits.cpu: "250m"
+      resources.limits.memory: "960Mi"
+      resources.requests.cpu: "50m"
+      resources.requests.memory: "600Mi"    
+      additionalResources.javaOpts: "-Xms720M -Xmx1200M"
     #   startupProbe.failureThreshold: 60
     timeout: 1200
     priority: -9
@@ -1097,11 +1060,11 @@ apps:
     set:
       # image.repository: "mosipdev/admin-service"
       # image.tag: "release-1.3.x"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"
+      resources.limits.cpu: "250m"
+      resources.limits.memory: "1620Mi"
+      resources.requests.cpu: "150m"
+      resources.requests.memory: "900Mi"    
+      additionalResources.javaOpts: "-Xms1215M -Xmx2025M"
       istio.corsPolicy.allowOrigins[0].prefix: "https://admin.chaos.mosip.net"
       # startupProbe.failureThreshold: 60
     timeout: 1200
@@ -1149,11 +1112,11 @@ apps:
     set:
       # image.repository: "mosipdev/authentication-service"
       # image.tag: "release-1.3.x"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"      
+      resources.limits.cpu: "1000m"
+      resources.limits.memory: "3000Mi"
+      resources.requests.cpu: "50m"
+      resources.requests.memory: "600Mi"    
+      additionalResources.javaOpts: "-Xms2250M -Xmx3750M"      
       # enable_insecure: "false"
       # persistence.enabled: "false"
       # volumePermissions.enabled: "false"
@@ -1172,11 +1135,11 @@ apps:
     set:
       # image.repository: "mosipdev/authentication-internal-service"
       # image.tag: "release-1.3.x"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"      
+      resources.limits.cpu: "250m"
+      resources.limits.memory: "3600Mi"
+      resources.requests.cpu: "50m"
+      resources.requests.memory: "900Mi"    
+      additionalResources.javaOpts: "-Xms2700M -Xmx4000M"      
       # enable_insecure: "false"
       # persistence.enabled: "false"
       # volumePermissions.enabled: "false"
@@ -1193,11 +1156,11 @@ apps:
     set:
     #   image.repository: "mosipdev/authentication-otp-service"
     #   image.tag: "release-1.3.x"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"    
+      resources.limits.cpu: "750m"
+      resources.limits.memory: "2400Mi"
+      resources.requests.cpu: "50m"
+      resources.requests.memory: "600Mi"    
+      additionalResources.javaOpts: "-Xms1800M -Xmx3000M"    
       # enable_insecure: false
       # persistence.enabled: false
       # volumePermissions.enabled: false
@@ -1214,11 +1177,11 @@ apps:
     set:
     #   image.repository: "mosipdev/print"
     #   image.tag: "release-1.3.x"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"
+      resources.limits.cpu: "150m"
+      resources.limits.memory: "1800Mi"
+      resources.requests.cpu: "50m"
+      resources.requests.memory: "600Mi"    
+      additionalResources.javaOpts: "-Xms1350M -Xmx2250M"
     timeout: 1200
     priority: -5
 
@@ -1231,11 +1194,11 @@ apps:
     set:
     #   image.repository: "mosipdev/digital-card-service"
     #   image.tag: "release-1.3.x"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"    
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "1800Mi"
+      resources.requests.cpu: "350m"
+      resources.requests.memory: "1200Mi"    
+      additionalResources.javaOpts: "-Xms1250M -Xmx2250M"    
     timeout: 1200
     priority: -5
 
@@ -1248,11 +1211,11 @@ apps:
     set:
       # image.repository: "mosipdev/resident-service"
       # image.tag: "release-1.3.x"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"
+      resources.limits.cpu: "350m"
+      resources.limits.memory: "1800Mi"
+      resources.requests.cpu: "50m"
+      resources.requests.memory: "600Mi"    
+      additionalResources.javaOpts: "-Xms1350M -Xmx2250M"
       # startupProbe.failureThreshold: "60"
       istio.corsPolicy.allowOrigins[0].prefix: "https://resident.chaos.mosip.net"
     timeout: 1200
@@ -1329,11 +1292,7 @@ apps:
     chart: mosip/mosip-file-server
     set:
       # image.repository: "mosipqa/mosip-file-server"
-      # image.tag: "develop"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"     
+      # image.tag: "develop"    
       mosipfileserver.host: "api.chaos.mosip.net"
       # mosipfileserver.secrets.KEYCLOAK_CLIENT_SECRET: ""
       istio.corsPolicy.allowOrigins[0].prefix: "https://api.chaos.mosip.net"
@@ -1351,11 +1310,11 @@ apps:
       startupProbe.failureThreshold: "60"
       # image.repository: "mosipdev2/registration-client"
       # image.tag: "release-1.3.x"
-      resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
-      additionalResources.javaOpts: "-Xms4250M -Xmx4250M"      
+      resources.limits.cpu: "100m"
+      resources.limits.memory: "1200Mi"
+      resources.requests.cpu: "50m"
+      resources.requests.memory: "900Mi"    
+      additionalResources.javaOpts: "-Xms900M -Xmx1500M"      
       regclient.version: "1.3.0-SNAPSHOT"
       regclient.upgradeServerUrl: "https://regclient.chaos.mosip.net"
       regclient.healthCheckUrl: "https://api-internal.chaos.mosip.net/v1/syncdata/actuator/health"
