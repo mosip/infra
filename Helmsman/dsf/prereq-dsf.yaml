@@ -33,17 +33,17 @@ apps:
     timeout: 900
     priority: -6
     hooks:
-      postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh <sandbox> helmsman"
-      postUpgrade: "$WORKDIR/hooks/install-istio-and-httpbin.sh <sandbox> helmsman"
+      postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh qajava21 helmsman"
+      postUpgrade: "$WORKDIR/hooks/install-istio-and-httpbin.sh qajava21 helmsman"
 
   rancher-monitoring:
     namespace: cattle-monitoring-system
-    enabled: false
+    enabled: true
     version: 103.1.0+up45.31.1
     chart: mosip/rancher-monitoring
     set:
-      grafana.global.cattle.clusterId: "c-m-pbrcfglw"
-      global.cattle.clusterId: "c-m-pbrcfglw"
+      grafana.global.cattle.clusterId: "c-m-m4c7tf46"
+      global.cattle.clusterId: "c-m-m4c7tf46"
     wait: true
     valuesFile: "$WORKDIR/utils/monitoring_values.yaml"  
     priority: -5
@@ -61,7 +61,7 @@ apps:
       image.tag: "7.17.2-debian-10-r4"
       # Kibana configuration and image
       global.kibanaEnabled: "true"
-      kibana.image.repository: "mosipid/kibana"
+      kibana.image.repository: "mosipint/kibana"
       kibana.image.tag: "7.17.2-debian-10-r0"
       kibana.image.pullPolicy: IfNotPresent
       data.heapSize: "728m"
@@ -73,7 +73,7 @@ apps:
       master.persistence.size: "4Gi"
       master.resources.requests.memory: "728Mi"
       kibana.persistence.enabled: "false"
-      sysctlImage.repository: "mosipid/os-shell"
+      sysctlImage.repository: "mosipint/os-shell"
       sysctlImage.tag: "12-debian-12-r46"
     wait: true
     timeout: 900
@@ -85,7 +85,7 @@ apps:
     version: 0.1.0
     chart: $WORKDIR/utils/istio-addons/logging-istio-addons-0.1.0.tgz
     set:
-      kibanaHost: "kibana.sandbox.xyz.net"
+      kibanaHost: "kibana.qajava21.mosip.net"
       installName: "elasticsearch-kibana"
     wait: true
     priority: -3
