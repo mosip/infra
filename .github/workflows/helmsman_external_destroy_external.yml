@@ -1,0 +1,46 @@
+name: Destroy External services of MOSIP using Helmsman (external DSF)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Type 'destroy' to confirm destruction of external services"
+        required: true
+        type: string
+      namespace_selection:
+        description: "Namespace selection"
+        required: true
+        type: choice
+        default: "all"
+        options:
+          - all
+          - specific
+      specific_namespaces:
+        description: "Specific namespaces (comma-separated, e.g., keycloak,kafka,minio). Only used if 'specific' is selected above."
+        required: false
+        type: string
+
+jobs:
+  validate-confirmation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate destruction confirmation
+        run: |
+          if [ "${{ github.event.inputs.confirmation }}" != "destroy" ]; then
+            echo "❌ Destruction cancelled. You must type 'destroy' to confirm."
+            exit 1
+          fi
+          echo "✅ Destruction confirmed. Proceeding..."
+
+  destroy:
+    needs: validate-confirmation
+    uses: ./.github/workflows/destroy-resources.yml
+    with:
+      namespace_selection: ${{ github.event.inputs.namespace_selection }}
+      specific_namespaces: ${{ github.event.inputs.specific_namespaces }}
+      all_namespaces: "keycloak kafka minio softhsm clamav activemq landing-page"
+      dsf_label: "external-dsf"
+      wireguard_secret_name: "CLUSTER_WIREGUARD_WG1"
+      deployment_type: "External"
+    secrets: inherit
+

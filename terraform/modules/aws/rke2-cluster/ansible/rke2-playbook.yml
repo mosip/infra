@@ -617,13 +617,97 @@
       debug:
         msg: "{{ cluster_status.stdout_lines }}"
 
-    - name: Execute Rancher import (if enabled)
-      shell: "{{ rancher_import_url }}"
-      when: enable_rancher_import | bool
+    - name: Check if Rancher cattle-cluster-agent is already running
+      shell: |
+        #!/bin/bash
+        set -o pipefail
+
+        # If namespace or deployment doesn't exist, we need to import
+        if ! kubectl get namespace cattle-system &>/dev/null; then
+          echo "NEEDS_IMPORT"
+          exit 0
+        fi
+
+        if ! kubectl get deployment cattle-cluster-agent -n cattle-system &>/dev/null; then
+          echo "NEEDS_IMPORT"
+          exit 0
+        fi
+
+        # Try a few times to allow the deployment to become healthy (race windows during initial install)
+        ATTEMPTS=8
+        SLEEP=5
+        for i in $(seq 1 $ATTEMPTS); do
+          AVAILABLE=$(kubectl get deployment cattle-cluster-agent -n cattle-system -o jsonpath="{.status.availableReplicas}" 2>/dev/null || echo 0)
+          DESIRED=$(kubectl get deployment cattle-cluster-agent -n cattle-system -o jsonpath="{.spec.replicas}" 2>/dev/null || echo 1)
+
+          # Normalize empty values to 0
+          AVAILABLE=${AVAILABLE:-0}
+          DESIRED=${DESIRED:-0}
+
+          # Check if available replicas meet desired replicas
+          if [ "$AVAILABLE" -ge "$DESIRED" ] && [ "$AVAILABLE" -gt 0 ]; then
+            # Additional check: verify pods are running and stable (not recently restarted)
+            POD_CHECK=$(kubectl get pods -n cattle-system -l app=cattle-cluster-agent --field-selector=status.phase=Running -o jsonpath='{range .items[*]}{.status.containerStatuses[0].restartCount}{" "}{.status.startTime}{"\n"}{end}' 2>/dev/null)
+            
+            if [ -n "$POD_CHECK" ]; then
+              # Check if any pod was started less than 2 minutes ago (recently restarted)
+              NOW=$(date +%s)
+              RECENT_RESTART=0
+              
+              while IFS= read -r line; do
+                if [ -n "$line" ]; then
+                  START_TIME=$(echo "$line" | awk '{print $2}')
+                  if [ -n "$START_TIME" ]; then
+                    START_EPOCH=$(date -d "$START_TIME" +%s 2>/dev/null || echo 0)
+                    AGE=$((NOW - START_EPOCH))
+                    # If pod is younger than 120 seconds, it's too new
+                    if [ "$AGE" -lt 120 ]; then
+                      RECENT_RESTART=1
+                      break
+                    fi
+                  fi
+                fi
+              done <<< "$POD_CHECK"
+              
+              if [ "$RECENT_RESTART" -eq 0 ]; then
+                echo "ALREADY_IMPORTED"
+                exit 0
+              fi
+            fi
+          fi
+
+          # Wait and retry
+          sleep $SLEEP
+        done
+
+        # Final check didn't meet readiness; consider import needed
+        echo "NEEDS_IMPORT"
+      register: rancher_import_check
       become_user: ubuntu
       environment:
         KUBECONFIG: "/home/ubuntu/.kube/{{ inventory_hostname }}.yaml"
       ignore_errors: yes
+      when: enable_rancher_import | bool
+      changed_when: false
+
+    - name: Execute Rancher import (if enabled and needed)
+      shell: "{{ rancher_import_url }}"
+      when: 
+        - enable_rancher_import | bool
+        - rancher_import_check.stdout is defined
+        - "'NEEDS_IMPORT' in rancher_import_check.stdout"
+      become_user: ubuntu
+      environment:
+        KUBECONFIG: "/home/ubuntu/.kube/{{ inventory_hostname }}.yaml"
+      ignore_errors: yes
+
+    - name: Skip Rancher import (already imported and healthy)
+      debug:
+        msg: "✅ Rancher cattle-cluster-agent is already running and healthy - skipping import to avoid pod restart"
+      when:
+        - enable_rancher_import | bool
+        - rancher_import_check.stdout is defined
+        - "'ALREADY_IMPORTED' in rancher_import_check.stdout"
 
     - name: Final success message
       debug:

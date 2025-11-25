@@ -140,11 +140,16 @@ resource "null_resource" "rke2_ansible_installation" {
     local_file.ansible_inventory
   ]
 
-  # Trigger re-run when cluster composition changes
+  # Only trigger on RKE2 version changes or inventory changes
+  # Ansible handles node addition/removal idempotently
   triggers = {
-    cluster_nodes     = join(",", [for k, v in var.K8S_CLUSTER_PRIVATE_IPS : "${k}=${v}"])
+    # Removed cluster_nodes - Ansible playbook is idempotent and handles new nodes
     inventory_content = local_file.ansible_inventory.content_sha256
     rke2_version      = var.RKE2_VERSION
+  }
+  
+  lifecycle {
+    create_before_destroy = true
   }
 
   # Ensure Ansible script has execute permissions on GitHub Actions runners
@@ -182,9 +187,18 @@ resource "null_resource" "download_kubeconfig_files" {
     null_resource.rke2_ansible_installation
   ]
 
-  # Download kubeconfig files after cluster installation
+  # Download kubeconfig files only when RKE2 version changes or control plane nodes change
+  # Don't refresh just because worker/etcd nodes are added
   triggers = {
-    cluster_ready = null_resource.rke2_ansible_installation.id
+    rke2_version = var.RKE2_VERSION
+    control_plane_ips = join(",", [
+      for key, value in var.K8S_CLUSTER_PRIVATE_IPS : value
+      if length(regexall(".*CONTROL-PLANE-NODE.*", key)) > 0
+    ])
+  }
+  
+  lifecycle {
+    create_before_destroy = true
   }
 
   provisioner "local-exec" {

@@ -37,14 +37,13 @@ namespaces:
 apps:
   postgres:
     namespace: postgres
-    enabled: true
-    version: 0.1.0
-    chart: $WORKDIR/utils/postgres/external-postgres-setup-0.1.0.tgz
+    enabled: false
+    version: 13.1.5
+    chart: bitnami/postgresql
     wait: true
     priority: -16
-    set:
-      postgres.configmaps.postgres-setup-config.postgres-host: "postgres.soil0.mosip.net"
-      postgres.configmaps.postgres-setup-config.postgres-port: "5433"
+    valuesFile: "$WORKDIR/utils/postgres-values.yaml"
+    timeout: 1200
 
   istio-addons-psql:
     namespace: postgres
@@ -52,7 +51,7 @@ apps:
     version: 0.1.0
     chart: $WORKDIR/utils/istio-addons/postgres-istio-addons-0.1.0.tgz
     set:
-      postgresHost: "postgres.soil0.mosip.net"
+      postgresHost: "postgres.soil51.mosip.net"
     wait: true
     priority: -4
     timeout: 1200
@@ -65,78 +64,78 @@ apps:
     set:
       dbUserPasswords.dbuserPassword: ""
       databases.mosip_master.enabled: "true"
-      databases.mosip_master.branch: "v1.2.1.1"
-      databases.mosip_master.host: "postgres.soil0.mosip.net"
+      databases.mosip_master.branch: "v1.2.1.3"
+      databases.mosip_master.host: "postgres.soil51.mosip.net"
       databases.mosip_master.port: 5433
 
       databases.mosip_audit.enabled: "true"
       databases.mosip_audit.branch: "v1.2.0.1"
-      databases.mosip_audit.host: "postgres.soil0.mosip.net"
+      databases.mosip_audit.host: "postgres.soil51.mosip.net"
       databases.mosip_audit.port: 5433
 
       databases.mosip_keymgr.enabled: "true"
       databases.mosip_keymgr.branch: "v1.2.1.0"
-      databases.mosip_keymgr.host: "postgres.soil0.mosip.net"
+      databases.mosip_keymgr.host: "postgres.soil51.mosip.net"
       databases.mosip_keymgr.port: 5433
 
       databases.mosip_kernel.enabled: "true"
-      databases.mosip_kernel.branch: "v1.2.0.1"
-      databases.mosip_kernel.host: "postgres.soil0.mosip.net"
+      databases.mosip_kernel.branch: " v1.2.0.2"
+      databases.mosip_kernel.host: "postgres.soil51.mosip.net"
       databases.mosip_kernel.port: 5433
 
       databases.mosip_idmap.enabled: "true"
-      databases.mosip_idmap.branch: "v1.2.2.2"
-      databases.mosip_idmap.host: "postgres.soil0.mosip.net"
+      databases.mosip_idmap.branch: "v1.2.2.3"
+      databases.mosip_idmap.host: "postgres.soil51.mosip.net"
       databases.mosip_idmap.port: 5433
 
       databases.mosip_prereg.enabled: "true"
-      databases.mosip_prereg.branch: "v1.2.0.1"
-      databases.mosip_prereg.host: "postgres.soil0.mosip.net"
+      databases.mosip_prereg.branch: "v1.2.0.3"
+      databases.mosip_prereg.host: "postgres.soil51.mosip.net"
       databases.mosip_prereg.port: 5433
 
       databases.mosip_idrepo.enabled: "true"
-      databases.mosip_idrepo.branch: "v1.2.2.2"
-      databases.mosip_idrepo.host: "postgres.soil0.mosip.net"
+      databases.mosip_idrepo.branch: "v1.2.2.3"
+      databases.mosip_idrepo.host: "postgres.soil51.mosip.net"
       databases.mosip_idrepo.port: 5433
 
       databases.mosip_ida.enabled: "true"
-      databases.mosip_ida.branch: "v1.2.1.0"
-      databases.mosip_ida.host: "postgres.soil0.mosip.net"
+      databases.mosip_ida.branch: "v1.2.1.2-beta.1"
+      databases.mosip_ida.host: "postgres.soil51.mosip.net"
       databases.mosip_ida.port: 5433
 
       databases.mosip_credential.enabled: "true"
-      databases.mosip_credential.branch: "v1.2.2.2"
-      databases.mosip_credential.host: "postgres.soil0.mosip.net"
+      databases.mosip_credential.branch: "v1.2.2.3"
+      databases.mosip_credential.host: "postgres.soil51.mosip.net"
       databases.mosip_credential.port: 5433
 
       databases.mosip_regprc.enabled: "true"
-      databases.mosip_regprc.branch: "v1.2.1.1"
-      databases.mosip_regprc.host: "postgres.soil0.mosip.net"
+      databases.mosip_regprc.branch: "v1.2.1.2"
+      databases.mosip_regprc.host: "postgres.soil51.mosip.net"
       databases.mosip_regprc.port: 5433
 
       databases.mosip_pms.enabled: "true"
-      databases.mosip_pms.branch: "release-1.3.x"
-      databases.mosip_pms.host: "postgres.soil0.mosip.net"
+      databases.mosip_pms.branch: "v1.3.0-beta.2"
+      databases.mosip_pms.host: "postgres.soil51.mosip.net"
       databases.mosip_pms.port: 5433
 
       databases.mosip_hotlist.enabled: "true"
-      databases.mosip_hotlist.branch: "v1.2.1.1"
-      databases.mosip_hotlist.host: "postgres.soil0.mosip.net"
+      databases.mosip_hotlist.branch: "v1.2.1.3"
+      databases.mosip_hotlist.host: "postgres.soil51.mosip.net"
       databases.mosip_hotlist.port: 5433
 
       databases.mosip_resident.enabled: "true"
       databases.mosip_resident.branch: "v1.2.1.2"
-      databases.mosip_resident.host: "postgres.soil0.mosip.net"
+      databases.mosip_resident.host: "postgres.soil51.mosip.net"
       databases.mosip_resident.port: 5433
 
       databases.mosip_otp.enabled: "true"
-      databases.mosip_otp.branch: "release-1.3.x"
-      databases.mosip_otp.host: "postgres.soil0.mosip.net"
+      databases.mosip_otp.branch: "v1.3.0-beta.1"
+      databases.mosip_otp.host: "postgres.soil51.mosip.net"
       databases.mosip_otp.port: 5433
 
       databases.mosip_digitalcard.enabled: "true"
       databases.mosip_digitalcard.branch: "v1.2.0.1"
-      databases.mosip_digitalcard.host: "postgres.soil0.mosip.net"
+      databases.mosip_digitalcard.host: "postgres.soil51.mosip.net"
       databases.mosip_digitalcard.port: 5433
     wait: true
     timeout: 1200
@@ -149,8 +148,12 @@ apps:
     chart: mosip/keycloak
     set:
       image.repository: "mosipid/mosip-artemis-keycloak"
-      image.tag: "1.2.0.1"
+      image.tag: "1.2.0.2"
       image.pullPolicy: "Always"
+      # Override Postgres image
+      postgresql.image.registry: "docker.io"
+      postgresql.image.repository: "mosipid/postgresql"
+      postgresql.image.tag: "14.2.0-debian-10-r70"
       service.type: "ClusterIP"
       auth.adminUser: "admin"
       extraEnvVars[0].name: "KEYCLOAK_EXTRA_ARGS"
@@ -180,7 +183,7 @@ apps:
     version: 0.1.0
     chart: $WORKDIR/utils/istio-addons/iam-istio-addons-0.1.0.tgz
     set:
-      keycloakExternalHost: "iam.soil0.mosip.net"
+      keycloakExternalHost: "iam.soil51.mosip.net"
       keycloakInternalHost: "keycloak.keycloak"
       service: "keycloak"
     wait: true
@@ -190,14 +193,14 @@ apps:
   keycloak-init:
     namespace: keycloak
     enabled: true
-    version: 0.0.1-develop
+    version: 12.0.2
     chart: mosip/keycloak-init
     set:
       # image.repository: "mosipid/keycloak-init"
       # image.tag: "1.2.0.1"
-      keycloakExternalHost: "iam.soil0.mosip.net"
+      keycloakExternalHost: "iam.soil51.mosip.net"
       keycloakInternalHost: "keycloak.keycloak"
-      keycloak.realms.mosip.realm_config.attributes.frontendUrl: "https://iam.soil0.mosip.net/auth"
+      keycloak.realms.mosip.realm_config.attributes.frontendUrl: "https://iam.soil51.mosip.net/auth"
       keycloak.realms.mosip.realm_config.smtpServer.auth: "false"
       keycloak.realms.mosip.realm_config.smtpServer.host: "smtp.gmail.com"
       keycloak.realms.mosip.realm_config.smtpServer.port: "465"
@@ -242,6 +245,8 @@ apps:
     version: 10.1.6
     chart: mosip/minio
     set:
+      image.repository: "mosipid/minio"
+      image.tag: "2022.2.7-debian-10-r0"
       metrics.serviceMonitor.enabled: "true"
       extraEnvVars[0].name: "MINIO_PROMETHEUS_URL"
       extraEnvVars[0].value: "http://rancher-monitoring-prometheus.cattle-monitoring-system:9090"
@@ -258,7 +263,7 @@ apps:
     version: 1.2.0
     chart: $WORKDIR/utils/istio-addons/minio-istio-addons-1.2.0.tgz
     set:
-      externalHost: "minio.soil0.mosip.net"
+      externalHost: "minio.soil51.mosip.net"
     wait: true
     timeout: 1200
     hooks:
@@ -288,14 +293,14 @@ apps:
     chart: mosip/activemq-artemis
     set: 
       istio.enabled: "true"
-      istio.hosts[0]: "activemq.soil0.mosip.net"
+      istio.hosts[0]: "activemq.soil51.mosip.net"
       istio.ingressController.name: "ingressgateway-internal"
       istio.prefix: ""
     wait: true
     timeout: 1200
     priority: -8
     hooks:
-      postInstall: "$WORKDIR/hooks/captcha-setup.sh 6LcAjrArAAAAAFHSM0soYeo-HTn6M6p-G_zBqWAb 6LcAjrArAAAAAB0gatjynhCHSsUPsmrya0KYI1YQ  6LcIjrArAAAAABUpMJSf6aFioXhGmX1XOxT5ai8c 6LcIjrArAAAAAEUAIiQfHv4q53PIx72O_-xJJt78 6Ld3jrArAAAAAAdL0KW6j8N9PfMz-MlnRxGP_ySx 6Ld3jrArAAAAABNsqmutUNxVv2S2BfwbR0bhuOjK"
+      postInstall: "$WORKDIR/hooks/captcha-setup.sh  6LcWjgwsAAAAAJCU-H2SXbG006Y-jXExbcz4d_Dt 6LcWjgwsAAAAAEzmf7_Ho6rNiQoygNcKQ_qM5q3u 6Lc1jgwsAAAAAPDBqdYyBarg3AscF8VGWumpBC2q 6Lc1jgwsAAAAACJqvtX1advggWRq973C4IF0D4VB 6LdajgwsAAAAANUDRsvnakRIHu5gtUzAL6AY8SQX 6LdajgwsAAAAAJamfYrcjt-YlNjnvluwxZzWQajW"
   # Note: Create a google recaptcha v2 ("I am not a Robot") from Google Recaptcha Admin.
   # Pass the captcha site and secret key in the above post install script as an argument.To create site and secret key below is the link:
   # https://cloud.google.com/security/products/recaptcha
@@ -307,6 +312,11 @@ apps:
     version: 18.3.1
     chart: bitnami/kafka
     set:
+      # Add these for image overrides
+      image.repository: "mosipid/kafka"
+      image.tag: "3.2.1-debian-11-r9"
+      zookeeper.image.repository: "mosipid/zookeeper"
+      zookeeper.image.tag: "3.8.0-debian-11-r30"
       clusterDomain: "cluster.local"
       logRetentionBytes: "_1073741824"
       defaultReplicationFactor: "3"
@@ -343,6 +353,9 @@ apps:
     version: 0.4.2
     chart: kafka-ui/kafka-ui
     set:
+      # Add these for image overrides
+      # image.repository: "docker.io/provectuslabs/kafka-ui"
+      # image.tag: "v0.4.0"
       envs.config.KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "kafka.kafka:9092"
       envs.config.KAFKA_CLUSTERS_0_NAME: "main_kafka"
       envs.config.KAFKA_CLUSTERS_0_ZOOKEEPER: "kafka-zookeeper.kafka:2181"
@@ -361,7 +374,7 @@ apps:
     version: 1.2.0
     chart: $WORKDIR/utils/istio-addons/kafka-istio-addons-1.2.0.tgz
     set:
-      kafkaUiHost: "kafka.soil0.mosip.net"
+      kafkaUiHost: "kafka.soil51.mosip.net"
       installName: "kafka-ui"
     wait: true
     timeout: 1200
@@ -376,28 +389,28 @@ apps:
     chart: mosip/landing-page
     set:
       landing.version: "develop"
-      landing.name: "soil0"
-      landing.api: "api.soil0.mosip.net"
-      landing.apiInternal: "api-internal.soil0.mosip.net"
-      landing.admin: "admin.soil0.mosip.net"
-      landing.prereg: "prereg.soil0.mosip.net"
-      landing.kafka: "kafka.soil0.mosip.net"
-      landing.kibana: "kibana.soil0.mosip.net"
-      landing.activemq: "activemq.soil0.mosip.net"
-      landing.minio: "minio.soil0.mosip.net"
-      landing.keycloak: "iam.soil0.mosip.net"
-      landing.regclient: "regclient.soil0.mosip.net"
-      landing.postgres.host: "postgres.soil0.mosip.net"
-      landing.postgres.port: "5432"
-      landing.compliance: "compliance.soil0.mosip.net"
-      landing.pmp: "pmp.soil0.mosip.net"
-      landing.resident: "resident.soil0.mosip.net"
-      landing.esignet: "esignet.soil0.mosip.net"
-      landing.smtp: "smtp.soil0.mosip.net"
-      landing.healthservices: "healthservices.soil0.mosip.net"
-      landing.injiweb: "injiweb.soil0.mosip.net"
-      landing.injiverify: "injiverify.soil0.mosip.net"
-      istio.host: "soil0.mosip.net"
+      landing.name: "soil51"
+      landing.api: "api.soil51.mosip.net"
+      landing.apiInternal: "api-internal.soil51.mosip.net"
+      landing.admin: "admin.soil51.mosip.net"
+      landing.prereg: "prereg.soil51.mosip.net"
+      landing.kafka: "kafka.soil51.mosip.net"
+      landing.kibana: "kibana.soil51.mosip.net"
+      landing.activemq: "activemq.soil51.mosip.net"
+      landing.minio: "minio.soil51.mosip.net"
+      landing.keycloak: "iam.soil51.mosip.net"
+      landing.regclient: "regclient.soil51.mosip.net"
+      landing.postgres.host: "postgres.soil51.mosip.net"
+      landing.postgres.port: "5433"
+      landing.compliance: "compliance.soil51.mosip.net"
+      landing.pmp: "pmp.soil51.mosip.net"
+      landing.resident: "resident.soil51.mosip.net"
+      landing.esignet: "esignet.soil51.mosip.net"
+      landing.smtp: "smtp.soil51.mosip.net"
+      landing.healthservices: "healthservices.soil51.mosip.net"
+      landing.injiweb: "injiweb.soil51.mosip.net"
+      landing.injiverify: "injiverify.soil51.mosip.net"
+      istio.host: "soil51.mosip.net"
     wait: true
     timeout: 1200
     hooks:

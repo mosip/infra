@@ -33,17 +33,17 @@ apps:
     timeout: 900
     priority: -6
     hooks:
-      postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh soil0 helmsman"
-      postUpgrade: "$WORKDIR/hooks/install-istio-and-httpbin.sh soil0 helmsman"
+      postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh soil51.mosip.net helmsman"
+      postUpgrade: "$WORKDIR/hooks/install-istio-and-httpbin.sh soil51.mosip.net helmsman"
 
   rancher-monitoring:
     namespace: cattle-monitoring-system
-    enabled: false
+    enabled: true
     version: 103.1.0+up45.31.1
     chart: mosip/rancher-monitoring
     set:
-      grafana.global.cattle.clusterId: "c-m-pbrcfglw"
-      global.cattle.clusterId: "c-m-pbrcfglw"
+      grafana.global.cattle.clusterId: "c-m-m9z4x4sp"
+      global.cattle.clusterId: "c-m-m9z4x4sp"
     wait: true
     valuesFile: "$WORKDIR/utils/monitoring_values.yaml"  
     priority: -5
@@ -57,7 +57,13 @@ apps:
     version: 17.9.25
     chart: mosip/elasticsearch
     set:
+      image.repository: "mosipint/elasticsearch"
+      image.tag: "7.17.2-debian-10-r4"
+      # Kibana configuration and image
       global.kibanaEnabled: "true"
+      kibana.image.repository: "mosipid/kibana"
+      kibana.image.tag: "7.17.2-debian-10-r0"
+      kibana.image.pullPolicy: IfNotPresent
       data.heapSize: "728m"
       data.persistence.enabled: "true"
       data.persistence.size: "64Gi"
@@ -67,7 +73,7 @@ apps:
       master.persistence.size: "4Gi"
       master.resources.requests.memory: "728Mi"
       kibana.persistence.enabled: "false"
-      sysctlImage.repository: "bitnami/os-shell"
+      sysctlImage.repository: "mosipid/os-shell"
       sysctlImage.tag: "12-debian-12-r46"
     wait: true
     timeout: 900
@@ -79,7 +85,7 @@ apps:
     version: 0.1.0
     chart: $WORKDIR/utils/istio-addons/logging-istio-addons-0.1.0.tgz
     set:
-      kibanaHost: "kibana.soil0.mosip.net"
+      kibanaHost: "kibana.soil51.mosip.net"
       installName: "elasticsearch-kibana"
     wait: true
     priority: -3
@@ -97,9 +103,9 @@ apps:
     enabled: true
     version: 103.1.1+up4.4.0
     chart: mosip/rancher-logging
+    valuesFile: "$WORKDIR/utils/rancher-loggig-values.yaml"
     wait: true
     priority: -1
-    timeout: 900
+    timeout: 1200
     hooks:
       postInstall: "$WORKDIR/hooks/post_logging-setup.sh"
-      postUpgrade: "$WORKDIR/hooks/post_logging-setup.sh"
