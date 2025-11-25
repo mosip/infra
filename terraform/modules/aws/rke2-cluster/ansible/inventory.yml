@@ -26,11 +26,17 @@ all:
         soil52-ETCD-NODE-1:
           ansible_host: 10.0.4.109
           node_role: etcd
+        soil52-ETCD-NODE-2:
+          ansible_host: 10.0.4.78
+          node_role: etcd
     
     workers:
       hosts:
         soil52-WORKER-NODE-1:
           ansible_host: 10.0.4.31
+          node_role: worker
+        soil52-WORKER-NODE-2:
+          ansible_host: 10.0.4.104
           node_role: worker
 
     rke2_cluster:
