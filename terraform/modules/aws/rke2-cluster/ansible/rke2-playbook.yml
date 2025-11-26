@@ -617,78 +617,32 @@
       debug:
         msg: "{{ cluster_status.stdout_lines }}"
 
-    - name: Check if Rancher cattle-cluster-agent is already running
-      shell: |
-        set -o pipefail
-
-        # If namespace or deployment doesn't exist, we need to import
-        if ! kubectl get namespace cattle-system &>/dev/null; then
-          echo "NEEDS_IMPORT"
-          exit 0
-        fi
-
-        if ! kubectl get deployment cattle-cluster-agent -n cattle-system &>/dev/null; then
-          echo "NEEDS_IMPORT"
-          exit 0
-        fi
-
-        # Try a few times to allow the deployment to become healthy (race windows during initial install)
-        ATTEMPTS=8
-        SLEEP=5
-        for i in $(seq 1 $ATTEMPTS); do
-          AVAILABLE=$(kubectl get deployment cattle-cluster-agent -n cattle-system -o jsonpath="{{ '{{' }}.status.availableReplicas{{ '}}' }}" 2>/dev/null || echo 0)
-          DESIRED=$(kubectl get deployment cattle-cluster-agent -n cattle-system -o jsonpath="{{ '{{' }}.spec.replicas{{ '}}' }}" 2>/dev/null || echo 1)
-
-          # Normalize empty values to 0
-          AVAILABLE=${AVAILABLE:-0}
-          DESIRED=${DESIRED:-0}
-
-          # Check if available replicas meet desired replicas
-          if [ "$AVAILABLE" -ge "$DESIRED" ] && [ "$AVAILABLE" -gt 0 ]; then
-            # Check deployment status without complex jsonpath
-            READY=$(kubectl get deployment cattle-cluster-agent -n cattle-system -o jsonpath="{{ '{{' }}.status.readyReplicas{{ '}}' }}" 2>/dev/null || echo 0)
-            READY=${READY:-0}
-            
-            if [ "$READY" -ge "$DESIRED" ] && [ "$READY" -gt 0 ]; then
-              echo "ALREADY_IMPORTED"
-              exit 0
-            fi
-          fi
-
-          # Wait and retry
-          sleep $SLEEP
-        done
-
-        # Final check didn't meet readiness; consider import needed
-        echo "NEEDS_IMPORT"
-      args:
-        executable: /bin/bash
-      register: rancher_import_check
+    - name: Check if Rancher import already done
+      shell: kubectl get namespace cattle-system
       become_user: ubuntu
       environment:
         KUBECONFIG: "/home/ubuntu/.kube/{{ inventory_hostname }}.yaml"
+      register: cattle_system_check
       ignore_errors: yes
       when: enable_rancher_import | bool
       changed_when: false
 
-    - name: Execute Rancher import (if enabled and needed)
+    - name: Execute Rancher import (first time only)
       shell: "{{ rancher_import_url }}"
       when: 
         - enable_rancher_import | bool
-        - rancher_import_check.stdout is defined
-        - "'NEEDS_IMPORT' in rancher_import_check.stdout"
+        - cattle_system_check.rc != 0
       become_user: ubuntu
       environment:
         KUBECONFIG: "/home/ubuntu/.kube/{{ inventory_hostname }}.yaml"
       ignore_errors: yes
 
-    - name: Skip Rancher import (already imported and healthy)
+    - name: Skip Rancher import (already imported)
       debug:
-        msg: "✅ Rancher cattle-cluster-agent is already running and healthy - skipping import to avoid pod restart"
+        msg: "✅ Rancher already imported (cattle-system namespace exists) - skipping kubectl apply"
       when:
         - enable_rancher_import | bool
-        - rancher_import_check.stdout is defined
-        - "'ALREADY_IMPORTED' in rancher_import_check.stdout"
+        - cattle_system_check.rc == 0
 
     - name: Final success message
       debug:
