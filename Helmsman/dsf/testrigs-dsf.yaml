@@ -28,9 +28,9 @@ apps:
       image.repository: "	mosipqa/dsl-packetcreator"
       image.tag: "1.3.x"
       resources.limits.cpu: "2000m"
-      resources.limits.memory: "6000Mi"
+      resources.limits.memory: "5000Mi"
       resources.requests.cpu: "500m"
-      resources.requests.memory: "3000Mi"    
+      resources.requests.memory: "2000Mi"    
       additionalResources.javaOpts: "-Xms4250M -Xmx4250M"
       enable_insecure: false
       ingress.enabled: false
