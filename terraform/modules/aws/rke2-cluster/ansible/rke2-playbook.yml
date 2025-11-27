@@ -617,13 +617,32 @@
       debug:
         msg: "{{ cluster_status.stdout_lines }}"
 
-    - name: Execute Rancher import (if enabled)
-      shell: "{{ rancher_import_url }}"
+    - name: Check if Rancher import already done
+      shell: kubectl get namespace cattle-system
+      become_user: ubuntu
+      environment:
+        KUBECONFIG: "/home/ubuntu/.kube/{{ inventory_hostname }}.yaml"
+      register: cattle_system_check
+      ignore_errors: yes
       when: enable_rancher_import | bool
+      changed_when: false
+
+    - name: Execute Rancher import (first time only)
+      shell: "{{ rancher_import_url }}"
+      when: 
+        - enable_rancher_import | bool
+        - cattle_system_check.rc != 0
       become_user: ubuntu
       environment:
         KUBECONFIG: "/home/ubuntu/.kube/{{ inventory_hostname }}.yaml"
       ignore_errors: yes
+
+    - name: Skip Rancher import (already imported)
+      debug:
+        msg: "✅ Rancher already imported (cattle-system namespace exists) - skipping kubectl apply"
+      when:
+        - enable_rancher_import | bool
+        - cattle_system_check.rc == 0
 
     - name: Final success message
       debug:
