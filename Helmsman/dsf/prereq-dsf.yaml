@@ -42,14 +42,14 @@ apps:
     version: 103.1.0+up45.31.1
     chart: mosip/rancher-monitoring
     set:
-      grafana.global.cattle.clusterId: "c-m-pbrcfglw"
-      global.cattle.clusterId: "c-m-pbrcfglw"
+      grafana.global.cattle.clusterId: "<cluster-id>"
+      global.cattle.clusterId: "<cluster-id>"
     wait: true
-    valuesFile: "$WORKDIR/utils/monitoring_values.yaml"  
+    valuesFile: "$WORKDIR/utils/monitoring_values.yaml"
     priority: -5
     timeout: 600
     hooks:
-      postInstall: "$WORKDIR/hooks/alerting-setup.sh"
+      postInstall: "$WORKDIR/hooks/alerting-setup.sh <slack-channel-name> <slack-api-url> <env-name>"
 
   elasticsearch:
     namespace: cattle-logging-system
