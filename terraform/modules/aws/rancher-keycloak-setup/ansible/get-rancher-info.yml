@@ -1,0 +1,28 @@
+---
+- name: Get Rancher Information
+  hosts: control_plane
+  become: yes
+  vars:
+    kubeconfig_path: "/etc/rancher/rke2/rke2.yaml"
+    kubectl_path: "/var/lib/rancher/rke2/bin/kubectl"
+    rancher_hostname: "{{ rancher_hostname_var }}"
+    rancher_bootstrap_password: "{{ rancher_password }}"
+
+  tasks:
+    - name: Get Rancher pod status
+      shell: "{{ kubectl_path }} get pods -n cattle-system | grep rancher"
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: rancher_pods
+
+    - name: Display Rancher status
+      debug:
+        msg: "{{ rancher_pods.stdout_lines }}"
+
+    - name: Display Rancher URL
+      debug:
+        msg: "Rancher URL: https://{{ rancher_hostname }}"
+
+    - name: Display bootstrap password
+      debug:
+        msg: "Bootstrap Password: {{ rancher_bootstrap_password }}"
