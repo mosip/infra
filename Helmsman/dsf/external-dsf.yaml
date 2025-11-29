@@ -291,7 +291,8 @@ apps:
     enabled: true
     version: 0.0.2
     chart: mosip/activemq-artemis
-    set: 
+    set:
+      persistence.storageClass: "nfs-csi-activemq"    
       istio.enabled: "true"
       istio.hosts[0]: "activemq.devupgrade.mosip.net"
       istio.ingressController.name: "ingressgateway-internal"
