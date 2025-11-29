@@ -584,19 +584,18 @@ apps:
     priority: -9
     timeout: 1200
 
-
-   pmp-ui:
-     namespace: pms
-     enabled: true
-     version: 12.0.2
-     chart: mosip/pmp-ui
-     set:
-       # image.repository: "mosipid/pmp-ui"
-       # image.tag: "1.2.2.1"
-       pmp.apiUrl: "https://api-internal.devupgrade.mosip.net/"
-       istio.hosts[0]: "pmp.devupgrade.mosip.net"
-     priority: -9
-     timeout: 1200
+  pmp-ui:
+    namespace: pms
+    enabled: true
+    version: 12.0.2
+    chart: mosip/pmp-ui
+    set:
+      # image.repository: "mosipid/pmp-ui"
+      # image.tag: "1.2.2.1"
+      pmp.apiUrl: "https://api-internal.devupgrade.mosip.net/"
+      istio.hosts[0]: "pmp.devupgrade.mosip.net"
+    priority: -9
+    timeout: 1200
 
 
   #pmp-revamp-ui:
