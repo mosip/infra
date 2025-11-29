@@ -64,7 +64,7 @@ subdomain_internal = ["admin", "iam", "activemq", "kafka", "kibana", "postgres",
 
 # PostgreSQL Configuration (used when second EBS volume is enabled)
 enable_postgresql_setup = true # Enable PostgreSQL setup for main infra
-postgresql_version      = "13"
+postgresql_version      = "15"
 storage_device          = "/dev/nvme2n1"
 mount_point             = "/srv/postgres"
 postgresql_port         = "5433"
