@@ -62,7 +62,7 @@ apps:
   conf-secrets:
     namespace: conf-secrets 
     enabled: true
-    version: 12.0.1
+    version: 12.0.3
     chart: mosip/conf-secrets
     priority: -20
 
