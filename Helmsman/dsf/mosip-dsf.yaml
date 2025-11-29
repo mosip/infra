@@ -81,7 +81,7 @@ apps:
   artifactory:
     namespace: artifactory
     enabled: true
-    version: 12.0.1
+    version: 12.0.2
     chart: mosip/artifactory
     # set:
     #   image.repository: "mosipid/artifactory-server"
@@ -118,7 +118,7 @@ apps:
   mock-abis:
     namespace: abis
     enabled: true
-    version: 12.0.1
+    version: 12.0.2
     chart: mosip/mock-abis
     set:
       startupProbe.failureThreshold: 60
@@ -131,7 +131,7 @@ apps:
   mock-mv:
     namespace: abis
     enabled: true
-    version: 12.0.1
+    version: 12.0.2
     chart: mosip/mock-mv
     set:
       resources.requests.cpu: 200m
@@ -225,7 +225,7 @@ apps:
     set:
       # image.repository: "mosipqa/masterdata-loader"
       # image.tag: "develop"
-      mosipDataGithubBranch: "v1.2.2.0"
+      mosipDataGithubBranch: "v1.2.0.1"
       mosipDataGithubRepo: "https://github.com/mosip/mosip-data"
       mosipDataXlsfolderPath: "/home/mosip/mosip-data/mosip_master/xlsx"
       db.host: "postgres.devupgrade.mosip.net"
@@ -841,9 +841,11 @@ apps:
   regproc-landingzone:
     namespace: regproc
     enabled: true
-    version: 12.0.1
+    version: 12.0.2
     chart: mosip/regproc-landingzone
     set:
+      image.repository: "mosipid/registration-processor-landing-zone"
+      image.tag: "1.2.0.2"    
       resources.limits.cpu: "500m"
       resources.limits.memory: "4000Mi"
       resources.requests.cpu: "100m"
@@ -1075,7 +1077,7 @@ apps:
   mosip-file-server:
     namespace: mosip-file-server
     enabled: true
-    version: 12.0.1
+    version: 12.0.2
     chart: mosip/mosip-file-server
     set:
       image.repository: "mosipid/mosip-file-server"
