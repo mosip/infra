@@ -1,13 +1,13 @@
 ---
 all:
   vars:
-    cluster_name: "soil41"
+    cluster_name: "devupgrade"
     cluster_env_domain: "mosip.local"
     k8s_infra_repo_url: "https://github.com/mosip/k8s-infra.git"
-    k8s_infra_branch: "MOSIP-42914"
+    k8s_infra_branch: "v1.2.1.0"
     install_rke2_version: "v1.28.9+rke2r1"
     enable_rancher_import: true
-    rancher_import_url: "kubectl apply -f https://rancher.observation.mosip.net/v3/import/b94jcxqdddb9k9p7rj4kzf4c7xkkqnvrz886wx9pf44btvwjs5bnzt_c-m-flzdgnth.yaml"
+    rancher_import_url: "kubectl apply -f https://rancher.mosip.net/v3/import/wrppf9jhmwg7ndx8vsdm4b9v4ldwhcvtbrrvsjf992mcxnk5txb65j_c-m-8fp4kckm.yaml"
     ansible_user: ubuntu
     ansible_ssh_private_key_file: ./ssh_key
     ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
@@ -15,41 +15,50 @@ all:
   children:
     control_plane:
       hosts:
-        soil41-CONTROL-PLANE-NODE-1:
-          ansible_host: 10.0.3.55
+        devupgrade-CONTROL-PLANE-NODE-1:
+          ansible_host: 172.31.65.47
           node_role: control_plane
           is_primary: true
           node_index: 0
-        soil41-CONTROL-PLANE-NODE-2:
-          ansible_host: 10.0.4.143
+        devupgrade-CONTROL-PLANE-NODE-2:
+          ansible_host: 172.31.68.13
           node_role: control_plane
           is_primary: false
           node_index: 1
-        soil41-CONTROL-PLANE-NODE-3:
-          ansible_host: 10.0.3.164
+        devupgrade-CONTROL-PLANE-NODE-3:
+          ansible_host: 172.31.77.55
           node_role: control_plane
           is_primary: false
           node_index: 2
     
     etcd:
       hosts:
-        soil41-ETCD-NODE-1:
-          ansible_host: 10.0.3.130
+        devupgrade-ETCD-NODE-1:
+          ansible_host: 172.31.65.72
           node_role: etcd
-        soil41-ETCD-NODE-2:
-          ansible_host: 10.0.4.209
+        devupgrade-ETCD-NODE-2:
+          ansible_host: 172.31.65.184
           node_role: etcd
-        soil41-ETCD-NODE-3:
-          ansible_host: 10.0.3.136
+        devupgrade-ETCD-NODE-3:
+          ansible_host: 172.31.73.238
           node_role: etcd
     
     workers:
       hosts:
-        soil41-WORKER-NODE-1:
-          ansible_host: 10.0.3.101
+        devupgrade-WORKER-NODE-1:
+          ansible_host: 172.31.78.244
           node_role: worker
-        soil41-WORKER-NODE-2:
-          ansible_host: 10.0.4.41
+        devupgrade-WORKER-NODE-2:
+          ansible_host: 172.31.75.76
+          node_role: worker
+        devupgrade-WORKER-NODE-3:
+          ansible_host: 172.31.76.40
+          node_role: worker
+        devupgrade-WORKER-NODE-4:
+          ansible_host: 172.31.71.118
+          node_role: worker
+        devupgrade-WORKER-NODE-5:
+          ansible_host: 172.31.74.115
           node_role: worker
 
     rke2_cluster:
