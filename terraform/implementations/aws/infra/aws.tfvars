@@ -1,11 +1,11 @@
 # Environment name (infra component)
-cluster_name = "<cluster_name>"
+cluster_name = "devupgrade"
 # MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "<cluster_name>.xxxxx.net"
+cluster_env_domain = "devupgrade.mosip.net"
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
-mosip_email_id = "<mosip_email_id>"
+mosip_email_id = "chandra.mishra@technoforte.co.in"
 # SSH login key name for AWS node instances (ex: my-ssh-key)
-ssh_key_name = "<ssh_key_name>"
+ssh_key_name = "mosip-aws"
 # The AWS region for resource creation
 aws_provider_region = "ap-south-1"
 
@@ -13,18 +13,18 @@ aws_provider_region = "ap-south-1"
 # If empty, uses all available AZs in the region
 # Example: ["ap-south-1a", "ap-south-1b"] for specific AZs
 # Example: [] for all available AZs in the region
-specific_availability_zones = []
+specific_availability_zones = ["ap-south-1b"]
 
 # The instance type for Kubernetes nodes (control plane, worker, etcd)
 k8s_instance_type = "t3a.2xlarge"
 # The instance type for Nginx server (load balancer)
 nginx_instance_type = "t3a.2xlarge"
 # The Route 53 hosted zone ID
-zone_id = "<route53_zone_id>"
+zone_id = "Z090954828SJIEL6P5406"
 
 ## UBUNTU 24.04
 # The Amazon Machine Image ID for the instances
-ami = "ami-xxxxxxxxxxxx" # Ubuntu 24.04 LTS AMI ID for ap-south-1
+ami = "ami-0ad21ae1d0696ad58" # Ubuntu 24.04 LTS AMI ID for ap-south-1
 
 # Repo K8S-INFRA URL
 k8s_infra_repo_url = "https://github.com/mosip/k8s-infra.git"
@@ -44,27 +44,27 @@ k8s_control_plane_node_count = 3
 # ETCD, Worker
 k8s_etcd_node_count = 3
 # Worker
-k8s_worker_node_count = 2
+k8s_worker_node_count = 5
 
 # RKE2 Version Configuration
 rke2_version = "v1.28.9+rke2r1"
 
 # Security group CIDRs
-network_cidr   = "10.0.0.0/8" # Use your actual VPC CIDR
-WIREGUARD_CIDR = "10.0.0.0/8" # Use your actual WireGuard VPN CIDR
+network_cidr   = "172.0.0.0/8" # Use your actual VPC CIDR
+WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 
 
 # Rancher Import URL
 # Rancher Import Configuration
-enable_rancher_import = false
-rancher_import_url    = "\"kubectl apply -f https://rancher.observation.mosip.net/v3/import/b94jcxqdddb9k9p7rj4kzf4c7xkkqnvrz886wx9pf44btvwjs5bnzt_c-m-flzdgnth.yaml\""
+enable_rancher_import = true
+rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/4vk2zqhp7qwddnxtds5f6bjlmbjkvm66zrl4v7gkjhrmwgvvrc8qtq_c-m-4w7djf4x.yaml\""
 # DNS Records to map
 subdomain_public   = ["resident", "prereg", "esignet", "healthservices", "signup"]
 subdomain_internal = ["admin", "iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio", "regclient", "compliance"]
 
 # PostgreSQL Configuration (used when second EBS volume is enabled)
 enable_postgresql_setup = true # Enable PostgreSQL setup for main infra
-postgresql_version      = "15"
+postgresql_version      = "13"
 storage_device          = "/dev/nvme2n1"
 mount_point             = "/srv/postgres"
 postgresql_port         = "5433"
@@ -76,6 +76,4 @@ mosip_infra_branch = "v0.1.0-beta.1"
 
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
-vpc_name = "<vpc_name>"
-
-v
+vpc_name = "default"
