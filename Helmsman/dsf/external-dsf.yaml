@@ -193,11 +193,11 @@ apps:
   keycloak-init:
     namespace: keycloak
     enabled: true
-    version: 0.0.1-develop
+    version: 1.3.0-develop
     chart: mosip/keycloak-init
     set:
       image.repository: "mosipqa/keycloak-init"
-      image.tag: "develop"
+      image.tag: "1.3.x"
       keycloakExternalHost: "iam.sandbox.xyz.net"
       keycloakInternalHost: "keycloak.keycloak"
       keycloak.realms.mosip.realm_config.attributes.frontendUrl: "https://iam.sandbox.xyz.net/auth"
