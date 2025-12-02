@@ -51,7 +51,7 @@ apps:
     version: 0.1.0
     chart: $WORKDIR/utils/istio-addons/postgres-istio-addons-0.1.0.tgz
     set:
-      postgresHost: "postgres.sandbox.xyz.net"
+      postgresHost: "postgres.qaga.mosip.net"
     wait: true
     priority: -4
     timeout: 1200
@@ -65,77 +65,77 @@ apps:
       dbUserPasswords.dbuserPassword: ""
       databases.mosip_master.enabled: "true"
       databases.mosip_master.branch: "release-1.3.x"
-      databases.mosip_master.host: "postgres.sandbox.xyz.net"
+      databases.mosip_master.host: "postgres.qaga.mosip.net"
       databases.mosip_master.port: 5433
 
       databases.mosip_audit.enabled: "true"
       databases.mosip_audit.branch: "release-1.3.x"
-      databases.mosip_audit.host: "postgres.sandbox.xyz.net"
+      databases.mosip_audit.host: "postgres.qaga.mosip.net"
       databases.mosip_audit.port: 5433
 
       databases.mosip_keymgr.enabled: "true"
       databases.mosip_keymgr.branch: "release-1.3.x"
-      databases.mosip_keymgr.host: "postgres.sandbox.xyz.net"
+      databases.mosip_keymgr.host: "postgres.qaga.mosip.net"
       databases.mosip_keymgr.port: 5433
 
       databases.mosip_kernel.enabled: "true"
       databases.mosip_kernel.branch: "release-1.3.x"
-      databases.mosip_kernel.host: "postgres.sandbox.xyz.net"
+      databases.mosip_kernel.host: "postgres.qaga.mosip.net"
       databases.mosip_kernel.port: 5433
 
       databases.mosip_idmap.enabled: "true"
       databases.mosip_idmap.branch: "release-1.3.x"
-      databases.mosip_idmap.host: "postgres.sandbox.xyz.net"
+      databases.mosip_idmap.host: "postgres.qaga.mosip.net"
       databases.mosip_idmap.port: 5433
 
       databases.mosip_prereg.enabled: "true"
       databases.mosip_prereg.branch: "release-1.3.x"
-      databases.mosip_prereg.host: "postgres.sandbox.xyz.net"
+      databases.mosip_prereg.host: "postgres.qaga.mosip.net"
       databases.mosip_prereg.port: 5433
 
       databases.mosip_idrepo.enabled: "true"
       databases.mosip_idrepo.branch: "release-1.3.x"
-      databases.mosip_idrepo.host: "postgres.sandbox.xyz.net"
+      databases.mosip_idrepo.host: "postgres.qaga.mosip.net"
       databases.mosip_idrepo.port: 5433
 
       databases.mosip_ida.enabled: "true"
       databases.mosip_ida.branch: "release-1.3.x"
-      databases.mosip_ida.host: "postgres.sandbox.xyz.net"
+      databases.mosip_ida.host: "postgres.qaga.mosip.net"
       databases.mosip_ida.port: 5433
 
       databases.mosip_credential.enabled: "true"
       databases.mosip_credential.branch: "release-1.3.x"
-      databases.mosip_credential.host: "postgres.sandbox.xyz.net"
+      databases.mosip_credential.host: "postgres.qaga.mosip.net"
       databases.mosip_credential.port: 5433
 
       databases.mosip_regprc.enabled: "true"
       databases.mosip_regprc.branch: "release-1.3.x"
-      databases.mosip_regprc.host: "postgres.sandbox.xyz.net"
+      databases.mosip_regprc.host: "postgres.qaga.mosip.net"
       databases.mosip_regprc.port: 5433
 
       databases.mosip_pms.enabled: "true"
       databases.mosip_pms.branch: "v1.2.2.3"
-      databases.mosip_pms.host: "postgres.sandbox.xyz.net"
+      databases.mosip_pms.host: "postgres.qaga.mosip.net"
       databases.mosip_pms.port: 5433
 
       databases.mosip_hotlist.enabled: "true"
       databases.mosip_hotlist.branch: "release-1.3.x"
-      databases.mosip_hotlist.host: "postgres.sandbox.xyz.net"
+      databases.mosip_hotlist.host: "postgres.qaga.mosip.net"
       databases.mosip_hotlist.port: 5433
 
       databases.mosip_resident.enabled: "true"
       databases.mosip_resident.branch: "release-1.3.x"
-      databases.mosip_resident.host: "postgres.sandbox.xyz.net"
+      databases.mosip_resident.host: "postgres.qaga.mosip.net"
       databases.mosip_resident.port: 5433
 
       databases.mosip_otp.enabled: "true"
       databases.mosip_otp.branch: "release-1.3.x"
-      databases.mosip_otp.host: "postgres.sandbox.xyz.net"
+      databases.mosip_otp.host: "postgres.qaga.mosip.net"
       databases.mosip_otp.port: 5433
 
       databases.mosip_digitalcard.enabled: "true"
       databases.mosip_digitalcard.branch: "release-1.3.x"
-      databases.mosip_digitalcard.host: "postgres.sandbox.xyz.net"
+      databases.mosip_digitalcard.host: "postgres.qaga.mosip.net"
       databases.mosip_digitalcard.port: 5433
     wait: true
     timeout: 1200
@@ -183,7 +183,7 @@ apps:
     version: 0.1.0
     chart: $WORKDIR/utils/istio-addons/iam-istio-addons-0.1.0.tgz
     set:
-      keycloakExternalHost: "iam.sandbox.xyz.net"
+      keycloakExternalHost: "iam.qaga.mosip.net"
       keycloakInternalHost: "keycloak.keycloak"
       service: "keycloak"
     wait: true
@@ -198,9 +198,9 @@ apps:
     set:
       image.repository: "mosipqa/keycloak-init"
       image.tag: "1.3.x"
-      keycloakExternalHost: "iam.sandbox.xyz.net"
+      keycloakExternalHost: "iam.qaga.mosip.net"
       keycloakInternalHost: "keycloak.keycloak"
-      keycloak.realms.mosip.realm_config.attributes.frontendUrl: "https://iam.sandbox.xyz.net/auth"
+      keycloak.realms.mosip.realm_config.attributes.frontendUrl: "https://iam.qaga.mosip.net/auth"
       keycloak.realms.mosip.realm_config.smtpServer.auth: "false"
       keycloak.realms.mosip.realm_config.smtpServer.host: "smtp.gmail.com"
       keycloak.realms.mosip.realm_config.smtpServer.port: "465"
@@ -264,7 +264,7 @@ apps:
     version: 1.2.0
     chart: $WORKDIR/utils/istio-addons/minio-istio-addons-1.2.0.tgz
     set:
-      externalHost: "minio.sandbox.xyz.net"
+      externalHost: "minio.qaga.mosip.net"
     wait: true
     timeout: 1200
     hooks:
@@ -297,7 +297,7 @@ apps:
       # image.tag: "1.1.5"
       persistence.storageClass: "nfs-csi-activemq"
       istio.enabled: "true"
-      istio.hosts[0]: "activemq.sandbox.xyz.net"
+      istio.hosts[0]: "activemq.qaga.mosip.net"
       istio.ingressController.name: "ingressgateway-internal"
       istio.prefix: ""
     wait: true
@@ -389,7 +389,7 @@ apps:
     version: 1.2.0
     chart: $WORKDIR/utils/istio-addons/kafka-istio-addons-1.2.0.tgz
     set:
-      kafkaUiHost: "kafka.sandbox.xyz.net"
+      kafkaUiHost: "kafka.qaga.mosip.net"
       installName: "kafka-ui"
     wait: true
     timeout: 1200
@@ -404,28 +404,28 @@ apps:
     chart: mosip/landing-page
     set:
       landing.version: "develop"
-      landing.name: "<sandbox>"
-      landing.api: "api.sandbox.xyz.net"
-      landing.apiInternal: "api-internal.sandbox.xyz.net"
-      landing.admin: "admin.sandbox.xyz.net"
-      landing.prereg: "prereg.sandbox.xyz.net"
-      landing.kafka: "kafka.sandbox.xyz.net"
-      landing.kibana: "kibana.sandbox.xyz.net"
-      landing.activemq: "activemq.sandbox.xyz.net"
-      landing.minio: "minio.sandbox.xyz.net"
-      landing.keycloak: "iam.sandbox.xyz.net"
-      landing.regclient: "regclient.sandbox.xyz.net"
-      landing.postgres.host: "postgres.sandbox.xyz.net"
+      landing.name: "qaga"
+      landing.api: "api.qaga.mosip.net"
+      landing.apiInternal: "api-internal.qaga.mosip.net"
+      landing.admin: "admin.qaga.mosip.net"
+      landing.prereg: "prereg.qaga.mosip.net"
+      landing.kafka: "kafka.qaga.mosip.net"
+      landing.kibana: "kibana.qaga.mosip.net"
+      landing.activemq: "activemq.qaga.mosip.net"
+      landing.minio: "minio.qaga.mosip.net"
+      landing.keycloak: "iam.qaga.mosip.net"
+      landing.regclient: "regclient.qaga.mosip.net"
+      landing.postgres.host: "postgres.qaga.mosip.net"
       landing.postgres.port: "5433"
-      landing.compliance: "compliance.sandbox.xyz.net"
-      landing.pmp: "pmp.sandbox.xyz.net"
-      landing.resident: "resident.sandbox.xyz.net"
-      landing.esignet: "esignet.sandbox.xyz.net"
-      landing.smtp: "smtp.sandbox.xyz.net"
-      landing.healthservices: "healthservices.sandbox.xyz.net"
-      landing.injiweb: "injiweb.sandbox.xyz.net"
-      landing.injiverify: "injiverify.sandbox.xyz.net"
-      istio.host: "sandbox.xyz.net"
+      landing.compliance: "compliance.qaga.mosip.net"
+      landing.pmp: "pmp.qaga.mosip.net"
+      landing.resident: "resident.qaga.mosip.net"
+      landing.esignet: "esignet.qaga.mosip.net"
+      landing.smtp: "smtp.qaga.mosip.net"
+      landing.healthservices: "healthservices.qaga.mosip.net"
+      landing.injiweb: "injiweb.qaga.mosip.net"
+      landing.injiverify: "injiverify.qaga.mosip.net"
+      istio.host: "qaga.mosip.net"
     wait: true
     timeout: 1200
     hooks:
