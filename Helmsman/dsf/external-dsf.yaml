@@ -317,9 +317,9 @@ apps:
     chart: bitnami/kafka
     set:
       # Add these for image overrides
-      image.repository: "mosipint/kafka"
+      image.repository: "mosipid/kafka"
       image.tag: "3.6.1-debian-12-r12"
-      zookeeper.image.repository: "mosipint/zookeeper"
+      zookeeper.image.repository: "mosipid/zookeeper"
       zookeeper.image.tag: "3.9.1-debian-12-r13"
       clusterDomain: "cluster.local"
       logRetentionBytes: "_1073741824"
