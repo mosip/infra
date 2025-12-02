@@ -152,7 +152,7 @@ apps:
       image.pullPolicy: "Always"
       # Override Postgres image
       postgresql.image.registry: "docker.io"
-      postgresql.image.repository: "mosipint/postgresql"
+      postgresql.image.repository: "mosipid/postgresql"
       postgresql.image.tag: "14.2.0-debian-10-r70"
       service.type: "ClusterIP"
       auth.adminUser: "admin"
