@@ -148,7 +148,7 @@ apps:
     chart: mosip/keycloak
     set:
       image.repository: "mosipqa/mosip-artemis-keycloak"
-      image.tag: "develop"
+      image.tag: "1.3.x"
       image.pullPolicy: "Always"
       # Override Postgres image
       postgresql.image.registry: "docker.io"
