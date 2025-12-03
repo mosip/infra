@@ -138,8 +138,6 @@ affinity: {}
 ## For private repos access token is required.
 ## version: branch/tag of the repo to be used
 gitRepo:
-  uri: https://github.com/mosip/mosip-config
-  version: qa-ga
   ## Folders within the base repo where properties may be found.
   searchFolders: ""
   private: false
