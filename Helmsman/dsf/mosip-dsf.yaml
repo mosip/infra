@@ -455,9 +455,11 @@ apps:
     enabled: true
     version: 1.3.0-develop
     chart: mosip/prereg-datasync
-    # set:
-    #   image.repository: "mosipdev/pre-registration-datasync-service"
-    #   image.tag: "release-1.3.x"
+    set:
+      # image.repository: "mosipdev/pre-registration-datasync-service"
+      # image.tag: "release-1.3.x"
+      resources.requests.cpu: "250m"
+      resources.requests.memory: "1500Mi"  
     priority: -9
     timeout: 1200
 
