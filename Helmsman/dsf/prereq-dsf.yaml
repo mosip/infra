@@ -21,7 +21,7 @@ namespaces:
   istio-operator:
     protected: true
   httpbin:
-    protected: false
+    protected: true
 
 apps:
   rancher-monitoring-crd:
