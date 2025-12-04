@@ -50,13 +50,13 @@ k8s_worker_node_count = 2
 rke2_version = "v1.28.9+rke2r1"
 
 # Security group CIDRs
-network_cidr   = "10.0.0.0/8" # Use your actual VPC CIDR
-WIREGUARD_CIDR = "10.0.0.0/8" # Use your actual WireGuard VPN CIDR
+network_cidr   = "172.0.0.0/8" # Use your actual VPC CIDR
+WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 
 
 # Rancher Import URL
 # Rancher Import Configuration
-enable_rancher_import = false
+enable_rancher_import = true
 rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/z6g9nvtjn7nczqsfqgqrhr7nxwzqnlhlb8kgcr5jk7bg6p2f4b7s7g_c-m-6dxcwsj9.yaml\""
 # DNS Records to map
 subdomain_public   = ["esignet", "healthservices", "signup", "healthservices-mock", "esignet-mock", "signup-mock", "esignet-sunbird", "healthservices-mosipid", "esignet-mosipid", "pms-partner-cre", "pms-policy-cre", "signup-mosipid", "healthservices-mosipid-qabase", "esignet-mosipid-qabase", "pms-partner", "pms-policy", "signup-mosipid-qabase"]
@@ -76,4 +76,4 @@ mosip_infra_branch = "v0.1.0-beta.1"
 
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
-vpc_name = "mosip-boxes"
+vpc_name = "default"
