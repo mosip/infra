@@ -1,11 +1,11 @@
 # Environment name (infra component)
-cluster_name = "<cluster_name>"
+cluster_name = "esqa3"
 # MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "<cluster_name>.xxxxx.net"
+cluster_env_domain = "esqa3.mosip.net"
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
-mosip_email_id = "<mosip_email_id>"
+mosip_email_id = "chandra.mishra@technoforte.co.in"
 # SSH login key name for AWS node instances (ex: my-ssh-key)
-ssh_key_name = "<ssh_key_name>"
+ssh_key_name = "mosip-aws"
 # The AWS region for resource creation
 aws_provider_region = "ap-south-1"
 
@@ -13,14 +13,14 @@ aws_provider_region = "ap-south-1"
 # If empty, uses all available AZs in the region
 # Example: ["ap-south-1a", "ap-south-1b"] for specific AZs
 # Example: [] for all available AZs in the region
-specific_availability_zones = []
+specific_availability_zones = ["ap-south-1b"]
 
 # The instance type for Kubernetes nodes (control plane, worker, etcd)
 k8s_instance_type = "t3a.2xlarge"
 # The instance type for Nginx server (load balancer)
 nginx_instance_type = "t3a.2xlarge"
 # The Route 53 hosted zone ID
-zone_id = "<route53_zone_id>"
+zone_id = "Z090954828SJIEL6P5406"
 
 ## UBUNTU 24.04
 # The Amazon Machine Image ID for the instances
@@ -40,9 +40,9 @@ nginx_node_ebs_volume_size_2 = 200 # Enable second EBS volume for PostgreSQL tes
 k8s_instance_root_volume_size = 64
 
 # Control-plane, ETCD, Worker
-k8s_control_plane_node_count = 3
+k8s_control_plane_node_count = 1
 # ETCD, Worker
-k8s_etcd_node_count = 3
+k8s_etcd_node_count = 1
 # Worker
 k8s_worker_node_count = 2
 
@@ -57,10 +57,10 @@ WIREGUARD_CIDR = "10.0.0.0/8" # Use your actual WireGuard VPN CIDR
 # Rancher Import URL
 # Rancher Import Configuration
 enable_rancher_import = false
-rancher_import_url    = "\"kubectl apply -f https://rancher.observation.mosip.net/v3/import/b94jcxqdddb9k9p7rj4kzf4c7xkkqnvrz886wx9pf44btvwjs5bnzt_c-m-flzdgnth.yaml\""
+rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/z6g9nvtjn7nczqsfqgqrhr7nxwzqnlhlb8kgcr5jk7bg6p2f4b7s7g_c-m-6dxcwsj9.yaml\""
 # DNS Records to map
-subdomain_public   = ["resident", "prereg", "esignet", "healthservices", "signup"]
-subdomain_internal = ["admin", "iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio", "regclient", "compliance"]
+subdomain_public   = ["esignet", "healthservices", "signup", "healthservices-mock", "esignet-mock", "signup-mock", "esignet-sunbird", "healthservices-mosipid", "esignet-mosipid", "pms-partner-cre", "pms-policy-cre", "signup-mosipid", "healthservices-mosipid-qabase", "esignet-mosipid-qabase", "pms-partner", "pms-policy", "signup-mosipid-qabase"]
+subdomain_internal = ["iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio"]
 
 # PostgreSQL Configuration (used when second EBS volume is enabled)
 enable_postgresql_setup = true # Enable PostgreSQL setup for main infra
