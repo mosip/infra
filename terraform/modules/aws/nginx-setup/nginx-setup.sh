@@ -41,15 +41,14 @@ sudo add-apt-repository universe -y
 sudo apt update
 sudo apt-get install letsencrypt certbot python3-certbot-nginx python3-certbot-dns-route53 -y
 
+## Get ssl certificate automatically
 if [ "$NGINX_TYPE" == "mosip" ]; then
-  ## Get ssl certificate automatically for MOSIP
-  echo "[ Generate SSL certificates from letsencrypt for MOSIP ] : "
-  sudo certbot certonly --dns-route53 -d "*.${cluster_env_domain}" -d "${cluster_env_domain}" --non-interactive --agree-tos --email "$certbot_email"
+  cert_type="MOSIP"
 else
-  ## Get ssl certificate automatically for Observability
-  echo "[ Generate SSL certificates from letsencrypt for Observability ] : "
-  sudo certbot certonly --dns-route53 -d "*.${cluster_env_domain}" -d "${cluster_env_domain}" --non-interactive --agree-tos --email "$certbot_email"
+  cert_type="Observability"
 fi
+echo "[ Generate SSL certificates from letsencrypt for $cert_type ] : "
+sudo certbot certonly --dns-route53 -d "*.${cluster_env_domain}" -d "${cluster_env_domain}" --non-interactive --agree-tos --email "$certbot_email"
 
 ## start and enable Nginx
 #echo "[ Start & Enable nginx ] : "
