@@ -68,6 +68,7 @@ rke2_version = "v1.28.9+rke2r1"
 # Rancher UI configuration (hostname will be dynamically created from cluster_env_domain)
 rancher_hostname           = "rancher.obs13.mosip.net" # Will default to rancher.testvpc.mosip.net
 rancher_bootstrap_password = "admin"
+rancher_ui_version         = "2.10.3" # Rancher Helm chart version (avoid 2.8.3 due to CVEs)
 
 # Keycloak configuration (hostname will be dynamically created from cluster_env_domain)  
 keycloak_hostname = "iam.obs13.mosip.net" # Will default to iam.testvpc.mosip.net

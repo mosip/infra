@@ -79,7 +79,8 @@ resource "null_resource" "install_rancher" {
         ${path.module}/ansible/install-rancher.yml \
         -e cluster_name='${var.CLUSTER_NAME}' \
         -e rancher_hostname_var='${var.RANCHER_HOSTNAME != "" ? var.RANCHER_HOSTNAME : "rancher.${var.CLUSTER_ENV_DOMAIN}"}' \
-        -e rancher_password='${var.RANCHER_BOOTSTRAP_PASSWORD}'
+        -e rancher_password='${var.RANCHER_BOOTSTRAP_PASSWORD}' \
+        -e rancher_ui_version='${var.RANCHER_UI_VERSION}'
     EOT
   }
 
