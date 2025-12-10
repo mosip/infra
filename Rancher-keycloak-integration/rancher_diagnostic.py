@@ -13,10 +13,22 @@ load_dotenv()
 
 def get_rancher_config():
     """Get Rancher configuration from environment variables"""
-    return {
+    required_vars = [
+        'RANCHER_HOST',
+        'RANCHER_TOKEN'
+    ]
+    
+    config = {
         "host": os.getenv('RANCHER_HOST'),
         "token": os.getenv('RANCHER_TOKEN')
     }
+    
+    # Validate required variables
+    missing = [var for var in required_vars if not os.getenv(var)]
+    if missing:
+        raise ValueError(f"Missing required environment variables: {', '.join(missing)}")
+    
+    return config
 
 def get_headers(token):
     """Get authorization headers"""
@@ -191,14 +203,6 @@ def main():
     try:
         config = get_rancher_config()
         
-        if not config["host"] or not config["token"]:
-            print("Error: RANCHER_HOST and RANCHER_TOKEN environment variables are required")
-            print("\nUsage:")
-            print("  export RANCHER_HOST=https://rancher.example.com")
-            print("  export RANCHER_TOKEN=token-xxxxx:xxxxxxxx")
-            print("  python3 rancher_diagnostic.py")
-            sys.exit(1)
-        
         explore_api(config["host"], config["token"])
         
         # Ask if user wants full export
@@ -207,6 +211,13 @@ def main():
         if response == 'y':
             export_full_api_info(config["host"], config["token"])
         
+    except ValueError as e:
+        print(f"Error: {e}")
+        print("\nUsage:")
+        print("  export RANCHER_HOST=https://rancher.example.com")
+        print("  export RANCHER_TOKEN=token-xxxxx:xxxxxxxx")
+        print("  python3 rancher_diagnostic.py")
+        sys.exit(1)
     except KeyboardInterrupt:
         print("\n\nDiagnostic cancelled by user")
         sys.exit(0)
