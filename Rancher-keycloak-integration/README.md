@@ -125,10 +125,12 @@ source .env
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `SSL_CERT_SUBJECT` | No | `/C=US/ST=State/...` | Certificate subject |
-| `SSL_CERT_DAYS` | No | `365` | Certificate validity days |
+| `SSL_CERT_DAYS` | No | `1825` | Certificate validity days (5 years) |
 | `SSL_KEY_SIZE` | No | `2048` | RSA key size |
 | `SSL_KEY_FILE` | No | `myservice.key` | Private key filename |
 | `SSL_CERT_FILE` | No | `myservice.cert` | Certificate filename |
+
+> **Note:** The GitHub Actions workflow (`keycloak-rancher-integration.yml`) uses `1825` days (5 years) as the default for `SSL_CERT_DAYS`.
 
 ### SAML Configuration
 
