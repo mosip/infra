@@ -177,8 +177,10 @@ def export_full_api_info(host, token, output_file="rancher_api_info.json"):
             response = requests.get(f"{host}{endpoint}", headers=headers)
             if response.status_code == 200:
                 api_info["endpoints"][endpoint] = response.json()
-        except:
-            pass
+        except requests.exceptions.RequestException as e:
+            print(f"  Warning: Failed to fetch {endpoint}: {e}")
+        except (json.JSONDecodeError, ValueError) as e:
+            print(f"  Warning: Failed to parse JSON from {endpoint}: {e}")
     
     with open(output_file, 'w') as f:
         json.dump(api_info, f, indent=2)
