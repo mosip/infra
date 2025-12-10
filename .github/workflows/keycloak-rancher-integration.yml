@@ -127,7 +127,7 @@ jobs:
           # Verify the file was created and check its size
           if sudo test -f /etc/wireguard/wg0.conf; then
             echo "✅ Config file created successfully"
-            echo "Final config file size: $(sudo wc -c < /etc/wireguard/wg0.conf) bytes"
+            echo "Final config file size: $(sudo wc -c /etc/wireguard/wg0.conf) bytes"
           else
             echo "❌ ERROR: Config file doesn't exist"
             exit 1
