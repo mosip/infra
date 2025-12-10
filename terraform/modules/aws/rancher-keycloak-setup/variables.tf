@@ -41,6 +41,12 @@ variable "RANCHER_BOOTSTRAP_PASSWORD" {
   default     = "admin"
 }
 
+variable "RANCHER_UI_VERSION" {
+  description = "Rancher Helm chart version"
+  type        = string
+  default     = "2.10.3"
+}
+
 variable "ENABLE_RANCHER_KEYCLOAK" {
   description = "Enable Rancher and Keycloak installation"
   type        = bool
