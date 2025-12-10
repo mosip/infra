@@ -62,7 +62,6 @@
         owner: ubuntu
         group: ubuntu
         recurse: yes
-      when: k8s_infra_dir.stat.exists or not k8s_infra_dir.stat.exists
 
     - name: Verify kubeconfig file exists
       stat:
