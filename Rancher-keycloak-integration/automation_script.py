@@ -283,6 +283,8 @@ class KeycloakAPI:
         return response.text
 
 class RancherAPI:
+    REQUEST_TIMEOUT = 30  # seconds
+
     def __init__(self, config):
         self.host = config["host"]
         self.token = config["token"]
@@ -319,7 +321,7 @@ class RancherAPI:
         }
         
         # Try to get existing config first
-        response = requests.get(url, headers=self.get_headers())
+        response = requests.get(url, headers=self.get_headers(), timeout=self.REQUEST_TIMEOUT)
         
         if response.status_code == 200:
             # Config exists, update it using PUT
@@ -329,7 +331,7 @@ class RancherAPI:
             # Update the fields
             existing_config.update(config_data)
             
-            response = requests.put(url, headers=self.get_headers(), json=existing_config)
+            response = requests.put(url, headers=self.get_headers(), json=existing_config, timeout=self.REQUEST_TIMEOUT)
             
             if response.status_code in [200, 201]:
                 print("✓ Rancher Keycloak SAML configuration updated successfully")
@@ -357,7 +359,7 @@ class RancherAPI:
                 "userNameField": saml_config["username_field"]
             }
             
-            response = requests.post(action_url, headers=self.get_headers(), json=full_config)
+            response = requests.post(action_url, headers=self.get_headers(), json=full_config, timeout=self.REQUEST_TIMEOUT)
         
         if response.status_code in [200, 201]:
             print("✓ Rancher Keycloak SAML configuration completed successfully")
@@ -371,7 +373,7 @@ class RancherAPI:
     def list_auth_configs(self):
         """List available auth configurations in Rancher"""
         url = f"{self.host}/v3/authConfigs"
-        response = requests.get(url, headers=self.get_headers())
+        response = requests.get(url, headers=self.get_headers(), timeout=self.REQUEST_TIMEOUT)
         
         if response.status_code == 200:
             configs = response.json()
