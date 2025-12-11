@@ -44,7 +44,7 @@ variable "RANCHER_BOOTSTRAP_PASSWORD" {
 variable "RANCHER_UI_VERSION" {
   description = "Rancher Helm chart version"
   type        = string
-  default     = "2.10.3"
+  default     = "2.8.3"
 }
 
 variable "ENABLE_RANCHER_KEYCLOAK" {

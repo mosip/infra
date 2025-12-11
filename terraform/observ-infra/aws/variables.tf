@@ -121,7 +121,7 @@ variable "rancher_bootstrap_password" {
 }
 
 variable "rancher_ui_version" {
-  description = "Rancher Helm chart version (avoid 2.8.3 due to CVEs)"
+  description = "Rancher Helm chart version"
   type        = string
-  default     = "2.10.3"
+  default     = "2.8.3"
 }
