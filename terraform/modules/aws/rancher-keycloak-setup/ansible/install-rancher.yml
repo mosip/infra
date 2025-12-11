@@ -7,13 +7,13 @@
     kubectl_path: "/var/lib/rancher/rke2/bin/kubectl"
     rancher_hostname: "{{ rancher_hostname_var }}"
     rancher_bootstrap_password: "{{ rancher_password }}"
-    rancher_ui_version: "{{ rancher_ui_version | default('2.8.3') }}"
+    rancher_helm_version: "{{ rancher_ui_version | default('2.8.3') }}"
     cluster_name: "{{ cluster_name }}"
 
   tasks:
     - name: Set up Rancher UI
       debug:
-        msg: "Starting Rancher UI installation..."
+        msg: "Starting Rancher UI installation with version {{ rancher_helm_version }}..."
 
     - name: Wait for kubectl to be available
       shell: |
@@ -134,7 +134,7 @@
           shell: |
             helm install rancher rancher-latest/rancher \
               --namespace cattle-system \
-              --version={{ rancher_ui_version }} \
+              --version={{ rancher_helm_version }} \
               --create-namespace \
               --set hostname={{ rancher_hostname }} \
               --set ingress.enabled=true \
