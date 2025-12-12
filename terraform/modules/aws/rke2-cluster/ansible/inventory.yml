@@ -32,6 +32,12 @@ all:
         testsoil25-WORKER-NODE-1:
           ansible_host: 10.0.4.58
           node_role: worker
+        testsoil25-WORKER-NODE-2:
+          ansible_host: 10.0.4.188
+          node_role: worker
+        testsoil25-WORKER-NODE-3:
+          ansible_host: 10.0.4.82
+          node_role: worker
 
     rke2_cluster:
       children:
