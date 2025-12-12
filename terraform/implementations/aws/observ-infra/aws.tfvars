@@ -28,7 +28,7 @@ specific_availability_zones = ["ap-south-1a"]
 # Minimal node counts for observability
 k8s_control_plane_node_count = 1
 k8s_etcd_node_count          = 0
-k8s_worker_node_count        = 2
+k8s_worker_node_count        = 0
 
 # Minimal instance types for observability
 k8s_instance_type   = "t3a.2xlarge"
