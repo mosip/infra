@@ -38,5 +38,5 @@ else
   exit 1
 fi
 
-cd $K8S_INFRA_NFS_LOCATION
+cd "$K8S_INFRA_NFS_LOCATION" || { echo "ERROR: Failed to cd to $K8S_INFRA_NFS_LOCATION" >&2; exit 1; }
 bash $K8S_INFRA_NFS_CSI_SCRIPT_NAME $KUBECONFIG_FILE

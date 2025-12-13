@@ -1,11 +1,11 @@
 # Environment name (infra component)
-cluster_name = "soil56"
+cluster_name = "<cluster-name>"
 # MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "soil56.mosip.net"
+cluster_env_domain = "<cluster-env-domain>"
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
-mosip_email_id = "chandra.mishra@technoforte.co.in"
+mosip_email_id = "<email-id>"
 # SSH login key name for AWS node instances (ex: my-ssh-key)
-ssh_key_name = "mosip-aws"
+ssh_key_name = "mosip-aws-keypair"
 # The AWS region for resource creation
 aws_provider_region = "ap-south-1"
 
@@ -13,7 +13,7 @@ aws_provider_region = "ap-south-1"
 # If empty, uses all available AZs in the region
 # Example: ["ap-south-1a", "ap-south-1b"] for specific AZs
 # Example: [] for all available AZs in the region
-specific_availability_zones = ["ap-south-1b"]
+specific_availability_zones = ["<az-b>"]
 
 # The instance type for Kubernetes nodes (control plane, worker, etcd)
 k8s_instance_type = "t3a.2xlarge"
@@ -29,7 +29,7 @@ ami = "ami-0ad21ae1d0696ad58"
 # Repo K8S-INFRA URL
 k8s_infra_repo_url = "https://github.com/mosip/k8s-infra.git"
 # Repo K8S-INFRA branch
-k8s_infra_branch = "MOSIP-42914"
+k8s_infra_branch = "v1.2.1.0"
 # NGINX Node's Root volume size
 nginx_node_root_volume_size = 24
 # NGINX node's EBS volume size
@@ -40,11 +40,11 @@ nginx_node_ebs_volume_size_2 = 200 # Enable second EBS volume for PostgreSQL tes
 k8s_instance_root_volume_size = 64
 
 # Control-plane, ETCD, Worker
-k8s_control_plane_node_count = 1
+k8s_control_plane_node_count = 3
 # ETCD, Worker
-k8s_etcd_node_count = 0
+k8s_etcd_node_count = 3
 # Worker
-k8s_worker_node_count = 3
+k8s_worker_node_count =2 
 
 # RKE2 Version Configuration
 rke2_version = "v1.28.9+rke2r1"
@@ -57,7 +57,7 @@ WIREGUARD_CIDR = "10.0.0.0/8" # Use your actual WireGuard VPN CIDR
 # Rancher Import URL
 # Rancher Import Configuration
 enable_rancher_import = true
-rancher_import_url    = "\"kubectl apply -f https://rancher.obs13.mosip.net/v3/import/2r5hf6frwqkwtvt9xv72h597ql52597pklspz2qsm5762gzgwvjkfl_c-m-45nt7pk7.yaml\""
+rancher_import_url    = "\"<rancher-import-url>\""
 # DNS Records to map
 subdomain_public   = ["resident", "prereg", "esignet", "healthservices", "signup"]
 subdomain_internal = ["admin", "iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio", "regclient", "compliance"]
@@ -72,7 +72,7 @@ postgresql_port         = "5433"
 # MOSIP Infrastructure Repository Configuration
 mosip_infra_repo_url = "https://github.com/mosip/infra.git"
 
-mosip_infra_branch = "testgrid"
+mosip_infra_branch = "v0.1.0-beta.1"
 
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)

@@ -119,3 +119,9 @@ variable "rancher_bootstrap_password" {
   default     = "admin"
   sensitive   = true
 }
+
+variable "rancher_ui_version" {
+  description = "Rancher Helm chart version"
+  type        = string
+  default     = "2.8.3"
+}

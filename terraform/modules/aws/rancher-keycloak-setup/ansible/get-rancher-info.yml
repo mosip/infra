@@ -7,10 +7,11 @@
     kubectl_path: "/var/lib/rancher/rke2/bin/kubectl"
     rancher_hostname: "{{ rancher_hostname_var }}"
     rancher_bootstrap_password: "{{ rancher_password }}"
+    debug_rancher: false  # Set to true to enable debug output of sensitive information
 
   tasks:
     - name: Get Rancher pod status
-      shell: "{{ kubectl_path }} get pods -n cattle-system | grep rancher"
+      shell: "{{ kubectl_path }} get pods -n cattle-system | grep rancher || echo 'Rancher pods not found'"
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
       register: rancher_pods
@@ -26,3 +27,5 @@
     - name: Display bootstrap password
       debug:
         msg: "Bootstrap Password: {{ rancher_bootstrap_password }}"
+      when: debug_rancher | bool
+      no_log: true

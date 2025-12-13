@@ -55,6 +55,12 @@ resource "local_file" "ssh_private_key" {
   content         = var.SSH_PRIVATE_KEY
   filename        = "${path.module}/ansible/.ssh_key"
   file_permission = "0600"
+
+  # Cleanup SSH key file on destroy to prevent key exposure
+  provisioner "local-exec" {
+    when    = destroy
+    command = "rm -f ${self.filename}"
+  }
 }
 
 # Create Ansible inventory file
@@ -79,7 +85,8 @@ resource "null_resource" "install_rancher" {
         ${path.module}/ansible/install-rancher.yml \
         -e cluster_name='${var.CLUSTER_NAME}' \
         -e rancher_hostname_var='${var.RANCHER_HOSTNAME != "" ? var.RANCHER_HOSTNAME : "rancher.${var.CLUSTER_ENV_DOMAIN}"}' \
-        -e rancher_password='${var.RANCHER_BOOTSTRAP_PASSWORD}'
+        -e rancher_password='${var.RANCHER_BOOTSTRAP_PASSWORD}' \
+        -e rancher_ui_version='${var.RANCHER_UI_VERSION}'
     EOT
   }
 
