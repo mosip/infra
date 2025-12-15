@@ -77,4 +77,3 @@ mosip_infra_branch = "v0.1.0-beta.1"
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
 vpc_name = "<vpc-name>"
-
