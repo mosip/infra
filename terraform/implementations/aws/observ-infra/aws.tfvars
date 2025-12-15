@@ -14,7 +14,7 @@ cluster_env_domain = "<cluster-env-domain>"
 mosip_email_id = "<email-id>"
 
 # SSH key name for AWS instances
-ssh_key_name = "mosip-aws-keypair"
+ssh_key_name = "<ssh-key-name>"
 
 # AWS region
 aws_provider_region = "ap-south-1"
@@ -38,10 +38,10 @@ nginx_instance_type = "t3a.large"
 ami = "ami-0ad21ae1d0696ad58"
 
 # Route53 zone ID for DNS records
-zone_id = "Z090954828SJIEL6P5406"
+zone_id = "<zone-id>"
 
 # VPC name (should match the one created by base-infra)
-vpc_name = "mosip-boxes"
+vpc_name = "<vpc-name>"
 
 # Minimal storage configuration
 nginx_node_root_volume_size = 24 # Smaller than infra (24)

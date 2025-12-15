@@ -5,7 +5,7 @@ cluster_env_domain = "<cluster-env-domain>"
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
 mosip_email_id = "<email-id>"
 # SSH login key name for AWS node instances (ex: my-ssh-key)
-ssh_key_name = "mosip-aws-keypair"
+ssh_key_name = "<ssh-key-name>"
 # The AWS region for resource creation
 aws_provider_region = "ap-south-1"
 
@@ -76,5 +76,5 @@ mosip_infra_branch = "v0.1.0-beta.1"
 
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
-vpc_name = "mosip-boxes"
+vpc_name = "<vpc-name>"
 
