@@ -7,6 +7,7 @@
 This repository provides a **3-step rapid deployment model** for MOSIP (Modular Open Source Identity Platform) with enhanced security features including GPG (GNU Privacy Guard) encryption for local backends and integrated PostgreSQL setup via Terraform modules.
 
 ### Key Components:
+
 - **Terraform** provisions the complete cloud infrastructure including VPCs, RKE2 Kubernetes clusters, databases, and networking components with a high-level declarative approach.
 - **Helmsman** deploys and manages all MOSIP services and applications on Kubernetes using Helm charts, providing centralized control through Desired State Files (DSF).
 
@@ -14,10 +15,10 @@ This repository provides a **3-step rapid deployment model** for MOSIP (Modular 
 
 For detailed MOSIP platform architecture Diagram, visit: [MOSIP Platform Architecture](https://docs.mosip.io/1.2.0/setup/deploymentnew/v3-installation/1.2.0.2/overview-and-architecture#architecture-diagram)
 
-**Terraform Architecture:**  
+**Terraform Architecture:**
 [View Terraform Architecture Diagram](docs/_images/terraform-light.draw.io.png)
 
-**Helmsman Architecture:**  
+**Helmsman Architecture:**
 [View Helmsman Architecture Diagram](docs/_images/updated-Helmsman.drawio.png)
 
 ---
@@ -119,7 +120,6 @@ We've created comprehensive beginner-friendly guides to help you succeed:
  "Effect": "Allow",
  "Action": [
  "ec2:*",
- "vpc:*",
  "route53:*",
  "iam:*",
  "s3:*"
@@ -356,7 +356,7 @@ For detailed information about GitHub Actions workflow parameters, terraform mod
 1. **Update terraform variables:**
 
 ```bash
- # Edit terraform/base-infra/aws/terraform.tfvars (or azure/gcp)
+ # Edit terraform/implementations/aws/base-infra/aws.tfvars (or azure/gcp)
 ```
 
 2. **Configure base-infra variables:**
@@ -411,7 +411,6 @@ For detailed information about GitHub Actions workflow parameters, terraform mod
 - ✅ Green checkmark when complete
 - ✅ Infrastructure created in AWS
 
-
  **Need more help?** [Workflow Guide](docs/WORKFLOW_GUIDE.md)
 
 #### Step 3b: WireGuard VPN Setup (Required for Private Network Access)
@@ -464,8 +463,6 @@ For detailed information about GitHub Actions workflow parameters, terraform mod
 - **Enhanced Security:** Encrypted VPN tunnel for all infrastructure access (256-bit encryption)
 - **Terraform Integration:** Required for subsequent infrastructure deployments
 - **Helmsman Connectivity:** Enables secure cluster access for service deployments
-
-
 
 > **Important:** Complete WireGuard setup and configure `TF_WG_CONFIG` environment secret before proceeding to MOSIP infrastructure deployment.
 >
@@ -582,17 +579,16 @@ This step creates MOSIP Kubernetes cluster, PostgreSQL (if enabled), networking,
 >
 > - Ensure `cluster_name` and `cluster_env_domain` match values used in Helmsman DSF files
 > - Set `enable_postgresql_setup = true` for production deployments with external PostgreSQL,If enable_postgresql_setup = true, Terraform will automatically:
-    - Provision dedicated EBS volume for PostgreSQL on nginx node
-    - Install and configure PostgreSQL 15 via Ansible playbooks
-    - Setup security configurations and user access controls
-    - Configure backup and recovery mechanisms
-    - Make PostgreSQL ready for MOSIP services connectivity
-    - No manual PostgreSQL secret management required!
+>   - Provision dedicated EBS volume for PostgreSQL on nginx node
+>   - Install and configure PostgreSQL 15 via Ansible playbooks
+>   - Setup security configurations and user access controls
+>   - Configure backup and recovery mechanisms
+>   - Make PostgreSQL ready for MOSIP services connectivity
+>   - No manual PostgreSQL secret management required!
 
 > - Set `enable_postgresql_setup = false` for development deployments with containerized PostgreSQL
 > - The `nginx_node_ebs_volume_size_2` is required when `enable_postgresql_setup = true`
 > - **SSH Key Configuration**: The `ssh_key_name` value must match the repository secret name containing your SSH private key (e.g., if `ssh_key_name = "mosip-aws"`, create repository secret named `mosip-aws` with your SSH private key content)
-
 
 #### Rancher Import Configuration (Optional)
 
