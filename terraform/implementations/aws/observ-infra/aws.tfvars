@@ -23,7 +23,7 @@ aws_provider_region = "ap-south-1"
 # If empty, uses all available AZs in the region
 # Example: ["ap-south-1a", "ap-south-1b"] for specific AZs
 # Example: [] for all available AZs in the region
-specific_availability_zones = ["<az-b>"]
+specific_availability_zones = []
 
 # Minimal node counts for observability
 k8s_control_plane_node_count = 1
