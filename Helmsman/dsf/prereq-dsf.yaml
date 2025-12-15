@@ -33,8 +33,8 @@ apps:
     timeout: 900
     priority: -6
     hooks:
-      postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh <sandbox> helmsman"
-      postUpgrade: "$WORKDIR/hooks/install-istio-and-httpbin.sh <sandbox> helmsman"
+      postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh sandbox.xyz.net helmsman"
+      postUpgrade: "$WORKDIR/hooks/install-istio-and-httpbin.sh sandbox.xyz.net helmsman"
 
   rancher-monitoring:
     namespace: cattle-monitoring-system

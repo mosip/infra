@@ -1,0 +1,45 @@
+name: Destroy MOSIP services using Helmsman
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Type 'destroy' to confirm destruction of MOSIP services"
+        required: true
+        type: string
+      namespace_selection:
+        description: "Namespace selection"
+        required: true
+        type: choice
+        default: "all"
+        options:
+          - all
+          - specific
+      specific_namespaces:
+        description: "Specific namespaces (comma-separated, e.g., admin,kernel,idrepo). Only used if 'specific' is selected above."
+        required: false
+        type: string
+
+jobs:
+  validate-confirmation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate destruction confirmation
+        run: |
+          if [ "${{ github.event.inputs.confirmation }}" != "destroy" ]; then
+            echo "❌ Destruction cancelled. You must type 'destroy' to confirm."
+            exit 1
+          fi
+          echo "✅ Destruction confirmed. Proceeding..."
+
+  destroy:
+    needs: validate-confirmation
+    uses: ./.github/workflows/destroy-resources.yml
+    with:
+      namespace_selection: ${{ github.event.inputs.namespace_selection }}
+      specific_namespaces: ${{ github.event.inputs.specific_namespaces }}
+      all_namespaces: "admin apitestrig artifactory config-server dslrig esignet idrepo kernel masterdata packet-manager pmp postgresdb print regproc resident uitestrig"
+      dsf_label: "mosip-dsf"
+      wireguard_secret_name: "CLUSTER_WIREGUARD_WG0"
+      deployment_type: "MOSIP"
+    secrets: inherit

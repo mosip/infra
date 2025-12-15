@@ -22,6 +22,16 @@ variable "CLUSTER_NAME" {
   type        = string
 }
 
+variable "DEPLOYMENT_TYPE" {
+  description = "Type of deployment (infra or observ-infra)"
+  type        = string
+  default     = "infra"
+  validation {
+    condition     = contains(["infra", "observ-infra"], var.DEPLOYMENT_TYPE)
+    error_message = "DEPLOYMENT_TYPE must be either 'infra' or 'observ-infra'"
+  }
+}
+
 variable "ENABLE_RANCHER_IMPORT" {
   description = "Enable Rancher import after cluster setup"
   type        = bool
@@ -130,11 +140,16 @@ resource "null_resource" "rke2_ansible_installation" {
     local_file.ansible_inventory
   ]
 
-  # Trigger re-run when cluster composition changes
+  # Only trigger on RKE2 version changes or inventory changes
+  # Ansible handles node addition/removal idempotently
   triggers = {
-    cluster_nodes     = join(",", [for k, v in var.K8S_CLUSTER_PRIVATE_IPS : "${k}=${v}"])
+    # Removed cluster_nodes - Ansible playbook is idempotent and handles new nodes
     inventory_content = local_file.ansible_inventory.content_sha256
     rke2_version      = var.RKE2_VERSION
+  }
+  
+  lifecycle {
+    create_before_destroy = true
   }
 
   # Ensure Ansible script has execute permissions on GitHub Actions runners
@@ -172,9 +187,18 @@ resource "null_resource" "download_kubeconfig_files" {
     null_resource.rke2_ansible_installation
   ]
 
-  # Download kubeconfig files after cluster installation
+  # Download kubeconfig files only when RKE2 version changes or control plane nodes change
+  # Don't refresh just because worker/etcd nodes are added
   triggers = {
-    cluster_ready = null_resource.rke2_ansible_installation.id
+    rke2_version = var.RKE2_VERSION
+    control_plane_ips = join(",", [
+      for key, value in var.K8S_CLUSTER_PRIVATE_IPS : value
+      if length(regexall(".*CONTROL-PLANE-NODE.*", key)) > 0
+    ])
+  }
+  
+  lifecycle {
+    create_before_destroy = true
   }
 
   provisioner "local-exec" {
@@ -255,13 +279,14 @@ resource "null_resource" "setup_kubeconfig" {
       if [ -f "$PRIMARY_KUBECONFIG" ]; then
         echo "Setting up kubeconfig for cluster ${var.CLUSTER_NAME}..."
         echo "Primary control plane: $PRIMARY_CONTROL_PLANE_KEY"
+        echo "Deployment type: ${var.DEPLOYMENT_TYPE}"
         
         # Copy to terraform working directory (where terraform apply was run) - preserve original filename
-        # From ansible/ directory, need to go up 4 levels to reach implementations/aws/infra/
-        cp "$PRIMARY_KUBECONFIG" "../../../../implementations/aws/infra/$PRIMARY_KUBECONFIG"
+        # From ansible/ directory, need to go up 4 levels to reach implementations/aws/${var.DEPLOYMENT_TYPE}/
+        cp "$PRIMARY_KUBECONFIG" "../../../../implementations/aws/${var.DEPLOYMENT_TYPE}/$PRIMARY_KUBECONFIG"
         
         # Also create a simplified symlink for convenience
-        ln -sf "$PRIMARY_KUBECONFIG" "../../../../implementations/aws/infra/${var.CLUSTER_NAME}.yaml"
+        ln -sf "$PRIMARY_KUBECONFIG" "../../../../implementations/aws/${var.DEPLOYMENT_TYPE}/${var.CLUSTER_NAME}.yaml"
         
         # Create user's .kube directory if it doesn't exist
         mkdir -p ~/.kube
@@ -276,8 +301,8 @@ resource "null_resource" "setup_kubeconfig" {
         export KUBECONFIG=~/.kube/${var.CLUSTER_NAME}.yaml
         
         echo "Kubeconfig files created:"
-        echo "  - Terraform directory: ../../../../implementations/aws/infra/$PRIMARY_KUBECONFIG"
-        echo "  - Terraform symlink: ../../../../implementations/aws/infra/${var.CLUSTER_NAME}.yaml"
+        echo "  - Terraform directory: ../../../../implementations/aws/${var.DEPLOYMENT_TYPE}/$PRIMARY_KUBECONFIG"
+        echo "  - Terraform symlink: ../../../../implementations/aws/${var.DEPLOYMENT_TYPE}/${var.CLUSTER_NAME}.yaml"
         echo "  - User kube directory: ~/.kube/$PRIMARY_KUBECONFIG"
         echo "  - User symlink: ~/.kube/${var.CLUSTER_NAME}.yaml"
         echo ""
@@ -313,7 +338,7 @@ output "ANSIBLE_INVENTORY_PATH" {
 }
 
 output "PRIMARY_KUBECONFIG_PATH" {
-  value = "${path.module}/../../../../implementations/aws/infra/${sort([
+  value = "${path.module}/../../../../implementations/aws/${var.DEPLOYMENT_TYPE}/${sort([
     for k, v in var.K8S_CLUSTER_PRIVATE_IPS : k
     if length(regexall(".*CONTROL-PLANE-NODE.*", k)) > 0
   ])[0]}.yaml"
@@ -321,7 +346,7 @@ output "PRIMARY_KUBECONFIG_PATH" {
 }
 
 output "PRIMARY_KUBECONFIG_SYMLINK" {
-  value       = "${path.module}/../../../../implementations/aws/infra/${var.CLUSTER_NAME}.yaml"
+  value       = "${path.module}/../../../../implementations/aws/${var.DEPLOYMENT_TYPE}/${var.CLUSTER_NAME}.yaml"
   description = "Path to the kubeconfig symlink in the terraform working directory (simplified name)"
 }
 
