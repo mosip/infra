@@ -20,7 +20,7 @@ k8s_instance_type = "t3a.2xlarge"
 # The instance type for Nginx server (load balancer)
 nginx_instance_type = "t3a.2xlarge"
 # The Route 53 hosted zone ID
-zone_id = "Z090954828SJIEL6P5406"
+zone_id = "<route53_zone_id>"
 
 ## UBUNTU 24.04
 # The Amazon Machine Image ID for the instances
