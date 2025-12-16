@@ -79,6 +79,8 @@ jobs:
     runs-on: ubuntu-latest  # 16 vCPU, 64GB RAM for maximum performance
     # Use dynamic environment based on current branch name
     environment: ${{ github.ref_name }}
+    permissions:
+      contents: write    
     defaults:
       run:
         shell: bash

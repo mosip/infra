@@ -33,7 +33,7 @@ output "next_steps" {
   description = "Next steps after installation"
   value = var.ENABLE_RANCHER_KEYCLOAK ? [
     "1. Access Rancher UI at: https://${var.RANCHER_HOSTNAME != "" ? var.RANCHER_HOSTNAME : "rancher.${var.CLUSTER_ENV_DOMAIN}"}",
-    "2. Login with bootstrap password: ${var.RANCHER_BOOTSTRAP_PASSWORD}",
+    "2. Login with bootstrap password (run 'terraform output -raw rancher_bootstrap_password' to retrieve)",
     "3. Access Keycloak at: https://${var.KEYCLOAK_HOSTNAME != "" ? var.KEYCLOAK_HOSTNAME : "iam.${var.CLUSTER_ENV_DOMAIN}"}",
     "4. Configure Keycloak admin credentials as provided by the installation script",
     "5. Set up MOSIP integration using Rancher and Keycloak"

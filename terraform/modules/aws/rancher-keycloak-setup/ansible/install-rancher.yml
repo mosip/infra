@@ -1,0 +1,159 @@
+---
+- name: Install Rancher UI on RKE2 Cluster
+  hosts: control_plane
+  become: yes
+  vars:
+    kubeconfig_path: "/etc/rancher/rke2/rke2.yaml"
+    kubectl_path: "/var/lib/rancher/rke2/bin/kubectl"
+    rancher_hostname: "{{ rancher_hostname_var }}"
+    rancher_bootstrap_password: "{{ rancher_password }}"
+    rancher_helm_version: "{{ rancher_ui_version | default('2.8.3') }}"
+    cluster_name: "{{ cluster_name }}"
+
+  tasks:
+    - name: Set up Rancher UI
+      debug:
+        msg: "Starting Rancher UI installation with version {{ rancher_helm_version }}..."
+
+    - name: Wait for kubectl to be available
+      shell: |
+        timeout 300 bash -c 'until {{ kubectl_path }} --kubeconfig={{ kubeconfig_path }} get nodes; do sleep 5; done'
+      args:
+        executable: /bin/bash
+
+    - name: Get kubectl version
+      shell: "{{ kubectl_path }} version --client"
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: kubectl_version
+
+    - name: Display kubectl version
+      debug:
+        msg: "{{ kubectl_version.stdout }}"
+
+    - name: Check if Helm is installed
+      command: which helm
+      register: helm_check
+      ignore_errors: yes
+
+    - name: Install Helm if not present
+      block:
+        - name: Download Helm
+          get_url:
+            url: https://get.helm.sh/helm-v3.15.4-linux-amd64.tar.gz
+            dest: /tmp/helm.tar.gz
+            mode: '0644'
+
+        - name: Extract Helm
+          unarchive:
+            src: /tmp/helm.tar.gz
+            dest: /tmp
+            remote_src: yes
+
+        - name: Move Helm binary
+          copy:
+            src: /tmp/linux-amd64/helm
+            dest: /usr/local/bin/helm
+            mode: '0755'
+            remote_src: yes
+
+        - name: Clean up Helm installation files
+          file:
+            path: "{{ item }}"
+            state: absent
+          loop:
+            - /tmp/helm.tar.gz
+            - /tmp/linux-amd64
+      when: helm_check.rc != 0
+
+    - name: Get Helm version
+      command: helm version
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: helm_version
+
+    - name: Display Helm version
+      debug:
+        msg: "{{ helm_version.stdout }}"
+
+    - name: Check if ingress-nginx is already installed
+      shell: helm list -n ingress-nginx | grep -q ingress-nginx
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: ingress_check
+      ignore_errors: yes
+
+    - name: Install ingress-nginx
+      block:
+        - name: Add ingress-nginx Helm repository
+          command: helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+          environment:
+            KUBECONFIG: "{{ kubeconfig_path }}"
+          ignore_errors: yes
+
+        - name: Update Helm repositories
+          command: helm repo update
+          environment:
+            KUBECONFIG: "{{ kubeconfig_path }}"
+
+        - name: Install ingress-nginx chart
+          shell: |
+            helm install ingress-nginx ingress-nginx/ingress-nginx \
+              --namespace ingress-nginx \
+              --version 4.10.0 \
+              --create-namespace \
+              --set controller.service.type=NodePort \
+              --set controller.service.nodePorts.http=30080 \
+              --set controller.service.nodePorts.https=30443 \
+              --set controller.config.use-forwarded-headers=true
+          environment:
+            KUBECONFIG: "{{ kubeconfig_path }}"
+      when: ingress_check.rc != 0
+
+    - name: Add Rancher Helm repository
+      command: helm repo add rancher-latest https://releases.rancher.com/server-charts/latest
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      ignore_errors: yes
+
+    - name: Update Helm repositories
+      command: helm repo update
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+
+    - name: Check if Rancher is already installed
+      shell: helm list -n cattle-system | grep -q rancher
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: rancher_check
+      ignore_errors: yes
+
+    - name: Install Rancher
+      block:
+        - name: Install Rancher Helm chart
+          shell: |
+            helm install rancher rancher-latest/rancher \
+              --namespace cattle-system \
+              --version={{ rancher_helm_version }} \
+              --create-namespace \
+              --set hostname={{ rancher_hostname }} \
+              --set ingress.enabled=true \
+              --set ingress.includeDefaultExtraAnnotations=true \
+              --set ingress.extraAnnotations.'kubernetes\.io/ingress\.class'=nginx \
+              --set rancherImage=rancher/rancher \
+              --set replicas=1 \
+              --set tls=external \
+              --set-string bootstrapPassword={{ rancher_bootstrap_password }}
+          environment:
+            KUBECONFIG: "{{ kubeconfig_path }}"
+
+        - name: Wait for Rancher to be ready
+          shell: "{{ kubectl_path }} wait --for=condition=ready pod -l app=rancher --timeout=600s -n cattle-system"
+          environment:
+            KUBECONFIG: "{{ kubeconfig_path }}"
+      when: rancher_check.rc != 0
+
+    - name: Rancher installation completed
+      debug:
+        msg: "Rancher UI installation completed successfully at https://{{ rancher_hostname }}"
+

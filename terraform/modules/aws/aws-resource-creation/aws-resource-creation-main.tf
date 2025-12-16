@@ -218,6 +218,13 @@ resource "aws_instance" "K8S_CLUSTER_EC2_INSTANCE" {
     Cluster   = local.K8S_EC2_NODE.tags.Cluster
     Component = var.CLUSTER_NAME
   }
+  
+  lifecycle {
+    # Create new instances before destroying old ones during updates
+    create_before_destroy = true
+    # Ignore changes to user_data after initial creation (prevents recreation on node scaling)
+    ignore_changes = [user_data]
+  }
 }
 
 # Wait for K8S cluster instances to be in running state

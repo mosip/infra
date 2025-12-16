@@ -13,23 +13,23 @@ metadata:
   namespace: default
 data:
   installation-name: ${ENV}
-  installation-domain: ${ENV}.mosip.net
+  installation-domain: ${ENV}
   mosip-version: ${VERSION}
-  mosip-api-host: api.${ENV}.mosip.net
-  mosip-api-internal-host: api-internal.${ENV}.mosip.net
-  mosip-prereg-host: prereg.${ENV}.mosip.net
-  mosip-activemq-host: activemq.${ENV}.mosip.net
-  mosip-kibana-host: kibana.${ENV}.mosip.net
-  mosip-admin-host: admin.${ENV}.mosip.net
-  mosip-regclient-host: regclient.${ENV}.mosip.net
-  mosip-minio-host: minio.${ENV}.mosip.net
-  mosip-kafka-host: kafka.${ENV}.mosip.net
-  mosip-iam-external-host: iam.${ENV}.mosip.net
-  mosip-postgres-host: postgres.${ENV}.mosip.net
-  mosip-pmp-host: pmp.${ENV}.mosip.net
-  mosip-resident-host: resident.${ENV}.mosip.net
-  mosip-compliance-host: compliance.${ENV}.mosip.net
-  mosip-esignet-host: esignet.${ENV}.mosip.net
-  mosip-smtp-host: smtp.${ENV}.mosip.net
-  mosip-signup-host: signup.${ENV}.mosip.net
+  mosip-api-host: api.${ENV}
+  mosip-api-internal-host: api-internal.${ENV}
+  mosip-prereg-host: prereg.${ENV}
+  mosip-activemq-host: activemq.${ENV}
+  mosip-kibana-host: kibana.${ENV}
+  mosip-admin-host: admin.${ENV}
+  mosip-regclient-host: regclient.${ENV}
+  mosip-minio-host: minio.${ENV}
+  mosip-kafka-host: kafka.${ENV}
+  mosip-iam-external-host: iam.${ENV}
+  mosip-postgres-host: postgres.${ENV}
+  mosip-pmp-host: pmp.${ENV}
+  mosip-resident-host: resident.${ENV}
+  mosip-compliance-host: compliance.${ENV}
+  mosip-esignet-host: esignet.${ENV}
+  mosip-smtp-host: smtp.${ENV}
+  mosip-signup-host: signup.${ENV}
   is_glowroot_env: absent

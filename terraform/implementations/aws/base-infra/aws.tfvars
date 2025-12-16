@@ -21,7 +21,7 @@ aws_provider_region = "ap-south-1"
 jumpserver_instance_type = "t3.medium"
 
 # Jump server AMI ID (required)
-jumpserver_ami_id = "ami-xxxxxxxxxxxxxx"
+jumpserver_ami_id = "ami-0ad21ae1d0696ad58"
 
 # Whether to create an Elastic IP for the jump server
 create_jumpserver_eip = false
@@ -45,7 +45,6 @@ enable_dns_support   = true
 
 # WireGuard automation configuration
 k8s_infra_repo_url     = "https://github.com/mosip/k8s-infra.git"
-k8s_infra_branch       = "develop"
+k8s_infra_branch       = "v1.2.1.0"
 wireguard_peers        = 30
 enable_wireguard_setup = true
-
