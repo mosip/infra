@@ -223,7 +223,7 @@ resource "null_resource" "keycloak_rancher_integration" {
 
 ## 🔍 Troubleshooting
 
-### Common Issues
+#### 1. Connection Refused
 
 **1. Connection Refused**
 ```bash
