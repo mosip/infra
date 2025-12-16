@@ -31,7 +31,7 @@ output "control_plane_node_1" {
 
 output "k8s_token" {
   description = "Kubernetes cluster token"
-  value       = try(module.mosip_infra.k8s_token, "")
+  value       = try(module.mosip_infra.k8s_token, null)
   sensitive   = true
 }
 
