@@ -65,17 +65,18 @@ output "control_plane_node_1" {
   )
 }
 
-output "k8s_token" {
-  description = "Kubernetes observation cluster token"
-  value = var.cloud_provider == "aws" ? (
-    length(module.aws_observ_infra) > 0 ? module.aws_observ_infra[0].k8s_token : ""
-    ) : var.cloud_provider == "azure" ? (
-    length(module.azure_observ_infra) > 0 ? module.azure_observ_infra[0].k8s_token : ""
-    ) : (
-    length(module.gcp_observ_infra) > 0 ? module.gcp_observ_infra[0].k8s_token : ""
-  )
-  sensitive = true
-}
+# K8S token is not available in minimal observability setup
+# output "k8s_token" {
+#   description = "Kubernetes observation cluster token"
+#   value = var.cloud_provider == "aws" ? (
+#     length(module.aws_observ_infra) > 0 ? module.aws_observ_infra[0].k8s_token : ""
+#     ) : var.cloud_provider == "azure" ? (
+#     length(module.azure_observ_infra) > 0 ? module.azure_observ_infra[0].k8s_token : ""
+#     ) : (
+#     length(module.gcp_observ_infra) > 0 ? module.gcp_observ_infra[0].k8s_token : ""
+#   )
+#   sensitive = true
+# }
 
 output "vpc_id" {
   description = "VPC/Network ID for observation infrastructure"
