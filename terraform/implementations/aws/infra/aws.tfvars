@@ -1,11 +1,11 @@
 # Environment name (infra component)
-cluster_name = "<cluster-name>"
+cluster_name = "rapid"
 # MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "<cluster-env-domain>"
+cluster_env_domain = "rapid.esignet.io"
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
-mosip_email_id = "<email-id>"
+mosip_email_id = "aswingopal30@gmail.com"
 # SSH login key name for AWS node instances (ex: my-ssh-key)
-ssh_key_name = "<ssh-key-name>"
+ssh_key_name = "mosip-aws"
 # The AWS region for resource creation
 aws_provider_region = "ap-south-1"
 
@@ -13,14 +13,14 @@ aws_provider_region = "ap-south-1"
 # If empty, uses all available AZs in the region
 # Example: ["ap-south-1a", "ap-south-1b"] for specific AZs
 # Example: [] for all available AZs in the region
-specific_availability_zones = []
+specific_availability_zones = ["ap-south-1b"]
 
 # The instance type for Kubernetes nodes (control plane, worker, etcd)
 k8s_instance_type = "t3a.2xlarge"
 # The instance type for Nginx server (load balancer)
 nginx_instance_type = "t3a.2xlarge"
 # The Route 53 hosted zone ID
-zone_id = "<route53_zone_id>"
+zone_id = "Z00758441P73ITT25KEHU"
 
 ## UBUNTU 24.04
 # The Amazon Machine Image ID for the instances
@@ -50,14 +50,14 @@ k8s_worker_node_count = 2
 rke2_version = "v1.28.9+rke2r1"
 
 # Security group CIDRs
-network_cidr   = "10.0.0.0/8" # Use your actual VPC CIDR
-WIREGUARD_CIDR = "10.0.0.0/8" # Use your actual WireGuard VPN CIDR
+network_cidr   = "172.0.0.0/8" # Use your actual VPC CIDR
+WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 
 
 # Rancher Import URL
 # Rancher Import Configuration
 enable_rancher_import = true
-rancher_import_url    = "\"<rancher-import-url>\""
+rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/2wjf2xt78pplh2v7rvd6kmktqqrtw866rb9lq4zhthxtp9srfcfk2c_c-m-9k5vjnz8.yaml\""
 # DNS Records to map
 subdomain_public   = ["resident", "prereg", "esignet", "healthservices", "signup"]
 subdomain_internal = ["admin", "iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio", "regclient", "compliance"]
@@ -76,4 +76,4 @@ mosip_infra_branch = "v0.1.0-beta.1"
 
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
-vpc_name = "<vpc-name>"
+vpc_name = "default"
