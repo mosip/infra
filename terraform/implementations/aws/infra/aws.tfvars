@@ -1,7 +1,7 @@
 # Environment name (infra component)
 cluster_name = "rapid"
 # MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "rapid.mosip.net"
+cluster_env_domain = "rapid.esignet.io"
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
 mosip_email_id = "aswingopal30@gmail.com"
 # SSH login key name for AWS node instances (ex: my-ssh-key)
@@ -20,7 +20,7 @@ k8s_instance_type = "t3a.2xlarge"
 # The instance type for Nginx server (load balancer)
 nginx_instance_type = "t3a.2xlarge"
 # The Route 53 hosted zone ID
-zone_id = "Z090954828SJIEL6P5406"
+zone_id = "Z00758441P73ITT25KEHU"
 
 ## UBUNTU 24.04
 # The Amazon Machine Image ID for the instances
