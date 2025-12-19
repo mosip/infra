@@ -279,8 +279,8 @@ apps:
       replicaCount: "1"
       # image.repository, image.tag, and image.pullPolicy are commented out in the original YAML
       # Uncomment and update as needed:
-      # image.repository: "clamav/clamav"
-      # image.tag: "1.2"
+      image.repository: "mosipid/clamav"
+      image.tag: "1.3.0_base"
       # image.pullPolicy: "Always"
     wait: true
     timeout: 1200
