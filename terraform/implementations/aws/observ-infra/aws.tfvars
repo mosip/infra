@@ -75,8 +75,8 @@ keycloak_hostname = "iam.<cluster-env-domain>" # example iam.sandbox.xyz.net
 enable_rancher_keycloak_integration = true
 
 # Rancher import (same as infra)
-enable_rancher_import = false
-rancher_import_url    = "\"<rancher-import-url>\""
+enable_rancher_import = false #dont enable for observ infra
+rancher_import_url    = "\"<rancher-import-url>\"" #dont update for observ infra
 
 # Security group CIDRs
 network_cidr   = "10.0.0.0/8" # Use your actual VPC CIDR

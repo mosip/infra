@@ -493,7 +493,7 @@ This step creates the optional Rancher + Keycloak management cluster for observa
  aws_provider_region = "ap-south-1"
 
  # Specific availability zones for VM deployment (optional)
- specific_availability_zones = []
+ specific_availability_zones = ["ap-south-1b"]
 
  # The instance type for Kubernetes nodes (typically smaller for observ-infra)
  k8s_instance_type = "t3a.xlarge"
@@ -509,7 +509,7 @@ This step creates the optional Rancher + Keycloak management cluster for observa
  # Repo K8S-INFRA URL
  k8s_infra_repo_url = "https://github.com/mosip/k8s-infra.git"
  # Repo K8S-INFRA branch
- k8s_infra_branch = "MOSIP-42914"
+ k8s_infra_branch = "v1.2.1.0"
  # NGINX Node's Root volume size
  nginx_node_root_volume_size = 24
  # NGINX node's EBS volume size
