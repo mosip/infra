@@ -69,7 +69,7 @@ graph TB
 
 > **Note:** Complete Terraform scripts are available only for **AWS**. For **Azure and GCP**, only placeholder structures are configured - community contributions are welcome to implement full functionality.
 
-**Important:** If you deploy `observ-infra` (Rancher + Keycloak for platform management), you **must** run the Keycloak–Rancher SAML integration workflow after `observ-infra` deployment completes and before deploying MOSIP infra. This configures Keycloak as the identity provider for Rancher operator access. See [After observ-infra: Run Keycloak ⇄ Rancher integration (CI)](#after-observ-infra-run-keycloak--rancher-integration-ci) section below for workflow details and how to trigger it.
+**Important:** If you deploy `observ-infra` (Rancher + Keycloak for platform management), you **must** run the Keycloak–Rancher SAML integration workflow after `observ-infra` deployment completes and before deploying MOSIP infra. This configures Keycloak as the identity provider for Rancher operator access. See [Step 3cb: Keycloak ⇄ Rancher integration (CI)](#step-3cb-keycloak--rancher-integration-ci--if-using-observ-infra) section below for workflow details and how to trigger it.
 
 ## Prerequisites
 
