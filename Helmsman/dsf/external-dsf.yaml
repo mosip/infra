@@ -279,8 +279,8 @@ apps:
       replicaCount: "1"
       # image.repository, image.tag, and image.pullPolicy are commented out in the original YAML
       # Uncomment and update as needed:
-      # image.repository: "clamav/clamav"
-      # image.tag: "1.2"
+      image.repository: "mosipid/clamav"
+      image.tag: "1.2"
       # image.pullPolicy: "Always"
     wait: true
     timeout: 1200
@@ -410,7 +410,7 @@ apps:
       landing.healthservices: "healthservices.sandbox.xyz.net"
       landing.injiweb: "injiweb.sandbox.xyz.net"
       landing.injiverify: "injiverify.sandbox.xyz.net"
-      istio.host: "sandbox.mosip.net"
+      istio.host: "sandbox.xyz.net"
     wait: true
     timeout: 1200
     hooks:
