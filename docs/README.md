@@ -60,6 +60,7 @@ Welcome to the MOSIP Infrastructure documentation! This index helps you find exa
 | **[Workflow Guide](WORKFLOW_GUIDE.md)** | Visual GitHub Actions workflow navigation | Everyone during deployment |
 | **[DSF Configuration Guide](DSF_CONFIGURATION_GUIDE.md)** | Helmsman configuration file explained in detail | Everyone before Helmsman deployment |
 | **[Environment Destruction Guide](ENVIRONMENT_DESTRUCTION_GUIDE.md)** | Safe resource cleanup and cost management | Everyone when decommissioning |
+| **[Helmsman Destroy Guide](HELMSMAN_DESTROY_GUIDE.md)** | How to safely undeploy MOSIP services from Kubernetes | Everyone when removing services |
 
 ### Component-Specific Documentation
 
@@ -67,6 +68,7 @@ Welcome to the MOSIP Infrastructure documentation! This index helps you find exa
 |-----------|----------|----------------|
 | **Terraform** | [terraform/README.md](../terraform/README.md) | Infrastructure as code, tfvars, modules, state management |
 | **Helmsman** | [Helmsman/README.md](../Helmsman/README.md) | Application deployment, DSF files, hooks, troubleshooting |
+| **Helmsman Destroy** | [HELMSMAN_DESTROY_GUIDE.md](HELMSMAN_DESTROY_GUIDE.md) | Undeploying services, data backup, cleanup procedures |
 | **WireGuard** | [terraform/base-infra/WIREGUARD_SETUP.md](../terraform/base-infra/WIREGUARD_SETUP.md) | VPN setup, peer configuration, client installation |
 | **Workflows** | [Helmsman/helmsman-workflow-guide.md](../Helmsman/helmsman-workflow-guide.md) | Helmsman workflow details |
 
