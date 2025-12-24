@@ -130,8 +130,8 @@ apps:
     version: 1.3.0
     chart: mosip/dslorchestrator
     set:
-      image.repository: "mosipqa/dsl-orchestrator"
-      image.tag: "1.3.x"
+      # image.repository: "mosipqa/dsl-orchestrator"
+      # image.tag: "1.3.x"
       crontime: "0 4 * * *"
       dslorchestrator.configmaps.s3.s3-host: 'http://minio.minio:9000'
       dslorchestrator.configmaps.s3.s3-user-key: 'admin'
