@@ -175,6 +175,35 @@ apps:
       uitestrig.configmaps.uitestrig.residentPortalPath: "https://resident.gatest.mosip.net"
       uitestrig.configmaps.uitestrig.NS: "uitestrig"
 
+      modules.admin-ui.enabled: true
+      modules.admin-ui.image.registry: docker.io
+      modules.admin-ui.image.repository: mosipid/uitest-admin
+      modules.admin-ui.image.tag: 1.3.0-beta.1
+      modules.admin-ui.image.pullPolicy: Always
+
+      modules.pmp-ui.enabled: true
+      modules.pmp-ui.image.registry: docker.io
+      modules.pmp-ui.image.repository: mosipid/uitest-pmp-v2
+      modules.pmp-ui.image.tag: 1.3.0-beta.2
+      modules.pmp-ui.image.pullPolicy: Always
+
+      modules.resident-ui.enabled: true
+      modules.resident-ui.image.registry: docker.io
+      modules.resident-ui.image.repository: mosipqa/uitest-resident
+      modules.resident-ui.image.tag: develop
+      modules.resident-ui.image.pullPolicy: Always
+  
+      modules.verify-ui.enabled: false
+      modules.verify-ui.image.registry: docker.io
+      modules.verify-ui.image.repository: mosipid/uitest-verify
+      modules.verify-ui.image.tag: 0.15.1
+      modules.verify-ui.image.pullPolicy: Always
+
+      modules.injiweb-ui.enabled: false
+      modules.injiweb-ui.image.registry: docker.io
+      modules.injiweb-ui.image.repository: mosipid/uitest-web
+      modules.injiweb-ui.image.tag: 0.15.0
+      modules.injiweb-ui.image.pullPolicy: Always
     priority: -1
     hooks:
       preInstall: "$WORKDIR/hooks/uitestrig-setup.sh"
