@@ -31,5 +31,6 @@ data:
   mosip-compliance-host: compliance.${ENV}
   mosip-esignet-host: esignet.${ENV}
   mosip-smtp-host: smtp.${ENV}
+  mosip-pmp-revamp-ui-host: pmp-revamp.${ENV}
   mosip-signup-host: signup.${ENV}
   is_glowroot_env: absent
