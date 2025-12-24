@@ -448,9 +448,9 @@ For detailed information about GitHub Actions workflow parameters, terraform mod
 
 4. **Update Environment Secrets:** Add WireGuard configurations to your GitHub environment secrets:
 
-- `TF_WG_CONFIG` - For Terraform infrastructure deployments
-- `CLUSTER_WIREGUARD_WG0` - For Helmsman cluster access (peer1)
-- `CLUSTER_WIREGUARD_WG1` - For Helmsman cluster access (peer2, optional)
+- `TF_WG_CONFIG` - For Terraform infrastructure deployments (peer1)
+- `CLUSTER_WIREGUARD_WG0` - For Helmsman cluster access (peer2)
+- `CLUSTER_WIREGUARD_WG1` - For Helmsman cluster access (peer3, optional)
 - [How to add secrets to GitHub](docs/SECRET_GENERATION_GUIDE.md#7-how-to-add-secrets-to-github)
 
 5. **Verify Connection:** Test private IP connectivity
@@ -1107,8 +1107,8 @@ To regenerate import URL if needed:
  KUBECONFIG: "<contents-of-kubeconfig-file>"
 
  # WireGuard Cluster Access for Helmsman
- CLUSTER_WIREGUARD_WG0: "peer1-wireguard-config" # Helmsman cluster access (peer1)
- CLUSTER_WIREGUARD_WG1: "peer2-wireguard-config" # Helmsman cluster access (peer2)
+ CLUSTER_WIREGUARD_WG0: "peer2-wireguard-config" # Helmsman cluster access (peer2)
+ CLUSTER_WIREGUARD_WG1: "peer3-wireguard-config" # Helmsman cluster access (peer3)
 ```
 
 4. **Verify Secret Configuration:**

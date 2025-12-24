@@ -355,8 +355,8 @@ Add as **Environment Secrets** in GitHub (not repository secrets):
  PersistentKeepalive = 25
  ```
 
-2. **CLUSTER_WIREGUARD_WG0** - For Helmsman cluster access (peer1)
-3. **CLUSTER_WIREGUARD_WG1** - For Helmsman cluster access (peer2, optional)
+2. **CLUSTER_WIREGUARD_WG0** - For Helmsman cluster access (peer2)
+3. **CLUSTER_WIREGUARD_WG1** - For Helmsman cluster access (peer3, optional)
 
 ### Common Pitfalls
 - ❌ Trying to create WireGuard config before deploying base-infra
