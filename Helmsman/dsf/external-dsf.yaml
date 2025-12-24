@@ -27,7 +27,7 @@ namespaces:
     protected: true
   s3:
     protected: true
-  msg-gateways:
+  msg-gatestteways:
     protected: true
   captcha:
     protected: true
@@ -51,7 +51,7 @@ apps:
     version: 0.1.0
     chart: $WORKDIR/utils/istio-addons/postgres-istio-addons-0.1.0.tgz
     set:
-      postgresHost: "postgres.ga.mosip.net"
+      postgresHost: "postgres.gatest.mosip.net"
     wait: true
     priority: -4
     timeout: 1200
@@ -65,77 +65,77 @@ apps:
       dbUserPasswords.dbuserPassword: ""
       databases.mosip_master.enabled: "true"
       databases.mosip_master.branch: "v1.3.0"
-      databases.mosip_master.host: "postgres.ga.mosip.net"
+      databases.mosip_master.host: "postgres.gatest.mosip.net"
       databases.mosip_master.port: 5433
 
       databases.mosip_audit.enabled: "true"
       databases.mosip_audit.branch: "v1.3.0"
-      databases.mosip_audit.host: "postgres.ga.mosip.net"
+      databases.mosip_audit.host: "postgres.gatest.mosip.net"
       databases.mosip_audit.port: 5433
 
       databases.mosip_keymgr.enabled: "true"
       databases.mosip_keymgr.branch: "v1.3.0"
-      databases.mosip_keymgr.host: "postgres.ga.mosip.net"
+      databases.mosip_keymgr.host: "postgres.gatest.mosip.net"
       databases.mosip_keymgr.port: 5433
 
       databases.mosip_kernel.enabled: "true"
       databases.mosip_kernel.branch: "v1.3.0"
-      databases.mosip_kernel.host: "postgres.ga.mosip.net"
+      databases.mosip_kernel.host: "postgres.gatest.mosip.net"
       databases.mosip_kernel.port: 5433
 
       databases.mosip_idmap.enabled: "true"
       databases.mosip_idmap.branch: "v1.3.0"
-      databases.mosip_idmap.host: "postgres.ga.mosip.net"
+      databases.mosip_idmap.host: "postgres.gatest.mosip.net"
       databases.mosip_idmap.port: 5433
 
       databases.mosip_prereg.enabled: "true"
       databases.mosip_prereg.branch: "v1.3.0"
-      databases.mosip_prereg.host: "postgres.ga.mosip.net"
+      databases.mosip_prereg.host: "postgres.gatest.mosip.net"
       databases.mosip_prereg.port: 5433
 
       databases.mosip_idrepo.enabled: "true"
       databases.mosip_idrepo.branch: "v1.3.0"
-      databases.mosip_idrepo.host: "postgres.ga.mosip.net"
+      databases.mosip_idrepo.host: "postgres.gatest.mosip.net"
       databases.mosip_idrepo.port: 5433
 
       databases.mosip_ida.enabled: "true"
       databases.mosip_ida.branch: "v1.3.0"
-      databases.mosip_ida.host: "postgres.ga.mosip.net"
+      databases.mosip_ida.host: "postgres.gatest.mosip.net"
       databases.mosip_ida.port: 5433
 
       databases.mosip_credential.enabled: "true"
       databases.mosip_credential.branch: "v1.3.0"
-      databases.mosip_credential.host: "postgres.ga.mosip.net"
+      databases.mosip_credential.host: "postgres.gatest.mosip.net"
       databases.mosip_credential.port: 5433
 
       databases.mosip_regprc.enabled: "true"
       databases.mosip_regprc.branch: "v1.3.0"
-      databases.mosip_regprc.host: "postgres.ga.mosip.net"
+      databases.mosip_regprc.host: "postgres.gatest.mosip.net"
       databases.mosip_regprc.port: 5433
 
       databases.mosip_pms.enabled: "true"
       databases.mosip_pms.branch: "v1.2.2.3"
-      databases.mosip_pms.host: "postgres.ga.mosip.net"
+      databases.mosip_pms.host: "postgres.gatest.mosip.net"
       databases.mosip_pms.port: 5433
 
       databases.mosip_hotlist.enabled: "true"
       databases.mosip_hotlist.branch: "v1.3.0"
-      databases.mosip_hotlist.host: "postgres.ga.mosip.net"
+      databases.mosip_hotlist.host: "postgres.gatest.mosip.net"
       databases.mosip_hotlist.port: 5433
 
       databases.mosip_resident.enabled: "true"
       databases.mosip_resident.branch: "v1.3.0"
-      databases.mosip_resident.host: "postgres.ga.mosip.net"
+      databases.mosip_resident.host: "postgres.gatest.mosip.net"
       databases.mosip_resident.port: 5433
 
       databases.mosip_otp.enabled: "true"
       databases.mosip_otp.branch: "v1.3.0"
-      databases.mosip_otp.host: "postgres.ga.mosip.net"
+      databases.mosip_otp.host: "postgres.gatest.mosip.net"
       databases.mosip_otp.port: 5433
 
       databases.mosip_digitalcard.enabled: "true"
       databases.mosip_digitalcard.branch: "v1.3.0"
-      databases.mosip_digitalcard.host: "postgres.ga.mosip.net"
+      databases.mosip_digitalcard.host: "postgres.gatest.mosip.net"
       databases.mosip_digitalcard.port: 5433
     wait: true
     timeout: 1200
@@ -183,7 +183,7 @@ apps:
     version: 0.1.0
     chart: $WORKDIR/utils/istio-addons/iam-istio-addons-0.1.0.tgz
     set:
-      keycloakExternalHost: "iam.ga.mosip.net"
+      keycloakExternalHost: "iam.gatest.mosip.net"
       keycloakInternalHost: "keycloak.keycloak"
       service: "keycloak"
     wait: true
@@ -198,9 +198,9 @@ apps:
     set:
       # image.repository: "mosipqa/keycloak-init"
       # image.tag: "1.3.x"
-      keycloakExternalHost: "iam.ga.mosip.net"
+      keycloakExternalHost: "iam.gatest.mosip.net"
       keycloakInternalHost: "keycloak.keycloak"
-      keycloak.realms.mosip.realm_config.attributes.frontendUrl: "https://iam.ga.mosip.net/auth"
+      keycloak.realms.mosip.realm_config.attributes.frontendUrl: "https://iam.gatest.mosip.net/auth"
       keycloak.realms.mosip.realm_config.smtpServer.auth: "false"
       keycloak.realms.mosip.realm_config.smtpServer.host: "smtp.gmail.com"
       keycloak.realms.mosip.realm_config.smtpServer.port: "465"
@@ -264,7 +264,7 @@ apps:
     version: 1.2.0
     chart: $WORKDIR/utils/istio-addons/minio-istio-addons-1.2.0.tgz
     set:
-      externalHost: "minio.ga.mosip.net"
+      externalHost: "minio.gatest.mosip.net"
     wait: true
     timeout: 1200
     hooks:
@@ -297,14 +297,14 @@ apps:
       # image.tag: "1.1.5"
       # persistence.storageClass: "nfs-csi-activemq"
       istio.enabled: "true"
-      istio.hosts[0]: "activemq.ga.mosip.net"
-      istio.ingressController.name: "ingressgateway-internal"
+      istio.hosts[0]: "activemq.gatest.mosip.net"
+      istio.ingressController.name: "ingressgatestteway-internal"
       istio.prefix: ""
     wait: true
     timeout: 1200
     priority: -8
     hooks:
-      postInstall: "$WORKDIR/hooks/captcha-setup.sh 6LeCjzUsAAAAAEUNajQqW8S876852tH1v_FIbLTq 6LeCjzUsAAAAAFxOlUb_13gpWteGn8WNatF4zHaG 6Lf1kTUsAAAAANUHyUabAXVIUEtroBlqgWQDoeg1 6Lf1kTUsAAAAAOUc_LOsxU3f7G7xhOlCHVjxEtsF 6LcgkjUsAAAAAGY7lWke3_cmwd4xiz_dbaQ-2ihR 6LcgkjUsAAAAAIS0SeLWXN5ZOH6r9DfzRKs3fDpM"
+      postInstall: "$WORKDIR/hooks/captcha-setup.sh 6Lfv6jUsAAAAAKHOUNhlNpmDfxGkOFrtNcnojpAz 6Lfv6jUsAAAAAEUgmH1ypiZCKDpZ7cQhJ7RMReE2 6Lf56jUsAAAAAPHBcGTDBnYjAuLEVgksHp1RdKsW 6Lf56jUsAAAAANy2wJ8RED_vtJq_oMRmm2qneEDp 6LcA6zUsAAAAAEsrW9LEz2StSrf198do7xmKFdaH 6LcA6zUsAAAAAHyPfVqk7HqZpEx-Dj8Uh0YK52hu"
   # Note: Create a google recaptcha v2 ("I am not a Robot") from Google Recaptcha Admin.
   # Pass the captcha site and secret key in the above post install script as an argument.To create site and secret key below is the link:
   # https://cloud.google.com/security/products/recaptcha
@@ -378,12 +378,12 @@ apps:
     version: 1.2.0
     chart: $WORKDIR/utils/istio-addons/kafka-istio-addons-1.2.0.tgz
     set:
-      kafkaUiHost: "kafka.ga.mosip.net"
+      kafkaUiHost: "kafka.gatest.mosip.net"
       installName: "kafka-ui"
     wait: true
     timeout: 1200
     hooks:
-      postInstall: "$WORKDIR/hooks/msg-gateways-setup.sh"
+      postInstall: "$WORKDIR/hooks/msg-gatestteways-setup.sh"
     priority: -1
 
   landing-page:
@@ -393,28 +393,28 @@ apps:
     chart: mosip/landing-page
     set:
       landing.version: "develop"
-      landing.name: "ga"
-      landing.api: "api.ga.mosip.net"
-      landing.apiInternal: "api-internal.ga.mosip.net"
-      landing.admin: "admin.ga.mosip.net"
-      landing.prereg: "prereg.ga.mosip.net"
-      landing.kafka: "kafka.ga.mosip.net"
-      landing.kibana: "kibana.ga.mosip.net"
-      landing.activemq: "activemq.ga.mosip.net"
-      landing.minio: "minio.ga.mosip.net"
-      landing.keycloak: "iam.ga.mosip.net"
-      landing.regclient: "regclient.ga.mosip.net"
-      landing.postgres.host: "postgres.ga.mosip.net"
+      landing.name: "gatest"
+      landing.api: "api.gatest.mosip.net"
+      landing.apiInternal: "api-internal.gatest.mosip.net"
+      landing.admin: "admin.gatest.mosip.net"
+      landing.prereg: "prereg.gatest.mosip.net"
+      landing.kafka: "kafka.gatest.mosip.net"
+      landing.kibana: "kibana.gatest.mosip.net"
+      landing.activemq: "activemq.gatest.mosip.net"
+      landing.minio: "minio.gatest.mosip.net"
+      landing.keycloak: "iam.gatest.mosip.net"
+      landing.regclient: "regclient.gatest.mosip.net"
+      landing.postgres.host: "postgres.gatest.mosip.net"
       landing.postgres.port: "5433"
-      landing.compliance: "compliance.ga.mosip.net"
-      landing.pmp: "pmp.ga.mosip.net"
-      landing.resident: "resident.ga.mosip.net"
-      landing.esignet: "esignet.ga.mosip.net"
-      landing.smtp: "smtp.ga.mosip.net"
-      landing.healthservices: "healthservices.ga.mosip.net"
-      landing.injiweb: "injiweb.ga.mosip.net"
-      landing.injiverify: "injiverify.ga.mosip.net"
-      istio.host: "ga.mosip.net"
+      landing.compliance: "compliance.gatest.mosip.net"
+      landing.pmp: "pmp.gatest.mosip.net"
+      landing.resident: "resident.gatest.mosip.net"
+      landing.esignet: "esignet.gatest.mosip.net"
+      landing.smtp: "smtp.gatest.mosip.net"
+      landing.healthservices: "healthservices.gatest.mosip.net"
+      landing.injiweb: "injiweb.gatest.mosip.net"
+      landing.injiverify: "injiverify.gatest.mosip.net"
+      istio.host: "gatest.mosip.net"
     wait: true
     timeout: 1200
     hooks:
