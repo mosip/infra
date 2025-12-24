@@ -413,6 +413,7 @@ apps:
       istio.name: "prereg-gateway"
       istio.ingressController: "ingressgateway" 
       istio.host: "prereg.ga.mosip.net"
+      istio.serviceHost: service-hostname
     priority: -9
     timeout: 1200
 
