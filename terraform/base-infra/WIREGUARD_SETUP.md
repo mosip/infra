@@ -206,12 +206,12 @@ After setting up WireGuard, you need to create **multiple peer configurations** 
 
 2. **CLUSTER_WIREGUARD_WG0 Secret:**
  - Name: `CLUSTER_WIREGUARD_WG0`
- - Value: Contents of `peer1.conf` 
+ - Value: Contents of `peer2.conf` 
  - Purpose: Helmsman cluster access (primary connection)
 
 3. **CLUSTER_WIREGUARD_WG1 Secret:**
  - Name: `CLUSTER_WIREGUARD_WG1`
- - Value: Contents of `peer2.conf`
+ - Value: Contents of `peer3.conf`
  - Purpose: Helmsman cluster access (secondary connection)
 
 #### Secret Configuration Summary
@@ -219,8 +219,8 @@ After setting up WireGuard, you need to create **multiple peer configurations** 
 ```yaml
 # Required Environment Secrets for WireGuard Access
 TF_WG_CONFIG: "<peer1-config-content>" # Terraform workflows
-CLUSTER_WIREGUARD_WG0: "<peer1-config-content>" # Helmsman primary
-CLUSTER_WIREGUARD_WG1: "<peer2-config-content>" # Helmsman secondary
+CLUSTER_WIREGUARD_WG0: "<peer2-config-content>" # Helmsman primary
+CLUSTER_WIREGUARD_WG1: "<peer3-config-content>" # Helmsman secondary
 ```
 
 #### Purpose of Multiple Configurations
