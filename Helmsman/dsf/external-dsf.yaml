@@ -196,8 +196,8 @@ apps:
     version: 1.3.0
     chart: mosip/keycloak-init
     set:
-      image.repository: "mosipqa/keycloak-init"
-      image.tag: "1.3.x"
+      # image.repository: "mosipqa/keycloak-init"
+      # image.tag: "1.3.x"
       keycloakExternalHost: "iam.ga.mosip.net"
       keycloakInternalHost: "keycloak.keycloak"
       keycloak.realms.mosip.realm_config.attributes.frontendUrl: "https://iam.ga.mosip.net/auth"
