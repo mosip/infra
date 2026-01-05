@@ -415,6 +415,18 @@ For detailed information about GitHub Actions workflow parameters, terraform mod
 - ✅ Green checkmark when complete
 - ✅ Infrastructure created in AWS
 
+ **If Workflow Fails - How to View Error Logs:**
+
+1. Click on the **failed workflow run** (red ❌ icon)
+2. Click on the **failed job** in the left sidebar
+3. Expand the **failed step** (look for red ❌) to see detailed error logs
+4. Common steps to check:
+   - `Terraform Init` - Backend/provider issues
+   - `Terraform Plan` - Configuration or syntax errors
+   - `Terraform Apply` - Resource creation failures
+5. Scroll through the logs to find the error message (usually highlighted in red)
+6. For full logs, click **View raw logs** (gear icon → "View raw logs")
+
  **Need more help?** [Workflow Guide](docs/WORKFLOW_GUIDE.md)
 
 #### Step 3b: WireGuard VPN Setup (Required for Private Network Access)
@@ -562,6 +574,18 @@ This step creates the optional Rancher + Keycloak management cluster for observa
 - ✅ Steps completing one by one
 - ✅ Green checkmark when complete
 - ✅ Observation infrastructure created in AWS with Rancher and Keycloak
+
+**If Workflow Fails - How to View Error Logs:**
+
+1. Click on the **failed workflow run** (red ❌ icon)
+2. Click on the **failed job** in the left sidebar
+3. Expand the **failed step** (look for red ❌) to see detailed error logs
+4. Common steps to check:
+   - `Terraform Init` - Backend/provider issues
+   - `Terraform Plan` - Configuration or syntax errors
+   - `Terraform Apply` - Resource creation failures
+5. Scroll through the logs to find the error message (usually highlighted in red)
+6. For full logs, click **View raw logs** (gear icon → "View raw logs")
 
 **Post-Deployment: Rancher UI Initial Setup**
 
@@ -811,6 +835,18 @@ After updating `aws.tfvars`, deploy or update your main infra cluster:
   - **(8)** ✅ **Checked**  — Apply mode: runs terraform apply (creates/updates infrastructure).
   - Tip: For your first deployment, run in plan mode first to review changes. If the plan looks correct, re-run the workflow with Apply checked.
 - **(9)** **Run Workflow**
+
+**If Workflow Fails - How to View Error Logs:**
+
+1. Click on the **failed workflow run** (red ❌ icon)
+2. Click on the **failed job** in the left sidebar
+3. Expand the **failed step** (look for red ❌) to see detailed error logs
+4. Common steps to check:
+   - `Terraform Init` - Backend/provider issues
+   - `Terraform Plan` - Configuration or syntax errors
+   - `Terraform Apply` - Resource creation failures
+5. Scroll through the logs to find the error message (usually highlighted in red)
+6. For full logs, click **View raw logs** (gear icon → "View raw logs")
 
 **Verify Rancher Import (Only if rancher_import = true):**
 
