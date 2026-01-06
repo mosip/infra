@@ -56,7 +56,7 @@ apps:
       apitestrig.configmaps.db.db-server: "api-internal.dev.mosip.net"
       apitestrig.configmaps.db.db-su-user: "postgres"
       apitestrig.configmaps.db.db-port: "5433"
-      apitestrig.configmaps.apitestrig.ENV_USER: "api-internal.ga"
+      apitestrig.configmaps.apitestrig.ENV_USER: "api-internal.dev"
       apitestrig.configmaps.apitestrig.ENV_ENDPOINT: "https://api-internal.dev.mosip.net"
       apitestrig.configmaps.apitestrig.ENV_TESTLEVEL: "smokeAndRegression"
       apitestrig.configmaps.apitestrig.reportExpirationInDays: "3"
