@@ -35,7 +35,7 @@ nginx_node_root_volume_size = 24
 # NGINX node's EBS volume size
 nginx_node_ebs_volume_size = 300
 # NGINX node's second EBS volume size (optional - set to 0 to disable)
-nginx_node_ebs_volume_size_2 = 200 # Enable second EBS volume for PostgreSQL testing
+nginx_node_ebs_volume_size_2 = 0 # Enable second EBS volume for PostgreSQL testing
 # Kubernetes nodes Root volume size
 k8s_instance_root_volume_size = 64
 
@@ -63,7 +63,7 @@ subdomain_public   = ["esignet", "healthservices", "signup", "healthservices-moc
 subdomain_internal = ["iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio"]
 
 # PostgreSQL Configuration (used when second EBS volume is enabled)
-enable_postgresql_setup = true # Enable PostgreSQL setup for main infra
+enable_postgresql_setup = false # Enable PostgreSQL setup for main infra
 postgresql_version      = "15"
 storage_device          = "/dev/nvme2n1"
 mount_point             = "/srv/postgres"
