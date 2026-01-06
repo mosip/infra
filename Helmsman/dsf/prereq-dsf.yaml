@@ -42,8 +42,8 @@ apps:
     version: 103.1.0+up45.31.1
     chart: mosip/rancher-monitoring
     set:
-      grafana.global.cattle.clusterId: "c-m-9k5vjnz8"
-      global.cattle.clusterId: "c-m-9k5vjnz8"
+      grafana.global.cattle.clusterId: "c-m-qwggjk4x"
+      global.cattle.clusterId: "c-m-qwggjk4x"
     wait: true
     valuesFile: "$WORKDIR/utils/monitoring_values.yaml"  
     priority: -5
