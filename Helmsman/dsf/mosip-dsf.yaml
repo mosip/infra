@@ -212,7 +212,7 @@ apps:
     set:
       # image.repository: "mosipdev/mock-smtp"
       # image.tag: "1.0.0"
-      istio.hosts[0]: "smtp.rapid.esignet.io"
+      istio.hosts[0]: "smtp.rapidtest.esignet.io"
     priority: -12
     timeout: 1200
 
@@ -228,7 +228,7 @@ apps:
       mosipDataGithubBranch: "v1.2.2.0"
       mosipDataGithubRepo: "https://github.com/mosip/mosip-data"
       mosipDataXlsfolderPath: "/home/mosip/mosip-data/mosip_master/xlsx"
-      db.host: "postgres.rapid.esignet.io"
+      db.host: "postgres.rapidtest.esignet.io"
       db.port: 5433
     wait: true
     priority: -11
@@ -289,7 +289,7 @@ apps:
       resources.limits.memory: "4000Mi"
       resources.requests.cpu: "200m"
       resources.requests.memory: "2000Mi"
-      istio.corsPolicy.allowOrigins[0].exact: "https://admin.rapid.esignet.io"
+      istio.corsPolicy.allowOrigins[0].exact: "https://admin.rapidtest.esignet.io"
     wait: true
     priority: -10
     timeout: 1200
@@ -403,7 +403,7 @@ apps:
     version: 12.0.3
     chart: mosip/prereg-gateway
     set:
-      istio.hosts[0]: "prereg.rapid.esignet.io"
+      istio.hosts[0]: "prereg.rapidtest.esignet.io"
     priority: -9
     timeout: 1200
 
@@ -474,7 +474,7 @@ apps:
     set:
       # image.repository: ""
       # image.tag: ""
-      prereg.apiHost: "prereg.rapid.esignet.io"
+      prereg.apiHost: "prereg.rapidtest.esignet.io"
     priority: -9
     timeout: 1200
 
@@ -567,7 +567,7 @@ apps:
     set:
       # image.repository: "mosipid/partner-management-service"
       # image.tag: "1.2.2.1"
-      istio.corsPolicy.allowOrigins[0].prefix: "https://pmp.rapid.esignet.io"
+      istio.corsPolicy.allowOrigins[0].prefix: "https://pmp.rapidtest.esignet.io"
     priority: -9
     timeout: 1200
 
@@ -580,7 +580,7 @@ apps:
     set:
       # image.repository: "mosipid/partner-management-service"
       # image.tag: "1.2.2.1"
-      istio.corsPolicy.allowOrigins[0].prefix: "https://pmp.rapid.esignet.io"
+      istio.corsPolicy.allowOrigins[0].prefix: "https://pmp.rapidtest.esignet.io"
     priority: -9
     timeout: 1200
 
@@ -593,8 +593,8 @@ apps:
   #   set:
   #     image.repository: "mosipid/pmp-ui"
   #     image.tag: "1.2.2.1"
-  #     pmp.apiUrl: "https://api-internal.rapid.esignet.io/"
-  #     istio.hosts[0]: "pmp.rapid.esignet.io"
+  #     pmp.apiUrl: "https://api-internal.rapidtest.esignet.io/"
+  #     istio.hosts[0]: "pmp.rapidtest.esignet.io"
   #   priority: -9
   #   timeout: 1200
 
@@ -607,11 +607,11 @@ apps:
     set:
       # image.repository: "mosipqa/pmp-revamp-ui"
       # image.tag: "develop"
-      pmp_revamp.react_app_partner_manager_api_base_url: "https://api-internal.rapid.esignet.io/v1/partnermanager"
-      pmp_revamp.react_app_policy_manager_api_base_url: "https://api-internal.rapid.esignet.io/v1/policymanager"
+      pmp_revamp.react_app_partner_manager_api_base_url: "https://api-internal.rapidtest.esignet.io/v1/partnermanager"
+      pmp_revamp.react_app_policy_manager_api_base_url: "https://api-internal.rapidtest.esignet.io/v1/policymanager"
       pmp_revamp.pms_partner_manager_internal_service_url: "http://pms-partner.pms/v1/partnermanager"
       pmp_revamp.pms_policy_manager_internal_service_url: "http://pms-policy.pms/v1/policymanager"
-      istio.hosts[0]: "pmp.rapid.esignet.io"
+      istio.hosts[0]: "pmp.rapidtest.esignet.io"
     priority: -9
     timeout: 1200
 
@@ -882,7 +882,7 @@ apps:
       resources.limits.memory: "2000Mi"
       resources.requests.cpu: "500m"
       resources.requests.memory: "2000Mi"
-      istio.corsPolicy.allowOrigins[0].prefix: "https://admin.rapid.esignet.io"
+      istio.corsPolicy.allowOrigins[0].prefix: "https://admin.rapidtest.esignet.io"
       startupProbe.failureThreshold: 60
     timeout: 1200
     priority: -9
@@ -896,8 +896,8 @@ apps:
     set:
       # image.repository: "mosipqa/admin-ui"
       # image.tag: "1.3.x"
-      admin.apiUrl: "https://api-internal.rapid.esignet.io/v1/"
-      istio.hosts[0]: "admin.rapid.esignet.io"
+      admin.apiUrl: "https://api-internal.rapidtest.esignet.io/v1/"
+      istio.hosts[0]: "admin.rapidtest.esignet.io"
     timeout: 1200
     priority: -9
 
@@ -1004,7 +1004,7 @@ apps:
       resources.requests.cpu: "300m"
       resources.requests.memory: "2000Mi"
       startupProbe.failureThreshold: "60"
-      istio.corsPolicy.allowOrigins[0].prefix: "https://resident.rapid.esignet.io"
+      istio.corsPolicy.allowOrigins[0].prefix: "https://resident.rapidtest.esignet.io"
     timeout: 1200
     wait: true
     priority: -4
@@ -1019,8 +1019,8 @@ apps:
     set:
       # image.repository: "mosipdev2/resident-ui"
       # image.tag: "release-0.9.x"
-      resident.apiHost: "api-internal.rapid.esignet.io"
-      istio.hosts[0]: "resident.rapid.esignet.io"
+      resident.apiHost: "api-internal.rapidtest.esignet.io"
+      istio.hosts[0]: "resident.rapidtest.esignet.io"
     wait: true
     timeout: 1200
     priority: -3
@@ -1080,10 +1080,10 @@ apps:
     set:
       image.repository: "mosipid/mosip-file-server"
       image.tag: "1.2.0.1"
-      mosipfileserver.host: "api.rapid.esignet.io"
+      mosipfileserver.host: "api.rapidtest.esignet.io"
       # mosipfileserver.secrets.KEYCLOAK_CLIENT_SECRET: ""
-      istio.corsPolicy.allowOrigins[0].prefix: "https://api.rapid.esignet.io"
-      istio.corsPolicy.allowOrigins[1].prefix: "https://api-internal.rapid.esignet.io"
+      istio.corsPolicy.allowOrigins[0].prefix: "https://api.rapidtest.esignet.io"
+      istio.corsPolicy.allowOrigins[1].prefix: "https://api-internal.rapidtest.esignet.io"
       istio.corsPolicy.allowOrigins[2].prefix: "https://verifiablecredential.io"
     priority: -1
     timeout: 1200
@@ -1098,9 +1098,9 @@ apps:
       image.repository: "mosipid/registration-client"
       image.tag: "1.2.0.2"
       regclient.version: "1.2.0.2"
-      regclient.upgradeServerUrl: "https://regclient.rapid.esignet.io"
-      regclient.healthCheckUrl: "https://api-internal.rapid.esignet.io/v1/syncdata/actuator/health"
-      regclient.hostName: "api-internal.rapid.esignet.io"
-      istio.host: "regclient.rapid.esignet.io"
+      regclient.upgradeServerUrl: "https://regclient.rapidtest.esignet.io"
+      regclient.healthCheckUrl: "https://api-internal.rapidtest.esignet.io/v1/syncdata/actuator/health"
+      regclient.hostName: "api-internal.rapidtest.esignet.io"
+      istio.host: "regclient.rapidtest.esignet.io"
     priority: -1
     timeout: 1200
