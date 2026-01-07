@@ -1,0 +1,43 @@
+---
+all:
+  vars:
+    cluster_name: "esdev"
+    cluster_env_domain: "mosip.local"
+    k8s_infra_repo_url: "https://github.com/mosip/k8s-infra.git"
+    k8s_infra_branch: "v1.2.1.0"
+    install_rke2_version: "v1.28.9+rke2r1"
+    enable_rancher_import: true
+    rancher_import_url: "kubectl apply -f https://rancher.mosip.net/v3/import/7hh65gsz926x7wh9w99trtqj22bmnh4fv77qzj5nkgb44ffkvkqnn7_c-m-kggcg9ch.yaml"
+    ansible_user: ubuntu
+    ansible_ssh_private_key_file: ./ssh_key
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+    
+  children:
+    control_plane:
+      hosts:
+        esdev-CONTROL-PLANE-NODE-1:
+          ansible_host: 172.31.79.208
+          node_role: control_plane
+          is_primary: true
+          node_index: 0
+    
+    etcd:
+      hosts:
+        esdev-ETCD-NODE-1:
+          ansible_host: 172.31.78.253
+          node_role: etcd
+    
+    workers:
+      hosts:
+        esdev-WORKER-NODE-1:
+          ansible_host: 172.31.77.92
+          node_role: worker
+        esdev-WORKER-NODE-2:
+          ansible_host: 172.31.71.202
+          node_role: worker
+
+    rke2_cluster:
+      children:
+        control_plane:
+        etcd:
+        workers:
