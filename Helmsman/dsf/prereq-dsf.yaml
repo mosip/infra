@@ -59,7 +59,7 @@ apps:
     set:
       image.repository: "mosipint/elasticsearch"
       image.tag: "7.17.2-debian-10-r4"
-      # Kibana configuration and image
+      #Kibana configuration and image
       global.kibanaEnabled: "true"
       kibana.image.repository: "mosipid/kibana"
       kibana.image.tag: "7.17.2-debian-10-r0"
