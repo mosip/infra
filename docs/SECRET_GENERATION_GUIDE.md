@@ -341,7 +341,7 @@ WireGuard configuration is generated **AFTER** deploying base infrastructure. Fo
 
 Add as **Environment Secrets** in GitHub (not repository secrets):
 
-1. **TF_WG_CONFIG** - For Terraform deployments
+1. **TF_WG_CONFIG** - For Terraform deployments (peer1)
  ```ini
  [Interface]
  PrivateKey = <terraform-private-key>

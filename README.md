@@ -948,7 +948,9 @@ To regenerate import URL if needed:
 
 - **Configure reCAPTCHA keys:**
 
-1. **Create reCAPTCHA keys for each domain:**
+1. **Create reCAPTCHA keys for each domain:** 
+   
+   📖 **[View detailed reCAPTCHA Setup Guide with screenshots](docs/RECAPTCHA_SETUP_GUIDE.md)**
 
 - Go to [Google reCAPTCHA Admin](https://www.google.com/recaptcha/admin/create)
 - Create reCAPTCHA v2 ("I'm not a robot" Checkbox) for each domain:
