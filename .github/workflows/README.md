@@ -18,6 +18,7 @@ This directory contains GitHub Actions workflows for automated MOSIP deployment:
 | `terraform-destroy.yml` | Destroy Infrastructure | Manual Dispatch | Uses encrypted state | Handles PostgreSQL cleanup |
 | `helmsman_external.yml` | Deploy Prerequisites & External Dependencies | Manual Dispatch | Uses deployed infra | **Parallel deployment** |
 | `helmsman_mosip.yml` | Deploy MOSIP Services | Manual Dispatch | Uses deployed infra | Uses deployed PostgreSQL |
+| `helmsman_esignet.yml` | Deploy eSignet Stack | Manual/Push | Uses deployed infra | Uses deployed PostgreSQL |
 | `helmsman_testrigs.yml` | Deploy Test Rigs | Manual Dispatch | Uses deployed infra | Testing components |
 
 ## Cloud Provider Support
@@ -404,6 +405,7 @@ sequenceDiagram
 2. **Helmsman Workflows** (Can run in parallel after Terraform complete):
  - `helmsman_external.yml` → Prerequisites + External Dependencies (simultaneous)
  - `helmsman_mosip.yml` → MOSIP Services (after external dependencies ready)
+ - `helmsman_esignet.yml` → eSignet Stack (after MOSIP DSF or standalone)
  - `helmsman_testrigs.yml` → Test components (optional)
 
 ### Parallel Deployment Architecture
@@ -458,5 +460,125 @@ graph TD
 **GCP** - [Placeholder implementation](../terraform/base-infra/gcp/main.tf) - contributions welcome 
 
 **Community contributions needed for Azure and GCP implementations**
+
+---
+
+## eSignet Workflow (`helmsman_esignet.yml`)
+
+Deploys the complete eSignet authentication stack including Redis, SoftHSM, Keycloak, Mock Identity System, Mock Relying Party, and Partner Onboarder.
+
+### Triggers
+
+| Trigger | Condition |
+|---------|-----------|
+| **Manual** | `workflow_dispatch` - Run from Actions tab |
+| **Push** | When `Helmsman/dsf/esignet-dsf.yaml` is modified |
+
+### Workflow Inputs (Manual Trigger)
+
+| Input | Description | Required | Default |
+|-------|-------------|----------|---------|  
+| `mode` | Helmsman mode: `dry-run` or `apply` | Yes | `dry-run` |
+| `skip_mosip_dsf_check` | Skip MOSIP DSF completion check for standalone deployment | No | `false` |
+
+### Required GitHub Secrets
+
+Configure in **Repository → Settings → Secrets and variables → Actions → Secrets**:
+
+| Secret | Description | Required |
+|--------|-------------|----------|
+| `KUBECONFIG` | Kubernetes config file content | ✅ Yes |
+| `CLUSTER_WIREGUARD_WG0` | WireGuard configuration for cluster access | ✅ Yes |
+| `MOCK_RELYING_PARTY_CLIENT_PRIVATE_KEY` | Mock Relying Party client private key (base64 encoded PEM) | ✅ Yes |
+| `MOCK_RELYING_PARTY_JWE_PRIVATE_KEY` | JWE userinfo private key (base64 encoded PEM) | ✅ Yes |
+
+### Repository Variables (Optional)
+
+Configure in **Repository → Settings → Secrets and variables → Actions → Variables**:
+
+| Variable | Description | Values |
+|----------|-------------|--------|
+| `ESIGNET_STANDALONE_MODE` | Enable standalone mode for push-triggered runs | `true` / `false` |
+
+### Creating Base64 Encoded Secrets
+
+```bash
+# Encode client private key (no line wrapping)
+cat client-private-key.pem | base64 -w 0
+# Copy output → Add as MOCK_RELYING_PARTY_CLIENT_PRIVATE_KEY secret
+
+# Encode JWE userinfo private key
+cat jwe-userinfo-private-key.pem | base64 -w 0
+# Copy output → Add as MOCK_RELYING_PARTY_JWE_PRIVATE_KEY secret
+```
+
+### Deployment Modes
+
+#### 1. Dependent Mode (Default)
+Requires MOSIP DSF to be completed first. Checks for `mosip-dsf=completed` label on default namespace.
+
+```
+MOSIP DSF → eSignet DSF
+```
+
+#### 2. Standalone Mode
+Skips MOSIP DSF check. Enable via:
+
+| Trigger Type | How to Enable |
+|--------------|--------------|
+| Manual Run | Set `skip_mosip_dsf_check` to `true` in workflow UI |
+| Push Triggered | Set repository variable `ESIGNET_STANDALONE_MODE=true` |
+
+### eSignet Components Deployed
+
+| Priority | Component | Description |
+|----------|-----------|-------------|
+| -19 | redis | Cache layer |
+| -18 | softhsm-esignet | Hardware security module for eSignet |
+| -15 | postgres-init-esignet | Database initialization |
+| -14 | keycloak | Identity and access management |
+| -13 | esignet-keycloak-init | Keycloak realm configuration |
+| -12 | esignet | Core eSignet service |
+| -11 | softhsm-mock-identity-system | HSM for mock identity |
+| -11 | oidc-ui | OpenID Connect UI |
+| -10 | mock-identity-system | Mock identity provider |
+| -10 | partner-onboarder | Partner onboarding service |
+| -9 | mock-relying-party-ui | Mock relying party frontend |
+| -8 | mock-relying-party-service | Mock relying party backend |
+
+### Security Features
+
+- ✅ All secrets automatically masked in GitHub Actions logs
+- ✅ Private keys passed as environment variables (never written to disk)
+- ✅ WireGuard config written with restricted permissions (600)
+- ✅ Kubeconfig stored with 400 permissions
+- ✅ Explicit `::add-mask::` for additional protection
+
+### Post-Deployment Verification
+
+```bash
+# Check all eSignet pods
+kubectl get pods -n esignet
+
+# Verify services
+kubectl get svc -n esignet
+
+# Check eSignet logs
+kubectl logs -n esignet -l app=esignet
+
+# Verify namespace label
+kubectl get ns default --show-labels | grep esignet-dsf
+```
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| `MOSIP DSF not completed` | Run MOSIP DSF workflow first OR enable standalone mode |
+| `Secret not configured` | Add required secrets in repository settings |
+| `WireGuard connection failed` | Verify `CLUSTER_WIREGUARD_WG0` contains valid config |
+| Pods not starting | Check `kubectl logs -n esignet <pod-name>` for errors |
+
+---
 
 **Professional infrastructure automation with enterprise-grade security, PostgreSQL integration, and parallel deployment capabilities**

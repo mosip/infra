@@ -1,0 +1,295 @@
+helmDefaults:
+  tillerNamespace: kube-system
+  tillerless: true
+  install: true
+
+helmRepos:
+  bitnami: https://charts.bitnami.com/bitnami
+  mosip: https://mosip.github.io/mosip-helm
+
+namespaces:
+  postgres:
+    protected: false
+  esignet:
+    protected: false
+  softhsm:
+    protected: false
+apps:
+  postgres:
+    namespace: postgres
+    enabled: false
+    version: 13.1.5
+    chart: bitnami/postgresql
+    wait: true
+    priority: -16
+    valuesFile: "$WORKDIR/utils/postgres-values.yaml"
+    timeout: 1200
+
+  istio-addons-psql:
+    namespace: postgres
+    enabled: false
+    version: 0.1.0
+    chart: $WORKDIR/utils/istio-addons/postgres-istio-addons-0.1.0.tgz
+    set:
+      postgresHost: "postgres.sandbox.xyz.net"
+    wait: true
+    priority: -4
+    timeout: 1200
+
+  postgres-init-esignet:
+    namespace: postgres
+    enabled: true
+    version: 12.0.1
+    chart: mosip/postgres-init
+    set:
+      dbUserPasswords.dbuserPassword: ""
+      databases.mosip_esignet.enabled: "true"
+      databases.mosip_esignet.branch: "v1.4.1"
+      databases.mosip_esignet.host: "postgres.sandbox.xyz.net"
+      databases.mosip_esignet.port: 5433
+      databases.mosip_esignet.dml: 1
+    wait: true
+    timeout: 1200
+    priority: -15
+    hooks:
+      preInstall: "$WORKDIR/hooks/esignet-init-db.sh"  
+
+  redis:
+    namespace: redis
+    enabled: true
+    version: 17.3.14
+    chart: bitnami/redis
+    wait: true
+    timeout: 1200
+    priority: -19
+    set:
+      image.repository: "mosipid/redis"
+      image.tag: "7.0.5-debian-11-r25"    
+    hooks:
+      postInstall: "$WORKDIR/hooks/redis-setup.sh"
+
+  softhsm-esignet:
+    namespace: softhsm
+    enabled: true
+    version: 12.0.1
+    chart: mosip/softhsm
+    valuesFile: "$WORKDIR/utils/softhsm-esignet-values.yaml"
+    wait: true
+    timeout: 1200
+    priority: -18
+    hooks:
+      preInstall: "$WORKDIR/hooks/softhsm-esignet-setup.sh"
+      postInstall: "$WORKDIR/hooks/softhsm-esignet-postinstall.sh"
+
+  keycloak:
+    namespace: keycloak
+    enabled: false
+    version: 7.1.18
+    chart: mosip/keycloak
+    set:
+      image.repository: "mosipid/mosip-artemis-keycloak"
+      image.tag: "1.2.0.2"
+      image.pullPolicy: "Always"
+      # Override Postgres image
+      postgresql.image.registry: "docker.io"
+      postgresql.image.repository: "mosipid/postgresql"
+      postgresql.image.tag: "14.2.0-debian-10-r70"
+      service.type: "ClusterIP"
+      auth.adminUser: "admin"
+      extraEnvVars[0].name: "KEYCLOAK_EXTRA_ARGS"
+      extraEnvVars[0].value: "-Dkeycloak.profile.feature.upload_scripts=enabled -Dkeycloak.profile.feature.token_exchange=enabled -Dkeycloak.profile.feature.admin_fine_grained_authz=enabled"
+      ingress.enabled: "false"
+      ingress.hostname: ""
+      ingress.annotations.ingress\.kubernetes\.io/class: "nginx"
+      proxyAddressForwarding: "true"
+      replicaCount: "1"
+      serviceDiscovery.enabled: "true"
+      # resources.limits.cpu: "250m"
+      # resources.limits.memory: "1Gi"
+      resources.requests.cpu: "200m"
+      resources.requests.memory: "1000Mi"
+      rbac.create: "true"
+      rbac.rules[0].apiGroups[0]: ""
+      rbac.rules[0].resources[0]: "pods"
+      rbac.rules[0].verbs[0]: "get"
+      rbac.rules[0].verbs[1]: "list"
+    wait: true
+    timeout: 1200
+    priority: -14
+
+  istio-addons-iam:
+    namespace: keycloak
+    enabled: true
+    version: 0.1.0
+    chart: $WORKDIR/utils/istio-addons/iam-istio-addons-0.1.0.tgz
+    set:
+      keycloakExternalHost: "iam.sandbox.xyz.net"
+      keycloakInternalHost: "keycloak.keycloak"
+      service: "keycloak"
+    wait: true
+    timeout: 1200
+    priority: -3
+
+  esignet-keycloak-init:
+    namespace: esignet
+    enabled: true
+    version: 12.0.2
+    chart: mosip/keycloak-init
+    valuesFile: "$WORKDIR/utils/keycloak-init-values.yaml"
+    set:
+      # image.repository: "mosipid/keycloak-init"
+      # image.tag: "1.2.0.1"
+      keycloakExternalHost: "iam.sandbox.xyz.net"
+      keycloakInternalHost: "keycloak.keycloak"
+      keycloak.realms.mosip.realm_config.attributes.frontendUrl: "https://iam.sandbox.xyz.net/auth"
+      keycloak.realms.mosip.realm_config.smtpServer.auth: "false"
+      keycloak.realms.mosip.realm_config.smtpServer.host: "smtp.gmail.com"
+      keycloak.realms.mosip.realm_config.smtpServer.port: "465"
+      keycloak.realms.mosip.realm_config.smtpServer.from: "mosipqa@gmail.com"
+      keycloak.realms.mosip.realm_config.smtpServer.starttls: "false"
+      keycloak.realms.mosip.realm_config.smtpServer.ssl: "true"
+    wait: true
+    timeout: 1200
+    priority: -13
+    hooks:
+      preInstall: "$WORKDIR/hooks/esignet-preinstall-keycloak-init.sh"
+      postInstall: "$WORKDIR/hooks/esignet-postinstall-keycloak-init.sh"
+
+  esignet:
+    namespace: esignet
+    enabled: true
+    version: 1.4.1
+    chart: mosip/esignet
+    set:
+      # image.repository: "mosipid/esignet"
+      # image.tag: "1.4.1"
+      # Set to true if you don't have public domain & valid SSL (development only)
+      enable_insecure: "false"
+    wait: true
+    timeout: 1200
+    priority: -12
+    hooks:
+      preInstall: "$WORKDIR/hooks/esignet-preinstall.sh"
+      postInstall: "$WORKDIR/hooks/esignet-postinstall.sh"
+
+  softhsm-mock-identity-system:
+    namespace: softhsm
+    enabled: true
+    version: 12.0.1
+    chart: mosip/softhsm
+    valuesFile: "$WORKDIR/utils/softhsm-mock-identity-system-values.yaml"
+    wait: true
+    timeout: 1200
+    priority: -11
+    hooks:
+      preInstall: "$WORKDIR/hooks/softhsm-mock-identity-system-preinstall.sh"
+      postInstall: "$WORKDIR/hooks/softhsm-mock-identity-system-postinstall.sh"
+
+  mock-identity-system:
+    namespace: esignet
+    enabled: true
+    version: 0.9.3
+    chart: mosip/mock-identity-system
+    set:
+      # Set to true if you don't have public domain & valid SSL (development only)
+      enable_insecure: "false"
+    wait: true
+    timeout: 1200
+    priority: -10
+    hooks:
+      preInstall: "$WORKDIR/hooks/mock-identity-system-preinstall.sh"
+
+  mock-relying-party-ui:
+    namespace: esignet
+    enabled: true
+    version: 0.9.3
+    chart: mosip/mock-relying-party-ui
+    set:
+      # UPDATE THIS: Mock Relying Party UI domain (e.g., healthservices.sandbox.xyz.net)
+      mock_relying_party_ui.mock_relying_party_ui_service_host: "healthservices.sandbox.xyz.net"
+      mock_relying_party_ui.ESIGNET_UI_BASE_URL: "https://esignet.sandbox.xyz.net"
+      mock_relying_party_ui.MOCK_RELYING_PARTY_SERVER_URL: "https://healthservices.sandbox.xyz.net/mock-relying-party-service"
+      mock_relying_party_ui.REDIRECT_URI: "https://healthservices.sandbox.xyz.net/userprofile"
+      mock_relying_party_ui.REDIRECT_URI_REGISTRATION: "https://healthservices.sandbox.xyz.net/registration"
+      mock_relying_party_ui.SIGN_IN_BUTTON_PLUGIN_URL: "https://esignet.sandbox.xyz.net/plugins/sign-in-button-plugin.js"
+      istio.hosts[0]: "healthservices.sandbox.xyz.net"
+    wait: true
+    timeout: 1200
+    priority: -9
+    hooks:
+      preInstall: "$WORKDIR/hooks/mock-relying-party-ui-preinstall.sh"
+
+  mock-relying-party-service:
+    namespace: esignet
+    enabled: true
+    version: 0.9.3
+    chart: mosip/mock-relying-party-service
+    set:
+      # eSignet service URL (internal)
+      mock_relying_party_service.ESIGNET_SERVICE_URL: "http://esignet.esignet/v1/esignet"
+      # eSignet AUD URL (external) - UPDATE with your esignet domain
+      mock_relying_party_service.ESIGNET_AUD_URL: "https://esignet.sandbox.xyz.net/v1/esignet/oauth/v2/token"
+      # Set to true if you don't have public domain & valid SSL (development only)
+      enable_insecure: "false"
+    wait: true
+    timeout: 1200
+    priority: -8
+    hooks:
+      preInstall: "$WORKDIR/hooks/mock-relying-party-service-preinstall.sh"
+
+  oidc-ui:
+    namespace: esignet
+    enabled: true
+    version: 1.4.1
+    chart: mosip/oidc-ui
+    set:
+      istio.hosts[0]: "esignet.sandbox.xyz.net"    
+      # image.repository: "mosipid/esignet"
+      # image.tag: "1.4.1"
+    wait: true
+    timeout: 1200
+    priority: -11
+    hooks:
+      preInstall: "$WORKDIR/hooks/oidc-ui-preinstall.sh"
+
+  esignet-resident-oidc-partner-onboarder:
+    namespace: esignet
+    enabled: true
+    version: 12.0.1
+    chart: mosip/partner-onboarder
+    set:
+      # Module Configuration
+      onboarding.modules[0].name: "ida"
+      onboarding.modules[0].enabled: "false"
+      onboarding.modules[1].name: "print"
+      onboarding.modules[1].enabled: "false"
+      onboarding.modules[2].name: "abis"
+      onboarding.modules[2].enabled: "false"
+      onboarding.modules[3].name: "resident"
+      onboarding.modules[3].enabled: "false"
+      onboarding.modules[4].name: "mobileid"
+      onboarding.modules[4].enabled: "false"
+      onboarding.modules[5].name: "digitalcard"
+      onboarding.modules[5].enabled: "false"
+      onboarding.modules[6].name: "esignet"
+      onboarding.modules[6].enabled: "true"
+      onboarding.modules[7].name: "resident-oidc"
+      onboarding.modules[7].enabled: "true"
+      onboarding.modules[8].name: "demo-oidc"
+      onboarding.modules[8].enabled: "false"
+      onboarding.modules[9].name: "mimoto-keybinding"
+      onboarding.modules[9].enabled: "false"
+      # S3 Configuration - UPDATE THESE VALUES FOR YOUR ENVIRONMENT
+      onboarding.configmaps.s3.s3-host: "http://minio.minio:9000"
+      onboarding.configmaps.s3.s3-user-key: ""
+      onboarding.configmaps.s3.s3-region: ""
+      onboarding.configmaps.s3.s3-bucket-name: "onboarder"
+      # Set to true if you don't have public domain & valid SSL (development only)
+      onboarding.configmaps.onboarding.ENABLE_INSECURE: "false"
+    wait: true
+    waitForJobs: true
+    timeout: 1800
+    priority: -10
+    hooks:
+      preInstall: "$WORKDIR/hooks/esignet-partner-onboarder-preinstall.sh"
+      postInstall: "$WORKDIR/hooks/esignet-partner-onboarder-postinstall.sh"
