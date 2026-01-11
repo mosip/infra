@@ -280,7 +280,7 @@ apps:
   masterdata:
     namespace: kernel
     enabled: true
-    version: 12.1.2
+    version: 12.1.4
     chart: mosip/masterdata
     set:
       # image.repository: "mosipid/kernel-masterdata-service"
@@ -334,7 +334,7 @@ apps:
   syncdata:
     namespace: kernel
     enabled: true
-    version: 12.1.2
+    version: 12.1.4
     chart: mosip/syncdata
     set:
       # image.repository: "mosipid/kernel-syncdata-service"
@@ -562,7 +562,7 @@ apps:
   pms-partner:
     namespace: pms
     enabled: true
-    version: 12.2.2
+    version: 12.2.3
     chart: mosip/pms-partner
     set:
       # image.repository: "mosipid/partner-management-service"
@@ -575,7 +575,7 @@ apps:
   pms-policy:
     namespace: pms
     enabled: true
-    version: 12.2.2
+    version: 12.2.3
     chart: mosip/pms-policy
     set:
       # image.repository: "mosipid/partner-management-service"
@@ -857,7 +857,7 @@ apps:
   admin-hotlist:
     namespace: admin
     enabled: true
-    version: 12.1.2
+    version: 12.1.4
     chart: mosip/admin-hotlist
     set:
       # image.repository: "mosipid/hotlist-service"
@@ -940,7 +940,7 @@ apps:
   ida-internal:
     namespace: ida
     enabled: true
-    version: 12.1.2-beta.1
+    version: 12.1.2
     chart: mosip/ida-internal
     # set:
     #   image.repository: "mosipid/authentication-internal-service"
@@ -956,7 +956,7 @@ apps:
   ida-otp:
     namespace: ida
     enabled: true
-    version: 12.1.2-beta.1
+    version: 12.1.2
     chart: mosip/ida-otp
     # set:
     #   image.repository: "mosipid/authentication-otp-service"
