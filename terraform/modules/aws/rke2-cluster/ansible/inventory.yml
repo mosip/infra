@@ -1,0 +1,40 @@
+---
+all:
+  vars:
+    cluster_name: "miniotest"
+    cluster_env_domain: "mosip.local"
+    k8s_infra_repo_url: "https://github.com/mosip/k8s-infra.git"
+    k8s_infra_branch: "v1.2.1.0"
+    install_rke2_version: "v1.28.9+rke2r1"
+    enable_rancher_import: true
+    rancher_import_url: "kubectl apply -f https://rancher.mosip.net/v3/import/mcv4wsj8fz6hq5wgkc4np2p9pnxpkgmhrdcn6nrtk97gfwtcckcwwp_c-m-58pf6kt5.yaml"
+    ansible_user: ubuntu
+    ansible_ssh_private_key_file: ./ssh_key
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+    
+  children:
+    control_plane:
+      hosts:
+        miniotest-CONTROL-PLANE-NODE-1:
+          ansible_host: 172.31.65.165
+          node_role: control_plane
+          is_primary: true
+          node_index: 0
+    
+    etcd:
+      hosts:
+        miniotest-ETCD-NODE-1:
+          ansible_host: 172.31.66.202
+          node_role: etcd
+    
+    workers:
+      hosts:
+        miniotest-WORKER-NODE-1:
+          ansible_host: 172.31.66.19
+          node_role: worker
+
+    rke2_cluster:
+      children:
+        control_plane:
+        etcd:
+        workers:
