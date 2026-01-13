@@ -1103,4 +1103,4 @@ apps:
       regclient.hostName: "api-internal.qa11.mosip.net"
       istio.host: "regclient.qa11.mosip.net"
     priority: -1
-    timeout: 1200
+    timeout: 1199
