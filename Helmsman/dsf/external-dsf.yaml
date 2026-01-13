@@ -393,7 +393,7 @@ apps:
     chart: mosip/landing-page
     set:
       landing.version: "develop"
-      landing.name: "ga"
+      landing.name: "qa21"
       landing.api: "api.qa21.mosip.net"
       landing.apiInternal: "api-internal.qa21.mosip.net"
       landing.admin: "admin.qa21.mosip.net"
