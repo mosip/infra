@@ -1,7 +1,7 @@
 # Environment name (infra component)
-cluster_name = "miniotest"
+cluster_name = "soil"
 # MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "miniotest.mosip.net"
+cluster_env_domain = "soil.mosip.net"
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
 mosip_email_id = "chandra.mishra@technoforte.co.in"
 # SSH login key name for AWS node instances (ex: my-ssh-key)
@@ -40,9 +40,9 @@ nginx_node_ebs_volume_size_2 = 200 # Enable second EBS volume for PostgreSQL tes
 k8s_instance_root_volume_size = 64
 
 # Control-plane, ETCD, Worker
-k8s_control_plane_node_count = 1
+k8s_control_plane_node_count = 3
 # ETCD, Worker
-k8s_etcd_node_count = 1
+k8s_etcd_node_count = 3
 # Worker
 k8s_worker_node_count = 1
 
@@ -57,7 +57,7 @@ WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 # Rancher Import URL
 # Rancher Import Configuration
 enable_rancher_import = true
-rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/mcv4wsj8fz6hq5wgkc4np2p9pnxpkgmhrdcn6nrtk97gfwtcckcwwp_c-m-58pf6kt5.yaml\""
+rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/ps5zlrzmvdw6r25f6l47mllkc5wmfvgx4b956bdk4945hpfcjknf4j_c-m-85mz5m7v.yaml\""
 # DNS Records to map
 subdomain_public   = ["resident", "prereg", "esignet", "healthservices", "signup"]
 subdomain_internal = ["admin", "iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio", "regclient", "compliance"]
