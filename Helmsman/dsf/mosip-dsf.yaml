@@ -1091,13 +1091,13 @@ apps:
   regclient:
     namespace: regclient
     enabled: true
-    version: 12.0.2
+    version: 12.0.3
     chart: mosip/regclient
     set:
       startupProbe.failureThreshold: "60"
-      image.repository: "mosipid/registration-client"
-      image.tag: "1.2.0.2"
-      regclient.version: "1.2.0.2"
+      # image.repository: "mosipid/registration-client"
+      # image.tag: "1.2.0.2"
+      # regclient.version: "1.2.0.2"
       regclient.upgradeServerUrl: "https://regclient.soil.mosip.net"
       regclient.healthCheckUrl: "https://api-internal.soil.mosip.net/v1/syncdata/actuator/health"
       regclient.hostName: "api-internal.soil.mosip.net"
