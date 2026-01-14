@@ -29,9 +29,17 @@ jobs:
       KUBECONFIG: ${{ github.workspace }}/.kube/config
       PATH: ${{ github.workspace }}/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
       KUBECTL_PATH: ${{ github.workspace }}/.local/bin/kubectl
-      # Mock Relying Party Service secrets (masked in logs)
+      # All secrets below are ENVIRONMENT secrets (not repository secrets)
+      # Configure them in: Repository → Settings → Environments → <branch-name> → Secrets
+      # Mock Relying Party Service secrets (base64 encoded PEM)
       MOCK_RELYING_PARTY_CLIENT_PRIVATE_KEY: ${{ secrets.MOCK_RELYING_PARTY_CLIENT_PRIVATE_KEY }}
       MOCK_RELYING_PARTY_JWE_PRIVATE_KEY: ${{ secrets.MOCK_RELYING_PARTY_JWE_PRIVATE_KEY }}
+      # eSignet Captcha secrets (plain text from Google reCAPTCHA)
+      ESIGNET_CAPTCHA_SITE_KEY: ${{ secrets.ESIGNET_CAPTCHA_SITE_KEY }}
+      ESIGNET_CAPTCHA_SECRET_KEY: ${{ secrets.ESIGNET_CAPTCHA_SECRET_KEY }}
+      # Cluster access secrets
+      KUBECONFIG_SECRET: ${{ secrets.KUBECONFIG }}
+      CLUSTER_WIREGUARD_WG0: ${{ secrets.CLUSTER_WIREGUARD_WG0 }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -43,6 +51,8 @@ jobs:
           echo "::add-mask::${{ secrets.MOCK_RELYING_PARTY_JWE_PRIVATE_KEY }}"
           echo "::add-mask::${{ secrets.KUBECONFIG }}"
           echo "::add-mask::${{ secrets.CLUSTER_WIREGUARD_WG0 }}"
+          echo "::add-mask::${{ secrets.ESIGNET_CAPTCHA_SITE_KEY }}"
+          echo "::add-mask::${{ secrets.ESIGNET_CAPTCHA_SECRET_KEY }}"
 
       - name: Setup kubectl and kubeconfig
         env:
@@ -176,13 +186,32 @@ jobs:
             echo "✅ MOCK_RELYING_PARTY_JWE_PRIVATE_KEY is configured"
           fi
           
+          if [ -z "$ESIGNET_CAPTCHA_SITE_KEY" ]; then
+            echo "❌ ESIGNET_CAPTCHA_SITE_KEY secret is not configured"
+            MISSING_SECRETS=1
+          else
+            echo "✅ ESIGNET_CAPTCHA_SITE_KEY is configured"
+          fi
+          
+          if [ -z "$ESIGNET_CAPTCHA_SECRET_KEY" ]; then
+            echo "❌ ESIGNET_CAPTCHA_SECRET_KEY secret is not configured"
+            MISSING_SECRETS=1
+          else
+            echo "✅ ESIGNET_CAPTCHA_SECRET_KEY is configured"
+          fi
+          
           if [ "$MISSING_SECRETS" -eq 1 ]; then
             echo ""
-            echo "Please configure the missing secrets in GitHub repository settings:"
-            echo "  Repository → Settings → Secrets and variables → Actions"
+            echo "Please configure the missing secrets as ENVIRONMENT secrets:"
+            echo "  Repository → Settings → Environments → ${{ github.ref_name }} → Add secret"
             echo ""
-            echo "To create base64 encoded secrets from PEM files:"
-            echo "  cat <key-file>.pem | base64 -w 0"
+            echo "Required environment secrets:"
+            echo "  - KUBECONFIG (base64 encoded kubeconfig file)"
+            echo "  - CLUSTER_WIREGUARD_WG0 (WireGuard config)"
+            echo "  - MOCK_RELYING_PARTY_CLIENT_PRIVATE_KEY (base64 encoded PEM)"
+            echo "  - MOCK_RELYING_PARTY_JWE_PRIVATE_KEY (base64 encoded PEM)"
+            echo "  - ESIGNET_CAPTCHA_SITE_KEY (reCAPTCHA site key - plain text)"
+            echo "  - ESIGNET_CAPTCHA_SECRET_KEY (reCAPTCHA secret key - plain text)"
             exit 1
           fi
           

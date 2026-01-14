@@ -48,16 +48,28 @@ The eSignet DSF (Desired State File) deploys a complete authentication stack inc
 
 ---
 
-## Required Secrets
+## Required Secrets (Environment Secrets)
 
-Configure in **Repository → Settings → Secrets and variables → Actions → Secrets**:
+> **Important:** All secrets must be configured as **Environment Secrets**, not Repository Secrets.
+> The environment name matches the branch name (e.g., `main`, `develop`).
+
+Configure in **Repository → Settings → Environments → `<branch-name>` → Add secret**:
 
 | Secret | Description | Format |
 |--------|-------------|--------|
-| `KUBECONFIG` | Kubernetes config file | Raw or base64 |
-| `CLUSTER_WIREGUARD_WG0` | WireGuard VPN configuration | WireGuard config format |
+| `KUBECONFIG` | Kubernetes config file | Base64 encoded |
+| `CLUSTER_WIREGUARD_WG0` | WireGuard VPN configuration | Plain text (WireGuard config format) |
 | `MOCK_RELYING_PARTY_CLIENT_PRIVATE_KEY` | Client private key for Mock RP | Base64 encoded PEM |
 | `MOCK_RELYING_PARTY_JWE_PRIVATE_KEY` | JWE userinfo private key | Base64 encoded PEM |
+| `ESIGNET_CAPTCHA_SITE_KEY` | Google reCAPTCHA site key | Plain text |
+| `ESIGNET_CAPTCHA_SECRET_KEY` | Google reCAPTCHA secret key | Plain text |
+
+### Creating Environment Secrets
+
+1. Go to **Repository → Settings → Environments**
+2. Click on your environment (e.g., `main`) or create a new one
+3. Under **Environment secrets**, click **Add secret**
+4. Add each secret listed above
 
 ### Creating Private Key Secrets
 
@@ -72,7 +84,20 @@ cat client-private-key.pem | base64 -w 0
 
 cat jwe-userinfo-private-key.pem | base64 -w 0
 # Copy output → Add as MOCK_RELYING_PARTY_JWE_PRIVATE_KEY
+
+# For kubeconfig
+cat ~/.kube/config | base64 -w 0
+# Copy output → Add as KUBECONFIG
 ```
+
+### Captcha Secrets
+
+Get reCAPTCHA keys from [Google reCAPTCHA Admin Console](https://www.google.com/recaptcha/admin):
+
+1. Create a new site with reCAPTCHA v2 (Invisible)
+2. Add your eSignet domain (e.g., `esignet.sandbox.xyz.net`)
+3. Copy the **Site Key** → Add as `ESIGNET_CAPTCHA_SITE_KEY` (plain text)
+4. Copy the **Secret Key** → Add as `ESIGNET_CAPTCHA_SECRET_KEY` (plain text)
 
 ---
 

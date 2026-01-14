@@ -73,6 +73,7 @@ function preinstall_esignet() {
   echo "Copying keycloak configmaps and secrets to $NS namespace"
   $COPY_UTIL configmap keycloak-host keycloak $NS
   $COPY_UTIL configmap keycloak-env-vars keycloak $NS
+  $COPY_UTIL configmap artifactory-1202-share artifactory-1202 $NS  
   $COPY_UTIL secret keycloak keycloak $NS
 
   # Copy artifactory secrets if exists

@@ -5,7 +5,7 @@ function installing_oidc_ui () {
   echo Copy configmaps to $DST_NS namespace
   COPY_UTIL=$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh
   $COPY_UTIL configmap global default $DST_NS
-  $COPY_UTIL configmap artifactory-share artifactory $DST_NS
+  $COPY_UTIL configmap artifactory-1202-share artifactory-1202 $DST_NS
   $COPY_UTIL configmap config-server-share config-server $DST_NS
   $COPY_UTIL configmap softhsm-esignet-share softhsm $DST_NS
   return 0

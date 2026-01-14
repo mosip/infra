@@ -12,7 +12,11 @@ namespaces:
     protected: false
   esignet:
     protected: false
+  keycloak:
+    protected: false    
   softhsm:
+    protected: false
+  redis:
     protected: false
 apps:
   postgres:
@@ -21,7 +25,7 @@ apps:
     version: 13.1.5
     chart: bitnami/postgresql
     wait: true
-    priority: -16
+    priority: -18
     valuesFile: "$WORKDIR/utils/postgres-values.yaml"
     timeout: 1200
 
@@ -33,7 +37,7 @@ apps:
     set:
       postgresHost: "postgres.sandbox.xyz.net"
     wait: true
-    priority: -4
+    priority: -17
     timeout: 1200
 
   postgres-init-esignet:
@@ -50,7 +54,7 @@ apps:
       databases.mosip_esignet.dml: 1
     wait: true
     timeout: 1200
-    priority: -15
+    priority: -16
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-init-db.sh"  
 
@@ -61,7 +65,7 @@ apps:
     chart: bitnami/redis
     wait: true
     timeout: 1200
-    priority: -19
+    priority: -15
     set:
       image.repository: "mosipid/redis"
       image.tag: "7.0.5-debian-11-r25"    
@@ -76,7 +80,7 @@ apps:
     valuesFile: "$WORKDIR/utils/softhsm-esignet-values.yaml"
     wait: true
     timeout: 1200
-    priority: -18
+    priority: -14
     hooks:
       preInstall: "$WORKDIR/hooks/softhsm-esignet-setup.sh"
       postInstall: "$WORKDIR/hooks/softhsm-esignet-postinstall.sh"
@@ -115,7 +119,7 @@ apps:
       rbac.rules[0].verbs[1]: "list"
     wait: true
     timeout: 1200
-    priority: -14
+    priority: -13
 
   istio-addons-iam:
     namespace: keycloak
@@ -128,7 +132,7 @@ apps:
       service: "keycloak"
     wait: true
     timeout: 1200
-    priority: -3
+    priority: -12
 
   esignet-keycloak-init:
     namespace: esignet
@@ -150,10 +154,25 @@ apps:
       keycloak.realms.mosip.realm_config.smtpServer.ssl: "true"
     wait: true
     timeout: 1200
-    priority: -13
+    priority: -11
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-preinstall-keycloak-init.sh"
       postInstall: "$WORKDIR/hooks/esignet-postinstall-keycloak-init.sh"
+
+  artifactory-1202:
+    namespace: artifactory-1202
+    enabled: true
+    version: 12.0.2
+    chart: mosip/artifactory
+    # set:
+    #   image.repository: "mosipid/artifactory-server"
+    #   image.tag: "1.4.1-ES"
+    wait: true
+    timeout: 1200
+    priority: -18
+    hooks:
+      # For fresh installations
+      preInstall: "kubectl label ns artifactory istio-injection=enabled --overwrite"
 
   esignet:
     namespace: esignet
@@ -165,12 +184,36 @@ apps:
       # image.tag: "1.4.1"
       # Set to true if you don't have public domain & valid SSL (development only)
       enable_insecure: "false"
+      extraEnvVarsCM[0]: "global"
+      extraEnvVarsCM[1]: "config-server-share"
+      extraEnvVarsCM[2]: "artifactory-1202-share"
+      extraEnvVarsCM[3]: "softhsm-esignet-share"
     wait: true
     timeout: 1200
-    priority: -12
+    priority: -10
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-preinstall.sh"
       postInstall: "$WORKDIR/hooks/esignet-postinstall.sh"
+
+  oidc-ui:
+    namespace: esignet
+    enabled: true
+    version: 1.4.1
+    chart: mosip/oidc-ui
+    set:
+      istio.hosts[0]: "esignet.sandbox.xyz.net"
+      extraEnvVarsCM[0]: "global"
+      extraEnvVarsCM[1]: "config-server-share"
+      extraEnvVarsCM[2]: "artifactory-1202-share"
+      extraEnvVarsCM[3]: "softhsm-esignet-share"
+      extraEnvVarsCM[4]: "oidc-ui"
+      # image.repository: "mosipid/esignet"
+      # image.tag: "1.4.1"
+    wait: true
+    timeout: 1200
+    priority: -9
+    hooks:
+      preInstall: "$WORKDIR/hooks/oidc-ui-preinstall.sh"      
 
   softhsm-mock-identity-system:
     namespace: softhsm
@@ -180,7 +223,7 @@ apps:
     valuesFile: "$WORKDIR/utils/softhsm-mock-identity-system-values.yaml"
     wait: true
     timeout: 1200
-    priority: -11
+    priority: -8
     hooks:
       preInstall: "$WORKDIR/hooks/softhsm-mock-identity-system-preinstall.sh"
       postInstall: "$WORKDIR/hooks/softhsm-mock-identity-system-postinstall.sh"
@@ -193,9 +236,13 @@ apps:
     set:
       # Set to true if you don't have public domain & valid SSL (development only)
       enable_insecure: "false"
+      extraEnvVarsCM[0]: "global"
+      extraEnvVarsCM[1]: "config-server-share"
+      extraEnvVarsCM[2]: "artifactory-1202-share"
+      extraEnvVarsCM[3]: "softhsm-mock-identity-system-share"      
     wait: true
     timeout: 1200
-    priority: -10
+    priority: -7
     hooks:
       preInstall: "$WORKDIR/hooks/mock-identity-system-preinstall.sh"
 
@@ -215,7 +262,7 @@ apps:
       istio.hosts[0]: "healthservices.sandbox.xyz.net"
     wait: true
     timeout: 1200
-    priority: -9
+    priority: -6
     hooks:
       preInstall: "$WORKDIR/hooks/mock-relying-party-ui-preinstall.sh"
 
@@ -233,24 +280,11 @@ apps:
       enable_insecure: "false"
     wait: true
     timeout: 1200
-    priority: -8
+    priority: -5
     hooks:
       preInstall: "$WORKDIR/hooks/mock-relying-party-service-preinstall.sh"
 
-  oidc-ui:
-    namespace: esignet
-    enabled: true
-    version: 1.4.1
-    chart: mosip/oidc-ui
-    set:
-      istio.hosts[0]: "esignet.sandbox.xyz.net"    
-      # image.repository: "mosipid/esignet"
-      # image.tag: "1.4.1"
-    wait: true
-    timeout: 1200
-    priority: -11
-    hooks:
-      preInstall: "$WORKDIR/hooks/oidc-ui-preinstall.sh"
+
 
   esignet-resident-oidc-partner-onboarder:
     namespace: esignet
@@ -289,7 +323,49 @@ apps:
     wait: true
     waitForJobs: true
     timeout: 1800
-    priority: -10
+    priority: -4
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-partner-onboarder-preinstall.sh"
       postInstall: "$WORKDIR/hooks/esignet-partner-onboarder-postinstall.sh"
+
+  esignet-demo-oidc-partner-onboarder:
+    namespace: esignet
+    enabled: true
+    version: 12.0.1
+    chart: mosip/partner-onboarder
+    set:
+      # Module Configuration - Only demo-oidc enabled
+      onboarding.modules[0].name: "ida"
+      onboarding.modules[0].enabled: "false"
+      onboarding.modules[1].name: "print"
+      onboarding.modules[1].enabled: "false"
+      onboarding.modules[2].name: "abis"
+      onboarding.modules[2].enabled: "false"
+      onboarding.modules[3].name: "resident"
+      onboarding.modules[3].enabled: "false"
+      onboarding.modules[4].name: "mobileid"
+      onboarding.modules[4].enabled: "false"
+      onboarding.modules[5].name: "digitalcard"
+      onboarding.modules[5].enabled: "false"
+      onboarding.modules[6].name: "esignet"
+      onboarding.modules[6].enabled: "false"
+      onboarding.modules[7].name: "resident-oidc"
+      onboarding.modules[7].enabled: "false"
+      onboarding.modules[8].name: "demo-oidc"
+      onboarding.modules[8].enabled: "true"
+      onboarding.modules[9].name: "mimoto-keybinding"
+      onboarding.modules[9].enabled: "false"
+      # S3 Configuration - UPDATE THESE VALUES FOR YOUR ENVIRONMENT
+      onboarding.configmaps.s3.s3-host: "http://minio.minio:9000"
+      onboarding.configmaps.s3.s3-user-key: ""
+      onboarding.configmaps.s3.s3-region: ""
+      onboarding.configmaps.s3.s3-bucket-name: "onboarder"
+      # Set to true if you don't have public domain & valid SSL (development only)
+      onboarding.configmaps.onboarding.ENABLE_INSECURE: "false"
+    wait: true
+    waitForJobs: true
+    timeout: 1800
+    priority: -3
+    hooks:
+      preInstall: "$WORKDIR/hooks/esignet-demo-oidc-partner-onboarder-preinstall.sh"
+      postInstall: "$WORKDIR/hooks/esignet-demo-oidc-partner-onboarder-postinstall.sh"

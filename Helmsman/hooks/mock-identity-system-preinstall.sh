@@ -24,7 +24,7 @@ function preinstall_mock_identity_system() {
   # Copy configmaps
   echo "Copying configmaps to $NS namespace"
   $COPY_UTIL configmap global default $NS
-  $COPY_UTIL configmap artifactory-share artifactory $NS 2>/dev/null || echo "artifactory-share configmap not found, skipping"
+  $COPY_UTIL configmap artifactory-1202-share artifactory-1202 $NS 2>/dev/null || echo "artifactory-1202-share configmap not found, skipping"
   $COPY_UTIL configmap config-server-share config-server $NS 2>/dev/null || echo "config-server-share configmap not found, skipping"
   $COPY_UTIL configmap softhsm-mock-identity-system-share softhsm $NS 2>/dev/null || echo "softhsm-mock-identity-system-share configmap not found, skipping"
 
