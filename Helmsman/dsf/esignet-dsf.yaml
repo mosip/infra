@@ -42,7 +42,7 @@ apps:
     priority: -17
     timeout: 1200
 
-  postgres-init-esignet:
+  postgres-init:
     namespace: esignet
     enabled: true
     version: 12.0.1

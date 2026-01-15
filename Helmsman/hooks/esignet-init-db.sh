@@ -5,24 +5,32 @@
 NS=esignet
 function installing_esignet_init_db () {
 
-  echo Removing existing postgres-init-esignet release
-  helm -n $NS delete postgres-init-esignet || true
+  echo Removing existing postgres-init release
+  helm -n $NS delete postgres-init || true
 
   echo Delete existing secrets to allow fresh install
   kubectl -n $NS delete secret db-common-secrets --ignore-not-found=true
   kubectl -n $NS delete secret postgres-postgresql --ignore-not-found=true
 
-  echo Copy postgres-postgresql secret for esignet and mock identity DB initialization  
+  echo Copy secrets from postgres namespace for DB initialization  
   COPY_UTIL=$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh
   
-  # Copy only postgres-postgresql secret - db-common-secrets will be created by Helm chart
+  # Copy postgres-postgresql secret (postgres connection credentials)
   if kubectl -n postgres get secret postgres-postgresql &>/dev/null; then
+    echo "Copying postgres-postgresql secret from postgres namespace"
     $COPY_UTIL secret postgres-postgresql postgres $NS
   else
-    echo "Warning: postgres-postgresql secret not found in postgres namespace, skipping copy"
+    echo "Warning: postgres-postgresql secret not found in postgres namespace"
   fi
   
-  # NOTE: db-common-secrets is created by the postgres-init Helm chart, not copied here
+  # Copy db-common-secrets (contains database user passwords)
+  if kubectl -n postgres get secret db-common-secrets &>/dev/null; then
+    echo "Copying db-common-secrets secret from postgres namespace"
+    $COPY_UTIL secret db-common-secrets postgres $NS
+  else
+    echo "Warning: db-common-secrets not found in postgres namespace"
+    echo "The postgres-init Helm chart will create it with values from postgres-postgresql"
+  fi
   
   return 0
 }
