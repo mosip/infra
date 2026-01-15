@@ -66,44 +66,13 @@ apps:
       databases.mosip_hotlist.enabled: "false"
       databases.mosip_resident.enabled: "false"
       databases.mosip_digitalcard.enabled: "false"
-      databases.mosip_mockidentitysystem.enabled: "false"      
+      # Enable BOTH esignet and mockidentitysystem databases
       databases.mosip_esignet.enabled: "true"
       databases.mosip_esignet.branch: "v1.4.1"
       databases.mosip_esignet.host: "postgres.soil.mosip.net"
       databases.mosip_esignet.port: 5433
-      databases.mosip_esignet.dml: 1      
-    wait: true
-    timeout: 1200
-    priority: -16
-    hooks:
-      preInstall: "$WORKDIR/hooks/esignet-init-db.sh"  
-
-  postgres-init-mockidentitysystem:
-    namespace: esignet
-    enabled: true
-    version: 12.0.1
-    chart: mosip/postgres-init
-    set:
-      dbUserPasswords.dbuserPassword: ""
-      databases.mosip_toolkit.enabled: "false"
-      databases.mosip_master.enabled: "false"
-      databases.mosip_audit.enabled: "false"
-      databases.mosip_keymgr.enabled: "false"
-      databases.mosip_kernel.enabled: "false"
-      databases.mosip_idmap.enabled: "false"
-      databases.mosip_prereg.enabled: "false"
-      databases.mosip_idrepo.enabled: "false"
-      databases.mosip_ida.enabled: "false"
-      databases.mosip_credential.enabled: "false"
-      databases.mosip_regprc.enabled: "false"
-      databases.mosip_regdevice.enabled: "false"
-      databases.mosip_authdevice.enabled: "false"
-      databases.mosip_pms.enabled: "false"
-      databases.mosip_hotlist.enabled: "false"
-      databases.mosip_resident.enabled: "false"
-      databases.mosip_digitalcard.enabled: "false"
-      databases.mosip_esignet.enabled: "false"
-      databases.mosip_mockidentitysystem.enabled: "true"      
+      databases.mosip_esignet.dml: 1
+      databases.mosip_mockidentitysystem.enabled: "true"
       databases.mosip_mockidentitysystem.branch: "v0.9.3"
       databases.mosip_mockidentitysystem.host: "postgres.soil.mosip.net"
       databases.mosip_mockidentitysystem.repoUrl: "https://github.com/mosip/esignet-mock-services.git"
@@ -111,9 +80,9 @@ apps:
       databases.mosip_mockidentitysystem.dml: 1
     wait: true
     timeout: 1200
-    priority: -15  # Run AFTER postgres-init-esignet (-16)
+    priority: -16
     hooks:
-      preInstall: "$WORKDIR/hooks/mockidentitysystem-init-db.sh"  
+      preInstall: "$WORKDIR/hooks/esignet-init-db.sh"
 
   redis:
     namespace: redis

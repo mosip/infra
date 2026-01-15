@@ -1,18 +1,18 @@
 #!/bin/bash
-# Script to initialize esignet DB.
+# Script to initialize esignet and mockidentitysystem DBs.
 ## Usage: ./init_db.sh [kubeconfig]
 
 NS=esignet
 function installing_esignet_init_db () {
 
-  echo Removing existing mosip_esignet DB installation
+  echo Removing existing postgres-init-esignet release
   helm -n $NS delete postgres-init-esignet || true
 
   echo Delete existing secrets to allow fresh install
   kubectl -n $NS delete secret db-common-secrets --ignore-not-found=true
   kubectl -n $NS delete secret postgres-postgresql --ignore-not-found=true
 
-  echo Copy postgres-postgresql secret for esignet DB initialization  
+  echo Copy postgres-postgresql secret for esignet and mock identity DB initialization  
   COPY_UTIL=$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh
   
   # Copy only postgres-postgresql secret - db-common-secrets will be created by Helm chart
