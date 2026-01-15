@@ -3,10 +3,12 @@
 ## Usage: ./init_db.sh [kubeconfig]
 
 NS=esignet
+RELEASE_NAME=postgres-init
+
 function installing_esignet_init_db () {
 
   echo Removing existing postgres-init release
-  helm -n $NS delete postgres-init || true
+  helm -n $NS delete $RELEASE_NAME || true
 
   echo Delete existing secrets to allow fresh install
   kubectl -n $NS delete secret db-common-secrets --ignore-not-found=true
@@ -27,6 +29,14 @@ function installing_esignet_init_db () {
   if kubectl -n postgres get secret db-common-secrets &>/dev/null; then
     echo "Copying db-common-secrets secret from postgres namespace"
     $COPY_UTIL secret db-common-secrets postgres $NS
+    
+    # Add Helm ownership labels and annotations so Helm can adopt this secret
+    echo "Adding Helm ownership metadata to db-common-secrets"
+    kubectl -n $NS label secret db-common-secrets \
+      app.kubernetes.io/managed-by=Helm --overwrite
+    kubectl -n $NS annotate secret db-common-secrets \
+      meta.helm.sh/release-name=$RELEASE_NAME \
+      meta.helm.sh/release-namespace=$NS --overwrite
   else
     echo "Warning: db-common-secrets not found in postgres namespace"
     echo "The postgres-init Helm chart will create it with values from postgres-postgresql"
