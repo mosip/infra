@@ -6,10 +6,10 @@ NS=esignet
 function installing_esignet_init_db () {
 
   echo Removing existing mosip_esignet DB installation
-  helm -n $NS delete postgres-init-esignet
+  helm -n $NS delete postgres-init-esignet || true
 
   echo Delete existing DB common sets
-  kubectl -n $NS delete secret db-common-secrets
+  kubectl -n $NS delete secret db-common-secrets --ignore-not-found=true
 
   echo Copy secrets for esignet DB initialization  
   COPY_UTIL=$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh
