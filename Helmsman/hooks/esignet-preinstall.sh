@@ -85,10 +85,10 @@ function preinstall_esignet() {
   echo "Copying keycloak configmaps and secrets to $NS namespace"
   $COPY_UTIL configmap keycloak-host keycloak $NS
   $COPY_UTIL configmap keycloak-env-vars keycloak $NS
-  $COPY_UTIL configmap global default $DST_NS
-  $COPY_UTIL configmap artifactory-share artifactory $DST_NS
-  $COPY_UTIL configmap config-server-share config-server $DST_NS
-  $COPY_UTIL configmap softhsm-esignet-share softhsm $DST_NS  
+  $COPY_UTIL configmap global default $NS
+  $COPY_UTIL configmap artifactory-share artifactory $NS
+  $COPY_UTIL configmap config-server-share config-server $NS
+  $COPY_UTIL configmap softhsm-esignet-share softhsm $NS  
   $COPY_UTIL configmap artifactory-1202-share artifactory-1202 $NS  
 
 
