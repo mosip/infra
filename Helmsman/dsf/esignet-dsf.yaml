@@ -111,9 +111,9 @@ apps:
       databases.mosip_mockidentitysystem.dml: 1
     wait: true
     timeout: 1200
-    priority: -16
+    priority: -15  # Run AFTER postgres-init-esignet (-16)
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-init-db.sh"  
+      preInstall: "$WORKDIR/hooks/mockidentitysystem-init-db.sh"  
 
   redis:
     namespace: redis
