@@ -2,21 +2,33 @@
 # Pre-install hook for esignet
 # This script sets up captcha secrets, MISP key, and copies required configmaps/secrets
 # This script is IDEMPOTENT
-## Usage: ./esignet-preinstall.sh ESIGNET_CAPTCHA_SITE_KEY ESIGNET_CAPTCHA_SECRET_KEY [kubeconfig]
+## Usage: ./esignet-preinstall.sh [kubeconfig]
 #
-# Arguments:
+# Environment Variables (from GitHub Secrets):
 #   ESIGNET_CAPTCHA_SITE_KEY    - reCAPTCHA site key for esignet domain
 #   ESIGNET_CAPTCHA_SECRET_KEY  - reCAPTCHA secret key for esignet domain
 
 NS=esignet
 COPY_UTIL=$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh
 
-# Parse arguments
-ESIGNET_CAPTCHA_SITE_KEY=${1:-""}
-ESIGNET_CAPTCHA_SECRET_KEY=${2:-""}
+# Read from environment variables (set by GitHub Actions from secrets)
+ESIGNET_CAPTCHA_SITE_KEY="${ESIGNET_CAPTCHA_SITE_KEY:-}"
+ESIGNET_CAPTCHA_SECRET_KEY="${ESIGNET_CAPTCHA_SECRET_KEY:-}"
 
 function preinstall_esignet() {
   echo "Pre-install setup for esignet"
+
+  # Debug: Check if captcha environment variables are set
+  if [ -n "$ESIGNET_CAPTCHA_SITE_KEY" ]; then
+    echo "✓ ESIGNET_CAPTCHA_SITE_KEY is set (value masked)"
+  else
+    echo "⚠ ESIGNET_CAPTCHA_SITE_KEY is NOT set"
+  fi
+  if [ -n "$ESIGNET_CAPTCHA_SECRET_KEY" ]; then
+    echo "✓ ESIGNET_CAPTCHA_SECRET_KEY is set (value masked)"
+  else
+    echo "⚠ ESIGNET_CAPTCHA_SECRET_KEY is NOT set"
+  fi
 
   # Create namespace if not exists
   kubectl create ns $NS --dry-run=client -o yaml | kubectl apply -f -
@@ -73,13 +85,17 @@ function preinstall_esignet() {
   echo "Copying keycloak configmaps and secrets to $NS namespace"
   $COPY_UTIL configmap keycloak-host keycloak $NS
   $COPY_UTIL configmap keycloak-env-vars keycloak $NS
+  $COPY_UTIL configmap global default $DST_NS
+  $COPY_UTIL configmap artifactory-share artifactory $DST_NS
+  $COPY_UTIL configmap config-server-share config-server $DST_NS
+  $COPY_UTIL configmap softhsm-esignet-share softhsm $DST_NS  
   $COPY_UTIL configmap artifactory-1202-share artifactory-1202 $NS  
-  $COPY_UTIL secret keycloak keycloak $NS
 
-  # Copy artifactory secrets if exists
-  echo "Copying artifactory secret to $NS namespace (if exists)"
+
+  # Copy s3 secrets if exists
+  echo "Copying s3 secret to $NS namespace (if exists)"
   $COPY_UTIL secret s3 s3 $NS 2>/dev/null || echo "s3 secret not found, skipping"
-
+  $COPY_UTIL secret keycloak keycloak $NS
   echo "esignet pre-install setup complete"
   return 0
 }
