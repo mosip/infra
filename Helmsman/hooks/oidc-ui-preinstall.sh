@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 DST_NS=esignet
 function installing_oidc_ui () {

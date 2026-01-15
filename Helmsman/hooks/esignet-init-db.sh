@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # Script to initialize esignet DB.
 ## Usage: ./init_db.sh [kubeconfig]
 

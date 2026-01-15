@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # Pre-install hook for esignet keycloak-init
 # This script prepares the environment before keycloak-init helm chart is deployed
 ## Usage: ./esignet-preinstall-keycloak-init.sh [kubeconfig]
