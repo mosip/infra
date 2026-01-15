@@ -18,6 +18,8 @@ namespaces:
     protected: false
   redis:
     protected: false
+  artifactory-1202:
+    protected: false    
 apps:
   postgres:
     namespace: postgres
@@ -224,7 +226,7 @@ apps:
     #   image.tag: "1.4.1-ES"
     wait: true
     timeout: 1200
-    priority: -18
+    priority: -11
     hooks:
       # For fresh installations
       preInstall: "kubectl label ns artifactory istio-injection=enabled --overwrite"
