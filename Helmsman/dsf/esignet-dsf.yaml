@@ -145,6 +145,7 @@ apps:
   keycloak:
     namespace: keycloak
     enabled: false
+    protected: true  # Prevent Helmsman from deleting this release
     version: 7.1.18
     chart: mosip/keycloak
     set:

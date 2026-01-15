@@ -13,8 +13,21 @@ function installing_esignet_init_db () {
 
   echo Copy secrets for esignet DB initialization  
   COPY_UTIL=$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh
-  $COPY_UTIL secret postgres-postgresql postgres $NS
-  $COPY_UTIL secret db-common-secrets  postgres $NS
+  
+  # Copy postgres-postgresql secret if it exists in source namespace
+  if kubectl -n postgres get secret postgres-postgresql &>/dev/null; then
+    $COPY_UTIL secret postgres-postgresql postgres $NS
+  else
+    echo "Warning: postgres-postgresql secret not found in postgres namespace, skipping copy"
+  fi
+  
+  # Copy db-common-secrets if it exists in source namespace
+  if kubectl -n postgres get secret db-common-secrets &>/dev/null; then
+    $COPY_UTIL secret db-common-secrets postgres $NS
+  else
+    echo "Warning: db-common-secrets not found in postgres namespace, skipping copy"
+  fi
+  
   return 0
 }
 
