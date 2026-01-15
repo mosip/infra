@@ -8,25 +8,21 @@ function installing_esignet_init_db () {
   echo Removing existing mosip_esignet DB installation
   helm -n $NS delete postgres-init-esignet || true
 
-  echo Delete existing DB common sets
+  echo Delete existing secrets to allow fresh install
   kubectl -n $NS delete secret db-common-secrets --ignore-not-found=true
+  kubectl -n $NS delete secret postgres-postgresql --ignore-not-found=true
 
-  echo Copy secrets for esignet DB initialization  
+  echo Copy postgres-postgresql secret for esignet DB initialization  
   COPY_UTIL=$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh
   
-  # Copy postgres-postgresql secret if it exists in source namespace
+  # Copy only postgres-postgresql secret - db-common-secrets will be created by Helm chart
   if kubectl -n postgres get secret postgres-postgresql &>/dev/null; then
     $COPY_UTIL secret postgres-postgresql postgres $NS
   else
     echo "Warning: postgres-postgresql secret not found in postgres namespace, skipping copy"
   fi
   
-  # Copy db-common-secrets if it exists in source namespace
-  if kubectl -n postgres get secret db-common-secrets &>/dev/null; then
-    $COPY_UTIL secret db-common-secrets postgres $NS
-  else
-    echo "Warning: db-common-secrets not found in postgres namespace, skipping copy"
-  fi
+  # NOTE: db-common-secrets is created by the postgres-init Helm chart, not copied here
   
   return 0
 }
