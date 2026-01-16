@@ -48,7 +48,9 @@ apps:
     version: 12.0.1
     chart: mosip/postgres-init
     set:
-      dbUserPasswords.dbuserPassword: ""
+      # DB_USER_PASSWORD env var is fetched from postgres namespace in GH Actions
+      # and masked automatically by GitHub Actions runner
+      dbUserPasswords.dbuserPassword: "$DB_USER_PASSWORD"
       databases.mosip_toolkit.enabled: "false"
       databases.mosip_master.enabled: "false"
       databases.mosip_audit.enabled: "false"

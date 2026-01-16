@@ -1,46 +1,33 @@
 #!/bin/bash
 # Script to initialize esignet and mockidentitysystem DBs.
-## Usage: ./init_db.sh [kubeconfig]
+# DB_USER_PASSWORD must be set as env var before running Helmsman
+# (fetched from postgres namespace in GitHub Actions workflow)
 
 NS=esignet
-RELEASE_NAME=postgres-init
 
 function installing_esignet_init_db () {
 
-  echo Removing existing postgres-init release
-  helm -n $NS delete $RELEASE_NAME || true
+  echo "Removing existing postgres-init release"
+  helm -n $NS delete postgres-init || true
 
-  echo Delete existing secrets to allow fresh install
+  echo "Delete existing secrets to allow fresh install"
   kubectl -n $NS delete secret db-common-secrets --ignore-not-found=true
   kubectl -n $NS delete secret postgres-postgresql --ignore-not-found=true
 
-  echo Copy secrets from postgres namespace for DB initialization  
+  echo "Copy postgres-postgresql secret from postgres namespace"
   COPY_UTIL=$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh
   
-  # Copy postgres-postgresql secret (postgres connection credentials)
+  # Copy postgres-postgresql secret (postgres connection credentials for superuser)
   if kubectl -n postgres get secret postgres-postgresql &>/dev/null; then
-    echo "Copying postgres-postgresql secret from postgres namespace"
     $COPY_UTIL secret postgres-postgresql postgres $NS
+    echo "✓ postgres-postgresql secret copied"
   else
-    echo "Warning: postgres-postgresql secret not found in postgres namespace"
+    echo "ERROR: postgres-postgresql secret not found in postgres namespace!"
+    exit 1
   fi
   
-  # Copy db-common-secrets (contains database user passwords)
-  if kubectl -n postgres get secret db-common-secrets &>/dev/null; then
-    echo "Copying db-common-secrets secret from postgres namespace"
-    $COPY_UTIL secret db-common-secrets postgres $NS
-    
-    # Add Helm ownership labels and annotations so Helm can adopt this secret
-    echo "Adding Helm ownership metadata to db-common-secrets"
-    kubectl -n $NS label secret db-common-secrets \
-      app.kubernetes.io/managed-by=Helm --overwrite
-    kubectl -n $NS annotate secret db-common-secrets \
-      meta.helm.sh/release-name=$RELEASE_NAME \
-      meta.helm.sh/release-namespace=$NS --overwrite
-  else
-    echo "Warning: db-common-secrets not found in postgres namespace"
-    echo "The postgres-init Helm chart will create it with values from postgres-postgresql"
-  fi
+  # db-common-secrets will be created by Helm chart using DB_USER_PASSWORD env var
+  # passed via DSF: dbUserPasswords.dbuserPassword: "$DB_USER_PASSWORD"
   
   return 0
 }

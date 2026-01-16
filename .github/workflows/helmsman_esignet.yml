@@ -217,6 +217,32 @@ jobs:
           
           echo "All required secrets are configured"
 
+      - name: Get DB User Password from postgres namespace
+        id: get-db-password
+        run: |
+          echo "Fetching db-common-secrets from postgres namespace..."
+          
+          # Check if the secret exists
+          if kubectl -n postgres get secret db-common-secrets &>/dev/null; then
+            DB_USER_PASSWORD=$(kubectl -n postgres get secret db-common-secrets -o jsonpath='{.data.db-dbuser-password}' | base64 -d)
+            
+            if [ -n "$DB_USER_PASSWORD" ]; then
+              # Mask the password in logs
+              echo "::add-mask::$DB_USER_PASSWORD"
+              # Export for subsequent steps
+              echo "DB_USER_PASSWORD=$DB_USER_PASSWORD" >> $GITHUB_ENV
+              echo "✅ DB_USER_PASSWORD retrieved successfully"
+            else
+              echo "❌ db-dbuser-password is empty in db-common-secrets"
+              exit 1
+            fi
+          else
+            echo "⚠️ db-common-secrets not found in postgres namespace"
+            echo "This is expected on first deployment - postgres-init will create the secret"
+            # Set empty value - postgres-init will generate a new password
+            echo "DB_USER_PASSWORD=" >> $GITHUB_ENV
+          fi
+
       - name: Initiate helmsman to apply the DSF configurations
         run: |
           export HOME="${{ github.workspace }}"
@@ -224,6 +250,8 @@ jobs:
           
           # Mock Relying Party secrets are already in env from job-level definition
           # They are automatically masked by GitHub Actions
+          
+          # DB_USER_PASSWORD is set from previous step (or empty on first deploy)
           
           # Verify tools are available
           echo "Using kubectl: $(which kubectl)"
