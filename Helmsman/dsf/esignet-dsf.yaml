@@ -222,7 +222,6 @@ apps:
     priority: -10
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-preinstall.sh"
-      postInstall: "$WORKDIR/hooks/esignet-postinstall.sh"
 
   oidc-ui:
     namespace: esignet

@@ -81,6 +81,44 @@ function preinstall_esignet() {
   echo "Copying esignet-captcha to config-server namespace"
   $COPY_UTIL secret esignet-captcha $NS config-server
 
+  # ============================================================
+  # Setup config-server environment variables for esignet
+  # This must be done BEFORE esignet pods start, so they can
+  # read config from config-server on startup
+  # ============================================================
+  echo "Setting up config-server environment variables for esignet"
+
+  # Check and set captcha site key in config-server
+  CAPTCHA_SITE_KEY_ENV=$( kubectl -n config-server get deployment config-server -o json 2>/dev/null | jq -c '.spec.template.spec.containers[].env[]? | select(.name == "SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_ESIGNET_CAPTCHA_SITE_KEY") | .name' 2>/dev/null || echo "" )
+  if [ -z "$CAPTCHA_SITE_KEY_ENV" ]; then
+    echo "Adding esignet-captcha-site-key to config-server"
+    kubectl -n config-server set env --keys=esignet-captcha-site-key --from secret/esignet-captcha deployment/config-server --prefix=SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_
+  else
+    echo "esignet-captcha-site-key already exists in config-server, skipping"
+  fi
+
+  # Check and set captcha secret key in config-server
+  CAPTCHA_SECRET_KEY_ENV=$( kubectl -n config-server get deployment config-server -o json 2>/dev/null | jq -c '.spec.template.spec.containers[].env[]? | select(.name == "SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_ESIGNET_CAPTCHA_SECRET_KEY") | .name' 2>/dev/null || echo "" )
+  if [ -z "$CAPTCHA_SECRET_KEY_ENV" ]; then
+    echo "Adding esignet-captcha-secret-key to config-server"
+    kubectl -n config-server set env --keys=esignet-captcha-secret-key --from secret/esignet-captcha deployment/config-server --prefix=SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_
+  else
+    echo "esignet-captcha-secret-key already exists in config-server, skipping"
+  fi
+
+  # Check and set MISP key in config-server
+  MISP_KEY_ENV=$( kubectl -n config-server get deployment config-server -o json 2>/dev/null | jq -c '.spec.template.spec.containers[].env[]? | select(.name == "SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_MOSIP_ESIGNET_MISP_KEY") | .name' 2>/dev/null || echo "" )
+  if [ -z "$MISP_KEY_ENV" ]; then
+    echo "Adding mosip-esignet-misp-key to config-server"
+    kubectl -n config-server set env --keys=mosip-esignet-misp-key --from secret/esignet-misp-onboarder-key deployment/config-server --prefix=SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_
+  else
+    echo "mosip-esignet-misp-key already exists in config-server, skipping"
+  fi
+
+  # Wait for config-server rollout
+  echo "Waiting for config-server to be ready"
+  kubectl -n config-server rollout status deploy/config-server --timeout=600s
+
   # Copy required configmaps and secrets from other namespaces
   echo "Copying keycloak configmaps and secrets to $NS namespace"
   $COPY_UTIL configmap keycloak-host keycloak $NS
