@@ -90,13 +90,13 @@ apps:
       modules.pms.image.pullPolicy: Always
 
       modules.resident.enabled: true
-      modules.resident.image.repository: mosipid/apitest-resident
-      modules.resident.image.tag: 1.2.1.2
+      modules.resident.image.repository: mosipqa/apitest-resident
+      modules.resident.image.tag: 1.2.1.x
       modules.resident.image.pullPolicy: Always
 
       modules.auth.enabled: true
-      modules.auth.image.repository: mosipid/apitest-auth
-      modules.auth.image.tag: 1.2.1.2-beta.1
+      modules.auth.image.repository: mosipqa/apitest-auth
+      modules.auth.image.tag: 1.2.1.x
       modules.auth.image.pullPolicy: Always
 
       modules.esignet.enabled: false
