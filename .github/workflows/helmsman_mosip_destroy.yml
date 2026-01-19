@@ -38,7 +38,7 @@ jobs:
     with:
       namespace_selection: ${{ github.event.inputs.namespace_selection }}
       specific_namespaces: ${{ github.event.inputs.specific_namespaces }}
-      all_namespaces: "admin apitestrig artifactory config-server dslrig esignet idrepo kernel masterdata packet-manager pmp postgresdb print regproc resident uitestrig"
+      all_namespaces: "admin apitestrig artifactory config-server dslrig esignet idrepo kernel masterdata packetmanager pms prereg print regproc resident mosip-file-server mock-smtp keymanager ida digitalcard datashare biosdk abis regclinet websub"
       dsf_label: "mosip-dsf"
       wireguard_secret_name: "CLUSTER_WIREGUARD_WG0"
       deployment_type: "MOSIP"
