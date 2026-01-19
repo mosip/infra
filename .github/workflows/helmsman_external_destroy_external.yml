@@ -38,7 +38,7 @@ jobs:
     with:
       namespace_selection: ${{ github.event.inputs.namespace_selection }}
       specific_namespaces: ${{ github.event.inputs.specific_namespaces }}
-      all_namespaces: "keycloak kafka minio softhsm clamav activemq landing-page"
+      all_namespaces: "keycloak kafka minio softhsm clamav activemq landing-page captcha"
       dsf_label: "external-dsf"
       wireguard_secret_name: "CLUSTER_WIREGUARD_WG0"
       deployment_type: "External"
