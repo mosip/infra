@@ -7,7 +7,7 @@ NS=esignet
 
 function installing_esignet_init_db () {
 
-  echo "Removing existing postgres-init release"
+  echo "Removing existing postgres-init-esignet release"
   helm -n $NS delete postgres-init || true
 
   echo "Delete existing secrets to allow fresh install"

@@ -9,11 +9,11 @@ helmRepos:
 
 namespaces:
   postgres:
-    protected: false
+    protected: true
   esignet:
     protected: false
   keycloak:
-    protected: false    
+    protected: true    
   softhsm:
     protected: false
   redis:
@@ -42,7 +42,7 @@ apps:
     priority: -17
     timeout: 1200
 
-  postgres-init:
+  postgres-init-esignet:
     namespace: esignet
     enabled: true
     version: 12.0.1
