@@ -258,7 +258,8 @@ jobs:
           echo "Using kubeconfig: $KUBECONFIG"
           
           # Run helmsman with the determined mode
-          helmsman --${HELMSMAN_MODE} -f $WORKDIR/dsf/esignet-dsf.yaml
+          # --keep-untracked-releases prevents deletion of releases managed by other DSF files (e.g., postgres-init from external-dsf)
+          helmsman --${HELMSMAN_MODE} --keep-untracked-releases -f $WORKDIR/dsf/esignet-dsf.yaml
 
       - name: Label namespace on successful deployment
         if: success() && env.HELMSMAN_MODE == 'apply'
