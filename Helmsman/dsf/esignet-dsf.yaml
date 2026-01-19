@@ -232,7 +232,7 @@ apps:
       istio.hosts[0]: "esignet.soil.mosip.net"
       extraEnvVarsCM[0]: "global"
       extraEnvVarsCM[1]: "config-server-share"
-      extraEnvVarsCM[2]: "artifactory-1202-share"
+      extraEnvVarsCM[2]: "artifactory-share"
       extraEnvVarsCM[3]: "softhsm-esignet-share"
       extraEnvVarsCM[4]: "oidc-ui"
       # image.repository: "mosipid/esignet"
@@ -274,6 +274,24 @@ apps:
     hooks:
       preInstall: "$WORKDIR/hooks/mock-identity-system-preinstall.sh"
 
+  mock-relying-party-service:
+    namespace: esignet
+    enabled: true
+    version: 0.9.3
+    chart: mosip/mock-relying-party-service
+    set:
+      # eSignet service URL (internal)
+      mock_relying_party_service.ESIGNET_SERVICE_URL: "http://esignet.esignet/v1/esignet"
+      # eSignet AUD URL (external) - UPDATE with your esignet domain
+      mock_relying_party_service.ESIGNET_AUD_URL: "https://esignet.soil.mosip.net/v1/esignet/oauth/v2/token"
+      # Set to true if you don't have public domain & valid SSL (development only)
+      enable_insecure: "false"
+    wait: true
+    timeout: 1200
+    priority: -6
+    hooks:
+      preInstall: "$WORKDIR/hooks/mock-relying-party-service-preinstall.sh"
+
   mock-relying-party-ui:
     namespace: esignet
     enabled: true
@@ -290,29 +308,9 @@ apps:
       istio.hosts[0]: "healthservices.soil.mosip.net"
     wait: true
     timeout: 1200
-    priority: -6
-    hooks:
-      preInstall: "$WORKDIR/hooks/mock-relying-party-ui-preinstall.sh"
-
-  mock-relying-party-service:
-    namespace: esignet
-    enabled: true
-    version: 0.9.3
-    chart: mosip/mock-relying-party-service
-    set:
-      # eSignet service URL (internal)
-      mock_relying_party_service.ESIGNET_SERVICE_URL: "http://esignet.esignet/v1/esignet"
-      # eSignet AUD URL (external) - UPDATE with your esignet domain
-      mock_relying_party_service.ESIGNET_AUD_URL: "https://esignet.soil.mosip.net/v1/esignet/oauth/v2/token"
-      # Set to true if you don't have public domain & valid SSL (development only)
-      enable_insecure: "false"
-    wait: true
-    timeout: 1200
     priority: -5
     hooks:
-      preInstall: "$WORKDIR/hooks/mock-relying-party-service-preinstall.sh"
-
-
+      preInstall: "$WORKDIR/hooks/mock-relying-party-ui-preinstall.sh"
 
   esignet-resident-oidc-partner-onboarder:
     namespace: esignet
