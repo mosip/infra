@@ -482,7 +482,7 @@ apps:
   idrepo-saltgen:
     namespace: idrepo
     enabled: true
-    version: 12.2.3
+    version: 12.2.4
     chart: mosip/idrepo-saltgen
     # set:
     #   image.repository: ""
@@ -495,7 +495,7 @@ apps:
   credential:
     namespace: idrepo
     enabled: true
-    version: 12.2.3
+    version: 12.2.4
     chart: mosip/credential
     set:
       # image.repository: "mosipid/credential-service"
@@ -510,7 +510,7 @@ apps:
   credentialrequest:
     namespace: idrepo
     enabled: true
-    version: 12.2.3
+    version: 12.2.4
     chart: mosip/credentialrequest
     set:
       # image.repository: "mosipid/credential-request-generator"
@@ -526,7 +526,7 @@ apps:
   identity:
     namespace: idrepo
     enabled: true
-    version: 12.2.3
+    version: 12.2.4
     chart: mosip/identity
     # set:
     #   image.repository: "mosipid/id-repository-identity-service"
@@ -537,7 +537,7 @@ apps:
   vid:
     namespace: idrepo
     enabled: true
-    version: 12.2.3
+    version: 12.2.4
     chart: mosip/vid
     # set:
     #   image.repository: "mosipid/id-repository-vid-service"
