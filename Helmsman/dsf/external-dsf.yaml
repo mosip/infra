@@ -84,7 +84,7 @@ apps:
       databases.mosip_kernel.port: 5433
 
       databases.mosip_idmap.enabled: "true"
-      databases.mosip_idmap.branch: "v1.2.2.3"
+      databases.mosip_idmap.branch: "v1.2.2.4"
       databases.mosip_idmap.host: "postgres.rapid2.esignet.io"
       databases.mosip_idmap.port: 5433
 
@@ -94,7 +94,7 @@ apps:
       databases.mosip_prereg.port: 5433
 
       databases.mosip_idrepo.enabled: "true"
-      databases.mosip_idrepo.branch: "v1.2.2.3"
+      databases.mosip_idrepo.branch: "v1.2.2.4"
       databases.mosip_idrepo.host: "postgres.rapid2.esignet.io"
       databases.mosip_idrepo.port: 5433
 
@@ -104,7 +104,7 @@ apps:
       databases.mosip_ida.port: 5433
 
       databases.mosip_credential.enabled: "true"
-      databases.mosip_credential.branch: "v1.2.2.3"
+      databases.mosip_credential.branch: "v1.2.2.4"
       databases.mosip_credential.host: "postgres.rapid2.esignet.io"
       databases.mosip_credential.port: 5433
 
