@@ -1,7 +1,7 @@
 # Environment name (infra component)
-cluster_name = "rapid"
+cluster_name = "rapid2"
 # MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "rapid.esignet.io"
+cluster_env_domain = "rapid2.esignet.io"
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
 mosip_email_id = "aswingopal30@gmail.com"
 # SSH login key name for AWS node instances (ex: my-ssh-key)
@@ -57,7 +57,7 @@ WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 # Rancher Import URL
 # Rancher Import Configuration
 enable_rancher_import = true
-rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/wpf6krthtplfqqlgbbbw85d9m7pmlgxfc68j6gzfqkvhb7qqmmq5vw_c-m-n6vlxdkf.yaml\""
+rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/2bwsz8dxsjrfxpxrqrm7zcqdftg9qnnb4rqjdr8kmn5bf5nhn4wqd7_c-m-4nrwsbz2.yaml\""
 # DNS Records to map
 subdomain_public   = ["resident", "prereg", "esignet", "healthservices", "signup"]
 subdomain_internal = ["admin", "iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio", "regclient", "compliance"]
