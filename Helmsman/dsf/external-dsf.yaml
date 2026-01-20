@@ -51,7 +51,7 @@ apps:
     version: 0.1.0
     chart: $WORKDIR/utils/istio-addons/postgres-istio-addons-0.1.0.tgz
     set:
-      postgresHost: "postgres.rapid.esignet.io"
+      postgresHost: "postgres.rapid2.esignet.io"
     wait: true
     priority: -4
     timeout: 1200
@@ -64,78 +64,78 @@ apps:
     set:
       dbUserPasswords.dbuserPassword: ""
       databases.mosip_master.enabled: "true"
-      databases.mosip_master.branch: "v1.2.1.3"
-      databases.mosip_master.host: "postgres.rapid.esignet.io"
+      databases.mosip_master.branch: "v1.2.1.4"
+      databases.mosip_master.host: "postgres.rapid2.esignet.io"
       databases.mosip_master.port: 5433
 
       databases.mosip_audit.enabled: "true"
       databases.mosip_audit.branch: "v1.2.0.1"
-      databases.mosip_audit.host: "postgres.rapid.esignet.io"
+      databases.mosip_audit.host: "postgres.rapid2.esignet.io"
       databases.mosip_audit.port: 5433
 
       databases.mosip_keymgr.enabled: "true"
       databases.mosip_keymgr.branch: "v1.2.1.0"
-      databases.mosip_keymgr.host: "postgres.rapid.esignet.io"
+      databases.mosip_keymgr.host: "postgres.rapid2.esignet.io"
       databases.mosip_keymgr.port: 5433
 
       databases.mosip_kernel.enabled: "true"
       databases.mosip_kernel.branch: " v1.2.0.2"
-      databases.mosip_kernel.host: "postgres.rapid.esignet.io"
+      databases.mosip_kernel.host: "postgres.rapid2.esignet.io"
       databases.mosip_kernel.port: 5433
 
       databases.mosip_idmap.enabled: "true"
       databases.mosip_idmap.branch: "v1.2.2.3"
-      databases.mosip_idmap.host: "postgres.rapid.esignet.io"
+      databases.mosip_idmap.host: "postgres.rapid2.esignet.io"
       databases.mosip_idmap.port: 5433
 
       databases.mosip_prereg.enabled: "true"
       databases.mosip_prereg.branch: "v1.2.0.3"
-      databases.mosip_prereg.host: "postgres.rapid.esignet.io"
+      databases.mosip_prereg.host: "postgres.rapid2.esignet.io"
       databases.mosip_prereg.port: 5433
 
       databases.mosip_idrepo.enabled: "true"
       databases.mosip_idrepo.branch: "v1.2.2.3"
-      databases.mosip_idrepo.host: "postgres.rapid.esignet.io"
+      databases.mosip_idrepo.host: "postgres.rapid2.esignet.io"
       databases.mosip_idrepo.port: 5433
 
       databases.mosip_ida.enabled: "true"
-      databases.mosip_ida.branch: "v1.2.1.2-beta.1"
-      databases.mosip_ida.host: "postgres.rapid.esignet.io"
+      databases.mosip_ida.branch: "v1.2.1.2"
+      databases.mosip_ida.host: "postgres.rapid2.esignet.io"
       databases.mosip_ida.port: 5433
 
       databases.mosip_credential.enabled: "true"
       databases.mosip_credential.branch: "v1.2.2.3"
-      databases.mosip_credential.host: "postgres.rapid.esignet.io"
+      databases.mosip_credential.host: "postgres.rapid2.esignet.io"
       databases.mosip_credential.port: 5433
 
       databases.mosip_regprc.enabled: "true"
       databases.mosip_regprc.branch: "v1.2.1.2"
-      databases.mosip_regprc.host: "postgres.rapid.esignet.io"
+      databases.mosip_regprc.host: "postgres.rapid2.esignet.io"
       databases.mosip_regprc.port: 5433
 
       databases.mosip_pms.enabled: "true"
-      databases.mosip_pms.branch: "v1.3.0-beta.2"
-      databases.mosip_pms.host: "postgres.rapid.esignet.io"
+      databases.mosip_pms.branch: "v1.2.2.3"
+      databases.mosip_pms.host: "postgres.rapid2.esignet.io"
       databases.mosip_pms.port: 5433
 
       databases.mosip_hotlist.enabled: "true"
-      databases.mosip_hotlist.branch: "v1.2.1.3"
-      databases.mosip_hotlist.host: "postgres.rapid.esignet.io"
+      databases.mosip_hotlist.branch: "v1.2.1.4"
+      databases.mosip_hotlist.host: "postgres.rapid2.esignet.io"
       databases.mosip_hotlist.port: 5433
 
       databases.mosip_resident.enabled: "true"
       databases.mosip_resident.branch: "v1.2.1.2"
-      databases.mosip_resident.host: "postgres.rapid.esignet.io"
+      databases.mosip_resident.host: "postgres.rapid2.esignet.io"
       databases.mosip_resident.port: 5433
 
       databases.mosip_otp.enabled: "true"
       databases.mosip_otp.branch: "v1.3.0-beta.1"
-      databases.mosip_otp.host: "postgres.rapid.esignet.io"
+      databases.mosip_otp.host: "postgres.rapid2.esignet.io"
       databases.mosip_otp.port: 5433
 
       databases.mosip_digitalcard.enabled: "true"
       databases.mosip_digitalcard.branch: "v1.2.0.1"
-      databases.mosip_digitalcard.host: "postgres.rapid.esignet.io"
+      databases.mosip_digitalcard.host: "postgres.rapid2.esignet.io"
       databases.mosip_digitalcard.port: 5433
     wait: true
     timeout: 1200
@@ -183,7 +183,7 @@ apps:
     version: 0.1.0
     chart: $WORKDIR/utils/istio-addons/iam-istio-addons-0.1.0.tgz
     set:
-      keycloakExternalHost: "iam.rapid.esignet.io"
+      keycloakExternalHost: "iam.rapid2.esignet.io"
       keycloakInternalHost: "keycloak.keycloak"
       service: "keycloak"
     wait: true
@@ -198,9 +198,9 @@ apps:
     set:
       # image.repository: "mosipid/keycloak-init"
       # image.tag: "1.2.0.1"
-      keycloakExternalHost: "iam.rapid.esignet.io"
+      keycloakExternalHost: "iam.rapid2.esignet.io"
       keycloakInternalHost: "keycloak.keycloak"
-      keycloak.realms.mosip.realm_config.attributes.frontendUrl: "https://iam.rapid.esignet.io/auth"
+      keycloak.realms.mosip.realm_config.attributes.frontendUrl: "https://iam.rapid2.esignet.io/auth"
       keycloak.realms.mosip.realm_config.smtpServer.auth: "false"
       keycloak.realms.mosip.realm_config.smtpServer.host: "smtp.gmail.com"
       keycloak.realms.mosip.realm_config.smtpServer.port: "465"
@@ -263,7 +263,7 @@ apps:
     version: 1.2.0
     chart: $WORKDIR/utils/istio-addons/minio-istio-addons-1.2.0.tgz
     set:
-      externalHost: "minio.rapid.esignet.io"
+      externalHost: "minio.rapid2.esignet.io"
     wait: true
     timeout: 1200
     hooks:
@@ -293,14 +293,14 @@ apps:
     chart: mosip/activemq-artemis
     set: 
       istio.enabled: "true"
-      istio.hosts[0]: "activemq.rapid.esignet.io"
+      istio.hosts[0]: "activemq.rapid2.esignet.io"
       istio.ingressController.name: "ingressgateway-internal"
       istio.prefix: ""
     wait: true
     timeout: 1200
     priority: -8
     hooks:
-      postInstall: "$WORKDIR/hooks/captcha-setup.sh 6Ldfck8sAAAAAKfkT1UXMOt8WeHAJxve7DB362oH 6Ldfck8sAAAAACr2L2QfeEGiaHnkb5EoBQFmWG7m 6LfPck8sAAAAAC3fgfP6s4OHKtF0_TTRiR-tigdn 6LfPck8sAAAAABXFoBd-NPUVUBCUC9f0rubCqwim 6Ldkc08sAAAAAEd4yczmXN-j7SR15lJ6VJNFcALG 6Ldkc08sAAAAAEwIjTK0rfdWBI42GZscNHoHa3vf"
+      postInstall: "$WORKDIR/hooks/captcha-setup.sh 6LcFGFEsAAAAACP7S4AYM1nmIw4jiYKDo-yay5p_ 6LcFGFEsAAAAAB7u6-S8_ADpMBaS0PjHFuY3CLGW 6LcQGFEsAAAAAOtuvD1m2SCOQZmCfwkxj8PZZqZF 6LcQGFEsAAAAAIe8haWB9SfPO5NoUx0FYptivZz4 6Ld6GFEsAAAAAHZK-Vb0TENn1EiLnYhaCEOt1_iY 6Ld6GFEsAAAAAGfN0GYkevy5c9pml5KXo2SipUjW"
   # Note: Create a google recaptcha v2 ("I am not a Robot") from Google Recaptcha Admin.
   # Pass the captcha site and secret key in the above post install script as an argument.To create site and secret key below is the link:
   # https://cloud.google.com/security/products/recaptcha
@@ -374,7 +374,7 @@ apps:
     version: 1.2.0
     chart: $WORKDIR/utils/istio-addons/kafka-istio-addons-1.2.0.tgz
     set:
-      kafkaUiHost: "kafka.rapid.esignet.io"
+      kafkaUiHost: "kafka.rapid2.esignet.io"
       installName: "kafka-ui"
     wait: true
     timeout: 1200
@@ -389,28 +389,28 @@ apps:
     chart: mosip/landing-page
     set:
       landing.version: "develop"
-      landing.name: "rapid"
-      landing.api: "api.rapid.esignet.io"
-      landing.apiInternal: "api-internal.rapid.esignet.io"
-      landing.admin: "admin.rapid.esignet.io"
-      landing.prereg: "prereg.rapid.esignet.io"
-      landing.kafka: "kafka.rapid.esignet.io"
-      landing.kibana: "kibana.rapid.esignet.io"
-      landing.activemq: "activemq.rapid.esignet.io"
-      landing.minio: "minio.rapid.esignet.io"
-      landing.keycloak: "iam.rapid.esignet.io"
-      landing.regclient: "regclient.rapid.esignet.io"
-      landing.postgres.host: "postgres.rapid.esignet.io"
+      landing.name: "rapid2"
+      landing.api: "api.rapid2.esignet.io"
+      landing.apiInternal: "api-internal.rapid2.esignet.io"
+      landing.admin: "admin.rapid2.esignet.io"
+      landing.prereg: "prereg.rapid2.esignet.io"
+      landing.kafka: "kafka.rapid2.esignet.io"
+      landing.kibana: "kibana.rapid2.esignet.io"
+      landing.activemq: "activemq.rapid2.esignet.io"
+      landing.minio: "minio.rapid2.esignet.io"
+      landing.keycloak: "iam.rapid2.esignet.io"
+      landing.regclient: "regclient.rapid2.esignet.io"
+      landing.postgres.host: "postgres.rapid2.esignet.io"
       landing.postgres.port: "5433"
-      landing.compliance: "compliance.rapid.esignet.io"
-      landing.pmp: "pmp.rapid.esignet.io"
-      landing.resident: "resident.rapid.esignet.io"
-      landing.esignet: "esignet.rapid.esignet.io"
-      landing.smtp: "smtp.rapid.esignet.io"
-      landing.healthservices: "healthservices.rapid.esignet.io"
-      landing.injiweb: "injiweb.rapid.esignet.io"
-      landing.injiverify: "injiverify.rapid.esignet.io"
-      istio.host: "rapid.esignet.io"
+      landing.compliance: "compliance.rapid2.esignet.io"
+      landing.pmp: "pmp.rapid2.esignet.io"
+      landing.resident: "resident.rapid2.esignet.io"
+      landing.esignet: "esignet.rapid2.esignet.io"
+      landing.smtp: "smtp.rapid2.esignet.io"
+      landing.healthservices: "healthservices.rapid2.esignet.io"
+      landing.injiweb: "injiweb.rapid2.esignet.io"
+      landing.injiverify: "injiverify.rapid2.esignet.io"
+      istio.host: "rapid2.esignet.io"
     wait: true
     timeout: 1200
     hooks:
