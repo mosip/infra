@@ -775,10 +775,10 @@ To regenerate import URL if needed:
 ```
 
 - **Alerting Configuration:**
-  Alerting is part of cluster monitoring, where alert notifications are sent to the configured email or slack channel.
-   * `<slack-channel-name>` → slack channel name configured for alert notifications.
-   * `<slack-api-url>` → slack api url configured for alert notifications.
-   * `<env-name>` → provide the cluster name.
+Alerting is part of cluster monitoring, where alert notifications are sent to the configured email or Slack channel.
+- `<slack-channel-name>` → Slack channel name configured for alert notifications.
+- `<slack-api-url>` → Slack API URL configured for alert notifications.
+- `<env-name>` → provide the cluster name.
 
 > **Note:**
 > - Create a Slack incoming webhook: [Slack incoming webhooks guide](https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks/)
