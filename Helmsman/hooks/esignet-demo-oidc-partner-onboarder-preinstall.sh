@@ -23,6 +23,13 @@ function preinstall_demo_oidc_partner_onboarder() {
   echo "Setting Istio injection to disabled for $NS namespace"
   kubectl label ns $NS istio-injection=disabled --overwrite
 
+  # Delete existing Jobs to avoid immutability errors on re-runs
+  # Kubernetes Jobs cannot be updated once created, so we must delete them first
+  echo "Cleaning up existing demo-oidc onboarder jobs in $NS namespace"
+  kubectl -n $NS delete job -l app.kubernetes.io/instance=esignet-demo-oidc-partner-onboarder --ignore-not-found=true
+  # Wait for job pods to terminate
+  sleep 5
+
   # Delete existing onboarding configmap to avoid helm ownership conflict
   # This configmap may have been created by esignet-resident-oidc-partner-onboarder
   echo "Cleaning up existing onboarding configmap in $NS namespace"
