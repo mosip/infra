@@ -46,7 +46,26 @@ function postinstall_partner_onboarder() {
 
   # Wait for config-server rollout
   echo "Waiting for config-server to be ready"
-  kubectl -n config-server rollout status deploy/config-server --timeout=300s
+  
+  # Check if there are any pods stuck in terminating state
+  TERMINATING_PODS=$(kubectl -n config-server get pods -l app.kubernetes.io/name=config-server --field-selector=status.phase=Terminating -o name 2>/dev/null || echo "")
+  if [ -n "$TERMINATING_PODS" ]; then
+    echo "Found terminating pods, waiting for them to clear..."
+    for pod in $TERMINATING_PODS; do
+      echo "Waiting for $pod to terminate..."
+      kubectl -n config-server wait --for=delete "$pod" --timeout=120s 2>/dev/null || true
+    done
+  fi
+  
+  # Wait for rollout with increased timeout
+  if ! kubectl -n config-server rollout status deploy/config-server --timeout=600s; then
+    echo "Rollout timed out, checking deployment status..."
+    kubectl -n config-server describe deploy/config-server
+    kubectl -n config-server get pods -l app.kubernetes.io/name=config-server
+    echo "Attempting to restart stuck rollout..."
+    kubectl -n config-server rollout restart deploy/config-server
+    kubectl -n config-server rollout status deploy/config-server --timeout=300s
+  fi
 
   # Restart esignet deployment to pick up new secrets
   echo "Restarting esignet deployment"
