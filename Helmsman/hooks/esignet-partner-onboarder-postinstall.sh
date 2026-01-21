@@ -14,6 +14,52 @@ COPY_UTIL=$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh
 function postinstall_partner_onboarder() {
   echo "Post-install setup for esignet-resident-oidc-partner-onboarder"
 
+  # Wait for the onboarder job to complete (it creates the secrets we need)
+  echo "Waiting for esignet-resident-oidc-partner-onboarder job to complete..."
+  echo "Sleeping for 2 minutes to allow job to start and complete..."
+  sleep 120
+  
+  # Wait for the job to complete with timeout
+  JOB_NAME=$(kubectl -n $NS get jobs -l app.kubernetes.io/instance=esignet-resident-oidc-partner-onboarder -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+  if [ -n "$JOB_NAME" ]; then
+    echo "Found job: $JOB_NAME, waiting for completion..."
+    kubectl -n $NS wait --for=condition=complete --timeout=600s job/$JOB_NAME || {
+      echo "Job did not complete in time, checking status..."
+      kubectl -n $NS describe job/$JOB_NAME
+      kubectl -n $NS logs job/$JOB_NAME --tail=100 || true
+      echo "Continuing anyway..."
+    }
+  else
+    echo "No onboarder job found, waiting additional time for secrets to be created..."
+    sleep 60
+  fi
+  
+  # Verify secrets exist before copying
+  echo "Verifying secrets exist..."
+  MAX_RETRIES=10
+  RETRY_INTERVAL=30
+  
+  for i in $(seq 1 $MAX_RETRIES); do
+    MISP_SECRET=$(kubectl -n $NS get secret esignet-misp-onboarder-key --ignore-not-found -o name 2>/dev/null || echo "")
+    RESIDENT_SECRET=$(kubectl -n $NS get secret resident-oidc-onboarder-key --ignore-not-found -o name 2>/dev/null || echo "")
+    
+    if [ -n "$MISP_SECRET" ] && [ -n "$RESIDENT_SECRET" ]; then
+      echo "Both secrets found, proceeding with copy..."
+      break
+    fi
+    
+    if [ $i -eq $MAX_RETRIES ]; then
+      echo "ERROR: Secrets not found after $MAX_RETRIES retries"
+      echo "esignet-misp-onboarder-key: $MISP_SECRET"
+      echo "resident-oidc-onboarder-key: $RESIDENT_SECRET"
+      kubectl -n $NS get secrets
+      exit 1
+    fi
+    
+    echo "Waiting for secrets to be created (attempt $i/$MAX_RETRIES)..."
+    sleep $RETRY_INTERVAL
+  done
+
   # Copy esignet-misp-onboarder-key to config-server
   echo "Copying esignet-misp-onboarder-key secret to config-server namespace"
   $COPY_UTIL secret esignet-misp-onboarder-key $NS config-server

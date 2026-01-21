@@ -17,10 +17,33 @@ function postinstall_demo_oidc_partner_onboarder() {
   echo "Post-install setup for esignet-demo-oidc-partner-onboarder"
   echo "=============================================="
 
+  # Sleep for 2 minutes to allow job to start and run
+  echo "Sleeping for 2 minutes to allow job to start and complete..."
+  sleep 120
+
+  # Wait for job to exist first
+  echo "Waiting for job $JOB_NAME to be created..."
+  MAX_RETRIES=10
+  RETRY_INTERVAL=30
+  for i in $(seq 1 $MAX_RETRIES); do
+    if kubectl get job/$JOB_NAME -n $NS &>/dev/null; then
+      echo "Job $JOB_NAME found"
+      break
+    fi
+    if [ $i -eq $MAX_RETRIES ]; then
+      echo "ERROR: Job $JOB_NAME not found after $MAX_RETRIES retries"
+      kubectl -n $NS get jobs
+      return 1
+    fi
+    echo "Waiting for job to be created (attempt $i/$MAX_RETRIES)..."
+    sleep $RETRY_INTERVAL
+  done
+
   # Wait for job to complete
   echo "Waiting for job $JOB_NAME to complete..."
   kubectl wait --for=condition=complete job/$JOB_NAME -n $NS --timeout=600s || {
     echo "ERROR: Job $JOB_NAME did not complete successfully"
+    kubectl describe job/$JOB_NAME -n $NS || true
     kubectl logs -n $NS job/$JOB_NAME || true
     return 1
   }
