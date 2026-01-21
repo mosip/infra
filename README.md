@@ -774,8 +774,24 @@ To regenerate import URL if needed:
  global.cattle.clusterId: "c-m-pbrcfglw" # ← REPLACE THIS
 ```
 
+- **Alerting Configuration:**
+  Alerting is part of cluster monitoring, where alert notifications are sent to the configured email or slack channel.
+   * `<slack-channel-name>` → slack channel name configured for alert notifications.
+   * `<slack-api-url>` → slack api url configured for alert notifications.
+   * `<env-name>` → provide the cluster name.
+
+> **Note:** 
+> * Creating slack incoming webhook [Link](https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks/),
+>  * Create a slack application for your environment from the above url. 
+>  * After creating the app select `Incoming webhooks` from `Features section`. 
+>  * Then Activate Incoming webhooks. 
+>  * Then select `Add New Webhook To Workspace` and choose a slack channel where the alerts need to be notified. 
+>  * Then Incoming webhook url will be created. 
+>  * Update `slack_api_url`, `channel` and `env-name` in `rancher-monitoring` section in `prereq-dsf.yaml`.
+
+
 - **Domain Validation (Double-check):**
-- `<sandbox>` → your cluster name (e.g., `soil38`)
+- `<env-name>` → your cluster name (e.g., `soil38`)
 - `sandbox.xyz.net` → your domain name (e.g., `soil38.mosip.net`)
 - **Why?** Every service needs to know its web address
 - **Chart Versions:** Verify and update to latest stable versions
@@ -785,9 +801,10 @@ To regenerate import URL if needed:
 
 > **Note:** Maintain consistency with your Terraform configuration:
 >
-> - `<sandbox>` should match `cluster_name` in `aws.tfvars`
-> - `sandbox.xyz.net` should match `cluster_env_domain` in `aws.tfvars`
-> - These MUST be identical or deployment will fail!
+> - `<env-name>` should match `cluster_name` in `aws.tfvars`
+> - `<sandbox.xyz.net>` should match `cluster_env_domain` in `aws.tfvars`.
+> - These above variables MUST be identical or deployment will fail because the same domain is being mapped in the route-53 service in aws.
+> - If the cluster is created manually instead of using terraform scripts then user can provide the `values` for above two variables as per his requirement, no need to match variables in `aws.tfvars`. 
 
 ```yaml
  # Configure monitoring, Istio, logging
@@ -817,7 +834,9 @@ To regenerate import URL if needed:
 > **Note:** Maintain consistency with your Terraform configuration:
 >
 > - `<sandbox>` should match `cluster_name` in `aws.tfvars`
-> - `sandbox.xyz.net` should match `cluster_env_domain` in `aws.tfvars`
+> - `<sandbox.xyz.net>` should match `cluster_env_domain` in `aws.tfvars`.
+> - These above variables MUST be identical or deployment will fail because the same domain is being mapped in the route-53 service in aws.
+> - If the cluster is created manually instead of using terraform scripts then user can provide the `values` for above two variables as per his requirement, no need to match variables in `aws.tfvars`.
 
 - **Configure reCAPTCHA keys:**
 
@@ -870,8 +889,10 @@ To regenerate import URL if needed:
  **Critical Updates Required:**
 
 - **Domain Validation (Double-check):**
-- `<sandbox>` → your cluster name (e.g., `soil`)
-- `sandbox.xyz.net` → your domain name (e.g., `soil.mosip.net`)
+> - `<sandbox>` should match `cluster_name` in `aws.tfvars`
+> - `<sandbox.xyz.net>` should match `cluster_env_domain` in `aws.tfvars`.
+> - These above variables MUST be identical or deployment will fail because the same domain is being mapped in the route-53 service in aws.
+> - If the cluster is created manually instead of using terraform scripts then user can provide the `values` for above two variables as per his requirement, no need to match variables in `aws.tfvars`.
 - **Chart Versions:** Update MOSIP service chart versions to compatible releases
 - **Database Branch:** Ensure correct MOSIP DB scripts branch matches deployment version
 - **Service Dependencies:** Verify all required external services are properly configured
@@ -880,7 +901,9 @@ To regenerate import URL if needed:
 > **Note:** Maintain consistency with your Terraform configuration:
 >
 > - `<sandbox>` should match `cluster_name` in `aws.tfvars`
-> - `sandbox.xyz.net` should match `cluster_env_domain` in `aws.tfvars`
+> - `<sandbox.xyz.net>` should match `cluster_env_domain` in `aws.tfvars`.
+> - These above variables MUST be identical or deployment will fail because the same domain is being mapped in the route-53 service in aws.
+> - If the cluster is created manually instead of using terraform scripts then user can provide the `values` for above two variables as per his requirement, no need to match variables in `aws.tfvars`.
 
 ```yaml
  # Configure MOSIP services 
@@ -898,8 +921,10 @@ To regenerate import URL if needed:
  **Critical Updates Required:**
 
 - **Domain Validation (Double-check):**
-- `<sandbox>` → your cluster name (e.g., `soil`)
-- `sandbox.xyz.net` → your domain name (e.g., `soil.mosip.net`)
+> - `<sandbox>` should match `cluster_name` in `aws.tfvars`
+> - `<sandbox.xyz.net>` should match `cluster_env_domain` in `aws.tfvars`.
+> - These above variables MUST be identical or deployment will fail because the same domain is being mapped in the route-53 service in aws.
+> - If the cluster is created manually instead of using terraform scripts then user can provide the `values` for above two variables as per his requirement, no need to match variables in `aws.tfvars`.
 - **Test Chart Versions:** Update test rig chart versions to match MOSIP service versions
 - **Database Branch:** Ensure test DB scripts use correct branch
 - **Test Configuration:** Update test endpoints, API versions, and test data paths
@@ -908,9 +933,10 @@ To regenerate import URL if needed:
 > **Critical Validation Checklist for All DSF Files:**
 >
 > **Domain Configuration (Validate Twice):**
->
-> - `<sandbox>` → your cluster name (e.g., `soil`)
-> - `sandbox.xyz.net` → your domain name (e.g., `soil.mosip.net`)
+> - `<sandbox>` should match `cluster_name` in `aws.tfvars`
+> - `<sandbox.xyz.net>` should match `cluster_env_domain` in `aws.tfvars`.
+> - These above variables MUST be identical or deployment will fail because the same domain is being mapped in the route-53 service in aws.
+> - If the cluster is created manually instead of using terraform scripts then user can provide the `values` for above two variables as per his requirement, no need to match variables in `aws.tfvars`.
 > - Verify domain DNS resolution is working
 > - Ensure SSL certificate coverage for all subdomains
 >
@@ -924,6 +950,8 @@ To regenerate import URL if needed:
 >
 > - `<sandbox>` must match `cluster_name` in `terraform/implementations/aws/infra/aws.tfvars`
 > - `sandbox.xyz.net` must match `cluster_env_domain` in `terraform/implementations/aws/infra/aws.tfvars`
+> - These above variables MUST be identical or deployment will fail because the same domain is being mapped in the route-53 service in aws.
+> - If the cluster is created manually instead of using terraform scripts then user can provide the `values` for above two variables as per his requirement, no need to match variables in `aws.tfvars`.
 > - PostgreSQL settings must align with `enable_postgresql_setup` in Terraform configuration
 >
 > **Environment-Specific Updates:**
