@@ -16,19 +16,48 @@ function wait_for_job_completion() {
   local namespace=$2
   local timeout=${3:-600}
   
-  echo "Waiting for job with label $job_label to be created..."
-  local max_wait=60
+  echo "Waiting for job with label $job_label..."
+  local max_wait=120
   local wait_interval=10
   local elapsed=0
   
-  # Wait for job to be created
+  # Wait for job to be created or become active
   while [ $elapsed -lt $max_wait ]; do
     JOB_NAME=$(kubectl -n $namespace get jobs -l "$job_label" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
     if [ -n "$JOB_NAME" ]; then
-      echo "Found job: $JOB_NAME"
-      break
+      # Check if job is active or was just created (not an old completed job)
+      local active=$(kubectl -n $namespace get job/$JOB_NAME -o jsonpath='{.status.active}' 2>/dev/null || echo "0")
+      local succeeded=$(kubectl -n $namespace get job/$JOB_NAME -o jsonpath='{.status.succeeded}' 2>/dev/null || echo "0")
+      local start_time=$(kubectl -n $namespace get job/$JOB_NAME -o jsonpath='{.status.startTime}' 2>/dev/null || echo "")
+      
+      # Check if job started within the last 5 minutes (300 seconds) - it's a fresh job
+      if [ -n "$start_time" ]; then
+        local job_start_epoch=$(date -d "$start_time" +%s 2>/dev/null || echo "0")
+        local current_epoch=$(date +%s)
+        local age=$((current_epoch - job_start_epoch))
+        
+        if [ $age -lt 300 ] || [ "${active:-0}" -ge 1 ]; then
+          echo "Found recent/active job: $JOB_NAME (age: ${age}s, active: ${active:-0})"
+          break
+        else
+          echo "Found old completed job: $JOB_NAME (age: ${age}s), waiting for new job..."
+        fi
+      fi
+      
+      # If job is currently active, use it
+      if [ "${active:-0}" -ge 1 ]; then
+        echo "Found active job: $JOB_NAME"
+        break
+      fi
+      
+      # If job just completed successfully (within check interval), accept it
+      if [ "${succeeded:-0}" -ge 1 ] && [ $elapsed -lt 30 ]; then
+        echo "Found recently completed job: $JOB_NAME"
+        return 0
+      fi
     fi
-    echo "Job not found yet, waiting... ($elapsed/$max_wait seconds)"
+    
+    echo "Waiting for active/new job... ($elapsed/$max_wait seconds)"
     sleep $wait_interval
     elapsed=$((elapsed + wait_interval))
   done
@@ -128,9 +157,11 @@ function postinstall_partner_onboarder() {
 
   # Check and set MISP key in config-server (idempotent)
   MISP_KEY_ENV=$( kubectl -n config-server get deployment config-server -o json 2>/dev/null | jq -c '.spec.template.spec.containers[].env[]? | select(.name == "SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_MOSIP_ESIGNET_MISP_KEY") | .name' 2>/dev/null || echo "" )
+  CONFIG_CHANGED=false
   if [ -z "$MISP_KEY_ENV" ]; then
     echo "Adding mosip-esignet-misp-key to config-server"
     kubectl -n config-server set env --keys=mosip-esignet-misp-key --from secret/esignet-misp-onboarder-key deployment/config-server --prefix=SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_
+    CONFIG_CHANGED=true
   else
     echo "mosip-esignet-misp-key already exists in config-server, skipping"
   fi
@@ -140,8 +171,15 @@ function postinstall_partner_onboarder() {
   if [ -z "$RESIDENT_OIDC_ENV" ]; then
     echo "Adding resident-oidc-clientid to config-server"
     kubectl -n config-server set env --keys=resident-oidc-clientid --from secret/resident-oidc-onboarder-key deployment/config-server --prefix=SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_
+    CONFIG_CHANGED=true
   else
     echo "resident-oidc-clientid already exists in config-server, skipping"
+  fi
+
+  # If config was not changed, still restart config-server to pick up any secret changes
+  if [ "$CONFIG_CHANGED" = "false" ]; then
+    echo "No new env vars added, but restarting config-server to pick up any secret changes..."
+    kubectl -n config-server rollout restart deploy/config-server
   fi
 
   # Wait for config-server rollout
