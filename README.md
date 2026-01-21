@@ -780,14 +780,14 @@ To regenerate import URL if needed:
    * `<slack-api-url>` → slack api url configured for alert notifications.
    * `<env-name>` → provide the cluster name.
 
-> **Note:** 
-> * Creating slack incoming webhook [Link](https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks/),
->  * Create a slack application for your environment from the above url. 
->  * After creating the app select `Incoming webhooks` from `Features section`. 
->  * Then Activate Incoming webhooks. 
->  * Then select `Add New Webhook To Workspace` and choose a slack channel where the alerts need to be notified. 
->  * Then Incoming webhook url will be created. 
->  * Update `slack_api_url`, `channel` and `env-name` in `rancher-monitoring` section in `prereq-dsf.yaml`.
+> **Note:**
+> - Create a Slack incoming webhook: [Slack incoming webhooks guide](https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks/)
+> - Create a Slack app for your environment from the above URL.
+> - After creating the app, select `Incoming webhooks` from the **Features** section.
+> - Activate Incoming webhooks.
+> - Select `Add New Webhook To Workspace` and choose a Slack channel where alerts should be notified.
+> - The incoming webhook URL will be created.
+> - Update `slack_api_url`, `channel`, and `env-name` in the `rancher-monitoring` section in `prereq-dsf.yaml`.
 
 
 - **Domain Validation (Double-check):**
@@ -832,7 +832,6 @@ To regenerate import URL if needed:
 - **PostgreSQL Configuration:** Match with Terraform `enable_postgresql_setup` setting
 
 > **Note:** Maintain consistency with your Terraform configuration:
->
 > - `<sandbox>` should match `cluster_name` in `aws.tfvars`
 > - `<sandbox.xyz.net>` should match `cluster_env_domain` in `aws.tfvars`.
 > - These above variables MUST be identical or deployment will fail because the same domain is being mapped in the route-53 service in aws.
