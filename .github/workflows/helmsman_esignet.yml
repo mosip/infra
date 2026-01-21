@@ -248,6 +248,12 @@ jobs:
           export HOME="${{ github.workspace }}"
           export WORKDIR="$HOME/Helmsman"
           
+          # Pre-Helmsman cleanup: Delete immutable Jobs that cause diffing errors
+          # Kubernetes Jobs cannot be updated, so we must delete them before Helmsman runs
+          echo "Running pre-Helmsman cleanup..."
+          chmod +x $WORKDIR/hooks/pre-helmsman-cleanup.sh
+          $WORKDIR/hooks/pre-helmsman-cleanup.sh || echo "Cleanup script completed (may have warnings on first run)"
+          
           # Mock Relying Party secrets are already in env from job-level definition
           # They are automatically masked by GitHub Actions
           
