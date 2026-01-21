@@ -319,6 +319,11 @@ apps:
     chart: mosip/partner-onboarder
     set:
       # Module Configuration
+      # S3 Configuration - UPDATE THESE VALUES FOR YOUR ENVIRONMENT
+      onboarding.configmaps.s3.s3-host: "http://minio.minio:9000"
+      onboarding.configmaps.s3.s3-user-key: "admin"
+      onboarding.configmaps.s3.s3-region: ""
+      onboarding.configmaps.s3.s3-bucket-name: "onboarder"    
       onboarding.modules[0].name: "ida"
       onboarding.modules[0].enabled: "false"
       onboarding.modules[1].name: "print"
@@ -339,13 +344,8 @@ apps:
       onboarding.modules[8].enabled: "false"
       onboarding.modules[9].name: "mimoto-keybinding"
       onboarding.modules[9].enabled: "false"
-      # S3 Configuration - UPDATE THESE VALUES FOR YOUR ENVIRONMENT
-      onboarding.configmaps.s3.s3-host: "http://minio.minio:9000"
-      onboarding.configmaps.s3.s3-user-key: ""
-      onboarding.configmaps.s3.s3-region: ""
-      onboarding.configmaps.s3.s3-bucket-name: "onboarder"
       # Set to true if you don't have public domain & valid SSL (development only)
-      onboarding.configmaps.onboarding.ENABLE_INSECURE: "false"
+      #onboarding.configmaps.onboarding.ENABLE_INSECURE: "false"
     wait: true
     waitForJobs: true
     timeout: 1800
@@ -383,11 +383,11 @@ apps:
       onboarding.modules[9].enabled: "false"
       # S3 Configuration - UPDATE THESE VALUES FOR YOUR ENVIRONMENT
       onboarding.configmaps.s3.s3-host: "http://minio.minio:9000"
-      onboarding.configmaps.s3.s3-user-key: ""
+      onboarding.configmaps.s3.s3-user-key: "admin"
       onboarding.configmaps.s3.s3-region: ""
       onboarding.configmaps.s3.s3-bucket-name: "onboarder"
       # Set to true if you don't have public domain & valid SSL (development only)
-      onboarding.configmaps.onboarding.ENABLE_INSECURE: "false"
+      #onboarding.configmaps.onboarding.ENABLE_INSECURE: "false"
     wait: true
     waitForJobs: true
     timeout: 1800
