@@ -11,27 +11,81 @@ fi
 NS=esignet
 COPY_UTIL=$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh
 
+function wait_for_job_completion() {
+  local job_label=$1
+  local namespace=$2
+  local timeout=${3:-600}
+  
+  echo "Waiting for job with label $job_label to be created..."
+  local max_wait=60
+  local wait_interval=10
+  local elapsed=0
+  
+  # Wait for job to be created
+  while [ $elapsed -lt $max_wait ]; do
+    JOB_NAME=$(kubectl -n $namespace get jobs -l "$job_label" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+    if [ -n "$JOB_NAME" ]; then
+      echo "Found job: $JOB_NAME"
+      break
+    fi
+    echo "Job not found yet, waiting... ($elapsed/$max_wait seconds)"
+    sleep $wait_interval
+    elapsed=$((elapsed + wait_interval))
+  done
+  
+  if [ -z "$JOB_NAME" ]; then
+    echo "ERROR: No job found with label $job_label after $max_wait seconds"
+    kubectl -n $namespace get jobs
+    return 1
+  fi
+  
+  # Check job status in a loop
+  echo "Monitoring job $JOB_NAME status..."
+  local start_time=$(date +%s)
+  
+  while true; do
+    local current_time=$(date +%s)
+    local elapsed_time=$((current_time - start_time))
+    
+    if [ $elapsed_time -ge $timeout ]; then
+      echo "ERROR: Job $JOB_NAME timed out after ${timeout}s"
+      kubectl -n $namespace describe job/$JOB_NAME
+      kubectl -n $namespace logs job/$JOB_NAME --tail=100 || true
+      return 1
+    fi
+    
+    # Get job status
+    local succeeded=$(kubectl -n $namespace get job/$JOB_NAME -o jsonpath='{.status.succeeded}' 2>/dev/null || echo "0")
+    local failed=$(kubectl -n $namespace get job/$JOB_NAME -o jsonpath='{.status.failed}' 2>/dev/null || echo "0")
+    local active=$(kubectl -n $namespace get job/$JOB_NAME -o jsonpath='{.status.active}' 2>/dev/null || echo "0")
+    
+    echo "Job status - Active: ${active:-0}, Succeeded: ${succeeded:-0}, Failed: ${failed:-0} (elapsed: ${elapsed_time}s)"
+    
+    if [ "${succeeded:-0}" -ge 1 ]; then
+      echo "Job $JOB_NAME completed successfully!"
+      return 0
+    fi
+    
+    if [ "${failed:-0}" -ge 1 ]; then
+      echo "ERROR: Job $JOB_NAME failed!"
+      kubectl -n $namespace describe job/$JOB_NAME
+      kubectl -n $namespace logs job/$JOB_NAME --tail=100 || true
+      return 1
+    fi
+    
+    sleep 15
+  done
+}
+
 function postinstall_partner_onboarder() {
   echo "Post-install setup for esignet-resident-oidc-partner-onboarder"
 
   # Wait for the onboarder job to complete (it creates the secrets we need)
   echo "Waiting for esignet-resident-oidc-partner-onboarder job to complete..."
-  echo "Sleeping for 2 minutes to allow job to start and complete..."
-  sleep 120
   
-  # Wait for the job to complete with timeout
-  JOB_NAME=$(kubectl -n $NS get jobs -l app.kubernetes.io/instance=esignet-resident-oidc-partner-onboarder -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
-  if [ -n "$JOB_NAME" ]; then
-    echo "Found job: $JOB_NAME, waiting for completion..."
-    kubectl -n $NS wait --for=condition=complete --timeout=600s job/$JOB_NAME || {
-      echo "Job did not complete in time, checking status..."
-      kubectl -n $NS describe job/$JOB_NAME
-      kubectl -n $NS logs job/$JOB_NAME --tail=100 || true
-      echo "Continuing anyway..."
-    }
-  else
-    echo "No onboarder job found, waiting additional time for secrets to be created..."
-    sleep 60
+  # Wait for job completion with status monitoring
+  if ! wait_for_job_completion "app.kubernetes.io/instance=esignet-resident-oidc-partner-onboarder" "$NS" 600; then
+    echo "WARNING: Job completion wait failed, but will still try to verify secrets..."
   fi
   
   # Verify secrets exist before copying

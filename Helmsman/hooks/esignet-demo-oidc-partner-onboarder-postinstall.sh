@@ -12,41 +12,81 @@ fi
 NS=esignet
 JOB_NAME="esignet-demo-oidc-partner-onboarder-demo-oidc"
 
+function wait_for_job_status() {
+  local job_name=$1
+  local namespace=$2
+  local timeout=${3:-600}
+  
+  echo "Waiting for job $job_name to be created..."
+  local max_wait=120
+  local wait_interval=10
+  local elapsed=0
+  
+  # Wait for job to be created
+  while [ $elapsed -lt $max_wait ]; do
+    if kubectl get job/$job_name -n $namespace &>/dev/null; then
+      echo "Job $job_name found"
+      break
+    fi
+    echo "Job not found yet, waiting... ($elapsed/$max_wait seconds)"
+    sleep $wait_interval
+    elapsed=$((elapsed + wait_interval))
+  done
+  
+  if ! kubectl get job/$job_name -n $namespace &>/dev/null; then
+    echo "ERROR: Job $job_name not found after $max_wait seconds"
+    kubectl -n $namespace get jobs
+    return 1
+  fi
+  
+  # Check job status in a loop
+  echo "Monitoring job $job_name status..."
+  local start_time=$(date +%s)
+  
+  while true; do
+    local current_time=$(date +%s)
+    local elapsed_time=$((current_time - start_time))
+    
+    if [ $elapsed_time -ge $timeout ]; then
+      echo "ERROR: Job $job_name timed out after ${timeout}s"
+      kubectl -n $namespace describe job/$job_name
+      kubectl -n $namespace logs job/$job_name --tail=100 || true
+      return 1
+    fi
+    
+    # Get job status
+    local succeeded=$(kubectl -n $namespace get job/$job_name -o jsonpath='{.status.succeeded}' 2>/dev/null || echo "0")
+    local failed=$(kubectl -n $namespace get job/$job_name -o jsonpath='{.status.failed}' 2>/dev/null || echo "0")
+    local active=$(kubectl -n $namespace get job/$job_name -o jsonpath='{.status.active}' 2>/dev/null || echo "0")
+    
+    echo "Job status - Active: ${active:-0}, Succeeded: ${succeeded:-0}, Failed: ${failed:-0} (elapsed: ${elapsed_time}s)"
+    
+    if [ "${succeeded:-0}" -ge 1 ]; then
+      echo "Job $job_name completed successfully!"
+      return 0
+    fi
+    
+    if [ "${failed:-0}" -ge 1 ]; then
+      echo "ERROR: Job $job_name failed!"
+      kubectl -n $namespace describe job/$job_name
+      kubectl -n $namespace logs job/$job_name --tail=100 || true
+      return 1
+    fi
+    
+    sleep 15
+  done
+}
+
 function postinstall_demo_oidc_partner_onboarder() {
   echo "=============================================="
   echo "Post-install setup for esignet-demo-oidc-partner-onboarder"
   echo "=============================================="
 
-  # Sleep for 2 minutes to allow job to start and run
-  echo "Sleeping for 2 minutes to allow job to start and complete..."
-  sleep 120
-
-  # Wait for job to exist first
-  echo "Waiting for job $JOB_NAME to be created..."
-  MAX_RETRIES=10
-  RETRY_INTERVAL=30
-  for i in $(seq 1 $MAX_RETRIES); do
-    if kubectl get job/$JOB_NAME -n $NS &>/dev/null; then
-      echo "Job $JOB_NAME found"
-      break
-    fi
-    if [ $i -eq $MAX_RETRIES ]; then
-      echo "ERROR: Job $JOB_NAME not found after $MAX_RETRIES retries"
-      kubectl -n $NS get jobs
-      return 1
-    fi
-    echo "Waiting for job to be created (attempt $i/$MAX_RETRIES)..."
-    sleep $RETRY_INTERVAL
-  done
-
-  # Wait for job to complete
-  echo "Waiting for job $JOB_NAME to complete..."
-  kubectl wait --for=condition=complete job/$JOB_NAME -n $NS --timeout=600s || {
-    echo "ERROR: Job $JOB_NAME did not complete successfully"
-    kubectl describe job/$JOB_NAME -n $NS || true
-    kubectl logs -n $NS job/$JOB_NAME || true
+  # Wait for job completion with status monitoring
+  if ! wait_for_job_status "$JOB_NAME" "$NS" 600; then
+    echo "ERROR: Job completion failed"
     return 1
-  }
+  fi
 
   # Extract private and public key pair from job logs
   echo "Extracting private and public key pair from job logs..."
