@@ -23,6 +23,11 @@ function preinstall_demo_oidc_partner_onboarder() {
   echo "Setting Istio injection to disabled for $NS namespace"
   kubectl label ns $NS istio-injection=disabled --overwrite
 
+  # Delete existing onboarding configmap to avoid helm ownership conflict
+  # This configmap may have been created by esignet-resident-oidc-partner-onboarder
+  echo "Cleaning up existing onboarding configmap in $NS namespace"
+  kubectl -n $NS delete cm onboarding --ignore-not-found=true
+
   # Delete existing s3 configmap to refresh (as per legacy script)
   echo "Cleaning up existing s3 configmap in $NS namespace"
   kubectl -n $NS delete cm s3 --ignore-not-found=true
