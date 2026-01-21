@@ -1,0 +1,4 @@
+# Ansible generated files
+.ssh_key
+inventory.ini
+*.retry
