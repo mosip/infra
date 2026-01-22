@@ -99,7 +99,7 @@ apps:
       databases.mosip_idrepo.port: 5433
 
       databases.mosip_ida.enabled: "true"
-      databases.mosip_ida.branch: "v1.2.1.2"
+      databases.mosip_ida.branch: "v1.2.1.3"
       databases.mosip_ida.host: "postgres.sandbox.xyz.net"
       databases.mosip_ida.port: 5433
 
@@ -124,7 +124,7 @@ apps:
       databases.mosip_hotlist.port: 5433
 
       databases.mosip_resident.enabled: "true"
-      databases.mosip_resident.branch: "v1.2.1.2"
+      databases.mosip_resident.branch: "v1.2.1.3"
       databases.mosip_resident.host: "postgres.sandbox.xyz.net"
       databases.mosip_resident.port: 5433
 
