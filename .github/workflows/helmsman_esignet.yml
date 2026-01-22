@@ -16,6 +16,11 @@ on:
         required: false
         default: false
         type: boolean
+      delete_existing_jobs:
+        description: "Delete existing onboarder jobs before deployment (required for re-runs)"
+        required: false
+        default: false
+        type: boolean
   push:
     paths:
       - Helmsman/dsf/esignet-dsf.yaml
@@ -248,11 +253,20 @@ jobs:
           export HOME="${{ github.workspace }}"
           export WORKDIR="$HOME/Helmsman"
           
-          # Pre-Helmsman cleanup: Delete immutable Jobs that cause diffing errors
-          # Kubernetes Jobs cannot be updated, so we must delete them before Helmsman runs
-          echo "Running pre-Helmsman cleanup..."
-          chmod +x $WORKDIR/hooks/pre-helmsman-cleanup.sh
-          $WORKDIR/hooks/pre-helmsman-cleanup.sh || echo "Cleanup script completed (may have warnings on first run)"
+          # Conditional cleanup: Delete immutable Jobs only if checkbox is enabled
+          # Kubernetes Jobs cannot be updated, so we must delete them before Helmsman runs on re-deployments
+          DELETE_JOBS="${{ github.event.inputs.delete_existing_jobs }}"
+          if [ "$DELETE_JOBS" = "true" ]; then
+            echo "=============================================="
+            echo "Delete existing jobs option enabled"
+            echo "Running pre-Helmsman cleanup..."
+            echo "=============================================="
+            chmod +x $WORKDIR/hooks/pre-helmsman-cleanup.sh
+            $WORKDIR/hooks/pre-helmsman-cleanup.sh || echo "Cleanup script completed (may have warnings on first run)"
+          else
+            echo "Delete existing jobs option not enabled, skipping cleanup"
+            echo "Note: If you encounter 'Job is invalid: spec.template' errors, re-run with 'Delete existing onboarder jobs' checked"
+          fi
           
           # Mock Relying Party secrets are already in env from job-level definition
           # They are automatically masked by GitHub Actions
