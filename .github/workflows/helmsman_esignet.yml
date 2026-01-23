@@ -248,6 +248,56 @@ jobs:
             echo "DB_USER_PASSWORD=" >> $GITHUB_ENV
           fi
 
+      - name: Get Keycloak Client Secrets for esignet-keycloak-init
+        id: get-keycloak-secrets
+        run: |
+          echo "Fetching Keycloak client secrets from keycloak namespace..."
+          
+          # Set the secret key names (these are the keys used in keycloak-client-secrets)
+          export PMS_CLIENT_SECRET_KEY='mosip_pms_client_secret'
+          export MPARTNER_DEFAULT_AUTH_SECRET_KEY='mpartner_default_auth_secret'
+          
+          # Check if keycloak-client-secrets exists
+          if kubectl -n keycloak get secret keycloak-client-secrets &>/dev/null; then
+            echo "✅ keycloak-client-secrets found in keycloak namespace"
+            
+            # Fetch PMS client secret
+            PMS_CLIENT_SECRET_VALUE=$(kubectl -n keycloak get secret keycloak-client-secrets -o jsonpath="{.data.${PMS_CLIENT_SECRET_KEY}}" 2>/dev/null | base64 -d || echo "")
+            
+            # Fetch MPARTNER_DEFAULT_AUTH secret
+            MPARTNER_DEFAULT_AUTH_SECRET_VALUE=$(kubectl -n keycloak get secret keycloak-client-secrets -o jsonpath="{.data.${MPARTNER_DEFAULT_AUTH_SECRET_KEY}}" 2>/dev/null | base64 -d || echo "")
+            
+            if [ -n "$PMS_CLIENT_SECRET_VALUE" ] && [ -n "$MPARTNER_DEFAULT_AUTH_SECRET_VALUE" ]; then
+              # Mask secrets in logs
+              echo "::add-mask::$PMS_CLIENT_SECRET_VALUE"
+              echo "::add-mask::$MPARTNER_DEFAULT_AUTH_SECRET_VALUE"
+              
+              # Export for Helmsman
+              echo "PMS_CLIENT_SECRET_KEY=$PMS_CLIENT_SECRET_KEY" >> $GITHUB_ENV
+              echo "PMS_CLIENT_SECRET_VALUE=$PMS_CLIENT_SECRET_VALUE" >> $GITHUB_ENV
+              echo "MPARTNER_DEFAULT_AUTH_SECRET_KEY=$MPARTNER_DEFAULT_AUTH_SECRET_KEY" >> $GITHUB_ENV
+              echo "MPARTNER_DEFAULT_AUTH_SECRET_VALUE=$MPARTNER_DEFAULT_AUTH_SECRET_VALUE" >> $GITHUB_ENV
+              
+              echo "✅ PMS_CLIENT_SECRET_VALUE retrieved successfully"
+              echo "✅ MPARTNER_DEFAULT_AUTH_SECRET_VALUE retrieved successfully"
+            else
+              echo "⚠️ Some Keycloak client secrets are empty - keycloak-init will create them"
+              # Set empty values - keycloak-init will generate new secrets
+              echo "PMS_CLIENT_SECRET_KEY=$PMS_CLIENT_SECRET_KEY" >> $GITHUB_ENV
+              echo "PMS_CLIENT_SECRET_VALUE=" >> $GITHUB_ENV
+              echo "MPARTNER_DEFAULT_AUTH_SECRET_KEY=$MPARTNER_DEFAULT_AUTH_SECRET_KEY" >> $GITHUB_ENV
+              echo "MPARTNER_DEFAULT_AUTH_SECRET_VALUE=" >> $GITHUB_ENV
+            fi
+          else
+            echo "⚠️ keycloak-client-secrets not found in keycloak namespace"
+            echo "This is expected on first deployment - keycloak-init will create the secrets"
+            # Set empty values - keycloak-init will generate new secrets
+            echo "PMS_CLIENT_SECRET_KEY=$PMS_CLIENT_SECRET_KEY" >> $GITHUB_ENV
+            echo "PMS_CLIENT_SECRET_VALUE=" >> $GITHUB_ENV
+            echo "MPARTNER_DEFAULT_AUTH_SECRET_KEY=$MPARTNER_DEFAULT_AUTH_SECRET_KEY" >> $GITHUB_ENV
+            echo "MPARTNER_DEFAULT_AUTH_SECRET_VALUE=" >> $GITHUB_ENV
+          fi
+
       - name: Initiate helmsman to apply the DSF configurations
         run: |
           export HOME="${{ github.workspace }}"
