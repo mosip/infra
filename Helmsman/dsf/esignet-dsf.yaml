@@ -174,13 +174,10 @@ apps:
       # image.tag: "1.2.0.1"
       keycloakExternalHost: "iam.soil.mosip.net"
       keycloakInternalHost: "keycloak.keycloak"
-      keycloak.realms.mosip.realm_config.attributes.frontendUrl: "https://iam.soil.mosip.net/auth"
-      keycloak.realms.mosip.realm_config.smtpServer.auth: "false"
-      keycloak.realms.mosip.realm_config.smtpServer.host: "smtp.gmail.com"
-      keycloak.realms.mosip.realm_config.smtpServer.port: "465"
-      keycloak.realms.mosip.realm_config.smtpServer.from: "mosipqa@gmail.com"
-      keycloak.realms.mosip.realm_config.smtpServer.starttls: "false"
-      keycloak.realms.mosip.realm_config.smtpServer.ssl: "true"
+      clientSecrets[0].name: "$PMS_CLIENT_SECRET_KEY"
+      clientSecrets[0].secret: "$PMS_CLIENT_SECRET_VALUE"
+      clientSecrets[1].name: "$MPARTNER_DEFAULT_AUTH_SECRET_KEY"
+      clientSecrets[1].secret: "$MPARTNER_DEFAULT_AUTH_SECRET_VALUE"
     wait: true
     timeout: 1200
     priority: -11
