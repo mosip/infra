@@ -59,57 +59,57 @@ apps:
   postgres-init:
     namespace: postgres
     enabled: true
-    version: 1.3.0-develop
+    version: 12.0.1
     chart: mosip/postgres-init
     set:
       dbUserPasswords.dbuserPassword: ""
       databases.mosip_master.enabled: "true"
-      databases.mosip_master.branch: "release-1.3.x"
+      databases.mosip_master.branch: "v1.2.1.4"
       databases.mosip_master.host: "postgres.sandbox.xyz.net"
       databases.mosip_master.port: 5433
 
       databases.mosip_audit.enabled: "true"
-      databases.mosip_audit.branch: "release-1.3.x"
+      databases.mosip_audit.branch: "v1.2.0.1"
       databases.mosip_audit.host: "postgres.sandbox.xyz.net"
       databases.mosip_audit.port: 5433
 
       databases.mosip_keymgr.enabled: "true"
-      databases.mosip_keymgr.branch: "release-1.3.x"
+      databases.mosip_keymgr.branch: "v1.2.1.0"
       databases.mosip_keymgr.host: "postgres.sandbox.xyz.net"
       databases.mosip_keymgr.port: 5433
 
       databases.mosip_kernel.enabled: "true"
-      databases.mosip_kernel.branch: "release-1.3.x"
+      databases.mosip_kernel.branch: " v1.2.0.2"
       databases.mosip_kernel.host: "postgres.sandbox.xyz.net"
       databases.mosip_kernel.port: 5433
 
       databases.mosip_idmap.enabled: "true"
-      databases.mosip_idmap.branch: "release-1.3.x"
+      databases.mosip_idmap.branch: "v1.2.2.4"
       databases.mosip_idmap.host: "postgres.sandbox.xyz.net"
       databases.mosip_idmap.port: 5433
 
       databases.mosip_prereg.enabled: "true"
-      databases.mosip_prereg.branch: "release-1.3.x"
+      databases.mosip_prereg.branch: "v1.2.0.3"
       databases.mosip_prereg.host: "postgres.sandbox.xyz.net"
       databases.mosip_prereg.port: 5433
 
       databases.mosip_idrepo.enabled: "true"
-      databases.mosip_idrepo.branch: "release-1.3.x"
+      databases.mosip_idrepo.branch: "v1.2.2.4"
       databases.mosip_idrepo.host: "postgres.sandbox.xyz.net"
       databases.mosip_idrepo.port: 5433
 
       databases.mosip_ida.enabled: "true"
-      databases.mosip_ida.branch: "release-1.3.x"
+      databases.mosip_ida.branch: "v1.2.1.3"
       databases.mosip_ida.host: "postgres.sandbox.xyz.net"
       databases.mosip_ida.port: 5433
 
       databases.mosip_credential.enabled: "true"
-      databases.mosip_credential.branch: "release-1.3.x"
+      databases.mosip_credential.branch: "v1.2.2.4"
       databases.mosip_credential.host: "postgres.sandbox.xyz.net"
       databases.mosip_credential.port: 5433
 
       databases.mosip_regprc.enabled: "true"
-      databases.mosip_regprc.branch: "release-1.3.x"
+      databases.mosip_regprc.branch: "v1.2.1.2"
       databases.mosip_regprc.host: "postgres.sandbox.xyz.net"
       databases.mosip_regprc.port: 5433
 
@@ -119,22 +119,22 @@ apps:
       databases.mosip_pms.port: 5433
 
       databases.mosip_hotlist.enabled: "true"
-      databases.mosip_hotlist.branch: "release-1.3.x"
+      databases.mosip_hotlist.branch: "v1.2.1.4"
       databases.mosip_hotlist.host: "postgres.sandbox.xyz.net"
       databases.mosip_hotlist.port: 5433
 
       databases.mosip_resident.enabled: "true"
-      databases.mosip_resident.branch: "release-1.3.x"
+      databases.mosip_resident.branch: "v1.2.1.3"
       databases.mosip_resident.host: "postgres.sandbox.xyz.net"
       databases.mosip_resident.port: 5433
 
       databases.mosip_otp.enabled: "true"
-      databases.mosip_otp.branch: "release-1.3.x"
+      databases.mosip_otp.branch: "v1.3.0-beta.1"
       databases.mosip_otp.host: "postgres.sandbox.xyz.net"
       databases.mosip_otp.port: 5433
 
       databases.mosip_digitalcard.enabled: "true"
-      databases.mosip_digitalcard.branch: "release-1.3.x"
+      databases.mosip_digitalcard.branch: "v1.2.0.1"
       databases.mosip_digitalcard.host: "postgres.sandbox.xyz.net"
       databases.mosip_digitalcard.port: 5433
     wait: true
@@ -147,8 +147,8 @@ apps:
     version: 7.1.18
     chart: mosip/keycloak
     set:
-      image.repository: "mosipqa/mosip-artemis-keycloak"
-      image.tag: "1.3.x"
+      image.repository: "mosipid/mosip-artemis-keycloak"
+      image.tag: "1.2.0.2"
       image.pullPolicy: "Always"
       # Override Postgres image
       postgresql.image.registry: "docker.io"
@@ -193,11 +193,11 @@ apps:
   keycloak-init:
     namespace: keycloak
     enabled: true
-    version: 1.3.0-develop
+    version: 12.0.2
     chart: mosip/keycloak-init
     set:
-      image.repository: "mosipqa/keycloak-init"
-      image.tag: "1.3.x"
+      # image.repository: "mosipid/keycloak-init"
+      # image.tag: "1.2.0.1"
       keycloakExternalHost: "iam.sandbox.xyz.net"
       keycloakInternalHost: "keycloak.keycloak"
       keycloak.realms.mosip.realm_config.attributes.frontendUrl: "https://iam.sandbox.xyz.net/auth"
@@ -242,12 +242,11 @@ apps:
   minio:
     namespace: minio
     enabled: true
-    version: 15.0.6
+    version: 10.1.6
     chart: mosip/minio
     set:
-      global.security.allowInsecureImages: true
       image.repository: "mosipid/minio"
-      image.tag: "2025.2.28-debian-12-r1"
+      image.tag: "2022.2.7-debian-10-r0"
       metrics.serviceMonitor.enabled: "true"
       extraEnvVars[0].name: "MINIO_PROMETHEUS_URL"
       extraEnvVars[0].value: "http://rancher-monitoring-prometheus.cattle-monitoring-system:9090"
@@ -280,8 +279,8 @@ apps:
       replicaCount: "1"
       # image.repository, image.tag, and image.pullPolicy are commented out in the original YAML
       # Uncomment and update as needed:
-      # image.repository: "clamav/clamav"
-      # image.tag: "1.2"
+      image.repository: "mosipid/clamav"
+      image.tag: "1.2"
       # image.pullPolicy: "Always"
     wait: true
     timeout: 1200
@@ -290,12 +289,9 @@ apps:
   activemq:
     namespace: activemq
     enabled: true
-    version: 0.0.3
+    version: 0.0.2
     chart: mosip/activemq-artemis
-    set:
-      # image.repository: "mosipqa/activemq-artemis"
-      # image.tag: "1.1.5"
-      persistence.storageClass: "nfs-csi-activemq"
+    set: 
       istio.enabled: "true"
       istio.hosts[0]: "activemq.sandbox.xyz.net"
       istio.ingressController.name: "ingressgateway-internal"
@@ -304,7 +300,7 @@ apps:
     timeout: 1200
     priority: -8
     hooks:
-      postInstall: "$WORKDIR/hooks/captcha-setup.sh  <prereg-site-key> <prereg-secret-key> <admin-site-key> <admin-secret-key> <resident-site-key> <resident-secret-key>"
+      postInstall: "$WORKDIR/hooks/captcha-setup.sh  <prereg-site-key> <prereg-secret-key> <admin-site-key> <admin-secret-key> <resident-site-key> <resident-secret-key"
   # Note: Create a google recaptcha v2 ("I am not a Robot") from Google Recaptcha Admin.
   # Pass the captcha site and secret key in the above post install script as an argument.To create site and secret key below is the link:
   # https://cloud.google.com/security/products/recaptcha
@@ -313,14 +309,14 @@ apps:
   kafka: 
     namespace: kafka
     enabled: true
-    version: 26.11.4
+    version: 18.3.1
     chart: bitnami/kafka
     set:
       # Add these for image overrides
       image.repository: "mosipid/kafka"
-      image.tag: "3.6.1-debian-12-r12"
+      image.tag: "3.2.1-debian-11-r9"
       zookeeper.image.repository: "mosipid/zookeeper"
-      zookeeper.image.tag: "3.9.1-debian-12-r13"
+      zookeeper.image.tag: "3.8.0-debian-11-r30"
       clusterDomain: "cluster.local"
       logRetentionBytes: "_1073741824"
       defaultReplicationFactor: "3"
@@ -347,17 +343,6 @@ apps:
       startupProbe.timeoutSeconds: "1"
       startupProbe.failureThreshold: "30"
       startupProbe.successThreshold: "1"
-      # KRaft mode (disabled - using Zookeeper)
-      kraft.enabled: "false"
-      # Controller settings (not used in Zookeeper mode)
-      controller.replicaCount: "0"
-      # Broker settings
-      broker.replicaCount: "5"
-      # Listeners configuration
-      listeners.client.name: "CLIENT"
-      listeners.client.containerPort: "9092"
-      listeners.client.protocol: "PLAINTEXT"
-      listeners.client.sslClientAuth: ""
     wait: true
     timeout: 1200
     priority: -7
@@ -365,12 +350,12 @@ apps:
   kafka-ui:
     namespace: kafka
     enabled: true
-    version: 0.7.1
+    version: 0.4.2
     chart: kafka-ui/kafka-ui
     set:
-      #Add these for image overrides
-      image.repository: "provectuslabs/kafka-ui"
-      image.tag: "v0.7.0"
+      # Add these for image overrides
+      # image.repository: "docker.io/provectuslabs/kafka-ui"
+      # image.tag: "v0.4.0"
       envs.config.KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "kafka.kafka:9092"
       envs.config.KAFKA_CLUSTERS_0_NAME: "main_kafka"
       envs.config.KAFKA_CLUSTERS_0_ZOOKEEPER: "kafka-zookeeper.kafka:2181"

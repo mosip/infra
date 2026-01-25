@@ -7,6 +7,7 @@
 This repository provides a **3-step rapid deployment model** for MOSIP (Modular Open Source Identity Platform) with enhanced security features including GPG (GNU Privacy Guard) encryption for local backends and integrated PostgreSQL setup via Terraform modules.
 
 ### Key Components:
+
 - **Terraform** provisions the complete cloud infrastructure including VPCs, RKE2 Kubernetes clusters, databases, and networking components with a high-level declarative approach.
 - **Helmsman** deploys and manages all MOSIP services and applications on Kubernetes using Helm charts, providing centralized control through Desired State Files (DSF).
 
@@ -14,10 +15,10 @@ This repository provides a **3-step rapid deployment model** for MOSIP (Modular 
 
 For detailed MOSIP platform architecture Diagram, visit: [MOSIP Platform Architecture](https://docs.mosip.io/1.2.0/setup/deploymentnew/v3-installation/1.2.0.2/overview-and-architecture#architecture-diagram)
 
-**Terraform Architecture:**  
+**Terraform Architecture:**
 [View Terraform Architecture Diagram](docs/_images/terraform-light.draw.io.png)
 
-**Helmsman Architecture:**  
+**Helmsman Architecture:**
 [View Helmsman Architecture Diagram](docs/_images/updated-Helmsman.drawio.png)
 
 ---
@@ -67,6 +68,8 @@ graph TB
 ```
 
 > **Note:** Complete Terraform scripts are available only for **AWS**. For **Azure and GCP**, only placeholder structures are configured - community contributions are welcome to implement full functionality.
+
+**Important:** If you deploy `observ-infra` (Rancher + Keycloak for platform management), you **must** run the Keycloak–Rancher SAML integration workflow after `observ-infra` deployment completes and before deploying MOSIP infra. This configures Keycloak as the identity provider for Rancher operator access. See [Step 3cb: Keycloak ⇄ Rancher integration (CI)](#step-3cb-keycloak--rancher-integration-ci--if-using-observ-infra) section below for workflow details and how to trigger it.
 
 ## Prerequisites
 
@@ -119,7 +122,6 @@ We've created comprehensive beginner-friendly guides to help you succeed:
  "Effect": "Allow",
  "Action": [
  "ec2:*",
- "vpc:*",
  "route53:*",
  "iam:*",
  "s3:*"
@@ -225,7 +227,7 @@ YOUR_SSH_KEY_NAME: |
 **Environment Secrets** (configured per deployment environment):
 
 ```yaml
-# WireGuard VPN (optional - for infrastructure access)
+# WireGuard VPN (required - for infrastructure access & Keycloak-Rancher integration)
 TF_WG_CONFIG: |
  [Interface]
  PrivateKey = terraform-private-key
@@ -235,6 +237,8 @@ TF_WG_CONFIG: |
  PublicKey = server-public-key
  Endpoint = your-server:51820
  AllowedIPs = 10.0.0.0/16
+# NOTE: TF_WG_CONFIG is REQUIRED for the keycloak-rancher-integration workflow
+# to access private Keycloak and Rancher instances. Configure this after base-infra deployment.
 
 # Notifications (optional)
 SLACK_WEBHOOK_URL: "https://hooks.slack.com/services/..." # Slack notifications
@@ -411,6 +415,17 @@ For detailed information about GitHub Actions workflow parameters, terraform mod
 - ✅ Green checkmark when complete
 - ✅ Infrastructure created in AWS
 
+ **If Workflow Fails - How to View Error Logs:**
+
+1. Click on the **failed workflow run** (red ❌ icon)
+2. Click on the **failed job** in the left sidebar
+3. Expand the **failed step** (look for red ❌) to see detailed error logs
+4. Common steps to check:
+   - `Terraform Init` - Backend/provider issues
+   - `Terraform Plan` - Configuration or syntax errors
+   - `Terraform Apply` - Resource creation failures
+5. Scroll through the logs to find the error message (usually highlighted in red)
+6. For full logs, click **View raw logs** (gear icon → "View raw logs")
 
  **Need more help?** [Workflow Guide](docs/WORKFLOW_GUIDE.md)
 
@@ -445,9 +460,9 @@ For detailed information about GitHub Actions workflow parameters, terraform mod
 
 4. **Update Environment Secrets:** Add WireGuard configurations to your GitHub environment secrets:
 
-- `TF_WG_CONFIG` - For Terraform infrastructure deployments
-- `CLUSTER_WIREGUARD_WG0` - For Helmsman cluster access (peer1)
-- `CLUSTER_WIREGUARD_WG1` - For Helmsman cluster access (peer2, optional)
+- `TF_WG_CONFIG` - For Terraform infrastructure deployments (peer1)
+- `CLUSTER_WIREGUARD_WG0` - For Helmsman cluster access (peer2)
+- `CLUSTER_WIREGUARD_WG1` - For Helmsman cluster access (peer3, optional)
 - [How to add secrets to GitHub](docs/SECRET_GENERATION_GUIDE.md#7-how-to-add-secrets-to-github)
 
 5. **Verify Connection:** Test private IP connectivity
@@ -465,13 +480,150 @@ For detailed information about GitHub Actions workflow parameters, terraform mod
 - **Terraform Integration:** Required for subsequent infrastructure deployments
 - **Helmsman Connectivity:** Enables secure cluster access for service deployments
 
-
-
 > **Important:** Complete WireGuard setup and configure `TF_WG_CONFIG` environment secret before proceeding to MOSIP infrastructure deployment.
 >
 > **Need help?** Check the [detailed WireGuard guide](terraform/base-infra/WIREGUARD_SETUP.md) with screenshots!
 
-#### Step 3c: MOSIP Infrastructure
+#### Step 3ca: Observation Infrastructure (observ-infra) — Optional
+
+This step creates the optional Rancher + Keycloak management cluster for observability, monitoring, and operator identity management. **Skip this step if you don't need a separate observation plane.**
+
+1. **Update observ-infra variables in `terraform/implementations/aws/observ-infra/aws.tfvars`:**
+
+ Complete configuration example with detailed explanations:
+
+```hcl
+ # Environment name (observ-infra component)
+ cluster_name = "soil38-observ"
+ # Observation infrastructure domain (ex: sandbox-observ.xyz.net)
+ cluster_env_domain = "soil38-observ.mosip.net"
+ # Email-ID will be used by certbot to notify SSL certificate expiry via email
+ mosip_email_id = "chandra.mishra@technoforte.co.in"
+ # SSH login key name for AWS node instances (ex: my-ssh-key)
+ ssh_key_name = "mosip-aws"
+ # The AWS region for resource creation
+ aws_provider_region = "ap-south-1"
+
+ # Specific availability zones for VM deployment (optional)
+ specific_availability_zones = ["ap-south-1b"]
+
+ # The instance type for Kubernetes nodes (typically smaller for observ-infra)
+ k8s_instance_type = "t3a.xlarge"
+ # The instance type for Nginx server (load balancer)
+ nginx_instance_type = "t3a.xlarge"
+ # The Route 53 hosted zone ID
+ zone_id = "Z090954828SJIEL6P5406"
+
+ ## UBUNTU 24.04
+ # The Amazon Machine Image ID for the instances
+ ami = "ami-0ad21ae1d0696ad58"
+
+ # Repo K8S-INFRA URL
+ k8s_infra_repo_url = "https://github.com/mosip/k8s-infra.git"
+ # Repo K8S-INFRA branch
+ k8s_infra_branch = "v1.2.1.0"
+ # NGINX Node's Root volume size
+ nginx_node_root_volume_size = 24
+ # NGINX node's EBS volume size
+ nginx_node_ebs_volume_size = 200
+
+ # Control-plane, ETCD, Worker (smaller cluster for observ-infra)
+ k8s_control_plane_node_count = 2
+ # ETCD, Worker
+ k8s_etcd_node_count = 2
+ # Worker
+ k8s_worker_node_count = 1
+
+ # RKE2 Version Configuration
+ rke2_version = "v1.28.9+rke2r1"
+
+ # Rancher Import Configuration (optional)
+ enable_rancher_import = false
+
+ # Security group CIDRs
+ network_cidr = "10.0.0.0/8"
+ WIREGUARD_CIDR = "10.0.0.0/8"
+
+ # DNS Records to map
+ subdomain_public = ["rancher", "keycloak"]
+ subdomain_internal = ["admin", "monitoring", "logging"]
+
+ # VPC Configuration - Existing VPC to use (discovered by Name tag)
+ vpc_name = "mosip-boxes"
+```
+
+2. **Run observ-infra via GitHub Actions:**
+
+- **(1)** Go to **Actions** → **terraform plan/apply**
+- **(2)** Click **Run workflow**
+- **(3)** **Branch**: Select your deployment branch (e.g., `release-0.2.0`)
+- **(4)** **Cloud Provider**: Select `aws`
+- **(5)** **Component**: Select `observ-infra` (creates Rancher management cluster + Keycloak)
+- **(6)** **Backend**: Choose backend configuration:
+  - `local` - GPG-encrypted local state (recommended for development)
+  - `s3` - Remote S3 backend (recommended for production)
+- **(7)** **SSH_PRIVATE_KEY**: GitHub secret name containing SSH private key for instance access
+- **Terraform apply**:
+  - **(8)** ☐ **Unchecked**  — Plan mode: runs terraform plan (shows changes without applying).
+  - **(8)** ✅ **Checked**  — Apply mode: runs terraform apply (creates/updates infrastructure).
+- **(9)** **Run Workflow**
+
+**What You Should See:**
+
+- ✅ Workflow running (yellow circle icon)
+- ✅ Steps completing one by one
+- ✅ Green checkmark when complete
+- ✅ Observation infrastructure created in AWS with Rancher and Keycloak
+
+**If Workflow Fails - How to View Error Logs:**
+
+1. Click on the **failed workflow run** (red ❌ icon)
+2. Click on the **failed job** in the left sidebar
+3. Expand the **failed step** (look for red ❌) to see detailed error logs
+4. Common steps to check:
+   - `Terraform Init` - Backend/provider issues
+   - `Terraform Plan` - Configuration or syntax errors
+   - `Terraform Apply` - Resource creation failures
+5. Scroll through the logs to find the error message (usually highlighted in red)
+6. For full logs, click **View raw logs** (gear icon → "View raw logs")
+
+**Post-Deployment: Rancher UI Initial Setup**
+
+After `observ-infra` deployment completes, perform the initial Rancher UI setup:
+
+1. **Access Rancher UI:**
+   - Open your browser and navigate to the Rancher domain configured in `aws.tfvars`
+   - Example: `https://rancher.soil38-observ.mosip.net`
+
+2. **Bootstrap Login:**
+   - Enter the default bootstrap password: `admin`
+   - Click **Log in**
+
+3. **Set New Password:**
+   - You will be prompted to set a new password
+   - Enter a strong password and confirm
+   - Click **Continue**
+
+4. **Complete Setup:**
+   - Accept the terms and conditions
+   - Rancher UI is now ready for use
+
+> **Important:** Save this new password securely. This password is used for **local user login** to Rancher UI (the `admin` account). After Keycloak-Rancher SAML integration is configured, operators can also login via Keycloak authentication.
+
+> **Important Notes:**
+>
+> - `observ-infra` is optional and intended for production deployments requiring separate management/monitoring infrastructure
+> - Recommended node sizes are smaller than main infra (t3a.xlarge vs t3a.2xlarge) to reduce costs
+> - Keycloak in this cluster hosts operator/admin identities; back up before destructive operations
+> - Rancher manages clusters; ensure main infra is properly configured before registering with Rancher
+
+#### Step 3cb: Keycloak ⇄ Rancher integration (CI) — If using `observ-infra`
+
+If you deployed `observ-infra` (Rancher + Keycloak for platform management), run the automated Keycloak–Rancher SAML integration workflow **after `observ-infra` deployment completes and before deploying MOSIP infra**. This configures Keycloak as the identity provider for Rancher operator access.
+
+For complete workflow usage instructions, inputs, secrets configuration, and troubleshooting, see **[Rancher-Keycloak Integration Guide](Rancher-keycloak-integration/README.md)**.
+
+#### Step 3d: MOSIP Infrastructure
 
 This step creates MOSIP Kubernetes cluster, PostgreSQL (if enabled), networking, and application infrastructure
 
@@ -582,17 +734,16 @@ This step creates MOSIP Kubernetes cluster, PostgreSQL (if enabled), networking,
 >
 > - Ensure `cluster_name` and `cluster_env_domain` match values used in Helmsman DSF files
 > - Set `enable_postgresql_setup = true` for production deployments with external PostgreSQL,If enable_postgresql_setup = true, Terraform will automatically:
-    - Provision dedicated EBS volume for PostgreSQL on nginx node
-    - Install and configure PostgreSQL 15 via Ansible playbooks
-    - Setup security configurations and user access controls
-    - Configure backup and recovery mechanisms
-    - Make PostgreSQL ready for MOSIP services connectivity
-    - No manual PostgreSQL secret management required!
+>   - Provision dedicated EBS volume for PostgreSQL on nginx node
+>   - Install and configure PostgreSQL 15 via Ansible playbooks
+>   - Setup security configurations and user access controls
+>   - Configure backup and recovery mechanisms
+>   - Make PostgreSQL ready for MOSIP services connectivity
+>   - No manual PostgreSQL secret management required!
 
 > - Set `enable_postgresql_setup = false` for development deployments with containerized PostgreSQL
 > - The `nginx_node_ebs_volume_size_2` is required when `enable_postgresql_setup = true`
 > - **SSH Key Configuration**: The `ssh_key_name` value must match the repository secret name containing your SSH private key (e.g., if `ssh_key_name = "mosip-aws"`, create repository secret named `mosip-aws` with your SSH private key content)
-
 
 #### Rancher Import Configuration (Optional)
 
@@ -684,6 +835,18 @@ After updating `aws.tfvars`, deploy or update your main infra cluster:
   - **(8)** ✅ **Checked**  — Apply mode: runs terraform apply (creates/updates infrastructure).
   - Tip: For your first deployment, run in plan mode first to review changes. If the plan looks correct, re-run the workflow with Apply checked.
 - **(9)** **Run Workflow**
+
+**If Workflow Fails - How to View Error Logs:**
+
+1. Click on the **failed workflow run** (red ❌ icon)
+2. Click on the **failed job** in the left sidebar
+3. Expand the **failed step** (look for red ❌) to see detailed error logs
+4. Common steps to check:
+   - `Terraform Init` - Backend/provider issues
+   - `Terraform Plan` - Configuration or syntax errors
+   - `Terraform Apply` - Resource creation failures
+5. Scroll through the logs to find the error message (usually highlighted in red)
+6. For full logs, click **View raw logs** (gear icon → "View raw logs")
 
 **Verify Rancher Import (Only if rancher_import = true):**
 
@@ -821,7 +984,9 @@ To regenerate import URL if needed:
 
 - **Configure reCAPTCHA keys:**
 
-1. **Create reCAPTCHA keys for each domain:**
+1. **Create reCAPTCHA keys for each domain:** 
+   
+   📖 **[View detailed reCAPTCHA Setup Guide with screenshots](docs/RECAPTCHA_SETUP_GUIDE.md)**
 
 - Go to [Google reCAPTCHA Admin](https://www.google.com/recaptcha/admin/create)
 - Create reCAPTCHA v2 ("I'm not a robot" Checkbox) for each domain:
@@ -980,8 +1145,8 @@ To regenerate import URL if needed:
  KUBECONFIG: "<contents-of-kubeconfig-file>"
 
  # WireGuard Cluster Access for Helmsman
- CLUSTER_WIREGUARD_WG0: "peer1-wireguard-config" # Helmsman cluster access (peer1)
- CLUSTER_WIREGUARD_WG1: "peer2-wireguard-config" # Helmsman cluster access (peer2)
+ CLUSTER_WIREGUARD_WG0: "peer2-wireguard-config" # Helmsman cluster access (peer2)
+ CLUSTER_WIREGUARD_WG1: "peer3-wireguard-config" # Helmsman cluster access (peer3)
 ```
 
 4. **Verify Secret Configuration:**
@@ -1126,7 +1291,10 @@ kubectl get services -n istio-system
 
 ## Environment Destruction and Cleanup
 
-For safe teardown procedures and complete cleanup steps, see our [Environment Destruction Guide](docs/ENVIRONMENT_DESTRUCTION_GUIDE.md).
+For safe teardown and cleanup procedures:
+
+- **Infrastructure Destruction**: [Environment Destruction Guide](docs/ENVIRONMENT_DESTRUCTION_GUIDE.md) - Complete Terraform-based infrastructure cleanup
+- **Helmsman Services Destruction**: [Helmsman Destroy Guide](docs/HELMSMAN_DESTROY_GUIDE.md) - Safe removal of MOSIP services from Kubernetes without removing infrastructure
 
 ---
 

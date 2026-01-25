@@ -59,7 +59,7 @@ subdomain_internal = [
 ]
 
 # Repository configuration
-k8s_infra_repo_url = "https://github.com/bhumi46/k8s-infra.git"
+k8s_infra_repo_url = "https://github.com/mosip/k8s-infra.git"
 k8s_infra_branch   = "v1.2.1.0"
 
 # RKE2 Version Configuration
@@ -75,8 +75,8 @@ keycloak_hostname = "iam.<cluster-env-domain>" # example iam.sandbox.xyz.net
 enable_rancher_keycloak_integration = true
 
 # Rancher import (same as infra)
-enable_rancher_import = false
-rancher_import_url    = "\"<rancher-import-url>\""
+enable_rancher_import = false #dont enable for observ infra
+rancher_import_url    = "\"<rancher-import-url>\"" #dont update for observ infra
 
 # Security group CIDRs
 network_cidr   = "10.0.0.0/8" # Use your actual VPC CIDR
@@ -89,5 +89,5 @@ mount_point        = "/srv/postgres"
 postgresql_port    = "5433"
 
 # MOSIP Infrastructure Repository Configuration
-mosip_infra_repo_url = "https://github.com/bhumi46/mosip-infra.git"
-mosip_infra_branch   = "v0.1.0-beta.1"
+mosip_infra_repo_url = "https://github.com/mosip/mosip-infra.git"
+mosip_infra_branch   = "v0.1.0"

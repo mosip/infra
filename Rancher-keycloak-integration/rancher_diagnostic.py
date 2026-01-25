@@ -208,9 +208,13 @@ def main():
         
         explore_api(config["host"], config["token"])
         
-        # Ask if user wants full export
-        print("\nWould you like to export full API info for debugging? (y/n): ", end="")
-        response = input().strip().lower()
+        # Auto-export in non-interactive mode (CI/CD), prompt in interactive mode
+        import sys
+        if sys.stdin.isatty():
+            print("\nWould you like to export full API info for debugging? (y/n): ", end="")
+            response = input().strip().lower()
+        else:
+            response = 'y'  # Auto-export in non-interactive mode
         if response == 'y':
             export_full_api_info(config["host"], config["token"])
         

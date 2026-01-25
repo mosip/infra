@@ -17,20 +17,14 @@ on:
         description: 'Keycloak Admin Username'
         required: true
         type: string
-      keycloak_admin_password:
-        description: 'Keycloak Admin Password'
-        required: true
-        type: string
+      # keycloak_admin_password input removed; use secrets instead
       
       # Rancher Configuration (Required)
       rancher_host:
         description: 'Rancher Host URL (e.g., https://rancher.example.com)'
         required: true
         type: string
-      rancher_token:
-        description: 'Rancher API Token'
-        required: true
-        type: string
+      # rancher_token input removed; use secrets instead
       
       # Optional Configuration
       keycloak_admin_email:
@@ -163,8 +157,8 @@ jobs:
           echo "Starting WireGuard..."
           if ! sudo wg-quick up wg0; then
             echo "❌ ERROR: Failed to start WireGuard VPN"
-            echo "Config file contents (first 5 lines):"
-            sudo head -5 /etc/wireguard/wg0.conf
+            echo "Check the WireGuard configuration file at /etc/wireguard/wg0.conf for errors."
+            # Do NOT print config contents to avoid exposing private keys
             exit 1
           fi
           echo "✅ WireGuard started successfully"
@@ -176,21 +170,21 @@ jobs:
           KEYCLOAK_HOST: ${{ inputs.keycloak_host }}
           KEYCLOAK_REALM: ${{ inputs.keycloak_realm }}
           KEYCLOAK_ADMIN_USER: ${{ inputs.keycloak_admin_user }}
-          KEYCLOAK_ADMIN_PASSWORD: ${{ inputs.keycloak_admin_password }}
+          KEYCLOAK_ADMIN_PASSWORD: ${{ secrets.KEYCLOAK_ADMIN_PASSWORD }}
           KEYCLOAK_ADMIN_EMAIL: ${{ inputs.keycloak_admin_email }}
           KEYCLOAK_ADMIN_FIRSTNAME: 'Admin'
-          
+
           # Rancher Configuration
           RANCHER_HOST: ${{ inputs.rancher_host }}
-          RANCHER_TOKEN: ${{ inputs.rancher_token }}
-          
+          RANCHER_TOKEN: ${{ secrets.RANCHER_TOKEN }}
+
           # SSL Configuration (using defaults)
           SSL_CERT_SUBJECT: ${{ inputs.ssl_cert_subject }}
           SSL_CERT_DAYS: '1825'
           SSL_KEY_SIZE: '2048'
           SSL_KEY_FILE: 'myservice.key'
           SSL_CERT_FILE: 'myservice.cert'
-          
+
           # SAML Configuration (using defaults)
           SAML_DESCRIPTOR_FILE: 'keycloak-saml-descriptor.xml'
           SAML_DISPLAY_NAME_FIELD: 'givenName'
@@ -198,7 +192,7 @@ jobs:
           SAML_UID_FIELD: 'username'
           SAML_GROUPS_FIELD: 'member'
           SAML_ACCESS_MODE: ${{ inputs.saml_access_mode }}
-          
+
           # Force Recreate Option
           FORCE_RECREATE: ${{ inputs.force_recreate }}
         run: |
@@ -208,6 +202,6 @@ jobs:
         if: failure()
         env:
           RANCHER_HOST: ${{ inputs.rancher_host }}
-          RANCHER_TOKEN: ${{ inputs.rancher_token }}
+          RANCHER_TOKEN: ${{ secrets.RANCHER_TOKEN }}
         run: |
           python3 Rancher-keycloak-integration/rancher_diagnostic.py

@@ -22,16 +22,15 @@ apps:
   packetcreator:
     namespace: packetcreator
     enabled: true
-    version: 0.0.1-develop
+    version: 1.3.0
     chart: mosip/packetcreator
     set:
-      image.repository: "mosipqa/dsl-packetcreator"
-      image.tag: "1.3.x"
-      # resources.limits.cpu: "2000m"
-      # resources.limits.memory: "5000Mi"
-      # resources.requests.cpu: "500m"
-      # resources.requests.memory: "2000Mi"    
-      additionalResources.javaOpts: "-Xms3200M -Xmx3200M"
+      # image.repository: "mosipqa/dsl-packetcreator"
+      # image.tag: "1.2.1.x"
+      resources.limits.cpu: "1"
+      resources.limits.memory: "6000Mi"
+      resources.requests.cpu: "800m"
+      resources.requests.memory: "6000Mi"
       enable_insecure: false
       ingress.enabled: false
       ## If ingress enabled, provide ingress host value i.e., PACKETCREATOR_HOST
@@ -46,7 +45,7 @@ apps:
   apitestrig:
     namespace: apitestrig
     enabled: true
-    version: 0.0.1-develop
+    version: 1.3.4
     chart: mosip/apitestrig
     set:
       crontime: "0 2 * * *"
@@ -77,7 +76,7 @@ apps:
 
       modules.idrepo.enabled: true
       modules.idrepo.image.repository: mosipid/apitest-idrepo
-      modules.idrepo.image.tag: 1.2.2.4
+      modules.idrepo.image.tag: 1.2.2.2
       modules.idrepo.image.pullPolicy: Always
 
       modules.partner.enabled: true
@@ -87,17 +86,17 @@ apps:
 
       modules.pms.enabled: false
       modules.pms.image.repository: mosipid/apitest-pms
-      modules.pms.image.tag: 1.2.2.2
+      modules.pms.image.tag: 1.3.0-beta.1
       modules.pms.image.pullPolicy: Always
 
       modules.resident.enabled: true
       modules.resident.image.repository: mosipid/apitest-resident
-      modules.resident.image.tag: 1.2.1.2
+      modules.resident.image.tag: 1.2.1.3
       modules.resident.image.pullPolicy: Always
 
       modules.auth.enabled: true
       modules.auth.image.repository: mosipid/apitest-auth
-      modules.auth.image.tag: 1.2.1.2
+      modules.auth.image.tag: 1.2.1.3
       modules.auth.image.pullPolicy: Always
 
       modules.esignet.enabled: false
@@ -127,11 +126,11 @@ apps:
   dslorchestrator:
     namespace: dslrig
     enabled: true
-    version: 0.0.1-develop
+    version: 1.3.0
     chart: mosip/dslorchestrator
     set:
-      image.repository: "mosipqa/dsl-orchestrator"
-      image.tag: "1.3.x"
+      # image.repository: "mosipqa/dsl-orchestrator"
+      # image.tag: "1.2.1.x"
       crontime: "0 4 * * *"
       dslorchestrator.configmaps.s3.s3-host: 'http://minio.minio:9000'
       dslorchestrator.configmaps.s3.s3-user-key: 'admin'
@@ -146,8 +145,8 @@ apps:
       dslorchestrator.configmaps.dslorchestrator.NS: "dslrig"
       dslorchestrator.configmaps.dslorchestrator.servicesNotDeployed: "esignet"
       dslorchestrator.configmaps.dslorchestrator.eSignetDeployed: "no"
-      dslorchestrator.configmaps.dslorchestrator.threadCount: "2"
-      dslorchestrator.configmaps.dslorchestrator.scenariosToSkip: "I-194,I-198,I-199,I-200,I-201,I-202,I-203,I-204,I-206,I-207,I-145,I-156,I-158"
+      dslorchestrator.configmaps.dslorchestrator.threadCount: "8"
+      dslorchestrator.configmaps.dslorchestrator.scenariosToSkip: ""
       enable_insecure: false
     priority: -2
     hooks:
