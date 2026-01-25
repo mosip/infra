@@ -79,7 +79,7 @@ function wait_for_job_status() {
     if [ $elapsed_time -ge $timeout ]; then
       echo "ERROR: Job $job_name timed out after ${timeout}s"
       kubectl -n $namespace describe job/$job_name
-      kubectl -n $namespace logs job/$job_name --tail=100 || true
+      echo "(Job logs suppressed - check S3 onboarder bucket for reports)"
       return 1
     fi
     
@@ -98,7 +98,7 @@ function wait_for_job_status() {
     if [ "${failed:-0}" -ge 1 ]; then
       echo "ERROR: Job $job_name failed!"
       kubectl -n $namespace describe job/$job_name
-      kubectl -n $namespace logs job/$job_name --tail=100 || true
+      echo "(Job logs suppressed - check S3 onboarder bucket for reports)"
       return 1
     fi
     
@@ -125,8 +125,7 @@ function postinstall_demo_oidc_partner_onboarder() {
 
   if [ -z "$PRIVATE_PUBLIC_KEY_PAIR" ]; then
     echo "WARNING: Could not extract private/public key pair from job logs"
-    echo "Job logs:"
-    kubectl logs -n $NS job/$JOB_NAME | tail -50
+    echo "(Job logs suppressed - check S3 onboarder bucket for reports)"
   else
     echo "Extracted private/public key pair successfully"
     

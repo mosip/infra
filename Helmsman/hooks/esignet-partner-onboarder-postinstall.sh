@@ -79,7 +79,7 @@ function wait_for_job_completion() {
     if [ $elapsed_time -ge $timeout ]; then
       echo "ERROR: Job $JOB_NAME timed out after ${timeout}s"
       kubectl -n $namespace describe job/$JOB_NAME
-      kubectl -n $namespace logs job/$JOB_NAME --tail=100 || true
+      echo "(Job logs suppressed - check S3 onboarder bucket for reports)"
       return 1
     fi
     
@@ -98,7 +98,7 @@ function wait_for_job_completion() {
     if [ "${failed:-0}" -ge 1 ]; then
       echo "ERROR: Job $JOB_NAME failed!"
       kubectl -n $namespace describe job/$JOB_NAME
-      kubectl -n $namespace logs job/$JOB_NAME --tail=100 || true
+      echo "(Job logs suppressed - check S3 onboarder bucket for reports)"
       return 1
     fi
     
