@@ -13,13 +13,13 @@ namespaces:
   esignet:
     protected: false
   keycloak:
-    protected: true    
+    protected: true
   softhsm:
     protected: false
   redis:
     protected: false
   artifactory-1202:
-    protected: false    
+    protected: false
 apps:
   postgres:
     namespace: postgres
@@ -29,7 +29,7 @@ apps:
     wait: true
     priority: -18
     valuesFile: "$WORKDIR/utils/postgres-values.yaml"
-    timeout: 1200
+    timeout: 480
 
   istio-addons-psql:
     namespace: postgres
@@ -81,7 +81,7 @@ apps:
       databases.mosip_mockidentitysystem.port: 5433
       databases.mosip_mockidentitysystem.dml: 1
     wait: true
-    timeout: 1200
+    timeout: 600
     priority: -16
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-init-db.sh"
@@ -92,11 +92,11 @@ apps:
     version: 17.3.14
     chart: bitnami/redis
     wait: true
-    timeout: 1200
+    timeout: 480
     priority: -15
     set:
       image.repository: "mosipid/redis"
-      image.tag: "7.0.5-debian-11-r25"    
+      image.tag: "7.0.5-debian-11-r25"
     hooks:
       postInstall: "$WORKDIR/hooks/redis-setup.sh"
 
@@ -107,7 +107,7 @@ apps:
     chart: mosip/softhsm
     valuesFile: "$WORKDIR/utils/softhsm-esignet-values.yaml"
     wait: true
-    timeout: 1200
+    timeout: 480
     priority: -14
     hooks:
       preInstall: "$WORKDIR/hooks/softhsm-esignet-setup.sh"
@@ -116,7 +116,7 @@ apps:
   keycloak:
     namespace: keycloak
     enabled: false
-    protected: true  # Prevent Helmsman from deleting this release
+    protected: true # Prevent Helmsman from deleting this release
     version: 7.1.18
     chart: mosip/keycloak
     set:
@@ -147,7 +147,7 @@ apps:
       rbac.rules[0].verbs[0]: "get"
       rbac.rules[0].verbs[1]: "list"
     wait: true
-    timeout: 1200
+    timeout: 600
     priority: -13
 
   istio-addons-iam:
@@ -179,7 +179,7 @@ apps:
       clientSecrets[1].name: "$MPARTNER_DEFAULT_AUTH_SECRET_KEY"
       clientSecrets[1].secret: "$MPARTNER_DEFAULT_AUTH_SECRET_VALUE"
     wait: true
-    timeout: 1200
+    timeout: 480
     priority: -11
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-preinstall-keycloak-init.sh"
@@ -215,7 +215,7 @@ apps:
       extraEnvVarsCM[2]: "artifactory-1202-share"
       extraEnvVarsCM[3]: "softhsm-esignet-share"
     wait: true
-    timeout: 1200
+    timeout: 600
     priority: -10
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-preinstall.sh"
@@ -238,7 +238,7 @@ apps:
     timeout: 1200
     priority: -9
     hooks:
-      preInstall: "$WORKDIR/hooks/oidc-ui-preinstall.sh"      
+      preInstall: "$WORKDIR/hooks/oidc-ui-preinstall.sh"
 
   softhsm-mock-identity-system:
     namespace: softhsm
@@ -247,8 +247,8 @@ apps:
     chart: mosip/softhsm
     valuesFile: "$WORKDIR/utils/softhsm-mock-identity-system-values.yaml"
     wait: true
-    timeout: 1200
-    priority: -8
+    timeout: 480
+    priority: -7
     hooks:
       preInstall: "$WORKDIR/hooks/softhsm-mock-identity-system-preinstall.sh"
       postInstall: "$WORKDIR/hooks/softhsm-mock-identity-system-postinstall.sh"
@@ -264,10 +264,10 @@ apps:
       extraEnvVarsCM[0]: "global"
       extraEnvVarsCM[1]: "config-server-share"
       extraEnvVarsCM[2]: "artifactory-1202-share"
-      extraEnvVarsCM[3]: "softhsm-mock-identity-system-share"      
+      extraEnvVarsCM[3]: "softhsm-mock-identity-system-share"
     wait: true
-    timeout: 1200
-    priority: -7
+    timeout: 480
+    priority: -6
     hooks:
       preInstall: "$WORKDIR/hooks/mock-identity-system-preinstall.sh"
 
@@ -284,8 +284,8 @@ apps:
       # Set to true if you don't have public domain & valid SSL (development only)
       enable_insecure: "false"
     wait: true
-    timeout: 1200
-    priority: -6
+    timeout: 480
+    priority: -5
     hooks:
       preInstall: "$WORKDIR/hooks/mock-relying-party-service-preinstall.sh"
 
@@ -304,8 +304,8 @@ apps:
       mock_relying_party_ui.SIGN_IN_BUTTON_PLUGIN_URL: "https://esignet.soil.mosip.net/plugins/sign-in-button-plugin.js"
       istio.hosts[0]: "healthservices.soil.mosip.net"
     wait: true
-    timeout: 1200
-    priority: -5
+    timeout: 480
+    priority: -4
     hooks:
       preInstall: "$WORKDIR/hooks/mock-relying-party-ui-preinstall.sh"
 
@@ -320,7 +320,7 @@ apps:
       onboarding.configmaps.s3.s3-host: "http://minio.minio:9000"
       onboarding.configmaps.s3.s3-user-key: "admin"
       onboarding.configmaps.s3.s3-region: ""
-      onboarding.configmaps.s3.s3-bucket-name: "onboarder"    
+      onboarding.configmaps.s3.s3-bucket-name: "onboarder"
       onboarding.modules[0].name: "ida"
       onboarding.modules[0].enabled: "false"
       onboarding.modules[1].name: "print"
@@ -345,8 +345,8 @@ apps:
       #onboarding.configmaps.onboarding.ENABLE_INSECURE: "false"
     wait: true
     waitForJobs: true
-    timeout: 1800
-    priority: -4
+    timeout: 900
+    priority: -3
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-partner-onboarder-preinstall.sh"
       postInstall: "$WORKDIR/hooks/esignet-partner-onboarder-postinstall.sh"
@@ -387,8 +387,8 @@ apps:
       #onboarding.configmaps.onboarding.ENABLE_INSECURE: "false"
     wait: true
     waitForJobs: true
-    timeout: 1800
-    priority: -3
+    timeout: 900
+    priority: -2
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-demo-oidc-partner-onboarder-preinstall.sh"
       postInstall: "$WORKDIR/hooks/esignet-demo-oidc-partner-onboarder-postinstall.sh"
