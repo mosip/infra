@@ -14,6 +14,10 @@ function installing_redis() {
 
   kubectl -n config-server set env --keys=redis-password --from secret/redis deployment/config-server --prefix=SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_
 
+  # Restart config-server deployment to pick up new redis environment variables
+  echo "Restarting config-server to pick up redis configuration"
+  kubectl -n config-server rollout restart deploy/config-server
+
   echo Installed prereq-redis service
   return 0
 }

@@ -102,7 +102,7 @@ function wait_for_job_status() {
       return 1
     fi
     
-    sleep 10
+    sleep 5
   done
 }
 
@@ -112,7 +112,7 @@ function postinstall_demo_oidc_partner_onboarder() {
   echo "=============================================="
 
   # Wait for job completion with status monitoring
-  if ! wait_for_job_status "$JOB_NAME" "$NS" 300; then
+  if ! wait_for_job_status "$JOB_NAME" "$NS" 120; then
     echo "ERROR: Job completion failed"
     return 1
   fi

@@ -102,7 +102,7 @@ function wait_for_job_completion() {
       return 1
     fi
     
-    sleep 10
+    sleep 5
   done
 }
 
@@ -113,14 +113,14 @@ function postinstall_partner_onboarder() {
   echo "Waiting for esignet-resident-oidc-partner-onboarder job to complete..."
   
   # Wait for job completion with status monitoring
-  if ! wait_for_job_completion "app.kubernetes.io/instance=esignet-resident-oidc-partner-onboarder" "$NS" 300; then
+  if ! wait_for_job_completion "app.kubernetes.io/instance=esignet-resident-oidc-partner-onboarder" "$NS" 120; then
     echo "WARNING: Job completion wait failed, but will still try to verify secrets..."
   fi
   
   # Verify secrets exist before copying
   echo "Verifying secrets exist..."
-  MAX_RETRIES=6
-  RETRY_INTERVAL=20
+  MAX_RETRIES=3
+  RETRY_INTERVAL=10
   
   for i in $(seq 1 $MAX_RETRIES); do
     MISP_SECRET=$(kubectl -n $NS get secret esignet-misp-onboarder-key --ignore-not-found -o name 2>/dev/null || echo "")

@@ -27,6 +27,10 @@ function postinstall_softhsm_mock_identity() {
     echo "softhsm-mock-identity-system security-pin already exists in config-server, skipping"
   fi
 
+  # Restart config-server deployment to pick up new softhsm configuration
+  echo "Restarting config-server to pick up softhsm configuration"
+  kubectl -n config-server rollout restart deploy/config-server
+
   # Wait for config-server rollout
   echo "Waiting for config-server to be ready"
   
