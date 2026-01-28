@@ -78,6 +78,8 @@ jobs:
     runs-on: ubuntu-latest
     # Use dynamic environment based on current branch name
     environment: ${{ github.ref_name }}
+    permissions:
+      contents: write  
     defaults:
       run:
         shell: bash
