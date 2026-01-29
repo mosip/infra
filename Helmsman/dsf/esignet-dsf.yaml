@@ -93,7 +93,7 @@ apps:
     chart: bitnami/redis
     wait: true
     timeout: 480
-    priority: -15
+    priority: -16
     set:
       image.repository: "mosipid/redis"
       image.tag: "7.0.5-debian-11-r25"
@@ -106,9 +106,8 @@ apps:
     version: 12.0.1
     chart: mosip/softhsm
     valuesFile: "$WORKDIR/utils/softhsm-esignet-values.yaml"
-    wait: true
     timeout: 480
-    priority: -14
+    priority: -15
     hooks:
       preInstall: "$WORKDIR/hooks/softhsm-esignet-setup.sh"
       postInstall: "$WORKDIR/hooks/softhsm-esignet-postinstall.sh"
@@ -148,7 +147,7 @@ apps:
       rbac.rules[0].verbs[1]: "list"
     wait: true
     timeout: 600
-    priority: -13
+    priority: -14
 
   istio-addons-iam:
     namespace: keycloak
@@ -161,7 +160,7 @@ apps:
       service: "keycloak"
     wait: true
     timeout: 1200
-    priority: -12
+    priority: -13
 
   esignet-keycloak-init:
     namespace: esignet
@@ -178,9 +177,8 @@ apps:
       clientSecrets[0].secret: "$PMS_CLIENT_SECRET_VALUE"
       clientSecrets[1].name: "$MPARTNER_DEFAULT_AUTH_SECRET_KEY"
       clientSecrets[1].secret: "$MPARTNER_DEFAULT_AUTH_SECRET_VALUE"
-    wait: true
     timeout: 480
-    priority: -11
+    priority: -12
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-preinstall-keycloak-init.sh"
       postInstall: "$WORKDIR/hooks/esignet-postinstall-keycloak-init.sh"
@@ -195,7 +193,7 @@ apps:
     #   image.tag: "1.4.1-ES"
     wait: true
     timeout: 1200
-    priority: -11
+    priority: -12
     hooks:
       # For fresh installations
       preInstall: "kubectl label ns artifactory istio-injection=enabled --overwrite"
@@ -214,9 +212,8 @@ apps:
       extraEnvVarsCM[1]: "config-server-share"
       extraEnvVarsCM[2]: "artifactory-1202-share"
       extraEnvVarsCM[3]: "softhsm-esignet-share"
-    wait: true
     timeout: 600
-    priority: -10
+    priority: -11
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-preinstall.sh"
 
@@ -234,9 +231,8 @@ apps:
       extraEnvVarsCM[4]: "oidc-ui"
       # image.repository: "mosipid/esignet"
       # image.tag: "1.4.1"
-    wait: true
     timeout: 1200
-    priority: -9
+    priority: -10
     hooks:
       preInstall: "$WORKDIR/hooks/oidc-ui-preinstall.sh"
 
@@ -248,7 +244,7 @@ apps:
     valuesFile: "$WORKDIR/utils/softhsm-mock-identity-system-values.yaml"
     wait: true
     timeout: 480
-    priority: -7
+    priority: -9
     hooks:
       preInstall: "$WORKDIR/hooks/softhsm-mock-identity-system-preinstall.sh"
       postInstall: "$WORKDIR/hooks/softhsm-mock-identity-system-postinstall.sh"
@@ -265,9 +261,8 @@ apps:
       extraEnvVarsCM[1]: "config-server-share"
       extraEnvVarsCM[2]: "artifactory-1202-share"
       extraEnvVarsCM[3]: "softhsm-mock-identity-system-share"
-    wait: true
     timeout: 480
-    priority: -6
+    priority: -8
     hooks:
       preInstall: "$WORKDIR/hooks/mock-identity-system-preinstall.sh"
 
@@ -283,9 +278,8 @@ apps:
       mock_relying_party_service.ESIGNET_AUD_URL: "https://esignet.soil.mosip.net/v1/esignet/oauth/v2/token"
       # Set to true if you don't have public domain & valid SSL (development only)
       enable_insecure: "false"
-    wait: true
     timeout: 480
-    priority: -5
+    priority: -7
     hooks:
       preInstall: "$WORKDIR/hooks/mock-relying-party-service-preinstall.sh"
 
@@ -305,7 +299,7 @@ apps:
       istio.hosts[0]: "healthservices.soil.mosip.net"
     wait: true
     timeout: 480
-    priority: -4
+    priority: -6
     hooks:
       preInstall: "$WORKDIR/hooks/mock-relying-party-ui-preinstall.sh"
 
@@ -346,7 +340,7 @@ apps:
     wait: true
     waitForJobs: true
     timeout: 900
-    priority: -3
+    priority: -5
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-partner-onboarder-preinstall.sh"
       postInstall: "$WORKDIR/hooks/esignet-partner-onboarder-postinstall.sh"
@@ -388,7 +382,7 @@ apps:
     wait: true
     waitForJobs: true
     timeout: 900
-    priority: -2
+    priority: -4
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-demo-oidc-partner-onboarder-preinstall.sh"
       postInstall: "$WORKDIR/hooks/esignet-demo-oidc-partner-onboarder-postinstall.sh"
