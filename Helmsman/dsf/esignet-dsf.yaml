@@ -81,7 +81,7 @@ apps:
       databases.mosip_mockidentitysystem.port: 5433
       databases.mosip_mockidentitysystem.dml: 1
     wait: true
-    timeout: 600
+    timeout: 180
     priority: -16
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-init-db.sh"
@@ -339,7 +339,7 @@ apps:
       #onboarding.configmaps.onboarding.ENABLE_INSECURE: "false"
     wait: true
     waitForJobs: true
-    timeout: 900
+    timeout: 240
     priority: -5
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-partner-onboarder-preinstall.sh"
@@ -381,7 +381,7 @@ apps:
       #onboarding.configmaps.onboarding.ENABLE_INSECURE: "false"
     wait: true
     waitForJobs: true
-    timeout: 900
+    timeout: 240
     priority: -4
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-demo-oidc-partner-onboarder-preinstall.sh"

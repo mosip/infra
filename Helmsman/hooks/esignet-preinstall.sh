@@ -115,9 +115,8 @@ function preinstall_esignet() {
     echo "mosip-esignet-misp-key already exists in config-server, skipping"
   fi
 
-  # Wait for config-server rollout
-  echo "Waiting for config-server to be ready"
-  kubectl -n config-server rollout status deploy/config-server --timeout=600s
+  # Config-server restart initiated - proceeding with setup
+  echo "Config-server configured, proceeding with setup..."
 
   # Copy required configmaps and secrets from other namespaces
   echo "Copying keycloak configmaps and secrets to $NS namespace"

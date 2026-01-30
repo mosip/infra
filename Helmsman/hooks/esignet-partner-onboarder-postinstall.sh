@@ -14,11 +14,11 @@ COPY_UTIL=$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh
 function wait_for_job_completion() {
   local job_label=$1
   local namespace=$2
-  local timeout=${3:-600}
+  local timeout=${3:-300}
   
   echo "Waiting for job with label $job_label..."
-  local max_wait=120
-  local wait_interval=10
+  local max_wait=60
+  local wait_interval=5
   local elapsed=0
   
   # Wait for job to be created or become active
@@ -113,14 +113,14 @@ function postinstall_partner_onboarder() {
   echo "Waiting for esignet-resident-oidc-partner-onboarder job to complete..."
   
   # Wait for job completion with status monitoring
-  if ! wait_for_job_completion "app.kubernetes.io/instance=esignet-resident-oidc-partner-onboarder" "$NS" 120; then
+  if ! wait_for_job_completion "app.kubernetes.io/instance=esignet-resident-oidc-partner-onboarder" "$NS" 60; then
     echo "WARNING: Job completion wait failed, but will still try to verify secrets..."
   fi
   
   # Verify secrets exist before copying
   echo "Verifying secrets exist..."
   MAX_RETRIES=3
-  RETRY_INTERVAL=10
+  RETRY_INTERVAL=5
   
   for i in $(seq 1 $MAX_RETRIES); do
     MISP_SECRET=$(kubectl -n $NS get secret esignet-misp-onboarder-key --ignore-not-found -o name 2>/dev/null || echo "")
@@ -182,38 +182,16 @@ function postinstall_partner_onboarder() {
     kubectl -n config-server rollout restart deploy/config-server
   fi
 
-  # Wait for config-server rollout
-  echo "Waiting for config-server to be ready"
-  
-  # Check if there are any pods stuck in terminating state
-  TERMINATING_PODS=$(kubectl -n config-server get pods -l app.kubernetes.io/name=config-server --field-selector=status.phase=Terminating -o name 2>/dev/null || echo "")
-  if [ -n "$TERMINATING_PODS" ]; then
-    echo "Found terminating pods, waiting for them to clear..."
-    for pod in $TERMINATING_PODS; do
-      echo "Waiting for $pod to terminate..."
-      kubectl -n config-server wait --for=delete "$pod" --timeout=120s 2>/dev/null || true
-    done
-  fi
-  
-  # Wait for rollout with increased timeout
-  if ! kubectl -n config-server rollout status deploy/config-server --timeout=600s; then
-    echo "Rollout timed out, checking deployment status..."
-    kubectl -n config-server describe deploy/config-server
-    kubectl -n config-server get pods -l app.kubernetes.io/name=config-server
-    echo "Attempting to restart stuck rollout..."
-    kubectl -n config-server rollout restart deploy/config-server
-    kubectl -n config-server rollout status deploy/config-server --timeout=300s
-  fi
+  # Config-server restart initiated - continuing with deployment
+  echo "Config-server restart initiated, continuing with deployment..."
 
   # Restart esignet deployment to pick up new secrets
   echo "Restarting esignet deployment"
   kubectl rollout restart deployment -n $NS esignet 2>/dev/null || echo "esignet deployment not found, skipping restart"
-  kubectl -n $NS rollout status deploy/esignet --timeout=300s 2>/dev/null || true
 
   # Restart resident deployment to pick up new secrets (if exists)
   echo "Restarting resident deployment (if exists)"
   kubectl rollout restart deployment -n resident resident 2>/dev/null || echo "resident deployment not found, skipping restart"
-  kubectl -n resident rollout status deploy/resident --timeout=300s 2>/dev/null || true
 
   echo "eSignet MISP License Key and Resident OIDC Client ID updated successfully."
   echo "Reports are moved to S3 under onboarder bucket"

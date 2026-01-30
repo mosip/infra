@@ -15,11 +15,11 @@ JOB_NAME="esignet-demo-oidc-partner-onboarder-demo-oidc"
 function wait_for_job_status() {
   local job_name=$1
   local namespace=$2
-  local timeout=${3:-600}
+  local timeout=${3:-300}
   
   echo "Waiting for job $job_name..."
-  local max_wait=120
-  local wait_interval=10
+  local max_wait=60
+  local wait_interval=5
   local elapsed=0
   
   # Wait for job to be created and become active (not an old completed job)

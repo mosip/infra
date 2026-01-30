@@ -56,8 +56,6 @@ ESIGNET_HOST_PLACEHOLDER=$( kubectl -n config-server get deployment -o json | jq
 if [ -z "$ESIGNET_HOST_PLACEHOLDER" ]; then
   echo "Adding ESIGNET host to config-server"
   kubectl -n config-server set env --keys=mosip-esignet-host --from configmap/global deployment/config-server --prefix=SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_
-  echo "Waiting for config-server to be Up and running"
-  kubectl -n config-server rollout status deploy/config-server
 else
   echo "ESIGNET host already exists in config-server, skipping"
 fi
@@ -67,8 +65,6 @@ PMS_CLIENT_SECRET_PLACEHOLDER=$( kubectl -n config-server get deployment -o json
 if [ -z "$PMS_CLIENT_SECRET_PLACEHOLDER" ]; then
   echo "Adding PMS client secret to config-server"
   kubectl -n config-server set env --keys=$PMS_CLIENT_SECRET_KEY --from secret/keycloak-client-secrets deployment/config-server --prefix=SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_
-  echo "Waiting for config-server to be Up and running"
-  kubectl -n config-server rollout status deploy/config-server
 else
   echo "PMS client secret already exists in config-server, skipping"
 fi
@@ -78,8 +74,6 @@ MPARTNER_DEFAULT_AUTH_SECRET_PLACEHOLDER=$( kubectl -n config-server get deploym
 if [ -z "$MPARTNER_DEFAULT_AUTH_SECRET_PLACEHOLDER" ]; then
   echo "Adding mpartner default auth secret to config-server"
   kubectl -n config-server set env --keys=$MPARTNER_DEFAULT_AUTH_SECRET_KEY --from secret/keycloak-client-secrets deployment/config-server --prefix=SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_
-  echo "Waiting for config-server to be Up and running"
-  kubectl -n config-server rollout status deploy/config-server
 else
   echo "Mpartner default auth secret already exists in config-server, skipping"
 fi
