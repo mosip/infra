@@ -113,7 +113,7 @@ function postinstall_partner_onboarder() {
   echo "Waiting for esignet-resident-oidc-partner-onboarder job to complete..."
   
   # Wait for job completion with status monitoring
-  if ! wait_for_job_completion "app.kubernetes.io/instance=esignet-resident-oidc-partner-onboarder" "$NS" 60; then
+  if ! wait_for_job_completion "app.kubernetes.io/instance=esignet-resident-oidc-partner-onboarder" "$NS" 300; then
     echo "WARNING: Job completion wait failed, but will still try to verify secrets..."
   fi
   
