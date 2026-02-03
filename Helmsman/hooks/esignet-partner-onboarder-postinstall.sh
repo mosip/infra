@@ -181,7 +181,7 @@ function postinstall_partner_onboarder() {
     echo "No new env vars added, but restarting config-server to pick up any secret changes..."
     kubectl -n config-server rollout restart deploy/config-server
   fi
-
+  sleep 180
   # Config-server restart initiated - continuing with deployment
   echo "Config-server restart initiated, continuing with deployment..."
 
