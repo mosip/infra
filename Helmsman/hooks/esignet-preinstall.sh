@@ -15,6 +15,30 @@ COPY_UTIL=$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh
 ESIGNET_CAPTCHA_SITE_KEY="${ESIGNET_CAPTCHA_SITE_KEY:-}"
 ESIGNET_CAPTCHA_SECRET_KEY="${ESIGNET_CAPTCHA_SECRET_KEY:-}"
 
+function wait_for_config_server() {
+  local timeout=180
+  local elapsed=0
+  
+  echo "Waiting for config-server to be ready..."
+  
+  while [ $elapsed -lt $timeout ]; do
+    local ready=$(kubectl get deployment config-server -n config-server -o jsonpath='{.status.readyReplicas}' 2>/dev/null || echo "0")
+    local desired=$(kubectl get deployment config-server -n config-server -o jsonpath='{.spec.replicas}' 2>/dev/null || echo "1")
+    
+    if [ "${ready:-0}" -ge "${desired:-1}" ] && [ "${ready:-0}" -gt 0 ]; then
+      echo "config-server ready ($ready/$desired)"
+      return 0
+    fi
+    
+    echo "Waiting for config-server: $ready/$desired ready (${elapsed}s)"
+    sleep 5
+    elapsed=$((elapsed + 5))
+  done
+  
+  echo "WARNING: config-server not ready after ${timeout}s, proceeding anyway"
+  return 1
+}
+
 function preinstall_esignet() {
   echo "Pre-install setup for esignet"
 
@@ -111,11 +135,15 @@ function preinstall_esignet() {
   if [ -z "$MISP_KEY_ENV" ]; then
     echo "Adding mosip-esignet-misp-key to config-server"
     kubectl -n config-server set env --keys=mosip-esignet-misp-key --from secret/esignet-misp-onboarder-key deployment/config-server --prefix=SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_
+    
+    # Wait for config-server to be ready after environment changes
+    wait_for_config_server
   else
     echo "mosip-esignet-misp-key already exists in config-server, skipping"
   fi
 
-  # Config-server restart initiated - proceeding with setup
+  # Config-server is ready - proceeding with setup
+
   echo "Config-server configured, proceeding with setup..."
 
   # Copy required configmaps and secrets from other namespaces
