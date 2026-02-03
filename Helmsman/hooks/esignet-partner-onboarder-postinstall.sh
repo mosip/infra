@@ -193,6 +193,8 @@ function postinstall_partner_onboarder() {
   echo "Restarting resident deployment (if exists)"
   kubectl rollout restart deployment -n resident resident 2>/dev/null || echo "resident deployment not found, skipping restart"
 
+  sleep 180
+
   echo "eSignet MISP License Key and Resident OIDC Client ID updated successfully."
   echo "Reports are moved to S3 under onboarder bucket"
 
