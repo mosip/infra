@@ -74,7 +74,7 @@ apps:
       databases.mosip_esignet.host: "postgres.soil.mosip.net"
       databases.mosip_esignet.port: 5433
       databases.mosip_esignet.dml: 1
-      databases.mosip_mockidentitysystem.enabled: "true"
+      databases.mosip_mockidentitysystem.enabled: "false"
       databases.mosip_mockidentitysystem.branch: "v0.9.3"
       databases.mosip_mockidentitysystem.host: "postgres.soil.mosip.net"
       databases.mosip_mockidentitysystem.repoUrl: "https://github.com/mosip/esignet-mock-services.git"
@@ -212,6 +212,7 @@ apps:
       extraEnvVarsCM[1]: "config-server-share"
       extraEnvVarsCM[2]: "artifactory-1202-share"
       extraEnvVarsCM[3]: "softhsm-esignet-share"
+    wait: true
     timeout: 600
     priority: -11
     hooks:
@@ -238,7 +239,7 @@ apps:
 
   softhsm-mock-identity-system:
     namespace: softhsm
-    enabled: true
+    enabled: false
     version: 12.0.1
     chart: mosip/softhsm
     valuesFile: "$WORKDIR/utils/softhsm-mock-identity-system-values.yaml"
@@ -251,7 +252,7 @@ apps:
 
   mock-identity-system:
     namespace: esignet
-    enabled: true
+    enabled: false
     version: 0.9.3
     chart: mosip/mock-identity-system
     set:
