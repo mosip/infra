@@ -131,11 +131,16 @@ function preinstall_esignet() {
   # ============================================================
   echo "Setting up config-server environment variables for esignet"
 
+  # Get current generation before making any changes
+  CURRENT_GENERATION=$(kubectl get deployment config-server -n config-server -o jsonpath='{.metadata.generation}' 2>/dev/null || echo "0")
+  ENV_CHANGES_MADE=false
+
   # Check and set captcha site key in config-server
   CAPTCHA_SITE_KEY_ENV=$( kubectl -n config-server get deployment config-server -o json 2>/dev/null | jq -c '.spec.template.spec.containers[].env[]? | select(.name == "SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_ESIGNET_CAPTCHA_SITE_KEY") | .name' 2>/dev/null || echo "" )
   if [ -z "$CAPTCHA_SITE_KEY_ENV" ]; then
     echo "Adding esignet-captcha-site-key to config-server"
     kubectl -n config-server set env --keys=esignet-captcha-site-key --from secret/esignet-captcha deployment/config-server --prefix=SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_
+    ENV_CHANGES_MADE=true
   else
     echo "esignet-captcha-site-key already exists in config-server, skipping"
   fi
@@ -145,6 +150,7 @@ function preinstall_esignet() {
   if [ -z "$CAPTCHA_SECRET_KEY_ENV" ]; then
     echo "Adding esignet-captcha-secret-key to config-server"
     kubectl -n config-server set env --keys=esignet-captcha-secret-key --from secret/esignet-captcha deployment/config-server --prefix=SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_
+    ENV_CHANGES_MADE=true
   else
     echo "esignet-captcha-secret-key already exists in config-server, skipping"
   fi
@@ -152,16 +158,19 @@ function preinstall_esignet() {
   # Check and set MISP key in config-server
   MISP_KEY_ENV=$( kubectl -n config-server get deployment config-server -o json 2>/dev/null | jq -c '.spec.template.spec.containers[].env[]? | select(.name == "SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_MOSIP_ESIGNET_MISP_KEY") | .name' 2>/dev/null || echo "" )
   if [ -z "$MISP_KEY_ENV" ]; then
-    # Get current generation before making changes
-    CURRENT_GENERATION=$(kubectl get deployment config-server -n config-server -o jsonpath='{.metadata.generation}' 2>/dev/null || echo "0")
-    
     echo "Adding mosip-esignet-misp-key to config-server"
     kubectl -n config-server set env --keys=mosip-esignet-misp-key --from secret/esignet-misp-onboarder-key deployment/config-server --prefix=SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_
-    
-    # Wait for config-server to be ready after environment changes
-    wait_for_config_server "$CURRENT_GENERATION"
+    ENV_CHANGES_MADE=true
   else
     echo "mosip-esignet-misp-key already exists in config-server, skipping"
+  fi
+
+  # Wait for the final rollout to complete (only if changes were made)
+  if [ "$ENV_CHANGES_MADE" = true ]; then
+    echo "Environment variables added, waiting for final rollout to complete..."
+    wait_for_config_server "$CURRENT_GENERATION"
+  else
+    echo "No environment variable changes needed"
   fi
 
   # Config-server is ready - proceeding with setup
