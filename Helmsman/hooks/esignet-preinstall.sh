@@ -167,8 +167,9 @@ function preinstall_esignet() {
 
   # Wait for the final rollout to complete (only if changes were made)
   if [ "$ENV_CHANGES_MADE" = true ]; then
-    echo "Environment variables added, waiting for final rollout to complete..."
-    wait_for_config_server "$CURRENT_GENERATION"
+    echo "Environment variables added, waiting for config-server to restart..."
+    sleep 240  # Wait 4 minutes for config-server rollout to complete
+    echo "Config-server should be ready now"
   else
     echo "No environment variable changes needed"
   fi
