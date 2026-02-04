@@ -15,49 +15,6 @@ COPY_UTIL=$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh
 ESIGNET_CAPTCHA_SITE_KEY="${ESIGNET_CAPTCHA_SITE_KEY:-}"
 ESIGNET_CAPTCHA_SECRET_KEY="${ESIGNET_CAPTCHA_SECRET_KEY:-}"
 
-function wait_for_config_server() {
-  local old_generation=$1
-  local timeout=180
-  local elapsed=0
-  
-  echo "Waiting for config-server rollout (generation: $old_generation -> new)..."
-  
-  # First, wait for generation to change (rollout started)
-  while [ $elapsed -lt 30 ]; do
-    local current_generation=$(kubectl get deployment config-server -n config-server -o jsonpath='{.metadata.generation}' 2>/dev/null || echo "0")
-    
-    if [ "${current_generation:-0}" -gt "${old_generation:-0}" ]; then
-      echo "New rollout detected (generation: $current_generation)"
-      break
-    fi
-    
-    echo "Waiting for rollout to start... (${elapsed}s)"
-    sleep 2
-    elapsed=$((elapsed + 2))
-  done
-  
-  # Now wait for the new pods to be ready
-  elapsed=0
-  while [ $elapsed -lt $timeout ]; do
-    local ready=$(kubectl get deployment config-server -n config-server -o jsonpath='{.status.readyReplicas}' 2>/dev/null || echo "0")
-    local desired=$(kubectl get deployment config-server -n config-server -o jsonpath='{.spec.replicas}' 2>/dev/null || echo "1")
-    local updated=$(kubectl get deployment config-server -n config-server -o jsonpath='{.status.updatedReplicas}' 2>/dev/null || echo "0")
-    
-    # Check that updated replicas match desired and all are ready
-    if [ "${ready:-0}" -ge "${desired:-1}" ] && [ "${updated:-0}" -ge "${desired:-1}" ] && [ "${ready:-0}" -gt 0 ]; then
-      echo "config-server ready ($ready/$desired replicas, $updated updated)"
-      return 0
-    fi
-    
-    echo "Waiting for config-server: $ready/$desired ready, $updated/$desired updated (${elapsed}s)"
-    sleep 5
-    elapsed=$((elapsed + 5))
-  done
-  
-  echo "WARNING: config-server not ready after ${timeout}s, proceeding anyway"
-  return 1
-}
-
 function preinstall_esignet() {
   echo "Pre-install setup for esignet"
 
