@@ -14,9 +14,6 @@ COPY_UTIL=$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh
 function setup_softhsm_esignet() {
   echo "Setting up SoftHSM for esignet"
 
-  # Create namespace if not exists
-  kubectl create ns $SOFTHSM_NS --dry-run=client -o yaml | kubectl apply -f -
-
   # Add Istio label
   echo "Adding Istio injection label to $SOFTHSM_NS namespace"
   kubectl label ns $SOFTHSM_NS istio-injection=enabled --overwrite

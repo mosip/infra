@@ -181,7 +181,7 @@ function postinstall_partner_onboarder() {
     echo "No new env vars added, but restarting config-server to pick up any secret changes..."
     kubectl -n config-server rollout restart deploy/config-server
   fi
-  sleep 180
+  sleep 210
   # Config-server restart initiated - continuing with deployment
   echo "Config-server restart initiated, continuing with deployment..."
 
@@ -193,7 +193,7 @@ function postinstall_partner_onboarder() {
   echo "Restarting resident deployment (if exists)"
   kubectl rollout restart deployment -n resident resident 2>/dev/null || echo "resident deployment not found, skipping restart"
 
-  sleep 180
+  sleep 120
 
   echo "eSignet MISP License Key and Resident OIDC Client ID updated successfully."
   echo "Reports are moved to S3 under onboarder bucket"
