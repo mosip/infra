@@ -1,0 +1,68 @@
+---
+all:
+  vars:
+    cluster_name: "qajava11"
+    cluster_env_domain: "mosip.local"
+    k8s_infra_repo_url: "https://github.com/mosip/k8s-infra.git"
+    k8s_infra_branch: "v1.2.1.0"
+    install_rke2_version: "v1.28.9+rke2r1"
+    enable_rancher_import: true
+    rancher_import_url: "kubectl apply -f https://rancher.mosip.net/v3/import/w8dt6lnh9jbqvvsbrn92bqzfzpbrvljqmb5zv9lbwcj6vhvpslmcd9_c-m-5vxqt75r.yaml"
+    ansible_user: ubuntu
+    ansible_ssh_private_key_file: ./ssh_key
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+    
+  children:
+    control_plane:
+      hosts:
+        qajava11-CONTROL-PLANE-NODE-1:
+          ansible_host: 172.31.75.217
+          node_role: control_plane
+          is_primary: true
+          node_index: 0
+        qajava11-CONTROL-PLANE-NODE-2:
+          ansible_host: 172.31.66.92
+          node_role: control_plane
+          is_primary: false
+          node_index: 1
+        qajava11-CONTROL-PLANE-NODE-3:
+          ansible_host: 172.31.71.121
+          node_role: control_plane
+          is_primary: false
+          node_index: 2
+    
+    etcd:
+      hosts:
+        qajava11-ETCD-NODE-1:
+          ansible_host: 172.31.72.179
+          node_role: etcd
+        qajava11-ETCD-NODE-2:
+          ansible_host: 172.31.79.253
+          node_role: etcd
+        qajava11-ETCD-NODE-3:
+          ansible_host: 172.31.77.4
+          node_role: etcd
+    
+    workers:
+      hosts:
+        qajava11-WORKER-NODE-1:
+          ansible_host: 172.31.75.243
+          node_role: worker
+        qajava11-WORKER-NODE-2:
+          ansible_host: 172.31.71.162
+          node_role: worker
+        qajava11-WORKER-NODE-3:
+          ansible_host: 172.31.76.207
+          node_role: worker
+        qajava11-WORKER-NODE-4:
+          ansible_host: 172.31.73.45
+          node_role: worker
+        qajava11-WORKER-NODE-5:
+          ansible_host: 172.31.79.230
+          node_role: worker
+
+    rke2_cluster:
+      children:
+        control_plane:
+        etcd:
+        workers:
