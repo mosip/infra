@@ -280,7 +280,7 @@ apps:
       # Set to true if you don't have public domain & valid SSL (development only)
       enable_insecure: "false"
     timeout: 480
-    priority: -7
+    priority: -
     hooks:
       preInstall: "$WORKDIR/hooks/mock-relying-party-service-preinstall.sh"
 
@@ -344,7 +344,9 @@ apps:
     priority: -5
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-partner-onboarder-preinstall.sh"
+      preUpgrade: "$WORKDIR/hooks/esignet-partner-onboarder-preinstall.sh"
       postInstall: "$WORKDIR/hooks/esignet-partner-onboarder-postinstall.sh"
+      postUpgrade: "$WORKDIR/hooks/esignet-partner-onboarder-postinstall.sh"
 
   esignet-demo-oidc-partner-onboarder:
     namespace: esignet
@@ -386,4 +388,6 @@ apps:
     priority: -4
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-demo-oidc-partner-onboarder-preinstall.sh"
+      preUpgrade: "$WORKDIR/hooks/esignet-demo-oidc-partner-onboarder-preinstall.sh"
       postInstall: "$WORKDIR/hooks/esignet-demo-oidc-partner-onboarder-postinstall.sh"
+      postUpgrade: "$WORKDIR/hooks/esignet-demo-oidc-partner-onboarder-postinstall.sh"

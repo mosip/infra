@@ -1,0 +1,92 @@
+name: Cleanup Partner Data
+
+on:
+  workflow_dispatch:
+    inputs:
+      db_host:
+        description: 'Database host'
+        required: true
+        default: 'postgres'
+      db_port:
+        description: 'Database port'
+        required: true
+        default: '5432'
+      db_user:
+        description: 'Database user'
+        required: true
+        default: 'postgres'
+      dry_run:
+        description: 'Dry run (true/false)'
+        required: true
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+      confirm_deletion:
+        description: 'Type DELETE to confirm deletion (required when dry_run=false)'
+        required: false
+        default: ''
+
+jobs:
+  cleanup-partner-data:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate confirmation
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        run: |
+          if [ "${{ github.event.inputs.confirm_deletion }}" != "DELETE" ]; then
+            echo "ERROR: You must type 'DELETE' in the confirmation field to proceed with deletion"
+            exit 1
+          fi
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Make script executable
+        run: chmod +x Helmsman/hooks/cleanup-partner-data.sh
+
+      - name: Run cleanup script (dry-run)
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        env:
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          cd Helmsman/hooks
+          ./cleanup-partner-data.sh \
+            --host "${{ github.event.inputs.db_host }}" \
+            --port "${{ github.event.inputs.db_port }}" \
+            --user "${{ github.event.inputs.db_user }}" \
+            --dry-run
+
+      - name: Run cleanup script (execute deletions)
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        env:
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          cd Helmsman/hooks
+          ./cleanup-partner-data.sh \
+            --host "${{ github.event.inputs.db_host }}" \
+            --port "${{ github.event.inputs.db_port }}" \
+            --user "${{ github.event.inputs.db_user }}"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Cleanup Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Database Host:** ${{ github.event.inputs.db_host }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Database Port:** ${{ github.event.inputs.db_port }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Database User:** ${{ github.event.inputs.db_user }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Dry Run:** ${{ github.event.inputs.dry_run }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
+            echo "✅ Dry run completed - no data was deleted" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Deletion executed - partner data has been removed" >> $GITHUB_STEP_SUMMARY
+          fi
