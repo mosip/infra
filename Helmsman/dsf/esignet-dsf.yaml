@@ -280,7 +280,7 @@ apps:
       # Set to true if you don't have public domain & valid SSL (development only)
       enable_insecure: "false"
     timeout: 480
-    priority: -
+    priority: -7
     hooks:
       preInstall: "$WORKDIR/hooks/mock-relying-party-service-preinstall.sh"
 
