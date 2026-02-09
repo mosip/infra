@@ -960,7 +960,7 @@ apps:
   ida-otp:
     namespace: ida
     enabled: true
-    version: 12.3.1
+    version: 12.1.3
     chart: mosip/ida-otp
     # set:
     #   image.repository: "mosipid/authentication-otp-service"
@@ -1000,7 +1000,7 @@ apps:
   resident:
     namespace: resident
     enabled: true
-    version: 12.1.3
+    version: 12.3.1
     chart: mosip/resident
     set:
       # image.repository: "mosipid/resident-service"
