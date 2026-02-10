@@ -19,6 +19,14 @@ on:
         description: "Specific namespaces (comma-separated, e.g., apitestrig,uitestrig,dslrig). Only used if 'specific' is selected above."
         required: false
         type: string
+      destroy_option:
+        description: "Destroy option"
+        required: false
+        type: choice
+        default: "full"
+        options:
+          - full
+          - helm_only
 
 jobs:
   validate-confirmation:
@@ -42,4 +50,5 @@ jobs:
       dsf_label: "testrigs-dsf"
       wireguard_secret_name: "CLUSTER_WIREGUARD_WG0"
       deployment_type: "Testrigs"
+      destroy_option: ${{ github.event.inputs.destroy_option }}
     secrets: inherit

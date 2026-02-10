@@ -27,6 +27,14 @@ on:
         description: 'Type DELETE to confirm deletion (required when dry_run=false)'
         required: false
         default: ''
+      enable_wireguard:
+        description: 'Enable Wireguard VPN'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
 
 jobs:
   cleanup-partner-data:
@@ -35,6 +43,16 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Setup Wireguard
+        if: ${{ github.event.inputs.enable_wireguard == 'true' && secrets.TF_WG_CONFIG != '' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wireguard resolvconf
+          echo "${{ secrets.TF_WG_CONFIG }}" | sudo tee /etc/wireguard/wg0.conf > /dev/null
+          sudo chmod 600 /etc/wireguard/wg0.conf
+          sudo wg-quick up wg0
+          echo "Wireguard VPN connected"
 
       - name: Validate confirmation
         if: ${{ github.event.inputs.dry_run == 'false' }}
@@ -74,6 +92,12 @@ jobs:
             --host "${{ github.event.inputs.db_host }}" \
             --port "${{ github.event.inputs.db_port }}" \
             --user "${{ github.event.inputs.db_user }}"
+
+      - name: Disconnect Wireguard
+        if: ${{ always() && github.event.inputs.enable_wireguard == 'true' && secrets.TF_WG_CONFIG != '' }}
+        run: |
+          sudo wg-quick down wg0 || true
+          echo "Wireguard VPN disconnected"
 
       - name: Summary
         if: always()

@@ -27,6 +27,11 @@ on:
         description: "Type of deployment (e.g., MOSIP, Testrigs)"
         required: true
         type: string
+      destroy_option:
+        description: "Destroy option (helm_only or full)"
+        required: false
+        type: string
+        default: "full"
 
 jobs:
   destroy:
@@ -186,12 +191,17 @@ jobs:
           echo ""
           echo "🗑️  Step 2: Deleting namespaces..."
           
-          # Delete the selected namespaces
-          for NS in "${NAMESPACES[@]}"; do
-            NS=$(echo "$NS" | xargs)  # Trim whitespace
-            echo "Deleting namespace: $NS"
-            kubectl delete namespace "$NS" --ignore-not-found=true --timeout=5m
-          done
+          # Only delete namespaces if destroy_option is 'full'
+          if [ "${{ inputs.destroy_option }}" == "full" ]; then
+            # Delete the selected namespaces
+            for NS in "${NAMESPACES[@]}"; do
+              NS=$(echo "$NS" | xargs)  # Trim whitespace
+              echo "Deleting namespace: $NS"
+              kubectl delete namespace "$NS" --ignore-not-found=true --timeout=5m
+            done
+          else
+            echo "ℹ️  Skipping namespace deletion (destroy_option: ${{ inputs.destroy_option }})"
+          fi
 
       - name: Verify ${{ inputs.deployment_type }} Resource Cleanup
         run: |
@@ -201,15 +211,29 @@ jobs:
             IFS=' ' read -ra NAMESPACES <<< "${{ inputs.all_namespaces }}"
           fi
           
-          for NS in "${NAMESPACES[@]}"; do
-            NS=$(echo "$NS" | xargs)  # Trim whitespace
-            if kubectl get namespace "$NS" >/dev/null 2>&1; then
-              echo "⚠️  Namespace $NS still exists"
-              kubectl get all -n "$NS"
-            else
-              echo "✅ Namespace $NS successfully removed"
-            fi
-          done
+          if [ "${{ inputs.destroy_option }}" == "full" ]; then
+            # Verify namespaces are deleted
+            for NS in "${NAMESPACES[@]}"; do
+              NS=$(echo "$NS" | xargs)  # Trim whitespace
+              if kubectl get namespace "$NS" >/dev/null 2>&1; then
+                echo "⚠️  Namespace $NS still exists"
+                kubectl get all -n "$NS"
+              else
+                echo "✅ Namespace $NS successfully removed"
+              fi
+            done
+          else
+            # Verify Helm releases are uninstalled
+            for NS in "${NAMESPACES[@]}"; do
+              NS=$(echo "$NS" | xargs)  # Trim whitespace
+              RELEASES=$(helm list -n "$NS" -q 2>/dev/null || true)
+              if [ -n "$RELEASES" ]; then
+                echo "⚠️  Namespace $NS still has releases: $RELEASES"
+              else
+                echo "✅ All Helm releases removed from namespace: $NS"
+              fi
+            done
+          fi
 
       - name: Remove ${{ inputs.deployment_type }} DSF Label
         run: |
