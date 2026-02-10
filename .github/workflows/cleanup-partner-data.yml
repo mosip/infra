@@ -45,7 +45,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Wireguard
-        if: ${{ github.event.inputs.enable_wireguard == 'true' && secrets.TF_WG_CONFIG != '' }}
+        if: ${{ github.event.inputs.enable_wireguard == 'true' }}
         run: |
           sudo apt-get update
           sudo apt-get install -y wireguard resolvconf
@@ -94,7 +94,7 @@ jobs:
             --user "${{ github.event.inputs.db_user }}"
 
       - name: Disconnect Wireguard
-        if: ${{ always() && github.event.inputs.enable_wireguard == 'true' && secrets.TF_WG_CONFIG != '' }}
+        if: ${{ always() && github.event.inputs.enable_wireguard == 'true' }}
         run: |
           sudo wg-quick down wg0 || true
           echo "Wireguard VPN disconnected"
