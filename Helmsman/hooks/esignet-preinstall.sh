@@ -77,9 +77,23 @@ function preinstall_esignet() {
   echo "Copying esignet-misp-onboarder-key to config-server namespace"
   $COPY_UTIL secret esignet-misp-onboarder-key $NS config-server
 
+  # Verify secret was copied successfully
+  echo "Verifying esignet-misp-onboarder-key exists in config-server namespace"
+  kubectl get secret esignet-misp-onboarder-key -n config-server || {
+    echo "ERROR: Failed to copy esignet-misp-onboarder-key to config-server"
+    exit 1
+  }
+
   # Copy captcha secret to config-server
   echo "Copying esignet-captcha to config-server namespace"
   $COPY_UTIL secret esignet-captcha $NS config-server
+
+  # Verify secret was copied successfully
+  echo "Verifying esignet-captcha exists in config-server namespace"
+  kubectl get secret esignet-captcha -n config-server || {
+    echo "ERROR: Failed to copy esignet-captcha to config-server"
+    exit 1
+  }
 
   # ============================================================
   # Setup config-server environment variables for esignet
