@@ -102,7 +102,7 @@ jobs:
           echo "Wireguard VPN disconnected"
 
       - name: Summary
-        if: always()
+        if: success()
         run: |
           echo "## Cleanup Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
