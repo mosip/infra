@@ -1247,6 +1247,24 @@ The Helmsman deployment process follows a specific sequence with automated trigg
 
 **How to check onboarding status and rerun if needed:** Refer to the comprehensive [MOSIP Onboarding Guide](docs/ONBOARDING_GUIDE.md) for detailed troubleshooting and retry procedures.
 
+#### Step 4d: Deploy eSignet
+
+> **eSignet** is MOSIP's authentication and authorization service that provides OpenID Connect (OIDC) based identity verification.
+
+**Complete eSignet Deployment Guide:** For detailed step-by-step instructions on deploying eSignet with screenshots and configuration examples, see [eSignet Deployment Guide](docs/esignet_README.md).
+
+**Quick Overview:**
+
+- **Prerequisites**: MOSIP services must be deployed and running
+- **What it includes**: eSignet service, Keycloak, Mock Identity System, Mock Relying Party, Redis, SoftHSM
+- **Required Secrets**: reCAPTCHA keys, private keys for Mock Relying Party
+- **Deployment Time**: 15-30 minutes
+
+**To deploy eSignet:**
+1. Configure eSignet-specific secrets (see [eSignet Guide](docs/esignet_README.md#required-secrets-environment-secrets))
+2. Run: Actions → **Deploy eSignet using Helmsman**
+3. Select mode: `apply`
+
 5. **Deploy Test Rigs (Manual):**
 
 ![Deploy Test Rigs - Helmsman](docs/_images/helmsman-testrigs.png)

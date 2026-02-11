@@ -22,31 +22,6 @@ The eSignet DSF (Desired State File) deploys a complete authentication stack inc
 3. GitHub Actions secrets configured
 4. WireGuard VPN access to cluster
 
-### Deploy via GitHub Actions
-
-1. Go to **Actions** → **Deploy eSignet using Helmsman**
-2. Select mode: `dry-run` (preview) or `apply` (deploy)
-3. Click **Run workflow**
-
----
-
-## GitHub Actions Workflow
-
-### Triggers
-
-| Trigger | Condition |
-|---------|-----------|
-| **Manual** | Run from Actions tab (`workflow_dispatch`) |
-| **Push** | When `Helmsman/dsf/esignet-dsf.yaml` is modified |
-
-### Workflow Inputs
-
-| Input | Description | Required | Default |
-|-------|-------------|----------|---------|
-| `mode` | `dry-run` (preview) or `apply` (deploy) | Yes | `dry-run` |
-| `skip_mosip_dsf_check` | Skip MOSIP DSF dependency check | No | `false` |
-
----
 
 ## Required Secrets (Environment Secrets)
 
@@ -92,12 +67,20 @@ cat ~/.kube/config | base64 -w 0
 
 ### Captcha Secrets
 
+> **Note:** For detailed instructions on creating Google reCAPTCHA keys with screenshots, see [RECAPTCHA Setup Guide](../../../docs/RECAPTCHA_SETUP_GUIDE.md).
+
 Get reCAPTCHA keys from [Google reCAPTCHA Admin Console](https://www.google.com/recaptcha/admin):
 
 1. Create a new site with reCAPTCHA v2 (Invisible)
 2. Add your eSignet domain (e.g., `esignet.sandbox.xyz.net`)
-3. Copy the **Site Key** → Add as `ESIGNET_CAPTCHA_SITE_KEY` (plain text)
-4. Copy the **Secret Key** → Add as `ESIGNET_CAPTCHA_SECRET_KEY` (plain text)
+3. Copy the **Site Key** → Add as GitHub Environment Secret `ESIGNET_CAPTCHA_SITE_KEY` (plain text, no encoding)
+4. Copy the **Secret Key** → Add as GitHub Environment Secret `ESIGNET_CAPTCHA_SECRET_KEY` (plain text, no encoding)
+
+**To add these secrets:**
+- Go to **Repository → Settings → Environments → `<branch-name>` → Add secret**
+- Add both keys exactly as copied from Google (no base64 encoding needed)
+
+
 
 ---
 
@@ -232,6 +215,32 @@ Custom Helm values are stored in:
 | `utils/softhsm-esignet-values.yaml` | SoftHSM for eSignet |
 | `utils/softhsm-mock-identity-system-values.yaml` | SoftHSM for mock identity |
 | `utils/postgres-values.yaml` | PostgreSQL configuration |
+
+---
+
+### Deploy via GitHub Actions
+
+1. Go to **Actions** → **Deploy eSignet using Helmsman**
+2. Select mode: `dry-run` (preview) or `apply` (deploy)
+3. Click **Run workflow**
+
+---
+
+## GitHub Actions Workflow
+
+### Triggers
+
+| Trigger | Condition |
+|---------|-----------|
+| **Manual** | Run from Actions tab (`workflow_dispatch`) |
+| **Push** | When `Helmsman/dsf/esignet-dsf.yaml` is modified |
+
+### Workflow Inputs
+
+| Input | Description | Required | Default |
+|-------|-------------|----------|---------|
+| `mode` | `dry-run` (preview) or `apply` (deploy) | Yes | `dry-run` |
+| `skip_mosip_dsf_check` | Skip MOSIP DSF dependency check | No | `false` |
 
 ---
 
