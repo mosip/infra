@@ -1247,7 +1247,7 @@ The Helmsman deployment process follows a specific sequence with automated trigg
 
 **How to check onboarding status and rerun if needed:** Refer to the comprehensive [MOSIP Onboarding Guide](docs/ONBOARDING_GUIDE.md) for detailed troubleshooting and retry procedures.
 
-#### Step 4d: Deploy eSignet
+5. **Deploy eSignet:**
 
 > **eSignet** is MOSIP's authentication and authorization service that provides OpenID Connect (OIDC) based identity verification.
 
@@ -1264,6 +1264,33 @@ The Helmsman deployment process follows a specific sequence with automated trigg
 1. Configure eSignet-specific secrets (see [eSignet Guide](docs/esignet_README.md#required-secrets-environment-secrets))
 2. Run: Actions → **Deploy eSignet using Helmsman**
 3. Select mode: `apply`
+
+**If eSignet Partner Onboarding Fails:**
+
+> **⚠️ Important**: Similar to MOSIP partner onboarding, eSignet partner onboarding may fail during initial deployment. If this happens, you need to clean up the failed partner data before re-running the onboarding.
+
+**Steps to recover from failed eSignet partner onboarding:**
+
+1. **Clean up failed partner data:**
+   - Use the **Cleanup Partner Data** workflow to remove failed partner entries
+   - Follow the [Partner Data Cleanup Guide](docs/CLEANUP_PARTNER_DATA_GUIDE.md) for detailed instructions
+   - **Important**: Always run in `dry-run` mode first to preview changes
+
+2. **Re-run eSignet partner onboarding:**
+   - After cleanup, re-deploy the eSignet DSF workflow
+   - **Important**: Set `delete_existing_jobs: true` when re-running the deployment
+     - This parameter deletes existing onboarder jobs before creating new ones
+     - Required for successful re-runs after failed onboarding
+     - Location: Actions → Deploy eSignet using Helmsman → Workflow inputs
+   - Monitor the onboarding logs for success
+   - Verify in MinIO that partner onboarding completed successfully
+
+3. **Verify eSignet services:**
+   - Check that all eSignet pods are running
+   - Test eSignet authentication endpoints
+   - Verify Mock Relying Party can authenticate
+
+> **Tip**: Check MinIO onboarding reports after deployment to catch failures early before proceeding to test rigs.
 
 5. **Deploy Test Rigs (Manual):**
 
