@@ -32,6 +32,10 @@ on:
         required: false
         type: string
         default: "full"
+      specific_releases:
+        description: "Comma-separated list of specific helm releases to delete (optional, only used with helm_only)"
+        required: false
+        type: string
 
 jobs:
   destroy:
@@ -175,16 +179,33 @@ jobs:
             echo ""
             echo "Processing namespace: $NS"
             
-            # Get all helm releases in this namespace and uninstall them
-            RELEASES=$(helm list -n "$NS" -q 2>/dev/null || true)
-            if [ -n "$RELEASES" ]; then
-              echo "Found releases in $NS: $RELEASES"
-              for RELEASE in $RELEASES; do
-                echo "  → Uninstalling release: $RELEASE"
-                helm uninstall "$RELEASE" -n "$NS" --wait --timeout=5m || true
+            # Check if specific releases are specified
+            if [ -n "${{ inputs.specific_releases }}" ]; then
+              # Uninstall only specific releases
+              IFS=',' read -ra SPECIFIC_RELEASES <<< "${{ inputs.specific_releases }}"
+              echo "Mode: Specific releases only"
+              for RELEASE in "${SPECIFIC_RELEASES[@]}"; do
+                RELEASE=$(echo "$RELEASE" | xargs)  # Trim whitespace
+                # Check if release exists in this namespace
+                if helm list -n "$NS" -q 2>/dev/null | grep -q "^${RELEASE}$"; then
+                  echo "  → Uninstalling release: $RELEASE from $NS"
+                  helm uninstall "$RELEASE" -n "$NS" --wait --timeout=5m || true
+                else
+                  echo "  ℹ️  Release $RELEASE not found in namespace $NS, skipping"
+                fi
               done
             else
-              echo "  No Helm releases found in namespace: $NS"
+              # Uninstall all helm releases in this namespace
+              RELEASES=$(helm list -n "$NS" -q 2>/dev/null || true)
+              if [ -n "$RELEASES" ]; then
+                echo "Found releases in $NS: $RELEASES"
+                for RELEASE in $RELEASES; do
+                  echo "  → Uninstalling release: $RELEASE"
+                  helm uninstall "$RELEASE" -n "$NS" --wait --timeout=5m || true
+                done
+              else
+                echo "  No Helm releases found in namespace: $NS"
+              fi
             fi
           done
           

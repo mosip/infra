@@ -27,6 +27,10 @@ on:
         options:
           - full
           - helm_only
+      specific_releases:
+        description: "Specific helm releases (comma-separated, e.g., admin,kernel). Only used with helm_only option."
+        required: false
+        type: string
 
 jobs:
   validate-confirmation:
@@ -51,4 +55,5 @@ jobs:
       wireguard_secret_name: "CLUSTER_WIREGUARD_WG0"
       deployment_type: "MOSIP"
       destroy_option: ${{ github.event.inputs.destroy_option }}
+      specific_releases: ${{ github.event.inputs.specific_releases }}
     secrets: inherit
