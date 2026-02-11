@@ -51,7 +51,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y wireguard resolvconf
-          echo "${{ secrets.TF_WG_CONFIG }}" | sudo tee /etc/wireguard/wg0.conf > /dev/null
+          echo "${{ secrets.CLUSTER_WIREGUARD_WG0 }}" | sudo tee /etc/wireguard/wg0.conf > /dev/null
           sudo chmod 600 /etc/wireguard/wg0.conf
           sudo wg-quick up wg0
           echo "Wireguard VPN connected"
