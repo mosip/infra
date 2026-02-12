@@ -52,7 +52,7 @@ function preinstall_partner_onboarder() {
   echo "Fetching s3-user-key from s3 configmap"
   S3_USER_KEY=$( kubectl -n s3 get cm s3 -o jsonpath='{.data.s3-user-key}' 2>/dev/null || echo "" )
   if [ -n "$S3_USER_KEY" ]; then
-    echo "s3-user-key found: $S3_USER_KEY"
+    echo "s3-user-key found"
     # Create a configmap with s3-user-key in esignet namespace for the chart to use
     kubectl -n $NS create configmap s3-onboarder-config \
       --from-literal=s3-user-key="$S3_USER_KEY" \
