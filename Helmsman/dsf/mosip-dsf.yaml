@@ -482,7 +482,7 @@ apps:
   idrepo-saltgen:
     namespace: idrepo
     enabled: true
-    version: 12.2.3
+    version: 12.2.4
     chart: mosip/idrepo-saltgen
     # set:
     #   image.repository: ""
@@ -495,11 +495,12 @@ apps:
   credential:
     namespace: idrepo
     enabled: true
-    version: 12.2.3
+    version: 12.2.4
     chart: mosip/credential
     set:
       # image.repository: "mosipid/credential-service"
       # image.tag: "1.2.2.2"
+      replicaCount: 2      
       resources.limits.cpu: "500m"
       resources.limits.memory: "3000Mi"
       resources.requests.cpu: "200m"
@@ -510,11 +511,12 @@ apps:
   credentialrequest:
     namespace: idrepo
     enabled: true
-    version: 12.2.3
+    version: 12.2.4
     chart: mosip/credentialrequest
     set:
       # image.repository: "mosipid/credential-request-generator"
       # image.tag: "1.2.2.2"
+      replicaCount: 2      
       resources.limits.cpu: "1"
       resources.limits.memory: "4000Mi"
       resources.requests.cpu: "1"
@@ -526,9 +528,10 @@ apps:
   identity:
     namespace: idrepo
     enabled: true
-    version: 12.2.3
+    version: 12.2.4
     chart: mosip/identity
-    # set:
+    set:
+      replicaCount: 2    
     #   image.repository: "mosipid/id-repository-identity-service"
     #   image.tag: "1.2.2.2"
     priority: -7
@@ -537,9 +540,10 @@ apps:
   vid:
     namespace: idrepo
     enabled: true
-    version: 12.2.3
+    version: 12.2.4
     chart: mosip/vid
-    # set:
+    set:
+      replicaCount: 2    
     #   image.repository: "mosipid/id-repository-vid-service"
     #   image.tag: "1.2.2.2"
     priority: -6
@@ -593,8 +597,8 @@ apps:
   #   set:
   #     image.repository: "mosipid/pmp-ui"
   #     image.tag: "1.2.2.1"
-  #     pmp.apiUrl: "https://api-internal.sandbox.xyz.net/"
-  #     istio.hosts[0]: "pmp.sandbox.xyz.net"
+  #     pmp.apiUrl: "https://api-internal.soil.mosip.net/"
+  #     istio.hosts[0]: "pmp.soil.mosip.net"
   #   priority: -9
   #   timeout: 1200
 
@@ -922,7 +926,7 @@ apps:
   ida-auth:
     namespace: ida
     enabled: true
-    version: 12.1.2
+    version: 12.1.3
     chart: mosip/ida-auth
     # set:
     #   image.repository: "mosipid/authentication-service"
@@ -940,7 +944,7 @@ apps:
   ida-internal:
     namespace: ida
     enabled: true
-    version: 12.1.2
+    version: 12.1.3
     chart: mosip/ida-internal
     # set:
     #   image.repository: "mosipid/authentication-internal-service"
@@ -956,7 +960,7 @@ apps:
   ida-otp:
     namespace: ida
     enabled: true
-    version: 12.1.2
+    version: 12.1.3
     chart: mosip/ida-otp
     # set:
     #   image.repository: "mosipid/authentication-otp-service"
@@ -996,11 +1000,11 @@ apps:
   resident:
     namespace: resident
     enabled: true
-    version: 12.1.2
+    version: 12.3.1
     chart: mosip/resident
     set:
-      # image.repository: "mosipid/resident-service"
-      # image.tag: "1.2.1.2"
+      image.repository: "mosipid/resident-service"
+      image.tag: "1.2.1.3"
       resources.requests.cpu: "300m"
       resources.requests.memory: "2000Mi"
       startupProbe.failureThreshold: "60"
@@ -1051,7 +1055,7 @@ apps:
       onboarding.modules[1].name: "print"
       onboarding.modules[1].enabled: true
       onboarding.modules[2].name: "abis"
-      onboarding.modules[2].enabled: true
+      onboarding.modules[2].enabled: false
       onboarding.modules[3].name: "resident"
       onboarding.modules[3].enabled: true
       onboarding.modules[4].name: "mobileid"
@@ -1091,13 +1095,13 @@ apps:
   regclient:
     namespace: regclient
     enabled: true
-    version: 12.0.3
+    version: 1.3.0-beta.1
     chart: mosip/regclient
     set:
       startupProbe.failureThreshold: "60"
-      # image.repository: "mosipid/registration-client"
-      # image.tag: "1.2.0.2"
-      # regclient.version: "1.2.0.2"
+      image.repository: "mosipid/registration-client"
+      image.tag: "1.2.0.2"
+      regclient.version: "1.2.0.2"
       regclient.upgradeServerUrl: "https://regclient.soil.mosip.net"
       regclient.healthCheckUrl: "https://api-internal.soil.mosip.net/v1/syncdata/actuator/health"
       regclient.hostName: "api-internal.soil.mosip.net"
