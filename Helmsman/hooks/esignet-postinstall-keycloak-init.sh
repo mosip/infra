@@ -34,19 +34,39 @@ if [ -z "$KEYCLOAK_PMS_SECRET" ] || [ -z "$KEYCLOAK_MPARTNER_SECRET" ]; then
     exit 1
   fi
   
-  ESIGNET_PMS_SECRET=$( kubectl -n $NS get secrets keycloak-client-secrets -o jsonpath="{.data.$PMS_CLIENT_SECRET_KEY}" )
-  ESIGNET_MPARTNER_SECRET=$( kubectl -n $NS get secrets keycloak-client-secrets -o jsonpath="{.data.$MPARTNER_DEFAULT_AUTH_SECRET_KEY}" )
+  # Fetch secrets from esignet namespace
+  ESIGNET_PMS_SECRET=$( kubectl -n $NS get secrets keycloak-client-secrets -o jsonpath="{.data.$PMS_CLIENT_SECRET_KEY}" || echo "" )
+  ESIGNET_MPARTNER_SECRET=$( kubectl -n $NS get secrets keycloak-client-secrets -o jsonpath="{.data.$MPARTNER_DEFAULT_AUTH_SECRET_KEY}" || echo "" )
   
-  # Validate secrets were retrieved
-  if [ -z "$ESIGNET_PMS_SECRET" ] || [ -z "$ESIGNET_MPARTNER_SECRET" ]; then
-    echo "ERROR: Failed to retrieve secrets from $NS namespace"
+  # Build jq filter to only update non-empty secrets
+  JQ_FILTER="."
+  SECRETS_TO_SYNC=0
+  
+  if [ -n "$ESIGNET_PMS_SECRET" ]; then
+    JQ_FILTER="$JQ_FILTER | .data[\"$PMS_CLIENT_SECRET_KEY\"]=\"$ESIGNET_PMS_SECRET\""
+    echo "Will sync PMS client secret to keycloak namespace"
+    SECRETS_TO_SYNC=$((SECRETS_TO_SYNC + 1))
+  else
+    echo "WARNING: PMS client secret is empty in $NS namespace, skipping"
+  fi
+  
+  if [ -n "$ESIGNET_MPARTNER_SECRET" ]; then
+    JQ_FILTER="$JQ_FILTER | .data[\"$MPARTNER_DEFAULT_AUTH_SECRET_KEY\"]=\"$ESIGNET_MPARTNER_SECRET\""
+    echo "Will sync MPARTNER default auth secret to keycloak namespace"
+    SECRETS_TO_SYNC=$((SECRETS_TO_SYNC + 1))
+  else
+    echo "WARNING: MPARTNER default auth secret is empty in $NS namespace, skipping"
+  fi
+  
+  # Only apply if we have at least one secret to sync
+  if [ "$SECRETS_TO_SYNC" -eq 0 ]; then
+    echo "ERROR: No valid secrets found in $NS namespace to sync"
     exit 1
   fi
   
   # Use intermediate variable to check pipeline success
   UPDATED_SECRET=$(kubectl -n keycloak get secret keycloak-client-secrets -o json | \
-    jq ".data[\"$PMS_CLIENT_SECRET_KEY\"]=\"$ESIGNET_PMS_SECRET\"" | \
-    jq ".data[\"$MPARTNER_DEFAULT_AUTH_SECRET_KEY\"]=\"$ESIGNET_MPARTNER_SECRET\"") || {
+    jq "$JQ_FILTER") || {
     echo "ERROR: Failed to update keycloak-client-secrets in keycloak namespace"
     exit 1
   }
@@ -56,7 +76,7 @@ if [ -z "$KEYCLOAK_PMS_SECRET" ] || [ -z "$KEYCLOAK_MPARTNER_SECRET" ]; then
     exit 1
   }
   
-  echo "Successfully synced secrets to keycloak namespace"
+  echo "Successfully synced $SECRETS_TO_SYNC secret(s) to keycloak namespace"
 else
   echo "Secrets already exist in keycloak namespace, skipping sync"
 fi
@@ -75,19 +95,39 @@ if [ -z "$CONFIG_PMS_SECRET" ] || [ -z "$CONFIG_MPARTNER_SECRET" ]; then
     exit 1
   fi
   
-  ESIGNET_PMS_SECRET=$( kubectl -n $NS get secrets keycloak-client-secrets -o jsonpath="{.data.$PMS_CLIENT_SECRET_KEY}" )
-  ESIGNET_MPARTNER_SECRET=$( kubectl -n $NS get secrets keycloak-client-secrets -o jsonpath="{.data.$MPARTNER_DEFAULT_AUTH_SECRET_KEY}" )
+  # Fetch secrets from esignet namespace
+  ESIGNET_PMS_SECRET=$( kubectl -n $NS get secrets keycloak-client-secrets -o jsonpath="{.data.$PMS_CLIENT_SECRET_KEY}" || echo "" )
+  ESIGNET_MPARTNER_SECRET=$( kubectl -n $NS get secrets keycloak-client-secrets -o jsonpath="{.data.$MPARTNER_DEFAULT_AUTH_SECRET_KEY}" || echo "" )
   
-  # Validate secrets were retrieved
-  if [ -z "$ESIGNET_PMS_SECRET" ] || [ -z "$ESIGNET_MPARTNER_SECRET" ]; then
-    echo "ERROR: Failed to retrieve secrets from $NS namespace"
+  # Build jq filter to only update non-empty secrets
+  JQ_FILTER="."
+  SECRETS_TO_SYNC=0
+  
+  if [ -n "$ESIGNET_PMS_SECRET" ]; then
+    JQ_FILTER="$JQ_FILTER | .data[\"$PMS_CLIENT_SECRET_KEY\"]=\"$ESIGNET_PMS_SECRET\""
+    echo "Will sync PMS client secret to config-server namespace"
+    SECRETS_TO_SYNC=$((SECRETS_TO_SYNC + 1))
+  else
+    echo "WARNING: PMS client secret is empty in $NS namespace, skipping"
+  fi
+  
+  if [ -n "$ESIGNET_MPARTNER_SECRET" ]; then
+    JQ_FILTER="$JQ_FILTER | .data[\"$MPARTNER_DEFAULT_AUTH_SECRET_KEY\"]=\"$ESIGNET_MPARTNER_SECRET\""
+    echo "Will sync MPARTNER default auth secret to config-server namespace"
+    SECRETS_TO_SYNC=$((SECRETS_TO_SYNC + 1))
+  else
+    echo "WARNING: MPARTNER default auth secret is empty in $NS namespace, skipping"
+  fi
+  
+  # Only apply if we have at least one secret to sync
+  if [ "$SECRETS_TO_SYNC" -eq 0 ]; then
+    echo "ERROR: No valid secrets found in $NS namespace to sync"
     exit 1
   fi
   
   # Use intermediate variable to check pipeline success
   UPDATED_SECRET=$(kubectl -n config-server get secret keycloak-client-secrets -o json | \
-    jq ".data[\"$PMS_CLIENT_SECRET_KEY\"]=\"$ESIGNET_PMS_SECRET\"" | \
-    jq ".data[\"$MPARTNER_DEFAULT_AUTH_SECRET_KEY\"]=\"$ESIGNET_MPARTNER_SECRET\"") || {
+    jq "$JQ_FILTER") || {
     echo "ERROR: Failed to update keycloak-client-secrets in config-server namespace"
     exit 1
   }
@@ -97,7 +137,7 @@ if [ -z "$CONFIG_PMS_SECRET" ] || [ -z "$CONFIG_MPARTNER_SECRET" ]; then
     exit 1
   }
   
-  echo "Successfully synced secrets to config-server namespace"
+  echo "Successfully synced $SECRETS_TO_SYNC secret(s) to config-server namespace"
 else
   echo "Secrets already exist in config-server namespace, skipping sync"
 fi
