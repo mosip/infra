@@ -433,8 +433,8 @@ kubectl delete ns redis
 
 - [Helmsman DSF Guide](../README.md)
 - [Workflows README](../../.github/workflows/README.md)
-- [Secret Generation Guide](../../docs/SECRET_GENERATION_GUIDE.md)
-- [Onboarding Guide](../../docs/ONBOARDING_GUIDE.md)
+- [Secret Generation Guide](./SECRET_GENERATION_GUIDE.md)
+- [Onboarding Guide](./ONBOARDING_GUIDE.md)
 
 ---
 
