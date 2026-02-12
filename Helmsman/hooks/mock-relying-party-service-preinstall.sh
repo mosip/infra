@@ -21,6 +21,22 @@ fi
 NS=esignet
 COPY_UTIL=$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh
 
+# Secure temporary file cleanup
+CLIENT_KEY_TMPFILE=""
+JWE_KEY_TMPFILE=""
+
+cleanup_temp_files() {
+  if [ -n "$CLIENT_KEY_TMPFILE" ] && [ -f "$CLIENT_KEY_TMPFILE" ]; then
+    shred -u "$CLIENT_KEY_TMPFILE" 2>/dev/null || rm -f "$CLIENT_KEY_TMPFILE"
+  fi
+  if [ -n "$JWE_KEY_TMPFILE" ] && [ -f "$JWE_KEY_TMPFILE" ]; then
+    shred -u "$JWE_KEY_TMPFILE" 2>/dev/null || rm -f "$JWE_KEY_TMPFILE"
+  fi
+}
+
+# Register cleanup trap
+trap cleanup_temp_files EXIT INT TERM
+
 function preinstall_mock_relying_party_service() {
   echo "Pre-install setup for mock-relying-party-service"
 
@@ -46,11 +62,14 @@ function preinstall_mock_relying_party_service() {
     # Check if GitHub Actions secret is provided as environment variable
     if [ -n "${MOCK_RELYING_PARTY_CLIENT_PRIVATE_KEY:-}" ]; then
       echo "Creating mock-relying-party-service-secrets from GitHub Actions secret"
+      # Create secure temporary file with restrictive permissions
+      CLIENT_KEY_TMPFILE=$(mktemp)
+      chmod 600 "$CLIENT_KEY_TMPFILE"
       # Decode base64 and process the key - remove quotes and convert newlines
-      echo "$MOCK_RELYING_PARTY_CLIENT_PRIVATE_KEY" | base64 -d | sed "s/'//g" | sed -z 's/\n/\\n/g' > /tmp/client-private-key
+      echo "$MOCK_RELYING_PARTY_CLIENT_PRIVATE_KEY" | base64 -d | sed "s/'//g" | sed -z 's/\n/\\n/g' > "$CLIENT_KEY_TMPFILE"
       kubectl -n $NS delete secret mock-relying-party-service-secrets --ignore-not-found=true
-      kubectl -n $NS create secret generic mock-relying-party-service-secrets --from-file=client-private-key=/tmp/client-private-key
-      rm -f /tmp/client-private-key
+      kubectl -n $NS create secret generic mock-relying-party-service-secrets --from-file=client-private-key="$CLIENT_KEY_TMPFILE"
+      # Cleanup handled by trap
     else
       echo "WARNING: MOCK_RELYING_PARTY_CLIENT_PRIVATE_KEY environment variable not set"
       echo "Please configure this as a GitHub Actions secret (base64 encoded PEM)"
@@ -68,11 +87,14 @@ function preinstall_mock_relying_party_service() {
     # Check if GitHub Actions secret is provided as environment variable
     if [ -n "${MOCK_RELYING_PARTY_JWE_PRIVATE_KEY:-}" ]; then
       echo "Creating jwe-userinfo-service-secrets from GitHub Actions secret"
+      # Create secure temporary file with restrictive permissions
+      JWE_KEY_TMPFILE=$(mktemp)
+      chmod 600 "$JWE_KEY_TMPFILE"
       # Decode base64 and process the key - remove quotes and convert newlines
-      echo "$MOCK_RELYING_PARTY_JWE_PRIVATE_KEY" | base64 -d | sed "s/'//g" | sed -z 's/\n/\\n/g' > /tmp/jwe-userinfo-private-key
+      echo "$MOCK_RELYING_PARTY_JWE_PRIVATE_KEY" | base64 -d | sed "s/'//g" | sed -z 's/\n/\\n/g' > "$JWE_KEY_TMPFILE"
       kubectl -n $NS delete secret jwe-userinfo-service-secrets --ignore-not-found=true
-      kubectl -n $NS create secret generic jwe-userinfo-service-secrets --from-file=jwe-userinfo-private-key=/tmp/jwe-userinfo-private-key
-      rm -f /tmp/jwe-userinfo-private-key
+      kubectl -n $NS create secret generic jwe-userinfo-service-secrets --from-file=jwe-userinfo-private-key="$JWE_KEY_TMPFILE"
+      # Cleanup handled by trap
     else
       echo "WARNING: MOCK_RELYING_PARTY_JWE_PRIVATE_KEY environment variable not set"
       echo "Please configure this as a GitHub Actions secret (base64 encoded PEM)"
