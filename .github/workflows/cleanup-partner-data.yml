@@ -58,8 +58,10 @@ jobs:
 
       - name: Validate confirmation
         if: ${{ github.event.inputs.dry_run == 'false' }}
+        env:
+          CONFIRM: ${{ github.event.inputs.confirm_deletion }}
         run: |
-          if [ "${{ github.event.inputs.confirm_deletion }}" != "DELETE" ]; then
+          if [ "$CONFIRM" != "DELETE" ]; then
             echo "ERROR: You must type 'DELETE' in the confirmation field to proceed with deletion"
             exit 1
           fi
@@ -76,24 +78,30 @@ jobs:
         if: ${{ github.event.inputs.dry_run == 'true' }}
         env:
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_HOST: ${{ github.event.inputs.db_host }}
+          DB_PORT: ${{ github.event.inputs.db_port }}
+          DB_USER: ${{ github.event.inputs.db_user }}
         run: |
           cd Helmsman/hooks
           ./cleanup-partner-data.sh \
-            --host "${{ github.event.inputs.db_host }}" \
-            --port "${{ github.event.inputs.db_port }}" \
-            --user "${{ github.event.inputs.db_user }}" \
+            --host "$DB_HOST" \
+            --port "$DB_PORT" \
+            --user "$DB_USER" \
             --dry-run
 
       - name: Run cleanup script (execute deletions)
         if: ${{ github.event.inputs.dry_run == 'false' }}
         env:
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_HOST: ${{ github.event.inputs.db_host }}
+          DB_PORT: ${{ github.event.inputs.db_port }}
+          DB_USER: ${{ github.event.inputs.db_user }}
         run: |
           cd Helmsman/hooks
           ./cleanup-partner-data.sh \
-            --host "${{ github.event.inputs.db_host }}" \
-            --port "${{ github.event.inputs.db_port }}" \
-            --user "${{ github.event.inputs.db_user }}"
+            --host "$DB_HOST" \
+            --port "$DB_PORT" \
+            --user "$DB_USER"
 
       - name: Disconnect Wireguard
         if: ${{ always() && github.event.inputs.enable_wireguard == 'true' }}
@@ -103,15 +111,20 @@ jobs:
 
       - name: Summary
         if: success()
+        env:
+          DB_HOST: ${{ github.event.inputs.db_host }}
+          DB_PORT: ${{ github.event.inputs.db_port }}
+          DB_USER: ${{ github.event.inputs.db_user }}
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
         run: |
           echo "## Cleanup Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Database Host:** ${{ github.event.inputs.db_host }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Database Port:** ${{ github.event.inputs.db_port }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Database User:** ${{ github.event.inputs.db_user }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Dry Run:** ${{ github.event.inputs.dry_run }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Database Host:** $DB_HOST" >> $GITHUB_STEP_SUMMARY
+          echo "- **Database Port:** $DB_PORT" >> $GITHUB_STEP_SUMMARY
+          echo "- **Database User:** $DB_USER" >> $GITHUB_STEP_SUMMARY
+          echo "- **Dry Run:** $DRY_RUN" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
+          if [ "$DRY_RUN" == "true" ]; then
             echo "✅ Dry run completed - no data was deleted" >> $GITHUB_STEP_SUMMARY
           else
             echo "⚠️ Deletion executed - partner data has been removed" >> $GITHUB_STEP_SUMMARY
