@@ -129,4 +129,3 @@ jobs:
           else
             echo "⚠️ Deletion executed - partner data has been removed" >> "$GITHUB_STEP_SUMMARY"
           fi
-          fi
