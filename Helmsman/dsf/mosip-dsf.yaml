@@ -225,7 +225,7 @@ apps:
     set:
       # image.repository: "mosipqa/masterdata-loader"
       # image.tag: "develop"
-      mosipDataGithubBranch: "release-1.2.2.x"
+      mosipDataGithubBranch: "v1.2.2.0"
       mosipDataGithubRepo: "https://github.com/mosip/mosip-data"
       mosipDataXlsfolderPath: "/home/mosip/mosip-data/mosip_master/xlsx"
       db.host: "postgres.soil.mosip.net"
