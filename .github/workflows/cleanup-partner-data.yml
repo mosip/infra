@@ -117,15 +117,16 @@ jobs:
           DB_USER: ${{ github.event.inputs.db_user }}
           DRY_RUN: ${{ github.event.inputs.dry_run }}
         run: |
-          echo "## Cleanup Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Database Host:** $DB_HOST" >> $GITHUB_STEP_SUMMARY
-          echo "- **Database Port:** $DB_PORT" >> $GITHUB_STEP_SUMMARY
-          echo "- **Database User:** $DB_USER" >> $GITHUB_STEP_SUMMARY
-          echo "- **Dry Run:** $DRY_RUN" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          if [ "$DRY_RUN" == "true" ]; then
-            echo "✅ Dry run completed - no data was deleted" >> $GITHUB_STEP_SUMMARY
+          echo "## Cleanup Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Database Host:** $DB_HOST" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Database Port:** $DB_PORT" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Database User:** $DB_USER" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Dry Run:** $DRY_RUN" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "✅ Dry run completed - no data was deleted" >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "⚠️ Deletion executed - partner data has been removed" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ Deletion executed - partner data has been removed" >> "$GITHUB_STEP_SUMMARY"
+          fi
           fi
