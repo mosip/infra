@@ -13,6 +13,10 @@ SOFTHSM_NS=softhsm
 function preinstall_softhsm_mock_identity() {
   echo "Pre-install setup for softhsm-mock-identity-system"
 
+  # Ensure namespace exists (idempotent)
+  echo "Ensuring $SOFTHSM_NS namespace exists"
+  kubectl create namespace $SOFTHSM_NS --dry-run=client -o yaml | kubectl apply -f -
+
   # Add Istio label
   echo "Adding Istio injection label to $SOFTHSM_NS namespace"
   kubectl label ns $SOFTHSM_NS istio-injection=enabled --overwrite
