@@ -55,9 +55,17 @@ function preinstall_demo_oidc_partner_onboarder() {
   echo "Setting up esignet-onboarder-namespace configmap"
   kubectl -n $NS delete cm esignet-onboarder-namespace --ignore-not-found=true
   if kubectl -n $NS get cm onboarder-namespace &>/dev/null; then
-    kubectl -n $NS get cm onboarder-namespace -o yaml | \
-      sed 's/name:.*/name: esignet-onboarder-namespace/g' | \
-      kubectl -n $NS apply -f -
+    # Use yq to change only metadata.name, or fall back to anchored sed
+    if command -v yq &> /dev/null; then
+      kubectl -n $NS get cm onboarder-namespace -o yaml | \
+        yq eval '.metadata.name = "esignet-onboarder-namespace"' - | \
+        kubectl -n $NS apply -f -
+    else
+      # Fallback: Use sed with anchored pattern to match only metadata section
+      kubectl -n $NS get cm onboarder-namespace -o yaml | \
+        sed '/^metadata:/,/^[^ ]/ s/^  name:.*/  name: esignet-onboarder-namespace/' | \
+        kubectl -n $NS apply -f -
+    fi
     kubectl -n $NS delete cm onboarder-namespace --ignore-not-found=true
   else
     echo "onboarder-namespace configmap not found, skipping rename"
