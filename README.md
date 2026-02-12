@@ -1312,7 +1312,7 @@ The Helmsman deployment process follows a specific sequence with automated trigg
 
 > **Tip**: Check MinIO onboarding reports after deployment to catch failures early before proceeding to test rigs.
 
-5. **Deploy Test Rigs (Manual):**
+6. **Deploy Test Rigs (Manual):**
 
 ![Deploy Test Rigs - Helmsman](docs/_images/helmsman-testrigs.png)
 
@@ -1340,7 +1340,7 @@ After test rigs deployment completes:
    > ```
    >
 
-### 6. Verify Deployment
+### 7. Verify Deployment
 
 ```bash
 # Check cluster status
