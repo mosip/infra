@@ -86,7 +86,7 @@ cat terraform/implementations/aws/infra/kubeconfig_<cluster-name>
 
 ### Captcha Secrets
 
-> **Note:** For detailed instructions on creating Google reCAPTCHA keys with screenshots, see [RECAPTCHA Setup Guide](../../../docs/RECAPTCHA_SETUP_GUIDE.md).
+> **Note:** For detailed instructions on creating Google reCAPTCHA keys with screenshots, see [RECAPTCHA Setup Guide](./RECAPTCHA_SETUP_GUIDE.md).
 
 Get reCAPTCHA keys from [Google reCAPTCHA Admin Console](https://www.google.com/recaptcha/admin):
 
