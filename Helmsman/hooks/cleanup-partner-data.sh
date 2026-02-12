@@ -49,7 +49,9 @@ execute_sql() {
     echo "  SQL: $sql"
     # Show count that would be deleted - convert DELETE to SELECT COUNT(*)
     local count_sql="${sql/DELETE/SELECT COUNT(*)}"
-    local count=$(PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$database" -t -c "$count_sql" 2>/dev/null | xargs || echo "0")
+    local count
+    # Don't suppress stderr so connection errors are visible
+    count=$(PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$database" -t -c "$count_sql" | xargs) || count="0"
     echo "  Records to delete: $count"
   else
     echo "Executing: $description"
