@@ -80,68 +80,68 @@ echo "----------------------------------------------"
 
 # auth_policy table
 execute_sql "mosip_pms" \
-  "DELETE FROM auth_policy WHERE name LIKE '%mpolicy-default-esignet%';" \
+  "DELETE FROM pms.auth_policy WHERE name LIKE '%mpolicy-default-esignet%';" \
   "Delete auth_policy for esignet"
 
 execute_sql "mosip_pms" \
-  "DELETE FROM auth_policy WHERE name LIKE '%mpolicy-default-demo-oidc%';" \
+  "DELETE FROM pms.auth_policy WHERE name LIKE '%mpolicy-default-demo-oidc%';" \
   "Delete auth_policy for demo-oidc"
 
 execute_sql "mosip_pms" \
-  "DELETE FROM auth_policy WHERE name LIKE '%mpolicy-default-resident-oidc%';" \
+  "DELETE FROM pms.auth_policy WHERE name LIKE '%mpolicy-default-resident-oidc%';" \
   "Delete auth_policy for resident-oidc"
 
 # policy_group table
 execute_sql "mosip_pms" \
-  "DELETE FROM policy_group WHERE name LIKE '%mpolicygroup-default-esignet%';" \
+  "DELETE FROM pms.policy_group WHERE name LIKE '%mpolicygroup-default-esignet%';" \
   "Delete policy_group for esignet"
 
 execute_sql "mosip_pms" \
-  "DELETE FROM policy_group WHERE name LIKE '%mpolicygroup-default-resident-oidc%';" \
+  "DELETE FROM pms.policy_group WHERE name LIKE '%mpolicygroup-default-resident-oidc%';" \
   "Delete policy_group for resident-oidc"
 
 execute_sql "mosip_pms" \
-  "DELETE FROM policy_group WHERE name LIKE '%mpolicygroup-default-demo-oidc%';" \
+  "DELETE FROM pms.policy_group WHERE name LIKE '%mpolicygroup-default-demo-oidc%';" \
   "Delete policy_group for demo-oidc"
 
 # partner_policy_request table
 execute_sql "mosip_pms" \
-  "DELETE FROM partner_policy_request WHERE part_id LIKE '%mpartner-default-esignet%';" \
+  "DELETE FROM pms.partner_policy_request WHERE part_id LIKE '%mpartner-default-esignet%';" \
   "Delete partner_policy_request for esignet"
 
 execute_sql "mosip_pms" \
-  "DELETE FROM partner_policy_request WHERE part_id LIKE '%mpartner-default-demo-oidc%';" \
+  "DELETE FROM pms.partner_policy_request WHERE part_id LIKE '%mpartner-default-demo-oidc%';" \
   "Delete partner_policy_request for demo-oidc"
 
 execute_sql "mosip_pms" \
-  "DELETE FROM partner_policy_request WHERE part_id LIKE '%mpartner-default-resident-oidc%';" \
+  "DELETE FROM pms.partner_policy_request WHERE part_id LIKE '%mpartner-default-resident-oidc%';" \
   "Delete partner_policy_request for resident-oidc"
 
 # partner table
 execute_sql "mosip_pms" \
-  "DELETE FROM partner WHERE id LIKE '%mpartner-default-esignet%';" \
+  "DELETE FROM pms.partner WHERE id LIKE '%mpartner-default-esignet%';" \
   "Delete partner for esignet"
 
 execute_sql "mosip_pms" \
-  "DELETE FROM partner WHERE id LIKE '%mpartner-default-demo-oidc%';" \
+  "DELETE FROM pms.partner WHERE id LIKE '%mpartner-default-demo-oidc%';" \
   "Delete partner for demo-oidc"
 
 execute_sql "mosip_pms" \
-  "DELETE FROM partner WHERE id LIKE '%mpartner-default-resident-oidc%';" \
+  "DELETE FROM pms.partner WHERE id LIKE '%mpartner-default-resident-oidc%';" \
   "Delete partner for resident-oidc"
 
 # misp_license table
 execute_sql "mosip_pms" \
-  "DELETE FROM misp_license WHERE misp_id LIKE '%mpartner-default-esignet%';" \
+  "DELETE FROM pms.misp_license WHERE misp_id LIKE '%mpartner-default-esignet%';" \
   "Delete misp_license for esignet"
 
 # oidc_client table
 execute_sql "mosip_pms" \
-  "DELETE FROM oidc_client WHERE rp_id LIKE '%mpartner-default-resident-oidc%';" \
+  "DELETE FROM pms.oidc_client WHERE rp_id LIKE '%mpartner-default-resident-oidc%';" \
   "Delete oidc_client for resident-oidc"
 
 execute_sql "mosip_pms" \
-  "DELETE FROM oidc_client WHERE rp_id LIKE '%mpartner-default-demo-oidc%';" \
+  "DELETE FROM pms.oidc_client WHERE rp_id LIKE '%mpartner-default-demo-oidc%';" \
   "Delete oidc_client for demo-oidc"
 
 echo ""

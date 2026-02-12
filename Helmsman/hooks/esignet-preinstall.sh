@@ -8,6 +8,10 @@
 #   ESIGNET_CAPTCHA_SITE_KEY    - reCAPTCHA site key for esignet domain
 #   ESIGNET_CAPTCHA_SECRET_KEY  - reCAPTCHA secret key for esignet domain
 
+if [ $# -ge 1 ] ; then
+  export KUBECONFIG=$1
+fi
+
 NS=esignet
 COPY_UTIL=$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh
 
@@ -102,8 +106,6 @@ function preinstall_esignet() {
   # ============================================================
   echo "Setting up config-server environment variables for esignet"
 
-  # Get current generation before making any changes
-  CURRENT_GENERATION=$(kubectl get deployment config-server -n config-server -o jsonpath='{.metadata.generation}' 2>/dev/null || echo "0")
   ENV_CHANGES_MADE=false
 
   # Check and set captcha site key in config-server
