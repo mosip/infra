@@ -76,11 +76,12 @@ If your database is on a private network, configure:
 # SSH to your database server
 ssh user@postgres-server
 
-# Create backup
+# Create backups for both PMS and eSignet databases
 pg_dump -h localhost -p 5433 -U postgres -d mosip_pms > pms_backup_$(date +%Y%m%d_%H%M%S).sql
+pg_dump -h localhost -p 5433 -U postgres -d mosip_esignet > esignet_backup_$(date +%Y%m%d_%H%M%S).sql
 
-# Verify backup was created
-ls -lh pms_backup_*.sql
+# Verify backups were created
+ls -lh pms_backup_*.sql esignet_backup_*.sql
 ```
 
 ### Step 2: Run in Dry-Run Mode First
