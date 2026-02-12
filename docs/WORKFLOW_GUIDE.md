@@ -234,6 +234,13 @@ If Terraform Apply = ☐ (unchecked)
 
 ## Helmsman Workflows
 
+### Deployment Flow
+
+```
+Prerequisites & External → MOSIP Services → eSignet → Test Rigs
+ (parallel: prereq + external)   (auto-triggered)  (manual)  (manual)
+```
+
 ### Understanding Helmsman Modes
 
 **IMPORTANT**: For Helmsman, ALWAYS use `apply` mode. Dry-run mode will fail!
@@ -256,8 +263,6 @@ Mode: apply ✅
 
 **Workflow Name in GitHub**: `Deploy External services of mosip using Helmsman`
 
-**Note**: The documentation might refer to this as "Helmsman External Dependencies" but the actual workflow file is named differently. Look for either name!
-
 #### Step-by-Step Navigation
 
 1. **Open GitHub Actions**
@@ -267,9 +272,8 @@ Mode: apply ✅
 
 2. **Find the Workflow**
  ```
- Left Sidebar: Look for EITHER:
- - "Deploy External services of mosip using Helmsman" (actual name)
- - "Helmsman External Dependencies" (documentation name)
+ Left Sidebar: Look for:
+ - "Deploy External services of mosip using Helmsman"
  - Keywords: "External" or "Dependencies"
  ```
 
@@ -285,161 +289,105 @@ Mode: apply ✅
  | **Branch** | `release-0.1.0` | Your deployment branch |
  | **Mode** | `apply` | MUST be apply, not dry-run! |
 
-5. **What Happens Automatically**
+5. **What Happens** (20-40 minutes)
  
- This workflow deploys TWO DSF files in parallel:
+ Deploys TWO DSF files in parallel:
  
- **Part 1: Prerequisites** (`prereq-dsf.yaml`)
- ```
- → Monitoring stack (Prometheus, Grafana)
- → Istio service mesh
- → Logging stack (optional)
- ```
+ - **Prerequisites**: Monitoring, Istio, Logging
+ - **External Dependencies**: PostgreSQL, MinIO, Kafka, Keycloak
 
- **Part 2: External Dependencies** (`external-dsf.yaml`)
- ```
- → PostgreSQL (if container mode)
- → MinIO (object storage)
- → Kafka (messaging)
- → ActiveMQ (messaging)
- → Keycloak (identity management)
- ```
-
-6. **Monitor Progress** (Takes 20-40 minutes)
- ```
- → Installing monitoring
- → Deploying Istio
- → Creating databases
- → Setting up message queues
- ```
-
-7. **Automatic Trigger**
+6. **Automatic Trigger**
  ```
  ✅ On success → Automatically triggers MOSIP Services deployment
- ❌ On failure → You must manually trigger next workflow
  ```
-
-#### What You Should See
-
-**Check Pod Status:**
-```bash
-kubectl get pods -n cattle-monitoring-system
-kubectl get pods -n istio-system
-kubectl get pods -n postgres
-kubectl get pods -n kafka
-```
-
-**All pods should show:**
-```
-STATUS: Running
-READY: X/X (e.g., 1/1, 2/2)
-```
 
 ---
 
-### Workflow 2: MOSIP Core Services
+### Workflow 2: MOSIP Core Services (Auto-triggered)
 
 **What it does**: Deploys all MOSIP application services
 
 **Workflow Name**: `Deploy MOSIP services using Helmsman`
 
-#### Step-by-Step Navigation
+**Trigger**: Automatically runs after Workflow 1 succeeds
 
-1. **Verify Prerequisites**
- ```bash
- # FIRST: Ensure all external services are running
- kubectl get pods --all-namespaces | grep -v Running
- # Should return nothing (or only Completed pods)
- ```
-
-2. **Find the Workflow**
- ```
- GitHub Actions → Left Sidebar → Look for:
- - "Deploy MOSIP services using Helmsman"
- - "Deploy MOSIP services using Helmsman" (alternative)
- - Keywords: "MOSIP" or "Services"
- ```
-
-3. **Trigger Method**
-
- **Option A: Automatic (Recommended)**
- - Workflow triggers automatically after external dependencies succeed
- - No action needed if previous workflow passed
-
- **Option B: Manual**
- - Click "Run workflow"
- - Select branch: `release-0.1.0`
- - Select mode: `apply`
- - Click "Run workflow"
-
-4. **Monitor Progress** (Takes 30-60 minutes)
- ```
- → Config Server
- → Artifactory Server
- → Kernel services
- → Pre-registration services
- → Registration Processor
- → ID Repository
- → Authentication services
- → Partner Management
- → Resident Services
- ```
-
-5. **Handle Onboarding Failures**
-
- **Known Issue**: Partner onboarding may fail on first attempt
-
- **What to do:**
- ```
- 1. Check logs for onboarding errors
- 2. Follow manual onboarding procedure
- 3. Verify all services are running before test rigs
- ```
-
-#### What You Should See
-
-**Check MOSIP Pods:**
-```bash
-kubectl get pods -A
+**Manual Run** (if needed):
+```
+Branch: release-0.1.0
+Mode: apply
 ```
 
-**Expected Output:**
-```
-NAME READY STATUS RESTARTS
-prereg-application-0 1/1 Running 0
-regproc-stage-group1-0 1/1 Running 0
-kernel-auth-0 1/1 Running 0
-idrepo-identity-0 1/1 Running 0
-...
-```
+**Monitor Progress** (30-60 minutes):
+- Config Server, Artifactory, Kernel services
+- Pre-registration, Registration Processor
+- ID Repository, Authentication services
+- Partner Management, Resident Services
 
-**All pods should be Running before proceeding!**
+**Important**: Verify all pods running before proceeding to eSignet
 
 ---
 
-### Workflow 3: Test Rigs (Optional)
+### Workflow 3: eSignet (Manual)
+
+**What it does**: Deploys eSignet authentication stack
+
+**Workflow Name**: `Deploy eSignet using Helmsman`
+
+**Prerequisites**: MOSIP core services must be running
+
+#### Step-by-Step Navigation
+
+1. **Find the Workflow**
+ ```
+ GitHub Actions → "Deploy eSignet using Helmsman"
+ ```
+
+2. **Run the Workflow**
+ ```
+ Click: "Run workflow"
+ Branch: release-0.1.0
+ Mode: apply
+ ```
+
+3. **Additional Options** (optional)
+
+ | Option | When to Enable |
+ |--------|----------------|
+ | `skip_mosip_dsf_check` | Standalone eSignet deployment without MOSIP |
+ | `delete_existing_jobs` | Re-running after failed attempt |
+
+4. **Monitor Progress** (15-25 minutes)
+ ```
+ → eSignet services
+ → OIDC client configuration
+ → Keycloak integration
+ → Mock identity system
+ ```
+
+**Check Status:**
+```bash
+kubectl get pods -n esignet
+```
+
+---
+
+### Workflow 4: Test Rigs (Manual, Optional)
 
 **What it does**: Deploys automated testing infrastructure
 
-**IMPORTANT**: Only run after ALL MOSIP services are running successfully!
+**IMPORTANT**: Only run after ALL services (MOSIP + eSignet) are running!
 
 #### Step-by-Step Navigation
 
 1. **Verify All Services Running**
  ```bash
- # Check all namespaces
  kubectl get pods -A | grep -v Running | grep -v Completed
  # Should return nothing!
- 
- # Check external services
- kubectl get pods -n postgres | grep -v Running
- kubectl get pods -n keycloak | grep -v Running
- # All should return nothing!
  ```
 
 2. **Find the Workflow**
  ```
- GitHub Actions → "Helmsman Test Rigs" or "Deploy Test Rigs"
+ GitHub Actions → "Deploy Testrigs of mosip using Helmsman"
  ```
 
 3. **Run the Workflow**
@@ -447,24 +395,14 @@ idrepo-identity-0 1/1 Running 0
  Click: "Run workflow"
  Branch: release-0.1.0
  Mode: apply
- DSF File: testrigs-dsf.yaml
  ```
 
-4. **Monitor Progress** (Takes 15-30 minutes)
+4. **Monitor Progress** (15-30 minutes)
  ```
  → API Test Rig
  → DSL Test Rig 
  → UI Test Rig
  ```
-
-#### What You Should See
-
-**Check Test Rigs:**
-```bash
-kubectl get pods -n apitestrig
-kubectl get pods -n dsltestrig
-kubectl get pods -n uitestrig
-```
 
 ---
 
@@ -744,7 +682,11 @@ DEPLOYMENT FLOW:
  └── Deploys MOSIP applications
  └── PAUSE: Verify all pods Running
 
-5. Helmsman: Test Rigs (manual)
+5. Helmsman: eSignet (manual)
+ └── Deploys eSignet authentication stack
+ └── PAUSE: Verify eSignet pods Running
+
+6. Helmsman: Test Rigs (manual, optional)
  └── Deploys testing infrastructure
  └── ✅ Deployment Complete!
 ```
