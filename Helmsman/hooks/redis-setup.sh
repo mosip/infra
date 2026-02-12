@@ -2,6 +2,10 @@
 # Installs redis
 ## Usage: ./install.sh [kubeconfig]
 
+if [ $# -ge 1 ] ; then
+  export KUBECONFIG=$1
+fi
+
 NS=redis
 
 function installing_redis() {
