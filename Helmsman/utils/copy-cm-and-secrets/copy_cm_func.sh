@@ -18,15 +18,37 @@ else
 fi
 
 # Function to strip Helm ownership annotations and other metadata that causes conflicts
+# Uses yq for YAML-aware metadata removal to avoid accidentally removing legitimate data
 strip_metadata() {
-  sed 's/namespace: '$1'/namespace: '$2'/g' | \
-  grep -v "meta.helm.sh/release-name" | \
-  grep -v "meta.helm.sh/release-namespace" | \
-  grep -v "app.kubernetes.io/managed-by: Helm" | \
-  grep -v "helm.sh/chart" | \
-  grep -v "creationTimestamp:" | \
-  grep -v "resourceVersion:" | \
-  grep -v "uid:"
+  local src_ns="$1"
+  local dst_ns="$2"
+  
+  # Check if yq is available, fall back to anchored grep patterns if not
+  if command -v yq &> /dev/null; then
+    # YAML-aware metadata removal using yq
+    yq eval "
+      .metadata.namespace = \"$dst_ns\" |
+      del(.metadata.uid) |
+      del(.metadata.resourceVersion) |
+      del(.metadata.creationTimestamp) |
+      del(.metadata.generation) |
+      del(.metadata.selfLink) |
+      del(.metadata.annotations.\"meta.helm.sh/release-name\") |
+      del(.metadata.annotations.\"meta.helm.sh/release-namespace\") |
+      del(.metadata.annotations.\"helm.sh/chart\") |
+      del(.metadata.labels.\"app.kubernetes.io/managed-by\")
+    " -
+  else
+    # Fallback: Use anchored patterns to match only metadata keys (not content)
+    sed 's/namespace: '$src_ns'/namespace: '$dst_ns'/g' | \
+    grep -v "^  meta.helm.sh/release-name:" | \
+    grep -v "^  meta.helm.sh/release-namespace:" | \
+    grep -v "^  app.kubernetes.io/managed-by: Helm" | \
+    grep -v "^  helm.sh/chart:" | \
+    grep -v "^  creationTimestamp:" | \
+    grep -v "^  resourceVersion:" | \
+    grep -v "^  uid:"
+  fi
 }
 
 if [ $# -ge 5 ]

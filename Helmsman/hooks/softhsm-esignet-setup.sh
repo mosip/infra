@@ -1,6 +1,6 @@
 #!/bin/bash
-# Pre/Post-install hook for softhsm-esignet
-# This script sets up SoftHSM for esignet and syncs secrets to config-server
+# Pre-install hook for softhsm-esignet
+# This script sets up the SoftHSM namespace and Istio injection label
 # This script is IDEMPOTENT
 ## Usage: ./softhsm-esignet-setup.sh [kubeconfig]
 
@@ -9,10 +9,13 @@ if [ $# -ge 1 ] ; then
 fi
 
 SOFTHSM_NS=softhsm
-COPY_UTIL=$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh
 
 function setup_softhsm_esignet() {
   echo "Setting up SoftHSM for esignet"
+
+  # Ensure namespace exists (idempotent)
+  echo "Ensuring $SOFTHSM_NS namespace exists"
+  kubectl create namespace $SOFTHSM_NS --dry-run=client -o yaml | kubectl apply -f -
 
   # Add Istio label
   echo "Adding Istio injection label to $SOFTHSM_NS namespace"
