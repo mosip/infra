@@ -95,7 +95,7 @@ ls -lh pms_backup_*.sql esignet_backup_*.sql
 
 3. **Configure workflow inputs:**
 
-   ![Cleanup Partner Data Workflow](../_images/cleanup-partner-data.png)
+   ![Cleanup Partner Data Workflow](./_images/cleanup-partner-data.png)
 
    | Input | Value | Description |
    |-------|-------|-------------|
