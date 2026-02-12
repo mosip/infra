@@ -16,10 +16,15 @@ function installing_preinstall_esignet_setup() {
 
   # Fetch PMS and MPARTNER secrets from keycloak namespace
   echo "Checking if PMS & mpartner_default_auth client secrets exist..."
-  export PMS_CLIENT_SECRET_KEY='mosip_pms_client_secret'
-  export PMS_CLIENT_SECRET_VALUE=$(kubectl -n keycloak get secrets keycloak-client-secrets -o jsonpath="{.data.${PMS_CLIENT_SECRET_KEY}}" | base64 -d)
-  export MPARTNER_DEFAULT_AUTH_SECRET_KEY='mpartner_default_auth_secret'
-  export MPARTNER_DEFAULT_AUTH_SECRET_VALUE=$(kubectl -n keycloak get secrets keycloak-client-secrets -o jsonpath="{.data.${MPARTNER_DEFAULT_AUTH_SECRET_KEY}}" | base64 -d)
+  PMS_CLIENT_SECRET_KEY='mosip_pms_client_secret'
+  PMS_CLIENT_SECRET_VALUE="$(kubectl -n keycloak get secrets keycloak-client-secrets -o jsonpath="{.data.${PMS_CLIENT_SECRET_KEY}}" | base64 -d)"
+  export PMS_CLIENT_SECRET_KEY
+  export PMS_CLIENT_SECRET_VALUE
+  
+  MPARTNER_DEFAULT_AUTH_SECRET_KEY='mpartner_default_auth_secret'
+  MPARTNER_DEFAULT_AUTH_SECRET_VALUE="$(kubectl -n keycloak get secrets keycloak-client-secrets -o jsonpath="{.data.${MPARTNER_DEFAULT_AUTH_SECRET_KEY}}" | base64 -d)"
+  export MPARTNER_DEFAULT_AUTH_SECRET_KEY
+  export MPARTNER_DEFAULT_AUTH_SECRET_VALUE
 
   echo "PMS_CLIENT_SECRET_KEY: $PMS_CLIENT_SECRET_KEY"
   echo "MPARTNER_DEFAULT_AUTH_SECRET_KEY: $MPARTNER_DEFAULT_AUTH_SECRET_KEY"
