@@ -32,7 +32,7 @@ Configure in **Repository → Settings → Environments → `<branch-name>` → 
 
 | Secret | Description | Format |
 |--------|-------------|--------|
-| `KUBECONFIG` | Kubernetes config file | Base64 encoded |
+| `KUBECONFIG` | Kubernetes config file | Raw YAML (plain text) |
 | `CLUSTER_WIREGUARD_WG0` | WireGuard VPN configuration | Plain text (WireGuard config format) |
 | `MOCK_RELYING_PARTY_CLIENT_PRIVATE_KEY` | Client private key for Mock RP | Base64 encoded PEM |
 | `MOCK_RELYING_PARTY_JWE_PRIVATE_KEY` | JWE userinfo private key | Base64 encoded PEM |
@@ -59,10 +59,29 @@ cat client-private-key.pem | base64 -w 0
 
 cat jwe-userinfo-private-key.pem | base64 -w 0
 # Copy output → Add as MOCK_RELYING_PARTY_JWE_PRIVATE_KEY
+```
 
-# For kubeconfig
-cat ~/.kube/config | base64 -w 0
-# Copy output → Add as KUBECONFIG
+### Creating KUBECONFIG Secret
+
+> **Important:** KUBECONFIG must be provided as **raw YAML** (plain text), not base64 encoded.
+
+```bash
+# After Terraform infrastructure deployment, find the kubeconfig file in:
+# terraform/implementations/aws/infra/kubeconfig_<cluster-name>
+
+# Copy the entire contents of the kubeconfig file
+cat terraform/implementations/aws/infra/kubeconfig_<cluster-name>
+# Copy the raw YAML output → Add as KUBECONFIG (do NOT base64 encode)
+
+# Example KUBECONFIG value (raw YAML format):
+# apiVersion: v1
+# clusters:
+# - cluster:
+#     certificate-authority-data: LS0tLS...
+#     server: https://your-cluster-endpoint:6443
+#   name: default
+# contexts:
+# ...
 ```
 
 ### Captcha Secrets

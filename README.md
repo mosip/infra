@@ -1125,11 +1125,13 @@ To regenerate import URL if needed:
 
  **Add KUBECONFIG as Environment Secret:**
 
+> **Important:** KUBECONFIG must be provided as **raw YAML** (plain text), not base64 encoded.
+
 - Go to your GitHub repository → Settings → Environments
 - Select or create environment for your branch (e.g., `release-0.1.0`, `main`, `develop`)
 - Click "Add secret" under Environment secrets
 - Name: `KUBECONFIG`
-- Value: Copy the entire contents of the kubeconfig file from `terraform/implementations/aws/infra/`
+- Value: Copy the **entire raw YAML contents** of the kubeconfig file from `terraform/implementations/aws/infra/kubeconfig_<cluster-name>`
 
  **Branch Environment Configuration:- Ensure the environment name matches your deployment branch
 
@@ -1141,8 +1143,26 @@ To regenerate import URL if needed:
  **Environment Secrets (branch-specific):**
 
 ```yaml
- # Kubernetes Access (Environment Secret)
- KUBECONFIG: "<contents-of-kubeconfig-file>"
+ # Kubernetes Access (Environment Secret - raw YAML format)
+ KUBECONFIG: |
+   apiVersion: v1
+   clusters:
+   - cluster:
+       certificate-authority-data: LS0tLS...
+       server: https://your-cluster-endpoint:6443
+     name: default
+   contexts:
+   - context:
+       cluster: default
+       user: default
+     name: default
+   current-context: default
+   kind: Config
+   users:
+   - name: default
+     user:
+       client-certificate-data: LS0tLS...
+       client-key-data: LS0tLS...
 
  # WireGuard Cluster Access for Helmsman
  CLUSTER_WIREGUARD_WG0: "peer2-wireguard-config" # Helmsman cluster access (peer2)
