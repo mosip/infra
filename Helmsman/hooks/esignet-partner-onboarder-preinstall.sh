@@ -61,6 +61,14 @@ function preinstall_partner_onboarder() {
     echo "WARNING: s3-user-key not found in s3 configmap"
   fi
 
+  # Wait for esignet deployment to be ready
+  echo "Waiting for esignet deployment to be ready..."
+  kubectl wait --for=condition=available --timeout=300s deployment/esignet -n $NS || {
+    echo "ERROR: esignet deployment not ready after 5 minutes"
+    return 1
+  }
+  echo "esignet deployment is ready"
+
   echo "Partner onboarder pre-install setup complete"
   return 0
 }
