@@ -441,9 +441,6 @@ EOF
 
 echo "[SUCCESS] Inventory file created with nginx IP target (local): $NGINX_NODE_IP"
 
-export DEBIAN_FRONTEND=noninteractive  # Prevent interactive prompts
-export ANSIBLE_COLLECTIONS_PATH=/tmp/ansible_collections  # Custom collections path
-
 # Create ansible configuration to prevent hanging
 echo '[CONFIG] Creating Ansible Configuration...'
 mkdir -p ~/.ansible
@@ -472,14 +469,6 @@ echo "Storage Device: $STORAGE_DEVICE"
 echo "Mount Point: $MOUNT_POINT"
 echo "PostgreSQL Port: $POSTGRESQL_PORT"
 echo "Network CIDR: $NETWORK_CIDR"
-
-# Configure APT to prevent hanging
-echo '[CONFIG] Configuring APT for non-interactive mode...'
-sudo mkdir -p /etc/apt/apt.conf.d/
-echo 'APT::Get::Assume-Yes "true";' | sudo tee /etc/apt/apt.conf.d/99automated
-echo 'APT::Get::force-yes "true";' | sudo tee -a /etc/apt/apt.conf.d/99automated
-echo 'Dpkg::Options { "--force-confdef"; "--force-confold"; }' | sudo tee -a /etc/apt/apt.conf.d/99automated
-echo '[SUCCESS] APT configured for non-interactive mode'
 
 # Install required Ansible collections to prevent hanging during playbook execution
 echo '[INSTALL] Installing Required Ansible Collections...'
