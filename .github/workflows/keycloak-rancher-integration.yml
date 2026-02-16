@@ -17,28 +17,14 @@ on:
         description: 'Keycloak Admin Username'
         required: true
         type: string
-<<<<<<< HEAD
-      keycloak_admin_password:
-        description: 'Keycloak Admin Password'
-        required: true
-        type: string
-=======
       # keycloak_admin_password input removed; use secrets instead
->>>>>>> origin/develop
       
       # Rancher Configuration (Required)
       rancher_host:
         description: 'Rancher Host URL (e.g., https://rancher.example.com)'
         required: true
         type: string
-<<<<<<< HEAD
-      rancher_token:
-        description: 'Rancher API Token'
-        required: true
-        type: string
-=======
       # rancher_token input removed; use secrets instead
->>>>>>> origin/develop
       
       # Optional Configuration
       keycloak_admin_email:
@@ -82,27 +68,16 @@ jobs:
       - name: Install dependencies
         run: |
           pip install requests python-dotenv
-<<<<<<< HEAD
-      
-=======
 
->>>>>>> origin/develop
       - name: Install WireGuard
         run: sudo apt-get update && sudo apt-get install -y wireguard
 
       - name: Configure WireGuard
         run: |
-<<<<<<< HEAD
-          # Check if WireGuard config secret is available (from environment secrets)
-          if [ -z "${{ secrets.TF_WG_CONFIG }}" ]; then
-            echo "❌ ERROR: TF_WG_CONFIG secret is not configured for environment '${{ github.ref_name }}'"
-            echo "Please configure the WireGuard configuration secret in the environment settings"
-=======
           # Check if WireGuard config secret is available
           if [ -z "${{ secrets.TF_WG_CONFIG }}" ]; then
             echo "❌ ERROR: TF_WG_CONFIG secret is not configured"
             echo "Please configure the WireGuard configuration secret for this workflow"
->>>>>>> origin/develop
             exit 1
           fi
           
@@ -146,11 +121,7 @@ jobs:
           # Verify the file was created and check its size
           if sudo test -f /etc/wireguard/wg0.conf; then
             echo "✅ Config file created successfully"
-<<<<<<< HEAD
-            echo "Final config file size: $(sudo wc -c < /etc/wireguard/wg0.conf) bytes"
-=======
             echo "Final config file size: $(sudo wc -c /etc/wireguard/wg0.conf) bytes"
->>>>>>> origin/develop
           else
             echo "❌ ERROR: Config file doesn't exist"
             exit 1
@@ -186,38 +157,19 @@ jobs:
           echo "Starting WireGuard..."
           if ! sudo wg-quick up wg0; then
             echo "❌ ERROR: Failed to start WireGuard VPN"
-<<<<<<< HEAD
-            echo "Config file contents (first 5 lines):"
-            sudo head -5 /etc/wireguard/wg0.conf
-=======
             echo "Check the WireGuard configuration file at /etc/wireguard/wg0.conf for errors."
             # Do NOT print config contents to avoid exposing private keys
->>>>>>> origin/develop
             exit 1
           fi
           echo "✅ WireGuard started successfully"
           sudo wg show wg0
-<<<<<<< HEAD
-      
-=======
 
->>>>>>> origin/develop
       - name: Run Keycloak-Rancher SAML Integration
         env:
           # Keycloak Configuration
           KEYCLOAK_HOST: ${{ inputs.keycloak_host }}
           KEYCLOAK_REALM: ${{ inputs.keycloak_realm }}
           KEYCLOAK_ADMIN_USER: ${{ inputs.keycloak_admin_user }}
-<<<<<<< HEAD
-          KEYCLOAK_ADMIN_PASSWORD: ${{ inputs.keycloak_admin_password }}
-          KEYCLOAK_ADMIN_EMAIL: ${{ inputs.keycloak_admin_email }}
-          KEYCLOAK_ADMIN_FIRSTNAME: 'Admin'
-          
-          # Rancher Configuration
-          RANCHER_HOST: ${{ inputs.rancher_host }}
-          RANCHER_TOKEN: ${{ inputs.rancher_token }}
-          
-=======
           KEYCLOAK_ADMIN_PASSWORD: ${{ secrets.KEYCLOAK_ADMIN_PASSWORD }}
           KEYCLOAK_ADMIN_EMAIL: ${{ inputs.keycloak_admin_email }}
           KEYCLOAK_ADMIN_FIRSTNAME: 'Admin'
@@ -226,18 +178,13 @@ jobs:
           RANCHER_HOST: ${{ inputs.rancher_host }}
           RANCHER_TOKEN: ${{ secrets.RANCHER_TOKEN }}
 
->>>>>>> origin/develop
           # SSL Configuration (using defaults)
           SSL_CERT_SUBJECT: ${{ inputs.ssl_cert_subject }}
           SSL_CERT_DAYS: '1825'
           SSL_KEY_SIZE: '2048'
           SSL_KEY_FILE: 'myservice.key'
           SSL_CERT_FILE: 'myservice.cert'
-<<<<<<< HEAD
-          
-=======
 
->>>>>>> origin/develop
           # SAML Configuration (using defaults)
           SAML_DESCRIPTOR_FILE: 'keycloak-saml-descriptor.xml'
           SAML_DISPLAY_NAME_FIELD: 'givenName'
@@ -245,11 +192,7 @@ jobs:
           SAML_UID_FIELD: 'username'
           SAML_GROUPS_FIELD: 'member'
           SAML_ACCESS_MODE: ${{ inputs.saml_access_mode }}
-<<<<<<< HEAD
-          
-=======
 
->>>>>>> origin/develop
           # Force Recreate Option
           FORCE_RECREATE: ${{ inputs.force_recreate }}
         run: |
@@ -259,10 +202,6 @@ jobs:
         if: failure()
         env:
           RANCHER_HOST: ${{ inputs.rancher_host }}
-<<<<<<< HEAD
-          RANCHER_TOKEN: ${{ inputs.rancher_token }}
-=======
           RANCHER_TOKEN: ${{ secrets.RANCHER_TOKEN }}
->>>>>>> origin/develop
         run: |
           python3 Rancher-keycloak-integration/rancher_diagnostic.py

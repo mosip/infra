@@ -79,11 +79,7 @@ jobs:
     # Use dynamic environment based on current branch name
     environment: ${{ github.ref_name }}
     permissions:
-<<<<<<< HEAD
-      contents: write  
-=======
       contents: write
->>>>>>> origin/develop
     defaults:
       run:
         shell: bash

@@ -25,9 +25,6 @@ For detailed MOSIP platform architecture Diagram, visit: [MOSIP Platform Archite
 
 ## Complete Deployment Flow
 
-<<<<<<< HEAD
-![MOSIP Deployment Flow](https://raw.githubusercontent.com/mosip/infra/refs/heads/testgrid/docs/_images/animated-mosip-flow.svg)
-=======
 ```mermaid
 graph TB
  %% Prerequisites
@@ -69,7 +66,6 @@ graph TB
  class M,N,O success
  class E,K decision
 ```
->>>>>>> origin/develop
 
 > **Note:** Complete Terraform scripts are available only for **AWS**. For **Azure and GCP**, only placeholder structures are configured - community contributions are welcome to implement full functionality.
 
@@ -252,89 +248,6 @@ SLACK_WEBHOOK_URL: "https://hooks.slack.com/services/..." # Slack notifications
 
 **Environment Secrets** (configured per deployment environment):
 
-<<<<<<< HEAD
-=======
-> **Important**: These are generated AFTER infrastructure deployment, not before!
->
-> ## Next Steps & Detailed Documentation
-
->>>>>>> origin/develop
-```yaml
-# Kubernetes Access
-KUBECONFIG: "apiVersion: v1..." 
-# What it's for: Allows Helmsman to deploy applications to your Kubernetes cluster
-# When available: After Terraform infra deployment completes
-# Where to find: terraform/implementations/aws/infra/kubeconfig_<cluster-name>
-# Guide: See "Kubernetes Config" section in Secret Generation Guide
-
-# WireGuard VPN Access (for cluster access)
-CLUSTER_WIREGUARD_WG0: |
-# What it's for: Secure VPN connection to access private Kubernetes cluster
-# When available: After base-infra deployment and WireGuard setup
-# How to get: Follow WireGuard setup guide
-# Details: See terraform/base-infra/WIREGUARD_SETUP.md
-# Guide: See "WireGuard VPN" section in Secret Generation Guide
- [Interface]
- PrivateKey = helmsman-wg0-private-key
- Address = 10.0.0.2/24
- 
- [Peer]
- PublicKey = cluster-public-key
- Endpoint = cluster-server:51820
- AllowedIPs = 10.0.0.0/16
-
-# Secondary WireGuard Config (optional)
-CLUSTER_WIREGUARD_WG1: |
-# Optional: Additional WireGuard peer for redundancy
- [Interface]
- PrivateKey = helmsman-wg1-private-key
- Address = 10.0.2.2/24
- 
- [Peer]
- PublicKey = cluster-public-key-2
- Endpoint = cluster-server-2:51820
- AllowedIPs = 10.0.0.0/16
-```
-
-**Deployment Order for Secrets:**
-
-1. **Before starting**: Add Repository Secrets (GPG, AWS, SSH)
-2. **After base-infra**: Add TF_WG_CONFIG environment secret
-3. **After main infra**: Add KUBECONFIG, CLUSTER_WIREGUARD_WG0/WG1 environment secrets
-
-**Need step-by-step help?** [Secret Generation Guide](docs/SECRET_GENERATION_GUIDE.md)
-
-> **Note**: PostgreSQL secrets are no longer required! PostgreSQL setup is handled automatically by Terraform modules and Ansible scripts based on your `enable_postgresql_setup` configuration.
-
-## Deployment Steps Guide
-
-### 1. Fork and Setup Repository
-
-```bash
-# Fork the repository to your GitHub account
-# Clone your fork
-git clone https://github.com/YOUR_USERNAME/infra.git
-cd infra
-```
-
-### 2. Configure GitHub Secrets
-
-Navigate to your repository → **Settings** → **Secrets and variables** → **Actions**
-
-**Configure Repository & Environment Secrets:**
-
-Add the required secrets as follows:
-
-<<<<<<< HEAD
-- **Repository Secrets** (Settings > Secrets and variables > Actions > Repository secrets):
-
-  - `GPG_PASSPHRASE`
-  - `AWS_ACCESS_KEY_ID`
-  - `AWS_SECRET_ACCESS_KEY`
-- **Environment Secrets** (Settings > Secrets and variables > Actions > Environment secrets):
-
-  - All other secrets mentioned in the Prerequisites section above (KUBECONFIG, WireGuard configs, etc.)
-=======
 - **Repository Secrets** (Settings → Secrets and variables → Actions → Repository secrets):
 - `GPG_PASSPHRASE`
 - `AWS_ACCESS_KEY_ID`
@@ -342,7 +255,6 @@ Add the required secrets as follows:
 - `YOUR_SSH_KEY_NAME` (replace with actual ssh_key_name value from tfvars, e.g., `mosip-aws`)
 - **Environment Secrets** (Settings → Secrets and variables → Actions → Environment secrets):
 - All other secrets mentioned in the Prerequisites section above (KUBECONFIG, WireGuard configs, etc.)
->>>>>>> origin/develop
 
 ### 3. Terraform Infrastructure Deployment
 
@@ -1320,40 +1232,7 @@ After test rigs deployment completes:
    > ```
    >
 
-<<<<<<< HEAD
-1. **Deploy Prerequisites & External Dependencies (Parallel Deployment):**
-
-   **Option A: Run Both Workflows Simultaneously (Recommended)**
-
-   - Actions → **Helmsman External Dependencies**
-   - Select DSF file: `prereq-dsf.yaml`
-   - Mode: `apply`
-
-   **At the same time (in parallel):**
-
-   - Actions → **Helmsman External Dependencies**
-   - Select DSF file: `external-dsf.yaml`
-   - Mode: `apply`
-
-   **Option B: Sequential Deployment (if preferred)**
-
-   - First run: `prereq-dsf.yaml` → Mode: `apply`
-   - Then run: `external-dsf.yaml` → Mode: `apply`
-2. **Deploy MOSIP Services:**
-
-   - Actions → **Helmsman Deployment**
-   - Select DSF file: `mosip-dsf.yaml`
-   - Mode: `apply`
-3. **Deploy Test Rigs** (Optional):
-
-   - Actions → **Helmsman Deployment**
-   - Select DSF file: `testrigs-dsf.yaml`
-   - Mode: `apply`
-
-### 5. Verify Deployment
-=======
 ### 6. Verify Deployment
->>>>>>> origin/develop
 
 ```bash
 # Check cluster status
@@ -1530,18 +1409,6 @@ specific_availability_zones = [] # Use empty array to allow all AZs
 
 ---
 
-<<<<<<< HEAD
-## Detailed Documentation
-
-| Component                | Purpose                     | Documentation                                                               |
-| ------------------------ | --------------------------- | --------------------------------------------------------------------------- |
-| **Terraform**      | Infrastructure provisioning | [terraform/README.md](terraform/README.md)                                     |
-| **Helmsman**       | Application deployment      | [Helmsman/README.md](Helmsman/README.md)                                       |
-| **GitHub Actions** | CI/CD automation            | [.github/workflows/README.md](.github/workflows/README.md)                     |
-| **Architecture**   | Visual diagrams             | [docs/_images/ARCHITECTURE_DIAGRAMS.md](docs/_images/ARCHITECTURE_DIAGRAMS.md) |
-
----
-
 ## Optional Components
 
 ### Rancher Management (observ-infra)
@@ -1592,8 +1459,6 @@ specific_availability_zones = [] # Use empty array to allow all AZs
 - `terraform/observ-infra/{azure,gcp}/` - Monitoring infrastructure
 - `terraform/modules/{azure,gcp}/` - Reusable cloud modules
 
-=======
->>>>>>> origin/develop
 ### Getting Help
 
 - **GitHub Issues**: Report bugs and request features
