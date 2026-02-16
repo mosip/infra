@@ -1,13 +1,7 @@
 # Environment name (infra component)
-<<<<<<< HEAD
-cluster_name = "soil56"
-# MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "soil56.mosip.net"
-=======
 cluster_name = "<cluster-name>"
 # MOSIP's domain (ex: sandbox.xyz.net)
 cluster_env_domain = "<cluster-env-domain>"
->>>>>>> origin/develop
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
 mosip_email_id = "<email-id>"
 # SSH login key name for AWS node instances (ex: my-ssh-key)
@@ -50,11 +44,7 @@ k8s_control_plane_node_count = 1
 # ETCD, Worker
 k8s_etcd_node_count = 0
 # Worker
-<<<<<<< HEAD
-k8s_worker_node_count = 3
-=======
 k8s_worker_node_count = 2 
->>>>>>> origin/develop
 
 # RKE2 Version Configuration
 rke2_version = "v1.28.9+rke2r1"
@@ -67,11 +57,7 @@ WIREGUARD_CIDR = "10.0.0.0/8" # Use your actual WireGuard VPN CIDR
 # Rancher Import URL
 # Rancher Import Configuration
 enable_rancher_import = true
-<<<<<<< HEAD
-rancher_import_url    = "\"kubectl apply -f https://rancher.obs13.mosip.net/v3/import/2r5hf6frwqkwtvt9xv72h597ql52597pklspz2qsm5762gzgwvjkfl_c-m-45nt7pk7.yaml\""
-=======
 rancher_import_url    = "\"<rancher-import-url>\""
->>>>>>> origin/develop
 # DNS Records to map
 subdomain_public   = ["resident", "prereg", "esignet", "healthservices", "signup"]
 subdomain_internal = ["admin", "iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio", "regclient", "compliance"]
@@ -86,11 +72,7 @@ postgresql_port         = "5433"
 # MOSIP Infrastructure Repository Configuration
 mosip_infra_repo_url = "https://github.com/mosip/infra.git"
 
-<<<<<<< HEAD
-mosip_infra_branch = "testgrid"
-=======
 mosip_infra_branch = "v0.1.0"
->>>>>>> origin/develop
 
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
