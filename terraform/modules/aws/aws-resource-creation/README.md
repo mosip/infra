@@ -15,10 +15,10 @@ This Terraform script sets up an AWS infrastructure that includes:
 * Terraform version: `v1.8.4`
 * AWS Account
 * AWS CLI configured with appropriate credentials
-  ```
-  $ export AWS_ACCESS_KEY_ID=<AWS_ACCESS_KEY_ID>
-  $ export AWS_SECRET_ACCESS_KEY=<AWS_SECRET_ACCESS_KEY>
-  ```
+ ```
+ $ export AWS_ACCESS_KEY_ID=<AWS_ACCESS_KEY_ID>
+ $ export AWS_SECRET_ACCESS_KEY=<AWS_SECRET_ACCESS_KEY>
+ ```
 * Ensure SSH key created for accessing EC2 instances on AWS.
 
 ## Files
@@ -32,46 +32,46 @@ This Terraform script sets up an AWS infrastructure that includes:
 
 * Initialize Terraform
 
-  ```
-  terraform init
-  ```
+ ```
+ terraform init
+ ```
 * Review and modify variable values:
 
-  * Ensure `aws.tfvars` contains correct values for your setup.
-  * Verify `variables.tf` for any additional configuration needs.
+ * Ensure `aws.tfvars` contains correct values for your setup.
+ * Verify `variables.tf` for any additional configuration needs.
 * Terraform validate & plan the terraform scripts:
 
-  ```
-  terraform validate
-  ```
+ ```
+ terraform validate
+ ```
 
-  ```
-  terraform plan -var-file="aws.tfvars"
-  ```
+ ```
+ terraform plan -var-file="aws.tfvars"
+ ```
 * Apply the Terraform configuration:
 
-  ```
-  terraform apply -var-file="aws.tfvars"
-  ```
+ ```
+ terraform apply -var-file="aws.tfvars"
+ ```
 
 ## Destroy
 
 To destroy AWS resources, follow the steps below:
 
 * Ensure to have `terraform.tfstate` file.
-  ```
-  terraform destroy
-  ```
+ ```
+ terraform destroy
+ ```
 
 ## Terraform Scripts
 
 #### certbot-ssl-certgen.tf
 
 * Defines resources for setting up IAM roles and policies for Certbot:
-  * `aws_iam_role.certbot_role`: IAM role for Certbot with EC2 assume role policy.
-  * `aws_iam_policy.certbot_policy`: IAM policy allowing Certbot to modify Route 53 records.
-  * `aws_iam_role_policy_attachment.certbot_policy_attachment`: Attaches the policy to the role.
-  * `aws_iam_instance_profile.certbot_profile`: Creates an instance profile for the IAM role.
+ * `aws_iam_role.certbot_role`: IAM role for Certbot with EC2 assume role policy.
+ * `aws_iam_policy.certbot_policy`: IAM policy allowing Certbot to modify Route 53 records.
+ * `aws_iam_role_policy_attachment.certbot_policy_attachment`: Attaches the policy to the role.
+ * `aws_iam_instance_profile.certbot_profile`: Creates an instance profile for the IAM role.
 
 #### aws.tfvars
 
@@ -83,14 +83,14 @@ To destroy AWS resources, follow the steps below:
 #### aws-main.tf
 
 * Defines the main resources and provider configuration:
-  * `Providers`: AWS provider configuration.
-  * `Security Groups`: aws_security_group.security-group for NGINX and Kubernetes.
-  * `EC2 Instances`:
-    * **aws_instance.NGINX_EC2_INSTANCE** for NGINX.
-    * **aws_instance.K8S_CLUSTER_EC2_INSTANCE** for Kubernetes.
-  * `Route 53 Records`:
-    * **aws_route53_record.MAP_DNS_TO_IP** for A records.
-    * **aws_route53_record.MAP_DNS_TO_CNAME** for CNAME records.
+ * `Providers`: AWS provider configuration.
+ * `Security Groups`: aws_security_group.security-group for NGINX and Kubernetes.
+ * `EC2 Instances`:
+ * **aws_instance.NGINX_EC2_INSTANCE** for NGINX.
+ * **aws_instance.K8S_CLUSTER_EC2_INSTANCE** for Kubernetes.
+ * `Route 53 Records`:
+ * **aws_route53_record.MAP_DNS_TO_IP** for A records.
+ * **aws_route53_record.MAP_DNS_TO_CNAME** for CNAME records.
 
 #### outputs.tf
 

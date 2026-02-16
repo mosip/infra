@@ -11,26 +11,26 @@ MOSIP Infrastructure Components (Updated)
 ========================================
 
 GitHub Actions (Central Orchestration)
-      |
-      v
+ |
+ v
 ┌─────────────┬─────────────┬─────────────┐
-│ AWS Cloud   │Azure Cloud  │ GCP Cloud   │
-│ Full Impl   │ Placeholder │ Placeholder │
+│ AWS Cloud │Azure Cloud │ GCP Cloud │
+│ Full Impl │ Placeholder │ Placeholder │
 └─────────────┴─────────────┴─────────────┘
-      |             |             |
-┌─────┼─────┐      ┌─┼─┐          ┌─┼─┐
-│     │     │      │ │ │          │ │ │
-v     v     v      v v v          v v v
-base  obs   infra  base infra     base infra
-│     │     │      │   │          │   │
-│     │     │      │   ├──PostgreSQL Module (optional)
-│     │     ├──────┼───┘  
-└─────┼─────┘      └───┘          └───┘
-      |              |              |
-      v              v              v
-[State Files]   [State Files]  [State Files]
-(Branch/Cloud   (Branch/Cloud   (Branch/Cloud
- Isolated)       Isolated)       Isolated)
+ | | |
+┌─────┼─────┐ ┌─┼─┐ ┌─┼─┐
+│ │ │ │ │ │ │ │ │
+v v v v v v v v v
+base obs infra base infra base infra
+│ │ │ │ │ │ │
+│ │ │ │ ├──PostgreSQL Module (optional)
+│ │ ├──────┼───┘ 
+└─────┼─────┘ └───┘ └───┘
+ | | |
+ v v v
+[State Files] [State Files] [State Files]
+(Branch/Cloud (Branch/Cloud (Branch/Cloud
+ Isolated) Isolated) Isolated)
 ```
 
 ### Component Relationships (Updated)
@@ -48,289 +48,289 @@ Terraform Infra Module
 ├── RKE2 Kubernetes Cluster
 ├── Node Groups & Networking
 └── PostgreSQL Module (Conditional)
-    ├── enable_postgresql_setup = true  → External PostgreSQL
-    │   ├── Dedicated EBS Volume
-    │   ├── Ansible Installation Script
-    │   └── PostgreSQL 15 Configuration
-    └── enable_postgresql_setup = false → Container PostgreSQL via Helmsman
+ ├── enable_postgresql_setup = true → External PostgreSQL
+ │ ├── Dedicated EBS Volume
+ │ ├── Ansible Installation Script
+ │ └── PostgreSQL 15 Configuration
+ └── enable_postgresql_setup = false → Container PostgreSQL via Helmsman
 ```
 
 ## Multi-Cloud Deployment Architecture
 
 ```mermaid
 graph TB
-    subgraph "AWS Deployment"
-        subgraph "AWS Base-Infra (One-time)"
-            AWS_VPC[VPC 10.0.0.0/16<br/>Public/Private Subnets<br/>Security Groups<br/>WireGuard Jumpserver]
-        end
-        subgraph "AWS Observ-Infra (Optional)"
-            AWS_MON[Management Cluster<br/>Rancher UI + Keycloak<br/>RBAC Integration]
-        end
-        subgraph "AWS Infra (Multiple)"
-            AWS_RKE1[MOSIP Cluster 1<br/>Production Environment<br/>+ External PostgreSQL]
-            AWS_RKE2[MOSIP Cluster 2<br/>Staging Environment<br/>+ Optional PostgreSQL]
-        end
-        AWS_VPC --> AWS_MON
-        AWS_VPC --> AWS_RKE1
-        AWS_VPC --> AWS_RKE2
-        AWS_MON -.->|Import| AWS_RKE1
-        AWS_MON -.->|Import| AWS_RKE2
-    end
-    
-    subgraph "Azure Deployment"
-        subgraph "Azure Base-Infra (One-time)"
-            AZ_VNET[VNet 10.1.0.0/16<br/>Public/Private Subnets<br/>Network Security Groups<br/>WireGuard Jumpserver]
-        end
-        subgraph "Azure Observ-Infra (Optional)"
-            AZ_MON[Management Cluster<br/>Rancher UI + Keycloak<br/>RBAC Integration]
-        end
-        subgraph "Azure Infra (Multiple)"
-            AZ_RKE1[MOSIP Cluster 1<br/>Production Environment<br/>+ External PostgreSQL]
-            AZ_RKE2[MOSIP Cluster 2<br/>Staging Environment<br/>+ Optional PostgreSQL]
-        end
-        AZ_VNET --> AZ_MON
-        AZ_VNET --> AZ_RKE1
-        AZ_VNET --> AZ_RKE2
-        AZ_MON -.->|Import| AZ_RKE1
-        AZ_MON -.->|Import| AZ_RKE2
-    end
-    
-    subgraph "GCP Deployment"
-        subgraph "GCP Base-Infra (One-time)"
-            GCP_VPC[VPC 10.2.0.0/16<br/>Public/Private Subnets<br/>Firewall Rules<br/>WireGuard Jumpserver]
-        end
-        subgraph "GCP Observ-Infra (Optional)"
-            GCP_MON[Management Cluster<br/>Rancher UI + Keycloak<br/>RBAC Integration]
-        end
-        subgraph "GCP Infra (Multiple)"
-            GCP_RKE1[MOSIP Cluster 1<br/>Production Environment<br/>+ External PostgreSQL]
-            GCP_RKE2[MOSIP Cluster 2<br/>Staging Environment<br/>+ Optional PostgreSQL]
-        end
-        GCP_VPC --> GCP_MON
-        GCP_VPC --> GCP_RKE1
-        GCP_VPC --> GCP_RKE2
-        GCP_MON -.->|Import| GCP_RKE1
-        GCP_MON -.->|Import| GCP_RKE2
-    end
-    
-    style AWS_VPC fill:#e1f5fe,stroke:#01579b,color:#000000
-    style AWS_MON fill:#fff3e0,stroke:#f57c00,color:#000000
-    style AWS_RKE1 fill:#f3e5f5,stroke:#4a148c,color:#000000
-    style AWS_RKE2 fill:#e8f5e8,stroke:#1b5e20,color:#000000
-    style AZ_VNET fill:#e1f5fe,stroke:#01579b,color:#000000
-    style AZ_MON fill:#fff3e0,stroke:#f57c00,color:#000000
-    style AZ_RKE1 fill:#f3e5f5,stroke:#4a148c,color:#000000
-    style AZ_RKE2 fill:#e8f5e8,stroke:#1b5e20,color:#000000
-    style GCP_VPC fill:#e1f5fe,stroke:#01579b,color:#000000
-    style GCP_MON fill:#fff3e0,stroke:#f57c00,color:#000000
-    style GCP_RKE1 fill:#f3e5f5,stroke:#4a148c,color:#000000
-    style GCP_RKE2 fill:#e8f5e8,stroke:#1b5e20,color:#000000
+ subgraph "AWS Deployment"
+ subgraph "AWS Base-Infra (One-time)"
+ AWS_VPC[VPC 10.0.0.0/16<br/>Public/Private Subnets<br/>Security Groups<br/>WireGuard Jumpserver]
+ end
+ subgraph "AWS Observ-Infra (Optional)"
+ AWS_MON[Management Cluster<br/>Rancher UI + Keycloak<br/>RBAC Integration]
+ end
+ subgraph "AWS Infra (Multiple)"
+ AWS_RKE1[MOSIP Cluster 1<br/>Production Environment<br/>+ External PostgreSQL]
+ AWS_RKE2[MOSIP Cluster 2<br/>Staging Environment<br/>+ Optional PostgreSQL]
+ end
+ AWS_VPC --> AWS_MON
+ AWS_VPC --> AWS_RKE1
+ AWS_VPC --> AWS_RKE2
+ AWS_MON -.->|Import| AWS_RKE1
+ AWS_MON -.->|Import| AWS_RKE2
+ end
+ 
+ subgraph "Azure Deployment"
+ subgraph "Azure Base-Infra (One-time)"
+ AZ_VNET[VNet 10.1.0.0/16<br/>Public/Private Subnets<br/>Network Security Groups<br/>WireGuard Jumpserver]
+ end
+ subgraph "Azure Observ-Infra (Optional)"
+ AZ_MON[Management Cluster<br/>Rancher UI + Keycloak<br/>RBAC Integration]
+ end
+ subgraph "Azure Infra (Multiple)"
+ AZ_RKE1[MOSIP Cluster 1<br/>Production Environment<br/>+ External PostgreSQL]
+ AZ_RKE2[MOSIP Cluster 2<br/>Staging Environment<br/>+ Optional PostgreSQL]
+ end
+ AZ_VNET --> AZ_MON
+ AZ_VNET --> AZ_RKE1
+ AZ_VNET --> AZ_RKE2
+ AZ_MON -.->|Import| AZ_RKE1
+ AZ_MON -.->|Import| AZ_RKE2
+ end
+ 
+ subgraph "GCP Deployment"
+ subgraph "GCP Base-Infra (One-time)"
+ GCP_VPC[VPC 10.2.0.0/16<br/>Public/Private Subnets<br/>Firewall Rules<br/>WireGuard Jumpserver]
+ end
+ subgraph "GCP Observ-Infra (Optional)"
+ GCP_MON[Management Cluster<br/>Rancher UI + Keycloak<br/>RBAC Integration]
+ end
+ subgraph "GCP Infra (Multiple)"
+ GCP_RKE1[MOSIP Cluster 1<br/>Production Environment<br/>+ External PostgreSQL]
+ GCP_RKE2[MOSIP Cluster 2<br/>Staging Environment<br/>+ Optional PostgreSQL]
+ end
+ GCP_VPC --> GCP_MON
+ GCP_VPC --> GCP_RKE1
+ GCP_VPC --> GCP_RKE2
+ GCP_MON -.->|Import| GCP_RKE1
+ GCP_MON -.->|Import| GCP_RKE2
+ end
+ 
+ style AWS_VPC fill:#e1f5fe,stroke:#01579b,color:#000000
+ style AWS_MON fill:#fff3e0,stroke:#f57c00,color:#000000
+ style AWS_RKE1 fill:#f3e5f5,stroke:#4a148c,color:#000000
+ style AWS_RKE2 fill:#e8f5e8,stroke:#1b5e20,color:#000000
+ style AZ_VNET fill:#e1f5fe,stroke:#01579b,color:#000000
+ style AZ_MON fill:#fff3e0,stroke:#f57c00,color:#000000
+ style AZ_RKE1 fill:#f3e5f5,stroke:#4a148c,color:#000000
+ style AZ_RKE2 fill:#e8f5e8,stroke:#1b5e20,color:#000000
+ style GCP_VPC fill:#e1f5fe,stroke:#01579b,color:#000000
+ style GCP_MON fill:#fff3e0,stroke:#f57c00,color:#000000
+ style GCP_RKE1 fill:#f3e5f5,stroke:#4a148c,color:#000000
+ style GCP_RKE2 fill:#e8f5e8,stroke:#1b5e20,color:#000000
 ```
 
 ## PostgreSQL Integration Architecture (NEW)
 
 ```mermaid
 graph TD
-    A[Terraform Infra Deployment] --> B{enable_postgresql_setup}
-    
-    B -->|true| C[External PostgreSQL Path]
-    B -->|false| D[Container PostgreSQL Path]
-    
-    C --> E[Provision EBS/Disk Volume]
-    E --> F[Create Dedicated PostgreSQL Node]
-    F --> G[Execute Ansible PostgreSQL Setup]
-    G --> H[Install PostgreSQL 15]
-    H --> I[Configure Security & Networking]
-    I --> J[Setup Data Directory & Permissions]
-    J --> K[Configure PostgreSQL Port 5433]
-    K --> L[External PostgreSQL Ready]
-    
-    D --> M[Skip PostgreSQL Infrastructure]
-    M --> N[Configure Helmsman external-dsf.yaml]
-    N --> O[Enable PostgreSQL Container Deployment]
-    O --> P[Container PostgreSQL via Kubernetes]
-    
-    L --> Q[Update Helmsman Configuration]
-    P --> Q[Update Helmsman Configuration]
-    
-    Q --> R[postgresql.enabled = false (External)]
-    Q --> S[postgresql.enabled = true (Container)]
-    
-    R --> T[Deploy MOSIP Services]
-    S --> T[Deploy MOSIP Services]
-    
-    T --> U[MOSIP Uses Configured PostgreSQL]
-    
-    style C fill:#e8f5e8,stroke:#2e7d32,color:#000000
-    style D fill:#fff3e0,stroke:#f57c00,color:#000000
-    style L fill:#c8e6c9,stroke:#1b5e20,color:#000000
-    style P fill:#ffe0b2,stroke:#e65100,color:#000000
+ A[Terraform Infra Deployment] --> B{enable_postgresql_setup}
+ 
+ B -->|true| C[External PostgreSQL Path]
+ B -->|false| D[Container PostgreSQL Path]
+ 
+ C --> E[Provision EBS/Disk Volume]
+ E --> F[Create Dedicated PostgreSQL Node]
+ F --> G[Execute Ansible PostgreSQL Setup]
+ G --> H[Install PostgreSQL 15]
+ H --> I[Configure Security & Networking]
+ I --> J[Setup Data Directory & Permissions]
+ J --> K[Configure PostgreSQL Port 5433]
+ K --> L[External PostgreSQL Ready]
+ 
+ D --> M[Skip PostgreSQL Infrastructure]
+ M --> N[Configure Helmsman external-dsf.yaml]
+ N --> O[Enable PostgreSQL Container Deployment]
+ O --> P[Container PostgreSQL via Kubernetes]
+ 
+ L --> Q[Update Helmsman Configuration]
+ P --> Q[Update Helmsman Configuration]
+ 
+ Q --> R[postgresql.enabled = false (External)]
+ Q --> S[postgresql.enabled = true (Container)]
+ 
+ R --> T[Deploy MOSIP Services]
+ S --> T[Deploy MOSIP Services]
+ 
+ T --> U[MOSIP Uses Configured PostgreSQL]
+ 
+ style C fill:#e8f5e8,stroke:#2e7d32,color:#000000
+ style D fill:#fff3e0,stroke:#f57c00,color:#000000
+ style L fill:#c8e6c9,stroke:#1b5e20,color:#000000
+ style P fill:#ffe0b2,stroke:#e65100,color:#000000
 ```
 
 ## Updated Deployment Flow with PostgreSQL
 
 ```mermaid
 graph TD
-    A[1. Deploy base-infra<br/>VPC + WireGuard<br/>One-time setup] --> B{Deploy observ-infra?}
-    
-    B -->|Yes| C[2. Deploy observ-infra<br/>Rancher + Keycloak]
-    B -->|No| D[3. Configure PostgreSQL in Terraform]
-    
-    C --> D[3. Configure PostgreSQL in Terraform]
-    
-    D --> E{enable_postgresql_setup?}
-    
-    E -->|true| F[3a. Set EBS Volume Size<br/>nginx_node_ebs_volume_size_2 = 200]
-    E -->|false| G[3b. Plan for Container PostgreSQL]
-    
-    F --> H[4. Deploy infra via Terraform<br/>RKE2 + PostgreSQL + Networking]
-    G --> I[4. Deploy infra via Terraform<br/>RKE2 + Networking only]
-    
-    H --> J[Terraform Auto-executes:<br/>- Provision PostgreSQL node<br/>- Install via Ansible<br/>- Configure PostgreSQL 15]
-    I --> K[PostgreSQL will be containerized]
-    
-    J --> L[5. Update Helmsman DSF<br/>postgresql.enabled = false]
-    K --> M[5. Update Helmsman DSF<br/>postgresql.enabled = true]
-    
-    L --> N[6. Deploy Prerequisites<br/>Monitoring + Istio + Logging]
-    K --> M[6. Deploy Prerequisites<br/>Monitoring + Istio + Logging]
-    
-    L --> O[6. Deploy External Dependencies (Parallel)<br/>PostgreSQL + MinIO + Keycloak + Kafka]
-    K --> P[6. Deploy External Dependencies (Parallel)<br/>PostgreSQL + MinIO + Keycloak + Kafka]
-    
-    N --> Q[7. Deploy MOSIP Services<br/>Core services using PostgreSQL]
-    O --> Q[7. Deploy MOSIP Services<br/>Core services using PostgreSQL]
-    M --> Q[7. Deploy MOSIP Services<br/>Core services using PostgreSQL]
-    P --> Q[7. Deploy MOSIP Services<br/>Core services using PostgreSQL]
-    P --> Q[9. Optional: Deploy Test Rigs]
-    Q --> R[MOSIP Platform Ready]
-    
-    style F fill:#c8e6c9,stroke:#1b5e20,color:#000000
-    style G fill:#ffe0b2,stroke:#e65100,color:#000000
-    style H fill:#c8e6c9,stroke:#1b5e20,color:#000000
-    style I fill:#ffe0b2,stroke:#e65100,color:#000000
-    style J fill:#a5d6a7,stroke:#2e7d32,color:#000000
-    style K fill:#ffcc02,stroke:#f57c00,color:#000000
+ A[1. Deploy base-infra<br/>VPC + WireGuard<br/>One-time setup] --> B{Deploy observ-infra?}
+ 
+ B -->|Yes| C[2. Deploy observ-infra<br/>Rancher + Keycloak]
+ B -->|No| D[3. Configure PostgreSQL in Terraform]
+ 
+ C --> D[3. Configure PostgreSQL in Terraform]
+ 
+ D --> E{enable_postgresql_setup?}
+ 
+ E -->|true| F[3a. Set EBS Volume Size<br/>nginx_node_ebs_volume_size_2 = 200]
+ E -->|false| G[3b. Plan for Container PostgreSQL]
+ 
+ F --> H[4. Deploy infra via Terraform<br/>RKE2 + PostgreSQL + Networking]
+ G --> I[4. Deploy infra via Terraform<br/>RKE2 + Networking only]
+ 
+ H --> J[Terraform Auto-executes:<br/>- Provision PostgreSQL node<br/>- Install via Ansible<br/>- Configure PostgreSQL 15]
+ I --> K[PostgreSQL will be containerized]
+ 
+ J --> L[5. Update Helmsman DSF<br/>postgresql.enabled = false]
+ K --> M[5. Update Helmsman DSF<br/>postgresql.enabled = true]
+ 
+ L --> N[6. Deploy Prerequisites<br/>Monitoring + Istio + Logging]
+ K --> M[6. Deploy Prerequisites<br/>Monitoring + Istio + Logging]
+ 
+ L --> O[6. Deploy External Dependencies (Parallel)<br/>PostgreSQL + MinIO + Keycloak + Kafka]
+ K --> P[6. Deploy External Dependencies (Parallel)<br/>PostgreSQL + MinIO + Keycloak + Kafka]
+ 
+ N --> Q[7. Deploy MOSIP Services<br/>Core services using PostgreSQL]
+ O --> Q[7. Deploy MOSIP Services<br/>Core services using PostgreSQL]
+ M --> Q[7. Deploy MOSIP Services<br/>Core services using PostgreSQL]
+ P --> Q[7. Deploy MOSIP Services<br/>Core services using PostgreSQL]
+ P --> Q[9. Optional: Deploy Test Rigs]
+ Q --> R[MOSIP Platform Ready]
+ 
+ style F fill:#c8e6c9,stroke:#1b5e20,color:#000000
+ style G fill:#ffe0b2,stroke:#e65100,color:#000000
+ style H fill:#c8e6c9,stroke:#1b5e20,color:#000000
+ style I fill:#ffe0b2,stroke:#e65100,color:#000000
+ style J fill:#a5d6a7,stroke:#2e7d32,color:#000000
+ style K fill:#ffcc02,stroke:#f57c00,color:#000000
 
 ## Deployment Flow & Dependencies
 
 ```mermaid
 graph TD
-    A[Start Deployment] --> B{Choose Cloud Provider}
-    B -->|AWS| C[AWS Deployment]
-    B -->|Azure| D[Azure Deployment]  
-    B -->|GCP| E[GCP Deployment]
-    
-    C --> F[1. Deploy base-infra<br/>VPC + WireGuard<br/>One-time setup]
-    D --> G[1. Deploy base-infra<br/>VNet + WireGuard<br/>One-time setup]
-    E --> H[1. Deploy base-infra<br/>VPC + WireGuard<br/>One-time setup]
-    
-    F --> I{Deploy observ-infra?}
-    G --> J{Deploy observ-infra?}
-    H --> K{Deploy observ-infra?}
-    
-    I -->|Yes| L[2. Deploy observ-infra<br/>Rancher + Keycloak]
-    I -->|No| M[3. Deploy infra<br/>RKE2 + NGINX + NFS]
-    J -->|Yes| N[2. Deploy observ-infra<br/>Rancher + Keycloak]
-    J -->|No| O[3. Deploy infra<br/>RKE2 + NGINX + NFS]
-    K -->|Yes| P[2. Deploy observ-infra<br/>Rancher + Keycloak]
-    K -->|No| Q[3. Deploy infra<br/>RKE2 + NGINX + NFS]
-    
-    L --> M
-    N --> O
-    P --> Q
-    
-    M --> R[MOSIP Cluster Ready]
-    O --> S[MOSIP Cluster Ready]
-    Q --> T[MOSIP Cluster Ready]
-    
-    L -.->|Optional Import| R
-    N -.->|Optional Import| S
-    P -.->|Optional Import| T
-    
-    style F fill:#e1f5fe,stroke:#01579b,color:#000000
-    style G fill:#e1f5fe,stroke:#01579b,color:#000000
-    style H fill:#e1f5fe,stroke:#01579b,color:#000000
-    style L fill:#fff3e0,stroke:#f57c00,color:#000000
-    style N fill:#fff3e0,stroke:#f57c00,color:#000000
-    style P fill:#fff3e0,stroke:#f57c00,color:#000000
-    style M fill:#f3e5f5,stroke:#4a148c,color:#000000
-    style O fill:#f3e5f5,stroke:#4a148c,color:#000000
-    style Q fill:#f3e5f5,stroke:#4a148c,color:#000000
+ A[Start Deployment] --> B{Choose Cloud Provider}
+ B -->|AWS| C[AWS Deployment]
+ B -->|Azure| D[Azure Deployment] 
+ B -->|GCP| E[GCP Deployment]
+ 
+ C --> F[1. Deploy base-infra<br/>VPC + WireGuard<br/>One-time setup]
+ D --> G[1. Deploy base-infra<br/>VNet + WireGuard<br/>One-time setup]
+ E --> H[1. Deploy base-infra<br/>VPC + WireGuard<br/>One-time setup]
+ 
+ F --> I{Deploy observ-infra?}
+ G --> J{Deploy observ-infra?}
+ H --> K{Deploy observ-infra?}
+ 
+ I -->|Yes| L[2. Deploy observ-infra<br/>Rancher + Keycloak]
+ I -->|No| M[3. Deploy infra<br/>RKE2 + NGINX + NFS]
+ J -->|Yes| N[2. Deploy observ-infra<br/>Rancher + Keycloak]
+ J -->|No| O[3. Deploy infra<br/>RKE2 + NGINX + NFS]
+ K -->|Yes| P[2. Deploy observ-infra<br/>Rancher + Keycloak]
+ K -->|No| Q[3. Deploy infra<br/>RKE2 + NGINX + NFS]
+ 
+ L --> M
+ N --> O
+ P --> Q
+ 
+ M --> R[MOSIP Cluster Ready]
+ O --> S[MOSIP Cluster Ready]
+ Q --> T[MOSIP Cluster Ready]
+ 
+ L -.->|Optional Import| R
+ N -.->|Optional Import| S
+ P -.->|Optional Import| T
+ 
+ style F fill:#e1f5fe,stroke:#01579b,color:#000000
+ style G fill:#e1f5fe,stroke:#01579b,color:#000000
+ style H fill:#e1f5fe,stroke:#01579b,color:#000000
+ style L fill:#fff3e0,stroke:#f57c00,color:#000000
+ style N fill:#fff3e0,stroke:#f57c00,color:#000000
+ style P fill:#fff3e0,stroke:#f57c00,color:#000000
+ style M fill:#f3e5f5,stroke:#4a148c,color:#000000
+ style O fill:#f3e5f5,stroke:#4a148c,color:#000000
+ style Q fill:#f3e5f5,stroke:#4a148c,color:#000000
 ```
 
 ## Terraform Module Structure
 
 ```mermaid
 graph TB
-    subgraph "Terraform Directory Structure"
-        subgraph "implementations/"
-            subgraph "aws/"
-                AWS_BASE[base-infra/<br/>Foundation setup]
-                AWS_OBS[observ-infra/<br/>Management cluster]
-                AWS_INF[infra/<br/>MOSIP clusters]
-            end
-            subgraph "azure/"
-                AZ_BASE[base-infra/<br/>Foundation setup]
-                AZ_OBS[observ-infra/<br/>Management cluster]
-                AZ_INF[infra/<br/>MOSIP clusters]
-            end
-            subgraph "gcp/"
-                GCP_BASE[base-infra/<br/>Foundation setup]
-                GCP_OBS[observ-infra/<br/>Management cluster]
-                GCP_INF[infra/<br/>MOSIP clusters]
-            end
-        end
-        
-        subgraph "modules/"
-            subgraph "AWS Modules"
-                AWS_VPC[aws-resource-creation/<br/>VPC, subnets, security]
-                AWS_RKE[rke2-cluster/<br/>Kubernetes setup]
-                AWS_NGINX[nginx-setup/<br/>Load balancer]
-                AWS_NFS[nfs-setup/<br/>Storage]
-            end
-            subgraph "Azure Modules"
-                AZ_VNET[azure-resource-creation/<br/>VNet, NSG, security]
-                AZ_RKE[rke2-cluster/<br/>Kubernetes setup]
-                AZ_LB[lb-setup/<br/>Load balancer]
-                AZ_STOR[storage-setup/<br/>Storage]
-            end
-            subgraph "GCP Modules"
-                GCP_VPC_MOD[gcp-resource-creation/<br/>VPC, firewall]
-                GCP_RKE[rke2-cluster/<br/>Kubernetes setup]
-                GCP_LB[lb-setup/<br/>Load balancer]
-                GCP_STOR[storage-setup/<br/>Storage]
-            end
-        end
-    end
-    
-    AWS_BASE --> AWS_VPC
-    AWS_OBS --> AWS_RKE
-    AWS_INF --> AWS_RKE
-    AWS_INF --> AWS_NGINX
-    AWS_INF --> AWS_NFS
-    
-    AZ_BASE --> AZ_VNET
-    AZ_OBS --> AZ_RKE
-    AZ_INF --> AZ_RKE
-    AZ_INF --> AZ_LB
-    AZ_INF --> AZ_STOR
-    
-    GCP_BASE --> GCP_VPC_MOD
-    GCP_OBS --> GCP_RKE
-    GCP_INF --> GCP_RKE
-    GCP_INF --> GCP_LB
-    GCP_INF --> GCP_STOR
-    
-    style AWS_BASE fill:#e1f5fe,stroke:#01579b,color:#000000
-    style AWS_OBS fill:#fff3e0,stroke:#f57c00,color:#000000
-    style AWS_INF fill:#f3e5f5,stroke:#4a148c,color:#000000
-    style AZ_BASE fill:#e1f5fe,stroke:#01579b,color:#000000
-    style AZ_OBS fill:#fff3e0,stroke:#f57c00,color:#000000
-    style AZ_INF fill:#f3e5f5,stroke:#4a148c,color:#000000
-    style GCP_BASE fill:#e1f5fe,stroke:#01579b,color:#000000
-    style GCP_OBS fill:#fff3e0,stroke:#f57c00,color:#000000
-    style GCP_INF fill:#f3e5f5,stroke:#4a148c,color:#000000
+ subgraph "Terraform Directory Structure"
+ subgraph "implementations/"
+ subgraph "aws/"
+ AWS_BASE[base-infra/<br/>Foundation setup]
+ AWS_OBS[observ-infra/<br/>Management cluster]
+ AWS_INF[infra/<br/>MOSIP clusters]
+ end
+ subgraph "azure/"
+ AZ_BASE[base-infra/<br/>Foundation setup]
+ AZ_OBS[observ-infra/<br/>Management cluster]
+ AZ_INF[infra/<br/>MOSIP clusters]
+ end
+ subgraph "gcp/"
+ GCP_BASE[base-infra/<br/>Foundation setup]
+ GCP_OBS[observ-infra/<br/>Management cluster]
+ GCP_INF[infra/<br/>MOSIP clusters]
+ end
+ end
+ 
+ subgraph "modules/"
+ subgraph "AWS Modules"
+ AWS_VPC[aws-resource-creation/<br/>VPC, subnets, security]
+ AWS_RKE[rke2-cluster/<br/>Kubernetes setup]
+ AWS_NGINX[nginx-setup/<br/>Load balancer]
+ AWS_NFS[nfs-setup/<br/>Storage]
+ end
+ subgraph "Azure Modules"
+ AZ_VNET[azure-resource-creation/<br/>VNet, NSG, security]
+ AZ_RKE[rke2-cluster/<br/>Kubernetes setup]
+ AZ_LB[lb-setup/<br/>Load balancer]
+ AZ_STOR[storage-setup/<br/>Storage]
+ end
+ subgraph "GCP Modules"
+ GCP_VPC_MOD[gcp-resource-creation/<br/>VPC, firewall]
+ GCP_RKE[rke2-cluster/<br/>Kubernetes setup]
+ GCP_LB[lb-setup/<br/>Load balancer]
+ GCP_STOR[storage-setup/<br/>Storage]
+ end
+ end
+ end
+ 
+ AWS_BASE --> AWS_VPC
+ AWS_OBS --> AWS_RKE
+ AWS_INF --> AWS_RKE
+ AWS_INF --> AWS_NGINX
+ AWS_INF --> AWS_NFS
+ 
+ AZ_BASE --> AZ_VNET
+ AZ_OBS --> AZ_RKE
+ AZ_INF --> AZ_RKE
+ AZ_INF --> AZ_LB
+ AZ_INF --> AZ_STOR
+ 
+ GCP_BASE --> GCP_VPC_MOD
+ GCP_OBS --> GCP_RKE
+ GCP_INF --> GCP_RKE
+ GCP_INF --> GCP_LB
+ GCP_INF --> GCP_STOR
+ 
+ style AWS_BASE fill:#e1f5fe,stroke:#01579b,color:#000000
+ style AWS_OBS fill:#fff3e0,stroke:#f57c00,color:#000000
+ style AWS_INF fill:#f3e5f5,stroke:#4a148c,color:#000000
+ style AZ_BASE fill:#e1f5fe,stroke:#01579b,color:#000000
+ style AZ_OBS fill:#fff3e0,stroke:#f57c00,color:#000000
+ style AZ_INF fill:#f3e5f5,stroke:#4a148c,color:#000000
+ style GCP_BASE fill:#e1f5fe,stroke:#01579b,color:#000000
+ style GCP_OBS fill:#fff3e0,stroke:#f57c00,color:#000000
+ style GCP_INF fill:#f3e5f5,stroke:#4a148c,color:#000000
 ```
 
 ## State File Isolation
@@ -342,15 +342,15 @@ State Management Structure
 
 Production (main branch):
 ├── mosip-terraform-bucket-main/
-│   ├── aws-base-infra-main-terraform.tfstate
-│   ├── aws-observ-infra-main-terraform.tfstate
-│   ├── aws-infra-main-terraform.tfstate
-│   ├── azure-base-infra-main-terraform.tfstate
-│   ├── azure-observ-infra-main-terraform.tfstate
-│   ├── azure-infra-main-terraform.tfstate
-│   ├── gcp-base-infra-main-terraform.tfstate
-│   ├── gcp-observ-infra-main-terraform.tfstate
-│   └── gcp-infra-main-terraform.tfstate
+│ ├── aws-base-infra-main-terraform.tfstate
+│ ├── aws-observ-infra-main-terraform.tfstate
+│ ├── aws-infra-main-terraform.tfstate
+│ ├── azure-base-infra-main-terraform.tfstate
+│ ├── azure-observ-infra-main-terraform.tfstate
+│ ├── azure-infra-main-terraform.tfstate
+│ ├── gcp-base-infra-main-terraform.tfstate
+│ ├── gcp-observ-infra-main-terraform.tfstate
+│ └── gcp-infra-main-terraform.tfstate
 
 Staging (staging branch):
 ├── mosip-terraform-bucket-staging/

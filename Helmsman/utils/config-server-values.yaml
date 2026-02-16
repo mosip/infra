@@ -17,4 +17,8 @@ resources:
     memory: 2500Mi
   requests:
     cpu: 300m
+<<<<<<< HEAD
     memory: 1500Mi
+=======
+    memory: 1500Mi
+>>>>>>> origin/develop

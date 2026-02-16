@@ -62,7 +62,10 @@
         owner: ubuntu
         group: ubuntu
         recurse: yes
+<<<<<<< HEAD
       when: k8s_infra_dir.stat.exists or not k8s_infra_dir.stat.exists
+=======
+>>>>>>> origin/develop
 
     - name: Verify kubeconfig file exists
       stat:
@@ -111,9 +114,27 @@
         executable: /bin/bash
 
     - name: Wait for Keycloak to be ready
+<<<<<<< HEAD
       shell: "{{ kubectl_path }} wait --for=condition=ready pod -l app.kubernetes.io/name=keycloak --timeout=600s -n keycloak || true"
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
+=======
+      shell: "{{ kubectl_path }} wait --for=condition=ready pod -l app.kubernetes.io/name=keycloak --timeout=600s -n keycloak"
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: keycloak_wait_result
+      failed_when: false
+
+    - name: Warn if Keycloak did not become ready
+      debug:
+        msg: "WARNING: Keycloak pods did not become ready within timeout. Output: {{ keycloak_wait_result.stderr | default('') }}"
+      when: keycloak_wait_result.rc != 0
+
+    - name: Fail if Keycloak did not become ready
+      fail:
+        msg: "ERROR: Keycloak pods failed to become ready within 600 seconds. Please check the Keycloak deployment."
+      when: keycloak_wait_result.rc != 0
+>>>>>>> origin/develop
 
     - name: Keycloak installation completed
       debug:

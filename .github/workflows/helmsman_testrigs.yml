@@ -135,4 +135,4 @@ jobs:
           echo "Using kubeconfig: $KUBECONFIG"
           
           # Run helmsman with the determined mode
-          helmsman --debug --${HELMSMAN_MODE} -f $WORKDIR/dsf/testrigs-dsf.yaml
+          helmsman --${HELMSMAN_MODE} -f $WORKDIR/dsf/testrigs-dsf.yaml

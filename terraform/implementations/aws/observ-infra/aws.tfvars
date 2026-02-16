@@ -5,16 +5,23 @@
 cloud_provider = "aws"
 
 # Environment name (observability component)
+<<<<<<< HEAD
 cluster_name = "obs13"
 
 # MOSIP domain
 cluster_env_domain = "obs13.mosip.net"
+=======
+cluster_name = "<cluster-name>"
+
+# MOSIP domain
+cluster_env_domain = "<cluster-env-domain>"
+>>>>>>> origin/develop
 
 # Email-ID for SSL certificate notifications
-mosip_email_id = "chandra.mishra@technoforte.co.in"
+mosip_email_id = "<email-id>"
 
 # SSH key name for AWS instances
-ssh_key_name = "mosip-aws"
+ssh_key_name = "<ssh-key-name>"
 
 # AWS region
 aws_provider_region = "ap-south-1"
@@ -23,7 +30,7 @@ aws_provider_region = "ap-south-1"
 # If empty, uses all available AZs in the region
 # Example: ["ap-south-1a", "ap-south-1b"] for specific AZs
 # Example: [] for all available AZs in the region
-specific_availability_zones = ["ap-south-1a"]
+specific_availability_zones = []
 
 # Minimal node counts for observability
 k8s_control_plane_node_count = 1
@@ -38,10 +45,10 @@ nginx_instance_type = "t3a.large"
 ami = "ami-0ad21ae1d0696ad58"
 
 # Route53 zone ID for DNS records
-zone_id = "Z090954828SJIEL6P5406"
+zone_id = "<zone-id>"
 
 # VPC name (should match the one created by base-infra)
-vpc_name = "mosip-boxes"
+vpc_name = "<vpc-name>"
 
 # Minimal storage configuration
 nginx_node_root_volume_size = 24 # Smaller than infra (24)
@@ -59,24 +66,35 @@ subdomain_internal = [
 ]
 
 # Repository configuration
-k8s_infra_repo_url = "https://github.com/bhumi46/k8s-infra.git"
-k8s_infra_branch   = "develop"
+k8s_infra_repo_url = "https://github.com/mosip/k8s-infra.git"
+k8s_infra_branch   = "v1.2.1.0"
+
+# RKE2 Version Configuration
+rke2_version = "v1.28.9+rke2r1"
 
 # RKE2 Version Configuration
 rke2_version = "v1.28.9+rke2r1"
 
 # Rancher UI configuration (hostname will be dynamically created from cluster_env_domain)
+<<<<<<< HEAD
 rancher_hostname           = "rancher.obs13.mosip.net" # Will default to rancher.testvpc.mosip.net
+=======
+rancher_hostname           = "rancher.<cluster-env-domain>" # example rancher.sandbox.xyz.net
+>>>>>>> origin/develop
 rancher_bootstrap_password = "admin"
-
+rancher_ui_version         = "2.8.3" # Rancher Helm chart version (avoid 2.8.3 due to CVEs)
 # Keycloak configuration (hostname will be dynamically created from cluster_env_domain)  
+<<<<<<< HEAD
 keycloak_hostname = "iam.obs13.mosip.net" # Will default to iam.testvpc.mosip.net
+=======
+keycloak_hostname = "iam.<cluster-env-domain>" # example iam.sandbox.xyz.net
+>>>>>>> origin/develop
 # Enable Rancher-Keycloak integration for observability cluster
 enable_rancher_keycloak_integration = true
 
 # Rancher import (same as infra)
-enable_rancher_import = false
-rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/dzshvnb6br7qtf267zsrr9xsw6tnb2vt4x68g79r2wzsnfgvkjq2jk_c-m-b5249w76.yaml\""
+enable_rancher_import = false #dont enable for observ infra
+rancher_import_url    = "\"<rancher-import-url>\"" #dont update for observ infra
 
 # Security group CIDRs
 network_cidr   = "10.0.0.0/8" # Use your actual VPC CIDR
@@ -89,5 +107,5 @@ mount_point        = "/srv/postgres"
 postgresql_port    = "5433"
 
 # MOSIP Infrastructure Repository Configuration
-mosip_infra_repo_url = "https://github.com/bhumi46/mosip-infra.git"
-mosip_infra_branch   = "develop"
+mosip_infra_repo_url = "https://github.com/mosip/mosip-infra.git"
+mosip_infra_branch   = "v0.1.0"

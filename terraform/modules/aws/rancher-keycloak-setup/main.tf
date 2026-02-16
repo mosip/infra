@@ -55,6 +55,7 @@ resource "local_file" "ssh_private_key" {
   content         = var.SSH_PRIVATE_KEY
   filename        = "${path.module}/ansible/.ssh_key"
   file_permission = "0600"
+<<<<<<< HEAD
 }
 
 # Create Ansible inventory file
@@ -73,13 +74,44 @@ resource "null_resource" "install_rancher" {
   count      = var.ENABLE_RANCHER_KEYCLOAK ? 1 : 0
   depends_on = [local_file.ansible_inventory]
 
+=======
+
+  # Cleanup SSH key file on destroy to prevent key exposure
+  provisioner "local-exec" {
+    when    = destroy
+    command = "rm -f ${self.filename}"
+  }
+}
+
+# Create Ansible inventory file
+resource "local_file" "ansible_inventory" {
+  count      = var.ENABLE_RANCHER_KEYCLOAK ? 1 : 0
+  depends_on = [local_file.ssh_private_key]
+  content = templatefile("${path.module}/ansible/inventory.tpl", {
+    control_plane_ip = var.CONTROL_PLANE_IPS[0]
+    ssh_key_file     = abspath(local_file.ssh_private_key[0].filename)
+  })
+  filename = "${path.module}/ansible/inventory.ini"
+}
+
+# Install Rancher UI using Ansible
+resource "null_resource" "install_rancher" {
+  count      = var.ENABLE_RANCHER_KEYCLOAK ? 1 : 0
+  depends_on = [local_file.ansible_inventory]
+
+>>>>>>> origin/develop
   provisioner "local-exec" {
     command = <<-EOT
       ansible-playbook -i ${path.module}/ansible/inventory.ini \
         ${path.module}/ansible/install-rancher.yml \
         -e cluster_name='${var.CLUSTER_NAME}' \
         -e rancher_hostname_var='${var.RANCHER_HOSTNAME != "" ? var.RANCHER_HOSTNAME : "rancher.${var.CLUSTER_ENV_DOMAIN}"}' \
+<<<<<<< HEAD
         -e rancher_password='${var.RANCHER_BOOTSTRAP_PASSWORD}'
+=======
+        -e rancher_password='${var.RANCHER_BOOTSTRAP_PASSWORD}' \
+        -e rancher_ui_version='${var.RANCHER_UI_VERSION}'
+>>>>>>> origin/develop
     EOT
   }
 

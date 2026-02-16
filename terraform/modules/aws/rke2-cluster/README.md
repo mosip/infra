@@ -9,10 +9,10 @@ The RKE2 configuration is managed through a GitHub repository.
 * Terraform version: `v1.8.4`
 * AWS Account
 * AWS CLI configured with appropriate credentials
-  ```
-  $ export AWS_ACCESS_KEY_ID=<AWS_ACCESS_KEY_ID>
-  $ export AWS_SECRET_ACCESS_KEY=<AWS_SECRET_ACCESS_KEY>
-  ```
+ ```
+ $ export AWS_ACCESS_KEY_ID=<AWS_ACCESS_KEY_ID>
+ $ export AWS_SECRET_ACCESS_KEY=<AWS_SECRET_ACCESS_KEY>
+ ```
 * Ensure SSH key created for accessing EC2 instances on AWS.
 * Ensure you have access to the private SSH key that corresponds to the public key used when launching the EC2 instance.
 * Git is installed on the EC2 instance.
@@ -23,27 +23,27 @@ The RKE2 configuration is managed through a GitHub repository.
 
 ## Setup
 * Initialize Terraform
-  ```
-  terraform init
-  ```
+ ```
+ terraform init
+ ```
 * Terraform validate & plan the terraform scripts:
-  ```
-  terraform validate
-  ```
-  ```
-  terraform plan -var-file="aws.tfvars"
-  ```
+ ```
+ terraform validate
+ ```
+ ```
+ terraform plan -var-file="aws.tfvars"
+ ```
 * Apply the Terraform configuration:
-  ```
-  terraform apply -var-file="aws.tfvars"
-  ```
+ ```
+ terraform apply -var-file="aws.tfvars"
+ ```
 
 ## Destroy
 To destroy AWS resources, follow the steps below:
 * Ensure to have `terraform.tfstate` file.
-  ```
-  terraform destroy
-  ```
+ ```
+ terraform destroy
+ ```
 
 ## Input Variables
 * `K8S_CLUSTER_PUBLIC_IPS`: Map of public IP addresses for the Kubernetes cluster nodes.

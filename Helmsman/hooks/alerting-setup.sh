@@ -6,9 +6,9 @@ NS=cattle-monitoring-system
 function installing_alerting() {
 
   # Define the Slack channel, Slack_api_url and Cluster name dynamically
-  SLACK_CHANNEL="soil"
-  SLACK_API_URL="https://hooks.slack.com/services/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"
-  ENV_NAME="soil"
+  SLACK_CHANNEL="$1"
+  SLACK_API_URL="$2"
+  ENV_NAME="$3"
 
   ALERTMANAGER_FILE="$WORKDIR/utils/alerting/alertmanager.yaml"
   PATCH_CLUSTER_NAME_FILE="$WORKDIR/utils/alerting/patch-cluster-name.yaml"

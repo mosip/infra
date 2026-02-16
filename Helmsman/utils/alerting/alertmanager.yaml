@@ -1,7 +1,7 @@
 ---
 global:
   resolve_timeout: 5m
-  slack_api_url: https://hooks.slack.com/services/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
+  slack_api_url: <YOUR-SLACK-API-URL>
 route:
   group_by:
     - namespace
@@ -104,7 +104,7 @@ receivers:
   - name: 'null'
   - name: 'slack'
     slack_configs:
-      - channel: 'soil'
+      - channel: '<YOUR-CHANNEL-HERE>'
         send_resolved: true
         title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing |
           len }}{{ end }}] Monitoring Event Notification'

@@ -13,8 +13,8 @@ This module has been converted from using Terraform's unreliable `remote-exec` p
 - ✅ **Internet connectivity**
 
 **Auto-Installed:**
-- 📦 **Ansible** - automatically installed during `terraform apply`
-- 📦 **pip3** - installed with Ansible if needed
+- **Ansible** - automatically installed during `terraform apply`
+- **pip3** - installed with Ansible if needed
 
 ### **Supported Operating Systems for Terraform Runner:**
 - ✅ **Ubuntu/Debian** (apt-get)
@@ -24,7 +24,7 @@ This module has been converted from using Terraform's unreliable `remote-exec` p
 - ✅ **macOS** (brew)
 - ✅ **Any Linux with pip3**
 
-## 🚀 Quick Start
+## Quick Start
 
 ### **1. Pre-flight Check (Optional but Recommended)**
 ```bash
@@ -36,23 +36,23 @@ cd terraform/implementations/aws/infra
 ```bash
 terraform init
 terraform plan
-terraform apply  # Ansible will be auto-installed if needed
+terraform apply # Ansible will be auto-installed if needed
 ```
 
 That's it! No manual Ansible installation required.
 
-## 🔄 How Ansible Installation Works
+## How Ansible Installation Works
 
 ### **Automatic Installation Flow:**
 ```mermaid
 graph TD
-    A[terraform apply] --> B[local-exec: run-ansible.sh]
-    B --> C{Ansible installed?}
-    C -->|No| D[Auto-install Ansible]
-    C -->|Yes| E[Use existing Ansible]
-    D --> F[Run Ansible Playbook]
-    E --> F
-    F --> G[RKE2 Cluster Ready]
+ A[terraform apply] --> B[local-exec: run-ansible.sh]
+ B --> C{Ansible installed?}
+ C -->|No| D[Auto-install Ansible]
+ C -->|Yes| E[Use existing Ansible]
+ D --> F[Run Ansible Playbook]
+ E --> F
+ F --> G[RKE2 Cluster Ready]
 ```
 
 ### **Installation Methods by OS:**
@@ -78,7 +78,7 @@ graph TD
 - ✅ Kubernetes cluster formation
 - ✅ kubectl configuration
 
-## 🛠️ Manual Ansible Installation (if preferred)
+## Manual Ansible Installation (if preferred)
 
 If you prefer to install Ansible manually before running terraform:
 
@@ -131,14 +131,14 @@ export PATH="$HOME/.local/bin:$PATH"
 
 ```
 ansible/
-├── inventory.yml.tpl       # Terraform template for Ansible inventory
-├── rke2-playbook.yml      # Main Ansible playbook for RKE2 installation
-├── run-ansible.sh         # Script to execute Ansible with proper settings
-├── test-cluster.sh        # Test script to verify cluster health
-├── inventory.yml          # Generated inventory file (created by Terraform)
-├── ssh_key               # SSH private key file (created by Terraform)
+├── inventory.yml.tpl # Terraform template for Ansible inventory
+├── rke2-playbook.yml # Main Ansible playbook for RKE2 installation
+├── run-ansible.sh # Script to execute Ansible with proper settings
+├── test-cluster.sh # Test script to verify cluster health
+├── inventory.yml # Generated inventory file (created by Terraform)
+├── ssh_key # SSH private key file (created by Terraform)
 ├── primary-kubeconfig.yaml # Downloaded kubeconfig (created by Ansible)
-└── kubeconfigs/          # Directory with all node kubeconfigs
+└── kubeconfigs/ # Directory with all node kubeconfigs
 ```
 
 ## Usage
@@ -179,7 +179,7 @@ ansible all -i inventory.yml -u ubuntu --private-key=ssh_key -m ping
 
 # Check service status
 ansible rke2_cluster -i inventory.yml -u ubuntu --private-key=ssh_key \
-  -m shell -a "sudo systemctl status rke2-server || sudo systemctl status rke2-agent"
+ -m shell -a "sudo systemctl status rke2-server || sudo systemctl status rke2-agent"
 
 # Re-run the playbook
 ansible-playbook -i inventory.yml -u ubuntu --private-key=ssh_key rke2-playbook.yml
@@ -227,7 +227,7 @@ The following variables are automatically passed from Terraform to Ansible:
 
 Node roles are automatically detected based on hostname patterns:
 - `*CONTROL-PLANE-NODE*`: Control plane nodes
-- `*ETCD-NODE*`: ETCD nodes  
+- `*ETCD-NODE*`: ETCD nodes 
 - `*WORKER-NODE*`: Worker nodes
 
 ## Next Steps

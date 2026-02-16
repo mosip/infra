@@ -52,7 +52,7 @@ on:
         description: 'Enable Terraform state locking with DynamoDB (recommended for production)'
         required: false
         type: boolean
-        default: true
+        default: false
       SSH_PRIVATE_KEY:
         description: 'The GitHub secret containing the private key of the SSH key named in the preceding input variable `SSH_PRIVATE_KEY` is used for SSH login purposes on nginx node.'
         required: true
@@ -79,6 +79,8 @@ jobs:
     runs-on: ubuntu-latest  # 16 vCPU, 64GB RAM for maximum performance
     # Use dynamic environment based on current branch name
     environment: ${{ github.ref_name }}
+    permissions:
+      contents: write    
     defaults:
       run:
         shell: bash
