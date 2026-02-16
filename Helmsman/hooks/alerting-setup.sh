@@ -6,9 +6,15 @@ NS=cattle-monitoring-system
 function installing_alerting() {
 
   # Define the Slack channel, Slack_api_url and Cluster name dynamically
-  SLACK_CHANNEL="$1"
-  SLACK_API_URL="$2"
-  ENV_NAME="$3"
+  SLACK_CHANNEL="${1:-}"
+  SLACK_API_URL="${2:-}"
+  ENV_NAME="${3:-}"
+
+  # Skip if no parameters provided
+  if [[ -z "$SLACK_CHANNEL" ]] || [[ -z "$SLACK_API_URL" ]] || [[ -z "$ENV_NAME" ]]; then
+    echo "Skipping alerting setup - Slack configuration parameters not provided"
+    return 0
+  fi
 
   ALERTMANAGER_FILE="$WORKDIR/utils/alerting/alertmanager.yaml"
   PATCH_CLUSTER_NAME_FILE="$WORKDIR/utils/alerting/patch-cluster-name.yaml"
@@ -37,4 +43,4 @@ set -o errexit   ## set -e : exit the script if any statement returns a non-true
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errtrace  # trace ERR through 'time command' and other functions
 set -o pipefail  # trace ERR through pipes
-installing_alerting   # calling function
+installing_alerting "$@"  # Pass all script arguments to function
