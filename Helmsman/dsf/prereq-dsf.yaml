@@ -33,8 +33,8 @@ apps:
     timeout: 900
     priority: -6
     hooks:
-      postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh soil.mosip.net <version>"
-      postUpgrade: "$WORKDIR/hooks/install-istio-and-httpbin.sh soil.mosip.net <version>"
+      postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh soil.mosip.net test"
+      postUpgrade: "$WORKDIR/hooks/install-istio-and-httpbin.sh soil.mosip.net test"
 
   rancher-monitoring:
     namespace: cattle-monitoring-system
@@ -42,14 +42,14 @@ apps:
     version: 103.1.0+up45.31.1
     chart: mosip/rancher-monitoring
     set:
-      grafana.global.cattle.clusterId: "<cluster-id>"
-      global.cattle.clusterId: "<cluster-id>"
+      grafana.global.cattle.clusterId: "abc-snjnk"
+      global.cattle.clusterId: "abc-snjnk"
     wait: true
     valuesFile: "$WORKDIR/utils/monitoring_values.yaml"
     priority: -5
     timeout: 600
     hooks:
-      postInstall: "$WORKDIR/hooks/alerting-setup.sh <slack-channel-name> <slack-api-url> <env-name>"
+      postInstall: "$WORKDIR/hooks/alerting-setup.sh soil https://hooks.slack.com/services/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 soil"
 
   elasticsearch:
     namespace: cattle-logging-system
