@@ -389,7 +389,7 @@ apps:
     chart: mosip/landing-page
     set:
       landing.version: "develop"
-      landing.name: "<soil>"
+      landing.name: "soil"
       landing.api: "api.soil.xyz.net"
       landing.apiInternal: "api-internal.soil.xyz.net"
       landing.admin: "admin.soil.xyz.net"
