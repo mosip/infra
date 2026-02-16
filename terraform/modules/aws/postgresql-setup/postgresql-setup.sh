@@ -442,14 +442,7 @@ EOF
 echo "[SUCCESS] Inventory file created with nginx IP target (local): $NGINX_NODE_IP"
 
 export DEBIAN_FRONTEND=noninteractive  # Prevent interactive prompts
-export ANSIBLE_HOST_KEY_CHECKING=False  # Skip host key checking
-export ANSIBLE_STDOUT_CALLBACK=debug   # Verbose output
-export ANSIBLE_TIMEOUT=30              # Set ansible timeout
-export ANSIBLE_CONNECT_TIMEOUT=30      # Set connection timeout
 export ANSIBLE_COLLECTIONS_PATH=/tmp/ansible_collections  # Custom collections path
-export ANSIBLE_GALAXY_DISABLE_GPG_VERIFY=true  # Disable GPG verification
-export ANSIBLE_PIPELINING=true         # Enable pipelining for speed
-export ANSIBLE_SSH_RETRIES=3           # Set SSH retries
 
 # Create ansible configuration to prevent hanging
 echo '[CONFIG] Creating Ansible Configuration...'

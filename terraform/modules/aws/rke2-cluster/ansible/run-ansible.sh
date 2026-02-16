@@ -144,20 +144,6 @@ fi
 
 echo "🎯 ANSIBLE ENVIRONMENT SETUP:"
 echo "============================="
-# Set comprehensive logging environment variables optimized for CI/CD
-export ANSIBLE_DEBUG=false
-export ANSIBLE_VERBOSE_TO_STDERR=false
-export ANSIBLE_DISPLAY_SKIPPED_HOSTS=True
-export ANSIBLE_DISPLAY_OK_HOSTS=True
-export ANSIBLE_DISPLAY_FAILED_STDERR=True
-export ANSIBLE_STDOUT_CALLBACK=yaml
-export ANSIBLE_CALLBACK_WHITELIST=profile_tasks,timer
-export ANSIBLE_FORCE_COLOR=True
-export ANSIBLE_HOST_KEY_CHECKING=False
-export ANSIBLE_SSH_RETRIES=2
-export ANSIBLE_TIMEOUT=120
-export ANSIBLE_GATHER_TIMEOUT=300
-export ANSIBLE_SSH_PIPELINING=True
 
 echo "Ansible Version:"
 ansible-playbook --version
