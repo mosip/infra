@@ -500,11 +500,34 @@ apps:
     set:
       # image.repository: "mosipid/credential-service"
       # image.tag: "1.2.2.2"
+      replicaCount: 2      
+      resources.limits.cpu: "500m"
+      resources.limits.memory: "3000Mi"
+      resources.requests.cpu: "200m"
+      resources.requests.memory: "2000Mi"
+    priority: -8
+    timeout: 1200
+
+  credentialrequest:
+    namespace: idrepo
+    enabled: true
     version: 12.2.4
     chart: mosip/credentialrequest
     set:
       # image.repository: "mosipid/credential-request-generator"
       # image.tag: "1.2.2.2"
+      replicaCount: 2      
+      resources.limits.cpu: "1"
+      resources.limits.memory: "4000Mi"
+      resources.requests.cpu: "1"
+      resources.requests.memory: "3000Mi"
+    priority: -7
+    timeout: 1200
+  
+
+  identity:
+    namespace: idrepo
+    enabled: true
     version: 12.2.4
     chart: mosip/identity
     set:
@@ -977,11 +1000,11 @@ apps:
   resident:
     namespace: resident
     enabled: true
-    version: 12.1.3
+    version: 12.3.1
     chart: mosip/resident
     set:
-      # image.repository: "mosipid/resident-service"
-      # image.tag: "1.2.1.2"
+      image.repository: "mosipid/resident-service"
+      image.tag: "1.2.1.3"
       resources.requests.cpu: "300m"
       resources.requests.memory: "2000Mi"
       startupProbe.failureThreshold: "60"
@@ -1022,15 +1045,15 @@ apps:
       onboarding.configmaps.s3.s3-bucket-name: "onboarder"
       #onboarding.secrets.s3.s3-user-secret: "password"
       # onboarding.volumes.reports.nfs.server: "<nfs_server>"
-      # # provide NFS directory to store reports from NFS server (e.g. /srv/nfs/soil51/onboarder/), make sure permission is 777 for the folder: " nfs_path
+      # # provide NFS directory to store reports from NFS server (e.g. /srv/nfs/<sandbox>/onboarder/), make sure permission is 777 for the folder: " nfs_path
       # onboarding.volumes.reports.nfs.path: "<nfs_path>"
       extraEnvVarsCM[0]: "global"
       extraEnvVarsCM[1]: "keycloak-env-vars"
       extraEnvVarsCM[2]: "keycloak-host"
       onboarding.modules[0].name: "ida"
-      onboarding.modules[0].enabled: false
+      onboarding.modules[0].enabled: true
       onboarding.modules[1].name: "print"
-      onboarding.modules[1].enabled: true
+      onboarding.modules[1].enabled: false
       onboarding.modules[2].name: "abis"
       onboarding.modules[2].enabled: true
       onboarding.modules[3].name: "resident"
@@ -1046,7 +1069,7 @@ apps:
       onboarding.modules[8].name: "resident-oidc"
       onboarding.modules[8].enabled: false
       onboarding.modules[9].name: "mimoto-keybinding"
-      onboarding.modules[9].enabled: false
+      onboarding.modules[9].enabled: true
     wait: true
     timeout: 1200
     priority: -2
