@@ -11,14 +11,6 @@ import sys
 from dotenv import load_dotenv
 load_dotenv()
 
-<<<<<<< HEAD
-def get_rancher_config():
-    """Get Rancher configuration from environment variables"""
-    return {
-        "host": os.getenv('RANCHER_HOST'),
-        "token": os.getenv('RANCHER_TOKEN')
-    }
-=======
 # HTTP request timeout in seconds
 REQUEST_TIMEOUT = 30
 
@@ -40,7 +32,6 @@ def get_rancher_config():
         raise ValueError(f"Missing required environment variables: {', '.join(missing)}")
     
     return config
->>>>>>> origin/develop
 
 def get_headers(token):
     """Get authorization headers"""
@@ -59,11 +50,7 @@ def explore_api(host, token):
     # Test basic connectivity
     print("1. Testing API connectivity...")
     try:
-<<<<<<< HEAD
-        response = requests.get(f"{host}/v3", headers=headers, timeout=10)
-=======
         response = requests.get(f"{host}/v3", headers=headers, timeout=REQUEST_TIMEOUT)
->>>>>>> origin/develop
         if response.status_code == 200:
             print("   ✓ API is accessible\n")
         else:
@@ -76,11 +63,7 @@ def explore_api(host, token):
     # List all auth configs
     print("2. Listing authentication configurations...")
     try:
-<<<<<<< HEAD
-        response = requests.get(f"{host}/v3/authConfigs", headers=headers)
-=======
         response = requests.get(f"{host}/v3/authConfigs", headers=headers, timeout=REQUEST_TIMEOUT)
->>>>>>> origin/develop
         if response.status_code == 200:
             data = response.json()
             if 'data' in data and len(data['data']) > 0:
@@ -112,11 +95,7 @@ def explore_api(host, token):
     for endpoint in saml_endpoints:
         url = f"{host}{endpoint}"
         try:
-<<<<<<< HEAD
-            response = requests.get(url, headers=headers)
-=======
             response = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT)
->>>>>>> origin/develop
             if response.status_code == 200:
                 print(f"   ✓ {endpoint} - Available")
                 data = response.json()
@@ -136,11 +115,7 @@ def explore_api(host, token):
     # List available schemas
     print("4. Checking available authentication schemas...")
     try:
-<<<<<<< HEAD
-        response = requests.get(f"{host}/v3/schemas", headers=headers)
-=======
         response = requests.get(f"{host}/v3/schemas", headers=headers, timeout=REQUEST_TIMEOUT)
->>>>>>> origin/develop
         if response.status_code == 200:
             schemas = response.json()
             if 'data' in schemas:
@@ -166,20 +141,12 @@ def explore_api(host, token):
     # Get Rancher version
     print("5. Rancher version information...")
     try:
-<<<<<<< HEAD
-        response = requests.get(f"{host}/v3/settings/server-version", headers=headers)
-=======
         response = requests.get(f"{host}/v3/settings/server-version", headers=headers, timeout=REQUEST_TIMEOUT)
->>>>>>> origin/develop
         if response.status_code == 200:
             version_data = response.json()
             print(f"   Server Version: {version_data.get('value', 'Unknown')}")
         
-<<<<<<< HEAD
-        response = requests.get(f"{host}/v3/settings/server-url", headers=headers)
-=======
         response = requests.get(f"{host}/v3/settings/server-url", headers=headers, timeout=REQUEST_TIMEOUT)
->>>>>>> origin/develop
         if response.status_code == 200:
             url_data = response.json()
             print(f"   Server URL: {url_data.get('value', 'Unknown')}")
@@ -222,13 +189,6 @@ def export_full_api_info(host, token, output_file="rancher_api_info.json"):
     
     for endpoint in endpoints:
         try:
-<<<<<<< HEAD
-            response = requests.get(f"{host}{endpoint}", headers=headers)
-            if response.status_code == 200:
-                api_info["endpoints"][endpoint] = response.json()
-        except:
-            pass
-=======
             response = requests.get(f"{host}{endpoint}", headers=headers, timeout=REQUEST_TIMEOUT)
             if response.status_code == 200:
                 api_info["endpoints"][endpoint] = response.json()
@@ -236,7 +196,6 @@ def export_full_api_info(host, token, output_file="rancher_api_info.json"):
             print(f"  Warning: Failed to fetch {endpoint}: {e}")
         except (json.JSONDecodeError, ValueError) as e:
             print(f"  Warning: Failed to parse JSON from {endpoint}: {e}")
->>>>>>> origin/develop
     
     with open(output_file, 'w') as f:
         json.dump(api_info, f, indent=2)
@@ -247,24 +206,6 @@ def main():
     try:
         config = get_rancher_config()
         
-<<<<<<< HEAD
-        if not config["host"] or not config["token"]:
-            print("Error: RANCHER_HOST and RANCHER_TOKEN environment variables are required")
-            print("\nUsage:")
-            print("  export RANCHER_HOST=https://rancher.example.com")
-            print("  export RANCHER_TOKEN=token-xxxxx:xxxxxxxx")
-            print("  python3 rancher_diagnostic.py")
-            sys.exit(1)
-        
-        explore_api(config["host"], config["token"])
-        
-        # Ask if user wants full export
-        print("\nWould you like to export full API info for debugging? (y/n): ", end="")
-        response = input().strip().lower()
-        if response == 'y':
-            export_full_api_info(config["host"], config["token"])
-        
-=======
         explore_api(config["host"], config["token"])
         
         # Auto-export in non-interactive mode (CI/CD), prompt in interactive mode
@@ -284,7 +225,6 @@ def main():
         print("  export RANCHER_TOKEN=token-xxxxx:xxxxxxxx")
         print("  python3 rancher_diagnostic.py")
         sys.exit(1)
->>>>>>> origin/develop
     except KeyboardInterrupt:
         print("\n\nDiagnostic cancelled by user")
         sys.exit(0)

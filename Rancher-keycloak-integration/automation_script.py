@@ -31,12 +31,8 @@ class Config:
             "admin_user": os.getenv('KEYCLOAK_ADMIN_USER'),
             "admin_password": os.getenv('KEYCLOAK_ADMIN_PASSWORD'),
             "admin_email": os.getenv('KEYCLOAK_ADMIN_EMAIL', 'admin@example.com'),
-<<<<<<< HEAD
-            "admin_firstname": os.getenv('KEYCLOAK_ADMIN_FIRSTNAME', 'Admin')
-=======
             "admin_firstname": os.getenv('KEYCLOAK_ADMIN_FIRSTNAME', 'Admin'),
             "base_path": os.getenv('KEYCLOAK_BASE_PATH', '/auth')
->>>>>>> origin/develop
         }
         
         # Validate required variables
@@ -95,41 +91,26 @@ class Config:
         return os.getenv('FORCE_RECREATE', 'false').lower() in ('true', '1', 'yes')
 
 class KeycloakAPI:
-<<<<<<< HEAD
-=======
     REQUEST_TIMEOUT = 30  # seconds
 
->>>>>>> origin/develop
     def __init__(self, config):
         self.host = config["host"]
         self.realm = config["realm"]
         self.admin_user = config["admin_user"]
         self.admin_password = config["admin_password"]
-<<<<<<< HEAD
-=======
         self.base_path = config.get("base_path", "/auth")
->>>>>>> origin/develop
         self.token = None
         
     def get_token(self):
         """Get admin access token"""
-<<<<<<< HEAD
-        url = f"{self.host}/auth/realms/master/protocol/openid-connect/token"
-=======
         url = f"{self.host}{self.base_path}/realms/master/protocol/openid-connect/token"
->>>>>>> origin/develop
         data = {
             "username": self.admin_user,
             "password": self.admin_password,
             "grant_type": "password",
             "client_id": "admin-cli"
         }
-<<<<<<< HEAD
-        
-        response = requests.post(url, data=data)
-=======
         response = requests.post(url, data=data, timeout=self.REQUEST_TIMEOUT)
->>>>>>> origin/develop
         response.raise_for_status()
         self.token = response.json()["access_token"]
         print("✓ Keycloak token obtained")
@@ -144,15 +125,9 @@ class KeycloakAPI:
     def update_admin_user(self, email, firstname):
         """Update admin user with email and firstName"""
         # Get admin user ID
-<<<<<<< HEAD
-        url = f"{self.host}/auth/admin/realms/{self.realm}/users"
-        params = {"username": self.admin_user}
-        response = requests.get(url, headers=self.get_headers(), params=params)
-=======
         url = f"{self.host}{self.base_path}/admin/realms/{self.realm}/users"
         params = {"username": self.admin_user}
         response = requests.get(url, headers=self.get_headers(), params=params, timeout=self.REQUEST_TIMEOUT)
->>>>>>> origin/develop
         response.raise_for_status()
         
         users = response.json()
@@ -162,39 +137,19 @@ class KeycloakAPI:
         user_id = users[0]["id"]
         
         # Update user
-<<<<<<< HEAD
-        url = f"{self.host}/auth/admin/realms/{self.realm}/users/{user_id}"
-=======
         url = f"{self.host}{self.base_path}/admin/realms/{self.realm}/users/{user_id}"
->>>>>>> origin/develop
         data = {
             "email": email,
             "firstName": firstname,
             "emailVerified": True
         }
         
-<<<<<<< HEAD
-        response = requests.put(url, headers=self.get_headers(), json=data)
-=======
         response = requests.put(url, headers=self.get_headers(), json=data, timeout=self.REQUEST_TIMEOUT)
->>>>>>> origin/develop
         response.raise_for_status()
         print(f"✓ Admin user updated with email: {email}")
         
     def create_saml_client(self, rancher_host):
         """Create SAML client for Rancher"""
-<<<<<<< HEAD
-        client_id = f"{rancher_host}/v1-saml/keycloak/saml/metadata"
-        
-        # First, check if client already exists
-        url = f"{self.host}/auth/admin/realms/{self.realm}/clients"
-        params = {"clientId": client_id}
-        response = requests.get(url, headers=self.get_headers(), params=params)
-        response.raise_for_status()
-        
-        existing_clients = response.json()
-        
-=======
         base = rancher_host.rstrip("/")
         client_id = f"{base}/v1-saml/keycloak/saml/metadata"
         # First, check if client already exists
@@ -203,21 +158,14 @@ class KeycloakAPI:
         response = requests.get(url, headers=self.get_headers(), params=params, timeout=self.REQUEST_TIMEOUT)
         response.raise_for_status()
         existing_clients = response.json()
->>>>>>> origin/develop
         if existing_clients and len(existing_clients) > 0:
             # Client already exists, return its internal ID
             internal_id = existing_clients[0]["id"]
             print(f"✓ SAML client already exists: {client_id}")
             print(f"  Using existing client ID: {internal_id}")
             return internal_id
-<<<<<<< HEAD
-        
-        # Client doesn't exist, create it
-        url = f"{self.host}/auth/admin/realms/{self.realm}/clients"
-=======
         # Client doesn't exist, create it
         url = f"{self.host}{self.base_path}/admin/realms/{self.realm}/clients"
->>>>>>> origin/develop
         data = {
             "clientId": client_id,
             "name": "rancher",
@@ -234,48 +182,6 @@ class KeycloakAPI:
                 "saml_name_id_format": "username",
                 "saml_signature_canonicalization_method": "http://www.w3.org/2001/10/xml-exc-c14n#"
             },
-<<<<<<< HEAD
-            "redirectUris": [f"{rancher_host}/v1-saml/keycloak/saml/acs"],
-            "frontchannelLogout": False
-        }
-        
-        response = requests.post(url, headers=self.get_headers(), json=data)
-        response.raise_for_status()
-        print(f"✓ SAML client created: {client_id}")
-        
-        # Get internal client ID
-        url = f"{self.host}/auth/admin/realms/{self.realm}/clients"
-        params = {"clientId": client_id}
-        response = requests.get(url, headers=self.get_headers(), params=params)
-        response.raise_for_status()
-        
-        clients = response.json()
-        if not clients:
-            raise ValueError(f"Failed to retrieve created client")
-        
-        return clients[0]["id"]
-    
-    def create_protocol_mappers(self, internal_client_id):
-        """Create protocol mappers for the client"""
-        # First, get existing mappers
-        get_url = f"{self.host}/auth/admin/realms/{self.realm}/clients/{internal_client_id}/protocol-mappers/models"
-        response = requests.get(get_url, headers=self.get_headers())
-        response.raise_for_status()
-        existing_mappers = response.json()
-        existing_mapper_names = {mapper["name"] for mapper in existing_mappers}
-        
-        post_url = f"{self.host}/auth/admin/realms/{self.realm}/clients/{internal_client_id}/protocol-mappers/models"
-        
-        mappers = [
-            {
-                "name": "username",
-                "protocol": "saml",
-                "protocolMapper": "saml-user-property-mapper",
-                "config": {
-                    "user.attribute": "username",
-                    "friendly.name": "username",
-                    "attribute.name": "username",
-=======
             "redirectUris": [f"{base}/v1-saml/keycloak/saml/acs"],
             "frontchannelLogout": False
         }
@@ -310,39 +216,21 @@ class KeycloakAPI:
                     "user.attribute": saml_config.get("uid_field", "username"),
                     "friendly.name": saml_config.get("uid_field", "username"),
                     "attribute.name": saml_config.get("uid_field", "username"),
->>>>>>> origin/develop
                     "attribute.nameformat": "Basic"
                 }
             },
             {
-<<<<<<< HEAD
-                "name": "groups",
-                "protocol": "saml",
-                "protocolMapper": "saml-group-membership-mapper",
-                "config": {
-                    "attribute.name": "member",
-=======
                 "name": saml_config.get("groups_field", "member"),
                 "protocol": "saml",
                 "protocolMapper": "saml-group-membership-mapper",
                 "config": {
                     "attribute.name": saml_config.get("groups_field", "member"),
->>>>>>> origin/develop
                     "attribute.nameformat": "Basic",
                     "single": "true",
                     "full.path": "false"
                 }
             },
             {
-<<<<<<< HEAD
-                "name": "email",
-                "protocol": "saml",
-                "protocolMapper": "saml-user-property-mapper",
-                "config": {
-                    "user.attribute": "email",
-                    "friendly.name": "email",
-                    "attribute.name": "email",
-=======
                 "name": saml_config.get("username_field", "email"),
                 "protocol": "saml",
                 "protocolMapper": "saml-user-property-mapper",
@@ -350,20 +238,10 @@ class KeycloakAPI:
                     "user.attribute": saml_config.get("username_field", "email"),
                     "friendly.name": saml_config.get("username_field", "email"),
                     "attribute.name": saml_config.get("username_field", "email"),
->>>>>>> origin/develop
                     "attribute.nameformat": "Basic"
                 }
             },
             {
-<<<<<<< HEAD
-                "name": "givenName",
-                "protocol": "saml",
-                "protocolMapper": "saml-user-property-mapper",
-                "config": {
-                    "user.attribute": "firstName",
-                    "friendly.name": "givenName",
-                    "attribute.name": "givenName",
-=======
                 "name": saml_config.get("display_name_field", "givenName"),
                 "protocol": "saml",
                 "protocolMapper": "saml-user-property-mapper",
@@ -371,36 +249,22 @@ class KeycloakAPI:
                     "user.attribute": saml_config.get("display_name_field", "givenName"),
                     "friendly.name": saml_config.get("display_name_field", "givenName"),
                     "attribute.name": saml_config.get("display_name_field", "givenName"),
->>>>>>> origin/develop
                     "attribute.nameformat": "Basic"
                 }
             }
         ]
-<<<<<<< HEAD
-        
-=======
->>>>>>> origin/develop
         for mapper in mappers:
             if mapper["name"] in existing_mapper_names:
                 print(f"✓ Mapper already exists: {mapper['name']}")
             else:
-<<<<<<< HEAD
-                response = requests.post(post_url, headers=self.get_headers(), json=mapper)
-=======
                 response = requests.post(post_url, headers=self.get_headers(), json=mapper, timeout=self.REQUEST_TIMEOUT)
->>>>>>> origin/develop
                 response.raise_for_status()
                 print(f"✓ Created mapper: {mapper['name']}")
     
     def download_saml_descriptor(self, filename):
         """Download SAML descriptor XML"""
-<<<<<<< HEAD
-        url = f"{self.host}/auth/realms/{self.realm}/protocol/saml/descriptor"
-        response = requests.get(url)
-=======
         url = f"{self.host}{self.base_path}/realms/{self.realm}/protocol/saml/descriptor"
         response = requests.get(url, timeout=self.REQUEST_TIMEOUT)
->>>>>>> origin/develop
         response.raise_for_status()
         
         with open(filename, 'w') as f:
@@ -410,11 +274,8 @@ class KeycloakAPI:
         return response.text
 
 class RancherAPI:
-<<<<<<< HEAD
-=======
     REQUEST_TIMEOUT = 30  # seconds
 
->>>>>>> origin/develop
     def __init__(self, config):
         self.host = config["host"]
         self.token = config["token"]
@@ -451,34 +312,11 @@ class RancherAPI:
         }
         
         # Try to get existing config first
-<<<<<<< HEAD
-        response = requests.get(url, headers=self.get_headers())
-        
-=======
         response = requests.get(url, headers=self.get_headers(), timeout=self.REQUEST_TIMEOUT)
->>>>>>> origin/develop
         if response.status_code == 200:
             # Config exists, update it using PUT
             print(f"  Existing config found, updating...")
             existing_config = response.json()
-<<<<<<< HEAD
-            
-            # Update the fields
-            existing_config.update(config_data)
-            
-            response = requests.put(url, headers=self.get_headers(), json=existing_config)
-            
-            if response.status_code in [200, 201]:
-                print("✓ Rancher Keycloak SAML configuration updated successfully")
-                return
-        else:
-            # Config doesn't exist or hasn't been enabled yet
-            # Use the testAndEnable action to enable and configure
-            print(f"  Enabling and configuring Keycloak SAML...")
-            
-            action_url = f"{url}?action=testAndEnable"
-            
-=======
             # Update the fields
             existing_config.update(config_data)
             response = requests.put(url, headers=self.get_headers(), json=existing_config, timeout=self.REQUEST_TIMEOUT)
@@ -490,7 +328,6 @@ class RancherAPI:
             # Use the testAndEnable action to enable and configure
             print(f"  Enabling and configuring Keycloak SAML...")
             action_url = f"{url}?action=testAndEnable"
->>>>>>> origin/develop
             # For the testAndEnable action, we need to send the full config
             full_config = {
                 "type": "keyCloakConfig",
@@ -506,19 +343,6 @@ class RancherAPI:
                 "uidField": saml_config["uid_field"],
                 "userNameField": saml_config["username_field"]
             }
-<<<<<<< HEAD
-            
-            response = requests.post(action_url, headers=self.get_headers(), json=full_config)
-        
-        if response.status_code in [200, 201]:
-            print("✓ Rancher Keycloak SAML configuration completed successfully")
-            return
-        
-        # If that fails, raise the error with details
-        print(f"  Configuration failed with status {response.status_code}")
-        print(f"  Response: {response.text}")
-        response.raise_for_status()
-=======
             response = requests.post(action_url, headers=self.get_headers(), json=full_config, timeout=self.REQUEST_TIMEOUT)
             if response.status_code in [200, 201]:
                 print("✓ Rancher Keycloak SAML configuration completed successfully")
@@ -533,16 +357,11 @@ class RancherAPI:
             print(f"  Configuration failed with status {response.status_code}")
             print(f"  Response: {response.text}")
             response.raise_for_status()
->>>>>>> origin/develop
     
     def list_auth_configs(self):
         """List available auth configurations in Rancher"""
         url = f"{self.host}/v3/authConfigs"
-<<<<<<< HEAD
-        response = requests.get(url, headers=self.get_headers())
-=======
         response = requests.get(url, headers=self.get_headers(), timeout=self.REQUEST_TIMEOUT)
->>>>>>> origin/develop
         
         if response.status_code == 200:
             configs = response.json()
@@ -663,11 +482,7 @@ def main():
         )
         
         internal_client_id = keycloak.create_saml_client(rancher_config["host"])
-<<<<<<< HEAD
-        keycloak.create_protocol_mappers(internal_client_id)
-=======
         keycloak.create_protocol_mappers(internal_client_id, saml_config)
->>>>>>> origin/develop
         metadata_xml = keycloak.download_saml_descriptor(saml_config["descriptor_file"])
         
         print("\n✓ Keycloak configuration completed!\n")
