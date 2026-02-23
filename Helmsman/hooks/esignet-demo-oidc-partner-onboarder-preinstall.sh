@@ -81,7 +81,8 @@ function preinstall_demo_oidc_partner_onboarder() {
       --from-literal=s3-user-key="$S3_USER_KEY" \
       --dry-run=client -o yaml | kubectl apply -f -
   else
-    echo "WARNING: s3-user-key not found in s3 configmap"
+    echo "ERROR: s3-user-key not found in s3 configmap"
+    return 1
   fi
 
   echo "Demo OIDC partner onboarder pre-install setup complete"
