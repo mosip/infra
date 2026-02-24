@@ -1080,7 +1080,56 @@ Alerting is part of cluster monitoring, where alert notifications are sent to th
  enabled: true
 ```
 
-6. **Update testrigs-dsf.yaml (if deploying test environment):**
+6. **Update esignet-dsf.yaml:**
+
+ **Critical Updates Required:**
+
+- **Domain Validation (Double-check):**
+  - `<sandbox>` → your cluster name (e.g., `soil`)
+  - `sandbox.xyz.net` → your domain name (e.g., `soil.mosip.net`)
+  - **eSignet Domain**: `esignet.sandbox.xyz.net` → `esignet.soil.mosip.net`
+- **Chart Versions:** Update eSignet chart versions to latest stable releases
+- **Database Branch:** Verify correct eSignet DB scripts branch
+- **OIDC Configuration:** Configure OIDC client settings and redirect URLs
+- **Mock Services:** Enable/disable mock identity system and relying party based on requirements
+- **Keycloak Integration:** Ensure Keycloak endpoints and realm settings are correct
+
+> **Note:** Maintain consistency with your Terraform configuration:
+>
+> - `<sandbox>` should match `cluster_name` in `aws.tfvars`
+> - `sandbox.xyz.net` should match `cluster_env_domain` in `aws.tfvars`
+> - eSignet requires MOSIP core services to be deployed first (unless using standalone mode)
+
+```yaml
+ # Configure eSignet services 
+ apps:
+ esignet:
+ enabled: true
+ mock-identity-system:
+ enabled: true # Set to false for production with real identity system
+ oidc-ui:
+ enabled: true
+ mock-relying-party:
+ enabled: true # Set to false for production
+```
+
+ **eSignet-Specific Configuration:**
+
+- **Mock Identity System:**
+  - Enable (`true`) for development/testing without MOSIP integration
+  - Disable (`false`) for production with real MOSIP identity system
+- **OIDC Client Configuration:**
+  - Update redirect URIs for your domain
+  - Configure client IDs and secrets
+  - Set up allowed scopes and claims
+- **Keycloak Settings:**
+  - Verify Keycloak realm: typically `esignet`
+  - Update Keycloak host: `https://iam.sandbox.xyz.net` → `https://iam.soil.mosip.net`
+  - Ensure Keycloak client credentials are configured
+
+ **Need detailed help?** [DSF Configuration Guide - eSignet](docs/DSF_CONFIGURATION_GUIDE.md#esignet-dsf-configuration)
+
+7. **Update testrigs-dsf.yaml (if deploying test environment):**
 
  **Critical Updates Required:**
 
@@ -1152,11 +1201,13 @@ Alerting is part of cluster monitoring, where alert notifications are sent to th
 
  **Add KUBECONFIG as Environment Secret:**
 
+> **Important:** KUBECONFIG must be provided as **raw YAML** (plain text), not base64 encoded.
+
 - Go to your GitHub repository → Settings → Environments
 - Select or create environment for your branch (e.g., `release-0.1.0`, `main`, `develop`)
 - Click "Add secret" under Environment secrets
 - Name: `KUBECONFIG`
-- Value: Copy the entire contents of the kubeconfig file from `terraform/implementations/aws/infra/`
+- Value: Copy the **entire raw YAML contents** of the kubeconfig file from `terraform/implementations/aws/infra/kubeconfig_<cluster-name>`
 
  **Branch Environment Configuration:- Ensure the environment name matches your deployment branch
 
@@ -1168,13 +1219,45 @@ Alerting is part of cluster monitoring, where alert notifications are sent to th
  **Environment Secrets (branch-specific):**
 
 ```yaml
- # Kubernetes Access (Environment Secret)
- KUBECONFIG: "<contents-of-kubeconfig-file>"
+ # Kubernetes Access (Environment Secret - raw YAML format)
+ KUBECONFIG: |
+   apiVersion: v1
+   clusters:
+   - cluster:
+       certificate-authority-data: LS0tLS...
+       server: https://your-cluster-endpoint:6443
+     name: default
+   contexts:
+   - context:
+       cluster: default
+       user: default
+     name: default
+   current-context: default
+   kind: Config
+   users:
+   - name: default
+     user:
+       client-certificate-data: LS0tLS...
+       client-key-data: LS0tLS...
 
  # WireGuard Cluster Access for Helmsman
  CLUSTER_WIREGUARD_WG0: "peer2-wireguard-config" # Helmsman cluster access (peer2)
  CLUSTER_WIREGUARD_WG1: "peer3-wireguard-config" # Helmsman cluster access (peer3)
+
+ # eSignet Required Secrets (Environment Secrets)
+ # Configure in Repository → Settings → Environments → <branch-name> → Add secret
+ 
+ MOCK_RELYING_PARTY_CLIENT_PRIVATE_KEY: | # Client private key for Mock Relying Party
+   LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0t... # Base64 encoded PEM format
+   
+ MOCK_RELYING_PARTY_JWE_PRIVATE_KEY: | # JWE userinfo encryption private key
+   LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0t... # Base64 encoded PEM format
+   
+ ESIGNET_CAPTCHA_SITE_KEY: "6LfkAMwrAAAAAATB1WhkIhzuAVMtOs9VWabODoZ_" # Google reCAPTCHA site key (plain text)
+ ESIGNET_CAPTCHA_SECRET_KEY: "6LfkAMwrAAAAAHQAT93nTGcLKa-h3XYhGoNSG-NL" # Google reCAPTCHA secret key (plain text)
 ```
+
+> **For detailed eSignet secrets configuration and generation instructions**, see [eSignet Deployment Guide - Required Secrets](docs/esignet_README.md#required-secrets-environment-secrets)
 
 4. **Verify Secret Configuration:**
 
@@ -1274,7 +1357,48 @@ The Helmsman deployment process follows a specific sequence with automated trigg
 
 **How to check onboarding status and rerun if needed:** Refer to the comprehensive [MOSIP Onboarding Guide](docs/ONBOARDING_GUIDE.md) for detailed troubleshooting and retry procedures.
 
-5. **Deploy Test Rigs (Manual):**
+5. **Deploy eSignet (Manual):**
+
+![Deploy eSignet - Helmsman](docs/_images/esignet.png)
+
+- **Prerequisites**: All MOSIP core services must be running, partner onboarding completed successfully and secrets required for esignet should be updated.
+- **(1)** Actions → **Deploy eSignet using Helmsman** (`helmsman_esignet.yml`)
+- **(2)** **Select Branch**
+- **(3)** **Mode**: `apply` (required - dry-run will fail due to namespace dependencies)
+- **(4)** **Additional Options** (optional):
+  - **skip_mosip_dsf_check**: ☐ Unchecked by default
+    - **When to enable (✅)**: Standalone eSignet deployment without full MOSIP stack
+    - **What it does**: Bypasses validation check for MOSIP core services completion
+    - **Use case**: Testing eSignet independently or deploying eSignet to a separate cluster
+  - **(5)** **delete_existing_jobs**: ☐ Unchecked by default
+    - **When to enable (✅)**: Re-running eSignet deployment after a previous failed attempt
+    - **What it does**: Removes existing partner onboarder jobs before creating new ones
+    - **Use case**: Cleanup before retry deployment to avoid "job already exists" errors
+    - **Important**: Only enable this on re-runs, not on first deployment
+- **(6)** **Run Workflow**:    
+- **Time required:** 15-25 minutes
+
+ **What You Should See:**
+
+- ✅ eSignet services deploying
+- ✅ OIDC client configuration
+- ✅ Keycloak integration setup
+- ✅ Mock identity system (if configured)
+- ✅ All eSignet pods running
+
+ **Verify eSignet Deployment:**
+
+```bash
+ # Check eSignet pods
+ kubectl get pods -n esignet
+ 
+ # Verify eSignet services
+ kubectl get services -n esignet
+```
+
+> **Note**: For detailed eSignet configuration and deployment guide, see [eSignet Deployment Guide](docs/esignet_README.md)
+
+6. **Deploy Test Rigs (Manual):**
 
 ![Deploy Test Rigs - Helmsman](docs/_images/helmsman-testrigs.png)
 
@@ -1302,7 +1426,7 @@ After test rigs deployment completes:
    > ```
    >
 
-### 6. Verify Deployment
+### 7. Verify Deployment
 
 ```bash
 # Check cluster status
