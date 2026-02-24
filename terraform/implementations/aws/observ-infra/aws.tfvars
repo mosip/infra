@@ -28,7 +28,7 @@ specific_availability_zones = ["ap-south-1b"]
 # Minimal node counts for observability
 k8s_control_plane_node_count = 1
 k8s_etcd_node_count          = 0
-k8s_worker_node_count        = 1
+k8s_worker_node_count        = 0
 
 # Minimal instance types for observability
 k8s_instance_type   = "t3a.2xlarge"
@@ -61,9 +61,6 @@ subdomain_internal = [
 # Repository configuration
 k8s_infra_repo_url = "https://github.com/mosip/k8s-infra.git"
 k8s_infra_branch   = "v1.2.1.0"
-
-# RKE2 Version Configuration
-rke2_version = "v1.28.9+rke2r1"
 
 # RKE2 Version Configuration
 rke2_version = "v1.28.9+rke2r1"
