@@ -85,7 +85,7 @@ apps:
     version: 0.1.0
     chart: $WORKDIR/utils/istio-addons/logging-istio-addons-0.1.0.tgz
     set:
-      kibanaHost: "<kibana.soil.xyz.net>"
+      kibanaHost: "kibana.soil.mosip.net"
       installName: "elasticsearch-kibana"
     wait: true
     priority: -3
