@@ -5,16 +5,16 @@
 cloud_provider = "aws"
 
 # Environment name (observability component)
-cluster_name = "<cluster-name>"
+cluster_name = "test"
 
 # MOSIP domain
-cluster_env_domain = "<cluster-env-domain>"
+cluster_env_domain = "test.esignet.io"
 
 # Email-ID for SSL certificate notifications
-mosip_email_id = "<email-id>"
+mosip_email_id = "chandra.mishra@technoforte.co.in"
 
 # SSH key name for AWS instances
-ssh_key_name = "<ssh-key-name>"
+ssh_key_name = "mosip-aws"
 
 # AWS region
 aws_provider_region = "ap-south-1"
@@ -23,7 +23,7 @@ aws_provider_region = "ap-south-1"
 # If empty, uses all available AZs in the region
 # Example: ["ap-south-1a", "ap-south-1b"] for specific AZs
 # Example: [] for all available AZs in the region
-specific_availability_zones = []
+specific_availability_zones = ["ap-south-1b"]
 
 # Minimal node counts for observability
 k8s_control_plane_node_count = 1
@@ -38,10 +38,10 @@ nginx_instance_type = "t3a.large"
 ami = "ami-0ad21ae1d0696ad58"
 
 # Route53 zone ID for DNS records
-zone_id = "<zone-id>"
+zone_id = "Z00758441P73ITT25KEHU"
 
 # VPC name (should match the one created by base-infra)
-vpc_name = "<vpc-name>"
+vpc_name = "default"
 
 # Minimal storage configuration
 nginx_node_root_volume_size = 24 # Smaller than infra (24)
@@ -69,21 +69,21 @@ rke2_version = "v1.28.9+rke2r1"
 rke2_version = "v1.28.9+rke2r1"
 
 # Rancher UI configuration (hostname will be dynamically created from cluster_env_domain)
-rancher_hostname           = "rancher.<cluster-env-domain>" # example rancher.sandbox.xyz.net
+rancher_hostname           = "rancher.test.esignet.io" # example rancher.sandbox.xyz.net
 rancher_bootstrap_password = "admin"
 rancher_ui_version         = "2.8.3" # Rancher Helm chart version (avoid 2.8.3 due to CVEs)
 # Keycloak configuration (hostname will be dynamically created from cluster_env_domain)  
-keycloak_hostname = "iam.<cluster-env-domain>" # example iam.sandbox.xyz.net
+keycloak_hostname = "iam.test.esignet.io" # example iam.sandbox.xyz.net
 # Enable Rancher-Keycloak integration for observability cluster
 enable_rancher_keycloak_integration = true
 
 # Rancher import (same as infra)
 enable_rancher_import = false #dont enable for observ infra
-rancher_import_url    = "\"<rancher-import-url>\"" #dont update for observ infra
+rancher_import_url    = "" #dont update for observ infra
 
 # Security group CIDRs
-network_cidr   = "10.0.0.0/8" # Use your actual VPC CIDR
-WIREGUARD_CIDR = "10.0.0.0/8" # Use your actual WireGuard VPN CIDR
+network_cidr   = "172.0.0.0/8" # Use your actual VPC CIDR
+WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 
 # PostgreSQL Configuration (used when second EBS volume is enabled)
 postgresql_version = "15"
