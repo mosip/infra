@@ -16,6 +16,11 @@
 #
 name: terraform plan / apply
 
+# Prevent concurrent runs for same component to avoid state conflicts
+concurrency:
+  group: terraform-${{ github.event.inputs.CLOUD_PROVIDER }}-${{ github.event.inputs.TERRAFORM_COMPONENT }}-${{ github.ref_name }}
+  cancel-in-progress: false
+
 on:
   workflow_dispatch:
     inputs:
@@ -88,6 +93,9 @@ jobs:
         working-directory: 'terraform/implementations/${{ inputs.CLOUD_PROVIDER }}/${{ inputs.TERRAFORM_COMPONENT }}'
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history needed for rebase
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check for required implementation directory
         run: |
@@ -356,6 +364,9 @@ jobs:
           rm -rf .terraform/ 2>/dev/null || echo "No .terraform directory to remove"
           rm -f .terraform.lock.hcl 2>/dev/null || echo "No .terraform.lock.hcl to remove"
           
+          # Remove embedded git repositories to avoid submodule issues
+          find . -name ".git" -type d -not -path "./.git" -exec rm -rf {} + 2>/dev/null || true
+          
           # Also add any other Terraform-related files that might have been created
           git add -A
           
@@ -379,6 +390,11 @@ jobs:
             fi
             
             git commit -s -am "$commit_msg"
+            
+            # Pull with rebase to avoid push rejection
+            echo "Pulling latest changes with rebase..."
+            git pull --rebase origin ${{ github.ref_name }} || echo "No remote changes to pull"
+            
             git push
             echo "Changes committed and pushed successfully"
           fi

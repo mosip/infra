@@ -16,6 +16,11 @@
 #
 name: terraform destroy
 
+# Prevent concurrent destroy runs for same component
+concurrency:
+  group: terraform-destroy-${{ github.event.inputs.CLOUD_PROVIDER }}-${{ github.event.inputs.TERRAFORM_COMPONENT }}-${{ github.ref_name }}
+  cancel-in-progress: false
+
 on:
   workflow_dispatch:
     inputs:
@@ -87,6 +92,9 @@ jobs:
         working-directory: 'terraform/implementations/${{ inputs.CLOUD_PROVIDER }}/${{ inputs.TERRAFORM_COMPONENT }}'
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history needed for rebase
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check for required implementation directory
         run: |
@@ -414,6 +422,9 @@ jobs:
           git add -f backend.tf 2>/dev/null || echo "No backend.tf file found"
           git add -f *.tf 2>/dev/null || echo "No .tf files to add"
           
+          # Remove embedded git repositories to avoid submodule issues
+          find . -name ".git" -type d -not -path "./.git" -exec rm -rf {} + 2>/dev/null || true
+          
           echo "Git status after adding files:"
           git status
           
@@ -438,6 +449,11 @@ jobs:
             fi
             
             git commit -s -am "$commit_msg"
+            
+            # Pull with rebase to avoid push rejection
+            echo "Pulling latest changes with rebase..."
+            git pull --rebase origin ${{ github.ref_name }} || echo "No remote changes to pull"
+            
             git push
             echo "Changes committed and pushed successfully"
           fi
