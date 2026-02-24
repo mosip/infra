@@ -88,12 +88,13 @@ variable "enable_rancher_import" {
 variable "rancher_import_url" {
   description = "Rancher import URL for kubectl apply"
   type        = string
+  default     = ""
   validation {
     condition = (
-      can(regex("^\"kubectl apply -f https://rancher\\.mosip\\.net/v3/import/[a-zA-Z0-9_\\-]+\\.yaml\"$", var.rancher_import_url)) ||
-      can(regex("^\"kubectl apply -f https://rancher\\.[a-zA-Z0-9\\*\\.\\-]+\\.net/v3/import/[a-zA-Z0-9_\\-]+\\.yaml\"$", var.rancher_import_url))
+      var.rancher_import_url == "" ||
+      can(regex("^\"kubectl apply -f https://[a-zA-Z0-9][a-zA-Z0-9\\.\\-]*/v3/import/[a-zA-Z0-9_\\-]+\\.yaml\"$", var.rancher_import_url))
     )
-    error_message = "The RANCHER_IMPORT_URL must be in the format: '\"kubectl apply -f https://rancher.mosip.net/v3/import/<ID>.yaml\"' or '\"kubectl apply -f https://rancher.***.net/v3/import/<ID>.yaml\"'"
+    error_message = "The rancher_import_url must be empty (when enable_rancher_import is false) or in the format: '\"kubectl apply -f https://<rancher-host>/v3/import/<ID>.yaml\"'"
   }
 }
 
