@@ -203,7 +203,7 @@ jobs:
           if [ "${{ github.event.inputs.namespace_selection }}" == "specific" ]; then
             IFS=',' read -ra NAMESPACES <<< "${{ github.event.inputs.specific_namespaces }}"
           else
-            NAMESPACES=( cattle-logging-system istio-system istio-operator httpbin )
+            NAMESPACES=( cattle-logging-system istio-system istio-operator httpbin cattle-monitoring-system)
           fi
           
           for NS in "${NAMESPACES[@]}"; do

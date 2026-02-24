@@ -1,0 +1,185 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36" version="29.3.6">
+  <diagram name="eSignet DSF Architecture Flow" id="esignet-dsf-flow">
+    <mxGraphModel dx="1426" dy="694" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=24;fontStyle=1;fontColor=#1f497d;" value="eSignet DSF Architecture Flow Diagram" vertex="1">
+          <mxGeometry height="40" width="440" x="527" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="github-actions" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1;" value="GitHub Actions&#xa;Workflow Trigger" vertex="1">
+          <mxGeometry height="60" width="160" x="50" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="helmsman" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1;" value="Helmsman&#xa;Controller" vertex="1">
+          <mxGeometry height="60" width="120" x="280" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="dsf-yaml" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;" value="esignet-dsf.yaml&#xa;(Desired State File)" vertex="1">
+          <mxGeometry height="60" width="140" x="460" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="k8s-cluster" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1;" value="Kubernetes Cluster" vertex="1">
+          <mxGeometry height="60" width="160" x="680" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="infra-title" parent="1" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=16;fontStyle=1;fontColor=#d79b00;" value="external services Layer" vertex="1">
+          <mxGeometry height="30" width="190" x="50" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="postgres" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" value="PostgreSQL Database&#xa;(mosip_esignet,&#xa;mosip_mockidentitysystem)" vertex="1">
+          <mxGeometry height="80" width="160" x="50" y="250" as="geometry" />
+        </mxCell>
+        <mxCell id="redis" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" value="Redis Cache&#xa;(Session Storage)" vertex="1">
+          <mxGeometry height="60" width="120" x="250" y="250" as="geometry" />
+        </mxCell>
+        <mxCell id="softhsm" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" value="SoftHSM&#xa;(Hardware Security&#xa;Module Emulation)" vertex="1">
+          <mxGeometry height="80" width="140" x="410" y="250" as="geometry" />
+        </mxCell>
+        <mxCell id="keycloak" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" value="Keycloak&#xa;Identity &amp; Access&#xa;Management" vertex="1">
+          <mxGeometry height="80" width="120" x="590" y="250" as="geometry" />
+        </mxCell>
+        <mxCell id="artifactory" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" value="Artifactory&#xa;(Configuration&#xa;Management)" vertex="1">
+          <mxGeometry height="80" width="120" x="750" y="250" as="geometry" />
+        </mxCell>
+        <mxCell id="core-title" parent="1" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=16;fontStyle=1;fontColor=#6c8ebf;" value="Core Services Layer" vertex="1">
+          <mxGeometry height="30" width="160" x="50" y="380" as="geometry" />
+        </mxCell>
+        <mxCell id="esignet-core" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" value="eSignet Core Service&#xa;(Authentication Engine)" vertex="1">
+          <mxGeometry height="70" width="160" x="50" y="430" as="geometry" />
+        </mxCell>
+        <mxCell id="oidc-ui" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" value="OIDC UI&#xa;(OpenID Connect&#xa;User Interface)" vertex="1">
+          <mxGeometry height="70" width="120" x="250" y="430" as="geometry" />
+        </mxCell>
+        <mxCell id="mock-identity" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" value="Mock Identity System&#xa;(Test Identity Provider)" vertex="1">
+          <mxGeometry height="70" width="140" x="410" y="430" as="geometry" />
+        </mxCell>
+        <mxCell id="mock-rp-service" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" value="Mock Relying Party&#xa;Service" vertex="1">
+          <mxGeometry height="50" width="120" x="590" y="430" as="geometry" />
+        </mxCell>
+        <mxCell id="mock-rp-ui" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" value="Mock Relying Party UI&#xa;(Demo Application)" vertex="1">
+          <mxGeometry height="50" width="120" x="750" y="430" as="geometry" />
+        </mxCell>
+        <mxCell id="partner-title" parent="1" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=16;fontStyle=1;fontColor=#b85450;" value="Partner Onboarding &amp; Configuration" vertex="1">
+          <mxGeometry height="30" width="260" x="50" y="550" as="geometry" />
+        </mxCell>
+        <mxCell id="resident-onboarder" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" value="Resident OIDC&#xa;Partner Onboarder" vertex="1">
+          <mxGeometry height="60" width="140" x="50" y="600" as="geometry" />
+        </mxCell>
+        <mxCell id="demo-onboarder" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" value="Demo OIDC&#xa;Partner Onboarder" vertex="1">
+          <mxGeometry height="60" width="140" x="230" y="600" as="geometry" />
+        </mxCell>
+        <mxCell id="deploy-title" parent="1" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=16;fontStyle=1;fontColor=#0066cc;" value="Deployment Priority Flow" vertex="1">
+          <mxGeometry height="30" width="200" x="1084" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="step1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=left;" value="1. Database Initialization&#xa;   • PostgreSQL&#xa;   • DB Schema Creation" vertex="1">
+          <mxGeometry height="60" width="180" x="1093" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="step2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;align=left;" value="2. Core Infrastructure&#xa;   • Redis Cache&#xa;   • SoftHSM Setup" vertex="1">
+          <mxGeometry height="60" width="180" x="1093" y="230" as="geometry" />
+        </mxCell>
+        <mxCell id="step3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;" value="3. Identity Management&#xa;   • Keycloak Setup&#xa;   • IAM Configuration" vertex="1">
+          <mxGeometry height="60" width="180" x="1093" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="step4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;align=left;" value="4. Core Services&#xa;   • eSignet Service&#xa;   • OIDC UI&#xa;   • Mock Services" vertex="1">
+          <mxGeometry height="60" width="180" x="1093" y="390" as="geometry" />
+        </mxCell>
+        <mxCell id="step5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;align=left;" value="5. Partner Onboarding&#xa;   • OIDC Partners&#xa;   • Demo Configuration" vertex="1">
+          <mxGeometry height="60" width="180" x="1093" y="470" as="geometry" />
+        </mxCell>
+        <mxCell id="hooks-title" parent="1" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=16;fontStyle=1;fontColor=#9673a6;" value="Automation Hooks &amp; Scripts" vertex="1">
+          <mxGeometry height="30" width="220" x="1346" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="preinstall-hooks" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=left;" value="Pre-Install Hooks&#xa;• DB Initialization&#xa;• Namespace Setup&#xa;• Secret Management&#xa;• Configuration Copy" vertex="1">
+          <mxGeometry height="100" width="160" x="1346" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="postinstall-hooks" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;" value="Post-Install Hooks&lt;br&gt;• Secret Sharing&lt;br&gt;• Config Updates&lt;br&gt;• Service Restart&lt;br&gt;• Partner Registration" vertex="1">
+          <mxGeometry height="120" width="160" x="1346" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow1" edge="1" parent="1" source="github-actions" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#0066cc;" target="helmsman">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow2" edge="1" parent="1" source="helmsman" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#0066cc;" target="dsf-yaml">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow3" edge="1" parent="1" source="dsf-yaml" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#0066cc;" target="k8s-cluster">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dep1" edge="1" parent="1" source="esignet-core" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1;strokeColor=#666666;dashed=1;" target="postgres">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dep2" edge="1" parent="1" source="esignet-core" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1;strokeColor=#666666;dashed=1;" target="redis">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dep3" edge="1" parent="1" source="esignet-core" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1;strokeColor=#666666;dashed=1;" target="keycloak">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dep4" edge="1" parent="1" source="mock-identity" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1;strokeColor=#666666;dashed=1;" target="softhsm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="step-arrow1" edge="1" parent="1" source="step1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#9673a6;" target="step2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="step-arrow2" edge="1" parent="1" source="step2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#9673a6;" target="step3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="step-arrow3" edge="1" parent="1" source="step3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#9673a6;" target="step4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="step-arrow4" edge="1" parent="1" source="step4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#9673a6;" target="step5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hook-arrow" edge="1" parent="1" source="preinstall-hooks" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#82b366;" target="postinstall-hooks">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="access-title" parent="1" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=16;fontStyle=1;fontColor=#e67e22;" value="External Access &amp; Integration" vertex="1">
+          <mxGeometry height="30" width="230" x="50" y="720" as="geometry" />
+        </mxCell>
+        <mxCell id="external-users" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffeaa7;strokeColor=#ddd;fontSize=12;fontStyle=1;" value="External Users&#xa;(Citizens/Partners)" vertex="1">
+          <mxGeometry height="60" width="140" x="50" y="770" as="geometry" />
+        </mxCell>
+        <mxCell id="istio-gateway" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#74b9ff;strokeColor=#0984e3;fontSize=10;" value="Istio Gateway&#xa;(esignet.soil.mosip.net&#xa;healthservices.soil.mosip.net)" vertex="1">
+          <mxGeometry height="60" width="180" x="230" y="770" as="geometry" />
+        </mxCell>
+        <mxCell id="load-balancer" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fd79a8;strokeColor=#e84393;fontSize=11;" value="Load Balancer" vertex="1">
+          <mxGeometry height="60" width="120" x="450" y="770" as="geometry" />
+        </mxCell>
+        <mxCell id="ssl-cert" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#00b894;strokeColor=#00a085;fontSize=11;fontColor=white;" value="SSL/TLS&#xa;Certificates" vertex="1">
+          <mxGeometry height="60" width="100" x="610" y="770" as="geometry" />
+        </mxCell>
+        <mxCell id="access-arrow1" edge="1" parent="1" source="external-users" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#e67e22;" target="istio-gateway">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="access-arrow2" edge="1" parent="1" source="istio-gateway" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#e67e22;" target="load-balancer">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-title" parent="1" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=16;fontStyle=1;fontColor=#2d3436;" value="Legend" vertex="1">
+          <mxGeometry height="30" width="70" x="1093" y="600" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-deployment" parent="1" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=#0066cc;fillColor=none;fontSize=11;strokeWidth=2;" value="─── Deployment Flow" vertex="1">
+          <mxGeometry height="30" width="140" x="1093" y="640" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-dependency" parent="1" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=#666666;fillColor=none;fontSize=11;dashed=1;" value="- - - Component Dependencies" vertex="1">
+          <mxGeometry height="30" width="190" x="1093" y="670" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-hooks" parent="1" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=#82b366;fillColor=none;fontSize=11;strokeWidth=2;" value="─── Hook Automation Flow" vertex="1">
+          <mxGeometry height="30" width="160" x="1093" y="700" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-access" parent="1" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=#e67e22;fillColor=none;fontSize=11;strokeWidth=2;" value="─── External Access Flow" vertex="1">
+          <mxGeometry height="30" width="160" x="1093" y="730" as="geometry" />
+        </mxCell>
+        <mxCell id="info-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f39c12;strokeColor=#e67e22;fontSize=10;align=left;fontColor=white;fontStyle=1;" value="Key Features:&lt;br&gt;• GitOps-based deployment via GitHub Actions&lt;br&gt;• Automatic dependency ordering (priorities -18 to -2)&lt;br&gt;• Pre/Post install hooks for configuration&lt;br&gt;• Mock services for testing and demo&lt;br&gt;• SoftHSM for secure key management&lt;div&gt;pkcs12 as optional&lt;br&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="180" width="220" x="1346" y="420" as="geometry" />
+        </mxCell>
+        <mxCell id="k8s-to-services" edge="1" parent="1" source="k8s-cluster" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1;strokeColor=#b85450;dashed=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0.25;exitY=1;exitDx=0;exitDy=0;" target="esignet-core">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="720" y="200" />
+              <mxPoint x="130" y="200" />
+            </Array>
+            <mxPoint x="720" y="170" as="sourcePoint" />
+            <mxPoint x="130" y="420" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r6jf1B7eSwR8RE6nZHoO-1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" value="config-server" vertex="1">
+          <mxGeometry height="80" width="120" x="910" y="250" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
