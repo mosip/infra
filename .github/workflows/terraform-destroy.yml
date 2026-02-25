@@ -452,7 +452,20 @@ jobs:
             
             # Pull with rebase to avoid push rejection
             echo "Pulling latest changes with rebase..."
-            git pull --rebase origin ${{ github.ref_name }} || echo "No remote changes to pull"
+            pull_output=$(git pull --rebase origin ${{ github.ref_name }} 2>&1)
+            pull_exit=$?
+            echo "$pull_output"
+            if [ $pull_exit -ne 0 ]; then
+              if echo "$pull_output" | grep -qE "Already up to date|Current branch .* is up to date"; then
+                echo "Already up to date, nothing to pull."
+              else
+                echo "⚠️ Rebase conflict detected. Aborting rebase and merging with ours strategy to preserve Terraform state..."
+                git rebase --abort
+                git fetch origin ${{ github.ref_name }}
+                git merge -X ours origin/${{ github.ref_name }} --no-edit
+                echo "Merge complete. Terraform state preserved."
+              fi
+            fi
             
             git push
             echo "Changes committed and pushed successfully"
