@@ -157,11 +157,8 @@ fi
 
 echo "🎯 ANSIBLE ENVIRONMENT SETUP:"
 echo "============================="
-<<<<<<< HEAD
-=======
 # Ansible settings are managed via ansible.cfg in this directory.
 # Uncomment options in ansible.cfg for additional tuning or debugging.
->>>>>>> 4974fd14 ([MOSIP-44390] Removed unwanted env variable and moved it to ansible.cfg)
 
 echo "Ansible Version:"
 ansible-playbook --version
