@@ -1,0 +1,432 @@
+# MOSIP Infrastructure Deployment Workflow
+# 
+# This workflow supports both remote (S3/Azure Storage/GCS) and local backend configurations
+# 
+# GPG Encryption for Local Backend:
+# - When BACKEND_TYPE is 'local', Terraform state files are automatically encrypted using GPG
+# - Required GitHub Secret: GPG_PASSPHRASE (used for encrypting/decrypting state files)
+# - Encrypted files: terraform.tfstate.gpg, terraform.tfstate.backup.gpg, tf-plan.gpg
+# - On subsequent runs, encrypted files are automatically decrypted before Terraform operations
+# - Only encrypted files are committed to repository for security
+#
+# Security Features:
+# - State files never stored unencrypted in repository when using local backend
+# - AES256 encryption with compression
+# - Automatic cleanup of unencrypted files after encryption
+#
+name: terraform plan / apply
+
+# Prevent concurrent runs for same component to avoid state conflicts
+concurrency:
+  group: terraform-${{ github.event.inputs.CLOUD_PROVIDER }}-${{ github.event.inputs.TERRAFORM_COMPONENT }}-${{ github.ref_name }}
+  cancel-in-progress: false
+
+on:
+  workflow_dispatch:
+    inputs:
+      CLOUD_PROVIDER:
+        description: 'Choose the cloud provider (aws, azure, gcp)'
+        required: true
+        type: choice
+        options:
+          - aws
+          - azure
+          - gcp
+      TERRAFORM_COMPONENT:
+        description: 'Choose component to deploy (base-infra is one-time, infra/observ-infra can be destroyed/recreated multiple times)'
+        required: true
+        type: choice
+        options:
+          - base-infra
+          - infra
+          - observ-infra
+        default: infra
+      BACKEND_TYPE:
+        description: 'Choose Terraform backend type'
+        required: true
+        type: choice
+        options:
+          - local
+          - remote
+        default: local
+      REMOTE_BACKEND_CONFIG:
+        description: 'Remote backend config (format: aws:bucket_base_name:region OR azure:rg_name:storage_account:container OR gcp:bucket_name). SECURITY: Use separate buckets per component for production (e.g., mybucket-base-infra, mybucket-infra, mybucket-observ)'
+        required: false
+        type: string
+      ENABLE_STATE_LOCKING:
+        description: 'Enable Terraform state locking with DynamoDB (recommended for production)'
+        required: false
+        type: boolean
+        default: false
+      SSH_PRIVATE_KEY:
+        description: 'The GitHub secret containing the private key of the SSH key named in the preceding input variable `SSH_PRIVATE_KEY` is used for SSH login purposes on nginx node.'
+        required: true
+        type: string
+      TERRAFORM_APPLY:
+        description: 'Terraform apply'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  # TF_LOG_PATH: ./temp/terraform.log
+  ## TRACE, DEBUG, INFO, WARN or ERROR
+  # TF_LOG: TRACE
+  # Repository-level secrets for cloud credentials
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  # Fix: Use lowercase variable name to match Terraform variable
+  TF_VAR_ssh_private_key: ${{ secrets[inputs.SSH_PRIVATE_KEY] }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest  # 16 vCPU, 64GB RAM for maximum performance
+    # Use dynamic environment based on current branch name
+    environment: ${{ github.ref_name }}
+    permissions:
+      contents: write    
+    defaults:
+      run:
+        shell: bash
+        # We work in the cloud-specific implementation directory
+        working-directory: 'terraform/implementations/${{ inputs.CLOUD_PROVIDER }}/${{ inputs.TERRAFORM_COMPONENT }}'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history needed for rebase
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check for required implementation directory
+        run: |
+          if [ ! -d "." ]; then
+            echo "Directory 'terraform/implementations/${{ inputs.CLOUD_PROVIDER }}/${{ inputs.TERRAFORM_COMPONENT }}' does not exist."
+            echo "Available providers: aws, azure, gcp"
+            echo "Available components: base-infra, infra"
+            exit 1
+          fi
+          
+          # Check if tfvars file exists
+          if [ ! -f "${{ inputs.CLOUD_PROVIDER }}.tfvars" ]; then
+            echo "Configuration file '${{ inputs.CLOUD_PROVIDER }}.tfvars' not found in current directory."
+            exit 1
+          fi
+
+      - name: Setup Cloud Storage for Remote State (All Providers)
+        run: |
+          if [ "${{ inputs.BACKEND_TYPE }}" = "remote" ]; then
+            echo "Setting up cloud storage for remote Terraform state..."
+            
+            # Use the cloud-agnostic storage setup script
+            ../../../../.github/scripts/setup-cloud-storage.sh \
+              --provider "${{ inputs.CLOUD_PROVIDER }}" \
+              --config "${{ inputs.REMOTE_BACKEND_CONFIG }}" \
+              --branch "${{ github.ref_name }}" \
+              --component "${{ inputs.TERRAFORM_COMPONENT }}" \
+              ${{ inputs.ENABLE_STATE_LOCKING == true && '--enable-locking' || '' }}
+          else
+            echo "Skipping cloud storage setup (using local backend)"
+          fi
+
+      - name: Configure Terraform Backend for State Management
+        run: |
+          # Use backend configuration script for cleaner code
+          ../../../../.github/scripts/configure-backend.sh \
+            --type "${{ inputs.BACKEND_TYPE }}" \
+            --provider "${{ inputs.CLOUD_PROVIDER }}" \
+            --component "${{ inputs.TERRAFORM_COMPONENT }}" \
+            --branch "${{ github.ref_name }}" \
+            --remote-config "${{ inputs.REMOTE_BACKEND_CONFIG }}" \
+            ${{ inputs.ENABLE_STATE_LOCKING == true && '--enable-locking' || '' }}
+
+      - name: Skip SSH Host key verification
+        run: |
+          mkdir -p ~/.ssh
+          echo -e "Host *\n     StrictHostKeyChecking no" > ~/.ssh/config
+
+      - name: Setup ufw firewall
+        run: |
+          sudo ufw enable
+          sudo ufw allow ssh
+          sudo ufw allow 443/tcp
+          sudo ufw allow 51820/udp
+          sudo ufw status
+        if: "${{ inputs.TERRAFORM_COMPONENT != 'base-infra' }}"
+
+      - name: Install WireGuard
+        run: sudo apt-get install -y wireguard
+        if: "${{ inputs.TERRAFORM_COMPONENT != 'base-infra' }}"
+
+      - name: Configure WireGuard
+        run: |
+          # WG_CONFIG comes from environment-level secrets (dynamic based on branch name)
+          if [ -z "${{ secrets.TF_WG_CONFIG }}" ]; then
+            echo "❌ ERROR: TF_WG_CONFIG secret is not configured for environment '${{ github.ref_name }}'"
+            echo "Please configure the WireGuard configuration secret for this branch/environment"
+            exit 1
+          fi
+          
+          # Debug: Check if secret is available (without exposing content)
+          echo "🔍 Checking TF_WG_CONFIG secret..."
+          if [ ${#TF_WG_CONFIG} -eq 0 ]; then
+            echo "❌ ERROR: TF_WG_CONFIG environment variable is empty"
+            echo "Secret may contain only whitespace or special characters"
+            exit 1
+          fi
+          echo "✅ Secret length: ${#TF_WG_CONFIG} characters"
+          
+          # Create config file with proper handling of multiline content
+          echo "Creating /etc/wireguard directory with proper permissions..."
+          sudo mkdir -p /etc/wireguard
+          sudo chmod 755 /etc/wireguard
+          sudo chown root:root /etc/wireguard
+          
+          echo "Directory created. Checking permissions..."
+          sudo ls -la /etc/ | grep wireguard || echo "WireGuard directory not visible"
+          
+          # Debug: Check secret format without exposing sensitive data
+          echo "Secret contains '[Interface]': $(printf '%s' "$TF_WG_CONFIG" | grep -c '\[Interface\]')"
+          echo "Secret contains '[Peer]': $(printf '%s' "$TF_WG_CONFIG" | grep -c '\[Peer\]')"
+          
+          # Write to temp file with explicit newline handling
+          printf '%s' "$TF_WG_CONFIG" > /tmp/wg0.conf.tmp
+          
+          # Check temp file was created successfully
+          if [ ! -f /tmp/wg0.conf.tmp ]; then
+            echo "❌ ERROR: Failed to create temporary config file"
+            exit 1
+          fi
+          
+          echo "Temp file size: $(wc -c < /tmp/wg0.conf.tmp) bytes"
+          echo "Temp file lines: $(wc -l < /tmp/wg0.conf.tmp)"
+          
+          # Use a more direct approach - write directly with sudo
+          echo "Writing config directly with sudo..."
+          sudo tee /etc/wireguard/wg0.conf < /tmp/wg0.conf.tmp > /dev/null
+          
+          # Clean up temp file
+          rm -f /tmp/wg0.conf.tmp
+          
+          # Verify the file was created and check its size
+          if sudo test -f /etc/wireguard/wg0.conf; then
+            echo "✅ Config file created successfully"
+            echo "Final config file size: $(sudo wc -c < /etc/wireguard/wg0.conf) bytes"
+          else
+            echo "❌ ERROR: Config file still doesn't exist"
+            sudo ls -la /etc/wireguard/ || echo "Cannot list /etc/wireguard directory"
+            exit 1
+          fi
+          
+          # Set proper permissions
+          sudo chmod 600 /etc/wireguard/wg0.conf
+          sudo chown root:root /etc/wireguard/wg0.conf
+          
+          echo "Final file permissions: $(sudo ls -la /etc/wireguard/wg0.conf)"
+          
+          # Verify config file is not empty and has expected content
+          if ! sudo test -s /etc/wireguard/wg0.conf; then
+            echo "❌ ERROR: WireGuard config file is empty after writing!"
+            echo "File size: $(sudo wc -c < /etc/wireguard/wg0.conf) bytes"
+            exit 1
+          fi
+          
+          # Basic validation that it looks like a WireGuard config
+          if ! sudo grep -q "\[Interface\]" /etc/wireguard/wg0.conf; then
+            echo "❌ ERROR: WireGuard config doesn't contain [Interface] section"
+            echo "Please check that TF_WG_CONFIG contains a valid WireGuard configuration"
+            echo "Config file size: $(sudo wc -c < /etc/wireguard/wg0.conf) bytes"
+            exit 1
+          fi
+          
+          echo "✅ WireGuard configuration applied successfully"
+          echo "Config file size: $(sudo wc -c < /etc/wireguard/wg0.conf) bytes"
+        env:
+          TF_WG_CONFIG: ${{ secrets.TF_WG_CONFIG }}
+        if: "${{ inputs.TERRAFORM_COMPONENT != 'base-infra' }}"
+
+      - name: Start WireGuard
+        run: |
+          sudo chmod 600 /etc/wireguard/wg0.conf
+          sudo chmod 700 /etc/wireguard/
+          sudo chmod 644 /lib/systemd/system/wg-quick@.service
+          sudo systemctl daemon-reload
+          echo "Starting WireGuard..."
+          if ! sudo wg-quick up wg0; then
+            echo "❌ ERROR: Failed to start WireGuard VPN"
+            echo "Config file contents (first 5 lines):"
+            head -5 /etc/wireguard/wg0.conf
+            exit 1
+          fi
+          echo "✅ WireGuard started successfully"
+          sudo wg show wg0
+        if: "${{ inputs.TERRAFORM_COMPONENT != 'base-infra' }}"
+
+      - name: Setup Terraform with specified version on the runner
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: v1.8.5
+
+      - name: Setup GPG for State File Encryption
+        run: |
+          ../../../../.github/scripts/setup-gpg.sh \
+            --backend-type "${{ inputs.BACKEND_TYPE }}" \
+            --passphrase "${{ secrets.GPG_PASSPHRASE }}"
+
+      - name: Decrypt Existing State Files
+        run: |
+          ../../../../.github/scripts/decrypt-state.sh \
+            --backend-type "${{ inputs.BACKEND_TYPE }}" \
+            --passphrase "${{ secrets.GPG_PASSPHRASE }}"
+
+      - name: Display Component Information
+        run: |
+          echo "Deploying to: ${{ inputs.CLOUD_PROVIDER }} (${{ inputs.TERRAFORM_COMPONENT }})"
+          echo "Working directory: $(pwd)"
+          echo "Available files:"
+          ls -la
+          
+          if [ "${{ inputs.TERRAFORM_COMPONENT }}" = "base-infra" ]; then
+            echo "WARNING: base-infra should only be deployed once per cloud provider"
+            echo "   This creates foundational resources like VPCs, subnets, etc."
+          else
+            echo "INFO: infra deployment - can be destroyed and recreated multiple times"
+            echo "   This creates MOSIP application infrastructure"
+          fi
+
+      - name: Terraform fmt
+        run: terraform fmt -recursive
+
+      - name: Terraform Init
+        run: |
+          # First try normal init
+          if ! terraform init -input=false; then
+            echo "Normal init failed, trying with -reconfigure to handle backend configuration changes..."
+            terraform init -input=false -reconfigure
+          fi
+
+      - name: Terraform Validate
+        run: terraform validate -no-color
+
+      - name: Install Ansible for RKE2 Cluster Automation
+        run: |
+          echo "🔧 Installing Ansible for RKE2 cluster deployment automation..."
+          sudo apt-get update -qq
+          sudo apt-get install -y software-properties-common
+          sudo add-apt-repository --yes --update ppa:ansible/ansible
+          sudo apt-get install -y ansible python3-pip
+          
+          # Install additional Python packages for Ansible
+          pip3 install --user paramiko
+          
+          # Add local bin to PATH for current session
+          export PATH="$HOME/.local/bin:$PATH"
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          
+          # Verify installation
+          ansible --version
+          echo "✅ Ansible installed successfully for GitHub Actions runner"
+        if: "${{ inputs.TERRAFORM_COMPONENT == 'infra' }}"
+
+      - name: Terraform Plan
+        id: plan
+        run: |
+          terraform plan -input=false -var-file="${{ inputs.CLOUD_PROVIDER }}.tfvars" -out ./tf-plan -no-color
+        continue-on-error: true
+
+      - name: Terraform Apply
+        id: apply
+        run: terraform apply -input=false -var-file="${{ inputs.CLOUD_PROVIDER }}.tfvars" -no-color -auto-approve
+        if: "${{ inputs.TERRAFORM_APPLY  == true }}"
+        continue-on-error: true
+
+      - name: Add the Terraform plan file / *.tfstate files / terraform format changes
+        run: |
+          echo "Current working directory: $(pwd)"
+          echo "Files in current directory:"
+          ls -la
+          
+          echo "Checking for Terraform files to commit..."
+          
+          # Encrypt state files if using local backend
+          ../../../../.github/scripts/encrypt-state.sh \
+            --backend-type "${{ inputs.BACKEND_TYPE }}" \
+            --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
+            --operation "apply"
+          
+          # Force add Terraform files even if they're in .gitignore
+          git add -f *.tfstate* 2>/dev/null || echo "No .tfstate files found"
+          git add -f *.gpg 2>/dev/null || echo "No .gpg files found"
+          git add -f tf-plan* 2>/dev/null || echo "No tf-plan files found"
+          git add -f backend.tf 2>/dev/null || echo "No backend.tf file found"
+          git add -f *.tf 2>/dev/null || echo "No .tf file found"
+          
+          # Remove problematic files that shouldn't be committed before git add -A
+          rm -rf .terraform/ 2>/dev/null || echo "No .terraform directory to remove"
+          rm -f .terraform.lock.hcl 2>/dev/null || echo "No .terraform.lock.hcl to remove"
+          
+          # Remove embedded git repositories to avoid submodule issues
+          find . -name ".git" -type d -not -path "./.git" -exec rm -rf {} + 2>/dev/null || true
+          
+          # Also add any other Terraform-related files that might have been created
+          git add -A
+          
+          echo "Git status after adding files:"
+          git status
+          
+          # Check if there are any changes to commit
+          if git diff --cached --quiet; then
+            echo "No changes to commit - this is normal for remote backends or when state is managed remotely"
+            echo "Terraform execution completed successfully"
+          else
+            echo "Committing Terraform changes..."
+            git config --global user.email ${{ github.actor }}@users.noreply.github.com
+            git config --global user.name ${{ github.actor }}
+            
+            # Customize commit message based on backend type
+            if [ "${{ inputs.BACKEND_TYPE }}" = "local" ]; then
+              commit_msg="Terraform files (encrypted state) GitHub Actions - ${{ inputs.CLOUD_PROVIDER }}-${{ inputs.TERRAFORM_COMPONENT }}"
+            else
+              commit_msg="Terraform files GitHub Actions - ${{ inputs.CLOUD_PROVIDER }}-${{ inputs.TERRAFORM_COMPONENT }}"
+            fi
+            
+            git commit -s -am "$commit_msg"
+            
+            # Pull with rebase to avoid push rejection
+            echo "Pulling latest changes with rebase..."
+            pull_output=$(git pull --rebase origin ${{ github.ref_name }} 2>&1)
+            pull_exit=$?
+            echo "$pull_output"
+            if [ $pull_exit -ne 0 ]; then
+              if echo "$pull_output" | grep -qE "Already up to date|Current branch .* is up to date"; then
+                echo "Already up to date, nothing to pull."
+              elif echo "$pull_output" | grep -qE "CONFLICT|could not apply|Resolve all conflicts|You must edit the files"; then
+                echo "⚠️ Rebase conflict detected. Aborting rebase and merging with ours strategy to preserve Terraform state..."
+                git rebase --abort
+                git fetch origin ${{ github.ref_name }}
+                git merge -X ours origin/${{ github.ref_name }} --no-edit
+                echo "Merge complete. Terraform state preserved."
+              else
+                echo "❌ git pull --rebase failed with a non-conflict error:"
+                echo "$pull_output"
+                exit 1
+              fi
+            fi
+            
+            git push
+            echo "Changes committed and pushed successfully"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: always()
+
+      - name: Terraform plan / apply status
+        if: ${{ steps.plan.outcome == 'failure' || steps.apply.outcome == 'failure' }}
+        run: exit 1
+
+      - uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,author,commit,workflow,job # selectable (default: repo,message)
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} # required
+        if: "${{ github.event_name != 'pull_request' && failure() }}" # Pick up events even if the job fails or is canceled.
