@@ -41,13 +41,14 @@ variable "ENABLE_RANCHER_IMPORT" {
 variable "RANCHER_IMPORT_URL" {
   description = "Rancher import URL for kubectl apply"
   type        = string
+  default     = ""
 
   validation {
     condition = (
-      can(regex("^\"kubectl apply -f https://rancher\\.mosip\\.net/v3/import/[a-zA-Z0-9_\\-]+\\.yaml\"$", var.RANCHER_IMPORT_URL)) ||
-      can(regex("^\"kubectl apply -f https://rancher\\.[a-zA-Z0-9\\*\\.\\-]+\\.net/v3/import/[a-zA-Z0-9_\\-]+\\.yaml\"$", var.RANCHER_IMPORT_URL))
+      var.RANCHER_IMPORT_URL == "" ||
+      can(regex("^\"kubectl apply -f https://[a-zA-Z0-9][a-zA-Z0-9\\.\\-]*(:[0-9]{1,5})?/v3/import/[a-zA-Z0-9_\\-]+\\.yaml\"$", var.RANCHER_IMPORT_URL))
     )
-    error_message = "The RANCHER_IMPORT_URL must be in the format: '\"kubectl apply -f https://rancher.mosip.net/v3/import/<ID>.yaml\"' or '\"kubectl apply -f https://rancher.***.net/v3/import/<ID>.yaml\"'"
+    error_message = "The RANCHER_IMPORT_URL must be empty (when enable_rancher_import is false) or in the format: '\"kubectl apply -f https://<rancher-host>/v3/import/<ID>.yaml\"'"
   }
 }
 # Token generation handled by ansible for better security and distribution
@@ -103,6 +104,13 @@ resource "local_file" "ssh_private_key" {
 
 # Generate Ansible inventory from Terraform data
 resource "local_file" "ansible_inventory" {
+  lifecycle {
+    precondition {
+      condition     = !var.ENABLE_RANCHER_IMPORT || (var.RANCHER_IMPORT_URL != "" && can(regex("^\"kubectl apply -f https://[a-zA-Z0-9][a-zA-Z0-9\\.\\-]*(:[0-9]{1,5})?/v3/import/[a-zA-Z0-9_\\-]+\\.yaml\"$", var.RANCHER_IMPORT_URL)))
+      error_message = "RANCHER_IMPORT_URL must be a valid kubectl apply import URL when ENABLE_RANCHER_IMPORT is true."
+    }
+  }
+
   content = templatefile("${path.module}/ansible/inventory.yml.tpl", {
     cluster_name          = var.CLUSTER_NAME # Using actual cluster name
     cluster_env_domain    = "mosip.local"    # You can make this a variable
