@@ -363,10 +363,12 @@ jobs:
           # Remove problematic files that shouldn't be committed before git add -A
           rm -rf .terraform/ 2>/dev/null || echo "No .terraform directory to remove"
           rm -f .terraform.lock.hcl 2>/dev/null || echo "No .terraform.lock.hcl to remove"
-          
+
           # Remove embedded git repositories to avoid submodule issues
+          # (k8s-infra/ is cloned during provisioning and contains a .git dir;
+          #  removing it here prevents submodule detection issues before git add -A)
           find . -name ".git" -type d -not -path "./.git" -exec rm -rf {} + 2>/dev/null || true
-          
+
           # Also add any other Terraform-related files that might have been created
           git add -A
           
