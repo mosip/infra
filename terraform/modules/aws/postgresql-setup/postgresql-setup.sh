@@ -441,29 +441,10 @@ EOF
 
 echo "[SUCCESS] Inventory file created with nginx IP target (local): $NGINX_NODE_IP"
 
-# Create ansible configuration to prevent hanging
-echo '[CONFIG] Creating Ansible Configuration...'
-mkdir -p ~/.ansible
-cat > ~/.ansible/ansible.cfg << 'EOF'
-[defaults]
-host_key_checking = False
-gathering = explicit
-fact_caching = memory
-fact_caching_timeout = 86400
-stdout_callback = debug
-stderr_callback = debug
-timeout = 30
-command_timeout = 30
-connect_timeout = 30
-gathering_timeout = 30
+# Ansible settings are managed via ansible.cfg in Helmsman/utils/ansible/
+# which is auto-discovered by Ansible when the playbook runs from that directory.
 
-[ssh_connection]
-pipelining = True
-ssh_args = -o ControlMaster=auto -o ControlPersist=60s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no
-retries = 3
-EOF
-
-echo '[SUCCESS] Environment variables and Ansible configuration set:'
+echo '[SUCCESS] Inventory created. Ansible configuration loaded from ansible.cfg in playbook directory.'
 echo "PostgreSQL Version: $POSTGRESQL_VERSION"
 echo "Storage Device: $STORAGE_DEVICE"
 echo "Mount Point: $MOUNT_POINT"

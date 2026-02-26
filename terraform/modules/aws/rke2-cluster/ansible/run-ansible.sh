@@ -144,6 +144,8 @@ fi
 
 echo "🎯 ANSIBLE ENVIRONMENT SETUP:"
 echo "============================="
+# Ansible settings are managed via ansible.cfg in this directory.
+# Uncomment options in ansible.cfg for additional tuning or debugging.
 
 echo "Ansible Version:"
 ansible-playbook --version
