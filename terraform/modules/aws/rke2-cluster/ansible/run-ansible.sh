@@ -71,6 +71,11 @@ fi
 # Set proper permissions for SSH key
 chmod 600 "$SSH_KEY_FILE"
 
+# Create a transient known_hosts file for this run.
+# StrictHostKeyChecking=accept-new will add new host keys on first contact
+# and verify them on subsequent connections, avoiding silent MITM risk.
+KNOWN_HOSTS_FILE=$(mktemp /tmp/ansible_known_hosts_XXXXXX)
+
 # Run the Ansible playbook with maximum debugging for GitHub Actions
 echo "=== 🚀 ANSIBLE RKE2 INSTALLATION STARTING ==="
 echo "GitHub Actions Environment Detected"
@@ -108,12 +113,12 @@ else
             echo "✅ REACHABLE"
             # Test actual SSH authentication
             echo -n "  SSH auth test: "
-            if timeout 15 ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 ubuntu@"$ip" "echo 'SSH_SUCCESS'" 2>/dev/null | grep -q "SSH_SUCCESS"; then
+            if timeout 15 ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile="$KNOWN_HOSTS_FILE" -o ConnectTimeout=10 ubuntu@"$ip" "echo 'SSH_SUCCESS'" 2>/dev/null | grep -q "SSH_SUCCESS"; then
                 echo "✅ SSH AUTH OK"
                 
                 # Check if RKE2 is already installed
                 echo -n "  RKE2 status: "
-                RKE2_STATUS=$(timeout 10 ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@"$ip" "ls -la /usr/local/bin/rke2* 2>/dev/null || echo 'NOT_INSTALLED'" 2>/dev/null)
+                RKE2_STATUS=$(timeout 10 ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile="$KNOWN_HOSTS_FILE" ubuntu@"$ip" "ls -la /usr/local/bin/rke2* 2>/dev/null || echo 'NOT_INSTALLED'" 2>/dev/null)
                 if echo "$RKE2_STATUS" | grep -q "NOT_INSTALLED"; then
                     echo "❌ NOT INSTALLED"
                 else
@@ -185,7 +190,7 @@ timeout 2700 ansible-playbook \
     -i "$INVENTORY_FILE" \
     -u ubuntu \
     --private-key="$SSH_KEY_FILE" \
-    --ssh-common-args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -o ServerAliveCountMax=5 -o ConnectTimeout=30' \
+    --ssh-common-args="-o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=$KNOWN_HOSTS_FILE -o ServerAliveInterval=30 -o ServerAliveCountMax=5 -o ConnectTimeout=30" \
     --diff \
     --timeout=900 \
     "$PLAYBOOK_FILE" 2>&1 | tee "$LOG_FILE" | tee "$GITHUB_WORKSPACE_LOG"

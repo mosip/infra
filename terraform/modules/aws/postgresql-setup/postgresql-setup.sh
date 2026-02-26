@@ -792,15 +792,18 @@ EOF
     SSH_KEY_FILE="/tmp/nginx-to-control-plane-key"
     echo "$SSH_PRIVATE_KEY" > "$SSH_KEY_FILE"
     chmod 600 "$SSH_KEY_FILE"
+    # Transient known_hosts file: accept-new accepts unknown keys on first contact
+    # and verifies them on subsequent connections within this run.
+    KNOWN_HOSTS_FILE=$(mktemp /tmp/ansible_known_hosts_XXXXXX)
     
     # Use SSH with proper error handling and private key
-    if timeout 60 scp -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 \
+    if timeout 60 scp -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile="$KNOWN_HOSTS_FILE" -o ConnectTimeout=10 \
        -r /tmp/postgresql-secrets "$DEPLOY_SCRIPT" "${CONTROL_PLANE_USER}@${CONTROL_PLANE_HOST}:/tmp/" 2>/dev/null; then
         echo "[SUCCESS] Files copied to control plane"
         
         # Execute the deployment script on control plane
         echo "[EXECUTE] Running deployment script on control plane..."
-        if timeout 120 ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 \
+        if timeout 120 ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile="$KNOWN_HOSTS_FILE" -o ConnectTimeout=10 \
            "${CONTROL_PLANE_USER}@${CONTROL_PLANE_HOST}" "bash /tmp/deploy-postgres-k8s.sh" 2>/dev/null; then
             echo "[SUCCESS] Kubernetes resources deployed successfully via control plane!"
         else
@@ -814,7 +817,7 @@ EOF
         fi
         
         # Cleanup the deployment script on control plane
-        timeout 30 ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+        timeout 30 ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile="$KNOWN_HOSTS_FILE" \
            "${CONTROL_PLANE_USER}@${CONTROL_PLANE_HOST}" "rm -f /tmp/deploy-postgres-k8s.sh" 2>/dev/null || true
         
         # Clean up SSH key file
