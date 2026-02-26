@@ -97,7 +97,7 @@ echo "🌐 NETWORK CONNECTIVITY TEST:"
 echo "============================="
 # Test connectivity to nodes before starting
 echo "📍 Extracting IPs from inventory file..."
-CLUSTER_IPS=$(grep -oP 'ansible_host=\K[0-9.]+' "$INVENTORY_FILE" || true)
+CLUSTER_IPS=$(grep -oP 'ansible_host[=:][\s]*\K[0-9.]+' "$INVENTORY_FILE" || true)
 echo "📋 Found IPs: $CLUSTER_IPS"
 FAILED_NODES=0
 
