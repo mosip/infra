@@ -94,56 +94,71 @@ echo "============================="
 echo "📍 Extracting IPs from inventory file..."
 CLUSTER_IPS=$(grep -oP 'ansible_host=\K[0-9.]+' "$INVENTORY_FILE" || true)
 echo "📋 Found IPs: $CLUSTER_IPS"
-FAILED_NODES=0
+
+# Maximum time to wait for all nodes to be SSH-ready (5 minutes per node)
+NODE_WAIT_TIMEOUT=300
+NODE_RETRY_INTERVAL=10
 
 if [ -z "$CLUSTER_IPS" ]; then
     echo "⚠️  WARNING: No IPs found in inventory file!"
     echo "   Inventory file might have different format"
 else
-    echo "🔍 Testing connectivity to $(echo $CLUSTER_IPS | wc -w) nodes..."
-    
+    echo "🔍 Waiting for all $(echo $CLUSTER_IPS | wc -w | tr -d ' ') nodes to be SSH-ready (timeout: ${NODE_WAIT_TIMEOUT}s per node)..."
+    echo ""
+    FAILED_NODES=0
+
     for ip in $CLUSTER_IPS; do
-        echo -n "Testing SSH to $ip: "
-        if timeout 10 nc -z "$ip" 22 2>/dev/null; then
-            echo "✅ REACHABLE"
-            # Test actual SSH authentication
-            echo -n "  SSH auth test: "
-            if timeout 15 ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 ubuntu@"$ip" "echo 'SSH_SUCCESS'" 2>/dev/null | grep -q "SSH_SUCCESS"; then
-                echo "✅ SSH AUTH OK"
-                
-                # Check if RKE2 is already installed
-                echo -n "  RKE2 status: "
-                RKE2_STATUS=$(timeout 10 ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@"$ip" "ls -la /usr/local/bin/rke2* 2>/dev/null || echo 'NOT_INSTALLED'" 2>/dev/null)
-                if echo "$RKE2_STATUS" | grep -q "NOT_INSTALLED"; then
-                    echo "❌ NOT INSTALLED"
-                else
-                    echo "✅ ALREADY INSTALLED"
-                    echo "    $RKE2_STATUS"
+        echo "⏳ Waiting for node $ip to become SSH-ready..."
+        ELAPSED=0
+        NODE_READY=false
+
+        while [ $ELAPSED -lt $NODE_WAIT_TIMEOUT ]; do
+            if timeout 10 nc -z "$ip" 22 2>/dev/null; then
+                # Port open — now verify SSH auth
+                if timeout 15 ssh -i "$SSH_KEY_FILE" \
+                    -o StrictHostKeyChecking=no \
+                    -o UserKnownHostsFile=/dev/null \
+                    -o ConnectTimeout=10 \
+                    ubuntu@"$ip" "echo 'SSH_SUCCESS'" 2>/dev/null | grep -q "SSH_SUCCESS"; then
+                    NODE_READY=true
+                    break
                 fi
+            fi
+            echo "   [$ELAPSED/${NODE_WAIT_TIMEOUT}s] Node $ip not ready yet, retrying in ${NODE_RETRY_INTERVAL}s..."
+            sleep $NODE_RETRY_INTERVAL
+            ELAPSED=$((ELAPSED + NODE_RETRY_INTERVAL))
+        done
+
+        if [ "$NODE_READY" = true ]; then
+            echo "✅ Node $ip is SSH-ready (after ${ELAPSED}s)"
+            # Check if RKE2 is already installed
+            RKE2_STATUS=$(timeout 10 ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@"$ip" "ls /usr/local/bin/rke2 2>/dev/null && echo 'INSTALLED' || echo 'NOT_INSTALLED'" 2>/dev/null)
+            if echo "$RKE2_STATUS" | grep -q "NOT_INSTALLED"; then
+                echo "   RKE2 status: ❌ NOT INSTALLED"
             else
-                echo "❌ SSH AUTH FAILED"
-                FAILED_NODES=$((FAILED_NODES + 1))
+                echo "   RKE2 status: ✅ ALREADY INSTALLED"
             fi
         else
-            echo "❌ UNREACHABLE"
+            echo "❌ Node $ip did NOT become SSH-ready within ${NODE_WAIT_TIMEOUT}s"
             FAILED_NODES=$((FAILED_NODES + 1))
         fi
         echo ""
     done
-fi
+# Ansible settings are managed via ansible.cfg in this directory.
+# Uncomment options in ansible.cfg for additional tuning or debugging.
+        echo "   - Security groups allow SSH (port 22) from GitHub Actions"
+        echo "   - SSH key matches EC2 instances"
+        echo "   - EC2 instances started successfully"
+        exit 1
+    fi
 
-if [ $FAILED_NODES -gt 0 ]; then
-    echo "⚠️  WARNING: $FAILED_NODES nodes failed connectivity/auth tests"
-    echo "   This may cause Ansible playbook to fail or hang"
-    echo "   Consider checking:"
-    echo "   - Security groups allow SSH (port 22) from GitHub Actions"
-    echo "   - SSH key is correct and matches EC2 instances"
-    echo "   - Nodes are fully started and not still booting"
-    echo ""
+    echo "✅ All nodes are SSH-ready. Proceeding with Ansible playbook..."
 fi
 
 echo "🎯 ANSIBLE ENVIRONMENT SETUP:"
 echo "============================="
+# Ansible settings are managed via ansible.cfg in this directory.
+# Uncomment options in ansible.cfg for additional tuning or debugging.
 
 echo "Ansible Version:"
 ansible-playbook --version
@@ -185,7 +200,7 @@ timeout 2700 ansible-playbook \
     --private-key="$SSH_KEY_FILE" \
     --ssh-common-args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -o ServerAliveCountMax=5 -o ConnectTimeout=30' \
     --diff \
-    --timeout=900 \
+    --timeout=30 \
     "$PLAYBOOK_FILE" 2>&1 | tee "$LOG_FILE" | tee "$GITHUB_WORKSPACE_LOG"
 
 ANSIBLE_EXIT_CODE=${PIPESTATUS[0]}
