@@ -11,8 +11,7 @@ output "keycloak_url" {
 output "rancher_bootstrap_password" {
   description = "Bootstrap password for Rancher UI"
   value       = var.ENABLE_RANCHER_KEYCLOAK ? var.RANCHER_BOOTSTRAP_PASSWORD : "N/A"
-  # Temporarily disabled for debugging
-  # sensitive   = true
+  sensitive   = true
 }
 
 output "installation_status" {

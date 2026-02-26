@@ -79,7 +79,6 @@ resource "null_resource" "install_rancher" {
   count      = var.ENABLE_RANCHER_KEYCLOAK ? 1 : 0
   depends_on = [local_file.ansible_inventory]
 
-
   provisioner "local-exec" {
     command = <<-EOT
       ansible-playbook -i ${path.module}/ansible/inventory.ini \

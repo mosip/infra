@@ -1,0 +1,354 @@
+name: Deploy eSignet using Helmsman
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Choose Helmsman mode: dry-run or apply"
+        required: true
+        default: "dry-run"
+        type: choice
+        options:
+          - dry-run
+          - apply
+      skip_mosip_dsf_check:
+        description: "Skip MOSIP DSF completion check (for standalone deployment)"
+        required: false
+        default: false
+        type: boolean
+      delete_existing_jobs:
+        description: "Delete existing onboarder jobs before deployment (required for re-runs)"
+        required: false
+        default: false
+        type: boolean
+  push:
+    paths:
+      - Helmsman/dsf/esignet-dsf.yaml
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: 
+      name: ${{ github.ref_name }}
+    env:
+      KUBECONFIG: ${{ github.workspace }}/.kube/config
+      PATH: ${{ github.workspace }}/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+      KUBECTL_PATH: ${{ github.workspace }}/.local/bin/kubectl
+      # All secrets below are ENVIRONMENT secrets (not repository secrets)
+      # Configure them in: Repository → Settings → Environments → <branch-name> → Secrets
+      # Mock Relying Party Service secrets (base64 encoded PEM)
+      MOCK_RELYING_PARTY_CLIENT_PRIVATE_KEY: ${{ secrets.MOCK_RELYING_PARTY_CLIENT_PRIVATE_KEY }}
+      MOCK_RELYING_PARTY_JWE_PRIVATE_KEY: ${{ secrets.MOCK_RELYING_PARTY_JWE_PRIVATE_KEY }}
+      # eSignet Captcha secrets (plain text from Google reCAPTCHA)
+      ESIGNET_CAPTCHA_SITE_KEY: ${{ secrets.ESIGNET_CAPTCHA_SITE_KEY }}
+      ESIGNET_CAPTCHA_SECRET_KEY: ${{ secrets.ESIGNET_CAPTCHA_SECRET_KEY }}
+      # Cluster access secrets
+      KUBECONFIG_SECRET: ${{ secrets.KUBECONFIG }}
+      CLUSTER_WIREGUARD_WG0: ${{ secrets.CLUSTER_WIREGUARD_WG0 }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Mask sensitive data
+        run: |
+          # Add masks for secrets to prevent accidental exposure in logs
+          echo "::add-mask::${{ secrets.MOCK_RELYING_PARTY_CLIENT_PRIVATE_KEY }}"
+          echo "::add-mask::${{ secrets.MOCK_RELYING_PARTY_JWE_PRIVATE_KEY }}"
+          echo "::add-mask::${{ secrets.KUBECONFIG }}"
+          echo "::add-mask::${{ secrets.CLUSTER_WIREGUARD_WG0 }}"
+          echo "::add-mask::${{ secrets.ESIGNET_CAPTCHA_SITE_KEY }}"
+          echo "::add-mask::${{ secrets.ESIGNET_CAPTCHA_SECRET_KEY }}"
+
+      - name: Setup kubectl and kubeconfig
+        env:
+          KUBECONFIG_CONTENT: ${{ secrets.KUBECONFIG }}
+        run: |
+          # Create directories
+          mkdir -p ${{ github.workspace }}/.local/bin
+          mkdir -p ${{ github.workspace }}/.kube
+          
+          # Install kubectl
+          curl -LO https://dl.k8s.io/release/v1.31.3/bin/linux/amd64/kubectl
+          chmod +x kubectl
+          mv ./kubectl ${{ github.workspace }}/.local/bin/kubectl
+          
+          # Setup kubeconfig
+          echo "$KUBECONFIG_CONTENT" > ${{ github.workspace }}/.kube/config
+          chmod 400 ${{ github.workspace }}/.kube/config
+          
+          # Add kubectl to GitHub PATH for subsequent steps
+          echo "${{ github.workspace }}/.local/bin" >> $GITHUB_PATH
+          
+          # Export environment variables for immediate use
+          echo "KUBECTL_PATH=${{ github.workspace }}/.local/bin/kubectl" >> $GITHUB_ENV
+          
+          # Verify installation
+          ${{ github.workspace }}/.local/bin/kubectl version --client
+          ${{ github.workspace }}/.local/bin/kubectl config view
+
+      - name: Set Default Mode
+        run: |
+          if [ -z "${{ github.event.inputs.mode }}" ]; then
+            echo "HELMSMAN_MODE=apply" >> $GITHUB_ENV
+          else
+            echo "HELMSMAN_MODE=${{ github.event.inputs.mode }}" >> $GITHUB_ENV
+          fi        
+
+      - name: Setup ufw firewall
+        run: |
+          sudo ufw enable
+          sudo ufw allow ssh
+          sudo ufw allow 51820/udp
+          sudo ufw status  
+
+      - name: Install WireGuard
+        run: sudo apt-get install -y wireguard
+
+      - name: Configure WireGuard
+        run: |
+          echo "${{ secrets.CLUSTER_WIREGUARD_WG0 }}" | sudo tee /etc/wireguard/wg0.conf > /dev/null
+
+      - name: Start WireGuard
+        run: |
+          sudo chmod 600 /etc/wireguard/wg0.conf
+          sudo chmod 700 /etc/wireguard/
+          sudo chmod 644 /lib/systemd/system/wg-quick@.service
+          sudo systemctl daemon-reload
+          sudo wg-quick up wg0
+          sudo wg show wg0
+
+      - name: Setup Helm
+        run: |
+          curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
+          sudo chmod 700 get_helm.sh
+          sudo ./get_helm.sh
+          helm version --client
+
+      - name: Install Helmsman
+        run: |
+          curl -L https://github.com/Praqma/helmsman/releases/download/v3.17.1/helmsman_3.17.1_linux_amd64.tar.gz -o helmsman.tar.gz
+          tar xzf helmsman.tar.gz
+          sudo mv helmsman /usr/local/bin
+          
+          # Verify tools are available
+          echo "Tools verification:"
+          echo "kubectl: $(which kubectl)"
+          echo "helmsman: $(which helmsman)"
+          
+          kubectl version --client
+          helmsman -v       
+
+      - name: Verify cluster access
+        run: |
+          # Verify tools are accessible
+          echo "Verifying tool availability:"
+          echo "kubectl path: $(which kubectl)"
+          echo "KUBECONFIG: $KUBECONFIG"
+          
+          # Test kubectl functionality
+          kubectl version --client
+          kubectl get nodes
+          kubectl cluster-info
+
+      - name: Check if mosip-dsf label is completed
+        if: ${{ github.event.inputs.skip_mosip_dsf_check != 'true' && vars.ESIGNET_STANDALONE_MODE != 'true' }}
+        run: |
+          STATUS=$(kubectl get namespace default -o jsonpath='{.metadata.labels.mosip-dsf}' 2>/dev/null || echo "")
+          if [[ "$STATUS" != "completed" ]]; then
+            echo "❌ MOSIP DSF not completed. Please run the MOSIP DSF workflow first."
+            echo ""
+            echo "💡 To run eSignet DSF independently (standalone mode):"
+            echo "   - For manual runs: Set 'skip_mosip_dsf_check' to true"
+            echo "   - For push-triggered runs: Set repository variable ESIGNET_STANDALONE_MODE=true"
+            echo "     (Repository → Settings → Secrets and variables → Actions → Variables)"
+            exit 1
+          fi
+          echo "✅ MOSIP DSF is completed. Proceeding with eSignet deployment."
+
+      - name: Standalone mode notice
+        if: ${{ github.event.inputs.skip_mosip_dsf_check == 'true' || vars.ESIGNET_STANDALONE_MODE == 'true' }}
+        run: |
+          echo "⚠️  Running in STANDALONE mode - MOSIP DSF check skipped"
+          echo "    Triggered by: ${{ github.event.inputs.skip_mosip_dsf_check == 'true' && 'workflow input' || 'ESIGNET_STANDALONE_MODE variable' }}"
+          echo "    Make sure all prerequisite namespaces and resources exist!"
+
+      - name: Validate required secrets
+        run: |
+          echo "Validating required secrets are configured..."
+          MISSING_SECRETS=0
+          
+          if [ -z "$MOCK_RELYING_PARTY_CLIENT_PRIVATE_KEY" ]; then
+            echo "❌ MOCK_RELYING_PARTY_CLIENT_PRIVATE_KEY secret is not configured"
+            MISSING_SECRETS=1
+          else
+            echo "✅ MOCK_RELYING_PARTY_CLIENT_PRIVATE_KEY is configured"
+          fi
+          
+          if [ -z "$MOCK_RELYING_PARTY_JWE_PRIVATE_KEY" ]; then
+            echo "❌ MOCK_RELYING_PARTY_JWE_PRIVATE_KEY secret is not configured"
+            MISSING_SECRETS=1
+          else
+            echo "✅ MOCK_RELYING_PARTY_JWE_PRIVATE_KEY is configured"
+          fi
+          
+          if [ -z "$ESIGNET_CAPTCHA_SITE_KEY" ]; then
+            echo "❌ ESIGNET_CAPTCHA_SITE_KEY secret is not configured"
+            MISSING_SECRETS=1
+          else
+            echo "✅ ESIGNET_CAPTCHA_SITE_KEY is configured"
+          fi
+          
+          if [ -z "$ESIGNET_CAPTCHA_SECRET_KEY" ]; then
+            echo "❌ ESIGNET_CAPTCHA_SECRET_KEY secret is not configured"
+            MISSING_SECRETS=1
+          else
+            echo "✅ ESIGNET_CAPTCHA_SECRET_KEY is configured"
+          fi
+          
+          if [ "$MISSING_SECRETS" -eq 1 ]; then
+            echo ""
+            echo "Please configure the missing secrets as ENVIRONMENT secrets:"
+            echo "  Repository → Settings → Environments → ${{ github.ref_name }} → Add secret"
+            echo ""
+            echo "Required environment secrets:"
+            echo "  - KUBECONFIG (base64 encoded kubeconfig file)"
+            echo "  - CLUSTER_WIREGUARD_WG0 (WireGuard config)"
+            echo "  - MOCK_RELYING_PARTY_CLIENT_PRIVATE_KEY (base64 encoded PEM)"
+            echo "  - MOCK_RELYING_PARTY_JWE_PRIVATE_KEY (base64 encoded PEM)"
+            echo "  - ESIGNET_CAPTCHA_SITE_KEY (reCAPTCHA site key - plain text)"
+            echo "  - ESIGNET_CAPTCHA_SECRET_KEY (reCAPTCHA secret key - plain text)"
+            exit 1
+          fi
+          
+          echo "All required secrets are configured"
+
+      - name: Get DB User Password from postgres namespace
+        id: get-db-password
+        run: |
+          echo "Fetching db-common-secrets from postgres namespace..."
+          
+          # Check if the secret exists
+          if kubectl -n postgres get secret db-common-secrets &>/dev/null; then
+            DB_USER_PASSWORD=$(kubectl -n postgres get secret db-common-secrets -o jsonpath='{.data.db-dbuser-password}' | base64 -d)
+            
+            if [ -n "$DB_USER_PASSWORD" ]; then
+              # Mask the password in logs
+              echo "::add-mask::$DB_USER_PASSWORD"
+              # Export for subsequent steps
+              echo "DB_USER_PASSWORD=$DB_USER_PASSWORD" >> $GITHUB_ENV
+              echo "✅ DB_USER_PASSWORD retrieved successfully"
+            else
+              echo "❌ db-dbuser-password is empty in db-common-secrets"
+              exit 1
+            fi
+          else
+            echo "⚠️ db-common-secrets not found in postgres namespace"
+            echo "This is expected on first deployment - postgres-init will create the secret"
+            # Set empty value - postgres-init will generate a new password
+            echo "DB_USER_PASSWORD=" >> $GITHUB_ENV
+          fi
+
+      - name: Get Keycloak Client Secrets for esignet-keycloak-init
+        id: get-keycloak-secrets
+        run: |
+          echo "Fetching Keycloak client secrets from keycloak namespace..."
+          
+          # Set the secret key names (these are the keys used in keycloak-client-secrets)
+          export PMS_CLIENT_SECRET_KEY='mosip_pms_client_secret'
+          export MPARTNER_DEFAULT_AUTH_SECRET_KEY='mpartner_default_auth_secret'
+          
+          # Check if keycloak-client-secrets exists
+          if kubectl -n keycloak get secret keycloak-client-secrets &>/dev/null; then
+            echo "✅ keycloak-client-secrets found in keycloak namespace"
+            
+            # Fetch PMS client secret
+            PMS_CLIENT_SECRET_VALUE=$(kubectl -n keycloak get secret keycloak-client-secrets -o jsonpath="{.data.${PMS_CLIENT_SECRET_KEY}}" 2>/dev/null | base64 -d || echo "")
+            
+            # Fetch MPARTNER_DEFAULT_AUTH secret
+            MPARTNER_DEFAULT_AUTH_SECRET_VALUE=$(kubectl -n keycloak get secret keycloak-client-secrets -o jsonpath="{.data.${MPARTNER_DEFAULT_AUTH_SECRET_KEY}}" 2>/dev/null | base64 -d || echo "")
+            
+            if [ -n "$PMS_CLIENT_SECRET_VALUE" ] && [ -n "$MPARTNER_DEFAULT_AUTH_SECRET_VALUE" ]; then
+              # Mask secrets in logs
+              echo "::add-mask::$PMS_CLIENT_SECRET_VALUE"
+              echo "::add-mask::$MPARTNER_DEFAULT_AUTH_SECRET_VALUE"
+              
+              # Export for Helmsman
+              echo "PMS_CLIENT_SECRET_KEY=$PMS_CLIENT_SECRET_KEY" >> $GITHUB_ENV
+              echo "PMS_CLIENT_SECRET_VALUE=$PMS_CLIENT_SECRET_VALUE" >> $GITHUB_ENV
+              echo "MPARTNER_DEFAULT_AUTH_SECRET_KEY=$MPARTNER_DEFAULT_AUTH_SECRET_KEY" >> $GITHUB_ENV
+              echo "MPARTNER_DEFAULT_AUTH_SECRET_VALUE=$MPARTNER_DEFAULT_AUTH_SECRET_VALUE" >> $GITHUB_ENV
+              
+              echo "✅ PMS_CLIENT_SECRET_VALUE retrieved successfully"
+              echo "✅ MPARTNER_DEFAULT_AUTH_SECRET_VALUE retrieved successfully"
+            else
+              echo "⚠️ Some Keycloak client secrets are empty - keycloak-init will create them"
+              # Set empty values - keycloak-init will generate new secrets
+              echo "PMS_CLIENT_SECRET_KEY=$PMS_CLIENT_SECRET_KEY" >> $GITHUB_ENV
+              echo "PMS_CLIENT_SECRET_VALUE=" >> $GITHUB_ENV
+              echo "MPARTNER_DEFAULT_AUTH_SECRET_KEY=$MPARTNER_DEFAULT_AUTH_SECRET_KEY" >> $GITHUB_ENV
+              echo "MPARTNER_DEFAULT_AUTH_SECRET_VALUE=" >> $GITHUB_ENV
+            fi
+          else
+            echo "⚠️ keycloak-client-secrets not found in keycloak namespace"
+            echo "This is expected on first deployment - keycloak-init will create the secrets"
+            # Set empty values - keycloak-init will generate new secrets
+            echo "PMS_CLIENT_SECRET_KEY=$PMS_CLIENT_SECRET_KEY" >> $GITHUB_ENV
+            echo "PMS_CLIENT_SECRET_VALUE=" >> $GITHUB_ENV
+            echo "MPARTNER_DEFAULT_AUTH_SECRET_KEY=$MPARTNER_DEFAULT_AUTH_SECRET_KEY" >> $GITHUB_ENV
+            echo "MPARTNER_DEFAULT_AUTH_SECRET_VALUE=" >> $GITHUB_ENV
+          fi
+
+      - name: Initiate helmsman to apply the DSF configurations
+        run: |
+          export HOME="${{ github.workspace }}"
+          export WORKDIR="$HOME/Helmsman"
+          
+          # Conditional cleanup: Delete immutable Jobs only if checkbox is enabled
+          # Kubernetes Jobs cannot be updated, so we must delete them before Helmsman runs on re-deployments
+          DELETE_JOBS="${{ github.event.inputs.delete_existing_jobs }}"
+          if [ "$DELETE_JOBS" = "true" ]; then
+            echo "=============================================="
+            echo "Delete existing jobs option enabled"
+            echo "Running pre-Helmsman cleanup..."
+            echo "=============================================="
+            chmod +x $WORKDIR/hooks/pre-helmsman-cleanup.sh
+            $WORKDIR/hooks/pre-helmsman-cleanup.sh || echo "Cleanup script completed (may have warnings on first run)"
+          else
+            echo "Delete existing jobs option not enabled, skipping cleanup"
+            echo "Note: If you encounter 'Job is invalid: spec.template' errors, re-run with 'Delete existing onboarder jobs' checked"
+          fi
+          
+          # Mock Relying Party secrets are already in env from job-level definition
+          # They are automatically masked by GitHub Actions
+          
+          # DB_USER_PASSWORD is set from previous step (or empty on first deploy)
+          
+          # Verify tools are available
+          echo "Using kubectl: $(which kubectl)"
+          echo "Using kubeconfig: $KUBECONFIG"
+          
+          # Run helmsman with the determined mode
+          # --keep-untracked-releases prevents deletion of releases managed by other DSF files (e.g., postgres-init from external-dsf)
+          helmsman --${HELMSMAN_MODE} --keep-untracked-releases -f $WORKDIR/dsf/esignet-dsf.yaml
+
+      - name: Label namespace on successful deployment
+        if: success() && env.HELMSMAN_MODE == 'apply'
+        run: |
+          kubectl label namespace default esignet-dsf=completed --overwrite
+          echo "✅ eSignet DSF deployment completed successfully"
+
+      - name: Deployment Summary
+        if: always()
+        run: |
+          echo "=================================="
+          echo "eSignet Deployment Summary"
+          echo "=================================="
+          echo "Mode: $HELMSMAN_MODE"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
+          echo ""
+          echo "Namespaces created/updated:"
+          kubectl get ns esignet softhsm keycloak redis postgres 2>/dev/null || echo "Some namespaces may not exist yet"
+          echo ""
+          echo "eSignet pods status:"
+          kubectl get pods -n esignet 2>/dev/null || echo "esignet namespace not ready"

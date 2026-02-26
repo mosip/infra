@@ -37,20 +37,12 @@ function post_logging_setup() {
     }
   }'
 
-  KIBANA_HOST=$(kubectl get cm global -o jsonpath={.data.mosip-kibana-host})
-  echo "Kibana Host entered: $KIBANA_HOST"
-  echo "NOTE: Please update the global ConfigMap with the same Kibana Host as part of the MOSIP external modules deployment."
-
-  # Store Kibana Host in a ConfigMap for easy retrieval
-  kubectl -n cattle-logging-system create configmap kibana-config --from-literal=mosip_kibana_host=$KIBANA_HOST --dry-run=client -o yaml | kubectl apply -f -
-  echo "Kibana Host stored in ConfigMap: kibana-config"
-
   echo "Configure Rancher FluentD"
   kubectl apply -f $WORKDIR/utils/logging/clusteroutput-elasticsearch.yaml
   kubectl apply -f $WORKDIR/utils/logging/clusterflow-elasticsearch.yaml
 
   echo "Load Dashboards"
-  $WORKDIR/utils/logging/load_kibana_dashboards.sh $WORKDIR/utils/logging/dashboards
+  $WORKDIR/utils/logging/load_kibana_dashboards.sh $WORKDIR/utils/logging/dashboards $KUBECONFIG
   echo "Dashboards loaded"
   return 0
 }

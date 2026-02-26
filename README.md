@@ -248,6 +248,76 @@ SLACK_WEBHOOK_URL: "https://hooks.slack.com/services/..." # Slack notifications
 
 **Environment Secrets** (configured per deployment environment):
 
+> **Important**: These are generated AFTER infrastructure deployment, not before!
+>
+> ## Next Steps & Detailed Documentation
+
+```yaml
+# Kubernetes Access
+KUBECONFIG: "apiVersion: v1..." 
+# What it's for: Allows Helmsman to deploy applications to your Kubernetes cluster
+# When available: After Terraform infra deployment completes
+# Where to find: terraform/implementations/aws/infra/kubeconfig_<cluster-name>
+# Guide: See "Kubernetes Config" section in Secret Generation Guide
+
+# WireGuard VPN Access (for cluster access)
+CLUSTER_WIREGUARD_WG0: |
+# What it's for: Secure VPN connection to access private Kubernetes cluster
+# When available: After base-infra deployment and WireGuard setup
+# How to get: Follow WireGuard setup guide
+# Details: See terraform/base-infra/WIREGUARD_SETUP.md
+# Guide: See "WireGuard VPN" section in Secret Generation Guide
+ [Interface]
+ PrivateKey = helmsman-wg0-private-key
+ Address = 10.0.0.2/24
+ 
+ [Peer]
+ PublicKey = cluster-public-key
+ Endpoint = cluster-server:51820
+ AllowedIPs = 10.0.0.0/16
+
+# Secondary WireGuard Config (optional)
+CLUSTER_WIREGUARD_WG1: |
+# Optional: Additional WireGuard peer for redundancy
+ [Interface]
+ PrivateKey = helmsman-wg1-private-key
+ Address = 10.0.2.2/24
+ 
+ [Peer]
+ PublicKey = cluster-public-key-2
+ Endpoint = cluster-server-2:51820
+ AllowedIPs = 10.0.0.0/16
+```
+
+**Deployment Order for Secrets:**
+
+1. **Before starting**: Add Repository Secrets (GPG, AWS, SSH)
+2. **After base-infra**: Add TF_WG_CONFIG environment secret
+3. **After main infra**: Add KUBECONFIG, CLUSTER_WIREGUARD_WG0/WG1 environment secrets
+
+**Need step-by-step help?** [Secret Generation Guide](docs/SECRET_GENERATION_GUIDE.md)
+
+> **Note**: PostgreSQL secrets are no longer required! PostgreSQL setup is handled automatically by Terraform modules and Ansible scripts based on your `enable_postgresql_setup` configuration.
+
+## Deployment Steps Guide
+
+### 1. Fork and Setup Repository
+
+```bash
+# Fork the repository to your GitHub account
+# Clone your fork
+git clone https://github.com/YOUR_USERNAME/infra.git
+cd infra
+```
+
+### 2. Configure GitHub Secrets
+
+Navigate to your repository → **Settings** → **Secrets and variables** → **Actions**
+
+**Configure Repository & Environment Secrets:**
+
+Add the required secrets as follows:
+
 - **Repository Secrets** (Settings → Secrets and variables → Actions → Repository secrets):
 - `GPG_PASSPHRASE`
 - `AWS_ACCESS_KEY_ID`
@@ -1010,7 +1080,56 @@ Alerting is part of cluster monitoring, where alert notifications are sent to th
  enabled: true
 ```
 
-6. **Update testrigs-dsf.yaml (if deploying test environment):**
+6. **Update esignet-dsf.yaml:**
+
+ **Critical Updates Required:**
+
+- **Domain Validation (Double-check):**
+  - `<sandbox>` → your cluster name (e.g., `soil`)
+  - `sandbox.xyz.net` → your domain name (e.g., `soil.mosip.net`)
+  - **eSignet Domain**: `esignet.sandbox.xyz.net` → `esignet.soil.mosip.net`
+- **Chart Versions:** Update eSignet chart versions to latest stable releases
+- **Database Branch:** Verify correct eSignet DB scripts branch
+- **OIDC Configuration:** Configure OIDC client settings and redirect URLs
+- **Mock Services:** Enable/disable mock identity system and relying party based on requirements
+- **Keycloak Integration:** Ensure Keycloak endpoints and realm settings are correct
+
+> **Note:** Maintain consistency with your Terraform configuration:
+>
+> - `<sandbox>` should match `cluster_name` in `aws.tfvars`
+> - `sandbox.xyz.net` should match `cluster_env_domain` in `aws.tfvars`
+> - eSignet requires MOSIP core services to be deployed first (unless using standalone mode)
+
+```yaml
+ # Configure eSignet services 
+ apps:
+ esignet:
+ enabled: true
+ mock-identity-system:
+ enabled: true # Set to false for production with real identity system
+ oidc-ui:
+ enabled: true
+ mock-relying-party:
+ enabled: true # Set to false for production
+```
+
+ **eSignet-Specific Configuration:**
+
+- **Mock Identity System:**
+  - Enable (`true`) for development/testing without MOSIP integration
+  - Disable (`false`) for production with real MOSIP identity system
+- **OIDC Client Configuration:**
+  - Update redirect URIs for your domain
+  - Configure client IDs and secrets
+  - Set up allowed scopes and claims
+- **Keycloak Settings:**
+  - Verify Keycloak realm: typically `esignet`
+  - Update Keycloak host: `https://iam.sandbox.xyz.net` → `https://iam.soil.mosip.net`
+  - Ensure Keycloak client credentials are configured
+
+ **Need detailed help?** [DSF Configuration Guide - eSignet](docs/DSF_CONFIGURATION_GUIDE.md#esignet-dsf-configuration)
+
+7. **Update testrigs-dsf.yaml (if deploying test environment):**
 
  **Critical Updates Required:**
 
@@ -1082,11 +1201,13 @@ Alerting is part of cluster monitoring, where alert notifications are sent to th
 
  **Add KUBECONFIG as Environment Secret:**
 
+> **Important:** KUBECONFIG must be provided as **raw YAML** (plain text), not base64 encoded.
+
 - Go to your GitHub repository → Settings → Environments
 - Select or create environment for your branch (e.g., `release-0.1.0`, `main`, `develop`)
 - Click "Add secret" under Environment secrets
 - Name: `KUBECONFIG`
-- Value: Copy the entire contents of the kubeconfig file from `terraform/implementations/aws/infra/`
+- Value: Copy the **entire raw YAML contents** of the kubeconfig file from `terraform/implementations/aws/infra/kubeconfig_<cluster-name>`
 
  **Branch Environment Configuration:- Ensure the environment name matches your deployment branch
 
@@ -1098,13 +1219,45 @@ Alerting is part of cluster monitoring, where alert notifications are sent to th
  **Environment Secrets (branch-specific):**
 
 ```yaml
- # Kubernetes Access (Environment Secret)
- KUBECONFIG: "<contents-of-kubeconfig-file>"
+ # Kubernetes Access (Environment Secret - raw YAML format)
+ KUBECONFIG: |
+   apiVersion: v1
+   clusters:
+   - cluster:
+       certificate-authority-data: LS0tLS...
+       server: https://your-cluster-endpoint:6443
+     name: default
+   contexts:
+   - context:
+       cluster: default
+       user: default
+     name: default
+   current-context: default
+   kind: Config
+   users:
+   - name: default
+     user:
+       client-certificate-data: LS0tLS...
+       client-key-data: LS0tLS...
 
  # WireGuard Cluster Access for Helmsman
  CLUSTER_WIREGUARD_WG0: "peer2-wireguard-config" # Helmsman cluster access (peer2)
  CLUSTER_WIREGUARD_WG1: "peer3-wireguard-config" # Helmsman cluster access (peer3)
+
+ # eSignet Required Secrets (Environment Secrets)
+ # Configure in Repository → Settings → Environments → <branch-name> → Add secret
+ 
+ MOCK_RELYING_PARTY_CLIENT_PRIVATE_KEY: | # Client private key for Mock Relying Party
+   LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0t... # Base64 encoded PEM format
+   
+ MOCK_RELYING_PARTY_JWE_PRIVATE_KEY: | # JWE userinfo encryption private key
+   LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0t... # Base64 encoded PEM format
+   
+ ESIGNET_CAPTCHA_SITE_KEY: "6LfkAMwrAAAAAATB1WhkIhzuAVMtOs9VWabODoZ_" # Google reCAPTCHA site key (plain text)
+ ESIGNET_CAPTCHA_SECRET_KEY: "6LfkAMwrAAAAAHQAT93nTGcLKa-h3XYhGoNSG-NL" # Google reCAPTCHA secret key (plain text)
 ```
+
+> **For detailed eSignet secrets configuration and generation instructions**, see [eSignet Deployment Guide - Required Secrets](docs/esignet_README.md#required-secrets-environment-secrets)
 
 4. **Verify Secret Configuration:**
 
@@ -1204,7 +1357,48 @@ The Helmsman deployment process follows a specific sequence with automated trigg
 
 **How to check onboarding status and rerun if needed:** Refer to the comprehensive [MOSIP Onboarding Guide](docs/ONBOARDING_GUIDE.md) for detailed troubleshooting and retry procedures.
 
-5. **Deploy Test Rigs (Manual):**
+5. **Deploy eSignet (Manual):**
+
+![Deploy eSignet - Helmsman](docs/_images/esignet.png)
+
+- **Prerequisites**: All MOSIP core services must be running, partner onboarding completed successfully and secrets required for esignet should be updated.
+- **(1)** Actions → **Deploy eSignet using Helmsman** (`helmsman_esignet.yml`)
+- **(2)** **Select Branch**
+- **(3)** **Mode**: `apply` (required - dry-run will fail due to namespace dependencies)
+- **(4)** **Additional Options** (optional):
+  - **skip_mosip_dsf_check**: ☐ Unchecked by default
+    - **When to enable (✅)**: Standalone eSignet deployment without full MOSIP stack
+    - **What it does**: Bypasses validation check for MOSIP core services completion
+    - **Use case**: Testing eSignet independently or deploying eSignet to a separate cluster
+  - **(5)** **delete_existing_jobs**: ☐ Unchecked by default
+    - **When to enable (✅)**: Re-running eSignet deployment after a previous failed attempt
+    - **What it does**: Removes existing partner onboarder jobs before creating new ones
+    - **Use case**: Cleanup before retry deployment to avoid "job already exists" errors
+    - **Important**: Only enable this on re-runs, not on first deployment
+- **(6)** **Run Workflow**:    
+- **Time required:** 15-25 minutes
+
+ **What You Should See:**
+
+- ✅ eSignet services deploying
+- ✅ OIDC client configuration
+- ✅ Keycloak integration setup
+- ✅ Mock identity system (if configured)
+- ✅ All eSignet pods running
+
+ **Verify eSignet Deployment:**
+
+```bash
+ # Check eSignet pods
+ kubectl get pods -n esignet
+ 
+ # Verify eSignet services
+ kubectl get services -n esignet
+```
+
+> **Note**: For detailed eSignet configuration and deployment guide, see [eSignet Deployment Guide](docs/esignet_README.md)
+
+6. **Deploy Test Rigs (Manual):**
 
 ![Deploy Test Rigs - Helmsman](docs/_images/helmsman-testrigs.png)
 
@@ -1232,7 +1426,7 @@ After test rigs deployment completes:
    > ```
    >
 
-### 6. Verify Deployment
+### 7. Verify Deployment
 
 ```bash
 # Check cluster status
@@ -1408,56 +1602,6 @@ specific_availability_zones = [] # Use empty array to allow all AZs
 **Action**: Wait for all services to show "All Systems Operational" before beginning deployment.
 
 ---
-
-## Optional Components
-
-### Rancher Management (observ-infra)
-
-- **Purpose**: Centralized Kubernetes cluster management
-- **Features**: Multi-cluster UI, RBAC, monitoring dashboards
-- **Deployment**: Optional during infrastructure provisioning
-- **Import**: MOSIP clusters can be optionally imported to Rancher
-
-### Advanced Monitoring
-
-- **Infrastructure monitoring** via cloud-native tools
-- **Application monitoring** via Prometheus/Grafana
-- **Log aggregation** via ELK/EFK stack
-- **Alerting** via AlertManager integration
-
----
-
-## Support & Troubleshooting
-
-### Common Issues
-
-- **Infrastructure failures**: Check Terraform logs in GitHub Actions
-- **Deployment failures**: Review Helmsman logs and Kubernetes events
-- **Access issues**: Verify DNS configuration and SSL certificates
-- **Test failures**: Check test rig logs and service dependencies
-
-### Community Contributions
-
-**Help expand multi-cloud support!**
-
-- **AWS**: Fully implemented and production-ready
-- **Azure**: Placeholder structures available - [contribute here](terraform/base-infra/azure/)
-- **GCP**: Placeholder structures available - [contribute here](terraform/base-infra/gcp/)
-
-**What needs to be implemented:**
-
-- VPC/VNet/Network creation and configuration
-- Security groups and firewall rules
-- Load balancer and compute instance provisioning
-- Storage and networking resource management
-- Cloud-specific PostgreSQL integration
-
-**Contribution areas:**
-
-- `terraform/base-infra/{azure,gcp}/` - Base infrastructure modules
-- `terraform/infra/{azure,gcp}/` - MOSIP cluster infrastructure
-- `terraform/observ-infra/{azure,gcp}/` - Monitoring infrastructure
-- `terraform/modules/{azure,gcp}/` - Reusable cloud modules
 
 ### Getting Help
 
