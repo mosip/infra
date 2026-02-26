@@ -144,11 +144,8 @@ else
         fi
         echo ""
     done
-
-    if [ $FAILED_NODES -gt 0 ]; then
-        echo "❌ ERROR: $FAILED_NODES node(s) failed to become SSH-ready within ${NODE_WAIT_TIMEOUT}s"
-        echo "   Aborting playbook to avoid a long hung run."
-        echo "   Check:"
+# Ansible settings are managed via ansible.cfg in this directory.
+# Uncomment options in ansible.cfg for additional tuning or debugging.
         echo "   - Security groups allow SSH (port 22) from GitHub Actions"
         echo "   - SSH key matches EC2 instances"
         echo "   - EC2 instances started successfully"
@@ -160,6 +157,11 @@ fi
 
 echo "🎯 ANSIBLE ENVIRONMENT SETUP:"
 echo "============================="
+<<<<<<< HEAD
+=======
+# Ansible settings are managed via ansible.cfg in this directory.
+# Uncomment options in ansible.cfg for additional tuning or debugging.
+>>>>>>> 4974fd14 ([MOSIP-44390] Removed unwanted env variable and moved it to ansible.cfg)
 
 echo "Ansible Version:"
 ansible-playbook --version
