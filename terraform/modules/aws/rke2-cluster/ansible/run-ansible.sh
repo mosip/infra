@@ -190,9 +190,8 @@ timeout 2700 ansible-playbook \
     -i "$INVENTORY_FILE" \
     -u ubuntu \
     --private-key="$SSH_KEY_FILE" \
-    --ssh-common-args="-o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=$KNOWN_HOSTS_FILE -o ServerAliveInterval=30 -o ServerAliveCountMax=5 -o ConnectTimeout=30" \
+    --ssh-common-args="-o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=$KNOWN_HOSTS_FILE" \
     --diff \
-    --timeout=900 \
     "$PLAYBOOK_FILE" 2>&1 | tee "$LOG_FILE" | tee "$GITHUB_WORKSPACE_LOG"
 
 ANSIBLE_EXIT_CODE=${PIPESTATUS[0]}
