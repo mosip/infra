@@ -37,7 +37,7 @@ apps:
     version: 0.1.0
     chart: $WORKDIR/utils/istio-addons/postgres-istio-addons-0.1.0.tgz
     set:
-      postgresHost: "postgres.soil.mosip.net"
+      postgresHost: postgres.soil.mosip.net
     wait: true
     priority: -17
     timeout: 1200
