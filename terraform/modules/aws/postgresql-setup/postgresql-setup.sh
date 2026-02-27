@@ -441,52 +441,15 @@ EOF
 
 echo "[SUCCESS] Inventory file created with nginx IP target (local): $NGINX_NODE_IP"
 
-export DEBIAN_FRONTEND=noninteractive  # Prevent interactive prompts
-export ANSIBLE_HOST_KEY_CHECKING=False  # Skip host key checking
-export ANSIBLE_STDOUT_CALLBACK=debug   # Verbose output
-export ANSIBLE_TIMEOUT=30              # Set ansible timeout
-export ANSIBLE_CONNECT_TIMEOUT=30      # Set connection timeout
-export ANSIBLE_COLLECTIONS_PATH=/tmp/ansible_collections  # Custom collections path
-export ANSIBLE_GALAXY_DISABLE_GPG_VERIFY=true  # Disable GPG verification
-export ANSIBLE_PIPELINING=true         # Enable pipelining for speed
-export ANSIBLE_SSH_RETRIES=3           # Set SSH retries
+# Ansible settings are managed via ansible.cfg in Helmsman/utils/ansible/
+# which is auto-discovered by Ansible when the playbook runs from that directory.
 
-# Create ansible configuration to prevent hanging
-echo '[CONFIG] Creating Ansible Configuration...'
-mkdir -p ~/.ansible
-cat > ~/.ansible/ansible.cfg << 'EOF'
-[defaults]
-host_key_checking = False
-gathering = explicit
-fact_caching = memory
-fact_caching_timeout = 86400
-stdout_callback = debug
-stderr_callback = debug
-timeout = 30
-command_timeout = 30
-connect_timeout = 30
-gathering_timeout = 30
-
-[ssh_connection]
-pipelining = True
-ssh_args = -o ControlMaster=auto -o ControlPersist=60s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no
-retries = 3
-EOF
-
-echo '[SUCCESS] Environment variables and Ansible configuration set:'
+echo '[SUCCESS] Inventory created. Ansible configuration loaded from ansible.cfg in playbook directory.'
 echo "PostgreSQL Version: $POSTGRESQL_VERSION"
 echo "Storage Device: $STORAGE_DEVICE"
 echo "Mount Point: $MOUNT_POINT"
 echo "PostgreSQL Port: $POSTGRESQL_PORT"
 echo "Network CIDR: $NETWORK_CIDR"
-
-# Configure APT to prevent hanging
-echo '[CONFIG] Configuring APT for non-interactive mode...'
-sudo mkdir -p /etc/apt/apt.conf.d/
-echo 'APT::Get::Assume-Yes "true";' | sudo tee /etc/apt/apt.conf.d/99automated
-echo 'APT::Get::force-yes "true";' | sudo tee -a /etc/apt/apt.conf.d/99automated
-echo 'Dpkg::Options { "--force-confdef"; "--force-confold"; }' | sudo tee -a /etc/apt/apt.conf.d/99automated
-echo '[SUCCESS] APT configured for non-interactive mode'
 
 # Install required Ansible collections to prevent hanging during playbook execution
 echo '[INSTALL] Installing Required Ansible Collections...'
@@ -829,15 +792,18 @@ EOF
     SSH_KEY_FILE="/tmp/nginx-to-control-plane-key"
     echo "$SSH_PRIVATE_KEY" > "$SSH_KEY_FILE"
     chmod 600 "$SSH_KEY_FILE"
+    # Transient known_hosts file: accept-new accepts unknown keys on first contact
+    # and verifies them on subsequent connections within this run.
+    KNOWN_HOSTS_FILE=$(mktemp /tmp/ansible_known_hosts_XXXXXX)
     
     # Use SSH with proper error handling and private key
-    if timeout 60 scp -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 \
+    if timeout 60 scp -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile="$KNOWN_HOSTS_FILE" -o ConnectTimeout=10 \
        -r /tmp/postgresql-secrets "$DEPLOY_SCRIPT" "${CONTROL_PLANE_USER}@${CONTROL_PLANE_HOST}:/tmp/" 2>/dev/null; then
         echo "[SUCCESS] Files copied to control plane"
         
         # Execute the deployment script on control plane
         echo "[EXECUTE] Running deployment script on control plane..."
-        if timeout 120 ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 \
+        if timeout 120 ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile="$KNOWN_HOSTS_FILE" -o ConnectTimeout=10 \
            "${CONTROL_PLANE_USER}@${CONTROL_PLANE_HOST}" "bash /tmp/deploy-postgres-k8s.sh" 2>/dev/null; then
             echo "[SUCCESS] Kubernetes resources deployed successfully via control plane!"
         else
@@ -851,7 +817,7 @@ EOF
         fi
         
         # Cleanup the deployment script on control plane
-        timeout 30 ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+        timeout 30 ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile="$KNOWN_HOSTS_FILE" \
            "${CONTROL_PLANE_USER}@${CONTROL_PLANE_HOST}" "rm -f /tmp/deploy-postgres-k8s.sh" 2>/dev/null || true
         
         # Clean up SSH key file

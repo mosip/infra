@@ -121,3 +121,12 @@ kubeconfig
 # Helmsman specific
 helmsman_logs/
 *.log
+
+# Generated artifacts from Terraform provisioning - must NOT be committed
+
+# Helm binary downloaded during cluster setup (>50MB, exceeds GitHub limit)
+**/helm
+
+# k8s-infra repo cloned during nginx/cluster provisioning
+# Contains third-party code and may include secrets (webhook URLs, tokens)
+**/k8s-infra/l
