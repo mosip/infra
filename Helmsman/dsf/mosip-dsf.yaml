@@ -68,7 +68,8 @@ apps:
     # --reuse-values ensures randomly-generated secrets (websub keys, salts, etc.)
     # are NOT regenerated on subsequent Helmsman runs. Secrets are created once
     # on first install and preserved on every upgrade.
-    helmFlags: "--reuse-values"
+    helmFlags:
+      - "--reuse-values"
 
   config-server:
     namespace: config-server
