@@ -1,5 +1,5 @@
 # Environment name (infra component)
-cluster_name = "soil1"
+cluster_name = "soil001"
 # MOSIP's domain (ex: sandbox.xyz.net)
 cluster_env_domain = "soil.mosip.net"
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
@@ -57,7 +57,7 @@ WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 # Rancher Import URL
 # Rancher Import Configuration
 enable_rancher_import = true
-rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/k9t9z8n74f9x64m9g28jkjp9fk5zjb56lghgzbrxwmd89ztqx7xjqr_c-m-ngtvm56s.yaml\""
+rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/p9qxm6szbh4qkqp5xmkzn42sqxmvj8j7sz7tsh5t52b586w2zjfdkt_c-m-hphhwfjn.yaml\""
 # DNS Records to map
 subdomain_public   = ["resident", "prereg", "esignet", "healthservices", "signup"]
 subdomain_internal = ["admin", "iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio", "regclient", "compliance"]
