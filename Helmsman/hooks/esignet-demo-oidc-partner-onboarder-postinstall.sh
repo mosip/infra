@@ -1,4 +1,11 @@
 #!/bin/bash
+
+# Skip hook execution during Helmsman dry-run - namespaces and releases
+# are not actually created in dry-run mode so kubectl/helm calls will fail.
+if [ "${HELMSMAN_MODE:-}" = "dry-run" ]; then
+  echo "[DRY-RUN] Skipping esignet-demo-oidc-partner-onboarder-postinstall.sh hook (no real resources exist in dry-run)"
+  exit 0
+fi
 # Post-install hook for esignet-demo-oidc-partner-onboarder
 # This script extracts the private/public key pair and client ID from onboarder job logs
 # and updates the mock-relying-party-service secrets and mock-relying-party-ui deployment

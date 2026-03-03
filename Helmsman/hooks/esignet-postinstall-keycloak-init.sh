@@ -1,4 +1,11 @@
 #!/bin/bash
+
+# Skip hook execution during Helmsman dry-run - namespaces and releases
+# are not actually created in dry-run mode so kubectl/helm calls will fail.
+if [ "${HELMSMAN_MODE:-}" = "dry-run" ]; then
+  echo "[DRY-RUN] Skipping esignet-postinstall-keycloak-init.sh hook (no real resources exist in dry-run)"
+  exit 0
+fi
 # Post-install hook for esignet keycloak-init
 # This script syncs the newly created keycloak-client-secrets to other namespaces
 # and updates config-server with the required environment variables

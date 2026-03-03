@@ -3,6 +3,13 @@
 # DB_USER_PASSWORD must be set as env var before running Helmsman
 # (fetched from postgres namespace in GitHub Actions workflow)
 
+# Skip hook execution during Helmsman dry-run — namespaces and releases
+# are not actually created in dry-run mode so kubectl/helm calls will fail.
+if [ "${HELMSMAN_MODE:-}" = "dry-run" ]; then
+  echo "[DRY-RUN] Skipping esignet-init-db.sh hook (no real resources exist in dry-run)"
+  exit 0
+fi
+
 NS=esignet
 
 function installing_esignet_init_db () {

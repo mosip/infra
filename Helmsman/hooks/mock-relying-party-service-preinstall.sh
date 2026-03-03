@@ -1,4 +1,11 @@
 #!/bin/bash
+
+# Skip hook execution during Helmsman dry-run - namespaces and releases
+# are not actually created in dry-run mode so kubectl/helm calls will fail.
+if [ "${HELMSMAN_MODE:-}" = "dry-run" ]; then
+  echo "[DRY-RUN] Skipping mock-relying-party-service-preinstall.sh hook (no real resources exist in dry-run)"
+  exit 0
+fi
 # Pre-install hook for mock-relying-party-service
 # This script copies configmaps and creates secrets for private keys
 # This script is IDEMPOTENT

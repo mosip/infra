@@ -326,8 +326,10 @@ jobs:
           # Verify tools are available
           echo "Using kubectl: $(which kubectl)"
           echo "Using kubeconfig: $KUBECONFIG"
-          
+
           # Run helmsman with the determined mode
+          # HELMSMAN_MODE is already exported via $GITHUB_ENV from the "Set Default Mode" step
+          # and is inherited by all child processes including preInstall/postInstall hooks
           # --keep-untracked-releases prevents deletion of releases managed by other DSF files (e.g., postgres-init from external-dsf)
           helmsman --${HELMSMAN_MODE} --keep-untracked-releases -f $WORKDIR/dsf/esignet-dsf.yaml
 
