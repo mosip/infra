@@ -1,14 +1,14 @@
 # Environment name (infra component)
-cluster_name = "<cluster-name>"
+cluster_name = "rdt"
 
 # MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "<cluster-env-domain>"
+cluster_env_domain = "rdt.mosip.net"
 
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
-mosip_email_id = "<email-id>"
+mosip_email_id = "rachana.p@cyberpwn.com"
 
 # SSH login key name for AWS node instances (ex: my-ssh-key)
-ssh_key_name = "<ssh-key-name>"
+ssh_key_name = "mosip-aws"
 
 # The AWS region for resource creation
 aws_provider_region = "ap-south-1"
@@ -17,7 +17,7 @@ aws_provider_region = "ap-south-1"
 # If empty, uses all available AZs in the region
 # Example: ["ap-south-1a", "ap-south-1b"] for specific AZs
 # Example: [] for all available AZs in the region
-specific_availability_zones = []
+specific_availability_zones = ["ap-south-1b"]
 
 # The instance type for Kubernetes nodes (control plane, worker, etcd)
 k8s_instance_type = "t3a.2xlarge"
@@ -26,7 +26,7 @@ k8s_instance_type = "t3a.2xlarge"
 nginx_instance_type = "t3a.2xlarge"
 
 # The Route 53 hosted zone ID
-zone_id = "<route53_zone_id>"
+zone_id = "Z090954828SJIEL6P5406"
 
 ## UBUNTU 24.04
 # The Amazon Machine Image ID for the instances
@@ -70,7 +70,7 @@ WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 # Rancher Import URL
 # Rancher Import Configuration
 enable_rancher_import = true
-rancher_import_url    = "\"<rancher-import-url>\""
+rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/ltrfc67crq4dxvpbnqv67mqqtv8n54qxf7p2hhcwrs49xpbchxz958_c-m-g465mwk6.yaml\""
 
 # DNS Records to map
 subdomain_public   = ["resident", "prereg", "esignet", "healthservices", "signup"]
@@ -89,4 +89,4 @@ mosip_infra_repo_url = "https://github.com/mosip/infra.git"
 mosip_infra_branch = "release-0.2.0"
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
-vpc_name = "<vpc-name>"
+vpc_name = "default"
