@@ -29,7 +29,7 @@ ami = "ami-0ad21ae1d0696ad58"
 # Repo K8S-INFRA URL
 k8s_infra_repo_url = "https://github.com/mosip/k8s-infra.git"
 # Repo K8S-INFRA branch
-k8s_infra_branch = "v1.2.1.0"
+k8s_infra_branch = "release-1.2.1.x"
 # NGINX Node's Root volume size
 nginx_node_root_volume_size = 24
 # NGINX node's EBS volume size
@@ -50,8 +50,8 @@ k8s_worker_node_count = 2
 rke2_version = "v1.28.9+rke2r1"
 
 # Security group CIDRs
-network_cidr   = "10.0.0.0/8" # Use your actual VPC CIDR
-WIREGUARD_CIDR = "10.0.0.0/8" # Use your actual WireGuard VPN CIDR
+network_cidr   = "172.0.0.0/8" # Use your actual VPC CIDR
+WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 
 
 # Rancher Import URL
@@ -72,7 +72,7 @@ postgresql_port         = "5433"
 # MOSIP Infrastructure Repository Configuration
 mosip_infra_repo_url = "https://github.com/mosip/infra.git"
 
-mosip_infra_branch = "v0.1.0"
+mosip_infra_branch = "release-0.2.0"
 
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
