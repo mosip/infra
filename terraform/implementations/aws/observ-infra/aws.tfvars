@@ -60,7 +60,7 @@ subdomain_internal = [
 
 # Repository configuration
 k8s_infra_repo_url = "https://github.com/mosip/k8s-infra.git"
-k8s_infra_branch   = "v1.2.1.0"
+k8s_infra_branch   = "release-1.2.1.x"
 
 # RKE2 Version Configuration
 rke2_version = "v1.28.9+rke2r1"
@@ -76,11 +76,11 @@ enable_rancher_keycloak_integration = true
 
 # Rancher import (same as infra)
 enable_rancher_import = false #dont enable for observ infra
-rancher_import_url    = "\"<rancher-import-url>\"" #dont update for observ infra
+rancher_import_url    = "\"\"" #dont update for observ infra
 
 # Security group CIDRs
-network_cidr   = "10.0.0.0/8" # Use your actual VPC CIDR
-WIREGUARD_CIDR = "10.0.0.0/8" # Use your actual WireGuard VPN CIDR
+network_cidr   = "172.0.0.0/8" # Use your actual VPC CIDR
+WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 
 # PostgreSQL Configuration (used when second EBS volume is enabled)
 postgresql_version = "15"
