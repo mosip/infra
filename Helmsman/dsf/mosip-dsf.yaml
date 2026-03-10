@@ -1081,13 +1081,13 @@ apps:
       onboarding.modules[1].name: "print"
       onboarding.modules[1].enabled: false
       onboarding.modules[2].name: "abis"
-      onboarding.modules[2].enabled: true
+      onboarding.modules[2].enabled: false
       onboarding.modules[3].name: "resident"
-      onboarding.modules[3].enabled: true
+      onboarding.modules[3].enabled: false
       onboarding.modules[4].name: "mobileid"
       onboarding.modules[4].enabled: true
       onboarding.modules[5].name: "digitalcard"
-      onboarding.modules[5].enabled: true
+      onboarding.modules[5].enabled: false
       onboarding.modules[6].name: "esignet"
       onboarding.modules[6].enabled: false
       onboarding.modules[7].name: "demo-oidc"
