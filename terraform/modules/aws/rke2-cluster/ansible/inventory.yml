@@ -1,0 +1,68 @@
+---
+all:
+  vars:
+    cluster_name: "devint01"
+    cluster_env_domain: "mosip.local"
+    k8s_infra_repo_url: "https://github.com/mosip/k8s-infra.git"
+    k8s_infra_branch: "v1.2.1.0"
+    install_rke2_version: "v1.28.9+rke2r1"
+    enable_rancher_import: true
+    rancher_import_url: "kubectl apply -f https://rancher.mosip.net/v3/import/2t2l6ck65fs8ttjdp9gtgpqwn8wktsdnzj5qshswvbfjjl2gz5xqht_c-m-h5rj4vnb.yaml"
+    ansible_user: ubuntu
+    ansible_ssh_private_key_file: ./ssh_key
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+    
+  children:
+    control_plane:
+      hosts:
+        devint01-CONTROL-PLANE-NODE-1:
+          ansible_host: 172.31.69.181
+          node_role: control_plane
+          is_primary: true
+          node_index: 0
+        devint01-CONTROL-PLANE-NODE-2:
+          ansible_host: 172.31.69.222
+          node_role: control_plane
+          is_primary: false
+          node_index: 1
+        devint01-CONTROL-PLANE-NODE-3:
+          ansible_host: 172.31.76.114
+          node_role: control_plane
+          is_primary: false
+          node_index: 2
+    
+    etcd:
+      hosts:
+        devint01-ETCD-NODE-1:
+          ansible_host: 172.31.78.122
+          node_role: etcd
+        devint01-ETCD-NODE-2:
+          ansible_host: 172.31.64.105
+          node_role: etcd
+        devint01-ETCD-NODE-3:
+          ansible_host: 172.31.75.178
+          node_role: etcd
+    
+    workers:
+      hosts:
+        devint01-WORKER-NODE-1:
+          ansible_host: 172.31.67.140
+          node_role: worker
+        devint01-WORKER-NODE-2:
+          ansible_host: 172.31.70.199
+          node_role: worker
+        devint01-WORKER-NODE-3:
+          ansible_host: 172.31.73.202
+          node_role: worker
+        devint01-WORKER-NODE-4:
+          ansible_host: 172.31.75.97
+          node_role: worker
+        devint01-WORKER-NODE-5:
+          ansible_host: 172.31.67.55
+          node_role: worker
+
+    rke2_cluster:
+      children:
+        control_plane:
+        etcd:
+        workers:
