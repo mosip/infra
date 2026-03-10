@@ -61,9 +61,9 @@ apps:
       apitestrig.configmaps.apitestrig.ENV_TESTLEVEL: "smokeAndRegression"
       apitestrig.configmaps.apitestrig.reportExpirationInDays: "3"
       apitestrig.configmaps.apitestrig.slack-webhook-url: "https://hooks.slack.com/services/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"
-      apitestrig.configmaps.apitestrig.eSignetDeployed: "no"
+      apitestrig.configmaps.apitestrig.eSignetDeployed: "yes"
       apitestrig.configmaps.apitestrig.NS: apitestrig
-      apitestrig.configmaps.apitestrig.servicesNotDeployed: 'esignet'
+      apitestrig.configmaps.apitestrig.servicesNotDeployed: ''
       # apitestrig.configmaps.apitestrig.uinGenerationProcessingDelayTimeInMilliSeconds: "600000"
       # apitestrig.configmaps.apitestrig.vidGenerationProcessingDelayTimeInMilliSeconds: "600000"
 
@@ -132,8 +132,8 @@ apps:
     version: 1.3.0
     chart: mosip/dslorchestrator
     set:
-      image.repository: "mosipqa/dsl-orchestrator"
-      image.tag: "1.3.x"
+      # image.repository: "mosipqa/dsl-orchestrator"
+      # image.tag: "1.3.x"
       crontime: "0 4 * * *"
       dslorchestrator.configmaps.s3.s3-host: 'http://minio.minio:9000'
       dslorchestrator.configmaps.s3.s3-user-key: 'admin'
@@ -146,8 +146,8 @@ apps:
       dslorchestrator.configmaps.dslorchestrator.packetUtilityBaseUrl: "http://packetcreator.packetcreator:80/v1/packetcreator"
       dslorchestrator.configmaps.dslorchestrator.reportExpirationInDays: "3"
       dslorchestrator.configmaps.dslorchestrator.NS: "dslrig"
-      dslorchestrator.configmaps.dslorchestrator.servicesNotDeployed: "esignet"
-      dslorchestrator.configmaps.dslorchestrator.eSignetDeployed: "no"
+      dslorchestrator.configmaps.dslorchestrator.servicesNotDeployed: ""
+      dslorchestrator.configmaps.dslorchestrator.eSignetDeployed: "yes"
       dslorchestrator.configmaps.dslorchestrator.threadCount: "8"
       dslorchestrator.configmaps.dslorchestrator.scenariosToSkip: "I-194,I-198,I-199,I-200,I-201,I-202,I-203,I-204,I-206,I-207,I-145,I-156,I-158"
       enable_insecure: false

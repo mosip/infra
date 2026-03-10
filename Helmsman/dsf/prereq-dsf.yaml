@@ -49,7 +49,7 @@ apps:
     priority: -5
     timeout: 600
     hooks:
-      postInstall: "$WORKDIR/hooks/alerting-setup.sh"
+      postInstall: "$WORKDIR/hooks/alerting-setup.sh devint01 https://hooks.slack.com/services/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 devint01"
 
   elasticsearch:
     namespace: cattle-logging-system
