@@ -965,7 +965,7 @@ Alerting is part of cluster monitoring, where alert notifications are sent to th
 > **Note:** Maintain consistency with your Terraform configuration:
 >
 > - `<env-name>` should match `cluster_name` in `aws.tfvars`
-> - `<sandbox.xyz.net>` should match `cluster_env_domain` in `aws.tfvars`.
+> - `sandbox.xyz.net` should match `cluster_env_domain` in `aws.tfvars`.
 > - These above variables MUST be identical or deployment will fail because the same domain is being mapped in the route-53 service in aws.
 > - If the cluster is created manually instead of using terraform scripts then user can provide the `values` for above two variables as per his requirement, no need to match variables in `aws.tfvars`. 
 
@@ -996,7 +996,7 @@ Alerting is part of cluster monitoring, where alert notifications are sent to th
 
 > **Note:** Maintain consistency with your Terraform configuration:
 > - `<sandbox>` should match `cluster_name` in `aws.tfvars`
-> - `<sandbox.xyz.net>` should match `cluster_env_domain` in `aws.tfvars`.
+> - `sandbox.xyz.net` should match `cluster_env_domain` in `aws.tfvars`.
 > - These above variables MUST be identical or deployment will fail because the same domain is being mapped in the route-53 service in aws.
 > - If the cluster is created manually instead of using terraform scripts then user can provide the `values` for above two variables as per his requirement, no need to match variables in `aws.tfvars`.
 
@@ -1054,7 +1054,7 @@ Alerting is part of cluster monitoring, where alert notifications are sent to th
 
 - **Domain Validation (Double-check):**
 > - `<sandbox>` should match `cluster_name` in `aws.tfvars`
-> - `<sandbox.xyz.net>` should match `cluster_env_domain` in `aws.tfvars`.
+> - `sandbox.xyz.net` should match `cluster_env_domain` in `aws.tfvars`.
 > - These above variables MUST be identical or deployment will fail because the same domain is being mapped in the route-53 service in aws.
 > - If the cluster is created manually instead of using terraform scripts then user can provide the `values` for above two variables as per his requirement, no need to match variables in `aws.tfvars`.
 - **Chart Versions:** Update MOSIP service chart versions to compatible releases
@@ -1065,7 +1065,7 @@ Alerting is part of cluster monitoring, where alert notifications are sent to th
 > **Note:** Maintain consistency with your Terraform configuration:
 >
 > - `<sandbox>` should match `cluster_name` in `aws.tfvars`
-> - `<sandbox.xyz.net>` should match `cluster_env_domain` in `aws.tfvars`.
+> - `sandbox.xyz.net` should match `cluster_env_domain` in `aws.tfvars`.
 > - These above variables MUST be identical or deployment will fail because the same domain is being mapped in the route-53 service in aws.
 > - If the cluster is created manually instead of using terraform scripts then user can provide the `values` for above two variables as per his requirement, no need to match variables in `aws.tfvars`.
 
@@ -1135,7 +1135,7 @@ Alerting is part of cluster monitoring, where alert notifications are sent to th
 
 - **Domain Validation (Double-check):**
 > - `<sandbox>` should match `cluster_name` in `aws.tfvars`
-> - `<sandbox.xyz.net>` should match `cluster_env_domain` in `aws.tfvars`.
+> - `sandbox.xyz.net` should match `cluster_env_domain` in `aws.tfvars`.
 > - These above variables MUST be identical or deployment will fail because the same domain is being mapped in the route-53 service in aws.
 > - If the cluster is created manually instead of using terraform scripts then user can provide the `values` for above two variables as per his requirement, no need to match variables in `aws.tfvars`.
 - **Test Chart Versions:** Update test rig chart versions to match MOSIP service versions
@@ -1147,7 +1147,7 @@ Alerting is part of cluster monitoring, where alert notifications are sent to th
 >
 > **Domain Configuration (Validate Twice):**
 > - `<sandbox>` should match `cluster_name` in `aws.tfvars`
-> - `<sandbox.xyz.net>` should match `cluster_env_domain` in `aws.tfvars`.
+> - `sandbox.xyz.net` should match `cluster_env_domain` in `aws.tfvars`.
 > - These above variables MUST be identical or deployment will fail because the same domain is being mapped in the route-53 service in aws.
 > - If the cluster is created manually instead of using terraform scripts then user can provide the `values` for above two variables as per his requirement, no need to match variables in `aws.tfvars`.
 > - Verify domain DNS resolution is working
