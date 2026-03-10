@@ -1127,7 +1127,7 @@ Alerting is part of cluster monitoring, where alert notifications are sent to th
   - Update Keycloak host: `https://iam.sandbox.xyz.net` → `https://iam.soil.mosip.net`
   - Ensure Keycloak client credentials are configured
 
- **Need detailed help?** [DSF Configuration Guide - eSignet](docs/DSF_CONFIGURATION_GUIDE.md#esignet-dsf-configuration)
+ **Need detailed help?** [DSF Configuration Guide - eSignet](docs/esignet_README.md#dsf-configuration)
 
 7. **Update testrigs-dsf.yaml (if deploying test environment):**
 
