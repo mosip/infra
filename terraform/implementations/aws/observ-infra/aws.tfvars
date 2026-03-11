@@ -46,6 +46,7 @@ vpc_name = "<vpc-name>"
 # Minimal storage configuration
 nginx_node_root_volume_size = 24 # Smaller than infra (24)
 nginx_node_ebs_volume_size  = 64 # Smaller than infra (300)
+
 # Second EBS volume for PostgreSQL (disabled for observ-infra)
 nginx_node_ebs_volume_size_2  = 0  # Disabled for observability infrastructure
 k8s_instance_root_volume_size = 32 # Smaller than infra (64)
@@ -60,7 +61,7 @@ subdomain_internal = [
 
 # Repository configuration
 k8s_infra_repo_url = "https://github.com/mosip/k8s-infra.git"
-k8s_infra_branch   = "v1.2.1.0"
+k8s_infra_branch   = "release-1.2.1.x"
 
 # RKE2 Version Configuration
 rke2_version = "v1.28.9+rke2r1"
@@ -69,18 +70,20 @@ rke2_version = "v1.28.9+rke2r1"
 rancher_hostname           = "rancher.<cluster-env-domain>" # example rancher.sandbox.xyz.net
 rancher_bootstrap_password = "admin"
 rancher_ui_version         = "2.8.3" # Rancher Helm chart version (avoid 2.8.3 due to CVEs)
+
 # Keycloak configuration (hostname will be dynamically created from cluster_env_domain)  
 keycloak_hostname = "iam.<cluster-env-domain>" # example iam.sandbox.xyz.net
+
 # Enable Rancher-Keycloak integration for observability cluster
 enable_rancher_keycloak_integration = true
 
 # Rancher import (same as infra)
 enable_rancher_import = false #dont enable for observ infra
-rancher_import_url    = "\"<rancher-import-url>\"" #dont update for observ infra
+rancher_import_url    = "\"\"" #dont update for observ infra
 
 # Security group CIDRs
-network_cidr   = "10.0.0.0/8" # Use your actual VPC CIDR
-WIREGUARD_CIDR = "10.0.0.0/8" # Use your actual WireGuard VPN CIDR
+network_cidr   = "172.0.0.0/8" # Use your actual VPC CIDR
+WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 
 # PostgreSQL Configuration (used when second EBS volume is enabled)
 postgresql_version = "15"
