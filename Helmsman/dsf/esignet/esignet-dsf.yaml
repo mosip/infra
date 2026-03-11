@@ -1,0 +1,268 @@
+# =============================================================================
+# eSignet Profile - eSignet Services DSF (Desired State File)
+# =============================================================================
+# This DSF deploys eSignet v1.7.1 services for the standalone eSignet profile.
+#
+# Components (in priority order):
+#   1. Keycloak Init (eSignet-specific clients and roles)
+#   2. eSignet service v1.7.1
+#   3. OIDC UI v1.7.1
+#   4. Mock Identity System (optional, disabled by default)
+#   5. Mock Relying Party Service (optional)
+#   6. Mock Relying Party UI (optional)
+#   7. Partner Onboarder (eSignet + Resident OIDC)
+#   8. Demo OIDC Partner Onboarder
+#
+# Based on eSignet v1.7.1 deploy scripts:
+#   - install-esignet.sh
+#   - initialise-prereq.sh (keycloak-init)
+# =============================================================================
+
+helmDefaults:
+  tillerNamespace: kube-system
+  tillerless: true
+  install: true
+
+helmRepos:
+  bitnami: https://charts.bitnami.com/bitnami
+  mosip: https://mosip.github.io/mosip-helm
+
+namespaces:
+  esignet:
+    protected: false
+  keycloak:
+    protected: true
+  softhsm:
+    protected: false
+  redis:
+    protected: false
+
+apps:
+  # ---------------------------------------------------------------------------
+  # Keycloak Init for eSignet
+  # ---------------------------------------------------------------------------
+  # Creates eSignet-specific Keycloak clients and roles.
+  # Fetches existing client secrets from keycloak namespace if available.
+  esignet-keycloak-init:
+    namespace: esignet
+    enabled: true
+    version: 12.0.2
+    chart: mosip/keycloak-init
+    valuesFile: "$WORKDIR/utils/keycloak-init-values.yaml"
+    set:
+      keycloakExternalHost: "iam.sandbox.xyz.net"
+      keycloakInternalHost: "keycloak.keycloak"
+      clientSecrets[0].name: "$PMS_CLIENT_SECRET_KEY"
+      clientSecrets[0].secret: "$PMS_CLIENT_SECRET_VALUE"
+      clientSecrets[1].name: "$MPARTNER_DEFAULT_AUTH_SECRET_KEY"
+      clientSecrets[1].secret: "$MPARTNER_DEFAULT_AUTH_SECRET_VALUE"
+    timeout: 480
+    priority: -14
+    hooks:
+      preInstall: "$WORKDIR/hooks/esignet-preinstall-keycloak-init.sh"
+      postInstall: "$WORKDIR/hooks/esignet-postinstall-keycloak-init.sh"
+
+  # ---------------------------------------------------------------------------
+  # Istio Addons for Keycloak (IAM)
+  # ---------------------------------------------------------------------------
+  istio-addons-iam:
+    namespace: keycloak
+    enabled: true
+    version: 0.1.0
+    chart: $WORKDIR/utils/istio-addons/iam-istio-addons-0.1.0.tgz
+    set:
+      keycloakExternalHost: "iam.sandbox.xyz.net"
+      keycloakInternalHost: "keycloak.keycloak"
+      service: "keycloak"
+    wait: true
+    timeout: 1200
+    priority: -13
+
+  # ---------------------------------------------------------------------------
+  # eSignet v1.7.1
+  # ---------------------------------------------------------------------------
+  esignet:
+    namespace: esignet
+    enabled: true
+    version: 1.7.1
+    chart: mosip/esignet
+    set:
+      image.repository: "mosipid/esignet"
+      image.tag: "1.7.1"
+      enable_insecure: "false"
+      extraEnvVarsCM[0]: "esignet-global"
+      extraEnvVarsCM[1]: "esignet-softhsm-share"
+    wait: true
+    timeout: 600
+    priority: -12
+    hooks:
+      preInstall: "$WORKDIR/hooks/esignet-preinstall.sh"
+
+  # ---------------------------------------------------------------------------
+  # OIDC UI v1.7.1
+  # ---------------------------------------------------------------------------
+  oidc-ui:
+    namespace: esignet
+    enabled: true
+    version: 1.7.1
+    chart: mosip/oidc-ui
+    set:
+      istio.hosts[0]: "esignet.sandbox.xyz.net"
+      oidc_ui.oidc_service_host: "esignet.esignet"
+      oidc_ui.configmaps.oidc-ui.REACT_APP_API_BASE_URL: "http://esignet.esignet/v1/esignet"
+      oidc_ui.configmaps.oidc-ui.REACT_APP_SBI_DOMAIN_URI: "http://esignet.esignet"
+    timeout: 1200
+    priority: -11
+    hooks:
+      preInstall: "$WORKDIR/hooks/oidc-ui-preinstall.sh"
+
+  # ---------------------------------------------------------------------------
+  # Mock Identity System (Optional)
+  # ---------------------------------------------------------------------------
+  # Enable for testing with mock identity data.
+  softhsm-mock-identity-system:
+    namespace: softhsm
+    enabled: false
+    version: 12.0.1
+    chart: mosip/softhsm
+    valuesFile: "$WORKDIR/utils/softhsm-mock-identity-system-values.yaml"
+    wait: true
+    timeout: 480
+    priority: -10
+    hooks:
+      preInstall: "$WORKDIR/hooks/softhsm-mock-identity-system-preinstall.sh"
+      postInstall: "$WORKDIR/hooks/softhsm-mock-identity-system-postinstall.sh"
+
+  mock-identity-system:
+    namespace: esignet
+    enabled: false
+    version: 0.9.3
+    chart: mosip/mock-identity-system
+    set:
+      enable_insecure: "false"
+      extraEnvVarsCM[0]: "esignet-global"
+      extraEnvVarsCM[1]: "esignet-softhsm-share"
+      extraEnvVarsCM[2]: "softhsm-mock-identity-system-share"
+    timeout: 480
+    priority: -9
+    hooks:
+      preInstall: "$WORKDIR/hooks/mock-identity-system-preinstall.sh"
+
+  # ---------------------------------------------------------------------------
+  # Mock Relying Party (Optional)
+  # ---------------------------------------------------------------------------
+  mock-relying-party-service:
+    namespace: esignet
+    enabled: false
+    version: 0.9.3
+    chart: mosip/mock-relying-party-service
+    set:
+      mock_relying_party_service.ESIGNET_SERVICE_URL: "http://esignet.esignet/v1/esignet"
+      mock_relying_party_service.ESIGNET_AUD_URL: "https://esignet.sandbox.xyz.net/v1/esignet/oauth/v2/token"
+      enable_insecure: "false"
+    timeout: 480
+    priority: -8
+    hooks:
+      preInstall: "$WORKDIR/hooks/mock-relying-party-service-preinstall.sh"
+
+  mock-relying-party-ui:
+    namespace: esignet
+    enabled: false
+    version: 0.9.3
+    chart: mosip/mock-relying-party-ui
+    set:
+      mock_relying_party_ui.mock_relying_party_ui_service_host: "healthservices.sandbox.xyz.net"
+      mock_relying_party_ui.ESIGNET_UI_BASE_URL: "https://esignet.sandbox.xyz.net"
+      mock_relying_party_ui.MOCK_RELYING_PARTY_SERVER_URL: "https://healthservices.sandbox.xyz.net/mock-relying-party-service"
+      mock_relying_party_ui.REDIRECT_URI: "https://healthservices.sandbox.xyz.net/userprofile"
+      mock_relying_party_ui.REDIRECT_URI_REGISTRATION: "https://healthservices.sandbox.xyz.net/registration"
+      mock_relying_party_ui.SIGN_IN_BUTTON_PLUGIN_URL: "https://esignet.sandbox.xyz.net/plugins/sign-in-button-plugin.js"
+      istio.hosts[0]: "healthservices.sandbox.xyz.net"
+    wait: true
+    timeout: 480
+    priority: -7
+    hooks:
+      preInstall: "$WORKDIR/hooks/mock-relying-party-ui-preinstall.sh"
+
+  # ---------------------------------------------------------------------------
+  # Partner Onboarders
+  # ---------------------------------------------------------------------------
+  esignet-resident-oidc-partner-onboarder:
+    namespace: esignet
+    enabled: false
+    version: 12.0.1
+    chart: mosip/partner-onboarder
+    set:
+      onboarding.configmaps.s3.s3-host: "http://minio.minio:9000"
+      onboarding.configmaps.s3.s3-user-key: "admin"
+      onboarding.configmaps.s3.s3-region: ""
+      onboarding.configmaps.s3.s3-bucket-name: "onboarder"
+      onboarding.modules[0].name: "ida"
+      onboarding.modules[0].enabled: "false"
+      onboarding.modules[1].name: "print"
+      onboarding.modules[1].enabled: "false"
+      onboarding.modules[2].name: "abis"
+      onboarding.modules[2].enabled: "false"
+      onboarding.modules[3].name: "resident"
+      onboarding.modules[3].enabled: "false"
+      onboarding.modules[4].name: "mobileid"
+      onboarding.modules[4].enabled: "false"
+      onboarding.modules[5].name: "digitalcard"
+      onboarding.modules[5].enabled: "false"
+      onboarding.modules[6].name: "esignet"
+      onboarding.modules[6].enabled: "true"
+      onboarding.modules[7].name: "resident-oidc"
+      onboarding.modules[7].enabled: "true"
+      onboarding.modules[8].name: "demo-oidc"
+      onboarding.modules[8].enabled: "false"
+      onboarding.modules[9].name: "mimoto-keybinding"
+      onboarding.modules[9].enabled: "false"
+    wait: true
+    waitForJobs: true
+    timeout: 240
+    priority: -6
+    hooks:
+      preInstall: "$WORKDIR/hooks/esignet-partner-onboarder-preinstall.sh"
+      preUpgrade: "$WORKDIR/hooks/esignet-partner-onboarder-preinstall.sh"
+      postInstall: "$WORKDIR/hooks/esignet-partner-onboarder-postinstall.sh"
+      postUpgrade: "$WORKDIR/hooks/esignet-partner-onboarder-postinstall.sh"
+
+  esignet-demo-oidc-partner-onboarder:
+    namespace: esignet
+    enabled: false
+    version: 12.0.1
+    chart: mosip/partner-onboarder
+    set:
+      onboarding.modules[0].name: "ida"
+      onboarding.modules[0].enabled: "false"
+      onboarding.modules[1].name: "print"
+      onboarding.modules[1].enabled: "false"
+      onboarding.modules[2].name: "abis"
+      onboarding.modules[2].enabled: "false"
+      onboarding.modules[3].name: "resident"
+      onboarding.modules[3].enabled: "false"
+      onboarding.modules[4].name: "mobileid"
+      onboarding.modules[4].enabled: "false"
+      onboarding.modules[5].name: "digitalcard"
+      onboarding.modules[5].enabled: "false"
+      onboarding.modules[6].name: "esignet"
+      onboarding.modules[6].enabled: "false"
+      onboarding.modules[7].name: "resident-oidc"
+      onboarding.modules[7].enabled: "false"
+      onboarding.modules[8].name: "demo-oidc"
+      onboarding.modules[8].enabled: "true"
+      onboarding.modules[9].name: "mimoto-keybinding"
+      onboarding.modules[9].enabled: "false"
+      onboarding.configmaps.s3.s3-host: "http://minio.minio:9000"
+      onboarding.configmaps.s3.s3-user-key: "admin"
+      onboarding.configmaps.s3.s3-region: ""
+      onboarding.configmaps.s3.s3-bucket-name: "onboarder"
+    wait: true
+    waitForJobs: true
+    timeout: 240
+    priority: -5
+    hooks:
+      preInstall: "$WORKDIR/hooks/esignet-demo-oidc-partner-onboarder-preinstall.sh"
+      preUpgrade: "$WORKDIR/hooks/esignet-demo-oidc-partner-onboarder-preinstall.sh"
+      postInstall: "$WORKDIR/hooks/esignet-demo-oidc-partner-onboarder-postinstall.sh"
+      postUpgrade: "$WORKDIR/hooks/esignet-demo-oidc-partner-onboarder-postinstall.sh"
