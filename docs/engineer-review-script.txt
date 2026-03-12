@@ -1,0 +1,98 @@
+ENGINEER REVIEW CALL — 5 MIN SPEAKING SCRIPT
+==============================================
+Topic: Profile-Based Deployment Architecture for Infra Repo
+
+
+[OPENING — 30 sec]
+
+I've been working on making our infra repo profile-based — so we can deploy
+the full MOSIP platform and standalone eSignet from the same repo, without
+them stepping on each other.
+
+
+[HELMSMAN DSF RESTRUCTURING — 1.5 min]
+
+Previously, we had a flat structure — one set of DSF files in Helmsman/dsf/.
+The problem was, if you wanted standalone eSignet v1.7.1 versus full MOSIP
+with eSignet v1.4.1, you'd have to manually edit files every time.
+
+Now we have three profile directories:
+
+  - mosip-platform-java11  — current MOSIP 1.2.1.0 setup, Java 11
+  - mosip-platform-java21  — placeholder for MOSIP 1.3.0, Java 21 migration
+  - esignet                — standalone eSignet v1.7.1 with only the services
+                             it actually needs: postgres, redis, kafka,
+                             softhsm, keycloak, captcha.
+                             No minio, no clamav, no activemq.
+
+Each profile is a self-contained directory. You pick a profile, you get the
+right versions and the right services.
+
+
+[WORKFLOW CHANGES — 1.5 min]
+
+All four Helmsman workflows and two Terraform workflows now have a profile
+dropdown. You select your profile when triggering a run.
+
+For push triggers, we use glob patterns — Helmsman/dsf/**/mosip-dsf.yaml —
+so when someone pushes a change inside any profile directory, the workflow
+auto-detects which profile changed using a simple sed extraction. No
+hardcoded profile names in the detection logic.
+
+The chaining also got smarter — if you run helmsman_external with the esignet
+profile, it does NOT chain to helmsman_mosip because there's no MOSIP platform
+to deploy. It uses startsWith('mosip-platform-') to decide — so any future
+mosip-platform-* profile will auto-chain correctly.
+
+
+[TERRAFORM PROFILES — 1 min]
+
+Same concept for Terraform. We have a profiles/ directory under
+terraform/implementations/aws/infra/ with mosip and esignet tfvars.
+
+The esignet profile uses t3a.xlarge instead of t3a.2xlarge, a 2+2+1 node
+cluster instead of 3+3+2, and only 2 public subdomains instead of 5.
+Significant cost savings for standalone eSignet.
+
+Critical fix: the configure-backend.sh now takes a --profile flag and
+includes the profile name in the state file path. Without this, running
+terraform for mosip then esignet would have used the same state file —
+effectively destroying one to create the other.
+
+
+[CLOSING — EXTENSIBILITY — 30 sec]
+
+The key design goal was extensibility. Adding a new profile in the future is
+a two-step process: create the directory with your DSF or tfvars files, add
+the name to the workflow dropdown. Push detection, state isolation, and
+chaining all work automatically.
+
+Next steps: update java21 DSFs with actual 1.3.0 versions, and review hook
+scripts one by one.
+
+
+==============================================
+FILES CHANGED (14 total)
+==============================================
+
+Helmsman DSFs:
+  [MOVED]  Helmsman/dsf/*.yaml  -->  Helmsman/dsf/mosip-platform-java11/
+  [ADDED]  Helmsman/dsf/mosip-platform-java21/*   (copy of java11)
+  [ADDED]  Helmsman/dsf/esignet/esignet-dsf.yaml  (eSignet v1.7.1)
+  [ADDED]  Helmsman/dsf/esignet/external-dsf.yaml (simplified services)
+  [MOVED]  Helmsman/dsf/esignet/prereq-dsf.yaml
+
+Workflows:
+  [MODIFIED]  .github/workflows/helmsman_external.yml
+  [MODIFIED]  .github/workflows/helmsman_esignet.yml
+  [MODIFIED]  .github/workflows/helmsman_mosip.yml
+  [MODIFIED]  .github/workflows/helmsman_testrigs.yml
+  [MODIFIED]  .github/workflows/terraform.yml
+  [MODIFIED]  .github/workflows/terraform-destroy.yml
+
+Scripts:
+  [MODIFIED]  .github/scripts/configure-backend.sh
+
+Terraform:
+  [ADDED]  terraform/.../profiles/mosip/aws.tfvars
+  [ADDED]  terraform/.../profiles/esignet/aws.tfvars
