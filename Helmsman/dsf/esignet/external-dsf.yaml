@@ -42,9 +42,6 @@ namespaces:
     protected: false
   captcha:
     protected: false
-  esignet:
-    protected: false
-
 apps:
   # ---------------------------------------------------------------------------
   # PostgreSQL Server
@@ -54,13 +51,16 @@ apps:
   # generate-secret-cm.py or manual secret/configmap creation.
   postgres:
     namespace: postgres
-    enabled: false
+    enabled: true
     version: 13.1.5
     chart: bitnami/postgresql
     wait: true
     priority: -18
     valuesFile: "$WORKDIR/utils/postgres-values.yaml"
     timeout: 1200
+    hooks:
+      preInstall: "$WORKDIR/hooks/esignet-1.7.1/postgres-preinstall.sh"
+      postInstall: "$WORKDIR/hooks/esignet-1.7.1/postgres-postinstall.sh"
 
   istio-addons-psql:
     namespace: postgres
@@ -120,7 +120,7 @@ apps:
     timeout: 180
     priority: -16
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-init-db.sh"
+      preInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-init-db.sh"
 
   # ---------------------------------------------------------------------------
   # Redis
@@ -138,7 +138,7 @@ apps:
     timeout: 480
     priority: -16
     hooks:
-      postInstall: "$WORKDIR/hooks/redis-setup.sh"
+      postInstall: "$WORKDIR/hooks/esignet-1.7.1/redis-setup.sh"
 
   # ---------------------------------------------------------------------------
   # Kafka
@@ -180,6 +180,8 @@ apps:
     wait: true
     timeout: 1200
     priority: -15
+    hooks:
+      postInstall: "$WORKDIR/hooks/esignet-1.7.1/kafka-postinstall.sh"
 
   kafka-ui:
     namespace: kafka
@@ -221,8 +223,8 @@ apps:
     timeout: 480
     priority: -12
     hooks:
-      preInstall: "$WORKDIR/hooks/softhsm-esignet-setup.sh"
-      postInstall: "$WORKDIR/hooks/softhsm-esignet-postinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-1.7.1/softhsm-esignet-setup.sh"
+      postInstall: "$WORKDIR/hooks/esignet-1.7.1/softhsm-esignet-postinstall.sh"
 
   # ---------------------------------------------------------------------------
   # Keycloak (IAM for API Access Control)
@@ -274,6 +276,8 @@ apps:
     wait: true
     timeout: 1200
     priority: -10
+    hooks:
+      postInstall: "$WORKDIR/hooks/esignet-1.7.1/keycloak-postinstall.sh"
 
   # ---------------------------------------------------------------------------
   # Captcha Validation Service
@@ -288,3 +292,5 @@ apps:
     wait: true
     timeout: 480
     priority: -9
+    hooks:
+      postInstall: "$WORKDIR/hooks/esignet-1.7.1/captcha-postinstall.sh"

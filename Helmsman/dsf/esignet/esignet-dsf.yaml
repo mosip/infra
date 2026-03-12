@@ -30,54 +30,8 @@ helmRepos:
 namespaces:
   esignet:
     protected: false
-  keycloak:
-    protected: true
-  softhsm:
-    protected: false
-  redis:
-    protected: false
 
 apps:
-  # ---------------------------------------------------------------------------
-  # Keycloak Init for eSignet
-  # ---------------------------------------------------------------------------
-  # Creates eSignet-specific Keycloak clients and roles.
-  # Fetches existing client secrets from keycloak namespace if available.
-  esignet-keycloak-init:
-    namespace: esignet
-    enabled: true
-    version: 12.0.2
-    chart: mosip/keycloak-init
-    valuesFile: "$WORKDIR/utils/keycloak-init-values.yaml"
-    set:
-      keycloakExternalHost: "iam.sandbox.xyz.net"
-      keycloakInternalHost: "keycloak.keycloak"
-      clientSecrets[0].name: "$PMS_CLIENT_SECRET_KEY"
-      clientSecrets[0].secret: "$PMS_CLIENT_SECRET_VALUE"
-      clientSecrets[1].name: "$MPARTNER_DEFAULT_AUTH_SECRET_KEY"
-      clientSecrets[1].secret: "$MPARTNER_DEFAULT_AUTH_SECRET_VALUE"
-    timeout: 480
-    priority: -14
-    hooks:
-      preInstall: "$WORKDIR/hooks/esignet-preinstall-keycloak-init.sh"
-      postInstall: "$WORKDIR/hooks/esignet-postinstall-keycloak-init.sh"
-
-  # ---------------------------------------------------------------------------
-  # Istio Addons for Keycloak (IAM)
-  # ---------------------------------------------------------------------------
-  istio-addons-iam:
-    namespace: keycloak
-    enabled: true
-    version: 0.1.0
-    chart: $WORKDIR/utils/istio-addons/iam-istio-addons-0.1.0.tgz
-    set:
-      keycloakExternalHost: "iam.sandbox.xyz.net"
-      keycloakInternalHost: "keycloak.keycloak"
-      service: "keycloak"
-    wait: true
-    timeout: 1200
-    priority: -13
-
   # ---------------------------------------------------------------------------
   # eSignet v1.7.1
   # ---------------------------------------------------------------------------
@@ -96,7 +50,7 @@ apps:
     timeout: 600
     priority: -12
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-preinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-preinstall.sh"
 
   # ---------------------------------------------------------------------------
   # OIDC UI v1.7.1
@@ -114,7 +68,7 @@ apps:
     timeout: 1200
     priority: -11
     hooks:
-      preInstall: "$WORKDIR/hooks/oidc-ui-preinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-1.7.1/oidc-ui-preinstall.sh"
 
   # ---------------------------------------------------------------------------
   # Mock Identity System (Optional)
@@ -130,8 +84,8 @@ apps:
     timeout: 480
     priority: -10
     hooks:
-      preInstall: "$WORKDIR/hooks/softhsm-mock-identity-system-preinstall.sh"
-      postInstall: "$WORKDIR/hooks/softhsm-mock-identity-system-postinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-1.7.1/softhsm-mock-identity-system-preinstall.sh"
+      postInstall: "$WORKDIR/hooks/esignet-1.7.1/softhsm-mock-identity-system-postinstall.sh"
 
   mock-identity-system:
     namespace: esignet
@@ -146,7 +100,7 @@ apps:
     timeout: 480
     priority: -9
     hooks:
-      preInstall: "$WORKDIR/hooks/mock-identity-system-preinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-1.7.1/mock-identity-system-preinstall.sh"
 
   # ---------------------------------------------------------------------------
   # Mock Relying Party (Optional)
@@ -163,7 +117,7 @@ apps:
     timeout: 480
     priority: -8
     hooks:
-      preInstall: "$WORKDIR/hooks/mock-relying-party-service-preinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-1.7.1/mock-relying-party-service-preinstall.sh"
 
   mock-relying-party-ui:
     namespace: esignet
@@ -182,7 +136,7 @@ apps:
     timeout: 480
     priority: -7
     hooks:
-      preInstall: "$WORKDIR/hooks/mock-relying-party-ui-preinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-1.7.1/mock-relying-party-ui-preinstall.sh"
 
   # ---------------------------------------------------------------------------
   # Partner Onboarders
@@ -222,10 +176,10 @@ apps:
     timeout: 240
     priority: -6
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-partner-onboarder-preinstall.sh"
-      preUpgrade: "$WORKDIR/hooks/esignet-partner-onboarder-preinstall.sh"
-      postInstall: "$WORKDIR/hooks/esignet-partner-onboarder-postinstall.sh"
-      postUpgrade: "$WORKDIR/hooks/esignet-partner-onboarder-postinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-partner-onboarder-preinstall.sh"
+      preUpgrade: "$WORKDIR/hooks/esignet-1.7.1/esignet-partner-onboarder-preinstall.sh"
+      postInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-partner-onboarder-postinstall.sh"
+      postUpgrade: "$WORKDIR/hooks/esignet-1.7.1/esignet-partner-onboarder-postinstall.sh"
 
   esignet-demo-oidc-partner-onboarder:
     namespace: esignet
@@ -262,7 +216,7 @@ apps:
     timeout: 240
     priority: -5
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-demo-oidc-partner-onboarder-preinstall.sh"
-      preUpgrade: "$WORKDIR/hooks/esignet-demo-oidc-partner-onboarder-preinstall.sh"
-      postInstall: "$WORKDIR/hooks/esignet-demo-oidc-partner-onboarder-postinstall.sh"
-      postUpgrade: "$WORKDIR/hooks/esignet-demo-oidc-partner-onboarder-postinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-demo-oidc-partner-onboarder-preinstall.sh"
+      preUpgrade: "$WORKDIR/hooks/esignet-1.7.1/esignet-demo-oidc-partner-onboarder-preinstall.sh"
+      postInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-demo-oidc-partner-onboarder-postinstall.sh"
+      postUpgrade: "$WORKDIR/hooks/esignet-1.7.1/esignet-demo-oidc-partner-onboarder-postinstall.sh"
