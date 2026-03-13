@@ -5,7 +5,7 @@ cluster_name = "dev11"
 cluster_env_domain = "dev11.mosip.net"
 
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
-mosip_email_id = "rachana.p@cyberpwn.com"
+mosip_email_id = "chandra.mishra@technoforte.co.in"
 
 # SSH login key name for AWS node instances (ex: my-ssh-key)
 ssh_key_name = "mosip-aws"
