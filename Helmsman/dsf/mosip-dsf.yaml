@@ -1045,7 +1045,7 @@ apps:
       onboarding.configmaps.s3.s3-bucket-name: "onboarder"
       #onboarding.secrets.s3.s3-user-secret: "password"
       # onboarding.volumes.reports.nfs.server: "<nfs_server>"
-      # # provide NFS directory to store reports from NFS server (e.g. /srv/nfs/<sandbox>/onboarder/), make sure permission is 777 for the folder: " nfs_path
+      # # provide NFS directory to store reports from NFS server (e.g. /srv/nfs/dev11/onboarder/), make sure permission is 777 for the folder: " nfs_path
       # onboarding.volumes.reports.nfs.path: "<nfs_path>"
       extraEnvVarsCM[0]: "global"
       extraEnvVarsCM[1]: "keycloak-env-vars"
