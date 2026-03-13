@@ -389,7 +389,7 @@ apps:
     chart: mosip/landing-page
     set:
       landing.version: "develop"
-      landing.name: "<sandbox>"
+      landing.name: "dev11"
       landing.api: "api.dev11.mosip.net"
       landing.apiInternal: "api-internal.dev11.mosip.net"
       landing.admin: "admin.dev11.mosip.net"
