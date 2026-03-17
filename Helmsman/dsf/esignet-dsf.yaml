@@ -37,7 +37,7 @@ apps:
     version: 0.1.0
     chart: $WORKDIR/utils/istio-addons/postgres-istio-addons-0.1.0.tgz
     set:
-      postgresHost: "postgres.sandbox.xyz.net"
+      postgresHost: "postgres.qa11new.mosip.net"
     wait: true
     priority: -17
     timeout: 1200
@@ -71,12 +71,12 @@ apps:
       # Enable BOTH esignet and mockidentitysystem databases
       databases.mosip_esignet.enabled: "true"
       databases.mosip_esignet.branch: "v1.4.1"
-      databases.mosip_esignet.host: "postgres.sandbox.xyz.net"
+      databases.mosip_esignet.host: "postgres.qa11new.mosip.net"
       databases.mosip_esignet.port: 5433
       databases.mosip_esignet.dml: 1
       databases.mosip_mockidentitysystem.enabled: "false"
       databases.mosip_mockidentitysystem.branch: "v0.9.3"
-      databases.mosip_mockidentitysystem.host: "postgres.sandbox.xyz.net"
+      databases.mosip_mockidentitysystem.host: "postgres.qa11new.mosip.net"
       databases.mosip_mockidentitysystem.repoUrl: "https://github.com/mosip/esignet-mock-services.git"
       databases.mosip_mockidentitysystem.port: 5433
       databases.mosip_mockidentitysystem.dml: 1
@@ -155,7 +155,7 @@ apps:
     version: 0.1.0
     chart: $WORKDIR/utils/istio-addons/iam-istio-addons-0.1.0.tgz
     set:
-      keycloakExternalHost: "iam.sandbox.xyz.net"
+      keycloakExternalHost: "iam.qa11new.mosip.net"
       keycloakInternalHost: "keycloak.keycloak"
       service: "keycloak"
     wait: true
@@ -171,7 +171,7 @@ apps:
     set:
       # image.repository: "mosipid/keycloak-init"
       # image.tag: "1.2.0.1"
-      keycloakExternalHost: "iam.sandbox.xyz.net"
+      keycloakExternalHost: "iam.qa11new.mosip.net"
       keycloakInternalHost: "keycloak.keycloak"
       clientSecrets[0].name: "$PMS_CLIENT_SECRET_KEY"
       clientSecrets[0].secret: "$PMS_CLIENT_SECRET_VALUE"
@@ -224,7 +224,7 @@ apps:
     version: 1.4.1
     chart: mosip/oidc-ui
     set:
-      istio.hosts[0]: "esignet.sandbox.xyz.net"
+      istio.hosts[0]: "esignet.qa11new.mosip.net"
       extraEnvVarsCM[0]: "global"
       extraEnvVarsCM[1]: "config-server-share"
       extraEnvVarsCM[2]: "artifactory-share"
@@ -276,7 +276,7 @@ apps:
       # eSignet service URL (internal)
       mock_relying_party_service.ESIGNET_SERVICE_URL: "http://esignet.esignet/v1/esignet"
       # eSignet AUD URL (external) - UPDATE with your esignet domain
-      mock_relying_party_service.ESIGNET_AUD_URL: "https://esignet.sandbox.xyz.net/v1/esignet/oauth/v2/token"
+      mock_relying_party_service.ESIGNET_AUD_URL: "https://esignet.qa11new.mosip.net/v1/esignet/oauth/v2/token"
       # Set to true if you don't have public domain & valid SSL (development only)
       enable_insecure: "false"
     timeout: 480
@@ -290,14 +290,14 @@ apps:
     version: 0.9.3
     chart: mosip/mock-relying-party-ui
     set:
-      # UPDATE THIS: Mock Relying Party UI domain (e.g., healthservices.sandbox.xyz.net)
-      mock_relying_party_ui.mock_relying_party_ui_service_host: "healthservices.sandbox.xyz.net"
-      mock_relying_party_ui.ESIGNET_UI_BASE_URL: "https://esignet.sandbox.xyz.net"
-      mock_relying_party_ui.MOCK_RELYING_PARTY_SERVER_URL: "https://healthservices.sandbox.xyz.net/mock-relying-party-service"
-      mock_relying_party_ui.REDIRECT_URI: "https://healthservices.sandbox.xyz.net/userprofile"
-      mock_relying_party_ui.REDIRECT_URI_REGISTRATION: "https://healthservices.sandbox.xyz.net/registration"
-      mock_relying_party_ui.SIGN_IN_BUTTON_PLUGIN_URL: "https://esignet.sandbox.xyz.net/plugins/sign-in-button-plugin.js"
-      istio.hosts[0]: "healthservices.sandbox.xyz.net"
+      # UPDATE THIS: Mock Relying Party UI domain (e.g., healthservices.qa11new.mosip.net)
+      mock_relying_party_ui.mock_relying_party_ui_service_host: "healthservices.qa11new.mosip.net"
+      mock_relying_party_ui.ESIGNET_UI_BASE_URL: "https://esignet.qa11new.mosip.net"
+      mock_relying_party_ui.MOCK_RELYING_PARTY_SERVER_URL: "https://healthservices.qa11new.mosip.net/mock-relying-party-service"
+      mock_relying_party_ui.REDIRECT_URI: "https://healthservices.qa11new.mosip.net/userprofile"
+      mock_relying_party_ui.REDIRECT_URI_REGISTRATION: "https://healthservices.qa11new.mosip.net/registration"
+      mock_relying_party_ui.SIGN_IN_BUTTON_PLUGIN_URL: "https://esignet.qa11new.mosip.net/plugins/sign-in-button-plugin.js"
+      istio.hosts[0]: "healthservices.qa11new.mosip.net"
     wait: true
     timeout: 480
     priority: -6
