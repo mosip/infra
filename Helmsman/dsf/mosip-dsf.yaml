@@ -1069,7 +1069,7 @@ apps:
       onboarding.modules[8].name: "resident-oidc"
       onboarding.modules[8].enabled: false
       onboarding.modules[9].name: "mimoto-keybinding"
-      onboarding.modules[9].enabled: false
+      onboarding.modules[9].enabled: true
     wait: true
     timeout: 1200
     priority: -2
