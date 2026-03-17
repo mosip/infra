@@ -129,6 +129,7 @@ module "aws-resource-creation" {
 
   NGINX_NODE_EBS_VOLUME_SIZE   = var.NGINX_NODE_EBS_VOLUME_SIZE
   NGINX_NODE_EBS_VOLUME_SIZE_2 = var.nginx_node_ebs_volume_size_2
+  NGINX_NODE_EBS_VOLUME_SIZE_3 = var.nginx_node_ebs_volume_size_3
   NGINX_NODE_ROOT_VOLUME_SIZE  = var.NGINX_NODE_ROOT_VOLUME_SIZE
 
   # VPC and Subnet Configuration
@@ -532,6 +533,23 @@ module "postgresql-setup" {
   MOSIP_INFRA_BRANCH           = var.mosip_infra_branch
 
   # Control plane configuration for PostgreSQL K8s deployment
+  CONTROL_PLANE_HOST = [for instance in module.aws-resource-creation.K8S_CLUSTER_PRIVATE_IPS : instance][0]
+  CONTROL_PLANE_USER = "ubuntu"
+}
+
+module "activemq-setup" {
+  count      = var.enable_activemq_setup && var.nginx_node_ebs_volume_size_3 > 0 ? 1 : 0
+  depends_on = [module.aws-resource-creation, module.nginx-setup, module.rke2-setup, module.nfs-setup]
+  source     = "./activemq-setup"
+
+  NGINX_PUBLIC_IP              = module.aws-resource-creation.NGINX_PUBLIC_IP
+  NGINX_PRIVATE_IP             = module.aws-resource-creation.NGINX_PRIVATE_IP
+  SSH_PRIVATE_KEY              = var.SSH_PRIVATE_KEY
+  NGINX_NODE_EBS_VOLUME_SIZE_3 = var.nginx_node_ebs_volume_size_3
+  ACTIVEMQ_STORAGE_DEVICE      = var.activemq_storage_device
+  ACTIVEMQ_MOUNT_POINT         = var.activemq_mount_point
+
+  # Control plane for applying the StorageClass to Kubernetes
   CONTROL_PLANE_HOST = [for instance in module.aws-resource-creation.K8S_CLUSTER_PRIVATE_IPS : instance][0]
   CONTROL_PLANE_USER = "ubuntu"
 }
