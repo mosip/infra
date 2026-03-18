@@ -6,7 +6,11 @@
 
 variable "NGINX_PUBLIC_IP" { type = string }
 variable "NGINX_PRIVATE_IP" { type = string }
-variable "SSH_PRIVATE_KEY" { type = string }
+variable "SSH_PRIVATE_KEY" {
+  type        = string
+  sensitive   = true
+  description = "SSH private key content for connecting to nodes"
+}
 variable "NGINX_NODE_EBS_VOLUME_SIZE_3" { type = number }
 
 variable "ACTIVEMQ_STORAGE_DEVICE" {
@@ -42,15 +46,20 @@ resource "null_resource" "activemq-ebs-nfs-setup" {
   # Write the SSH private key to a temp file on the runner, then run Ansible locally.
   # Ansible SSHes into the NGINX node using that key.
   provisioner "local-exec" {
-    command     = <<-EOT
+    # SECURITY: The SSH private key is passed via environment variable, NOT
+    # interpolated in the command string. This prevents it from appearing in:
+    #   - Terraform plan/apply output
+    #   - Shell history (ps aux, /proc)
+    #   - CI/CD logs that capture stdout
+    # The script reads TF_ACTIVEMQ_SSH_KEY and writes it to a chmod-600 temp file.
+    command = <<-EOT
       set -euo pipefail
 
-      # ── Write the SSH private key ──────────────────────────────────────────────
+      # ── Write SSH key from env var (never from command args) ──────────────────
       KEY_FILE=$(mktemp /tmp/activemq-ssh-key-XXXXXX)
       chmod 600 "$KEY_FILE"
-      cat > "$KEY_FILE" <<'SSHKEY'
-${var.SSH_PRIVATE_KEY}
-SSHKEY
+      # Use printf to avoid trailing newline issues with echo
+      printf '%s' "$TF_ACTIVEMQ_SSH_KEY" > "$KEY_FILE"
 
       # ── Copy playbook to a temp working dir ───────────────────────────────────
       WORK_DIR=$(mktemp -d /tmp/activemq-setup-XXXXXX)
@@ -67,10 +76,15 @@ SSHKEY
 
       bash "$WORK_DIR/activemq-setup.sh"
 
-      # ── Cleanup key ───────────────────────────────────────────────────────────
+      # ── Cleanup key (also runs on failure via trap) ────────────────────────────
       rm -f "$KEY_FILE"
     EOT
     interpreter = ["bash", "-c"]
+
+    environment = {
+      # Key passed as env var — never appears in command string or Terraform logs
+      TF_ACTIVEMQ_SSH_KEY = var.SSH_PRIVATE_KEY
+    }
   }
 }
 

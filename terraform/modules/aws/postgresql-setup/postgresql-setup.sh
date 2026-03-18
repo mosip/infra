@@ -789,9 +789,11 @@ EOF
     echo "[COPY] Copying YAML files and deployment script to control plane..."
     
     # Create temporary SSH key file for nginx->control plane communication
-    SSH_KEY_FILE="/tmp/nginx-to-control-plane-key"
-    echo "$SSH_PRIVATE_KEY" > "$SSH_KEY_FILE"
+    # SECURITY: Use printf instead of echo to avoid the key appearing in
+    # process listings (ps aux) or shell history when the variable is expanded.
+    SSH_KEY_FILE=$(mktemp /tmp/nginx-to-control-plane-key-XXXXXX)
     chmod 600 "$SSH_KEY_FILE"
+    printf '%s' "$SSH_PRIVATE_KEY" > "$SSH_KEY_FILE"
     # Transient known_hosts file: accept-new accepts unknown keys on first contact
     # and verifies them on subsequent connections within this run.
     KNOWN_HOSTS_FILE=$(mktemp /tmp/ansible_known_hosts_XXXXXX)
