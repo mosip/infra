@@ -133,7 +133,7 @@
             name: nfs-csi-activemq
           provisioner: nfs.csi.k8s.io
           parameters:
-            server: {{ ansible_host }}
+            server: {{ hostvars[inventory_hostname].ansible_host | default(inventory_hostname) }}
             share: {{ activemq_mount_point }}/
             mountPermissions: '0777'
             subDir: ${pvc.metadata.namespace}-${pvc.metadata.name}-${pv.metadata.name}
@@ -153,7 +153,7 @@
           - "Mount           : {{ activemq_mount_point }}"
           - "Disk usage      : {{ mount_info.stdout_lines }}"
           - "NFS export      : {{ activemq_mount_point }} *(rw,sync,no_root_squash,...)"
-          - "NFS server IP   : {{ ansible_host }}"
+          - "NFS server IP   : {{ hostvars[inventory_hostname].ansible_host | default(inventory_hostname) }}"
           - "StorageClass    : nfs-csi-activemq → /tmp/activemq-storageclass.yaml (on runner)"
           - ""
           - "Next: Terraform will apply the StorageClass to Kubernetes."
