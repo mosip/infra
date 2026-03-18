@@ -1,9 +1,9 @@
 # Environment name (infra component)
-cluster_name = "soil002"
+cluster_name = "abhi"
 # MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "soil002.mosip.net"
+cluster_env_domain = "abhi.mosip.net"
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
-mosip_email_id = "chandra.mishra@technoforte.co.in"
+mosip_email_id = "abhisahu1920@gmail.com"
 # SSH login key name for AWS node instances (ex: my-ssh-key)
 ssh_key_name = "mosip-aws"
 # The AWS region for resource creation
@@ -40,11 +40,11 @@ nginx_node_ebs_volume_size_2 = 200 # Enable second EBS volume for PostgreSQL tes
 k8s_instance_root_volume_size = 64
 
 # Control-plane, ETCD, Worker
-k8s_control_plane_node_count = 3
+k8s_control_plane_node_count = 1
 # ETCD, Worker
-k8s_etcd_node_count = 3
+k8s_etcd_node_count = 0
 # Worker
-k8s_worker_node_count = 1
+k8s_worker_node_count = 0
 
 # RKE2 Version Configuration
 rke2_version = "v1.28.9+rke2r1"
@@ -56,7 +56,7 @@ WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 
 # Rancher Import URL
 # Rancher Import Configuration
-enable_rancher_import = true
+enable_rancher_import = false
 rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/ff7npq9jd8cbld9k2q6pz77lgqps2w2cszdkdcdlwppv4lcfc48sbm_c-m-bg7wnr9p.yaml\""
 # DNS Records to map
 subdomain_public   = ["resident", "prereg", "esignet", "healthservices", "signup"]
@@ -83,8 +83,8 @@ vpc_name = "default"
 # create a dedicated EBS volume, format it as XFS, and mount it on the NGINX node.
 # ActiveMQ itself runs inside Kubernetes via Helm (no software installed here).
 # Both conditions must be true — set either to false/0 to skip entirely.
-enable_activemq_setup        = false  # Toggle: true = create & mount, false = skip
-nginx_node_ebs_volume_size_3 = 0      # Volume size in GB (e.g. 100); 0 = disabled
+enable_activemq_setup        = true # Toggle: true = create & mount, false = skip
+nginx_node_ebs_volume_size_3 = 30   # Volume size in GB (e.g. 100); 0 = disabled
 
 activemq_storage_device = "/dev/nvme3n1"
 activemq_mount_point    = "/srv/activemq"
