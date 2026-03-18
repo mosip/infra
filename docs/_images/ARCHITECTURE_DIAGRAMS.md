@@ -202,8 +202,14 @@ graph TD
  O --> Q[7. Deploy MOSIP Services<br/>Core services using PostgreSQL]
  M --> Q[7. Deploy MOSIP Services<br/>Core services using PostgreSQL]
  P --> Q[7. Deploy MOSIP Services<br/>Core services using PostgreSQL]
- P --> Q[9. Optional: Deploy Test Rigs]
- Q --> R[MOSIP Platform Ready]
+ 
+ Q --> Q1{Deploy eSignet?}
+ Q1 -->|Yes| Q2[8. Deploy eSignet Stack<br/>Redis, SoftHSM, Keycloak Init,<br/>eSignet, OIDC UI, Mock Identity]
+ Q1 -->|No| Q3{Deploy Test Rigs?}
+ Q2 --> Q3
+ Q3 -->|Yes| Q4[9. Deploy Test Rigs]
+ Q3 -->|No| R[MOSIP Platform Ready]
+ Q4 --> R[MOSIP Platform Ready]
  
  style F fill:#c8e6c9,stroke:#1b5e20,color:#000000
  style G fill:#ffe0b2,stroke:#e65100,color:#000000
@@ -211,6 +217,7 @@ graph TD
  style I fill:#ffe0b2,stroke:#e65100,color:#000000
  style J fill:#a5d6a7,stroke:#2e7d32,color:#000000
  style K fill:#ffcc02,stroke:#f57c00,color:#000000
+ style Q2 fill:#e0f2f1,stroke:#00695c,color:#000000
 
 ## Deployment Flow & Dependencies
 
@@ -248,6 +255,22 @@ graph TD
  N -.->|Optional Import| S
  P -.->|Optional Import| T
  
+ R --> R1[4. Deploy Prerequisites + External Deps]
+ S --> S1[4. Deploy Prerequisites + External Deps]
+ T --> T1[4. Deploy Prerequisites + External Deps]
+ 
+ R1 --> R2[5. Deploy MOSIP Services]
+ S1 --> S2[5. Deploy MOSIP Services]
+ T1 --> T2[5. Deploy MOSIP Services]
+ 
+ R2 --> R3[6. Deploy eSignet Stack<br/>Optional]
+ S2 --> S3[6. Deploy eSignet Stack<br/>Optional]
+ T2 --> T3[6. Deploy eSignet Stack<br/>Optional]
+ 
+ R3 --> R4[7. Deploy Test Rigs<br/>Optional]
+ S3 --> S4[7. Deploy Test Rigs<br/>Optional]
+ T3 --> T4[7. Deploy Test Rigs<br/>Optional]
+ 
  style F fill:#e1f5fe,stroke:#01579b,color:#000000
  style G fill:#e1f5fe,stroke:#01579b,color:#000000
  style H fill:#e1f5fe,stroke:#01579b,color:#000000
@@ -257,6 +280,9 @@ graph TD
  style M fill:#f3e5f5,stroke:#4a148c,color:#000000
  style O fill:#f3e5f5,stroke:#4a148c,color:#000000
  style Q fill:#f3e5f5,stroke:#4a148c,color:#000000
+ style R3 fill:#e0f2f1,stroke:#00695c,color:#000000
+ style S3 fill:#e0f2f1,stroke:#00695c,color:#000000
+ style T3 fill:#e0f2f1,stroke:#00695c,color:#000000
 ```
 
 ## Terraform Module Structure

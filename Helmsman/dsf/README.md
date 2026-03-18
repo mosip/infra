@@ -31,8 +31,20 @@ Make sure to update the above two dsf files with the required configuration chan
 
 ### Deploy Mosip core services
 
-To deploy Mosip corde service we have below dsf file i,e 
-* `mosip-dsf.yaml`: Install all the Mosip core services .
+To deploy Mosip core service we have below dsf file i,e 
+* `mosip-dsf.yaml`: Install all the Mosip core services.
+
+### Deploy eSignet Stack
+
+To deploy the eSignet authentication stack we have below dsf file i,e
+* `esignet-dsf.yaml`: Installs the complete eSignet stack including PostgreSQL init for eSignet, Redis, SoftHSM, Keycloak init, eSignet service, OIDC UI, Mock Identity System, Mock Relying Party, and Partner Onboarder.
+
+Make sure MOSIP core services are deployed (or set `skip_mosip_dsf_check` to `true` for standalone deployment) before triggering the `helmsman_esignet.yml` workflow.
+
+### Deploy Test Rigs
+
+To deploy the testing infrastructure we have below dsf file i,e
+* `testrigs-dsf.yaml`: Installs all testing components including API test rigs, UI test rigs, and DSL test rigs.
 
 ---
 

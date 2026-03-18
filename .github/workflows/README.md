@@ -328,6 +328,9 @@ Workflow: helmsman_external.yml → Parallel deployment:
 # Step 3: Deploy MOSIP services (after external dependencies ready)
 Workflow: helmsman_mosip.yml → Deploy MOSIP applications
 
+# Step 4: Deploy eSignet stack (after MOSIP services or standalone)
+Workflow: helmsman_esignet.yml → Deploy eSignet authentication stack
+
 # Optional: Deploy test components
 Workflow: helmsman_testrigs.yml → Deploy testing infrastructure
 ```
@@ -393,6 +396,11 @@ sequenceDiagram
  User->>Helmsman Workflows: 4. Deploy MOSIP Services
  Helmsman Workflows->>PostgreSQL: Connect to external database
  AWS Infrastructure-->>User: MOSIP platform operational
+ 
+ User->>Helmsman Workflows: 5. Deploy eSignet Stack (optional)
+ Helmsman Workflows->>PostgreSQL: Init eSignet database
+ Helmsman Workflows-->>AWS Infrastructure: Install eSignet, Redis, SoftHSM, OIDC UI
+ AWS Infrastructure-->>User: eSignet stack operational
 ```
 
 ### Workflow Execution Order
@@ -433,11 +441,17 @@ graph TD
  J --> L
  K --> L
  
+ L --> M{Deploy eSignet?}
+ M -->|Yes| N[eSignet Stack Deployment<br/>Redis, SoftHSM, Keycloak Init,<br/>eSignet, OIDC UI, Mock Identity]
+ M -->|No| O[Optional: Test Rigs]
+ N --> O
+ 
  style A fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
  style B fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px,color:#000000
  style C fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000000
  style D fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000000
  style L fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000000
+ style N fill:#e0f2f1,stroke:#00695c,stroke-width:2px,color:#000000
 ```
 
 **Sequential Dependency**: Terraform workflows must complete before Helmsman workflows 
