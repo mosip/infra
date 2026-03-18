@@ -2,59 +2,6 @@
 
 > **Cloud-agnostic infrastructure for MOSIP platform deployment with automated PostgreSQL management**
 
-## High-Level Architecture Overview
-
-```mermaid
-graph TD
- A[1. Deploy base-infra<br/>VPC + WireGuard<br/>One-time setup] --> B{Deploy observ-infra?}
- 
- B -->|Yes| C[2. Deploy observ-infra<br/>Rancher + Keycloak]
- B -->|No| D[3. Configure PostgreSQL in Terraform]
- 
- C --> D[3. Configure PostgreSQL in Terraform]
- 
- D --> E{enable_postgresql_setup?}
- 
- E -->|true| F[3a. Set EBS Volume Size<br/>nginx_node_ebs_volume_size_2 = 200]
- E -->|false| G[3b. Plan for Container PostgreSQL]
- 
- F --> H[4. Deploy infra via Terraform<br/>RKE2 + PostgreSQL + Networking]
- G --> I[4. Deploy infra via Terraform<br/>RKE2 + Networking only]
- 
- H --> J[Terraform Auto-executes:<br/>- Provision PostgreSQL node<br/>- Install via Ansible<br/>- Configure PostgreSQL 15]
- I --> K[PostgreSQL will be containerized]
- 
- J --> L[5. Update Helmsman DSF<br/>postgresql.enabled = false]
- K --> M[5. Update Helmsman DSF<br/>postgresql.enabled = true]
- 
- L --> N[6. Deploy Prerequisites<br/>Monitoring + Istio + Logging]
- K --> M[6. Deploy Prerequisites<br/>Monitoring + Istio + Logging]
- 
- L --> O[6. Deploy External Dependencies - Parallel<br/>PostgreSQL + MinIO + Keycloak + Kafka]
- K --> P[6. Deploy External Dependencies - Parallel<br/>PostgreSQL + MinIO + Keycloak + Kafka]
- 
- N --> Q[7. Deploy MOSIP Services<br/>Core services using PostgreSQL]
- O --> Q[7. Deploy MOSIP Services<br/>Core services using PostgreSQL]
- M --> Q[7. Deploy MOSIP Services<br/>Core services using PostgreSQL]
- P --> Q[7. Deploy MOSIP Services<br/>Core services using PostgreSQL]
- 
- Q --> Q1{Deploy eSignet?}
- Q1 -->|Yes| Q2[8. Deploy eSignet Stack<br/>Redis, SoftHSM, Keycloak Init,<br/>eSignet, OIDC UI, Mock Identity]
- Q1 -->|No| Q3{Deploy Test Rigs?}
- Q2 --> Q3
- Q3 -->|Yes| Q4[9. Deploy Test Rigs]
- Q3 -->|No| R[MOSIP Platform Ready]
- Q4 --> R[MOSIP Platform Ready]
- 
- style F fill:#c8e6c9,stroke:#1b5e20,color:#000000
- style G fill:#ffe0b2,stroke:#e65100,color:#000000
- style H fill:#c8e6c9,stroke:#1b5e20,color:#000000
- style I fill:#ffe0b2,stroke:#e65100,color:#000000
- style J fill:#a5d6a7,stroke:#2e7d32,color:#000000
- style K fill:#ffcc02,stroke:#f57c00,color:#000000
- style Q2 fill:#e0f2f1,stroke:#00695c,color:#000000
-```
-
 ## Deployment Flow & Dependencies
 
 ```mermaid
@@ -119,6 +66,61 @@ graph TD
  style R3 fill:#e0f2f1,stroke:#00695c,color:#000000
  style S3 fill:#e0f2f1,stroke:#00695c,color:#000000
  style T3 fill:#e0f2f1,stroke:#00695c,color:#000000
+```
+
+## High-Level Architecture Overview
+
+> **Note:** Complete Terraform scripts are available for **AWS only**. Azure and GCP currently have placeholder structures only — community contributions are welcome to implement full functionality.
+
+```mermaid
+graph TD
+ A[1. Deploy base-infra<br/>VPC + WireGuard<br/>One-time setup] --> B{Deploy observ-infra?}
+ 
+ B -->|Yes| C[2. Deploy observ-infra<br/>Rancher + Keycloak]
+ B -->|No| D[3. Configure PostgreSQL in Terraform]
+ 
+ C --> D[3. Configure PostgreSQL in Terraform]
+ 
+ D --> E{enable_postgresql_setup?}
+ 
+ E -->|true| F[3a. Set EBS Volume Size<br/>nginx_node_ebs_volume_size_2 = 200]
+ E -->|false| G[3b. Plan for Container PostgreSQL]
+ 
+ F --> H[4. Deploy infra via Terraform<br/>RKE2 + PostgreSQL + Networking]
+ G --> I[4. Deploy infra via Terraform<br/>RKE2 + Networking only]
+ 
+ H --> J[Terraform Auto-executes:<br/>- Provision PostgreSQL node<br/>- Install via Ansible<br/>- Configure PostgreSQL 15]
+ I --> K[PostgreSQL will be containerized]
+ 
+ J --> L[5. Update Helmsman DSF<br/>postgresql.enabled = false]
+ K --> M[5. Update Helmsman DSF<br/>postgresql.enabled = true]
+ 
+ L --> N[6. Deploy Prerequisites<br/>Monitoring + Istio + Logging]
+ K --> M[6. Deploy Prerequisites<br/>Monitoring + Istio + Logging]
+ 
+ L --> O[6. Deploy External Dependencies - Parallel<br/>PostgreSQL + MinIO + Keycloak + Kafka]
+ K --> P[6. Deploy External Dependencies - Parallel<br/>PostgreSQL + MinIO + Keycloak + Kafka]
+ 
+ N --> Q[7. Deploy MOSIP Services<br/>Core services using PostgreSQL]
+ O --> Q[7. Deploy MOSIP Services<br/>Core services using PostgreSQL]
+ M --> Q[7. Deploy MOSIP Services<br/>Core services using PostgreSQL]
+ P --> Q[7. Deploy MOSIP Services<br/>Core services using PostgreSQL]
+ 
+ Q --> Q1{Deploy eSignet?}
+ Q1 -->|Yes| Q2[8. Deploy eSignet Stack<br/>Redis, SoftHSM, Keycloak Init,<br/>eSignet, OIDC UI, Mock Identity]
+ Q1 -->|No| Q3{Deploy Test Rigs?}
+ Q2 --> Q3
+ Q3 -->|Yes| Q4[9. Deploy Test Rigs]
+ Q3 -->|No| R[MOSIP Platform Ready]
+ Q4 --> R[MOSIP Platform Ready]
+ 
+ style F fill:#c8e6c9,stroke:#1b5e20,color:#000000
+ style G fill:#ffe0b2,stroke:#e65100,color:#000000
+ style H fill:#c8e6c9,stroke:#1b5e20,color:#000000
+ style I fill:#ffe0b2,stroke:#e65100,color:#000000
+ style J fill:#a5d6a7,stroke:#2e7d32,color:#000000
+ style K fill:#ffcc02,stroke:#f57c00,color:#000000
+ style Q2 fill:#e0f2f1,stroke:#00695c,color:#000000
 ```
 
 ## Terraform Module Structure
