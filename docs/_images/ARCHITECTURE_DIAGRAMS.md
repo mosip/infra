@@ -6,31 +6,54 @@
 
 ### Simplified Component Flow
 
-```
-MOSIP Infrastructure Components (Updated)
-========================================
+```mermaid
+graph TD
+ GHA[GitHub Actions<br/>Central Orchestration]
 
-GitHub Actions (Central Orchestration)
- |
- v
-┌─────────────┬─────────────┬─────────────┐
-│ AWS Cloud │Azure Cloud │ GCP Cloud │
-│ Full Impl │ Placeholder │ Placeholder │
-└─────────────┴─────────────┴─────────────┘
- | | |
-┌─────┼─────┐ ┌─┼─┐ ┌─┼─┐
-│ │ │ │ │ │ │ │ │
-v v v v v v v v v
-base obs infra base infra base infra
-│ │ │ │ │ │ │
-│ │ │ │ ├──PostgreSQL Module (optional)
-│ │ ├──────┼───┘ 
-└─────┼─────┘ └───┘ └───┘
- | | |
- v v v
-[State Files] [State Files] [State Files]
-(Branch/Cloud (Branch/Cloud (Branch/Cloud
- Isolated) Isolated) Isolated)
+ GHA --> AWS
+ GHA --> AZ
+ GHA --> GCP
+
+ subgraph AWS [AWS Cloud - Full Implementation]
+ AWS_BASE[base-infra<br/>VPC + WireGuard]
+ AWS_OBS[observ-infra<br/>Rancher + Keycloak]
+ AWS_INFRA[infra<br/>MOSIP K8s Cluster]
+ AWS_PG[PostgreSQL Module<br/>Optional]
+ AWS_STATE[(State Files<br/>Branch Isolated)]
+ AWS_BASE --> AWS_OBS
+ AWS_BASE --> AWS_INFRA
+ AWS_INFRA --> AWS_PG
+ AWS_INFRA --> AWS_STATE
+ end
+
+ subgraph AZ [Azure Cloud - Placeholder]
+ AZ_BASE[base-infra]
+ AZ_INFRA[infra]
+ AZ_STATE[(State Files<br/>Branch Isolated)]
+ AZ_BASE --> AZ_INFRA
+ AZ_INFRA --> AZ_STATE
+ end
+
+ subgraph GCP [GCP Cloud - Placeholder]
+ GCP_BASE[base-infra]
+ GCP_INFRA[infra]
+ GCP_STATE[(State Files<br/>Branch Isolated)]
+ GCP_BASE --> GCP_INFRA
+ GCP_INFRA --> GCP_STATE
+ end
+
+ style GHA fill:#e3f2fd,stroke:#1565c0,color:#000000
+ style AWS_BASE fill:#e1f5fe,stroke:#01579b,color:#000000
+ style AWS_OBS fill:#fff3e0,stroke:#f57c00,color:#000000
+ style AWS_INFRA fill:#f3e5f5,stroke:#4a148c,color:#000000
+ style AWS_PG fill:#e8f5e8,stroke:#2e7d32,color:#000000
+ style AWS_STATE fill:#fce4ec,stroke:#880e4f,color:#000000
+ style AZ_BASE fill:#e1f5fe,stroke:#01579b,color:#000000
+ style AZ_INFRA fill:#f3e5f5,stroke:#4a148c,color:#000000
+ style AZ_STATE fill:#fce4ec,stroke:#880e4f,color:#000000
+ style GCP_BASE fill:#e1f5fe,stroke:#01579b,color:#000000
+ style GCP_INFRA fill:#f3e5f5,stroke:#4a148c,color:#000000
+ style GCP_STATE fill:#fce4ec,stroke:#880e4f,color:#000000
 ```
 
 ### Component Relationships (Updated)
@@ -153,8 +176,8 @@ graph TD
  L --> Q[Update Helmsman Configuration]
  P --> Q[Update Helmsman Configuration]
  
- Q --> R[postgresql.enabled = false (External)]
- Q --> S[postgresql.enabled = true (Container)]
+ Q --> R[postgresql.enabled = false - External]
+ Q --> S[postgresql.enabled = true - Container]
  
  R --> T[Deploy MOSIP Services]
  S --> T[Deploy MOSIP Services]
@@ -195,8 +218,8 @@ graph TD
  L --> N[6. Deploy Prerequisites<br/>Monitoring + Istio + Logging]
  K --> M[6. Deploy Prerequisites<br/>Monitoring + Istio + Logging]
  
- L --> O[6. Deploy External Dependencies (Parallel)<br/>PostgreSQL + MinIO + Keycloak + Kafka]
- K --> P[6. Deploy External Dependencies (Parallel)<br/>PostgreSQL + MinIO + Keycloak + Kafka]
+ L --> O[6. Deploy External Dependencies - Parallel<br/>PostgreSQL + MinIO + Keycloak + Kafka]
+ K --> P[6. Deploy External Dependencies - Parallel<br/>PostgreSQL + MinIO + Keycloak + Kafka]
  
  N --> Q[7. Deploy MOSIP Services<br/>Core services using PostgreSQL]
  O --> Q[7. Deploy MOSIP Services<br/>Core services using PostgreSQL]
@@ -218,6 +241,7 @@ graph TD
  style J fill:#a5d6a7,stroke:#2e7d32,color:#000000
  style K fill:#ffcc02,stroke:#f57c00,color:#000000
  style Q2 fill:#e0f2f1,stroke:#00695c,color:#000000
+```
 
 ## Deployment Flow & Dependencies
 
