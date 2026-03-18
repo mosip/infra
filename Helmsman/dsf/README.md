@@ -31,7 +31,7 @@ Make sure to update the above two dsf files with the required configuration chan
 
 ### Deploy Mosip core services
 
-To deploy Mosip core service we have below dsf file i,e 
+To deploy Mosip core services, we have the below dsf file, i.e.,
 * `mosip-dsf.yaml`: Install all the Mosip core services.
 
 ### Deploy eSignet Stack
