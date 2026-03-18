@@ -484,7 +484,7 @@ module "nginx-setup" {
   SSH_PRIVATE_KEY                         = var.SSH_PRIVATE_KEY
   K8S_INFRA_BRANCH                        = var.K8S_INFRA_BRANCH
   K8S_INFRA_REPO_URL                      = var.K8S_INFRA_REPO_URL
-  NGINX_TYPE                              = var.NGINX_TYPE  # Pass through the NGINX_TYPE
+  NGINX_TYPE                              = var.NGINX_TYPE # Pass through the NGINX_TYPE
 }
 
 
@@ -539,7 +539,7 @@ module "postgresql-setup" {
 
 module "activemq-setup" {
   count      = var.enable_activemq_setup && var.nginx_node_ebs_volume_size_3 > 0 ? 1 : 0
-  depends_on = [module.aws-resource-creation, module.nginx-setup, module.rke2-setup, module.nfs-setup]
+  depends_on = [module.aws-resource-creation, module.nginx-setup, module.rke2-setup, module.nfs-setup, module.postgresql-setup]
   source     = "./activemq-setup"
 
   NGINX_PUBLIC_IP              = module.aws-resource-creation.NGINX_PUBLIC_IP

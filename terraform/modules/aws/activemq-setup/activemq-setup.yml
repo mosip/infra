@@ -1,11 +1,11 @@
 ---
 # ActiveMQ EBS Volume + NFS Export + StorageClass Setup
-# Runs on the NGINX node (ansible_connection=local).
+# Runs from the Terraform RUNNER machine, SSHes into the NGINX node.
 # Steps:
 #   1. Wait for EBS device → format as XFS → mount it
-#   2. Create /srv/activemq with correct permissions
+#   2. Set correct NFS permissions on mount point
 #   3. Configure NFS export so Kubernetes pods can reach the storage
-#   4. Generate a Kubernetes StorageClass YAML that points to this NFS share
+#   4. Generate a Kubernetes StorageClass YAML on the runner (delegate_to: localhost)
 
 - name: ActiveMQ EBS Volume + NFS Setup
   hosts: activemq_servers
@@ -23,9 +23,9 @@
     - name: Install required tools
       apt:
         name:
-          - xfsprogs        # mkfs.xfs
-          - util-linux       # lsblk, blkid
-          - nfs-kernel-server  # NFS server
+          - xfsprogs            # mkfs.xfs
+          - util-linux          # lsblk, blkid
+          - nfs-kernel-server   # NFS server
         state: present
 
     # ── Wait for EBS block device ──────────────────────────────────────────────
@@ -63,7 +63,6 @@
         path: "{{ activemq_mount_point }}"
         state: directory
         mode: '0777'
-        owner: nfsnobody
 
     - name: Mount device and add to fstab (idempotent)
       mount:
@@ -76,10 +75,9 @@
         state: mounted
 
     # ── NFS: Set ownership and permissions ────────────────────────────────────
-    - name: Set NFS-compatible ownership on mount point
+    - name: Set NFS-compatible permissions on mount point
       file:
         path: "{{ activemq_mount_point }}"
-        owner: nfsnobody
         mode: '0777'
         state: directory
 
@@ -123,9 +121,9 @@
       register: mount_info
       changed_when: false
 
-    # ── Generate Kubernetes StorageClass YAML ─────────────────────────────────
-    # Write the file to localhost (/tmp/) so the Terraform K8s deployment
-    # resource can copy it to the control plane and apply it.
+    # ── Generate Kubernetes StorageClass YAML on the runner ───────────────────
+    # delegate_to: localhost writes the file on the Terraform runner, NOT on NGINX.
+    # Terraform's second null_resource then copies it to the K8s control plane.
     - name: Generate Kubernetes StorageClass YAML for ActiveMQ NFS share
       copy:
         content: |
@@ -156,7 +154,7 @@
           - "Disk usage      : {{ mount_info.stdout_lines }}"
           - "NFS export      : {{ activemq_mount_point }} *(rw,sync,no_root_squash,...)"
           - "NFS server IP   : {{ ansible_host }}"
-          - "StorageClass    : nfs-csi-activemq → /tmp/activemq-storageclass.yaml"
+          - "StorageClass    : nfs-csi-activemq → /tmp/activemq-storageclass.yaml (on runner)"
           - ""
           - "Next: Terraform will apply the StorageClass to Kubernetes."
           - "In Helmsman DSF, set: --set persistence.storageClass=nfs-csi-activemq"
