@@ -62,6 +62,9 @@ graph TD
  RT -->|Yes| R4[7. Deploy Test Rigs]
  ST -->|Yes| S4[7. Deploy Test Rigs]
  TT -->|Yes| T4[7. Deploy Test Rigs]
+ RT -->|No| R_Done[Deployment Complete]
+ ST -->|No| S_Done[Deployment Complete]
+ TT -->|No| T_Done[Deployment Complete]
  
  style F fill:#e1f5fe,stroke:#01579b,color:#000000
  style G fill:#e1f5fe,stroke:#01579b,color:#000000
