@@ -46,13 +46,22 @@ graph TD
  S1 --> S2[5. Deploy MOSIP Services]
  T1 --> T2[5. Deploy MOSIP Services]
  
- R2 --> R3[6. Deploy eSignet Stack<br/>Optional]
- S2 --> S3[6. Deploy eSignet Stack<br/>Optional]
- T2 --> T3[6. Deploy eSignet Stack<br/>Optional]
+ R2 --> RE{Deploy eSignet Stack?}
+ S2 --> SE{Deploy eSignet Stack?}
+ T2 --> TE{Deploy eSignet Stack?}
+ RE -->|Yes| R3[6. Deploy eSignet Stack]
+ SE -->|Yes| S3[6. Deploy eSignet Stack]
+ TE -->|Yes| T3[6. Deploy eSignet Stack]
  
- R3 --> R4[7. Deploy Test Rigs<br/>Optional]
- S3 --> S4[7. Deploy Test Rigs<br/>Optional]
- T3 --> T4[7. Deploy Test Rigs<br/>Optional]
+ R3 --> RT{Deploy Test Rigs?}
+ S3 --> ST{Deploy Test Rigs?}
+ T3 --> TT{Deploy Test Rigs?}
+ RE -->|No| RT
+ SE -->|No| ST
+ TE -->|No| TT
+ RT -->|Yes| R4[7. Deploy Test Rigs]
+ ST -->|Yes| S4[7. Deploy Test Rigs]
+ TT -->|Yes| T4[7. Deploy Test Rigs]
  
  style F fill:#e1f5fe,stroke:#01579b,color:#000000
  style G fill:#e1f5fe,stroke:#01579b,color:#000000
