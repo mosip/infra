@@ -461,17 +461,17 @@ graph TD
 
 ## Support & Best Practices
 
-**Workflow Maintenance**: Keep workflows updated with latest Terraform versions 
-**State Management**: GPG encrypted state with branch-based isolation 
-**Security Reviews**: Regular rotation of GPG keys and cloud credentials 
-**PostgreSQL Management**: Automated setup via Terraform + Ansible integration 
-**Performance Optimization**: Use parallel deployment for 20% faster setup times 
+- **Workflow Maintenance**: Keep workflows updated with latest Terraform versions 
+- **State Management**: GPG encrypted state with branch-based isolation 
+- **Security Reviews**: Regular rotation of GPG keys and cloud credentials 
+-  **PostgreSQL Management**: Automated setup via Terraform + Ansible integration 
+- **Performance Optimization**: Use parallel deployment for 20% faster setup times 
 
 ## Cloud Provider Contribution Guide
 
-**AWS** - Production ready with full feature set 
-**Azure** - [Placeholder implementation](../terraform/base-infra/azure/main.tf) - contributions welcome 
-**GCP** - [Placeholder implementation](../terraform/base-infra/gcp/main.tf) - contributions welcome 
+- **AWS** - Production ready with full feature set 
+- **Azure** - [Placeholder implementation](../terraform/base-infra/azure/main.tf) - contributions welcome 
+- **GCP** - [Placeholder implementation](../terraform/base-infra/gcp/main.tf) - contributions welcome 
 
 **Community contributions needed for Azure and GCP implementations**
 
