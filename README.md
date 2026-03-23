@@ -44,7 +44,10 @@ graph TB
  
  %% MOSIP Services
  I --> J[Helmsman: MOSIP Services]
- J --> K{Deploy<br/>Test Rigs?}
+ J --> J1{Deploy<br/>eSignet?}
+ J1 -->|Yes| J2[Helmsman: eSignet Stack<br/>Redis, SoftHSM, Keycloak,<br/>Mock Identity, OIDC UI]
+ J1 -->|No| K{Deploy<br/>Test Rigs?}
+ J2 --> K
  K -->|Yes| L[Helmsman: Test Rigs<br/>API, UI, DSL Testing]
  K -->|No| M[Verify Deployment]
  L --> M
@@ -57,14 +60,16 @@ graph TB
  classDef prereq fill:#fff3e0,stroke:#ff8f00,stroke-width:2px
  classDef terraform fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
  classDef helmsman fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+ classDef esignet fill:#e0f2f1,stroke:#00695c,stroke-width:2px
  classDef success fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
  classDef decision fill:#fce4ec,stroke:#c2185b,stroke-width:2px
  
  class A,B,C prereq
  class D,F,G terraform
  class H,I,J,L helmsman
+ class J2 esignet
  class M,N,O success
- class E,K decision
+ class E,K,J1 decision
 ```
 
 > **Note:** Complete Terraform scripts are available only for **AWS**. For **Azure and GCP**, only placeholder structures are configured - community contributions are welcome to implement full functionality.
