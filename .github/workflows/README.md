@@ -87,8 +87,8 @@ postgresql_port = "5433" # PostgreSQL port
 ```
 
 ### PostgreSQL Deployment Options
-- **External Database** (`enable_postgresql_setup = true`): Production-ready PostgreSQL on dedicated instances via Terraform + Ansible
-- **Container Database** (`enable_postgresql_setup = false`): In-cluster PostgreSQL for development via Helmsman
+- **External Database** (`enable_postgresql_setup = true`): PostgreSQL on dedicated instances via Terraform + Ansible
+- **Container Database** (`enable_postgresql_setup = false`): In-cluster PostgreSQL as microservice container via Helmsman
 
 ## Three-Component Architecture
 
