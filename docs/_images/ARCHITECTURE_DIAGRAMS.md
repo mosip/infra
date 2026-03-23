@@ -219,7 +219,6 @@ GCP: Google Cloud Storage + Versioning
 - **State Isolation**: Complete separation of environments and components
 - **Centralized Management**: Optional Rancher UI for cluster oversight
 - **Scalable**: Support for multiple MOSIP deployments
-- **Production Ready**: Reliability and operational excellence
 
 ---
 
