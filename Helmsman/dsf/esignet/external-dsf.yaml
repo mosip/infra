@@ -44,6 +44,8 @@ namespaces:
     protected: false
   minio:
     protected: false
+  esignet:
+    protected: true
 apps:
   # ---------------------------------------------------------------------------
   # PostgreSQL Server
