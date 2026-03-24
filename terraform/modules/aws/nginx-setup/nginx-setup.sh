@@ -33,28 +33,13 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 set -o errtrace  # trace ERR through 'time command' and other functions
 set -o pipefail  # trace ERR through pipes
 
-## Wait for cloud-init to finish (it holds the apt lock on fresh EC2 instances)
-echo "[ Waiting for cloud-init to complete ] : "
-sudo cloud-init status --wait || true
-
-## Wait for any apt/dpkg lock to be released (unattended-upgrades may still be running)
-echo "[ Waiting for apt/dpkg locks to be released ] : "
-while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 || \
-      sudo fuser /var/lib/apt/lists/lock >/dev/null 2>&1 || \
-      sudo fuser /var/cache/apt/archives/lock >/dev/null 2>&1; do
-  echo "[ Apt lock held by another process, waiting 10s... ] : "
-  sleep 10
-done
-echo "[ Apt locks are free, proceeding ] : "
-
 ## Install Nginx, ssl dependencies
 echo "[ Install nginx & ssl dependencies packages ] : "
-export DEBIAN_FRONTEND=noninteractive
-sudo apt-get update -y
-sudo apt-get install -y software-properties-common
+sudo apt-get update
+sudo apt install -y software-properties-common
 sudo add-apt-repository universe -y
-sudo apt-get update -y
-sudo apt-get install -y letsencrypt certbot python3-certbot-nginx python3-certbot-dns-route53
+sudo apt update
+sudo apt-get install letsencrypt certbot python3-certbot-nginx python3-certbot-dns-route53 -y
 
 ## Get ssl certificate automatically
 if [ "$NGINX_TYPE" == "mosip" ]; then

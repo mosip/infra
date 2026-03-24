@@ -1,12 +1,5 @@
 #!/bin/bash
 
-# Skip hook execution during Helmsman dry-run - namespaces and releases
-# are not actually created in dry-run mode so kubectl/helm calls will fail.
-if [ "${HELMSMAN_MODE:-}" = "dry-run" ]; then
-  echo "[DRY-RUN] Skipping oidc-ui-preinstall.sh hook (no real resources exist in dry-run)"
-  exit 0
-fi
-
 DST_NS=esignet
 function installing_oidc_ui () {
   echo Copy configmaps to $DST_NS namespace

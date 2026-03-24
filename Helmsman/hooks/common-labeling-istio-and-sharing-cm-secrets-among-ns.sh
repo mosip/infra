@@ -1,11 +1,4 @@
 #!/bin/bash
-
-# Skip hook execution during Helmsman dry-run - namespaces and releases
-# are not actually created in dry-run mode so kubectl/helm calls will fail.
-if [ "${HELMSMAN_MODE:-}" = "dry-run" ]; then
-  echo "[DRY-RUN] Skipping common-labeling-istio-and-sharing-cm-secrets-among-ns.sh hook (no real resources exist in dry-run)"
-  exit 0
-fi
 # Centralized Post-Install Setup Script for MOSIP Deployment
 
 # Namespaces
@@ -35,7 +28,7 @@ declare -A NAMESPACES=(
 ISTIO_ENABLED_NS=(
     "KEYMGR" "WEBSUB" "SMTP" "KERNEL" "DC" "BIOSDK" 
     "PACKETMANAGER" "DATASHARE" "ABIS" "ADMIN" "IDA" 
-    "IDREPO" "PMS" "PRINT" "REGPROC" "REGCLIENT"
+    "IDREPO" "PMS" "PRINT" "REGPROC" "REGCLIENT" "SOFTHSM"
 )
 ISTIO_DISABLED_NS=("PREREG")
 

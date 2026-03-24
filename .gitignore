@@ -130,4 +130,3 @@ helmsman_logs/
 # k8s-infra repo cloned during nginx/cluster provisioning
 # Contains third-party code and may include secrets (webhook URLs, tokens)
 **/k8s-infra/
-

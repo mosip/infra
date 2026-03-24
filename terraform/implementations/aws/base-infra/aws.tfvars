@@ -45,6 +45,6 @@ enable_dns_support   = true
 
 # WireGuard automation configuration
 k8s_infra_repo_url     = "https://github.com/mosip/k8s-infra.git"
-k8s_infra_branch       = "v1.2.1.0"
+k8s_infra_branch       = "release-1.2.1.x"
 wireguard_peers        = 30
 enable_wireguard_setup = true
