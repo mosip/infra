@@ -61,7 +61,15 @@ fi
 # --- Step 2: Read existing client secrets if any ---
 # Source: deploy/keycloak/keycloak-init.sh - reading existing secrets
 echo "Checking for existing keycloak-client-secrets"
-HELM_SET_SECRETS=""
+HELM_SET_SECRETS=()
+
+escape_helm_value() {
+  local value="$1"
+  value="${value//\\/\\\\}"
+  value="${value//,/\\,}"
+  value="${value//=/\\=}"
+  printf '%s' "$value"
+}
 
 declare -A SECRET_KEYS=(
   ["mosip_pms_client_secret"]="0"
@@ -78,7 +86,10 @@ if kubectl -n "$KEYCLOAK_NS" get secret keycloak-client-secrets &>/dev/null; the
     val=$(kubectl -n "$KEYCLOAK_NS" get secret keycloak-client-secrets \
       -o jsonpath="{.data.$key}" 2>/dev/null | base64 -d 2>/dev/null || echo "")
     if [[ -n "$val" ]]; then
-      HELM_SET_SECRETS="$HELM_SET_SECRETS --set clientSecrets[$idx].name=$key --set clientSecrets[$idx].secret=$val"
+      HELM_SET_SECRETS+=(
+        --set-string "clientSecrets[$idx].name=$key"
+        --set-string "clientSecrets[$idx].secret=$(escape_helm_value "$val")"
+      )
     fi
   done
 else
@@ -94,8 +105,8 @@ helm repo update
 kubectl -n "$ESIGNET_NS" delete secret --ignore-not-found=true keycloak-client-secrets
 helm -n "$ESIGNET_NS" delete esignet-keycloak-init 2>/dev/null || true
 
-eval helm -n "$ESIGNET_NS" install esignet-keycloak-init mosip/keycloak-init \
-  $HELM_SET_SECRETS \
+helm -n "$ESIGNET_NS" install esignet-keycloak-init mosip/keycloak-init \
+  "${HELM_SET_SECRETS[@]}" \
   --set keycloak.realms.mosip.realm_config.attributes.frontendUrl="https://$IAMHOST_URL/auth" \
   --set keycloakInternalHost="keycloak.$KEYCLOAK_NS" \
   --set keycloakExternalHost="$IAMHOST_URL" \
