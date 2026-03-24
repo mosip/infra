@@ -17,8 +17,9 @@ kubectl create namespace esignet --dry-run=client -o yaml | kubectl apply -f -
 if kubectl -n esignet get configmap softhsm-mock-identity-system-share &>/dev/null; then
   echo "SoftHSM mock identity system configmap found."
 else
-  echo "WARNING: softhsm-mock-identity-system-share configmap not found in esignet namespace."
-  echo "Ensure softhsm-mock-identity-system is deployed and post-install hook has run."
+  echo "ERROR: softhsm-mock-identity-system-share configmap not found in esignet namespace."
+  echo "Deploy/copy this shared ConfigMap before running mock identity system install."
+  exit 1
 fi
 
 echo "Mock identity system pre-install completed."
