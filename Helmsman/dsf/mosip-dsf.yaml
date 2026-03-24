@@ -69,7 +69,7 @@ apps:
   config-server:
     namespace: config-server
     enabled: true
-    version: 12.0.4-develop
+    version: 12.0.4
     chart: mosip/config-server
     valuesFile: "$WORKDIR/utils/config-server-values.yaml"
     wait: true
