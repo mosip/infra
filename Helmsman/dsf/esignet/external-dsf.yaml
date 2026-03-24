@@ -5,7 +5,7 @@
 # standalone eSignet v1.7.1 deployment (without full MOSIP platform).
 #
 # Components:
-#   - PostgreSQL (optional, disabled by default if using external DB)
+#   - PostgreSQL (optional, disable it if using external DB)
 #   - PostgreSQL Init (eSignet DB only - v1.7.1 branch)
 #   - Redis
 #   - Kafka + Kafka UI
@@ -294,3 +294,34 @@ apps:
     priority: -9
     hooks:
       postInstall: "$WORKDIR/hooks/esignet-1.7.1/captcha-postinstall.sh"
+
+  minio:
+    namespace: minio
+    enabled: true
+    version: 10.1.6
+    chart: mosip/minio
+    set:
+      image.repository: "mosipid/minio"
+      image.tag: "2022.2.7-debian-10-r0"
+      metrics.serviceMonitor.enabled: "true"
+      extraEnvVars[0].name: "MINIO_PROMETHEUS_URL"
+      extraEnvVars[0].value: "http://rancher-monitoring-prometheus.cattle-monitoring-system:9090"
+      extraEnvVars[1].name: "MINIO_PROMETHEUS_JOB_ID"
+      extraEnvVars[1].value: "minio"
+      resourcesPreset: "none"
+    wait: true
+    timeout: 1200
+    priority: -8
+
+  istio-addons-minio:
+    namespace: minio
+    enabled: true
+    version: 1.2.0
+    chart: $WORKDIR/utils/istio-addons/minio-istio-addons-1.2.0.tgz
+    set:
+      externalHost: "minio.sandbox.xyz.net"
+    wait: true
+    timeout: 1200
+    hooks:
+      postInstall: "$WORKDIR/hooks/s3-setup.sh "
+    priority: -9
