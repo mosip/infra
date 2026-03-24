@@ -41,7 +41,7 @@ data:
   mosip-api-internal-host: "api-internal.${INSTALLATION_DOMAIN}"
   mosip-kafka-host: "kafka.${INSTALLATION_DOMAIN}"
   mosip-esignet-host: "esignet.${INSTALLATION_DOMAIN}"
-  mosip-postgres-host: "esignet-postgres.${INSTALLATION_DOMAIN}"
+  mosip-postgres-host: "postgres.${INSTALLATION_DOMAIN}"
   mosip-signup-host: "signup.${INSTALLATION_DOMAIN}"
   mosip-smtp-host: "smtp.${INSTALLATION_DOMAIN}"
 EOF
