@@ -42,6 +42,8 @@ namespaces:
     protected: false
   captcha:
     protected: false
+  minio:
+    protected: false
 apps:
   # ---------------------------------------------------------------------------
   # PostgreSQL Server
