@@ -149,7 +149,6 @@ create_local_backend() {
     # Include branch name for consistency and to avoid conflicts
     # Use 'local' as default branch name if not provided
     local branch_suffix="${branch:-local}"
-    local profile="$3"
     local state_file
     if [ -n "$profile" ]; then
         state_file="${provider}-${component}-${profile}-${branch_suffix}-terraform.tfstate"
