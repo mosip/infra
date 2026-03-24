@@ -103,7 +103,7 @@ apps:
     enabled: true
     version: 103.1.1+up4.4.0
     chart: mosip/rancher-logging
-    valuesFile: "$WORKDIR/utils/rancher-loggig-values.yaml"
+    valuesFile: "$WORKDIR/utils/rancher-logging-values.yaml"
     wait: true
     priority: -1
     timeout: 1200
