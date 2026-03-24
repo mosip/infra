@@ -64,7 +64,7 @@ apps:
       apitestrig.configmaps.apitestrig.NS: apitestrig
       apitestrig.configmaps.apitestrig.servicesNotDeployed: ''
       apitestrig.configmaps.apitestrig.uinGenerationProcessingDelayTimeInMilliSeconds: "600000"
-      apitestrig.configmaps.apitestrig.vidGenerationProcessingDelayTimeInMilliSeconds: "600000"  
+      apitestrig.configmaps.apitestrig.vidGenerationProcessingDelayTimeInMilliSeconds: "600000"
 
       modules.prereg.enabled: true
       modules.prereg.image.repository: mosipid/apitest-prereg
