@@ -79,7 +79,7 @@ apps:
       databases.mosip_keymgr.port: 5433
 
       databases.mosip_kernel.enabled: "true"
-      databases.mosip_kernel.branch: " v1.2.0.2"
+      databases.mosip_kernel.branch: "v1.2.0.2"
       databases.mosip_kernel.host: "postgres.sandbox.xyz.net"
       databases.mosip_kernel.port: 5433
 
