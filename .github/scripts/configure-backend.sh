@@ -76,6 +76,10 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --profile)
+            if [[ -z "$2" || "$2" == -* ]]; then
+                echo "Error: --profile requires a non-empty argument that is not an option flag."
+                exit 1
+            fi
             PROFILE="$2"
             shift 2
             ;;
