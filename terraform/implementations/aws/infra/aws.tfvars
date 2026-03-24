@@ -36,7 +36,7 @@ ami = "ami-0ad21ae1d0696ad58"
 k8s_infra_repo_url = "https://github.com/mosip/k8s-infra.git"
 
 # Repo K8S-INFRA branch
-k8s_infra_branch = "release-1.2.1.x"
+k8s_infra_branch = "v1.2.1.2"
 
 # NGINX Node's Root volume size
 nginx_node_root_volume_size = 24
@@ -86,7 +86,7 @@ postgresql_port         = "5433"
 # MOSIP Infrastructure Repository Configuration
 mosip_infra_repo_url = "https://github.com/mosip/infra.git"
 
-mosip_infra_branch = "release-0.2.0"
+mosip_infra_branch = "v0.2.0"
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
 vpc_name = "<vpc-name>"
