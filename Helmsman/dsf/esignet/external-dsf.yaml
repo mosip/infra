@@ -314,6 +314,7 @@ apps:
     wait: true
     timeout: 1200
     priority: -8
+    # Ensure minio is deployed before its Istio addons
 
   istio-addons-minio:
     namespace: minio
@@ -326,4 +327,4 @@ apps:
     timeout: 1200
     hooks:
       postInstall: "$WORKDIR/hooks/s3-setup.sh "
-    priority: -9
+    priority: -7
