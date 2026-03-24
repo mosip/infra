@@ -267,7 +267,7 @@ apps:
     wait: true
     timeout: 1200
     hooks:
-      postInstall: "$WORKDIR/hooks/s3-setup.sh "
+      postInstall: "$WORKDIR/hooks/s3-setup.sh"
     priority: -2
 
   clamav:
