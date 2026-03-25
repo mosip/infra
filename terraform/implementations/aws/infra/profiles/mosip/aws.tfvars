@@ -6,10 +6,10 @@
 # ============================================================
 
 # Environment name (infra component)
-cluster_name = "ab"
+cluster_name = "ab1"
 
 # MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "ab.mosip.net"
+cluster_env_domain = "ab1.mosip.net"
 
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
 mosip_email_id = "thisisbn46@gmail.com"
