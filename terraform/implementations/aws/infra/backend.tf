@@ -1,5 +1,5 @@
 terraform {
   backend "local" {
-    path = "aws-infra-esignet-testgrid-terraform.tfstate"
+    path = "aws-infra-mosip-testgrid-terraform.tfstate"
   }
 }
