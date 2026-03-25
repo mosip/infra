@@ -6,10 +6,10 @@
 # ============================================================
 
 # Environment name (infra component)
-cluster_name = "soil"
+cluster_name = "ab"
 
 # MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "soil.mosip.net"
+cluster_env_domain = "ab.mosip.net"
 
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
 mosip_email_id = "thisisbn46@gmail.com"
@@ -58,13 +58,13 @@ nginx_node_ebs_volume_size_2 = 200 # Enable second EBS volume for PostgreSQL tes
 k8s_instance_root_volume_size = 64
 
 # Control-plane, ETCD, Worker
-k8s_control_plane_node_count = 3
+k8s_control_plane_node_count = 1
 
 # ETCD, Worker
-k8s_etcd_node_count = 3
+k8s_etcd_node_count = 0
 
 # Worker
-k8s_worker_node_count = 2
+k8s_worker_node_count = 0
 
 # RKE2 Version Configuration
 rke2_version = "v1.28.9+rke2r1"
@@ -76,7 +76,7 @@ WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 
 # Rancher Import URL
 # Rancher Import Configuration
-enable_rancher_import = true
+enable_rancher_import = false
 rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/wl5dtxjrfwl2sx2b2s9s54xn5wkffvnrj4cdmqp8vdn2gczfqmvp8z_c-m-2kvb49jf.yaml\""
 
 # DNS Records to map

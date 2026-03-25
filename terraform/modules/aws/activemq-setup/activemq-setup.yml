@@ -32,7 +32,7 @@
     - name: Wait for ActiveMQ storage device to appear
       wait_for:
         path: "{{ activemq_storage_device }}"
-        timeout: 120
+        timeout: 240
         msg: "Timed out waiting for device {{ activemq_storage_device }}"
 
     - name: Show available block devices
