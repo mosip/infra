@@ -70,10 +70,6 @@
       delay: 5
       until: device_uuid.stdout != ""
 
-    - name: Show resolved UUID
-      debug:
-        msg: "Device {{ activemq_storage_device }} → UUID={{ device_uuid.stdout | trim }}"
-
     # ── Create mount point and mount ───────────────────────────────────────────
     - name: Create mount point directory
       file:
