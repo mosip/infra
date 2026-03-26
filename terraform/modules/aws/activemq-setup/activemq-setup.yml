@@ -29,6 +29,8 @@
         state: present
 
     # ── Wait for EBS block device ──────────────────────────────────────────────
+    # activemq_storage_device may be a raw path (/dev/nvme3n1) or a stable
+    # by-id path (/dev/disk/by-id/nvme-...). Both work with wait_for.
     - name: Wait for ActiveMQ storage device to appear
       wait_for:
         path: "{{ activemq_storage_device }}"
@@ -57,6 +59,21 @@
         dev: "{{ activemq_storage_device }}"
       when: existing_fs.stdout == ""
 
+    # ── Resolve stable UUID for fstab ─────────────────────────────────────────
+    # Raw NVMe device names (/dev/nvme3n1) change on instance reboot/replacement.
+    # Using UUID= in fstab is stable — it survives device renaming.
+    - name: Resolve filesystem UUID of the device
+      command: blkid -o value -s UUID "{{ activemq_storage_device }}"
+      register: device_uuid
+      changed_when: false
+      retries: 3
+      delay: 5
+      until: device_uuid.stdout != ""
+
+    - name: Show resolved UUID
+      debug:
+        msg: "Device {{ activemq_storage_device }} → UUID={{ device_uuid.stdout | trim }}"
+
     # ── Create mount point and mount ───────────────────────────────────────────
     - name: Create mount point directory
       file:
@@ -64,10 +81,11 @@
         state: directory
         mode: '0777'
 
-    - name: Mount device and add to fstab (idempotent)
+    # fstab and mount use UUID= — stable across reboots and NVMe renaming.
+    - name: Mount device by UUID and add to fstab (idempotent)
       mount:
         path: "{{ activemq_mount_point }}"
-        src: "{{ activemq_storage_device }}"
+        src: "UUID={{ device_uuid.stdout | trim }}"
         fstype: xfs
         opts: defaults,nofail
         dump: '0'
