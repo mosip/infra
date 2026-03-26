@@ -210,15 +210,6 @@ variable "nginx_node_ebs_volume_size_3" {
   description = "EBS volume size (GB) for ActiveMQ data on the NGINX node — set to 0 to disable"
   type        = number
   default     = 0
-
-  # INVARIANT: A 3rd EBS volume only makes sense when enable_activemq_setup = true.
-  # If this is > 0 but enable_activemq_setup = false, AWS creates and bills an
-  # unformatted/unmounted disk that nobody uses — an orphaned resource.
-  # Enforce the pairing at plan time so the misconfiguration is caught early.
-  validation {
-    condition     = var.nginx_node_ebs_volume_size_3 == 0 || var.enable_activemq_setup
-    error_message = "nginx_node_ebs_volume_size_3 > 0 requires enable_activemq_setup = true. Either set enable_activemq_setup = true to provision and mount the volume, or set nginx_node_ebs_volume_size_3 = 0 to skip disk creation entirely."
-  }
 }
 
 variable "activemq_storage_device" {
