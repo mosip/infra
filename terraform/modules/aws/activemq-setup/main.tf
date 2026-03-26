@@ -118,10 +118,10 @@ resource "null_resource" "activemq-k8s-storageclass" {
   # Apply it to the cluster
   provisioner "remote-exec" {
     inline = [
-      # Build kubeconfig path from the actual login user — no hardcoding, no glob search.
-      "export KUBECONFIG=/home/${var.CONTROL_PLANE_USER}/.kube/config",
-      # Fail immediately with a clear message if the file doesn't exist.
-      "if [ ! -f \"$KUBECONFIG\" ]; then echo \"ERROR: kubeconfig not found at $KUBECONFIG\"; exit 1; fi",
+      # Build kubeconfig path from the actual login user using find to locate the .yaml file
+      "export KUBECONFIG=$(find /home/${var.CONTROL_PLANE_USER}/.kube/ -name '*.yaml' | head -1)",
+      # Fail immediately with a clear message if no valid file was found.
+      "if [ -z \"$KUBECONFIG\" ] || [ ! -f \"$KUBECONFIG\" ]; then echo \"ERROR: kubeconfig not found in /home/${var.CONTROL_PLANE_USER}/.kube/\"; exit 1; fi",
       "echo 'Using kubeconfig: $KUBECONFIG'",
       "kubectl cluster-info",
       "echo 'Applying ActiveMQ NFS StorageClass...'",
