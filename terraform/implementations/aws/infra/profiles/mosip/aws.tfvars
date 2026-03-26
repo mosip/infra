@@ -104,7 +104,7 @@ vpc_name = "default"
 # ActiveMQ itself runs inside Kubernetes via Helm (no software installed here).
 # Both conditions must be true — set either to false/0 to skip entirely.
 enable_activemq_setup        = false # Toggle: true = create & mount, false = skip
-nginx_node_ebs_volume_size_3 = 30    # Volume size in GB (e.g. 100); 0 = disabled
+nginx_node_ebs_volume_size_3 = 20    # Volume size in GB (e.g. 100); 0 = disabled
 
 activemq_storage_device = "/dev/nvme3n1"
 activemq_mount_point    = "/srv/activemq"
