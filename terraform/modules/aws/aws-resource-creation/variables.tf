@@ -51,6 +51,11 @@ variable "NGINX_NODE_EBS_VOLUME_SIZE_3" {
   default     = 0
   description = "EBS volume size (GB) for ActiveMQ data on the NGINX node — set to 0 to disable"
 }
+variable "enable_activemq_setup" {
+  description = "Enable ActiveMQ EBS volume setup on the NGINX node"
+  type        = bool
+  default     = false
+}
 variable "K8S_INSTANCE_ROOT_VOLUME_SIZE" { type = number }
 
 variable "DNS_RECORDS" {
@@ -174,7 +179,7 @@ EOF
         Cluster   = var.CLUSTER_NAME
         Component = var.CLUSTER_NAME
       }
-    }] : [], var.NGINX_NODE_EBS_VOLUME_SIZE_3 > 0 ? [{
+      }] : [], var.enable_activemq_setup && var.NGINX_NODE_EBS_VOLUME_SIZE_3 > 0 ? [{
       device_name           = "/dev/sdd"
       volume_size           = var.NGINX_NODE_EBS_VOLUME_SIZE_3
       volume_type           = "gp3"

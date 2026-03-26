@@ -130,6 +130,7 @@ module "aws-resource-creation" {
   NGINX_NODE_EBS_VOLUME_SIZE   = var.NGINX_NODE_EBS_VOLUME_SIZE
   NGINX_NODE_EBS_VOLUME_SIZE_2 = var.nginx_node_ebs_volume_size_2
   NGINX_NODE_EBS_VOLUME_SIZE_3 = var.nginx_node_ebs_volume_size_3
+  enable_activemq_setup        = var.enable_activemq_setup
   NGINX_NODE_ROOT_VOLUME_SIZE  = var.NGINX_NODE_ROOT_VOLUME_SIZE
 
   # VPC and Subnet Configuration
@@ -484,7 +485,7 @@ module "nginx-setup" {
   SSH_PRIVATE_KEY                         = var.SSH_PRIVATE_KEY
   K8S_INFRA_BRANCH                        = var.K8S_INFRA_BRANCH
   K8S_INFRA_REPO_URL                      = var.K8S_INFRA_REPO_URL
-  NGINX_TYPE                              = var.NGINX_TYPE  # Pass through the NGINX_TYPE
+  NGINX_TYPE                              = var.NGINX_TYPE # Pass through the NGINX_TYPE
 }
 
 
