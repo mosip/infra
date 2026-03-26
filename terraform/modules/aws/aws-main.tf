@@ -130,6 +130,7 @@ module "aws-resource-creation" {
   NGINX_NODE_EBS_VOLUME_SIZE   = var.NGINX_NODE_EBS_VOLUME_SIZE
   NGINX_NODE_EBS_VOLUME_SIZE_2 = var.nginx_node_ebs_volume_size_2
   NGINX_NODE_EBS_VOLUME_SIZE_3 = var.nginx_node_ebs_volume_size_3
+  enable_activemq_setup        = var.enable_activemq_setup
   NGINX_NODE_ROOT_VOLUME_SIZE  = var.NGINX_NODE_ROOT_VOLUME_SIZE
 
   # VPC and Subnet Configuration
