@@ -40,6 +40,10 @@ resource "null_resource" "activemq-ebs-nfs-setup" {
   count = var.NGINX_NODE_EBS_VOLUME_SIZE_3 > 0 ? 1 : 0
 
   triggers = {
+    # Re-run when target node is replaced (new IP = new instance)
+    nginx_private_ip = var.NGINX_PRIVATE_IP
+
+    # Re-run when storage configuration changes
     device_mount_hash = md5("${var.ACTIVEMQ_STORAGE_DEVICE}${var.ACTIVEMQ_MOUNT_POINT}")
   }
 
@@ -63,6 +67,10 @@ resource "null_resource" "activemq-ebs-nfs-setup" {
 
       # ── Copy playbook to a temp working dir ───────────────────────────────────
       WORK_DIR=$(mktemp -d /tmp/activemq-setup-XXXXXX)
+
+      # ── Guarantee cleanup of KEY_FILE and WORK_DIR on success or failure ──────
+      trap 'rm -rf "$KEY_FILE" "$WORK_DIR"' EXIT ERR
+
       cp "${path.module}/activemq-setup.yml" "$WORK_DIR/activemq-setup.yml"
       cp "${path.module}/activemq-setup.sh"  "$WORK_DIR/activemq-setup.sh"
       chmod +x "$WORK_DIR/activemq-setup.sh"
@@ -75,9 +83,6 @@ resource "null_resource" "activemq-ebs-nfs-setup" {
       export WORK_DIR="$WORK_DIR"
 
       bash "$WORK_DIR/activemq-setup.sh"
-
-      # ── Cleanup key (also runs on failure via trap) ────────────────────────────
-      rm -f "$KEY_FILE"
     EOT
     interpreter = ["bash", "-c"]
 
@@ -113,7 +118,10 @@ resource "null_resource" "activemq-k8s-storageclass" {
   # Apply it to the cluster
   provisioner "remote-exec" {
     inline = [
-      "export KUBECONFIG=$(find /home/ubuntu/.kube/ -name '*.yaml' | head -1)",
+      # Build kubeconfig path from the actual login user — no hardcoding, no glob search.
+      "export KUBECONFIG=/home/${var.CONTROL_PLANE_USER}/.kube/config",
+      # Fail immediately with a clear message if the file doesn't exist.
+      "if [ ! -f \"$KUBECONFIG\" ]; then echo \"ERROR: kubeconfig not found at $KUBECONFIG\"; exit 1; fi",
       "echo 'Using kubeconfig: $KUBECONFIG'",
       "kubectl cluster-info",
       "echo 'Applying ActiveMQ NFS StorageClass...'",
