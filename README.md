@@ -676,7 +676,7 @@ This step creates MOSIP Kubernetes cluster, PostgreSQL (if enabled), networking,
  # NGINX node's second EBS volume size (optional - set to 0 to disable)
  nginx_node_ebs_volume_size_2 = 200 # Enable second EBS volume for PostgreSQL testing
  # NGINX node's third EBS volume size (optional - set to 0 to disable)
- nginx_node_ebs_volume_size_3 = 30 # Enable third EBS volume for ActiveMQ storage
+ nginx_node_ebs_volume_size_3 = 100 # Enable third EBS volume for ActiveMQ storage
  # Kubernetes nodes Root volume size
  k8s_instance_root_volume_size = 64
 
