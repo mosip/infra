@@ -33,6 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
+      profile: ${{ steps.set-matrix.outputs.PROFILE }}
     steps:
       - name: Checkout repository with full history
         uses: actions/checkout@v4
@@ -42,36 +43,36 @@ jobs:
       - name: Generate workflow matrix
         id: set-matrix
         run: |
-          # Determine profile
-          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
-            PROFILE="${{ github.event.inputs.profile }}"
-          else
-            PROFILE="mosip-platform-java11"
-          fi
-          echo "Using profile: $PROFILE"
-
           matrix_json='{"include":[]}'
           if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            PROFILE="${{ github.event.inputs.profile }}"
             matrix_json="{\"include\":[{\"dsf_files\":\"${PROFILE}/prereq-dsf.yaml\",\"wg_conf\":\"wg0\"},{\"dsf_files\":\"${PROFILE}/external-dsf.yaml\",\"wg_conf\":\"wg1\"}]}"
           else
             # Handle different event types properly
             if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
-              # For push events, use GitHub's provided SHAs
-              base_sha="${{ github.event.before}}"
+              base_sha="${{ github.event.before }}"
               head_sha="${{ github.sha }}"
             elif [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
-              # For PRs, compare against target branch
               base_sha="${{ github.event.pull_request.base.sha }}"
               head_sha="${{ github.event.pull_request.head.sha }}"
             fi
 
-            # Get changed files safely
-            changed_files=$(git diff --name-only "$base_sha" "$head_sha" -- 'Helmsman/dsf/' || echo "")
-            
+            # Get changed files safely; fall back to HEAD~1 if base_sha is unreachable
+            changed_files=$(git diff --name-only "$base_sha" "$head_sha" -- 'Helmsman/dsf/' 2>/dev/null || \
+                            git diff --name-only HEAD~1 HEAD -- 'Helmsman/dsf/' 2>/dev/null || echo "")
+
             entries=()
 
             # Dynamically detect changed profiles from file paths
             changed_profiles=$(echo "$changed_files" | grep 'Helmsman/dsf/' | sed 's|Helmsman/dsf/\([^/]*\)/.*|\1|' | sort -u)
+
+            # Derive PROFILE from the changed files (first detected profile dir)
+            PROFILE=$(echo "$changed_profiles" | head -1)
+            if [[ -z "$PROFILE" ]]; then
+              echo "Error: could not detect profile from changed DSF files."
+              exit 1
+            fi
+
             for profile_dir in $changed_profiles; do
               if echo "$changed_files" | grep -q "Helmsman/dsf/${profile_dir}/prereq-dsf.yaml"; then
                 entries+=("{\"dsf_files\":\"${profile_dir}/prereq-dsf.yaml\",\"wg_conf\":\"wg0\"}")
@@ -81,12 +82,13 @@ jobs:
                 entries+=("{\"dsf_files\":\"${profile_dir}/external-dsf.yaml\",\"wg_conf\":\"wg1\"}")
               fi
             done
-            
+
             if [ ${#entries[@]} -gt 0 ]; then
               matrix_json="{\"include\":[$(IFS=,; echo "${entries[*]}")]}"
             fi
           fi
 
+          echo "Using profile: $PROFILE"
           echo "matrix=$matrix_json" >> $GITHUB_OUTPUT
           echo "PROFILE=$PROFILE" >> $GITHUB_OUTPUT
   deploy:
@@ -261,9 +263,9 @@ jobs:
 
   workflow-caller:
     runs-on: ubuntu-latest
-    needs: deploy
+    needs: [deploy, set-matrix]
     # Only trigger MOSIP workflow for mosip-platform profiles, not for standalone esignet
-    if: ${{ github.event_name == 'workflow_dispatch' && startsWith(github.event.inputs.profile, 'mosip-platform-') }}
+    if: ${{ startsWith(needs.set-matrix.outputs.profile, 'mosip-platform-') }}
     steps:
       - name: Trigger helmsman mosip workflow via API
         env:
@@ -276,4 +278,4 @@ jobs:
             -H "Authorization: Bearer $GITHUB_TOKEN" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             https://api.github.com/repos/$GITHUB_REPO/actions/workflows/helmsman_mosip.yml/dispatches \
-            -d '{"ref":"'"$BRANCH"'","inputs":{"mode":"apply"}}'
+            -d '{"ref":"'"$BRANCH"'","inputs":{"mode":"apply","profile":"'"${{ needs.set-matrix.outputs.profile }}"'"}}'

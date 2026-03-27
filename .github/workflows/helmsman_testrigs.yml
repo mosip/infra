@@ -77,9 +77,14 @@ jobs:
             echo "PROFILE=${{ github.event.inputs.profile }}" >> $GITHUB_ENV
           else
             # Auto-detect profile from push trigger — extract profile dir name from changed files
-            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} -- 'Helmsman/dsf/' 2>/dev/null || echo "")
+            # Fall back to HEAD~1 if github.event.before is unreachable (e.g. shallow clone)
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} -- 'Helmsman/dsf/' 2>/dev/null || \
+                            git diff --name-only HEAD~1 HEAD -- 'Helmsman/dsf/' 2>/dev/null || echo "")
             PROFILE=$(echo "$CHANGED_FILES" | grep 'testrigs-dsf.yaml' | head -1 | sed 's|Helmsman/dsf/\([^/]*\)/.*|\1|')
-            PROFILE=${PROFILE:-mosip-platform-java11}
+            if [[ -z "$PROFILE" ]]; then
+              echo "Error: could not detect profile from changed DSF files."
+              exit 1
+            fi
             echo "PROFILE=$PROFILE" >> $GITHUB_ENV
           fi
           echo "Using profile: $PROFILE"
