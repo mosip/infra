@@ -3,6 +3,14 @@ name: Deploy Testrigs of mosip using Helmsman
 on:
   workflow_dispatch:
     inputs:
+      profile:
+        description: "Choose MOSIP platform profile"
+        required: true
+        default: "mosip-platform-java11"
+        type: choice
+        options:
+          - mosip-platform-java11
+          - mosip-platform-java21
       mode:
         description: "Choose Helmsman mode: dry-run or apply"
         required: true
@@ -13,7 +21,7 @@ on:
           - apply
   push:
     paths:
-      - Helmsman/dsf/testrigs-dsf.yaml
+      - Helmsman/dsf/**/testrigs-dsf.yaml
 
 jobs:
   deploy:
@@ -62,6 +70,24 @@ jobs:
           else
             echo "HELMSMAN_MODE=${{ github.event.inputs.mode }}" >> $GITHUB_ENV
           fi        
+
+      - name: Set Profile
+        run: |
+          if [ -n "${{ github.event.inputs.profile }}" ]; then
+            echo "PROFILE=${{ github.event.inputs.profile }}" >> $GITHUB_ENV
+          else
+            # Auto-detect profile from push trigger — extract profile dir name from changed files
+            # Fall back to HEAD~1 if github.event.before is unreachable (e.g. shallow clone)
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} -- 'Helmsman/dsf/' 2>/dev/null || \
+                            git diff --name-only HEAD~1 HEAD -- 'Helmsman/dsf/' 2>/dev/null || echo "")
+            PROFILE=$(echo "$CHANGED_FILES" | grep 'testrigs-dsf.yaml' | head -1 | sed 's|Helmsman/dsf/\([^/]*\)/.*|\1|')
+            if [[ -z "$PROFILE" ]]; then
+              echo "Error: could not detect profile from changed DSF files."
+              exit 1
+            fi
+            echo "PROFILE=$PROFILE" >> $GITHUB_ENV
+          fi
+          echo "Using profile: $PROFILE"
 
       - name: Setup ufw firewall
         run: |
@@ -134,5 +160,6 @@ jobs:
           echo "Using kubectl: $(which kubectl)"
           echo "Using kubeconfig: $KUBECONFIG"
           
-          # Run helmsman with the determined mode
-          helmsman --${HELMSMAN_MODE} -f $WORKDIR/dsf/testrigs-dsf.yaml
+          # Run helmsman with the determined mode and profile
+          echo "Using profile: $PROFILE"
+          helmsman --${HELMSMAN_MODE} -f $WORKDIR/dsf/${PROFILE}/testrigs-dsf.yaml

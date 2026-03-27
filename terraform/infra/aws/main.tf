@@ -39,7 +39,7 @@ module "aws_infrastructure" {
   nginx_node_ebs_volume_size_2  = var.nginx_node_ebs_volume_size_2
   K8S_INSTANCE_ROOT_VOLUME_SIZE = var.k8s_instance_root_volume_size
   network_cidr                  = var.network_cidr
-  DEPLOYMENT_TYPE               = "infra"  # Regular MOSIP infrastructure deployment
+  DEPLOYMENT_TYPE               = "infra" # Regular MOSIP infrastructure deployment
   WIREGUARD_CIDR                = var.WIREGUARD_CIDR
 
   # PostgreSQL Configuration
@@ -52,4 +52,10 @@ module "aws_infrastructure" {
   # MOSIP Infrastructure Repository Configuration
   mosip_infra_repo_url = var.mosip_infra_repo_url
   mosip_infra_branch   = var.mosip_infra_branch
+
+  # ActiveMQ Configuration
+  enable_activemq_setup        = var.enable_activemq_setup
+  nginx_node_ebs_volume_size_3 = var.nginx_node_ebs_volume_size_3
+  activemq_storage_device      = var.activemq_storage_device
+  activemq_mount_point         = var.activemq_mount_point
 }
