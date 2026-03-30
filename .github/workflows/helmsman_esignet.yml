@@ -30,6 +30,14 @@ on:
         required: false
         default: false
         type: boolean
+      domain_name:
+        description: "Domain name for this environment (e.g. example.xyz.net)"
+        required: false
+        type: string
+      env_name:
+        description: "Environment name (e.g. sandbox, dev, staging)"
+        required: false
+        type: string
   push:
     paths:
       - Helmsman/dsf/**/esignet-dsf.yaml
@@ -331,11 +339,16 @@ jobs:
             echo "MPARTNER_DEFAULT_AUTH_SECRET_VALUE=" >> $GITHUB_ENV
           fi
 
+      - name: Set deployment variables
+        run: |
+          echo "domain_name=${{ github.event.inputs.domain_name || vars.DOMAIN_NAME }}" >> $GITHUB_ENV
+          echo "env_name=${{ github.event.inputs.env_name || vars.ENV_NAME }}" >> $GITHUB_ENV
+
       - name: Initiate helmsman to apply the DSF configurations
         run: |
           export HOME="${{ github.workspace }}"
           export WORKDIR="$HOME/Helmsman"
-          
+
           # Conditional cleanup: Delete immutable Jobs only if checkbox is enabled
           # Kubernetes Jobs cannot be updated, so we must delete them before Helmsman runs on re-deployments
           DELETE_JOBS="${{ github.event.inputs.delete_existing_jobs }}"

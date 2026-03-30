@@ -19,6 +19,14 @@ on:
         options:
           - dry-run
           - apply
+      domain_name:
+        description: "Domain name for this environment (e.g. example.xyz.net)"
+        required: false
+        type: string
+      env_name:
+        description: "Environment name (e.g. sandbox, dev, staging)"
+        required: false
+        type: string
   push:
     paths:
       - Helmsman/dsf/**/mosip-dsf.yaml
@@ -156,15 +164,20 @@ jobs:
             echo "❌ External DSF not completed."
             exit 1
           fi
-      - name: Initiate helmsman to apply the DSF configurations. 
+      - name: Set deployment variables
+        run: |
+          echo "domain_name=${{ github.event.inputs.domain_name || vars.DOMAIN_NAME }}" >> $GITHUB_ENV
+          echo "env_name=${{ github.event.inputs.env_name || vars.ENV_NAME }}" >> $GITHUB_ENV
+
+      - name: Initiate helmsman to apply the DSF configurations.
         run: |
           export HOME="${{ github.workspace }}"
           export WORKDIR="$HOME/Helmsman"
-          
+
           # Verify tools are available
           echo "Using kubectl: $(which kubectl)"
           echo "Using kubeconfig: $KUBECONFIG"
-          
+
           # Run helmsman with the determined mode and profile
           echo "Using profile: $PROFILE"
           helmsman --${HELMSMAN_MODE} -f $WORKDIR/dsf/${PROFILE}/mosip-dsf.yaml
