@@ -284,6 +284,7 @@ apps:
     hooks:
       preInstall: "$WORKDIR/hooks/mock-relying-party-service-preinstall.sh"
 
+
   mock-relying-party-ui:
     namespace: esignet
     enabled: true
