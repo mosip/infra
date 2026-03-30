@@ -44,6 +44,14 @@ ENV_VAR_EXISTS=$(kubectl -n "$CAPTCHA_NS" get deployment captcha -o jsonpath="{.
 
 if [[ -z "$ENV_VAR_EXISTS" ]]; then
   echo "Adding MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_ESIGNET env var..."
+  # Ensure env array exists before appending to it
+  ENV_ARRAY_EXISTS=$(kubectl -n "$CAPTCHA_NS" get deployment captcha \
+    -o jsonpath="{.spec.template.spec.containers[0].env}" 2>/dev/null || echo "")
+  if [[ -z "$ENV_ARRAY_EXISTS" ]]; then
+    echo "env array not found, initializing..."
+    kubectl patch deployment -n "$CAPTCHA_NS" captcha --type='json' \
+      -p='[{"op": "add", "path": "/spec/template/spec/containers/0/env", "value": []}]'
+  fi
   kubectl patch deployment -n "$CAPTCHA_NS" captcha --type='json' \
     -p='[{"op": "add", "path": "/spec/template/spec/containers/0/env/-", "value": {"name": "MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_ESIGNET", "valueFrom": {"secretKeyRef": {"name": "esignet-captcha", "key": "esignet-captcha-secret-key"}}}}]'
 else

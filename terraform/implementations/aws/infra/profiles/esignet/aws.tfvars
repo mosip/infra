@@ -77,7 +77,7 @@ enable_rancher_import = true
 rancher_import_url    = "\"<rancher-import-url>\""
 
 # DNS Records to map — only eSignet-relevant subdomains
-subdomain_public   = ["esignet", "signup"]
+subdomain_public   = ["esignet", "signup", "minio"]
 subdomain_internal = ["iam", "kafka", "postgres", "keycloak"]
 
 # PostgreSQL Configuration

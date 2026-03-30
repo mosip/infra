@@ -117,6 +117,14 @@ if [ "$ANSIBLE_EXIT" -ne 0 ]; then
     exit 1
 fi
 
+if [ ! -s /tmp/activemq-storageclass.yaml ]; then
+    echo ""
+    echo "ERROR: StorageClass manifest not found or empty at /tmp/activemq-storageclass.yaml"
+    echo "--- Last 30 lines of Ansible log ---"
+    tail -30 "$ANSIBLE_LOG" || true
+    exit 1
+fi
+
 echo ""
 echo "=== Done at $(date) ==="
 echo "EBS volume for ActiveMQ is mounted at $ACTIVEMQ_MOUNT_POINT on $NGINX_PRIVATE_IP"

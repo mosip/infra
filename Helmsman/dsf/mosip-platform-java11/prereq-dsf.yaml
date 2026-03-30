@@ -33,8 +33,8 @@ apps:
     timeout: 900
     priority: -6
     hooks:
-      postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh sandbox.xyz.net <version>"
-      postUpgrade: "$WORKDIR/hooks/install-istio-and-httpbin.sh sandbox.xyz.net <version>"
+      postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh sandbox.xyz.net ${ISTIO_VERSION}"
+      postUpgrade: "$WORKDIR/hooks/install-istio-and-httpbin.sh sandbox.xyz.net ${ISTIO_VERSION}"
 
   rancher-monitoring:
     namespace: cattle-monitoring-system
@@ -42,8 +42,8 @@ apps:
     version: 103.1.0+up45.31.1
     chart: mosip/rancher-monitoring
     set:
-      grafana.global.cattle.clusterId: "<cluster-id>"
-      global.cattle.clusterId: "<cluster-id>"
+      grafana.global.cattle.clusterId: "$CLUSTER_ID"
+      global.cattle.clusterId: "$CLUSTER_ID"
     wait: true
     valuesFile: "$WORKDIR/utils/monitoring_values.yaml"
     priority: -5
@@ -103,7 +103,7 @@ apps:
     enabled: true
     version: 103.1.1+up4.4.0
     chart: mosip/rancher-logging
-    valuesFile: "$WORKDIR/utils/rancher-loggig-values.yaml"
+    valuesFile: "$WORKDIR/utils/rancher-logging-values.yaml"
     wait: true
     priority: -1
     timeout: 1200

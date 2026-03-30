@@ -244,10 +244,18 @@ variable "activemq_storage_device" {
   description = "Block device path of the 3rd EBS volume for ActiveMQ"
   type        = string
   default     = "/dev/nvme3n1"
+  validation {
+    condition     = length(var.activemq_storage_device) > 0 && startswith(var.activemq_storage_device, "/dev/")
+    error_message = "activemq_storage_device must be non-empty and start with '/dev/'."
+  }
 }
 
 variable "activemq_mount_point" {
   description = "Mount point for ActiveMQ persistent storage"
   type        = string
   default     = "/srv/activemq"
+  validation {
+    condition     = length(var.activemq_mount_point) > 0 && startswith(var.activemq_mount_point, "/")
+    error_message = "activemq_mount_point must be non-empty and an absolute path starting with '/'."
+  }
 }

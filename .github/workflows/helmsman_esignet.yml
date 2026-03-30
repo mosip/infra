@@ -111,7 +111,12 @@ jobs:
           else
             # Auto-detect profile from push trigger — extract profile dir name from changed files
             # Fall back to HEAD~1 if github.event.before is unreachable (e.g. shallow clone)
-            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} -- 'Helmsman/dsf/' 2>/dev/null || \
+            BEFORE="${{ github.event.before }}"
+            SHA="${{ github.sha }}"
+            if [[ -z "$BEFORE" || "$BEFORE" == "0000000000000000000000000000000000000000" ]]; then
+              BEFORE="HEAD~1"
+            fi
+            CHANGED_FILES=$(git diff --name-only "$BEFORE" "$SHA" -- 'Helmsman/dsf/' 2>/dev/null || \
                             git diff --name-only HEAD~1 HEAD -- 'Helmsman/dsf/' 2>/dev/null || echo "")
             PROFILE=$(echo "$CHANGED_FILES" | grep 'esignet-dsf.yaml' | head -1 | sed 's|Helmsman/dsf/\([^/]*\)/.*|\1|')
             if [[ -z "$PROFILE" ]]; then
@@ -119,8 +124,8 @@ jobs:
               exit 1
             fi
           fi
-          echo "PROFILE=$PROFILE" >> $GITHUB_ENV
-          echo "📁 Using profile: $PROFILE"
+          echo "PROFILE=$PROFILE" >> "$GITHUB_ENV"
+          echo "Using profile: $PROFILE"
 
       - name: Setup ufw firewall
         run: |

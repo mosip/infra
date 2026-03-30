@@ -20,7 +20,8 @@ echo "================================================"
 
 # --- Step 1: Wait for Redis to be ready ---
 echo "Waiting for Redis pods to be ready..."
-kubectl -n "$REDIS_NS" wait --for=condition=ready pod -l app.kubernetes.io/name=redis --timeout=300s
+kubectl -n "$REDIS_NS" wait --for=condition=ready pod -l app.kubernetes.io/name=redis --timeout=300s || \
+  echo "WARNING: Redis pods not ready after timeout, continuing"
 
 # --- Step 2: Apply redis-config configmap in redis namespace ---
 # Source: deploy/redis/redis-config.yaml
