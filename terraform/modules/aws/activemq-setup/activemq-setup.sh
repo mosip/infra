@@ -93,6 +93,9 @@ ansible -i "$WORK_DIR/inventory.ini" activemq_servers -m ping || {
     exit 1
 }
 
+# ── Remove any stale StorageClass artifact before running the playbook ────────
+rm -f /tmp/activemq-storageclass.yaml
+
 # ── Run the Ansible playbook ───────────────────────────────────────────────────
 echo "=== Running Ansible Playbook (runner → NGINX via SSH) ==="
 echo "  Device : $ACTIVEMQ_STORAGE_DEVICE"
