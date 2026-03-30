@@ -67,10 +67,11 @@ jobs:
             changed_profiles=$(echo "$changed_files" | grep 'Helmsman/dsf/' | sed 's|Helmsman/dsf/\([^/]*\)/.*|\1|' | sort -u)
 
             # Derive PROFILE from the changed files (all detected profile dirs, newline-separated)
-            PROFILE="$changed_profiles"
+            # For workflow-caller, we only care about mosip-platform-* profiles
+            PROFILE=$(echo "$changed_profiles" | grep '^mosip-platform-' | head -1)
             if [[ -z "$PROFILE" ]]; then
-              echo "Error: could not detect profile from changed DSF files."
-              exit 1
+              # No MOSIP profile detected - this is fine for esignet-only changes
+              PROFILE=""
             fi
 
             for profile_dir in $changed_profiles; do
