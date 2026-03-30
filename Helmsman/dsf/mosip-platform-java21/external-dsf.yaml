@@ -224,6 +224,8 @@ apps:
     wait: true
     timeout: 1200
     priority: -12
+    hooks:
+      preInstall: "kubectl label ns softhsm istio-injection=enabled --overwrite"
 
   softhsm-ida:
     namespace: softhsm
