@@ -316,3 +316,9 @@ variable "activemq_mount_point" {
   type        = string
   default     = "/srv/activemq"
 }
+
+variable "activemq_nfs_allowed_hosts" {
+  description = "Hosts allowed to mount the NFS export (written to /etc/exports). Use '*' for any host or a CIDR/IP range e.g. '10.0.0.0/8'."
+  type        = string
+  default     = "*"
+}

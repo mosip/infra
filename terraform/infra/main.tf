@@ -67,6 +67,7 @@ module "aws_infra" {
   nginx_node_ebs_volume_size_3 = var.nginx_node_ebs_volume_size_3
   activemq_storage_device      = var.activemq_storage_device
   activemq_mount_point         = var.activemq_mount_point
+  activemq_nfs_allowed_hosts   = var.activemq_nfs_allowed_hosts
 }
 
 # Azure Infrastructure

@@ -14,6 +14,7 @@ REQUIRED_VARS=(
     "NGINX_PRIVATE_IP"
     "ACTIVEMQ_STORAGE_DEVICE"
     "ACTIVEMQ_MOUNT_POINT"
+    "ACTIVEMQ_NFS_ALLOWED_HOSTS"
     "SSH_KEY_FILE"
     "WORK_DIR"
 )
@@ -29,6 +30,7 @@ fi
 echo "  NGINX_PRIVATE_IP=$NGINX_PRIVATE_IP"
 echo "  ACTIVEMQ_STORAGE_DEVICE=$ACTIVEMQ_STORAGE_DEVICE"
 echo "  ACTIVEMQ_MOUNT_POINT=$ACTIVEMQ_MOUNT_POINT"
+echo "  ACTIVEMQ_NFS_ALLOWED_HOSTS=$ACTIVEMQ_NFS_ALLOWED_HOSTS"
 echo "  SSH_KEY_FILE=$SSH_KEY_FILE"
 echo "  WORK_DIR=$WORK_DIR"
 
@@ -91,6 +93,9 @@ ansible -i "$WORK_DIR/inventory.ini" activemq_servers -m ping || {
     exit 1
 }
 
+# ── Remove any stale StorageClass artifact before running the playbook ────────
+rm -f /tmp/activemq-storageclass.yaml
+
 # ── Run the Ansible playbook ───────────────────────────────────────────────────
 echo "=== Running Ansible Playbook (runner → NGINX via SSH) ==="
 echo "  Device : $ACTIVEMQ_STORAGE_DEVICE"
@@ -105,6 +110,7 @@ timeout 300 ansible-playbook -v \
     -i "$WORK_DIR/inventory.ini" \
     -e "activemq_storage_device=$ACTIVEMQ_STORAGE_DEVICE" \
     -e "activemq_mount_point=$ACTIVEMQ_MOUNT_POINT" \
+    -e "activemq_nfs_allowed_hosts=$ACTIVEMQ_NFS_ALLOWED_HOSTS" \
     "$WORK_DIR/activemq-setup.yml" 2>&1 | tee "$ANSIBLE_LOG"
 ANSIBLE_EXIT=${PIPESTATUS[0]}
 set -o pipefail
@@ -113,6 +119,14 @@ if [ "$ANSIBLE_EXIT" -ne 0 ]; then
     echo ""
     echo "ERROR: Ansible playbook failed (exit code $ANSIBLE_EXIT)"
     echo "--- Last 30 lines of log ---"
+    tail -30 "$ANSIBLE_LOG" || true
+    exit 1
+fi
+
+if [ ! -s /tmp/activemq-storageclass.yaml ]; then
+    echo ""
+    echo "ERROR: StorageClass manifest not found or empty at /tmp/activemq-storageclass.yaml"
+    echo "--- Last 30 lines of Ansible log ---"
     tail -30 "$ANSIBLE_LOG" || true
     exit 1
 fi

@@ -106,7 +106,7 @@ kubectl -n "$ESIGNET_NS" delete secret --ignore-not-found=true keycloak-client-s
 helm -n "$ESIGNET_NS" delete esignet-keycloak-init 2>/dev/null || true
 
 helm -n "$ESIGNET_NS" install esignet-keycloak-init mosip/keycloak-init \
-  "${HELM_SET_SECRETS[@]}" \
+  ${HELM_SET_SECRETS[@]+"${HELM_SET_SECRETS[@]}"} \
   --set keycloak.realms.mosip.realm_config.attributes.frontendUrl="https://$IAMHOST_URL/auth" \
   --set keycloakInternalHost="keycloak.$KEYCLOAK_NS" \
   --set keycloakExternalHost="$IAMHOST_URL" \
@@ -123,7 +123,7 @@ if kubectl -n "$ESIGNET_NS" get secret keycloak-client-secrets &>/dev/null; then
         -o jsonpath="{.data.$key}" 2>/dev/null || echo "")
       if [[ -n "$val" ]]; then
         kubectl -n "$KEYCLOAK_NS" get secret keycloak-client-secrets -o json | \
-          jq ".data[\"$key\"]=\"$val\"" | \
+          jq --arg k "$key" --arg v "$val" '.data[$k]=$v' | \
           kubectl apply -f -
       fi
     done

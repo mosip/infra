@@ -72,7 +72,7 @@ apps:
     version: 0.1.0
     chart: $WORKDIR/utils/istio-addons/postgres-istio-addons-0.1.0.tgz
     set:
-      postgresHost: "postgres.sandbox.xyz.net"
+      postgresHost: "postgres.${domain_name}"
     wait: true
     priority: -17
     timeout: 1200
@@ -110,13 +110,13 @@ apps:
       # Enable eSignet database with v1.7.1 branch
       databases.mosip_esignet.enabled: "true"
       databases.mosip_esignet.branch: "v1.7.1"
-      databases.mosip_esignet.host: "postgres.sandbox.xyz.net"
+      databases.mosip_esignet.host: "postgres.${domain_name}"
       databases.mosip_esignet.port: 5433
       databases.mosip_esignet.dml: 1
       # Mock identity system DB - disabled by default
       databases.mosip_mockidentitysystem.enabled: "false"
       databases.mosip_mockidentitysystem.branch: "v0.9.3"
-      databases.mosip_mockidentitysystem.host: "postgres.sandbox.xyz.net"
+      databases.mosip_mockidentitysystem.host: "postgres.${domain_name}"
       databases.mosip_mockidentitysystem.repoUrl: "https://github.com/mosip/esignet-mock-services.git"
       databases.mosip_mockidentitysystem.port: 5433
       databases.mosip_mockidentitysystem.dml: 1
@@ -207,7 +207,7 @@ apps:
     version: 1.2.0
     chart: $WORKDIR/utils/istio-addons/kafka-istio-addons-1.2.0.tgz
     set:
-      kafkaUiHost: "kafka.sandbox.xyz.net"
+      kafkaUiHost: "kafka.${domain_name}"
       installName: "kafka-ui"
     wait: true
     timeout: 1200
@@ -274,7 +274,7 @@ apps:
     version: 0.1.0
     chart: $WORKDIR/utils/istio-addons/iam-istio-addons-0.1.0.tgz
     set:
-      keycloakExternalHost: "iam.sandbox.xyz.net"
+      keycloakExternalHost: "iam.${domain_name}"
       keycloakInternalHost: "keycloak.keycloak"
       service: "keycloak"
     wait: true
@@ -324,7 +324,7 @@ apps:
     version: 1.2.0
     chart: $WORKDIR/utils/istio-addons/minio-istio-addons-1.2.0.tgz
     set:
-      externalHost: "minio.sandbox.xyz.net"
+      externalHost: "minio.${domain_name}"
     wait: true
     timeout: 1200
     hooks:

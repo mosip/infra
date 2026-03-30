@@ -99,7 +99,7 @@
     - name: Add ActiveMQ NFS export entry
       lineinfile:
         path: /etc/exports
-        line: "{{ activemq_mount_point }} *(rw,sync,no_root_squash,no_all_squash,insecure,subtree_check)"
+        line: "{{ activemq_mount_point }} {{ activemq_nfs_allowed_hosts | default('*') }}(rw,sync,no_all_squash,subtree_check)"
         state: present
         create: yes
         backup: yes
