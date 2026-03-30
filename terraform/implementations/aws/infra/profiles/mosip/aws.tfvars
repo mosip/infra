@@ -106,5 +106,6 @@ vpc_name = "<vpc-name>"
 enable_activemq_setup        = true # Toggle: true = create & mount, false = skip
 nginx_node_ebs_volume_size_3 = 30   # Volume size in GB (e.g. 100); 0 = disabled
 
-activemq_storage_device = "/dev/nvme3n1"
-activemq_mount_point    = "/srv/activemq"
+activemq_storage_device    = "/dev/nvme3n1"
+activemq_mount_point       = "/srv/activemq"
+activemq_nfs_allowed_hosts = "*"  # Restrict to cluster CIDR in production e.g. "10.0.0.0/8"

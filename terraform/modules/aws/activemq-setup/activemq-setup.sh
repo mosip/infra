@@ -14,6 +14,7 @@ REQUIRED_VARS=(
     "NGINX_PRIVATE_IP"
     "ACTIVEMQ_STORAGE_DEVICE"
     "ACTIVEMQ_MOUNT_POINT"
+    "ACTIVEMQ_NFS_ALLOWED_HOSTS"
     "SSH_KEY_FILE"
     "WORK_DIR"
 )
@@ -29,6 +30,7 @@ fi
 echo "  NGINX_PRIVATE_IP=$NGINX_PRIVATE_IP"
 echo "  ACTIVEMQ_STORAGE_DEVICE=$ACTIVEMQ_STORAGE_DEVICE"
 echo "  ACTIVEMQ_MOUNT_POINT=$ACTIVEMQ_MOUNT_POINT"
+echo "  ACTIVEMQ_NFS_ALLOWED_HOSTS=$ACTIVEMQ_NFS_ALLOWED_HOSTS"
 echo "  SSH_KEY_FILE=$SSH_KEY_FILE"
 echo "  WORK_DIR=$WORK_DIR"
 
@@ -105,6 +107,7 @@ timeout 300 ansible-playbook -v \
     -i "$WORK_DIR/inventory.ini" \
     -e "activemq_storage_device=$ACTIVEMQ_STORAGE_DEVICE" \
     -e "activemq_mount_point=$ACTIVEMQ_MOUNT_POINT" \
+    -e "activemq_nfs_allowed_hosts=$ACTIVEMQ_NFS_ALLOWED_HOSTS" \
     "$WORK_DIR/activemq-setup.yml" 2>&1 | tee "$ANSIBLE_LOG"
 ANSIBLE_EXIT=${PIPESTATUS[0]}
 set -o pipefail

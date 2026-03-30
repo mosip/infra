@@ -23,6 +23,11 @@ variable "ACTIVEMQ_MOUNT_POINT" {
   default     = "/srv/activemq"
   description = "Mount point for ActiveMQ persistent storage (also the NFS share path)"
 }
+variable "ACTIVEMQ_NFS_ALLOWED_HOSTS" {
+  type        = string
+  default     = "*"
+  description = "Hosts allowed to mount the NFS export (written to /etc/exports). Use '*' for any host or a CIDR/IP range e.g. '10.0.0.0/8'."
+}
 
 # Kubernetes Control Plane — for applying the StorageClass
 variable "CONTROL_PLANE_HOST" {
@@ -79,6 +84,7 @@ resource "null_resource" "activemq-ebs-nfs-setup" {
       export NGINX_PRIVATE_IP="${var.NGINX_PRIVATE_IP}"
       export ACTIVEMQ_STORAGE_DEVICE="${var.ACTIVEMQ_STORAGE_DEVICE}"
       export ACTIVEMQ_MOUNT_POINT="${var.ACTIVEMQ_MOUNT_POINT}"
+      export ACTIVEMQ_NFS_ALLOWED_HOSTS="${var.ACTIVEMQ_NFS_ALLOWED_HOSTS}"
       export SSH_KEY_FILE="$KEY_FILE"
       export WORK_DIR="$WORK_DIR"
 

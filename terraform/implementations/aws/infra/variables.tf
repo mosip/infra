@@ -245,8 +245,8 @@ variable "activemq_storage_device" {
   type        = string
   default     = "/dev/nvme3n1"
   validation {
-    condition     = length(var.activemq_storage_device) > 0 && startswith(var.activemq_storage_device, "/dev/")
-    error_message = "activemq_storage_device must be non-empty and start with '/dev/'."
+    condition     = startswith(var.activemq_storage_device, "/dev/") && length(var.activemq_storage_device) > length("/dev/")
+    error_message = "activemq_storage_device must start with '/dev/' followed by at least one character (e.g. '/dev/nvme3n1')."
   }
 }
 
@@ -254,8 +254,16 @@ variable "activemq_mount_point" {
   description = "Mount point for ActiveMQ persistent storage"
   type        = string
   default     = "/srv/activemq"
+  # Note: cross-variable guard (!var.enable_activemq_setup || ...) requires Terraform >= 1.9;
+  # project constraint is >= 1.0, so validation applies unconditionally.
   validation {
-    condition     = length(var.activemq_mount_point) > 0 && startswith(var.activemq_mount_point, "/")
-    error_message = "activemq_mount_point must be non-empty and an absolute path starting with '/'."
+    condition     = startswith(var.activemq_mount_point, "/") && var.activemq_mount_point != "/"
+    error_message = "activemq_mount_point must be an absolute path starting with '/' and must not be the root path '/'."
   }
+}
+
+variable "activemq_nfs_allowed_hosts" {
+  description = "Hosts allowed to mount the NFS export (written to /etc/exports). Use '*' for any host or a CIDR/IP range e.g. '10.0.0.0/8'."
+  type        = string
+  default     = "*"
 }
