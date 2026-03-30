@@ -18,8 +18,8 @@ name: terraform plan / apply
 
 # Prevent concurrent runs for same component to avoid state conflicts
 concurrency:
-  group: terraform-${{ github.event.inputs.CLOUD_PROVIDER }}-${{ github.event.inputs.TERRAFORM_COMPONENT }}-${{ github.ref_name }}
-  cancel-in-progress: true
+  group: terraform-${{ github.event.inputs.CLOUD_PROVIDER }}-${{ github.event.inputs.TERRAFORM_COMPONENT }}-${{ github.event.inputs.INFRA_PROFILE }}-${{ github.ref_name }}
+  cancel-in-progress: false
 
 on:
   workflow_dispatch:
@@ -41,6 +41,14 @@ on:
           - infra
           - observ-infra
         default: infra
+      INFRA_PROFILE:
+        description: 'Infrastructure profile (only for infra component — ignored for base-infra/observ-infra)'
+        required: false
+        type: choice
+        options:
+          - mosip
+          - esignet
+        default: mosip
       BACKEND_TYPE:
         description: 'Choose Terraform backend type'
         required: true
@@ -106,11 +114,17 @@ jobs:
             exit 1
           fi
           
-          # Check if tfvars file exists
-          if [ ! -f "${{ inputs.CLOUD_PROVIDER }}.tfvars" ]; then
-            echo "Configuration file '${{ inputs.CLOUD_PROVIDER }}.tfvars' not found in current directory."
+          # Check if tfvars file exists (profile-aware for infra component)
+          TFVARS_FILE="${{ inputs.CLOUD_PROVIDER }}.tfvars"
+          if [ "${{ inputs.TERRAFORM_COMPONENT }}" = "infra" ] && [ -n "${{ inputs.INFRA_PROFILE }}" ]; then
+            TFVARS_FILE="profiles/${{ inputs.INFRA_PROFILE }}/${{ inputs.CLOUD_PROVIDER }}.tfvars"
+          fi
+          if [ ! -f "$TFVARS_FILE" ]; then
+            echo "Configuration file '$TFVARS_FILE' not found in current directory."
             exit 1
           fi
+          echo "TFVARS_FILE=$TFVARS_FILE" >> $GITHUB_ENV
+          echo "Using tfvars: $TFVARS_FILE"
 
       - name: Setup Cloud Storage for Remote State (All Providers)
         run: |
@@ -131,13 +145,18 @@ jobs:
       - name: Configure Terraform Backend for State Management
         run: |
           # Use backend configuration script for cleaner code
+          PROFILE_ARG=""
+          if [ "${{ inputs.TERRAFORM_COMPONENT }}" = "infra" ] && [ -n "${{ inputs.INFRA_PROFILE }}" ]; then
+            PROFILE_ARG="--profile ${{ inputs.INFRA_PROFILE }}"
+          fi
           ../../../../.github/scripts/configure-backend.sh \
             --type "${{ inputs.BACKEND_TYPE }}" \
             --provider "${{ inputs.CLOUD_PROVIDER }}" \
             --component "${{ inputs.TERRAFORM_COMPONENT }}" \
             --branch "${{ github.ref_name }}" \
             --remote-config "${{ inputs.REMOTE_BACKEND_CONFIG }}" \
-            ${{ inputs.ENABLE_STATE_LOCKING == true && '--enable-locking' || '' }}
+            ${{ inputs.ENABLE_STATE_LOCKING == true && '--enable-locking' || '' }} \
+            $PROFILE_ARG
 
       - name: Skip SSH Host key verification
         run: |
@@ -330,12 +349,12 @@ jobs:
       - name: Terraform Plan
         id: plan
         run: |
-          terraform plan -input=false -var-file="${{ inputs.CLOUD_PROVIDER }}.tfvars" -out ./tf-plan -no-color
+          terraform plan -input=false -var-file="$TFVARS_FILE" -out ./tf-plan -no-color
         continue-on-error: true
 
       - name: Terraform Apply
         id: apply
-        run: terraform apply -input=false -var-file="${{ inputs.CLOUD_PROVIDER }}.tfvars" -no-color -auto-approve
+        run: terraform apply -input=false -var-file="$TFVARS_FILE" -no-color -auto-approve
         if: "${{ inputs.TERRAFORM_APPLY  == true }}"
         continue-on-error: true
 
@@ -363,12 +382,10 @@ jobs:
           # Remove problematic files that shouldn't be committed before git add -A
           rm -rf .terraform/ 2>/dev/null || echo "No .terraform directory to remove"
           rm -f .terraform.lock.hcl 2>/dev/null || echo "No .terraform.lock.hcl to remove"
-
+          
           # Remove embedded git repositories to avoid submodule issues
-          # (k8s-infra/ is cloned during provisioning and contains a .git dir;
-          #  removing it here prevents submodule detection issues before git add -A)
           find . -name ".git" -type d -not -path "./.git" -exec rm -rf {} + 2>/dev/null || true
-
+          
           # Also add any other Terraform-related files that might have been created
           git add -A
           

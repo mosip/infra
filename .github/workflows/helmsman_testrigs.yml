@@ -3,6 +3,14 @@ name: Deploy Testrigs of mosip using Helmsman
 on:
   workflow_dispatch:
     inputs:
+      profile:
+        description: "Choose MOSIP platform profile"
+        required: true
+        default: "mosip-platform-java11"
+        type: choice
+        options:
+          - mosip-platform-java11
+          - mosip-platform-java21
       mode:
         description: "Choose Helmsman mode: dry-run or apply"
         required: true
@@ -11,9 +19,25 @@ on:
         options:
           - dry-run
           - apply
+      domain_name:
+        description: "Domain name for this environment (e.g. example.xyz.net)"
+        required: false
+        type: string
+      env_name:
+        description: "Environment name (e.g. sandbox, dev, staging)"
+        required: false
+        type: string
+      slack_channel_name:
+        description: "Slack channel name for alerting (e.g. #mosip-alerts)"
+        required: false
+        type: string
+      slack_webhook_url:
+        description: "Slack webhook URL for alerting (overrides SLACK_WEBHOOK_URL secret)"
+        required: false
+        type: string
   push:
     paths:
-      - Helmsman/dsf/testrigs-dsf.yaml
+      - Helmsman/dsf/**/testrigs-dsf.yaml
 
 jobs:
   deploy:
@@ -24,6 +48,7 @@ jobs:
       KUBECONFIG: ${{ github.workspace }}/.kube/config
       PATH: ${{ github.workspace }}/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
       KUBECTL_PATH: ${{ github.workspace }}/.local/bin/kubectl
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -62,6 +87,29 @@ jobs:
           else
             echo "HELMSMAN_MODE=${{ github.event.inputs.mode }}" >> $GITHUB_ENV
           fi        
+
+      - name: Set Profile
+        run: |
+          if [ -n "${{ github.event.inputs.profile }}" ]; then
+            PROFILE="${{ github.event.inputs.profile }}"
+          else
+            # Auto-detect profile from push trigger — extract profile dir name from changed files
+            # Fall back to HEAD~1 if github.event.before is unreachable (e.g. shallow clone)
+            BEFORE="${{ github.event.before }}"
+            SHA="${{ github.sha }}"
+            if [[ -z "$BEFORE" || "$BEFORE" == "0000000000000000000000000000000000000000" ]]; then
+              BEFORE="HEAD~1"
+            fi
+            CHANGED_FILES=$(git diff --name-only "$BEFORE" "$SHA" -- 'Helmsman/dsf/' 2>/dev/null || \
+                            git diff --name-only HEAD~1 HEAD -- 'Helmsman/dsf/' 2>/dev/null || echo "")
+            PROFILE=$(echo "$CHANGED_FILES" | grep 'testrigs-dsf\.yaml' | head -1 | sed 's|Helmsman/dsf/\([^/]*\)/.*|\1|')
+            if [[ -z "$PROFILE" ]]; then
+              echo "Error: could not detect profile from changed DSF files."
+              exit 1
+            fi
+          fi
+          echo "PROFILE=$PROFILE" >> "$GITHUB_ENV"
+          echo "Using profile: $PROFILE"
 
       - name: Setup ufw firewall
         run: |
@@ -125,14 +173,24 @@ jobs:
             echo "❌ MOSIP DSF not completed."
             exit 1
           fi
+      - name: Set deployment variables
+        run: |
+          echo "domain_name=${{ github.event.inputs.domain_name || vars.DOMAIN_NAME }}" >> $GITHUB_ENV
+          echo "env_name=${{ github.event.inputs.env_name || vars.ENV_NAME }}" >> $GITHUB_ENV
+          echo "slack_channel_name=${{ github.event.inputs.slack_channel_name || vars.SLACK_CHANNEL_NAME }}" >> $GITHUB_ENV
+          if [ -n "${{ github.event.inputs.slack_webhook_url }}" ]; then
+            echo "SLACK_WEBHOOK_URL=${{ github.event.inputs.slack_webhook_url }}" >> $GITHUB_ENV
+          fi
+
       - name: Initiate helmsman to apply the DSF configurations
         run: |
           export HOME="${{ github.workspace }}"
           export WORKDIR="$HOME/Helmsman"
-          
+
           # Verify tools are available
           echo "Using kubectl: $(which kubectl)"
           echo "Using kubeconfig: $KUBECONFIG"
-          
-          # Run helmsman with the determined mode
-          helmsman --${HELMSMAN_MODE} -f $WORKDIR/dsf/testrigs-dsf.yaml
+
+          # Run helmsman with the determined mode and profile
+          echo "Using profile: $PROFILE"
+          helmsman --${HELMSMAN_MODE} -f $WORKDIR/dsf/${PROFILE}/testrigs-dsf.yaml

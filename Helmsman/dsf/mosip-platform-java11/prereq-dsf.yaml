@@ -33,23 +33,23 @@ apps:
     timeout: 900
     priority: -6
     hooks:
-      postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh soil.mosip.net test"
-      postUpgrade: "$WORKDIR/hooks/install-istio-and-httpbin.sh soil.mosip.net test"
+      postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh ${domain_name} ${ISTIO_VERSION}"
+      postUpgrade: "$WORKDIR/hooks/install-istio-and-httpbin.sh ${domain_name} ${ISTIO_VERSION}"
 
   rancher-monitoring:
     namespace: cattle-monitoring-system
-    enabled: true
+    enabled: false
     version: 103.1.0+up45.31.1
     chart: mosip/rancher-monitoring
     set:
-      grafana.global.cattle.clusterId: "c-m-qbb7jmn9"
-      global.cattle.clusterId: "c-m-qbb7jmn9"
+      grafana.global.cattle.clusterId: "$CLUSTER_ID"
+      global.cattle.clusterId: "$CLUSTER_ID"
     wait: true
     valuesFile: "$WORKDIR/utils/monitoring_values.yaml"
     priority: -5
     timeout: 600
     hooks:
-      postInstall: "$WORKDIR/hooks/alerting-setup.sh soil https://hooks.slack.com/services/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 soil"
+      postInstall: "$WORKDIR/hooks/alerting-setup.sh ${slack_channel_name} ${SLACK_WEBHOOK_URL} ${env_name}"
 
   elasticsearch:
     namespace: cattle-logging-system
@@ -85,7 +85,7 @@ apps:
     version: 0.1.0
     chart: $WORKDIR/utils/istio-addons/logging-istio-addons-0.1.0.tgz
     set:
-      kibanaHost: "kibana.soil.mosip.net"
+      kibanaHost: "kibana.${domain_name}"
       installName: "elasticsearch-kibana"
     wait: true
     priority: -3
@@ -103,7 +103,7 @@ apps:
     enabled: true
     version: 103.1.1+up4.4.0
     chart: mosip/rancher-logging
-    valuesFile: "$WORKDIR/utils/rancher-loggig-values.yaml"
+    valuesFile: "$WORKDIR/utils/rancher-logging-values.yaml"
     wait: true
     priority: -1
     timeout: 1200

@@ -1,0 +1,174 @@
+---
+# ActiveMQ EBS Volume + NFS Export + StorageClass Setup
+# Runs from the Terraform RUNNER machine, SSHes into the NGINX node.
+# Steps:
+#   1. Wait for EBS device → format as XFS → mount it
+#   2. Set correct NFS permissions on mount point
+#   3. Configure NFS export so Kubernetes pods can reach the storage
+#   4. Generate a Kubernetes StorageClass YAML on the runner (delegate_to: localhost)
+
+- name: ActiveMQ EBS Volume + NFS Setup
+  hosts: activemq_servers
+  become: yes
+  gather_facts: yes
+
+  tasks:
+
+    # ── System prerequisites ───────────────────────────────────────────────────
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install required tools
+      apt:
+        name:
+          - xfsprogs            # mkfs.xfs
+          - util-linux          # lsblk, blkid
+          - nfs-kernel-server   # NFS server
+        state: present
+
+    # ── Wait for EBS block device ──────────────────────────────────────────────
+    # activemq_storage_device may be a raw path (/dev/nvme3n1) or a stable
+    # by-id path (/dev/disk/by-id/nvme-...). Both work with wait_for.
+    - name: Wait for ActiveMQ storage device to appear
+      wait_for:
+        path: "{{ activemq_storage_device }}"
+        timeout: 240
+        msg: "Timed out waiting for device {{ activemq_storage_device }}"
+
+    - name: Show available block devices
+      command: lsblk -f
+      register: block_devices
+      changed_when: false
+
+    - name: Display block devices
+      debug:
+        var: block_devices.stdout_lines
+
+    # ── Format the EBS volume ──────────────────────────────────────────────────
+    - name: Check if device already has a filesystem
+      command: blkid -o value -s TYPE "{{ activemq_storage_device }}"
+      register: existing_fs
+      changed_when: false
+      failed_when: false
+
+    - name: Create XFS filesystem on device (skipped if already formatted)
+      filesystem:
+        fstype: xfs
+        dev: "{{ activemq_storage_device }}"
+      when: existing_fs.stdout == ""
+
+    # ── Resolve stable UUID for fstab ─────────────────────────────────────────
+    # Raw NVMe device names (/dev/nvme3n1) change on instance reboot/replacement.
+    # Using UUID= in fstab is stable — it survives device renaming.
+    - name: Resolve filesystem UUID of the device
+      command: blkid -o value -s UUID "{{ activemq_storage_device }}"
+      register: device_uuid
+      changed_when: false
+      retries: 3
+      delay: 5
+      until: device_uuid.stdout != ""
+
+    # ── Create mount point and mount ───────────────────────────────────────────
+    - name: Create mount point directory
+      file:
+        path: "{{ activemq_mount_point }}"
+        state: directory
+        mode: '0777'
+
+    # fstab and mount use UUID= — stable across reboots and NVMe renaming.
+    - name: Mount device by UUID and add to fstab (idempotent)
+      mount:
+        path: "{{ activemq_mount_point }}"
+        src: "UUID={{ device_uuid.stdout | trim }}"
+        fstype: xfs
+        opts: defaults,nofail
+        dump: '0'
+        passno: '2'
+        state: mounted
+
+    # ── NFS: Set ownership and permissions ────────────────────────────────────
+    - name: Set NFS-compatible permissions on mount point
+      file:
+        path: "{{ activemq_mount_point }}"
+        mode: '0777'
+        state: directory
+
+    # ── NFS: Configure /etc/exports ───────────────────────────────────────────
+    - name: Add ActiveMQ NFS export entry
+      lineinfile:
+        path: /etc/exports
+        line: "{{ activemq_mount_point }} {{ activemq_nfs_allowed_hosts | default('*') }}(rw,sync,no_all_squash,subtree_check)"
+        state: present
+        create: yes
+        backup: yes
+
+    - name: Apply NFS export changes (exportfs -rav)
+      command: exportfs -rav
+      register: exportfs_result
+
+    - name: Display exportfs result
+      debug:
+        var: exportfs_result.stdout_lines
+
+    # ── NFS: Start and enable NFS server ──────────────────────────────────────
+    - name: Start and enable NFS kernel server
+      systemd:
+        name: nfs-kernel-server
+        state: restarted
+        enabled: yes
+        daemon_reload: yes
+
+    - name: Verify NFS export is active
+      command: exportfs -v
+      register: exports_verify
+      changed_when: false
+
+    - name: Display active NFS exports
+      debug:
+        var: exports_verify.stdout_lines
+
+    # ── NFS: Show mount info ───────────────────────────────────────────────────
+    - name: Show mount and disk usage
+      command: df -h "{{ activemq_mount_point }}"
+      register: mount_info
+      changed_when: false
+
+    # ── Generate Kubernetes StorageClass YAML on the runner ───────────────────
+    # delegate_to: localhost writes the file on the Terraform runner, NOT on NGINX.
+    # Terraform's second null_resource then copies it to the K8s control plane.
+    - name: Generate Kubernetes StorageClass YAML for ActiveMQ NFS share
+      copy:
+        content: |
+          apiVersion: storage.k8s.io/v1
+          kind: StorageClass
+          metadata:
+            name: nfs-csi-activemq
+          provisioner: nfs.csi.k8s.io
+          parameters:
+            server: {{ hostvars[inventory_hostname].ansible_host | default(inventory_hostname) }}
+            share: {{ activemq_mount_point }}/
+            mountPermissions: '0777'
+            subDir: ${pvc.metadata.namespace}-${pvc.metadata.name}-${pv.metadata.name}
+          reclaimPolicy: Delete
+          volumeBindingMode: Immediate
+        dest: /tmp/activemq-storageclass.yaml
+        mode: '0644'
+      delegate_to: localhost
+      become: false
+
+    # ── Final status report ────────────────────────────────────────────────────
+    - name: Display final status
+      debug:
+        msg:
+          - "EBS volume setup complete"
+          - "Device          : {{ activemq_storage_device }}"
+          - "Mount           : {{ activemq_mount_point }}"
+          - "Disk usage      : {{ mount_info.stdout_lines }}"
+          - "NFS export      : {{ activemq_mount_point }} *(rw,sync,no_root_squash,...)"
+          - "NFS server IP   : {{ hostvars[inventory_hostname].ansible_host | default(inventory_hostname) }}"
+          - "StorageClass    : nfs-csi-activemq → /tmp/activemq-storageclass.yaml (on runner)"
+          - ""
+          - "Next: Terraform will apply the StorageClass to Kubernetes."
+          - "In Helmsman DSF, set: --set persistence.storageClass=nfs-csi-activemq"

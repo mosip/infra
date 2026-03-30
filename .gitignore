@@ -130,14 +130,3 @@ helmsman_logs/
 # k8s-infra repo cloned during nginx/cluster provisioning
 # Contains third-party code and may include secrets (webhook URLs, tokens)
 **/k8s-infra/
-
-# Kubeconfig files generated during RKE2 cluster setup (contain cluster credentials)
-**/soil*.yaml
-**/soil.yaml
-
-# Ansible inventory files generated during provisioning
-**/rke2-cluster/ansible/inventory.yml
-**/rke2-cluster/ansible/soil*.yaml
-
-# Temporary working directory created during provisioning
-**/tmp/
