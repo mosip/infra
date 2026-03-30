@@ -59,57 +59,57 @@ apps:
   postgres-init:
     namespace: postgres
     enabled: true
-    version: 1.3.0
+    version: 12.0.2
     chart: mosip/postgres-init
     set:
       dbUserPasswords.dbuserPassword: ""
       databases.mosip_master.enabled: "true"
-      databases.mosip_master.branch: "v1.3.0"
+      databases.mosip_master.branch: "v1.2.1.4"
       databases.mosip_master.host: "postgres.${domain_name}"
       databases.mosip_master.port: 5433
 
       databases.mosip_audit.enabled: "true"
-      databases.mosip_audit.branch: "v1.3.0"
+      databases.mosip_audit.branch: "v1.2.0.1"
       databases.mosip_audit.host: "postgres.${domain_name}"
       databases.mosip_audit.port: 5433
 
       databases.mosip_keymgr.enabled: "true"
-      databases.mosip_keymgr.branch: "v1.3.0"
+      databases.mosip_keymgr.branch: "v1.2.1.0"
       databases.mosip_keymgr.host: "postgres.${domain_name}"
       databases.mosip_keymgr.port: 5433
 
       databases.mosip_kernel.enabled: "true"
-      databases.mosip_kernel.branch: "v1.3.0"
+      databases.mosip_kernel.branch: "v1.2.0.2"
       databases.mosip_kernel.host: "postgres.${domain_name}"
       databases.mosip_kernel.port: 5433
 
       databases.mosip_idmap.enabled: "true"
-      databases.mosip_idmap.branch: "v1.3.0"
+      databases.mosip_idmap.branch: "v1.2.2.4"
       databases.mosip_idmap.host: "postgres.${domain_name}"
       databases.mosip_idmap.port: 5433
 
       databases.mosip_prereg.enabled: "true"
-      databases.mosip_prereg.branch: "v1.3.0"
+      databases.mosip_prereg.branch: "v1.2.0.3"
       databases.mosip_prereg.host: "postgres.${domain_name}"
       databases.mosip_prereg.port: 5433
 
       databases.mosip_idrepo.enabled: "true"
-      databases.mosip_idrepo.branch: "v1.3.0"
+      databases.mosip_idrepo.branch: "v1.2.2.4"
       databases.mosip_idrepo.host: "postgres.${domain_name}"
       databases.mosip_idrepo.port: 5433
 
       databases.mosip_ida.enabled: "true"
-      databases.mosip_ida.branch: "v1.3.0"
+      databases.mosip_ida.branch: "v1.2.1.3"
       databases.mosip_ida.host: "postgres.${domain_name}"
       databases.mosip_ida.port: 5433
 
       databases.mosip_credential.enabled: "true"
-      databases.mosip_credential.branch: "v1.3.0"
+      databases.mosip_credential.branch: "v1.2.2.4"
       databases.mosip_credential.host: "postgres.${domain_name}"
       databases.mosip_credential.port: 5433
 
       databases.mosip_regprc.enabled: "true"
-      databases.mosip_regprc.branch: "v1.3.0"
+      databases.mosip_regprc.branch: "v1.2.1.2"
       databases.mosip_regprc.host: "postgres.${domain_name}"
       databases.mosip_regprc.port: 5433
 
@@ -119,22 +119,22 @@ apps:
       databases.mosip_pms.port: 5433
 
       databases.mosip_hotlist.enabled: "true"
-      databases.mosip_hotlist.branch: "v1.3.0"
+      databases.mosip_hotlist.branch: "v1.2.1.4"
       databases.mosip_hotlist.host: "postgres.${domain_name}"
       databases.mosip_hotlist.port: 5433
 
       databases.mosip_resident.enabled: "true"
-      databases.mosip_resident.branch: "v1.3.0"
+      databases.mosip_resident.branch: "v1.2.1.3"
       databases.mosip_resident.host: "postgres.${domain_name}"
       databases.mosip_resident.port: 5433
 
       databases.mosip_otp.enabled: "true"
-      databases.mosip_otp.branch: "v1.3.0"
+      databases.mosip_otp.branch: "v1.3.0-beta.1"
       databases.mosip_otp.host: "postgres.${domain_name}"
       databases.mosip_otp.port: 5433
 
       databases.mosip_digitalcard.enabled: "true"
-      databases.mosip_digitalcard.branch: "v1.3.0"
+      databases.mosip_digitalcard.branch: "v1.2.0.1"
       databases.mosip_digitalcard.host: "postgres.${domain_name}"
       databases.mosip_digitalcard.port: 5433
     wait: true
@@ -148,7 +148,7 @@ apps:
     chart: mosip/keycloak
     set:
       image.repository: "mosipid/mosip-artemis-keycloak"
-      image.tag: "1.3.0"
+      image.tag: "1.2.0.2"
       image.pullPolicy: "Always"
       # Override Postgres image
       postgresql.image.registry: "docker.io"
@@ -193,11 +193,11 @@ apps:
   keycloak-init:
     namespace: keycloak
     enabled: true
-    version: 1.3.0
+    version: 12.0.2
     chart: mosip/keycloak-init
     set:
-      # image.repository: "mosipqa/keycloak-init"
-      # image.tag: "1.3.x"
+      # image.repository: "mosipid/keycloak-init"
+      # image.tag: "1.2.0.1"
       keycloakExternalHost: "iam.${domain_name}"
       keycloakInternalHost: "keycloak.keycloak"
       keycloak.realms.mosip.realm_config.attributes.frontendUrl: "https://iam.${domain_name}/auth"
@@ -214,7 +214,7 @@ apps:
   softhsm-kernel:
     namespace: softhsm
     enabled: true
-    version: 1.3.0
+    version: 12.0.1
     chart: mosip/softhsm
     set:
       # resources.limits.cpu: "250m"
@@ -228,7 +228,7 @@ apps:
   softhsm-ida:
     namespace: softhsm
     enabled: true
-    version: 1.3.0
+    version: 12.0.1
     chart: mosip/softhsm
     set:
       # resources.limits.cpu: "250m"
@@ -242,12 +242,11 @@ apps:
   minio:
     namespace: minio
     enabled: true
-    version: 15.0.6
+    version: 10.1.6
     chart: mosip/minio
     set:
-      global.security.allowInsecureImages: true
       image.repository: "mosipid/minio"
-      image.tag: "2025.2.28-debian-12-r1"
+      image.tag: "2022.2.7-debian-10-r0"
       metrics.serviceMonitor.enabled: "true"
       extraEnvVars[0].name: "MINIO_PROMETHEUS_URL"
       extraEnvVars[0].value: "http://rancher-monitoring-prometheus.cattle-monitoring-system:9090"
@@ -268,7 +267,7 @@ apps:
     wait: true
     timeout: 1200
     hooks:
-      postInstall: "$WORKDIR/hooks/s3-setup.sh "
+      postInstall: "$WORKDIR/hooks/s3-setup.sh"
     priority: -2
 
   clamav:
@@ -290,12 +289,9 @@ apps:
   activemq:
     namespace: activemq
     enabled: true
-    version: 0.0.3
+    version: 0.0.2
     chart: mosip/activemq-artemis
-    set:
-      # image.repository: "mosipqa/activemq-artemis"
-      # image.tag: "1.1.5"
-      persistence.storageClass: "nfs-csi-activemq"
+    set: 
       istio.enabled: "true"
       istio.hosts[0]: "activemq.${domain_name}"
       istio.ingressController.name: "ingressgateway-internal"
@@ -310,7 +306,7 @@ apps:
   # https://cloud.google.com/security/products/recaptcha
   # https://www.google.com/recaptcha/admin/create
 
-  kafka:
+  kafka: 
     namespace: kafka
     enabled: true
     version: 18.3.1
@@ -389,7 +385,7 @@ apps:
   landing-page:
     namespace: landing-page
     enabled: true
-    version: 1.3.0
+    version: 12.0.2
     chart: mosip/landing-page
     set:
       landing.version: "develop"
