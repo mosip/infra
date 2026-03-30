@@ -36,6 +36,10 @@ on:
         description: "Slack webhook URL for alerting (overrides SLACK_WEBHOOK_URL secret)"
         required: false
         type: string
+      clusterid:
+        description: "Rancher cluster ID for rancher-monitoring (e.g. c-xxxxx)"
+        required: false
+        type: string
   push:
     paths:
       - Helmsman/dsf/**/prereq-dsf.yaml
@@ -126,6 +130,7 @@ jobs:
       ADMIN_CAPTCHA_SECRET_KEY: ${{ secrets.ADMIN_CAPTCHA_SECRET_KEY }}
       RESIDENT_CAPTCHA_SITE_KEY: ${{ secrets.RESIDENT_CAPTCHA_SITE_KEY }}
       RESIDENT_CAPTCHA_SECRET_KEY: ${{ secrets.RESIDENT_CAPTCHA_SECRET_KEY }}
+      CLUSTER_ID: ${{ github.event.inputs.clusterid || vars.CLUSTER_ID }}
     steps:
       - name: Show matrix values
         run: |
