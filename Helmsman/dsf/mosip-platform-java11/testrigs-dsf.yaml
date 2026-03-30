@@ -176,6 +176,7 @@ apps:
       uitestrig.configmaps.uitestrig.residentPortalPath: "https://resident.${domain_name}"
       uitestrig.configmaps.uitestrig.NS: "uitestrig"
 
+
     priority: -1
     hooks:
       preInstall: "$WORKDIR/hooks/uitestrig-setup.sh"
