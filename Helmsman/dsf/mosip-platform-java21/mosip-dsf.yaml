@@ -337,7 +337,6 @@ apps:
     priority: -11
     timeout: 1200
 
-  
   syncdata:
     namespace: kernel
     enabled: true
