@@ -61,7 +61,7 @@ apps:
     version: 1.7.1
     chart: mosip/oidc-ui
     set:
-      istio.hosts[0]: "esignet.sandbox.xyz.net"
+      istio.hosts[0]: "esignet.${domain_name}"
       oidc_ui.oidc_service_host: "esignet.esignet"
       oidc_ui.configmaps.oidc-ui.REACT_APP_API_BASE_URL: "http://esignet.esignet/v1/esignet"
       oidc_ui.configmaps.oidc-ui.REACT_APP_SBI_DOMAIN_URI: "http://esignet.esignet"
@@ -112,7 +112,7 @@ apps:
     chart: mosip/mock-relying-party-service
     set:
       mock_relying_party_service.ESIGNET_SERVICE_URL: "http://esignet.esignet/v1/esignet"
-      mock_relying_party_service.ESIGNET_AUD_URL: "https://esignet.sandbox.xyz.net/v1/esignet/oauth/v2/token"
+      mock_relying_party_service.ESIGNET_AUD_URL: "https://esignet.${domain_name}/v1/esignet/oauth/v2/token"
       enable_insecure: "false"
     timeout: 480
     priority: -8
@@ -125,13 +125,13 @@ apps:
     version: 0.9.3
     chart: mosip/mock-relying-party-ui
     set:
-      mock_relying_party_ui.mock_relying_party_ui_service_host: "healthservices.sandbox.xyz.net"
-      mock_relying_party_ui.ESIGNET_UI_BASE_URL: "https://esignet.sandbox.xyz.net"
-      mock_relying_party_ui.MOCK_RELYING_PARTY_SERVER_URL: "https://healthservices.sandbox.xyz.net/mock-relying-party-service"
-      mock_relying_party_ui.REDIRECT_URI: "https://healthservices.sandbox.xyz.net/userprofile"
-      mock_relying_party_ui.REDIRECT_URI_REGISTRATION: "https://healthservices.sandbox.xyz.net/registration"
-      mock_relying_party_ui.SIGN_IN_BUTTON_PLUGIN_URL: "https://esignet.sandbox.xyz.net/plugins/sign-in-button-plugin.js"
-      istio.hosts[0]: "healthservices.sandbox.xyz.net"
+      mock_relying_party_ui.mock_relying_party_ui_service_host: "healthservices.${domain_name}"
+      mock_relying_party_ui.ESIGNET_UI_BASE_URL: "https://esignet.${domain_name}"
+      mock_relying_party_ui.MOCK_RELYING_PARTY_SERVER_URL: "https://healthservices.${domain_name}/mock-relying-party-service"
+      mock_relying_party_ui.REDIRECT_URI: "https://healthservices.${domain_name}/userprofile"
+      mock_relying_party_ui.REDIRECT_URI_REGISTRATION: "https://healthservices.${domain_name}/registration"
+      mock_relying_party_ui.SIGN_IN_BUTTON_PLUGIN_URL: "https://esignet.${domain_name}/plugins/sign-in-button-plugin.js"
+      istio.hosts[0]: "healthservices.${domain_name}"
     wait: true
     timeout: 480
     priority: -7

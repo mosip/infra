@@ -77,7 +77,7 @@ enable_rancher_import = true
 rancher_import_url    = "\"<rancher-import-url>\""
 
 # DNS Records to map — only eSignet-relevant subdomains
-subdomain_public   = ["esignet", "signup"]
+subdomain_public   = ["esignet", "signup", "minio"]
 subdomain_internal = ["iam", "kafka", "postgres", "keycloak"]
 
 # PostgreSQL Configuration
@@ -94,3 +94,15 @@ mosip_infra_branch = "release-0.2.0"
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
 vpc_name = "<vpc-name>"
+
+# ── ActiveMQ Configuration ─────────────────────────────────────────────────────
+# Set enable_activemq_setup = true AND nginx_node_ebs_volume_size_3 > 0 to
+# create a dedicated EBS volume, format it as XFS, and mount it on the NGINX node.
+# ActiveMQ itself runs inside Kubernetes via Helm (no software installed here).
+# Both conditions must be true — set either to false/0 to skip entirely.
+enable_activemq_setup        = false # Toggle: true = create & mount, false = skip
+nginx_node_ebs_volume_size_3 = 0     # Volume size in GB (e.g. 100); 0 = disabled
+
+activemq_storage_device    = "/dev/nvme3n1"
+activemq_mount_point       = "/srv/activemq"
+activemq_nfs_allowed_hosts = "*"  # Restrict to cluster CIDR in production e.g. "10.0.0.0/8"
