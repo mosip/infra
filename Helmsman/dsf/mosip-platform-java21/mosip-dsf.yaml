@@ -199,7 +199,6 @@ apps:
     timeout: 1200
     priority: -21
 
-
   websub:
     namespace: websub
     enabled: true
@@ -223,7 +222,6 @@ apps:
     priority: -19
     timeout: 1200
 
-
   masterdata-loader:
     namespace: masterdata-loader
     enabled: true
@@ -241,7 +239,6 @@ apps:
     priority: -18
     timeout: 1200
 
-
   authmanager:
     namespace: kernel
     enabled: true
@@ -253,7 +250,6 @@ apps:
     priority: -17
     timeout: 1200
 
-  
   auditmanager:
     namespace: kernel
     enabled: true
@@ -265,7 +261,6 @@ apps:
     priority: -16
     timeout: 1200
 
-  
   idgenerator:
     namespace: kernel
     enabled: true
@@ -283,7 +278,6 @@ apps:
     priority: -15
     timeout: 1200
 
-  
   masterdata:
     namespace: kernel
     enabled: true
@@ -300,8 +294,7 @@ apps:
     wait: true
     priority: -14
     timeout: 1200
-
-  
+ 
   otpmanager:
     namespace: kernel
     enabled: true
@@ -313,7 +306,6 @@ apps:
     priority: -13
     timeout: 1200
 
-  
   pridgenerator:
     namespace: kernel
     enabled: true
@@ -325,7 +317,6 @@ apps:
     priority: -12
     timeout: 1200
 
-  
   ridgenerator:
     namespace: kernel
     enabled: true
@@ -353,7 +344,6 @@ apps:
     priority: -10
     timeout: 1200
 
-  
   notifier:
     namespace: kernel
     enabled: true
@@ -364,7 +354,6 @@ apps:
       # image.tag: "release-1.3.x"
     priority: -10
     timeout: 1200
-
 
   biosdk-service:
     namespace: biosdk
@@ -378,8 +367,7 @@ apps:
       biosdk.bioapiImpl: "io.mosip.mock.sdk.impl.SampleSDKV2"
     priority: -10
     timeout: 1200
-
-  
+ 
   packetmanager:
     namespace: packetmanager
     enabled: true
@@ -390,7 +378,6 @@ apps:
     #   image.tag: "release-1.3.x"
     priority: -10
     timeout: 1200
-
 
   datashare:
     namespace: datashare
@@ -438,7 +425,6 @@ apps:
     priority: -9
     timeout: 1200
 
-
   prereg-booking:
     namespace: prereg
     enabled: true
@@ -461,7 +447,6 @@ apps:
     priority: -9
     timeout: 1200
 
-
   prereg-batchjob:
     namespace: prereg
     enabled: true
@@ -472,8 +457,6 @@ apps:
     #   image.tag: "release-1.3.x"
     priority: -9
     timeout: 1200
-
-
 
   prereg-ui:
     namespace: prereg
@@ -487,7 +470,6 @@ apps:
     priority: -9
     timeout: 1200
 
-
   idrepo-saltgen:
     namespace: idrepo
     enabled: true
@@ -499,7 +481,6 @@ apps:
     #timeout: 240
     priority: -9
     timeout: 1200
-
 
   credential:
     namespace: idrepo
@@ -531,7 +512,6 @@ apps:
     priority: -7
     timeout: 1200
   
-
   identity:
     namespace: idrepo
     enabled: true
@@ -567,7 +547,6 @@ apps:
   #   hooks:
   #     preInstall: "$WORKDIR/hooks/pms-keycloak-init.sh" 
 
-
   pms-partner:
     namespace: pms
     enabled: true
@@ -579,7 +558,6 @@ apps:
       istio.corsPolicy.allowOrigins[0].prefix: "https://pmp.${domain_name}"
     priority: -9
     timeout: 1200
-
 
   pms-policy:
     namespace: pms
@@ -593,7 +571,6 @@ apps:
     priority: -9
     timeout: 1200
 
-
   pmp-ui:
     namespace: pms
     enabled: false
@@ -606,7 +583,6 @@ apps:
       istio.hosts[0]: "pmp.${domain_name}"
     priority: -9
     timeout: 1200
-
 
   pmp-revamp-ui:
     namespace: pms
@@ -635,7 +611,6 @@ apps:
     priority: -9
     timeout: 1200
 
-  
   regproc-workflow:
     namespace: regproc
     enabled: true
@@ -928,7 +903,6 @@ apps:
     timeout: 1200
     priority: -9
 
-
   ida-keygen:
     namespace: ida
     enabled: true
@@ -946,7 +920,6 @@ apps:
       # persistence.pvc_claim_name: "<PVC_CLAIM_NAME>"
     timeout: 1200
     priority: -9
-
 
   ida-auth:
     namespace: ida
@@ -1008,8 +981,7 @@ apps:
     #   image.tag: "release-1.3.x"
     timeout: 1200
     priority: -5
-
-
+    
   digitalcard:
     namespace: digitalcard
     enabled: true
@@ -1020,7 +992,6 @@ apps:
     #   image.tag: "release-1.3.x"
     timeout: 1200
     priority: -5
-
 
   resident:
     namespace: resident
