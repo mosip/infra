@@ -3,6 +3,15 @@ name: Deploy eSignet using Helmsman
 on:
   workflow_dispatch:
     inputs:
+      profile:
+        description: "Deployment profile to use"
+        required: true
+        default: "mosip-platform-java11"
+        type: choice
+        options:
+          - mosip-platform-java11
+          - mosip-platform-java21
+          - esignet
       mode:
         description: "Choose Helmsman mode: dry-run or apply"
         required: true
@@ -23,7 +32,7 @@ on:
         type: boolean
   push:
     paths:
-      - Helmsman/dsf/esignet-dsf.yaml
+      - Helmsman/dsf/**/esignet-dsf.yaml
 
 jobs:
   deploy:
@@ -92,7 +101,31 @@ jobs:
             echo "HELMSMAN_MODE=apply" >> $GITHUB_ENV
           else
             echo "HELMSMAN_MODE=${{ github.event.inputs.mode }}" >> $GITHUB_ENV
-          fi        
+          fi
+
+      - name: Set Profile
+        run: |
+          # Determine profile: from workflow input or detect from changed files on push
+          if [ -n "${{ github.event.inputs.profile }}" ]; then
+            PROFILE="${{ github.event.inputs.profile }}"
+          else
+            # Auto-detect profile from push trigger — extract profile dir name from changed files
+            # Fall back to HEAD~1 if github.event.before is unreachable (e.g. shallow clone)
+            BEFORE="${{ github.event.before }}"
+            SHA="${{ github.sha }}"
+            if [[ -z "$BEFORE" || "$BEFORE" == "0000000000000000000000000000000000000000" ]]; then
+              BEFORE="HEAD~1"
+            fi
+            CHANGED_FILES=$(git diff --name-only "$BEFORE" "$SHA" -- 'Helmsman/dsf/' 2>/dev/null || \
+                            git diff --name-only HEAD~1 HEAD -- 'Helmsman/dsf/' 2>/dev/null || echo "")
+            PROFILE=$(echo "$CHANGED_FILES" | grep 'esignet-dsf.yaml' | head -1 | sed 's|Helmsman/dsf/\([^/]*\)/.*|\1|')
+            if [[ -z "$PROFILE" ]]; then
+              echo "Error: could not detect profile from changed DSF files."
+              exit 1
+            fi
+          fi
+          echo "PROFILE=$PROFILE" >> "$GITHUB_ENV"
+          echo "Using profile: $PROFILE"
 
       - name: Setup ufw firewall
         run: |
@@ -151,7 +184,7 @@ jobs:
           kubectl cluster-info
 
       - name: Check if mosip-dsf label is completed
-        if: ${{ github.event.inputs.skip_mosip_dsf_check != 'true' && vars.ESIGNET_STANDALONE_MODE != 'true' }}
+        if: ${{ github.event.inputs.skip_mosip_dsf_check != 'true' && vars.ESIGNET_STANDALONE_MODE != 'true' && github.event.inputs.profile != 'esignet' }}
         run: |
           STATUS=$(kubectl get namespace default -o jsonpath='{.metadata.labels.mosip-dsf}' 2>/dev/null || echo "")
           if [[ "$STATUS" != "completed" ]]; then
@@ -329,7 +362,8 @@ jobs:
           
           # Run helmsman with the determined mode
           # --keep-untracked-releases prevents deletion of releases managed by other DSF files (e.g., postgres-init from external-dsf)
-          helmsman --${HELMSMAN_MODE} --keep-untracked-releases -f $WORKDIR/dsf/esignet-dsf.yaml
+          echo "Using DSF: $WORKDIR/dsf/$PROFILE/esignet-dsf.yaml"
+          helmsman --${HELMSMAN_MODE} --keep-untracked-releases -f $WORKDIR/dsf/$PROFILE/esignet-dsf.yaml
 
       - name: Label namespace on successful deployment
         if: success() && env.HELMSMAN_MODE == 'apply'
@@ -343,6 +377,7 @@ jobs:
           echo "=================================="
           echo "eSignet Deployment Summary"
           echo "=================================="
+          echo "Profile: $PROFILE"
           echo "Mode: $HELMSMAN_MODE"
           echo "Branch: ${{ github.ref_name }}"
           echo "Commit: ${{ github.sha }}"

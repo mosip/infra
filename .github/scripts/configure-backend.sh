@@ -15,6 +15,7 @@ usage() {
     echo "  -c, --component       Component: base-infra, infra, observ-infra (required)"
     echo "  -b, --branch          Branch name for state key (required for remote)"
     echo "  -r, --remote-config   Remote backend config string (required for remote)"
+    echo "  --profile             Infrastructure profile (e.g., mosip, esignet) - included in state key"
     echo "  --enable-locking      Enable state locking (optional, for production)"
     echo "  -h, --help            Show this help message"
     echo ""
@@ -44,6 +45,7 @@ CLOUD_PROVIDER=""
 COMPONENT=""
 BRANCH_NAME=""
 REMOTE_CONFIG=""
+PROFILE=""
 ENABLE_LOCKING=false
 
 # Parse command line arguments
@@ -72,6 +74,14 @@ while [[ $# -gt 0 ]]; do
         --enable-locking)
             ENABLE_LOCKING=true
             shift
+            ;;
+        --profile)
+            if [[ -z "$2" || "$2" == -* ]]; then
+                echo "Error: --profile requires a non-empty argument that is not an option flag."
+                exit 1
+            fi
+            PROFILE="$2"
+            shift 2
             ;;
         -h|--help)
             usage
@@ -129,6 +139,7 @@ echo "=== MOSIP Terraform Backend Configuration ==="
 echo "Backend type: $BACKEND_TYPE"
 echo "Cloud provider: $CLOUD_PROVIDER"
 echo "Component: $COMPONENT"
+echo "Profile: ${PROFILE:-none}"
 echo "Branch: $BRANCH_NAME"
 echo "============================================="
 
@@ -137,11 +148,17 @@ create_local_backend() {
     local provider="$1"
     local component="$2"
     local branch="$3"
+    local profile="$4"
     
     # Include branch name for consistency and to avoid conflicts
     # Use 'local' as default branch name if not provided
     local branch_suffix="${branch:-local}"
-    local state_file="${provider}-${component}-${branch_suffix}-terraform.tfstate"
+    local state_file
+    if [ -n "$profile" ]; then
+        state_file="${provider}-${component}-${profile}-${branch_suffix}-terraform.tfstate"
+    else
+        state_file="${provider}-${component}-${branch_suffix}-terraform.tfstate"
+    fi
     
     echo "Configuring local backend..."
     echo "State file will be: $state_file"
@@ -184,7 +201,12 @@ create_aws_backend() {
         region="$DYNAMIC_REGION"
     fi
     
-    local state_key="${CLOUD_PROVIDER}-${component}-${branch}-terraform.tfstate"
+    local state_key
+    if [ -n "$PROFILE" ]; then
+        state_key="${CLOUD_PROVIDER}-${component}-${PROFILE}-${branch}-terraform.tfstate"
+    else
+        state_key="${CLOUD_PROVIDER}-${component}-${branch}-terraform.tfstate"
+    fi
     
     echo "Configuring AWS S3 backend..."
     echo "Base bucket name: $bucket_base_name"
@@ -251,7 +273,12 @@ create_azure_backend() {
     fi
     
     # Include branch name in state key to avoid conflicts
-    local state_key="${CLOUD_PROVIDER}-${component}-${branch}-terraform.tfstate"
+    local state_key
+    if [ -n "$PROFILE" ]; then
+        state_key="${CLOUD_PROVIDER}-${component}-${PROFILE}-${branch}-terraform.tfstate"
+    else
+        state_key="${CLOUD_PROVIDER}-${component}-${branch}-terraform.tfstate"
+    fi
     
     echo "Configuring Azure Storage backend..."
     echo "Resource Group: $resource_group"
@@ -294,7 +321,12 @@ create_gcp_backend() {
     fi
     
     # Include branch name in prefix to avoid conflicts
-    local state_prefix="terraform/${CLOUD_PROVIDER}-${component}-${branch}"
+    local state_prefix
+    if [ -n "$PROFILE" ]; then
+        state_prefix="terraform/${CLOUD_PROVIDER}-${component}-${PROFILE}-${branch}"
+    else
+        state_prefix="terraform/${CLOUD_PROVIDER}-${component}-${branch}"
+    fi
     
     echo "Configuring GCS backend..."
     echo "Bucket: $bucket_name"
@@ -323,7 +355,7 @@ EOF
 # Main execution
 main() {
     if [ "$BACKEND_TYPE" = "local" ]; then
-        create_local_backend "$CLOUD_PROVIDER" "$COMPONENT" "$BRANCH_NAME"
+        create_local_backend "$CLOUD_PROVIDER" "$COMPONENT" "$BRANCH_NAME" "$PROFILE"
         
     elif [ "$BACKEND_TYPE" = "remote" ]; then
         # Parse remote configuration

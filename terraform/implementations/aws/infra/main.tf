@@ -50,6 +50,12 @@ module "mosip_infra" {
   mosip_infra_repo_url = var.mosip_infra_repo_url
   mosip_infra_branch   = var.mosip_infra_branch
 
+  # ActiveMQ Configuration
+  enable_activemq_setup        = var.enable_activemq_setup
+  nginx_node_ebs_volume_size_3 = var.nginx_node_ebs_volume_size_3
+  activemq_storage_device      = var.activemq_storage_device
+  activemq_mount_point         = var.activemq_mount_point
+
   # AWS-specific configuration
   aws_provider_region           = var.aws_provider_region
   specific_availability_zones   = var.specific_availability_zones
