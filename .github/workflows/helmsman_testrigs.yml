@@ -51,7 +51,7 @@ jobs:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Setup kubectl and kubeconfig
         env:
@@ -93,15 +93,9 @@ jobs:
           if [ -n "${{ github.event.inputs.profile }}" ]; then
             PROFILE="${{ github.event.inputs.profile }}"
           else
-            # Auto-detect profile from push trigger — extract profile dir name from changed files
-            # Fall back to HEAD~1 if github.event.before is unreachable (e.g. shallow clone)
-            BEFORE="${{ github.event.before }}"
-            SHA="${{ github.sha }}"
-            if [[ -z "$BEFORE" || "$BEFORE" == "0000000000000000000000000000000000000000" ]]; then
-              BEFORE="HEAD~1"
-            fi
-            CHANGED_FILES=$(git diff --name-only "$BEFORE" "$SHA" -- 'Helmsman/dsf/' 2>/dev/null || \
-                            git diff --name-only HEAD~1 HEAD -- 'Helmsman/dsf/' 2>/dev/null || echo "")
+            # Auto-detect profile from push event payload — no git history required
+            CHANGED_FILES=$(echo '${{ toJSON(github.event.commits) }}' | \
+              jq -r '.[].modified[], .[].added[], .[].removed[]' 2>/dev/null || echo "")
             PROFILE=$(echo "$CHANGED_FILES" | grep 'testrigs-dsf\.yaml' | head -1 | sed 's|Helmsman/dsf/\([^/]*\)/.*|\1|')
             if [[ -z "$PROFILE" ]]; then
               echo "Error: could not detect profile from changed DSF files."
