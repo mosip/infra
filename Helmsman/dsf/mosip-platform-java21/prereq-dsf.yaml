@@ -33,12 +33,12 @@ apps:
     timeout: 900
     priority: -6
     hooks:
-      postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh ${domain_name} ${ISTIO_VERSION}"
-      postUpgrade: "$WORKDIR/hooks/install-istio-and-httpbin.sh ${domain_name} ${ISTIO_VERSION}"
+      postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh ${domain_name} ${env_name}"
+      postUpgrade: "$WORKDIR/hooks/install-istio-and-httpbin.sh ${domain_name} ${env_name}"
 
   rancher-monitoring:
     namespace: cattle-monitoring-system
-    enabled: false
+    enabled: true
     version: 103.1.0+up45.31.1
     chart: mosip/rancher-monitoring
     set:
