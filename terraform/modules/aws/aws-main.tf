@@ -549,6 +549,7 @@ module "activemq-setup" {
   NGINX_NODE_EBS_VOLUME_SIZE_3 = var.nginx_node_ebs_volume_size_3
   ACTIVEMQ_STORAGE_DEVICE      = var.activemq_storage_device
   ACTIVEMQ_MOUNT_POINT         = var.activemq_mount_point
+  ACTIVEMQ_NFS_ALLOWED_HOSTS   = var.activemq_nfs_allowed_hosts
 
   # Control plane for applying the StorageClass to Kubernetes
   CONTROL_PLANE_HOST = [for instance in module.aws-resource-creation.K8S_CLUSTER_PRIVATE_IPS : instance][0]
