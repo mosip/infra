@@ -74,7 +74,7 @@ apps:
     set:
       # image.repository: "mosipdev/kernel-config-server"
       # image.tag: "release-1.3.x"
-    valuesFile: "$WORKDIR/utils/config-server-values.yaml"
+    valuesFile: "$WORKDIR/utils/config-server-values-java21.yaml"
     wait: true
     timeout: 1200
     priority: -28
