@@ -485,7 +485,7 @@ module "nginx-setup" {
   SSH_PRIVATE_KEY                         = var.SSH_PRIVATE_KEY
   K8S_INFRA_BRANCH                        = var.K8S_INFRA_BRANCH
   K8S_INFRA_REPO_URL                      = var.K8S_INFRA_REPO_URL
-  NGINX_TYPE                              = var.NGINX_TYPE  # Pass through the NGINX_TYPE
+  NGINX_TYPE                              = var.NGINX_TYPE # Pass through the NGINX_TYPE
 }
 
 

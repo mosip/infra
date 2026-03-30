@@ -26,20 +26,20 @@ kubectl label namespace "$ESIGNET_NS" istio-injection=enabled --overwrite
 # Source: deploy/postgres/postgres-init.sh -> ../copy_cm_func.sh secret postgres-postgresql postgres esignet
 echo "Copying postgres-postgresql secret to $ESIGNET_NS namespace"
 kubectl -n "$POSTGRES_NS" get secret postgres-postgresql -o yaml | \
-  sed "s/namespace: $POSTGRES_NS/namespace: $ESIGNET_NS/g" | \
+  sed "s|^\(\s*namespace:\) $POSTGRES_NS$|\1 $ESIGNET_NS|" | \
   kubectl apply -f -
 
 # --- Step 3: Copy db-common-secrets from postgres to esignet ---
 # Source: deploy/postgres/postgres-init.sh -> ../copy_cm_func.sh secret db-common-secrets postgres esignet
 echo "Copying db-common-secrets to $ESIGNET_NS namespace"
 kubectl -n "$POSTGRES_NS" get secret db-common-secrets -o yaml | \
-  sed "s/namespace: $POSTGRES_NS/namespace: $ESIGNET_NS/g" | \
+  sed "s|^\(\s*namespace:\) $POSTGRES_NS$|\1 $ESIGNET_NS|" | \
   kubectl apply -f -
 
 # --- Step 4: Copy postgres-config configmap from postgres to esignet ---
 echo "Copying postgres-config configmap to $ESIGNET_NS namespace"
 kubectl -n "$POSTGRES_NS" get configmap postgres-config -o yaml | \
-  sed "s/namespace: $POSTGRES_NS/namespace: $ESIGNET_NS/g" | \
+  sed "s|^\(\s*namespace:\) $POSTGRES_NS$|\1 $ESIGNET_NS|" | \
   kubectl apply -f -
 
 echo "Database init pre-install completed."

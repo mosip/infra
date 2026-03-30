@@ -6,16 +6,16 @@
 # ============================================================
 
 # Environment name (infra component)
-cluster_name = "ab3"
+cluster_name = "<cluster-name>"
 
 # MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "ab3.mosip.net"
+cluster_env_domain = "<cluster-env-domain>"
 
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
-mosip_email_id = "thisisbn46@gmail.com"
+mosip_email_id = "<email-id>"
 
 # SSH login key name for AWS node instances (ex: my-ssh-key)
-ssh_key_name = "mosip-aws"
+ssh_key_name = "<ssh-key-name>"
 
 # The AWS region for resource creation
 aws_provider_region = "ap-south-1"
@@ -24,7 +24,7 @@ aws_provider_region = "ap-south-1"
 # If empty, uses all available AZs in the region
 # Example: ["ap-south-1a", "ap-south-1b"] for specific AZs
 # Example: [] for all available AZs in the region
-specific_availability_zones = ["ap-south-1b"]
+specific_availability_zones = []
 
 # The instance type for Kubernetes nodes (control plane, worker, etcd)
 k8s_instance_type = "t3a.2xlarge"
@@ -33,7 +33,7 @@ k8s_instance_type = "t3a.2xlarge"
 nginx_instance_type = "t3a.2xlarge"
 
 # The Route 53 hosted zone ID
-zone_id = "Z090954828SJIEL6P5406"
+zone_id = "<route53_zone_id>"
 
 ## UBUNTU 24.04
 # The Amazon Machine Image ID for the instances
@@ -58,13 +58,13 @@ nginx_node_ebs_volume_size_2 = 200 # Enable second EBS volume for PostgreSQL tes
 k8s_instance_root_volume_size = 64
 
 # Control-plane, ETCD, Worker
-k8s_control_plane_node_count = 1
+k8s_control_plane_node_count = 3
 
 # ETCD, Worker
-k8s_etcd_node_count = 0
+k8s_etcd_node_count = 3
 
 # Worker
-k8s_worker_node_count = 0
+k8s_worker_node_count = 2
 
 # RKE2 Version Configuration
 rke2_version = "v1.28.9+rke2r1"
@@ -76,8 +76,8 @@ WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 
 # Rancher Import URL
 # Rancher Import Configuration
-enable_rancher_import = false
-rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/wl5dtxjrfwl2sx2b2s9s54xn5wkffvnrj4cdmqp8vdn2gczfqmvp8z_c-m-2kvb49jf.yaml\""
+enable_rancher_import = true
+rancher_import_url    = "\"<rancher-import-url>\""
 
 # DNS Records to map
 subdomain_public   = ["resident", "prereg", "esignet", "healthservices", "signup"]
@@ -96,15 +96,16 @@ mosip_infra_repo_url = "https://github.com/mosip/infra.git"
 mosip_infra_branch = "release-0.2.0"
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
-vpc_name = "default"
+vpc_name = "<vpc-name>"
 
 # ── ActiveMQ Configuration ─────────────────────────────────────────────────────
 # Set enable_activemq_setup = true AND nginx_node_ebs_volume_size_3 > 0 to
 # create a dedicated EBS volume, format it as XFS, and mount it on the NGINX node.
 # ActiveMQ itself runs inside Kubernetes via Helm (no software installed here).
 # Both conditions must be true — set either to false/0 to skip entirely.
-enable_activemq_setup        = false # Toggle: true = create & mount, false = skip
-nginx_node_ebs_volume_size_3 = 20    # Volume size in GB (e.g. 100); 0 = disabled
+enable_activemq_setup        = true # Toggle: true = create & mount, false = skip
+nginx_node_ebs_volume_size_3 = 30   # Volume size in GB (e.g. 100); 0 = disabled
 
-activemq_storage_device = "/dev/nvme3n1"
-activemq_mount_point    = "/srv/activemq"
+activemq_storage_device    = "/dev/nvme3n1"
+activemq_mount_point       = "/srv/activemq"
+activemq_nfs_allowed_hosts = "*"  # Restrict to cluster CIDR in production e.g. "10.0.0.0/8"

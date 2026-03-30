@@ -39,7 +39,7 @@ echo "Copying esignet-softhsm-share configmap from $SOFTHSM_NS"
 if kubectl -n "$SOFTHSM_NS" get configmap esignet-softhsm-share &>/dev/null; then
   kubectl -n "$ESIGNET_NS" delete --ignore-not-found=true configmap esignet-softhsm-share
   kubectl -n "$SOFTHSM_NS" get configmap esignet-softhsm-share -o yaml | \
-    sed "s/namespace: $SOFTHSM_NS/namespace: $ESIGNET_NS/g" | \
+    sed "s|^\(\s*namespace:\) $SOFTHSM_NS$|\1 $ESIGNET_NS|" | \
     kubectl -n "$ESIGNET_NS" create -f -
 else
   echo "WARNING: esignet-softhsm-share configmap not found in $SOFTHSM_NS"
@@ -50,7 +50,7 @@ echo "Copying postgres-config configmap from $POSTGRES_NS"
 if kubectl -n "$POSTGRES_NS" get configmap postgres-config &>/dev/null; then
   kubectl -n "$ESIGNET_NS" delete --ignore-not-found=true configmap postgres-config
   kubectl -n "$POSTGRES_NS" get configmap postgres-config -o yaml | \
-    sed "s/namespace: $POSTGRES_NS/namespace: $ESIGNET_NS/g" | \
+    sed "s|^\(\s*namespace:\) $POSTGRES_NS$|\1 $ESIGNET_NS|" | \
     kubectl -n "$ESIGNET_NS" create -f -
 else
   echo "WARNING: postgres-config configmap not found in $POSTGRES_NS"
@@ -61,7 +61,7 @@ echo "Copying redis-config configmap from $REDIS_NS"
 if kubectl -n "$REDIS_NS" get configmap redis-config &>/dev/null; then
   kubectl -n "$ESIGNET_NS" delete --ignore-not-found=true configmap redis-config
   kubectl -n "$REDIS_NS" get configmap redis-config -o yaml | \
-    sed "s/namespace: $REDIS_NS/namespace: $ESIGNET_NS/g" | \
+    sed "s|^\(\s*namespace:\) $REDIS_NS$|\1 $ESIGNET_NS|" | \
     kubectl -n "$ESIGNET_NS" create -f -
 else
   echo "WARNING: redis-config configmap not found in $REDIS_NS"
@@ -74,7 +74,7 @@ echo "Copying esignet-softhsm secret from $SOFTHSM_NS"
 if kubectl -n "$SOFTHSM_NS" get secret esignet-softhsm &>/dev/null; then
   kubectl -n "$ESIGNET_NS" delete --ignore-not-found=true secret esignet-softhsm
   kubectl -n "$SOFTHSM_NS" get secret esignet-softhsm -o yaml | \
-    sed "s/namespace: $SOFTHSM_NS/namespace: $ESIGNET_NS/g" | \
+    sed "s|^\(\s*namespace:\) $SOFTHSM_NS$|\1 $ESIGNET_NS|" | \
     kubectl -n "$ESIGNET_NS" create -f -
 else
   echo "WARNING: esignet-softhsm secret not found in $SOFTHSM_NS"
@@ -85,7 +85,7 @@ echo "Copying redis secret from $REDIS_NS"
 if kubectl -n "$REDIS_NS" get secret redis &>/dev/null; then
   kubectl -n "$ESIGNET_NS" delete --ignore-not-found=true secret redis
   kubectl -n "$REDIS_NS" get secret redis -o yaml | \
-    sed "s/namespace: $REDIS_NS/namespace: $ESIGNET_NS/g" | \
+    sed "s|^\(\s*namespace:\) $REDIS_NS$|\1 $ESIGNET_NS|" | \
     kubectl -n "$ESIGNET_NS" create -f -
 else
   echo "WARNING: redis secret not found in $REDIS_NS"

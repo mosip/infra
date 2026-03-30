@@ -19,7 +19,7 @@ MOCK_HSM_PIN=$(kubectl -n softhsm get secret softhsm-mock-identity-system -o jso
 
 if [ -n "$MOCK_HSM_PIN" ]; then
   kubectl -n esignet create configmap softhsm-mock-identity-system-share \
-    --from-literal=softhsm-pin="$(echo "$MOCK_HSM_PIN" | base64 -d)" \
+    --from-literal=softhsm-pin="$(echo -n "$MOCK_HSM_PIN" | base64 -d)" \
     --dry-run=client -o yaml | kubectl apply -f -
   echo "SoftHSM mock identity system credentials shared with esignet namespace."
 else
