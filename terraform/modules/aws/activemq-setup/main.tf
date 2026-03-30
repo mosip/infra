@@ -122,7 +122,7 @@ resource "null_resource" "activemq-k8s-storageclass" {
       "export KUBECONFIG=$(find /home/${var.CONTROL_PLANE_USER}/.kube/ -name '*.yaml' | head -1)",
       # Fail immediately with a clear message if no valid file was found.
       "if [ -z \"$KUBECONFIG\" ] || [ ! -f \"$KUBECONFIG\" ]; then echo \"ERROR: kubeconfig not found in /home/${var.CONTROL_PLANE_USER}/.kube/\"; exit 1; fi",
-      "echo 'Using kubeconfig: $KUBECONFIG'",
+      "echo \"Using kubeconfig: $KUBECONFIG\"",
       "kubectl cluster-info",
       "echo 'Applying ActiveMQ NFS StorageClass...'",
       "kubectl apply -f /tmp/activemq-storageclass.yaml",
