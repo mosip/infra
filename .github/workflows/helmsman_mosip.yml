@@ -43,6 +43,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup kubectl and kubeconfig
         env:
@@ -85,7 +87,6 @@ jobs:
             PROFILE="${{ github.event.inputs.profile }}"
           else
             # Auto-detect profile from push trigger — extract profile dir name from changed files
-            # Fall back to HEAD~1 if github.event.before is unreachable (e.g. shallow clone)
             BEFORE="${{ github.event.before }}"
             SHA="${{ github.sha }}"
             if [[ -z "$BEFORE" || "$BEFORE" == "0000000000000000000000000000000000000000" ]]; then

@@ -27,10 +27,11 @@ apps:
     set:
       # image.repository: "mosipqa/dsl-packetcreator"
       # image.tag: "1.2.1.x"
-      resources.limits.cpu: "1"
-      resources.limits.memory: "6000Mi"
-      resources.requests.cpu: "800m"
-      resources.requests.memory: "6000Mi"
+      # resources.limits.cpu: "1"
+      # resources.limits.memory: "6000Mi"
+      # resources.requests.cpu: "800m"
+      # resources.requests.memory: "6000Mi"
+      additionalResources.javaOpts: "-Xms3200M -Xmx3200M"
       enable_insecure: false
       ingress.enabled: false
       ## If ingress enabled, provide ingress host value i.e., PACKETCREATOR_HOST
@@ -45,7 +46,7 @@ apps:
   apitestrig:
     namespace: apitestrig
     enabled: true
-    version: 1.3.4
+    version: 1.3.5
     chart: mosip/apitestrig
     set:
       crontime: "0 2 * * *"
@@ -63,22 +64,22 @@ apps:
       apitestrig.configmaps.apitestrig.eSignetDeployed: "yes"
       apitestrig.configmaps.apitestrig.NS: apitestrig
       apitestrig.configmaps.apitestrig.servicesNotDeployed: ''
-      apitestrig.configmaps.apitestrig.uinGenerationProcessingDelayTimeInMilliSeconds: "600000"
-      apitestrig.configmaps.apitestrig.vidGenerationProcessingDelayTimeInMilliSeconds: "600000"  
+      # apitestrig.configmaps.apitestrig.uinGenerationProcessingDelayTimeInMilliSeconds: "600000"
+      # apitestrig.configmaps.apitestrig.vidGenerationProcessingDelayTimeInMilliSeconds: "600000"  
 
       modules.prereg.enabled: true
       modules.prereg.image.repository: mosipid/apitest-prereg
-      modules.prereg.image.tag: 1.2.0.3
+      modules.prereg.image.tag: 1.3.0
       modules.prereg.image.pullPolicy: Always
 
       modules.masterdata.enabled: true
       modules.masterdata.image.repository: mosipid/apitest-masterdata
-      modules.masterdata.image.tag: 1.2.1.3
+      modules.masterdata.image.tag: 1.3.0
       modules.masterdata.image.pullPolicy: Always
 
       modules.idrepo.enabled: true
       modules.idrepo.image.repository: mosipid/apitest-idrepo
-      modules.idrepo.image.tag: 1.2.2.4
+      modules.idrepo.image.tag: 1.3.0
       modules.idrepo.image.pullPolicy: Always
 
       modules.partner.enabled: true
@@ -93,7 +94,7 @@ apps:
 
       modules.resident.enabled: true
       modules.resident.image.repository: mosipid/apitest-resident
-      modules.resident.image.tag: 1.2.1.3
+      modules.resident.image.tag: 1.3.0
       modules.resident.image.pullPolicy: Always
 
       modules.auth.enabled: true
@@ -156,7 +157,7 @@ apps:
   uitestrig:
     namespace: uitestrig
     enabled: true
-    version: 12.0.2
+    version: 1.3.5
     chart: mosip/uitestrig
     set:
       # image.repository: ""

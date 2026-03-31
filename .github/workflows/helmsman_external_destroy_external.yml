@@ -1,60 +1,330 @@
-name: Destroy External services of MOSIP using Helmsman (external DSF)
+name: Deploy External services of mosip using Helmsman
 
 on:
   workflow_dispatch:
     inputs:
-      confirmation:
-        description: "Type 'destroy' to confirm destruction of external services"
+      profile:
+        description: "Deployment profile to use"
         required: true
-        type: string
-      namespace_selection:
-        description: "Namespace selection"
+        default: "mosip-platform-java11"
+        type: choice
+        options:
+          - mosip-platform-java11
+          - mosip-platform-java21
+          - esignet
+      mode:
+        description: "Choose Helmsman mode: dry-run or apply"
         required: true
+        default: "dry-run"
         type: choice
-        default: "all"
         options:
-          - all
-          - specific
-      specific_namespaces:
-        description: "Specific namespaces (comma-separated, e.g., keycloak,kafka,minio). Only used if 'specific' is selected above."
+          - dry-run
+          - apply
+      domain_name:
+        description: "Domain name for this environment (e.g. example.xyz.net)"
         required: false
         type: string
-      destroy_option:
-        description: "Destroy option"
-        required: false
-        type: choice
-        default: "full"
-        options:
-          - full
-          - helm_only
-      specific_releases:
-        description: "Specific helm releases (comma-separated). Only used with helm_only option."
+      env_name:
+        description: "Environment name (e.g. sandbox, dev, staging)"
         required: false
         type: string
+      slack_channel_name:
+        description: "Slack channel name for alerting (e.g. #mosip-alerts)"
+        required: false
+        type: string
+      slack_webhook_url:
+        description: "Slack webhook URL for alerting (overrides SLACK_WEBHOOK_URL secret)"
+        required: false
+        type: string
+      clusterid:
+        description: "Rancher cluster ID for rancher-monitoring (e.g. c-xxxxx)"
+        required: false
+        type: string
+  push:
+    paths:
+      - Helmsman/dsf/**/prereq-dsf.yaml
+      - Helmsman/dsf/**/external-dsf.yaml
+
+permissions:
+  actions: write
 
 jobs:
-  validate-confirmation:
+  set-matrix:
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      profile: ${{ steps.set-matrix.outputs.PROFILE }}
     steps:
-      - name: Validate destruction confirmation
+      - name: Checkout repository with full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Get full commit history
+
+      - name: Generate workflow matrix
+        id: set-matrix
         run: |
-          if [ "${{ github.event.inputs.confirmation }}" != "destroy" ]; then
-            echo "❌ Destruction cancelled. You must type 'destroy' to confirm."
+          matrix_json='{"include":[]}'
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            PROFILE="${{ github.event.inputs.profile }}"
+            matrix_json="{\"include\":[{\"dsf_files\":\"${PROFILE}/prereq-dsf.yaml\",\"wg_conf\":\"wg0\"},{\"dsf_files\":\"${PROFILE}/external-dsf.yaml\",\"wg_conf\":\"wg1\"}]}"
+          else
+            # Handle different event types properly
+            if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+              base_sha="${{ github.event.before }}"
+              head_sha="${{ github.sha }}"
+            elif [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+              base_sha="${{ github.event.pull_request.base.sha }}"
+              head_sha="${{ github.event.pull_request.head.sha }}"
+            fi
+
+            # Get changed files safely; fall back to HEAD~1 if base_sha is unreachable
+            changed_files=$(git diff --name-only "$base_sha" "$head_sha" -- 'Helmsman/dsf/' 2>/dev/null || \
+                            git diff --name-only HEAD~1 HEAD -- 'Helmsman/dsf/' 2>/dev/null || echo "")
+
+            entries=()
+
+            # Dynamically detect changed profiles from file paths
+            changed_profiles=$(echo "$changed_files" | grep 'Helmsman/dsf/' | sed 's|Helmsman/dsf/\([^/]*\)/.*|\1|' | sort -u)
+
+            # Derive PROFILE from the changed files; take the first detected profile for downstream dispatch
+            PROFILE=$(echo "$changed_profiles" | head -n 1)
+            if [[ -z "$PROFILE" ]]; then
+              echo "Error: could not detect profile from changed DSF files."
+              exit 1
+            fi
+
+            for profile_dir in $changed_profiles; do
+              if echo "$changed_files" | grep -q "Helmsman/dsf/${profile_dir}/prereq-dsf.yaml"; then
+                entries+=("{\"dsf_files\":\"${profile_dir}/prereq-dsf.yaml\",\"wg_conf\":\"wg0\"}")
+              fi
+
+              if echo "$changed_files" | grep -q "Helmsman/dsf/${profile_dir}/external-dsf.yaml"; then
+                entries+=("{\"dsf_files\":\"${profile_dir}/external-dsf.yaml\",\"wg_conf\":\"wg1\"}")
+              fi
+            done
+
+            if [ ${#entries[@]} -gt 0 ]; then
+              matrix_json="{\"include\":[$(IFS=,; echo "${entries[*]}")]}"
+            fi
+          fi
+
+          echo "Using profile: $PROFILE"
+          echo "matrix=$matrix_json" >> $GITHUB_OUTPUT
+          echo "PROFILE=$PROFILE" >> $GITHUB_OUTPUT
+  deploy:
+    runs-on: ubuntu-latest
+    needs: set-matrix
+    strategy:
+      matrix: ${{ fromJson(needs.set-matrix.outputs.matrix) }}
+    environment: 
+      name: ${{ github.ref_name }}  # Dynamic environment based on branch name
+    env:
+      KUBECONFIG: ${{ github.workspace }}/.kube/config
+      PATH: ${{ github.workspace }}/istio-1.22.0/bin:${{ github.workspace }}/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+      ISTIOCTL_PATH: ${{ github.workspace }}/istio-1.22.0/bin/istioctl
+      KUBECTL_PATH: ${{ github.workspace }}/.local/bin/kubectl
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      PREREG_CAPTCHA_SITE_KEY: ${{ secrets.PREREG_CAPTCHA_SITE_KEY }}
+      PREREG_CAPTCHA_SECRET_KEY: ${{ secrets.PREREG_CAPTCHA_SECRET_KEY }}
+      ADMIN_CAPTCHA_SITE_KEY: ${{ secrets.ADMIN_CAPTCHA_SITE_KEY }}
+      ADMIN_CAPTCHA_SECRET_KEY: ${{ secrets.ADMIN_CAPTCHA_SECRET_KEY }}
+      RESIDENT_CAPTCHA_SITE_KEY: ${{ secrets.RESIDENT_CAPTCHA_SITE_KEY }}
+      RESIDENT_CAPTCHA_SECRET_KEY: ${{ secrets.RESIDENT_CAPTCHA_SECRET_KEY }}
+      CLUSTER_ID: ${{ github.event.inputs.clusterid || vars.CLUSTER_ID }}
+    steps:
+      - name: Show matrix values
+        run: |
+          echo "Processing ${{ matrix.dsf_files }}"
+          echo "Using WireGuard config: ${{ matrix.wg_conf }}"
+          pwd
+
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Mask sensitive secrets
+        run: |
+          echo "::add-mask::${{ secrets.PREREG_CAPTCHA_SITE_KEY }}"
+          echo "::add-mask::${{ secrets.PREREG_CAPTCHA_SECRET_KEY }}"
+          echo "::add-mask::${{ secrets.ADMIN_CAPTCHA_SITE_KEY }}"
+          echo "::add-mask::${{ secrets.ADMIN_CAPTCHA_SECRET_KEY }}"
+          echo "::add-mask::${{ secrets.RESIDENT_CAPTCHA_SITE_KEY }}"
+          echo "::add-mask::${{ secrets.RESIDENT_CAPTCHA_SECRET_KEY }}"
+
+      - name: Setup kubectl, istioctl and kubeconfig
+        env:
+          KUBECONFIG_CONTENT: ${{ secrets.KUBECONFIG }}
+        run: |
+          # Create directories
+          mkdir -p ${{ github.workspace }}/.local/bin
+          mkdir -p ${{ github.workspace }}/.kube
+          
+          # Install kubectl
+          curl -LO https://dl.k8s.io/release/v1.31.3/bin/linux/amd64/kubectl
+          chmod +x kubectl
+          mv ./kubectl ${{ github.workspace }}/.local/bin/kubectl
+          
+          # Install istioctl
+          curl -L https://istio.io/downloadIstio | ISTIO_VERSION=1.22.0 TARGET_ARCH=x86_64 sh -
+          
+          # Setup kubeconfig
+          echo "$KUBECONFIG_CONTENT" > ${{ github.workspace }}/.kube/config
+          chmod 400 ${{ github.workspace }}/.kube/config
+          
+          # Add tools to GitHub PATH for subsequent steps
+          echo "${{ github.workspace }}/.local/bin" >> $GITHUB_PATH
+          echo "${{ github.workspace }}/istio-1.22.0/bin" >> $GITHUB_PATH
+          
+          # Export environment variables for immediate use
+          echo "KUBECTL_PATH=${{ github.workspace }}/.local/bin/kubectl" >> $GITHUB_ENV
+          echo "ISTIOCTL_PATH=${{ github.workspace }}/istio-1.22.0/bin/istioctl" >> $GITHUB_ENV
+          
+          # Verify installations
+          ${{ github.workspace }}/.local/bin/kubectl version --client
+          ${{ github.workspace }}/istio-1.22.0/bin/istioctl version --remote=false
+          ${{ github.workspace }}/.local/bin/kubectl config view
+
+      - name: Set Default Mode
+        run: |
+          if [ -z "${{ github.event.inputs.mode }}" ]; then
+            echo "HELMSMAN_MODE=apply" >> $GITHUB_ENV
+          else
+            echo "HELMSMAN_MODE=${{ github.event.inputs.mode }}" >> $GITHUB_ENV
+          fi        
+
+      - name: Setup ufw firewall
+        run: |
+          sudo ufw enable
+          sudo ufw allow ssh
+          sudo ufw allow 51820/udp
+          sudo ufw status  
+
+      - name: Install WireGuard
+        run: sudo apt-get install -y wireguard
+
+      - name: Configure WireGuard
+        run: |
+          echo "${{ secrets.CLUSTER_WIREGUARD_WG0 }}" | sudo tee /etc/wireguard/wg0.conf
+          echo "${{ secrets.CLUSTER_WIREGUARD_WG1 }}" | sudo tee /etc/wireguard/wg1.conf
+
+      - name: Start WireGuard
+        run: |
+          sudo chmod 600 /etc/wireguard/${{ matrix.wg_conf }}.conf
+          sudo chmod 700 /etc/wireguard/
+          sudo chmod 644 /lib/systemd/system/wg-quick@.service
+          sudo systemctl daemon-reload
+          sudo wg-quick up ${{ matrix.wg_conf }}
+          sudo wg show ${{ matrix.wg_conf }}
+
+      - name: Setup Helm
+        run: |
+          curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
+          sudo chmod 700 get_helm.sh
+          sudo ./get_helm.sh
+          helm version --client
+
+      - name: Install Helmsman
+        run: |
+          curl -L https://github.com/Praqma/helmsman/releases/download/v3.17.1/helmsman_3.17.1_linux_amd64.tar.gz -o helmsman.tar.gz
+          tar xzf helmsman.tar.gz
+          sudo mv helmsman /usr/local/bin
+          
+          # Verify all tools are available
+          echo "All tools verification:"
+          echo "kubectl: $(which kubectl)"
+          echo "istioctl: $(which istioctl)" 
+          echo "helmsman: $(which helmsman)"
+          
+          kubectl version --client
+          istioctl version --remote=false
+          helmsman -v
+      
+      - name: Verify cluster access
+        run: |
+          # Verify tools are accessible
+          echo "Verifying tool availability:"
+          echo "kubectl path: $(which kubectl)"
+          echo "istioctl path: $(which istioctl)"
+          echo "KUBECONFIG: $KUBECONFIG"
+          
+          # Test kubectl functionality
+          kubectl version --client
+          kubectl get nodes
+          kubectl cluster-info
+          
+          # Test istioctl functionality  
+          istioctl version --remote=false
+      - name: Check if external-dsf label is completed only for push
+        if: github.event_name == 'push'
+        run: |
+          STATUS=$(kubectl get namespace default -o jsonpath='{.metadata.labels.external-dsf}')
+          if [[ "$STATUS" != "completed" ]]; then
+            echo "❌ External DSF not completed."
             exit 1
           fi
-          echo "✅ Destruction confirmed. Proceeding..."
+          
+      - name: Set deployment variables
+        run: |
+          echo "domain_name=${{ github.event.inputs.domain_name || vars.DOMAIN_NAME }}" >> $GITHUB_ENV
+          echo "env_name=${{ github.event.inputs.env_name || vars.ENV_NAME }}" >> $GITHUB_ENV
+          echo "slack_channel_name=${{ github.event.inputs.slack_channel_name || vars.SLACK_CHANNEL_NAME }}" >> $GITHUB_ENV
+          if [ -n "${{ github.event.inputs.slack_webhook_url }}" ]; then
+            echo "SLACK_WEBHOOK_URL=${{ github.event.inputs.slack_webhook_url }}" >> $GITHUB_ENV
+          fi
 
-  destroy:
-    needs: validate-confirmation
-    uses: ./.github/workflows/destroy-resources.yml
-    with:
-      namespace_selection: ${{ github.event.inputs.namespace_selection }}
-      specific_namespaces: ${{ github.event.inputs.specific_namespaces }}
-      all_namespaces: "keycloak kafka minio softhsm clamav activemq landing-page captcha s3 msg-gateways"
-      dsf_label: "external-dsf"
-      wireguard_secret_name: "CLUSTER_WIREGUARD_WG0"
-      deployment_type: "External"
-      destroy_option: ${{ github.event.inputs.destroy_option }}
-      specific_releases: ${{ github.event.inputs.specific_releases }}
-    secrets: inherit
+      - name: Initiate helmsman to apply the DSF configurations.
+        run: |
+          export HOME="${{ github.workspace }}"
+          export WORKDIR="$HOME/Helmsman"
+          
+          # Verify tools are available
+          echo "Using kubectl: $(which kubectl)"
+          echo "Using istioctl: $(which istioctl)"
+          echo "Using kubeconfig: $KUBECONFIG"
+          
+          # Run helmsman with the determined mode
+          helmsman --${HELMSMAN_MODE} -f $WORKDIR/dsf/${{ matrix.dsf_files }}
+      - name: Health Check External Pods
+        run: |
+          set -e
+          NAMESPACES=( cattle-logging-system istio-system istio-operator httpbin keycloak kafka minio softhsm clamav activemq landing-page)
+          for NS in "${NAMESPACES[@]}"; do
+            echo "Checking health for namespace: $NS"
+            for i in {1..30}; do
+              UNREADY=$(kubectl get pods -n "$NS" --no-headers | grep -vE 'Running|Completed' | wc -l)
+              if [ "$UNREADY" -eq 0 ]; then
+                break
+              fi
+              sleep 10
+            done
+            UNREADY_FINAL=$(kubectl get pods -n "$NS" --no-headers | grep -vE 'Running|Completed' | wc -l)
+            if [ "$UNREADY_FINAL" -ne 0 ]; then
+              echo "Pods in $NS not healthy"
+              exit 1
+            fi
+          done
 
+      - name: Mark External DSF Completed
+        run: |
+          kubectl label namespace default external-dsf=completed --overwrite
+
+  workflow-caller:
+    runs-on: ubuntu-latest
+    needs: [deploy, set-matrix]
+    # Only trigger MOSIP workflow for mosip-platform profiles, not for standalone esignet
+    if: ${{ startsWith(needs.set-matrix.outputs.profile, 'mosip-platform-') }}
+    steps:
+      - name: Trigger helmsman mosip workflow via API
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ github.ref_name }}
+          MODE: ${{ github.event.inputs.mode }}
+          DOMAIN_NAME: ${{ github.event.inputs.domain_name || vars.DOMAIN_NAME }}
+          ENV_NAME: ${{ github.event.inputs.env_name || vars.ENV_NAME }}
+        run: |
+          curl -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/$GITHUB_REPO/actions/workflows/helmsman_mosip.yml/dispatches \
+            -d '{"ref":"'"$BRANCH"'","inputs":{"mode":"'"${MODE:-apply}"'","profile":"'"${{ needs.set-matrix.outputs.profile }}"'","domain_name":"'"$DOMAIN_NAME"'","env_name":"'"$ENV_NAME"'"}}'
