@@ -432,11 +432,11 @@ else
     exit 1
 fi
 
-# Create dynamic inventory with detected nginx node IP using local connection
-echo '[CREATE] Creating Inventory File with nginx node IP (local connection)...'
+# Create dynamic inventory with detected nginx node IP
+echo '[CREATE] Creating Inventory File with nginx node IP...'
 cat > inventory.ini << EOF
 [postgresql_servers]
-$NGINX_NODE_IP ansible_connection=local ansible_user=ubuntu ansible_become=yes ansible_become_method=sudo
+$NGINX_NODE_IP ansible_user=ubuntu ansible_become=yes ansible_become_method=sudo
 EOF
 
 echo "[SUCCESS] Inventory file created with nginx IP target (local): $NGINX_NODE_IP"
@@ -516,7 +516,7 @@ fi
 
 # Show the command that will be executed
 echo '[INFO] Ansible command to be executed:'
-echo "ansible-playbook -vv -i inventory.ini -e postgresql_version=$POSTGRESQL_VERSION -e storage_device=$STORAGE_DEVICE -e mount_point=$MOUNT_POINT -e postgresql_port=$POSTGRESQL_PORT -e network_cidr=$NETWORK_CIDR -e postgres_external_host=$NGINX_NODE_IP postgresql-setup.yml"
+echo "ansible-playbook -vv -i inventory.ini --private-key=\"${SSH_PRIVATE_KEY_FILE:-}\" --ssh-common-args=\"-o StrictHostKeyChecking=accept-new\" -e postgresql_version=$POSTGRESQL_VERSION -e storage_device=$STORAGE_DEVICE -e mount_point=$MOUNT_POINT -e postgresql_port=$POSTGRESQL_PORT -e network_cidr=$NETWORK_CIDR -e postgres_external_host=$NGINX_NODE_IP postgresql-setup.yml"
 
 # Start a background progress monitor
 (
@@ -533,6 +533,8 @@ PROGRESS_PID=$!
 
 # Run the actual playbook
 timeout 900 ansible-playbook -vv -i inventory.ini \
+    --private-key="${SSH_PRIVATE_KEY_FILE:-}" \
+    --ssh-common-args="-o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/dev/null" \
     -e postgresql_version=$POSTGRESQL_VERSION \
     -e storage_device=$STORAGE_DEVICE \
     -e mount_point=$MOUNT_POINT \

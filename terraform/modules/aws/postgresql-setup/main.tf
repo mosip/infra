@@ -68,38 +68,35 @@ resource "null_resource" "PostgreSQL-ansible-setup" {
     ]))
   }
 
-  connection {
-    type        = "ssh"
-    host        = var.NGINX_PRIVATE_IP # Use private IP for WireGuard access
-    user        = "ubuntu"
-    private_key = var.SSH_PRIVATE_KEY
-    timeout     = "15m" # Fast timeout for PostgreSQL setup
-    agent       = false
-  }
-
-  provisioner "file" {
-    source      = "${path.module}/postgresql-setup.sh"
-    destination = "/tmp/postgresql-setup.sh"
-  }
-
-  provisioner "remote-exec" {
-    inline = [
+  provisioner "local-exec" {
+    command = <<EOT
       # Set environment variables for the PostgreSQL setup script
-      "export POSTGRESQL_VERSION=${var.POSTGRESQL_VERSION}",
-      "export STORAGE_DEVICE=${var.STORAGE_DEVICE}",
-      "export MOUNT_POINT=${var.MOUNT_POINT}",
-      "export POSTGRESQL_PORT=${var.POSTGRESQL_PORT}",
-      "export NETWORK_CIDR=${var.NETWORK_CIDR}",
-      "export MOSIP_INFRA_REPO_URL=${var.MOSIP_INFRA_REPO_URL}",
-      "export MOSIP_INFRA_BRANCH=${var.MOSIP_INFRA_BRANCH}",
+      export POSTGRESQL_VERSION=${var.POSTGRESQL_VERSION}
+      export STORAGE_DEVICE=${var.STORAGE_DEVICE}
+      export MOUNT_POINT=${var.MOUNT_POINT}
+      export POSTGRESQL_PORT=${var.POSTGRESQL_PORT}
+      export NETWORK_CIDR=${var.NETWORK_CIDR}
+      export MOSIP_INFRA_REPO_URL=${var.MOSIP_INFRA_REPO_URL}
+      export MOSIP_INFRA_BRANCH=${var.MOSIP_INFRA_BRANCH}
+
+      # Override the IP since we're running locally
+      export NGINX_NODE_IP_OVERRIDE=${var.NGINX_PRIVATE_IP}
+
+      # Provide the SSH key for ansible connection
+      echo "${var.SSH_PRIVATE_KEY}" > ${path.module}/postgres-ssh.key
+      chmod 600 ${path.module}/postgres-ssh.key
+      export SSH_PRIVATE_KEY_FILE=${abspath(path.module)}/postgres-ssh.key
 
       # Skip Kubernetes deployment in script - Terraform will handle it
-      "export SKIP_K8S_DEPLOYMENT=true",
+      export SKIP_K8S_DEPLOYMENT=true
 
-      # Execute the PostgreSQL setup script (PostgreSQL install + YAML generation only)
-      "sudo chmod +x /tmp/postgresql-setup.sh",
-      "bash /tmp/postgresql-setup.sh"
-    ]
+      # Execute the PostgreSQL setup script locally
+      chmod +x ${path.module}/postgresql-setup.sh
+      bash ${path.module}/postgresql-setup.sh
+      
+      # Clean up SSH key
+      rm -f ${path.module}/postgres-ssh.key
+    EOT
   }
 }
 
@@ -117,22 +114,7 @@ resource "null_resource" "postgresql-k8s-deployment" {
     agent       = false
   }
 
-  # Copy PostgreSQL secrets from nginx node to control plane
-  provisioner "local-exec" {
-    command = <<EOF
-echo "${var.SSH_PRIVATE_KEY}" > /tmp/nginx-key
-chmod 600 /tmp/nginx-key
-
-# Create local directory and download YAML files from nginx node
-mkdir -p /tmp/postgresql-secrets
-scp -i /tmp/nginx-key -o StrictHostKeyChecking=no ubuntu@${var.NGINX_PRIVATE_IP}:/tmp/postgresql-secrets/*.yml /tmp/postgresql-secrets/
-
-# Clean up nginx key
-rm -f /tmp/nginx-key
-EOF
-  }
-
-  # Copy YAML files to control plane
+  # Copy YAML files to control plane (already generated locally by Ansible)
   provisioner "file" {
     source      = "/tmp/postgresql-secrets/postgres-postgresql.yml"
     destination = "/tmp/postgres-postgresql.yml"
