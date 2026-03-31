@@ -675,6 +675,8 @@ This step creates MOSIP Kubernetes cluster, PostgreSQL (if enabled), networking,
  nginx_node_ebs_volume_size = 300
  # NGINX node's second EBS volume size (optional - set to 0 to disable)
  nginx_node_ebs_volume_size_2 = 200 # Enable second EBS volume for PostgreSQL testing
+ # NGINX node's third EBS volume size (optional - set to 0 to disable)
+ nginx_node_ebs_volume_size_3 = 100 # Enable third EBS volume for ActiveMQ storage
  # Kubernetes nodes Root volume size
  k8s_instance_root_volume_size = 64
 
@@ -708,6 +710,11 @@ This step creates MOSIP Kubernetes cluster, PostgreSQL (if enabled), networking,
  mount_point = "/srv/postgres"
  postgresql_port = "5433"
 
+ # ActiveMQ Configuration (optional, used when third EBS volume is enabled)
+ enable_activemq_setup = true # Enable ActiveMQ persistent storage for main infra
+ activemq_storage_device = "/dev/nvme3n1"
+ activemq_mount_point = "/srv/activemq"
+
  # MOSIP Infrastructure Repository Configuration
  mosip_infra_repo_url = "https://github.com/mosip/mosip-infra.git"
  mosip_infra_branch = "develop"
@@ -733,6 +740,8 @@ This step creates MOSIP Kubernetes cluster, PostgreSQL (if enabled), networking,
 | `nginx_node_ebs_volume_size_2` | EBS volume size for PostgreSQL data (GB)   | `200`                                     |
 | `postgresql_version`           | PostgreSQL version to install              | `"15"`                                    |
 | `postgresql_port`              | PostgreSQL service port                    | `"5433"`                                  |
+| `enable_activemq_setup`        | ActiveMQ persistent storage setup          | `true` (provisioned) / `false` (skipped) |
+| `nginx_node_ebs_volume_size_3` | EBS volume size for ActiveMQ data (GB)     | `100`                                     |
 | `vpc_name`                     | Existing VPC name tag to use               | `"mosip-boxes"`                           |
 
 > **Important Notes:**
@@ -748,6 +757,7 @@ This step creates MOSIP Kubernetes cluster, PostgreSQL (if enabled), networking,
 
 > - Set `enable_postgresql_setup = false` for development deployments with containerized PostgreSQL
 > - The `nginx_node_ebs_volume_size_2` is required when `enable_postgresql_setup = true`
+> - **ActiveMQ Setup**: ActiveMQ installation is optional. To enable it, set `enable_activemq_setup = true` and ensure `nginx_node_ebs_volume_size_3 > 0` in `aws.tfvars`. It automatically provisions durable NFS-backed persistent storage via a dedicated EBS volume on the NGINX node.
 > - **SSH Key Configuration**: The `ssh_key_name` value must match the repository secret name containing your SSH private key (e.g., if `ssh_key_name = "mosip-aws"`, create repository secret named `mosip-aws` with your SSH private key content)
 
 #### Rancher Import Configuration (Optional)
