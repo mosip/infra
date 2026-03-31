@@ -38,9 +38,9 @@ This Terraform module provisions the necessary persistent storage infrastructure
 | `NGINX_NODE_EBS_VOLUME_SIZE_3` | Size of the 3rd EBS volume attached to the target NGINX node         | `number` | n/a               | Yes      |
 | `ACTIVEMQ_STORAGE_DEVICE`      | Block device path of the 3rd EBS volume                              | `string` | `/dev/nvme3n1`    | No       |
 | `ACTIVEMQ_MOUNT_POINT`         | Mount point for ActiveMQ persistent storage & NFS share path         | `string` | `/srv/activemq`   | No       |
+| `ACTIVEMQ_NFS_ALLOWED_HOSTS`   | Hosts allowed to mount the NFS export (e.g., `*` or `10.0.0.0/8`)   | `string` | `*`               | No       |
 | `CONTROL_PLANE_HOST`           | IP address of the Kubernetes control plane node                      | `string` | n/a               | Yes      |
 | `CONTROL_PLANE_USER`           | SSH username for control plane access                                | `string` | `ubuntu`          | No       |
-
 ## Security Considerations
 
 The `SSH_PRIVATE_KEY` is passed seamlessly through the environment (`TF_ACTIVEMQ_SSH_KEY`) and is never included in commandline arguments. The bash wrapper creates a temporary key file with `600` permissions and automatically removes it via bash `trap` signals (like `EXIT` or `ERR`) after the pipeline completes, guaranteeing that sensitive keys are not leaked in CI/CD pipeline logs, tfstate command histories, or process lists.
