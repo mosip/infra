@@ -714,6 +714,7 @@ This step creates MOSIP Kubernetes cluster, PostgreSQL (if enabled), networking,
  enable_activemq_setup = true # Enable ActiveMQ persistent storage for main infra
  activemq_storage_device = "/dev/nvme3n1"
  activemq_mount_point = "/srv/activemq"
+ activemq_nfs_allowed_hosts = "*" # Hosts allowed to mount NFS export (use CIDR/IP range for production, e.g., "10.0.0.0/8")
 
  # MOSIP Infrastructure Repository Configuration
  mosip_infra_repo_url = "https://github.com/mosip/mosip-infra.git"
