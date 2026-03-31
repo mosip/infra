@@ -57,4 +57,3 @@ jobs:
       destroy_option: ${{ github.event.inputs.destroy_option }}
       specific_releases: ${{ github.event.inputs.specific_releases }}
     secrets: inherit
-

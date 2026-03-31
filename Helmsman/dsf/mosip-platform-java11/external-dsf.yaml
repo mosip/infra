@@ -79,7 +79,7 @@ apps:
       databases.mosip_keymgr.port: 5433
 
       databases.mosip_kernel.enabled: "true"
-      databases.mosip_kernel.branch: " v1.2.0.2"
+      databases.mosip_kernel.branch: "v1.2.0.2"
       databases.mosip_kernel.host: "postgres.${domain_name}"
       databases.mosip_kernel.port: 5433
 
@@ -258,8 +258,6 @@ apps:
     wait: true
     timeout: 1200
     priority: -10
-    hooks:
-      preInstall: "kubectl label ns minio istio-injection=enabled --overwrite"    
 
   istio-addons-minio:
     namespace: minio
@@ -271,7 +269,7 @@ apps:
     wait: true
     timeout: 1200
     hooks:
-      postInstall: "$WORKDIR/hooks/s3-setup.sh "
+      postInstall: "$WORKDIR/hooks/s3-setup.sh"
     priority: -2
 
   clamav:
@@ -289,8 +287,6 @@ apps:
     wait: true
     timeout: 1200
     priority: -9
-    hooks:
-      preInstall: "kubectl label ns clamav istio-injection=enabled --overwrite"
 
   activemq:
     namespace: activemq
@@ -306,7 +302,6 @@ apps:
     timeout: 1200
     priority: -8
     hooks:
-      preInstall: "kubectl label ns activemq istio-injection=enabled --overwrite"    
       postInstall: "$WORKDIR/hooks/captcha-setup.sh ${PREREG_CAPTCHA_SITE_KEY} ${PREREG_CAPTCHA_SECRET_KEY} ${ADMIN_CAPTCHA_SITE_KEY} ${ADMIN_CAPTCHA_SECRET_KEY} ${RESIDENT_CAPTCHA_SITE_KEY} ${RESIDENT_CAPTCHA_SECRET_KEY}"
   # Note: Create a google recaptcha v2 ("I am not a Robot") from Google Recaptcha Admin.
   # Pass the captcha site and secret key in the above post install script as an argument.To create site and secret key below is the link:
@@ -353,8 +348,6 @@ apps:
     wait: true
     timeout: 1200
     priority: -7
-    hooks:
-      preInstall: "kubectl label ns kafka istio-injection=enabled --overwrite"
 
   kafka-ui:
     namespace: kafka

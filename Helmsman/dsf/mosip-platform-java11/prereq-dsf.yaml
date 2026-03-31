@@ -33,12 +33,12 @@ apps:
     timeout: 900
     priority: -6
     hooks:
-      postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh ${domain_name} ${ISTIO_VERSION}"
-      postUpgrade: "$WORKDIR/hooks/install-istio-and-httpbin.sh ${domain_name} ${ISTIO_VERSION}"
+      postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh ${domain_name} ${env_name}"
+      postUpgrade: "$WORKDIR/hooks/install-istio-and-httpbin.sh ${domain_name} ${env_name}"
 
   rancher-monitoring:
     namespace: cattle-monitoring-system
-    enabled: false
+    enabled: true
     version: 103.1.0+up45.31.1
     chart: mosip/rancher-monitoring
     set:
@@ -67,11 +67,11 @@ apps:
       data.heapSize: "728m"
       data.persistence.enabled: "true"
       data.persistence.size: "64Gi"
-      data.resources.requests.memory: "512Mi"
+      data.resources.requests.memory: "1100Mi"
       master.heapSize: "1024m"
       master.persistence.enabled: "true"
       master.persistence.size: "4Gi"
-      master.resources.requests.memory: "728Mi"
+      master.resources.requests.memory: "1536Mi"
       kibana.persistence.enabled: "false"
       sysctlImage.repository: "mosipid/os-shell"
       sysctlImage.tag: "12-debian-12-r46"
