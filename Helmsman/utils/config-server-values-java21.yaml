@@ -54,7 +54,7 @@ volume:
 ## By default, these are enabled for development/testing. Set enabled: false in production if not needed.
 extraEnvVars:
   - name: SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_MOSIP_KERNEL_UIN_MIN_UNUSED_THRESHOLD_OVERRIDE
-    value: "10000"
+    value: "200000"
     enabled: true
   - name: SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_AUTH_SERVER_ADMIN_ALLOWED_AUDIENCE_IDREPO_OVERRIDE
     value: "mosip-regproc-client,mosip-prereg-client,mosip-admin-client,mosip-crereq-client,mosip-creser-client,mosip-datsha-client,mosip-ida-client,mosip-resident-client,mosip-reg-client,mpartner-default-print,mosip-idrepo-client,mpartner-default-auth,mosip-syncdata-client,mosip-masterdata-client,mosip-idrepo-client,mosip-pms-client,mosip-hotlist-client,opencrvs-partner,mpartner-default-digitalcard,mpartner-default-mobile,mosip-signup-client,mosip-testrig-client"
@@ -66,7 +66,7 @@ extraEnvVars:
     value: "mosip-toolkit-android-client,mosip-toolkit-client,mosip-regproc-client,mosip-prereg-client,mosip-admin-client,mosip-crereq-client,mosip-creser-client,mosip-datsha-client,mosip-ida-client,mosip-resident-client,mosip-reg-client,mpartner-default-print,mosip-idrepo-client,mpartner-default-auth,mosip-syncdata-client,mosip-masterdata-client,mosip-idrepo-client,mosip-pms-client,mosip-hotlist-client,mobileid_newlogic,opencrvs-partner,mosip-deployment-client,mpartner-default-digitalcard,mpartner-default-mobile,mosip-signup-client,mosip-testrig-client"
     enabled: true
   - name: SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_MOSIP_KERNEL_VID_MIN_UNUSED_THRESHOLD_OVERRIDE
-    value: "10000"
+    value: "100000"
     enabled: true
   - name: SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_MOSIP_PREREGISTRATION_CAPTCHA_ENABLE_OVERRIDE
     value: "false"
