@@ -1,120 +1,11 @@
 #!/bin/bash
 
-# PostgreSQL Ansible Setup Script - Bulletproof & Idempotent
-# This script uses the bulletproof approach for timezone and package installation
+# PostgreSQL Ansible Setup Script
+# This script is executed locally by Terraform to set up PostgreSQL 
 
 set -euo pipefail
 
 echo "=== PostgreSQL Ansible Setup Started at $(date) ==="
-
-# Set complete non-interactive environment (bulletproof approach)
-export DEBIAN_FRONTEND=noninteractive
-export APT_LISTCHANGES_FRONTEND=none
-export UCF_FORCE_CONFFOLD=1
-export DEBCONF_NONINTERACTIVE_SEEN=true
-export NEEDRESTART_MODE=a
-export NEEDRESTART_SUSPEND=1
-
-# Configure debconf to never ask questions
-echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections 2>/dev/null || true
-echo 'debconf debconf/priority select critical' | debconf-set-selections 2>/dev/null || true
-
-# BULLETPROOF timezone configuration - multiple preseeding methods
-echo "tzdata tzdata/Areas select Etc" | debconf-set-selections 2>/dev/null || true
-echo "tzdata tzdata/Zones/Etc select UTC" | debconf-set-selections 2>/dev/null || true
-
-# Set timezone files directly
-sudo mkdir -p /etc
-echo 'Etc/UTC' | sudo tee /etc/timezone > /dev/null 2>&1 || true
-sudo ln -sf /usr/share/zoneinfo/Etc/UTC /etc/localtime 2>/dev/null || true
-
-# Simple function to check if package is already installed (idempotent)
-is_installed() {
-    dpkg -l "$1" 2>/dev/null | grep -q "^ii" || return 1
-}
-
-# Bulletproof package installation function
-install_package_bulletproof() {
-    local package="$1"
-    
-    if is_installed "$package"; then
-        echo "✅ $package is already installed, skipping"
-        return 0
-    fi
-    
-    echo "Installing $package with bulletproof method..."
-    
-    if [ "$package" = "tzdata" ]; then
-        # BULLETPROOF timezone handling - auto-answer prompts
-        echo "Installing tzdata with automatic timezone answers..."
-        echo -e "12\n1\n" | sudo apt-get install -y tzdata 2>/dev/null || {
-            # Fallback method 1
-            echo "Method 1 failed, trying method 2..."
-            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y tzdata -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" || {
-                # Fallback method 2
-                echo "Method 2 failed, trying method 3..."
-                yes '' | sudo apt-get install -y tzdata || sudo apt-get install -y tzdata < /dev/null || true
-            }
-        }
-        
-        # Ensure timezone is set correctly after installation
-        echo 'Etc/UTC' | sudo tee /etc/timezone > /dev/null
-        sudo ln -sf /usr/share/zoneinfo/Etc/UTC /etc/localtime
-        sudo dpkg-reconfigure -f noninteractive tzdata 2>/dev/null || true
-        
-        echo "✅ tzdata installed successfully"
-        return 0
-    else
-        # Normal package installation with bulletproof options
-        if sudo apt-get install -y "$package" -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"; then
-            echo "✅ $package installed successfully"
-            return 0
-        else
-            echo "❌ $package installation failed"
-            return 1
-        fi
-    fi
-}
-
-# Configure APT for bulletproof operation
-sudo mkdir -p /etc/apt/apt.conf.d/
-sudo tee /etc/apt/apt.conf.d/99-bulletproof > /dev/null << 'EOF'
-APT::Get::Assume-Yes "true";
-APT::Install-Recommends "false";
-APT::Install-Suggests "false";
-Dpkg::Options {
-    "--force-confdef";
-    "--force-confold";
-    "--force-confnew";
-};
-Dpkg::Use-Pty "0";
-EOF
-
-# Disable problematic hooks that can cause hanging
-if [ -d /etc/ca-certificates/update.d/ ]; then
-    sudo find /etc/ca-certificates/update.d/ -type f -exec chmod -x {} \; 2>/dev/null || true
-fi
-
-# Disable man-db updates
-echo 'path-exclude /usr/share/man/*' | sudo tee /etc/dpkg/dpkg.cfg.d/01_nodoc > /dev/null 2>&1 || true
-
-# Update package lists (bulletproof)
-echo "Updating package lists..."
-sudo apt-get update -qq || {
-    echo "Initial update failed, trying again..."
-    sleep 5
-    sudo apt-get update -qq
-}
-
-# Install essential packages with bulletproof method
-essential_packages=("sudo" "curl" "git" "apt-utils" "net-tools" "tzdata")
-
-echo "Installing essential packages with bulletproof method..."
-for package in "${essential_packages[@]}"; do
-    install_package_bulletproof "$package" || {
-        echo "WARNING: Failed to install $package, continuing..."
-    }
-done
 
 # Validate required environment variables
 echo 'Validating Environment Variables...'
@@ -190,66 +81,18 @@ fi
 
 echo ""
 
-# Install prerequisites with bulletproof method
-echo 'Installing Prerequisites with Bulletproof Method...'
-
-# Install python3 first (usually already installed)
-if ! is_installed "python3"; then
-    install_package_bulletproof "python3" || {
-        echo "ERROR: Failed to install python3"
-        exit 1
-    }
-fi
-
-# Install python3-pip with bulletproof method
-echo 'Installing Python3-pip...'
-if ! install_package_bulletproof "python3-pip"; then
-    echo "Package installation failed, trying pip bootstrap method..."
-    # Alternative: Use the official pip installer
-    if command -v curl >/dev/null; then
-        curl -sS https://bootstrap.pypa.io/get-pip.py | python3 -W ignore || {
-            echo "ERROR: Failed to install pip via bootstrap"
-            exit 1
-        }
-    else
-        echo "ERROR: Cannot install pip - curl not available"
+echo 'Checking required tools...'
+for cmd in curl git python3 ansible ansible-playbook; do
+    if ! command -v $cmd >/dev/null 2>&1; then
+        echo "ERROR: Required tool '$cmd' is not installed. Please install it before running this script."
         exit 1
     fi
-fi
+done
 
-# Verify pip is working
-if ! command -v pip3 >/dev/null && ! python3 -m pip --version >/dev/null 2>&1; then
-    echo "ERROR: pip installation verification failed"
-    exit 1
-fi
-
-# Install ansible with bulletproof method
-echo 'Installing Ansible...'
-if ! install_package_bulletproof "ansible"; then
-    echo 'Package installation failed, installing via pip...'
-    
-    # Install ansible via pip (user install to avoid conflicts)
-    if python3 -m pip install --user --quiet ansible; then
-        echo 'Ansible installed via pip (user) successfully'
-        # Add user bin to PATH
-        export PATH="$HOME/.local/bin:$PATH"
-        echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc || true
-    else
-        echo 'User pip install failed, trying system pip...'
-        if python3 -m pip install --quiet ansible; then
-            echo 'Ansible installed via pip (system) successfully'
-        else
-            echo 'ERROR: All ansible installation methods failed'
-            exit 1
-        fi
-    fi
-fi
-
-echo 'All prerequisites installation completed with bulletproof method'
 echo 'Checking installed versions:'
 git --version || echo "Git: Not available"
 python3 --version || echo "Python3: Not available"
-ansible --version || echo "Ansible: Not available"
+ansible --version | head -1 || echo "Ansible: Not available"
 
 # Clone MOSIP infrastructure repository with retry logic
 echo 'Cloning Repository...'
@@ -432,11 +275,11 @@ else
     exit 1
 fi
 
-# Create dynamic inventory with detected nginx node IP using local connection
-echo '[CREATE] Creating Inventory File with nginx node IP (local connection)...'
+# Create dynamic inventory with detected nginx node IP
+echo '[CREATE] Creating Inventory File with nginx node IP...'
 cat > inventory.ini << EOF
 [postgresql_servers]
-$NGINX_NODE_IP ansible_connection=local ansible_user=ubuntu ansible_become=yes ansible_become_method=sudo
+$NGINX_NODE_IP ansible_user=$CONTROL_PLANE_USER ansible_become=yes ansible_become_method=sudo
 EOF
 
 echo "[SUCCESS] Inventory file created with nginx IP target (local): $NGINX_NODE_IP"
@@ -516,7 +359,7 @@ fi
 
 # Show the command that will be executed
 echo '[INFO] Ansible command to be executed:'
-echo "ansible-playbook -vv -i inventory.ini -e postgresql_version=$POSTGRESQL_VERSION -e storage_device=$STORAGE_DEVICE -e mount_point=$MOUNT_POINT -e postgresql_port=$POSTGRESQL_PORT -e network_cidr=$NETWORK_CIDR -e postgres_external_host=$NGINX_NODE_IP postgresql-setup.yml"
+echo "ansible-playbook -vv -i inventory.ini --private-key=\"${SSH_PRIVATE_KEY_FILE:-}\" --ssh-common-args=\"-o StrictHostKeyChecking=accept-new\" -e postgresql_version=$POSTGRESQL_VERSION -e storage_device=$STORAGE_DEVICE -e mount_point=$MOUNT_POINT -e postgresql_port=$POSTGRESQL_PORT -e network_cidr=$NETWORK_CIDR -e postgres_external_host=$NGINX_NODE_IP postgresql-setup.yml"
 
 # Start a background progress monitor
 (
@@ -533,6 +376,8 @@ PROGRESS_PID=$!
 
 # Run the actual playbook
 timeout 900 ansible-playbook -vv -i inventory.ini \
+    --private-key="${SSH_PRIVATE_KEY_FILE:-}" \
+    --ssh-common-args="-o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/dev/null" \
     -e postgresql_version=$POSTGRESQL_VERSION \
     -e storage_device=$STORAGE_DEVICE \
     -e mount_point=$MOUNT_POINT \
@@ -788,10 +633,12 @@ EOF
     # Copy files to control plane
     echo "[COPY] Copying YAML files and deployment script to control plane..."
     
-    # Create temporary SSH key file for nginx->control plane communication
-    SSH_KEY_FILE="/tmp/nginx-to-control-plane-key"
-    echo "$SSH_PRIVATE_KEY" > "$SSH_KEY_FILE"
-    chmod 600 "$SSH_KEY_FILE"
+    # Use the securely passed SSH key file wrapper instead of echoing an unexported variable
+    if [ -z "${SSH_PRIVATE_KEY_FILE:-}" ] || [ ! -f "$SSH_PRIVATE_KEY_FILE" ]; then
+        echo "[ERROR] Invalid or missing SSH_PRIVATE_KEY_FILE."
+        exit 1
+    fi
+    SSH_KEY_FILE="$SSH_PRIVATE_KEY_FILE"
     # Transient known_hosts file: accept-new accepts unknown keys on first contact
     # and verifies them on subsequent connections within this run.
     KNOWN_HOSTS_FILE=$(mktemp /tmp/ansible_known_hosts_XXXXXX)
@@ -811,17 +658,12 @@ EOF
             echo "[INFO] Manual deployment fallback:"
             echo "  1. SSH to control plane: ssh ${CONTROL_PLANE_USER}@${CONTROL_PLANE_HOST}"
             echo "  2. Run: bash /tmp/deploy-postgres-k8s.sh"
-            # Clean up SSH key file before exiting
-            rm -f "$SSH_KEY_FILE"
             exit 1
         fi
         
         # Cleanup the deployment script on control plane
         timeout 30 ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile="$KNOWN_HOSTS_FILE" \
            "${CONTROL_PLANE_USER}@${CONTROL_PLANE_HOST}" "rm -f /tmp/deploy-postgres-k8s.sh" 2>/dev/null || true
-        
-        # Clean up SSH key file
-        rm -f "$SSH_KEY_FILE"
             
     else
         echo "[ERROR] Failed to copy files to control plane"
@@ -829,8 +671,6 @@ EOF
         echo "  1. Control plane host is reachable: ${CONTROL_PLANE_HOST}"
         echo "  2. SSH access is configured for user: ${CONTROL_PLANE_USER}"
         echo "  3. Network connectivity between nginx node and control plane"
-        # Clean up SSH key file before exiting
-        rm -f "$SSH_KEY_FILE"
         exit 1
     fi
     
