@@ -633,10 +633,12 @@ EOF
     # Copy files to control plane
     echo "[COPY] Copying YAML files and deployment script to control plane..."
     
-    # Create temporary SSH key file for nginx->control plane communication
-    SSH_KEY_FILE="/tmp/nginx-to-control-plane-key"
-    echo "$SSH_PRIVATE_KEY" > "$SSH_KEY_FILE"
-    chmod 600 "$SSH_KEY_FILE"
+    # Use the securely passed SSH key file wrapper instead of echoing an unexported variable
+    if [ -z "${SSH_PRIVATE_KEY_FILE:-}" ] || [ ! -f "$SSH_PRIVATE_KEY_FILE" ]; then
+        echo "[ERROR] Invalid or missing SSH_PRIVATE_KEY_FILE."
+        exit 1
+    fi
+    SSH_KEY_FILE="$SSH_PRIVATE_KEY_FILE"
     # Transient known_hosts file: accept-new accepts unknown keys on first contact
     # and verifies them on subsequent connections within this run.
     KNOWN_HOSTS_FILE=$(mktemp /tmp/ansible_known_hosts_XXXXXX)
@@ -656,8 +658,6 @@ EOF
             echo "[INFO] Manual deployment fallback:"
             echo "  1. SSH to control plane: ssh ${CONTROL_PLANE_USER}@${CONTROL_PLANE_HOST}"
             echo "  2. Run: bash /tmp/deploy-postgres-k8s.sh"
-            # Clean up SSH key file before exiting
-            rm -f "$SSH_KEY_FILE"
             exit 1
         fi
         
@@ -665,17 +665,12 @@ EOF
         timeout 30 ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile="$KNOWN_HOSTS_FILE" \
            "${CONTROL_PLANE_USER}@${CONTROL_PLANE_HOST}" "rm -f /tmp/deploy-postgres-k8s.sh" 2>/dev/null || true
             
-        # Clean up SSH key file
-        rm -f "$SSH_KEY_FILE"
-            
     else
         echo "[ERROR] Failed to copy files to control plane"
         echo "[ERROR] Please verify:"
         echo "  1. Control plane host is reachable: ${CONTROL_PLANE_HOST}"
         echo "  2. SSH access is configured for user: ${CONTROL_PLANE_USER}"
         echo "  3. Network connectivity between nginx node and control plane"
-        # Clean up SSH key file before exiting
-        rm -f "$SSH_KEY_FILE"
         exit 1
     fi
     
