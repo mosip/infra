@@ -664,7 +664,7 @@ EOF
         # Cleanup the deployment script on control plane
         timeout 30 ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile="$KNOWN_HOSTS_FILE" \
            "${CONTROL_PLANE_USER}@${CONTROL_PLANE_HOST}" "rm -f /tmp/deploy-postgres-k8s.sh" 2>/dev/null || true
-        
+            
         # Clean up SSH key file
         rm -f "$SSH_KEY_FILE"
             

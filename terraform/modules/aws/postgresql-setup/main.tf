@@ -70,22 +70,26 @@ resource "null_resource" "PostgreSQL-ansible-setup" {
 
   provisioner "local-exec" {
     command = <<EOT
+      set -euo pipefail
+      
       # Set environment variables for the PostgreSQL setup script
-      export POSTGRESQL_VERSION=${var.POSTGRESQL_VERSION}
-      export STORAGE_DEVICE=${var.STORAGE_DEVICE}
-      export MOUNT_POINT=${var.MOUNT_POINT}
-      export POSTGRESQL_PORT=${var.POSTGRESQL_PORT}
-      export NETWORK_CIDR=${var.NETWORK_CIDR}
-      export MOSIP_INFRA_REPO_URL=${var.MOSIP_INFRA_REPO_URL}
-      export MOSIP_INFRA_BRANCH=${var.MOSIP_INFRA_BRANCH}
+      export POSTGRESQL_VERSION="${var.POSTGRESQL_VERSION}"
+      export STORAGE_DEVICE="${var.STORAGE_DEVICE}"
+      export MOUNT_POINT="${var.MOUNT_POINT}"
+      export POSTGRESQL_PORT="${var.POSTGRESQL_PORT}"
+      export NETWORK_CIDR="${var.NETWORK_CIDR}"
+      export MOSIP_INFRA_REPO_URL="${var.MOSIP_INFRA_REPO_URL}"
+      export MOSIP_INFRA_BRANCH="${var.MOSIP_INFRA_BRANCH}"
 
       # Override the IP since we're running locally
-      export NGINX_NODE_IP_OVERRIDE=${var.NGINX_PRIVATE_IP}
+      export NGINX_NODE_IP_OVERRIDE="${var.NGINX_PRIVATE_IP}"
 
-      # Provide the SSH key for ansible connection
-      echo "${var.SSH_PRIVATE_KEY}" > ${path.module}/postgres-ssh.key
-      chmod 600 ${path.module}/postgres-ssh.key
-      export SSH_PRIVATE_KEY_FILE=${abspath(path.module)}/postgres-ssh.key
+      # SECURITY: Provide the SSH key for ansible connection securely via env var
+      # avoiding interpolation into the command string itself
+      KEY_FILE=$(mktemp /tmp/postgres-ssh-key-XXXXXX)
+      chmod 600 "$KEY_FILE"
+      printf '%s' "$TF_POSTGRES_SSH_KEY" > "$KEY_FILE"
+      export SSH_PRIVATE_KEY_FILE="$KEY_FILE"
 
       # Skip Kubernetes deployment in script - Terraform will handle it
       export SKIP_K8S_DEPLOYMENT=true
@@ -95,8 +99,12 @@ resource "null_resource" "PostgreSQL-ansible-setup" {
       bash ${path.module}/postgresql-setup.sh
       
       # Clean up SSH key
-      rm -f ${path.module}/postgres-ssh.key
+      rm -f "$KEY_FILE"
     EOT
+    interpreter = ["bash", "-c"]
+    environment = {
+      TF_POSTGRES_SSH_KEY = var.SSH_PRIVATE_KEY
+    }
   }
 }
 
