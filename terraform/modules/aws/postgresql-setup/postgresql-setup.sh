@@ -279,7 +279,7 @@ fi
 echo '[CREATE] Creating Inventory File with nginx node IP...'
 cat > inventory.ini << EOF
 [postgresql_servers]
-$NGINX_NODE_IP ansible_user=ubuntu ansible_become=yes ansible_become_method=sudo
+$NGINX_NODE_IP ansible_user=$CONTROL_PLANE_USER ansible_become=yes ansible_become_method=sudo
 EOF
 
 echo "[SUCCESS] Inventory file created with nginx IP target (local): $NGINX_NODE_IP"

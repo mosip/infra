@@ -69,7 +69,7 @@ resource "null_resource" "PostgreSQL-ansible-setup" {
   }
 
   provisioner "local-exec" {
-    command = <<EOT
+    command     = <<EOT
       set -euo pipefail
       
       # Set environment variables for the PostgreSQL setup script
@@ -80,6 +80,9 @@ resource "null_resource" "PostgreSQL-ansible-setup" {
       export NETWORK_CIDR="${var.NETWORK_CIDR}"
       export MOSIP_INFRA_REPO_URL="${var.MOSIP_INFRA_REPO_URL}"
       export MOSIP_INFRA_BRANCH="${var.MOSIP_INFRA_BRANCH}"
+
+      export CONTROL_PLANE_HOST="${var.CONTROL_PLANE_HOST}"
+      export CONTROL_PLANE_USER="${var.CONTROL_PLANE_USER}"
 
       # Override the IP since we're running locally
       export NGINX_NODE_IP_OVERRIDE="${var.NGINX_PRIVATE_IP}"
