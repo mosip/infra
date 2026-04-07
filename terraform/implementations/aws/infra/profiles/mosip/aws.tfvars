@@ -6,10 +6,10 @@
 # ============================================================
 
 # Environment name (infra component)
-cluster_name = "soil"
+cluster_name = "ab6"
 
 # MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "soil.mosip.net"
+cluster_env_domain = "ab6.mosip.net"
 
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
 mosip_email_id = "thisisbn46@gmail.com"
@@ -58,13 +58,13 @@ nginx_node_ebs_volume_size_2 = 200 # Enable second EBS volume for PostgreSQL tes
 k8s_instance_root_volume_size = 64
 
 # Control-plane, ETCD, Worker
-k8s_control_plane_node_count = 3
+k8s_control_plane_node_count = 1
 
 # ETCD, Worker
-k8s_etcd_node_count = 3
+k8s_etcd_node_count = 0
 
 # Worker
-k8s_worker_node_count = 2
+k8s_worker_node_count = 0
 
 # RKE2 Version Configuration
 rke2_version = "v1.28.9+rke2r1"
