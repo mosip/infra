@@ -71,7 +71,7 @@
       register: existing_encrypted_password
       failed_when: false
       changed_when: false
-      no_log: true
+      no_log: false
       
     - name: Set existing password if file exists and is valid
       set_fact:
@@ -80,7 +80,7 @@
         - existing_encrypted_password.rc == 0
         - existing_encrypted_password.stdout is defined
         - (existing_encrypted_password.stdout | length) == 16
-      no_log: true
+      no_log: false
       
     - name: Generate secure PostgreSQL password only if needed (OS-independent method)
       shell: |
@@ -99,7 +99,7 @@
         "
       register: generated_password_primary
       when: postgres_password is not defined
-      no_log: true
+      no_log: false
 
     - name: Generate secure PostgreSQL password using OpenSSL fallback (Linux/macOS only)
       shell: |
@@ -117,7 +117,7 @@
       set_fact:
         postgres_password: "{{ generated_password_primary.stdout if generated_password_primary.stdout is defined else generated_password_fallback.stdout }}"
       when: postgres_password is not defined
-      no_log: true
+      no_log: false
       
     - name: Validate password complexity
       assert:
@@ -129,13 +129,13 @@
           - postgres_password | regex_search('[!@#$%^&*]')
         fail_msg: "Generated password does not meet complexity requirements"
         success_msg: "Password meets security requirements"
-      no_log: true
+      no_log: false
       
     # Store password in a fact to ensure consistency throughout playbook
     - name: Store password in host facts for consistency
       set_fact:
         postgres_password: "{{ postgres_password }}"
-      no_log: true
+      no_log: false
       
     # Storage Setup
     - name: Check if device is already mounted
