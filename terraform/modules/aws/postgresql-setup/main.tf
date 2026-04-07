@@ -71,8 +71,6 @@ resource "null_resource" "PostgreSQL-ansible-setup" {
   provisioner "local-exec" {
     command     = <<EOT
       set -euo pipefail
-      
-      echo "exporting variables for postgresql-setup.sh script"
 
       # Set environment variables for the PostgreSQL setup script
       export POSTGRESQL_VERSION="${var.POSTGRESQL_VERSION}"
@@ -99,18 +97,16 @@ resource "null_resource" "PostgreSQL-ansible-setup" {
       # Skip Kubernetes deployment in script - Terraform will handle it
       export SKIP_K8S_DEPLOYMENT=true
 
-      echo "Going to run postgresql-setup.sh script locally..."
-
       # Execute the PostgreSQL setup script locally
-      chmod +x ${abspath(path.module)}/postgresql-setup.sh
-      bash ${abspath(path.module)}/postgresql-setup.sh
+      chmod +x ${path.module}/postgresql-setup.sh
+      bash ${path.module}/postgresql-setup.sh
       
       # Clean up SSH key
       rm -f "$KEY_FILE"
     EOT
     interpreter = ["bash", "-c"]
     environment = {
-      TF_POSTGRES_SSH_KEY = nonsensitive(var.SSH_PRIVATE_KEY)
+      TF_POSTGRES_SSH_KEY = var.SSH_PRIVATE_KEY
     }
   }
 }
