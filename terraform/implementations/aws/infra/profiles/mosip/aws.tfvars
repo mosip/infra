@@ -6,10 +6,10 @@
 # ============================================================
 
 # Environment name (infra component)
-cluster_name = "ab8"
+cluster_name = "ab9"
 
 # MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "ab8.mosip.net"
+cluster_env_domain = "ab9.mosip.net"
 
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
 mosip_email_id = "thisisbn46@gmail.com"
@@ -103,8 +103,8 @@ vpc_name = "default"
 # create a dedicated EBS volume, format it as XFS, and mount it on the NGINX node.
 # ActiveMQ itself runs inside Kubernetes via Helm (no software installed here).
 # Both conditions must be true — set either to false/0 to skip entirely.
-enable_activemq_setup        = true # Toggle: true = create & mount, false = skip
-nginx_node_ebs_volume_size_3 = 30   # Volume size in GB (e.g. 100); 0 = disabled
+enable_activemq_setup        = false # Toggle: true = create & mount, false = skip
+nginx_node_ebs_volume_size_3 = 0     # Volume size in GB (e.g. 100); 0 = disabled
 
 activemq_storage_device    = "/dev/nvme3n1"
 activemq_mount_point       = "/srv/activemq"

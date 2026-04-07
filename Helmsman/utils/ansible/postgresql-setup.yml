@@ -71,7 +71,7 @@
       register: existing_encrypted_password
       failed_when: false
       changed_when: false
-      no_log: false
+      no_log: true
       
     - name: Set existing password if file exists and is valid
       set_fact:
@@ -80,7 +80,7 @@
         - existing_encrypted_password.rc == 0
         - existing_encrypted_password.stdout is defined
         - (existing_encrypted_password.stdout | length) == 16
-      no_log: false
+      no_log: true
       
     - name: Generate secure PostgreSQL password only if needed (OS-independent method)
       shell: |
@@ -92,14 +92,14 @@
         uppercase = ''.join(secrets.choice(string.ascii_uppercase) for _ in range(4))
         lowercase = ''.join(secrets.choice(string.ascii_lowercase) for _ in range(4))
         digits = ''.join(secrets.choice(string.digits) for _ in range(4))
-        special = ''.join(secrets.choice('!@#\$%^&*') for _ in range(4))
+        # special = ''.join(secrets.choice('!@#\$%^&*') for _ in range(4))
         password = list(uppercase + lowercase + digits + special)
         secrets.SystemRandom().shuffle(password)
         print(''.join(password))
         "
       register: generated_password_primary
       when: postgres_password is not defined
-      no_log: false
+      no_log: true
 
     - name: Generate secure PostgreSQL password using OpenSSL fallback (Linux/macOS only)
       shell: |
@@ -117,25 +117,25 @@
       set_fact:
         postgres_password: "{{ generated_password_primary.stdout if generated_password_primary.stdout is defined else generated_password_fallback.stdout }}"
       when: postgres_password is not defined
-      no_log: false
+      no_log: true
       
     - name: Validate password complexity
       assert:
         that:
           - postgres_password | length == 16
-          - postgres_password | regex_search('[A-Z]')
-          - postgres_password | regex_search('[a-z]')
-          - postgres_password | regex_search('[0-9]')
-          - postgres_password | regex_search('[!@#$%^&*]')
+          - postgres_password is search('[A-Z]')
+          - postgres_password is search('[a-z]')
+          - postgres_password is search('[0-9]')
+          # - postgres_password is search('[!@#$%^&*]')
         fail_msg: "Generated password does not meet complexity requirements"
         success_msg: "Password meets security requirements"
-      no_log: false
+      no_log: true
       
     # Store password in a fact to ensure consistency throughout playbook
     - name: Store password in host facts for consistency
       set_fact:
         postgres_password: "{{ postgres_password }}"
-      no_log: false
+      no_log: true
       
     # Storage Setup
     - name: Check if device is already mounted
