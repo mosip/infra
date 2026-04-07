@@ -77,6 +77,7 @@ if [ "$CONTROL_PLANE_SET" = false ]; then
     echo '    - CONTROL_PLANE_USER=<control-plane-username> (default: ubuntu)'
     echo ''
     echo '  These should be set automatically by Terraform from your K8s cluster module'
+    exit 1
 fi
 
 echo ""
@@ -213,31 +214,22 @@ echo '[CREATE] This should take 10-15 minutes. Progress will be shown below...'
 
 # Test ansible connection first
 echo '[TEST] Testing Ansible connectivity...'
-if ! ansible $NGINX_NODE_IP -i inventory.ini -m ping; then
+if ! timeout 30 ansible $NGINX_NODE_IP -i inventory.ini -m ping \
+    --private-key="${SSH_PRIVATE_KEY_FILE:-}" \
+    --ssh-common-args="-o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/dev/null"; then
+    
     echo '[ERROR] Ansible connectivity test failed'
-    echo 'Checking nginx node connection...'
-    ansible $NGINX_NODE_IP -i inventory.ini -m setup --limit $NGINX_NODE_IP -v || true
     echo '[WARNING] Continuing anyway, playbook might still work...'
 fi
+
 
 # Show the command that will be executed
 echo '[INFO] Ansible command to be executed:'
 echo "ansible-playbook -vv -i inventory.ini --private-key=\"${SSH_PRIVATE_KEY_FILE:-}\" --ssh-common-args=\"-o StrictHostKeyChecking=accept-new\" -e postgresql_version=$POSTGRESQL_VERSION -e storage_device=$STORAGE_DEVICE -e mount_point=$MOUNT_POINT -e postgresql_port=$POSTGRESQL_PORT -e network_cidr=$NETWORK_CIDR -e postgres_external_host=$NGINX_NODE_IP postgresql-setup.yml"
 
-# Start a background progress monitor
-(
-    while true; do
-        sleep 60
-        echo "[WAIT] PostgreSQL setup still running... $(date) - Check /tmp/postgresql-ansible.log for details"
-        if [ -f /tmp/postgresql-ansible.log ]; then
-            LAST_LINE=$(tail -1 /tmp/postgresql-ansible.log 2>/dev/null || echo "Log file being written...")
-            echo "[LOG] Last log: $LAST_LINE"
-        fi
-    done
-) &
-PROGRESS_PID=$!
-
 # Run the actual playbook
+# Disable set -e temporarily to gracefully capture Ansible errors
+set +e
 timeout 900 ansible-playbook -vv -i inventory.ini \
     --private-key="${SSH_PRIVATE_KEY_FILE:-}" \
     --ssh-common-args="-o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/dev/null" \
@@ -249,9 +241,7 @@ timeout 900 ansible-playbook -vv -i inventory.ini \
     -e postgres_external_host=$NGINX_NODE_IP \
     postgresql-setup.yml 2>&1 | tee /tmp/postgresql-ansible.log
 ANSIBLE_EXIT_CODE=$?
-
-# Stop the progress monitor
-kill $PROGRESS_PID 2>/dev/null || true
+set -e
 
 if [ $ANSIBLE_EXIT_CODE -ne 0 ]; then
     echo ''
