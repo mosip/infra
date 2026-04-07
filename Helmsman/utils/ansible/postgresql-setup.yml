@@ -92,7 +92,7 @@
         uppercase = ''.join(secrets.choice(string.ascii_uppercase) for _ in range(4))
         lowercase = ''.join(secrets.choice(string.ascii_lowercase) for _ in range(4))
         digits = ''.join(secrets.choice(string.digits) for _ in range(4))
-        special = ''.join(secrets.choice('!@#\$%^&*') for _ in range(4))
+        # special = ''.join(secrets.choice('!@#\$%^&*') for _ in range(4))
         password = list(uppercase + lowercase + digits + special)
         secrets.SystemRandom().shuffle(password)
         print(''.join(password))
@@ -126,7 +126,7 @@
           - postgres_password is search('[A-Z]')
           - postgres_password is search('[a-z]')
           - postgres_password is search('[0-9]')
-          - postgres_password is search('[!@#$%^&*]')
+          # - postgres_password is search('[!@#$%^&*]')
         fail_msg: "Generated password does not meet complexity requirements"
         success_msg: "Password meets security requirements"
       no_log: true
@@ -254,11 +254,11 @@
     - name: Store password securely for future runs (after PostgreSQL installation)
       shell: |
         # Create encrypted password file using secure encryption key
-        printf '%s\n' '{{ postgres_password }}' | openssl enc -aes-256-cbc -salt -pbkdf2 -pass pass:'{{ encryption_key.stdout }}' -out /var/lib/postgresql/.postgres_password_enc
+        echo "{{ postgres_password }}" | openssl enc -aes-256-cbc -salt -pbkdf2 -pass pass:"{{ encryption_key.stdout }}" -out /var/lib/postgresql/.postgres_password_enc
         chmod 600 /var/lib/postgresql/.postgres_password_enc
         chown postgres:postgres /var/lib/postgresql/.postgres_password_enc
         # Also store a hash for verification
-        printf '%s\n' '{{ postgres_password }}' | sha256sum | cut -d' ' -f1 > /var/lib/postgresql/.postgres_password_hash
+        echo "{{ postgres_password }}" | sha256sum | cut -d' ' -f1 > /var/lib/postgresql/.postgres_password_hash
         chmod 600 /var/lib/postgresql/.postgres_password_hash
         chown postgres:postgres /var/lib/postgresql/.postgres_password_hash
       when: postgres_password is defined
