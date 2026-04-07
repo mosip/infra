@@ -165,97 +165,7 @@ else
     NGINX_NODE_IP=""
 fi
 
-# Method 1: Try AWS EC2 metadata first (most reliable for AWS deployments)
-if [ -z "$NGINX_NODE_IP" ]; then
-    echo "[DETECT] Trying AWS EC2 metadata service..."
-    NGINX_NODE_IP=$(timeout 5 curl -s http://169.254.169.254/latest/meta-data/local-ipv4 2>/dev/null || echo "")
-    if [ -n "$NGINX_NODE_IP" ]; then
-        echo "[SUCCESS] Found IP via AWS metadata: $NGINX_NODE_IP"
-    fi
-fi
-
-# Method 2: Try Azure metadata service
-if [ -z "$NGINX_NODE_IP" ]; then
-    echo "[DETECT] Trying Azure metadata service..."
-    NGINX_NODE_IP=$(timeout 5 curl -s -H Metadata:true "http://169.254.169.254/metadata/instance/network/interface/0/ipv4/ipAddress/0/privateIpAddress?api-version=2017-08-01&format=text" 2>/dev/null || echo "")
-    if [ -n "$NGINX_NODE_IP" ]; then
-        echo "[SUCCESS] Found IP via Azure metadata: $NGINX_NODE_IP"
-    fi
-fi
-
-# Method 3: Try GCP metadata service  
-if [ -z "$NGINX_NODE_IP" ]; then
-    echo "[DETECT] Trying GCP metadata service..."
-    NGINX_NODE_IP=$(timeout 5 curl -s -H "Metadata-Flavor: Google" "http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/ip" 2>/dev/null || echo "")
-    if [ -n "$NGINX_NODE_IP" ]; then
-        echo "[SUCCESS] Found IP via GCP metadata: $NGINX_NODE_IP"
-    fi
-fi
-
-# Method 4: Prefer stable wired interfaces over wireless
-if [ -z "$NGINX_NODE_IP" ]; then
-    echo "[DETECT] Scanning for stable wired network interfaces..."
-    
-    # Define preferred interface patterns (most stable first)
-    PREFERRED_INTERFACES=("eth" "ens" "enp" "eno" "em" "bond" "br")
-    
-    for pattern in "${PREFERRED_INTERFACES[@]}"; do
-        # Find interfaces matching the pattern
-        for interface in $(ip link show | grep -oP "${pattern}[0-9]+(?=:)"); do
-            # Check if interface is up and has an IP
-            if ip link show "$interface" | grep -q "state UP" 2>/dev/null; then
-                CANDIDATE_IP=$(ip addr show "$interface" | grep -oP 'inet \K[\d.]+' | head -1 2>/dev/null)
-                if [ -n "$CANDIDATE_IP" ] && [ "$CANDIDATE_IP" != "127.0.0.1" ]; then
-                    NGINX_NODE_IP="$CANDIDATE_IP"
-                    echo "[SUCCESS] Found IP via stable interface ($interface): $NGINX_NODE_IP"
-                    break 2
-                fi
-            fi
-        done
-    done
-fi
-
-# Method 5: Use default route interface (but warn if it's wireless)
-if [ -z "$NGINX_NODE_IP" ]; then
-    echo "[DETECT] Trying default route interface..."
-    DEFAULT_INTERFACE=$(ip route | grep '^default' | awk '{print $5}' | head -1 2>/dev/null)
-    if [ -n "$DEFAULT_INTERFACE" ]; then
-        # Check if it's a wireless interface and warn
-        if echo "$DEFAULT_INTERFACE" | grep -qE '^(wl|wlp|wlan)'; then
-            echo "[WARNING] Default interface ($DEFAULT_INTERFACE) appears to be wireless - IP may be dynamic!"
-            echo "[WARNING] Consider using a wired interface for production deployments"
-        fi
-        
-        NGINX_NODE_IP=$(ip addr show "$DEFAULT_INTERFACE" | grep -oP 'inet \K[\d.]+' | head -1 2>/dev/null)
-        if [ -n "$NGINX_NODE_IP" ]; then
-            echo "[SUCCESS] Found IP via default interface ($DEFAULT_INTERFACE): $NGINX_NODE_IP"
-        fi
-    fi
-fi
-
-# Method 6: Try hostname resolution (fallback)
-if [ -z "$NGINX_NODE_IP" ]; then
-    echo "[DETECT] Trying hostname resolution..."
-    NGINX_NODE_IP=$(hostname -I | awk '{print $1}' 2>/dev/null)
-    if [ -n "$NGINX_NODE_IP" ]; then
-        echo "[SUCCESS] Found IP via hostname -I: $NGINX_NODE_IP"
-    fi
-fi
-
-# Method 4: Try getting private IP from network interfaces (fallback)
-if [ -z "$NGINX_NODE_IP" ]; then
-    echo "[DETECT] Trying network interface detection..."
-    NGINX_NODE_IP=$(ip addr show | grep -oP 'inet \K10\.\d+\.\d+\.\d+' | head -1 2>/dev/null)
-    if [ -z "$NGINX_NODE_IP" ]; then
-        NGINX_NODE_IP=$(ip addr show | grep -oP 'inet \K172\.(1[6-9]|2[0-9]|3[01])\.\d+\.\d+' | head -1 2>/dev/null)
-    fi
-    if [ -z "$NGINX_NODE_IP" ]; then
-        NGINX_NODE_IP=$(ip addr show | grep -oP 'inet \K192\.168\.\d+\.\d+' | head -1 2>/dev/null)
-    fi
-    if [ -n "$NGINX_NODE_IP" ]; then
-        echo "[SUCCESS] Found private IP via interface scan: $NGINX_NODE_IP"
-    fi
-fi
+# Note: IP is expected to be provided via NGINX_NODE_IP_OVERRIDE environment variable
 
 # Validate the IP address
 if [ -n "$NGINX_NODE_IP" ]; then
@@ -294,54 +204,7 @@ echo "Mount Point: $MOUNT_POINT"
 echo "PostgreSQL Port: $POSTGRESQL_PORT"
 echo "Network CIDR: $NETWORK_CIDR"
 
-# Install required Ansible collections to prevent hanging during playbook execution
-echo '[INSTALL] Installing Required Ansible Collections...'
-mkdir -p /tmp/ansible_collections
-ansible-galaxy collection install community.general ansible.posix --force || {
-    echo '[WARNING] Failed to install some collections, continuing with basic setup...'
-}
-echo '[SUCCESS] Ansible collections installation completed'
-
-# Check if storage device exists and wait if needed
-echo '[CHECK] Checking Storage Device...'
-echo "Looking for storage device: $STORAGE_DEVICE"
-
-# First, show all available block devices
-echo '[INFO] All available block devices:'
-lsblk -f 2>/dev/null || lsblk 2>/dev/null || echo 'Unable to list block devices'
-
-# Wait for the specific storage device
-echo "[WAIT] Waiting for storage device $STORAGE_DEVICE..."
-DEVICE_FOUND=false
-for i in {1..24}; do 
-    if [ -b "$STORAGE_DEVICE" ]; then 
-        echo "[SUCCESS] Storage device found: $STORAGE_DEVICE"; 
-        DEVICE_FOUND=true
-        break; 
-    fi; 
-    
-    # Show progress every 6 attempts
-    if [ $((i % 6)) -eq 0 ]; then
-        echo "[WAIT] Attempt $i/24: waiting for $STORAGE_DEVICE..."
-        echo 'Current block devices:'
-        lsblk | grep -E '(nvme|xvd|sd)' || echo 'No common block devices found'
-    fi
-    sleep 5; 
-done
-
-if [ "$DEVICE_FOUND" = false ]; then 
-    echo "[WARNING] WARNING: Storage device $STORAGE_DEVICE not found after 2 minutes"
-    echo 'This might be okay if PostgreSQL will use existing storage.'
-    echo '[INFO] Available block devices:'
-    lsblk 2>/dev/null || echo 'Unable to list block devices'
-    
-    # Don't exit here, let the playbook handle storage configuration
-    echo 'Continuing with PostgreSQL setup...'
-else
-    echo "[SUCCESS] Storage device $STORAGE_DEVICE is available"
-    echo 'Device information:'
-    lsblk "$STORAGE_DEVICE" 2>/dev/null || echo "Unable to get device info for $STORAGE_DEVICE"
-fi
+# Storage checking is natively handled by the Ansible playbook on the remote node
 
 # Run PostgreSQL setup with extended timeout and better error handling
 echo '[RUN] Running PostgreSQL Ansible Playbook...'
@@ -392,102 +255,12 @@ kill $PROGRESS_PID 2>/dev/null || true
 
 if [ $ANSIBLE_EXIT_CODE -ne 0 ]; then
     echo ''
-    echo "[ERROR] Ansible playbook failed with exit code $ANSIBLE_EXIT_CODE"
-    echo '[CONFIG] Attempting PostgreSQL Recovery...'
-    
-    # Fix common permission issues
-    echo '[CONFIG] Fixing data directory permissions...'
-    sudo chown -R postgres:postgres $MOUNT_POINT/postgresql/15/main 2>/dev/null || true
-    sudo chmod 700 $MOUNT_POINT/postgresql/15/main 2>/dev/null || true
-    
-    # Try to restart PostgreSQL service
-    echo '[PROGRESS] Attempting to restart PostgreSQL service...'
-    sudo systemctl stop postgresql 2>/dev/null || true
-    sleep 3
-    sudo systemctl start postgresql 2>/dev/null || true
-    sleep 5
-    
-    # Check if PostgreSQL is now running
-    if sudo systemctl is-active postgresql >/dev/null 2>&1; then
-        echo '[SUCCESS] PostgreSQL recovery successful!'
-        echo '[TEST] Testing connection...'
-        if sudo -u postgres psql -p "$POSTGRESQL_PORT" -c "SELECT version();" --no-psqlrc --pset pager=off; then
-            echo '[SUCCESS] PostgreSQL is working!'
-        else
-            echo '[ERROR] Connection still failing'
-        fi
-    else
-        echo '[ERROR] PostgreSQL recovery failed'
-        echo '=== Diagnostic Information ==='
-        echo '[STATUS] Service status:'
-        sudo systemctl status postgresql --no-pager --lines=10 || true
-        echo '[INFO] Recent logs:'
-        sudo journalctl -u postgresql --no-pager --lines=20 || true
-        echo '[LOG] Last 50 lines of setup log:'
-        tail -50 /tmp/postgresql-ansible.log || true
-        echo '[STORAGE] System status:'
-        df -h
-        free -h
-        exit 1
-    fi
+    echo "[ERROR] Ansible playbook failed with exit code $ANSIBLE_EXIT_CODE."
+    echo "[ERROR] See /tmp/postgresql-ansible.log for full details."
+    exit $ANSIBLE_EXIT_CODE
 else
     echo ''
     echo "[SUCCESS] Ansible playbook completed successfully at $(date)"
-fi
-
-# Verify PostgreSQL installation with improved checks
-echo ''
-echo '=== [CHECK] Verifying PostgreSQL Installation ==='
-sleep 5  # Quick wait for service to start
-
-# Check main PostgreSQL service
-echo '[CHECK] Checking PostgreSQL main service status...'
-sudo systemctl status postgresql --no-pager --lines=5 || echo '[WARNING]  PostgreSQL service status check failed'
-
-# Check specific PostgreSQL cluster service
-echo '[CHECK] Checking PostgreSQL 15 cluster service...'
-sudo systemctl status postgresql@15-main --no-pager --lines=5 2>/dev/null || {
-    echo '[WARNING]  PostgreSQL cluster service not active, attempting to start...'
-    sudo systemctl start postgresql@15-main 2>/dev/null || echo '[ERROR] Failed to start PostgreSQL cluster'
-    sleep 5
-}
-
-# Check if PostgreSQL is actually listening on the configured port
-echo "[CONNECT] Testing PostgreSQL connectivity on port $POSTGRESQL_PORT..."
-for i in {1..3}; do
-    if timeout 15 sudo -u postgres psql -p "$POSTGRESQL_PORT" -c "SELECT version();" --no-psqlrc --pset pager=off >/dev/null 2>&1; then
-        echo "[SUCCESS] PostgreSQL connection successful on attempt $i!"
-        break
-    else
-        echo "[WAIT] Attempt $i/3: PostgreSQL not responding on port $POSTGRESQL_PORT, waiting..."
-        sleep 5
-    fi
-done
-
-# Final verification with detailed output
-echo ''
-echo '=== [STATUS] Final PostgreSQL Status Report ==='
-echo '[CONFIG] Service Status:'
-echo "  Main Service: $(sudo systemctl is-active postgresql 2>/dev/null || echo 'inactive')"
-echo "  Cluster Service: $(sudo systemctl is-active postgresql@15-main 2>/dev/null || echo 'inactive')"
-echo '[TEST] Connection Tests:'
-if timeout 15 sudo -u postgres psql -p "$POSTGRESQL_PORT" -c "SELECT version();" --no-psqlrc --pset pager=off >/dev/null 2>&1; then
-    echo '  [SUCCESS] PostgreSQL connection: SUCCESS'
-    echo '  [CREATE] PostgreSQL version:'
-    timeout 10 sudo -u postgres psql -p "$POSTGRESQL_PORT" -c "SELECT version();" --no-psqlrc --pset pager=off 2>/dev/null || echo '  [ERROR] Version check failed'
-    echo '  [DIR] Data directory:'
-    timeout 10 sudo -u postgres psql -p "$POSTGRESQL_PORT" -c "SHOW data_directory;" --no-psqlrc --pset pager=off 2>/dev/null || echo '  [ERROR] Data directory check failed'
-else
-    echo '  ERROR: PostgreSQL connection: FAILED'
-fi
-
-# Check if PostgreSQL is listening on the correct port
-echo 'Network Status:'
-if timeout 10 sudo netstat -tlnp | grep ":$POSTGRESQL_PORT" >/dev/null 2>&1; then
-    echo "  SUCCESS: PostgreSQL listening on port $POSTGRESQL_PORT"
-    timeout 5 sudo netstat -tlnp | grep ":$POSTGRESQL_PORT" | head -1 || echo "  (Port details unavailable)"
-else
-    echo "  ERROR: PostgreSQL not listening on port $POSTGRESQL_PORT"
 fi
 
 echo ''
@@ -495,22 +268,6 @@ echo '=== PostgreSQL Ansible Setup Completed Successfully ==='
 echo "Completion Time: $(date)"
 echo "Setup Log: /tmp/postgresql-ansible.log"
 echo ''
-echo '=== Final System Status ==='
-echo 'PostgreSQL Service:'
-SERVICE_STATUS=$(sudo systemctl is-active postgresql 2>/dev/null || echo 'inactive')
-echo "  Status: $SERVICE_STATUS"
-if [ "$SERVICE_STATUS" = "active" ]; then
-    echo '  SUCCESS: PostgreSQL is running successfully'
-else
-    echo '  WARNING: PostgreSQL service may need attention'
-fi
-echo 'Storage Usage:'
-if df -h "$MOUNT_POINT" >/dev/null 2>&1; then
-    echo "  Mount Point: $MOUNT_POINT"
-    df -h "$MOUNT_POINT" | tail -1
-else
-    echo '  WARNING: Mount point not available'
-fi
 echo "Installation Summary:"
 echo "PostgreSQL Version: $POSTGRESQL_VERSION"
 echo "Storage Device: $STORAGE_DEVICE"
