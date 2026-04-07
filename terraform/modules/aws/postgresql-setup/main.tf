@@ -72,6 +72,8 @@ resource "null_resource" "PostgreSQL-ansible-setup" {
     command     = <<EOT
       set -euo pipefail
       
+      echo "exporting variables for postgresql-setup.sh script"
+
       # Set environment variables for the PostgreSQL setup script
       export POSTGRESQL_VERSION="${var.POSTGRESQL_VERSION}"
       export STORAGE_DEVICE="${var.STORAGE_DEVICE}"
@@ -108,7 +110,7 @@ resource "null_resource" "PostgreSQL-ansible-setup" {
     EOT
     interpreter = ["bash", "-c"]
     environment = {
-      TF_POSTGRES_SSH_KEY = var.SSH_PRIVATE_KEY
+      TF_POSTGRES_SSH_KEY = nonsensitive(var.SSH_PRIVATE_KEY)
     }
   }
 }
