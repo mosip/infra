@@ -152,11 +152,8 @@ if [ ! -f "$PLAYBOOK_FILE" ]; then
 fi
 echo "[SUCCESS] Playbook file found: $PLAYBOOK_FILE"
 
-# Set PostgreSQL configuration variables
-echo '[CONFIG] Setting Environment Variables...'
-
-# Get the actual IP address of this nginx node for external access
-echo '[DETECT] Detecting nginx node IP address with preference for stable interfaces...'
+# Retrieve the target IP injected by Terraform
+echo '[CONFIG] Reading NGINX Node IP from environment variables...'
 
 # Check if IP is manually provided via environment variable
 if [ -n "${NGINX_NODE_IP_OVERRIDE:-}" ]; then
