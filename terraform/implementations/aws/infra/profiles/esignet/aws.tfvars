@@ -16,7 +16,7 @@ cluster_env_domain = "ab11.mosip.net"
 mosip_email_id = "abhisahu1920@gmail.com"
 
 # SSH login key name for AWS node instances (ex: my-ssh-key)
-ssh_key_name = ""mosip-aws""
+ssh_key_name = "mosip-aws"
 
 # The AWS region for resource creation
 aws_provider_region = "ap-south-1"
