@@ -171,7 +171,8 @@ resource "null_resource" "postgresql-k8s-deployment" {
 
 # Separate resource to guarantee cleanup of temporary secrets during destroy or failed partial applies
 resource "null_resource" "cleanup_local_artifacts" {
-  count = var.NGINX_NODE_EBS_VOLUME_SIZE_2 > 0 ? 1 : 0
+  count      = var.NGINX_NODE_EBS_VOLUME_SIZE_2 > 0 ? 1 : 0
+  depends_on = [null_resource.postgresql-k8s-deployment]
 
   provisioner "local-exec" {
     command = "rm -rf /tmp/postgresql-secrets /tmp/infra ${path.module}/postgres-postgresql.yml ${path.module}/postgres-setup-config.yml"
