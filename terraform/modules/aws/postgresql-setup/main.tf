@@ -90,6 +90,7 @@ resource "null_resource" "PostgreSQL-ansible-setup" {
       # SECURITY: Provide the SSH key for ansible connection securely via env var
       # avoiding interpolation into the command string itself
       KEY_FILE=$(mktemp /tmp/postgres-ssh-key-XXXXXX)
+      trap 'rm -f "$KEY_FILE"; unset SSH_PRIVATE_KEY_FILE' EXIT ERR INT
       chmod 600 "$KEY_FILE"
       printf '%s' "$TF_POSTGRES_SSH_KEY" > "$KEY_FILE"
       export SSH_PRIVATE_KEY_FILE="$KEY_FILE"
