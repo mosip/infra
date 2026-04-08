@@ -168,9 +168,14 @@ resource "null_resource" "postgresql-k8s-deployment" {
       "rm -f /tmp/postgres-postgresql.yml /tmp/postgres-setup-config.yml"
     ]
   }
+}
 
-  # Ensure local runner artifacts are completely cleaned up after successful deployment
+# Separate resource to guarantee cleanup of temporary secrets during destroy or failed partial applies
+resource "null_resource" "cleanup_local_artifacts" {
+  count = var.NGINX_NODE_EBS_VOLUME_SIZE_2 > 0 ? 1 : 0
+
   provisioner "local-exec" {
+    when    = destroy
     command = "rm -rf /tmp/postgresql-secrets /tmp/infra ${path.module}/postgres-postgresql.yml ${path.module}/postgres-setup-config.yml"
   }
 }
