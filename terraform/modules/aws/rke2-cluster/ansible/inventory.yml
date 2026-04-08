@@ -1,0 +1,68 @@
+---
+all:
+  vars:
+    cluster_name: "perf"
+    cluster_env_domain: "mosip.local"
+    k8s_infra_repo_url: "https://github.com/mosip/k8s-infra.git"
+    k8s_infra_branch: "release-1.2.1.x"
+    install_rke2_version: "v1.28.9+rke2r1"
+    enable_rancher_import: true
+    rancher_import_url: "kubectl apply -f https://rancher.mosip.net/v3/import/lz9jzmcpxxfbpswjcd4q57bksx6frd6rjbmlhjzw7c4x5cphrn5lss_c-m-xlvksstv.yaml"
+    ansible_user: ubuntu
+    ansible_ssh_private_key_file: ./ssh_key
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+    
+  children:
+    control_plane:
+      hosts:
+        perf-CONTROL-PLANE-NODE-1:
+          ansible_host: 172.31.73.94
+          node_role: control_plane
+          is_primary: true
+          node_index: 0
+        perf-CONTROL-PLANE-NODE-2:
+          ansible_host: 172.31.79.231
+          node_role: control_plane
+          is_primary: false
+          node_index: 1
+        perf-CONTROL-PLANE-NODE-3:
+          ansible_host: 172.31.77.114
+          node_role: control_plane
+          is_primary: false
+          node_index: 2
+    
+    etcd:
+      hosts:
+        perf-ETCD-NODE-1:
+          ansible_host: 172.31.75.249
+          node_role: etcd
+        perf-ETCD-NODE-2:
+          ansible_host: 172.31.79.234
+          node_role: etcd
+        perf-ETCD-NODE-3:
+          ansible_host: 172.31.77.227
+          node_role: etcd
+    
+    workers:
+      hosts:
+        perf-WORKER-NODE-1:
+          ansible_host: 172.31.73.105
+          node_role: worker
+        perf-WORKER-NODE-2:
+          ansible_host: 172.31.70.144
+          node_role: worker
+        perf-WORKER-NODE-3:
+          ansible_host: 172.31.71.20
+          node_role: worker
+        perf-WORKER-NODE-4:
+          ansible_host: 172.31.77.252
+          node_role: worker
+        perf-WORKER-NODE-5:
+          ansible_host: 172.31.67.116
+          node_role: worker
+
+    rke2_cluster:
+      children:
+        control_plane:
+        etcd:
+        workers:
