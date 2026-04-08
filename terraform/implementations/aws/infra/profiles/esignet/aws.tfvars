@@ -7,16 +7,16 @@
 # ============================================================
 
 # Environment name (infra component)
-cluster_name = "<cluster-name>"
+cluster_name = "estest"
 
 # eSignet's domain (ex: esignet.xyz.net)
-cluster_env_domain = "<cluster-env-domain>"
+cluster_env_domain = "estest.mosip.net"
 
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
-mosip_email_id = "<email-id>"
+mosip_email_id = "thisisbn46@gmail.com"
 
 # SSH login key name for AWS node instances (ex: my-ssh-key)
-ssh_key_name = "<ssh-key-name>"
+ssh_key_name = ""
 
 # The AWS region for resource creation
 aws_provider_region = "ap-south-1"
@@ -32,7 +32,7 @@ k8s_instance_type = "t3a.xlarge"
 nginx_instance_type = "t3a.xlarge"
 
 # The Route 53 hosted zone ID
-zone_id = "<route53_zone_id>"
+zone_id = ""
 
 ## UBUNTU 24.04
 # The Amazon Machine Image ID for the instances
@@ -93,7 +93,7 @@ mosip_infra_repo_url = "https://github.com/mosip/infra.git"
 mosip_infra_branch = "release-0.2.0"
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
-vpc_name = "<vpc-name>"
+vpc_name = "default"
 
 # ── ActiveMQ Configuration ─────────────────────────────────────────────────────
 # Set enable_activemq_setup = true AND nginx_node_ebs_volume_size_3 > 0 to
