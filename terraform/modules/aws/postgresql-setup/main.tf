@@ -175,7 +175,6 @@ resource "null_resource" "cleanup_local_artifacts" {
   count = var.NGINX_NODE_EBS_VOLUME_SIZE_2 > 0 ? 1 : 0
 
   provisioner "local-exec" {
-    when    = destroy
     command = "rm -rf /tmp/postgresql-secrets /tmp/infra ${path.module}/postgres-postgresql.yml ${path.module}/postgres-setup-config.yml"
   }
 }
