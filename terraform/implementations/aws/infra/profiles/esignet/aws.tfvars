@@ -7,10 +7,10 @@
 # ============================================================
 
 # Environment name (infra component)
-cluster_name = "ab11"
+cluster_name = "ab12"
 
 # eSignet's domain (ex: esignet.xyz.net)
-cluster_env_domain = "ab11.mosip.net"
+cluster_env_domain = "ab12.mosip.net"
 
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
 mosip_email_id = "abhisahu1920@gmail.com"
@@ -51,7 +51,7 @@ nginx_node_root_volume_size = 24
 nginx_node_ebs_volume_size = 200
 
 # NGINX node's second EBS volume size (set to 0 - not needed for standalone eSignet)
-nginx_node_ebs_volume_size_2 = 200
+nginx_node_ebs_volume_size_2 = 100
 
 # Kubernetes nodes Root volume size
 k8s_instance_root_volume_size = 64
@@ -90,7 +90,7 @@ postgresql_port         = "5433"
 # MOSIP Infrastructure Repository Configuration
 mosip_infra_repo_url = "https://github.com/mosip/infra.git"
 
-mosip_infra_branch = "release-0.2.0"
+mosip_infra_branch = "testgrid"
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
 vpc_name = "default"
