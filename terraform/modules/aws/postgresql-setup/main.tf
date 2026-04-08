@@ -167,11 +167,6 @@ resource "null_resource" "postgresql-k8s-deployment" {
       "rm -f /tmp/postgres-postgresql.yml /tmp/postgres-setup-config.yml"
     ]
   }
-
-  # Ensure local runner artifacts are completely cleaned up after successful deployment
-  provisioner "local-exec" {
-    command = "rm -rf /tmp/postgresql-secrets /tmp/infra ${path.module}/postgres-postgresql.yml ${path.module}/postgres-setup-config.yml"
-  }
 }
 
 # Separate resource to guarantee cleanup of temporary secrets during destroy or failed partial applies
