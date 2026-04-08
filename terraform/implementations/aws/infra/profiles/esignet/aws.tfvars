@@ -16,13 +16,13 @@ cluster_env_domain = "estest.mosip.net"
 mosip_email_id = "thisisbn46@gmail.com"
 
 # SSH login key name for AWS node instances (ex: my-ssh-key)
-ssh_key_name = ""
+ssh_key_name = "mosip-aws"
 
 # The AWS region for resource creation
 aws_provider_region = "ap-south-1"
 
 # Specific availability zones for VM deployment (optional)
-specific_availability_zones = []
+specific_availability_zones = ["ap-south-1b"]
 
 # The instance type for Kubernetes nodes (control plane, worker, etcd)
 # Smaller instance type since eSignet standalone needs fewer resources
@@ -32,7 +32,7 @@ k8s_instance_type = "t3a.xlarge"
 nginx_instance_type = "t3a.xlarge"
 
 # The Route 53 hosted zone ID
-zone_id = ""
+zone_id = "Z090954828SJIEL6P5406"
 
 ## UBUNTU 24.04
 # The Amazon Machine Image ID for the instances
@@ -51,7 +51,7 @@ nginx_node_root_volume_size = 24
 nginx_node_ebs_volume_size = 200
 
 # NGINX node's second EBS volume size (set to 0 - not needed for standalone eSignet)
-nginx_node_ebs_volume_size_2 = 0
+nginx_node_ebs_volume_size_2 = 100
 
 # Kubernetes nodes Root volume size
 k8s_instance_root_volume_size = 64
