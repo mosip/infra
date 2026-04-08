@@ -141,8 +141,10 @@ resource "null_resource" "postgresql-k8s-deployment" {
   provisioner "remote-exec" {
     inline = [
       # Set up kubeconfig for kubectl (RKE2 creates node-specific kubeconfig files)
-      "export KUBECONFIG=$(find /home/ubuntu/.kube/ -name '*.yaml' | head -1)",
-      "echo 'Using kubeconfig: $KUBECONFIG'",
+      "KUBECONFIG_FILE=$(find /home/${var.CONTROL_PLANE_USER}/.kube/ -name '*.yaml' 2>/dev/null | head -1)",
+      "if [ -z \"$KUBECONFIG_FILE\" ]; then echo 'ERROR: No kubeconfig found'; exit 1; fi",
+      "export KUBECONFIG=$KUBECONFIG_FILE",
+      "echo \"Using kubeconfig: $KUBECONFIG\"",
 
       # Verify kubectl connectivity
       "kubectl cluster-info",
