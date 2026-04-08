@@ -90,6 +90,7 @@ resource "null_resource" "PostgreSQL-ansible-setup" {
       # SECURITY: Provide the SSH key for ansible connection securely via env var
       # avoiding interpolation into the command string itself
       KEY_FILE=$(mktemp /tmp/postgres-ssh-key-XXXXXX)
+      trap 'rm -f "$KEY_FILE"; unset SSH_PRIVATE_KEY_FILE' EXIT ERR INT
       chmod 600 "$KEY_FILE"
       printf '%s' "$TF_POSTGRES_SSH_KEY" > "$KEY_FILE"
       export SSH_PRIVATE_KEY_FILE="$KEY_FILE"
@@ -140,8 +141,10 @@ resource "null_resource" "postgresql-k8s-deployment" {
   provisioner "remote-exec" {
     inline = [
       # Set up kubeconfig for kubectl (RKE2 creates node-specific kubeconfig files)
-      "export KUBECONFIG=$(find /home/ubuntu/.kube/ -name '*.yaml' | head -1)",
-      "echo 'Using kubeconfig: $KUBECONFIG'",
+      "KUBECONFIG_FILE=$(find /home/${var.CONTROL_PLANE_USER}/.kube/ -name '*.yaml' 2>/dev/null | head -1)",
+      "if [ -z \"$KUBECONFIG_FILE\" ]; then echo 'ERROR: No kubeconfig found'; exit 1; fi",
+      "export KUBECONFIG=$KUBECONFIG_FILE",
+      "echo \"Using kubeconfig: $KUBECONFIG\"",
 
       # Verify kubectl connectivity
       "kubectl cluster-info",
