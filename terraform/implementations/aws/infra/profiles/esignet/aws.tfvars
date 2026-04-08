@@ -73,7 +73,7 @@ network_cidr   = "172.0.0.0/8" # Use your actual VPC CIDR
 WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 
 # Rancher Import Configuration
-enable_rancher_import = true
+enable_rancher_import = false
 rancher_import_url    = "\"<rancher-import-url>\""
 
 # DNS Records to map — only eSignet-relevant subdomains
