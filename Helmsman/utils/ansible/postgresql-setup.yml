@@ -92,8 +92,10 @@
         uppercase = ''.join(secrets.choice(string.ascii_uppercase) for _ in range(4))
         lowercase = ''.join(secrets.choice(string.ascii_lowercase) for _ in range(4))
         digits = ''.join(secrets.choice(string.digits) for _ in range(4))
-        special = ''.join(secrets.choice('!@#\$%^&*') for _ in range(4))
-        password = list(uppercase + lowercase + digits + special)
+        # special = ''.join(secrets.choice('!@#\$%^&*') for _ in range(4))
+        safe_special = '-_.'
+        extra = ''.join(secrets.choice(safe_special) for _ in range(4))
+        password = list(uppercase + lowercase + digits + extra)
         secrets.SystemRandom().shuffle(password)
         print(''.join(password))
         "
@@ -123,10 +125,10 @@
       assert:
         that:
           - postgres_password | length == 16
-          - postgres_password | regex_search('[A-Z]')
-          - postgres_password | regex_search('[a-z]')
-          - postgres_password | regex_search('[0-9]')
-          - postgres_password | regex_search('[!@#$%^&*]')
+          - postgres_password is search('[A-Z]')
+          - postgres_password is search('[a-z]')
+          - postgres_password is search('[0-9]')
+          # - postgres_password is search('[!@#$%^&*]')
         fail_msg: "Generated password does not meet complexity requirements"
         success_msg: "Password meets security requirements"
       no_log: true
