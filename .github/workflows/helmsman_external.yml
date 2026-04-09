@@ -33,7 +33,7 @@ on:
         required: false
         type: string
       slack_webhook_url:
-        description: "Slack webhook URL for alerting (saved as vars.SLACK_WEBHOOK_URL for future runs)"
+        description: "Slack webhook URL for alerting (configure as secrets.SLACK_WEBHOOK_URL in the environment)"
         required: false
         type: string
       clusterid:
@@ -47,6 +47,7 @@ on:
 
 permissions:
   actions: write
+  contents: read
 
 jobs:
   validate-inputs:
@@ -75,6 +76,35 @@ jobs:
           echo "✓ env_name           = $ENV"
           echo "✓ clusterid          = $CLUSTER"
           echo "✓ slack_channel_name = $SLACK_CH"
+
+      - name: Persist workflow inputs as environment variables
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REPO="${{ github.repository }}"
+          ENVIRONMENT="${{ github.ref_name }}"
+          save_var() {
+            local name=$1 value=$2
+            if [ -z "$value" ]; then echo "⏭  Skipping $name — no input provided, existing value preserved"; return; fi
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
+              -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/$REPO/environments/$ENVIRONMENT/variables/$name" \
+              -d "{\"name\":\"$name\",\"value\":\"$value\"}")
+            if [ "$STATUS" = "404" ]; then
+              curl -f -s -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+                "https://api.github.com/repos/$REPO/environments/$ENVIRONMENT/variables" \
+                -d "{\"name\":\"$name\",\"value\":\"$value\"}" && echo "✓ Created $name"
+            elif [ "$STATUS" = "200" ] || [ "$STATUS" = "204" ]; then
+              echo "✓ Updated $name"
+            else
+              echo "✗ Failed to save $name (HTTP $STATUS)"; exit 1
+            fi
+          }
+          save_var "DOMAIN_NAME"        "${{ github.event.inputs.domain_name }}"
+          save_var "ENV_NAME"           "${{ github.event.inputs.env_name }}"
+          save_var "CLUSTER_ID"         "${{ github.event.inputs.clusterid }}"
+          save_var "SLACK_CHANNEL_NAME" "${{ github.event.inputs.slack_channel_name }}"
 
   set-matrix:
     runs-on: ubuntu-latest
@@ -154,7 +184,7 @@ jobs:
       domain_name:         ${{ github.event.inputs.domain_name         || vars.DOMAIN_NAME }}
       env_name:            ${{ github.event.inputs.env_name            || vars.ENV_NAME }}
       slack_channel_name:  ${{ github.event.inputs.slack_channel_name  || vars.SLACK_CHANNEL_NAME }}
-      SLACK_WEBHOOK_URL:   ${{ github.event.inputs.slack_webhook_url   || vars.SLACK_WEBHOOK_URL }}
+      SLACK_WEBHOOK_URL:   ${{ github.event.inputs.slack_webhook_url   || secrets.SLACK_WEBHOOK_URL }}
       CLUSTER_ID:          ${{ github.event.inputs.clusterid           || vars.CLUSTER_ID }}
       PREREG_CAPTCHA_SITE_KEY: ${{ secrets.PREREG_CAPTCHA_SITE_KEY }}
       PREREG_CAPTCHA_SECRET_KEY: ${{ secrets.PREREG_CAPTCHA_SECRET_KEY }}
@@ -171,36 +201,6 @@ jobs:
 
       - name: Checkout repository
         uses: actions/checkout@v2
-
-      - name: Persist workflow inputs as environment variables
-        if: github.event_name == 'workflow_dispatch'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          REPO="${{ github.repository }}"
-          ENVIRONMENT="${{ github.ref_name }}"
-          save_var() {
-            local name=$1 value=$2
-            if [ -z "$value" ]; then echo "⏭  Skipping $name — no input provided, existing value preserved"; return; fi
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
-              -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/repos/$REPO/environments/$ENVIRONMENT/variables/$name" \
-              -d "{\"name\":\"$name\",\"value\":\"$value\"}")
-            if [ "$STATUS" = "404" ]; then
-              curl -s -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
-                "https://api.github.com/repos/$REPO/environments/$ENVIRONMENT/variables" \
-                -d "{\"name\":\"$name\",\"value\":\"$value\"}" && echo "✓ Created $name"
-            elif [ "$STATUS" = "200" ] || [ "$STATUS" = "204" ]; then
-              echo "✓ Updated $name"
-            else
-              echo "✗ Failed to save $name (HTTP $STATUS)"; exit 1
-            fi
-          }
-          save_var "DOMAIN_NAME"        "${{ github.event.inputs.domain_name }}"
-          save_var "ENV_NAME"           "${{ github.event.inputs.env_name }}"
-          save_var "CLUSTER_ID"         "${{ github.event.inputs.clusterid }}"
-          save_var "SLACK_CHANNEL_NAME" "${{ github.event.inputs.slack_channel_name }}"
-          save_var "SLACK_WEBHOOK_URL"  "${{ github.event.inputs.slack_webhook_url }}"
 
       - name: Mask sensitive secrets
         run: |

@@ -32,7 +32,7 @@ on:
         required: false
         type: string
       slack_webhook_url:
-        description: "Slack webhook URL for alerting (saved as vars.SLACK_WEBHOOK_URL for future runs)"
+        description: "Slack webhook URL for alerting (configure as secrets.SLACK_WEBHOOK_URL in the environment)"
         required: false
         type: string
   push:
@@ -41,6 +41,7 @@ on:
 
 permissions:
   actions: write
+  contents: read
 
 jobs:
   validate-inputs:
@@ -79,7 +80,7 @@ jobs:
       domain_name:        ${{ github.event.inputs.domain_name        || vars.DOMAIN_NAME }}
       env_name:           ${{ github.event.inputs.env_name           || vars.ENV_NAME }}
       slack_channel_name: ${{ github.event.inputs.slack_channel_name || vars.SLACK_CHANNEL_NAME }}
-      SLACK_WEBHOOK_URL:  ${{ github.event.inputs.slack_webhook_url  || vars.SLACK_WEBHOOK_URL }}
+      SLACK_WEBHOOK_URL:  ${{ github.event.inputs.slack_webhook_url  || secrets.SLACK_WEBHOOK_URL }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -101,9 +102,15 @@ jobs:
               "https://api.github.com/repos/$REPO/environments/$ENVIRONMENT/variables/$name" \
               -d "{\"name\":\"$name\",\"value\":\"$value\"}")
             if [ "$STATUS" = "404" ]; then
-              curl -s -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+              STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+                -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
                 "https://api.github.com/repos/$REPO/environments/$ENVIRONMENT/variables" \
-                -d "{\"name\":\"$name\",\"value\":\"$value\"}" && echo "✓ Created $name"
+                -d "{\"name\":\"$name\",\"value\":\"$value\"}")
+              if [ "$STATUS" = "201" ] || [ "$STATUS" = "200" ]; then
+                echo "✓ Created $name"
+              else
+                echo "✗ Failed to create $name (HTTP $STATUS)"; exit 1
+              fi
             elif [ "$STATUS" = "200" ] || [ "$STATUS" = "204" ]; then
               echo "✓ Updated $name"
             else
@@ -113,7 +120,6 @@ jobs:
           save_var "DOMAIN_NAME"        "${{ github.event.inputs.domain_name }}"
           save_var "ENV_NAME"           "${{ github.event.inputs.env_name }}"
           save_var "SLACK_CHANNEL_NAME" "${{ github.event.inputs.slack_channel_name }}"
-          save_var "SLACK_WEBHOOK_URL"  "${{ github.event.inputs.slack_webhook_url }}"
 
       - name: Setup kubectl and kubeconfig
         env:
