@@ -103,17 +103,18 @@ jobs:
         run: |
           REPO="${{ github.repository }}"
           ENVIRONMENT="${{ github.ref_name }}"
+          ENCODED_ENVIRONMENT=$(python3 -c "import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=''))" "$ENVIRONMENT")
           save_var() {
             local name=$1 value=$2
             if [ -z "$value" ]; then echo "⏭  Skipping $name — no input provided, existing value preserved"; return; fi
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
               -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/repos/$REPO/environments/$ENVIRONMENT/variables/$name" \
+              "https://api.github.com/repos/$REPO/environments/$ENCODED_ENVIRONMENT/variables/$name" \
               -d "{\"name\":\"$name\",\"value\":\"$value\"}")
             if [ "$STATUS" = "404" ]; then
               STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
                 -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
-                "https://api.github.com/repos/$REPO/environments/$ENVIRONMENT/variables" \
+                "https://api.github.com/repos/$REPO/environments/$ENCODED_ENVIRONMENT/variables" \
                 -d "{\"name\":\"$name\",\"value\":\"$value\"}")
               if [ "$STATUS" = "201" ]; then
                 echo "✓ Created $name"
