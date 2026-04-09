@@ -32,28 +32,94 @@ on:
         required: false
         type: string
       slack_webhook_url:
-        description: "Slack webhook URL for alerting (overrides SLACK_WEBHOOK_URL secret)"
+        description: "Slack webhook URL for alerting (configure as secrets.SLACK_WEBHOOK_URL in the environment)"
         required: false
         type: string
   push:
     paths:
       - Helmsman/dsf/**/testrigs-dsf.yaml
 
+permissions:
+  actions: write
+  contents: read
+
 jobs:
+  validate-inputs:
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.ref_name }}
+    steps:
+      - name: Validate required variables
+        run: |
+          errors=()
+          DOMAIN="${{ github.event.inputs.domain_name || vars.DOMAIN_NAME }}"
+          ENV="${{ github.event.inputs.env_name || vars.ENV_NAME }}"
+          SLACK_CH="${{ github.event.inputs.slack_channel_name || vars.SLACK_CHANNEL_NAME }}"
+          [ -z "$DOMAIN" ]    && errors+=("domain_name is empty — set vars.DOMAIN_NAME under Environment '${{ github.ref_name }}'")
+          [ -z "$ENV" ]       && errors+=("env_name is empty — set vars.ENV_NAME under Environment '${{ github.ref_name }}'")
+          [ -z "$SLACK_CH" ]  && errors+=("slack_channel_name is empty — set vars.SLACK_CHANNEL_NAME under Environment '${{ github.ref_name }}'")
+          if [ ${#errors[@]} -gt 0 ]; then
+            echo "❌ Required variables missing:"
+            printf '  - %s\n' "${errors[@]}"
+            echo "Go to: Settings → Environments → ${{ github.ref_name }} → Variables"
+            exit 1
+          fi
+          echo "✓ domain_name        = $DOMAIN"
+          echo "✓ env_name           = $ENV"
+          echo "✓ slack_channel_name = $SLACK_CH"
+
   deploy:
     runs-on: ubuntu-latest
-    environment: 
+    needs: validate-inputs
+    environment:
       name: ${{ github.ref_name }}
     env:
       KUBECONFIG: ${{ github.workspace }}/.kube/config
       PATH: ${{ github.workspace }}/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
       KUBECTL_PATH: ${{ github.workspace }}/.local/bin/kubectl
-      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      domain_name:        ${{ github.event.inputs.domain_name        || vars.DOMAIN_NAME }}
+      env_name:           ${{ github.event.inputs.env_name           || vars.ENV_NAME }}
+      slack_channel_name: ${{ github.event.inputs.slack_channel_name || vars.SLACK_CHANNEL_NAME }}
+      SLACK_WEBHOOK_URL:  ${{ github.event.inputs.slack_webhook_url  || secrets.SLACK_WEBHOOK_URL }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Persist workflow inputs as environment variables
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REPO="${{ github.repository }}"
+          ENVIRONMENT="${{ github.ref_name }}"
+          save_var() {
+            local name=$1 value=$2
+            if [ -z "$value" ]; then echo "⏭  Skipping $name — no input provided, existing value preserved"; return; fi
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
+              -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/$REPO/environments/$ENVIRONMENT/variables/$name" \
+              -d "{\"name\":\"$name\",\"value\":\"$value\"}")
+            if [ "$STATUS" = "404" ]; then
+              STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+                -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+                "https://api.github.com/repos/$REPO/environments/$ENVIRONMENT/variables" \
+                -d "{\"name\":\"$name\",\"value\":\"$value\"}")
+              if [ "$STATUS" = "201" ] || [ "$STATUS" = "200" ]; then
+                echo "✓ Created $name"
+              else
+                echo "✗ Failed to create $name (HTTP $STATUS)"; exit 1
+              fi
+            elif [ "$STATUS" = "200" ] || [ "$STATUS" = "204" ]; then
+              echo "✓ Updated $name"
+            else
+              echo "✗ Failed to save $name (HTTP $STATUS)"; exit 1
+            fi
+          }
+          save_var "DOMAIN_NAME"        "${{ github.event.inputs.domain_name }}"
+          save_var "ENV_NAME"           "${{ github.event.inputs.env_name }}"
+          save_var "SLACK_CHANNEL_NAME" "${{ github.event.inputs.slack_channel_name }}"
 
       - name: Setup kubectl and kubeconfig
         env:
@@ -174,14 +240,11 @@ jobs:
             echo "❌ MOSIP DSF not completed."
             exit 1
           fi
-      - name: Set deployment variables
+      - name: Show deployment variables
         run: |
-          echo "domain_name=${{ github.event.inputs.domain_name || vars.DOMAIN_NAME }}" >> $GITHUB_ENV
-          echo "env_name=${{ github.event.inputs.env_name || vars.ENV_NAME }}" >> $GITHUB_ENV
-          echo "slack_channel_name=${{ github.event.inputs.slack_channel_name || vars.SLACK_CHANNEL_NAME }}" >> $GITHUB_ENV
-          if [ -n "${{ github.event.inputs.slack_webhook_url }}" ]; then
-            echo "SLACK_WEBHOOK_URL=${{ github.event.inputs.slack_webhook_url }}" >> $GITHUB_ENV
-          fi
+          echo "domain_name        = $domain_name"
+          echo "env_name           = $env_name"
+          echo "slack_channel_name = $slack_channel_name"
 
       - name: Initiate helmsman to apply the DSF configurations
         run: |
