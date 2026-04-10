@@ -153,10 +153,18 @@
         force: no
       when: mount_check.rc != 0
       
+    - name: Resolve filesystem UUID of the device
+      command: blkid -o value -s UUID "{{ postgres_device }}"
+      register: device_uuid
+      changed_when: false
+      retries: 3
+      delay: 5
+      until: device_uuid.stdout != ""
+      
     - name: Create mount point and mount device
       mount:
         path: "{{ postgres_mount }}"
-        src: "{{ postgres_device }}"
+        src: "UUID={{ device_uuid.stdout | trim }}"
         fstype: xfs
         opts: defaults,noatime
         state: mounted
