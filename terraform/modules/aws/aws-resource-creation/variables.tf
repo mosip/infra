@@ -127,17 +127,24 @@ set -o pipefail  # trace ERR through pipes
 
 ## Mount EBS volume
 echo "[ Mount EBS volume to /srv/nfs directory ] : "
-file -s /dev/nvme1n1
-mkfs -t xfs /dev/nvme1n1
+
+if ! file -s /dev/nvme1n1 | grep -q filesystem; then
+  mkfs -t xfs /dev/nvme1n1
+fi
+
 mkdir -p /srv/nfs
 UUID=$(blkid -o value -s UUID /dev/nvme1n1)
-echo "UUID=$UUID    /srv/nfs xfs  defaults,nofail  0  2" >> /etc/fstab
+
+if ! grep -q "$UUID" /etc/fstab; then
+  echo "UUID=$UUID    /srv/nfs xfs  defaults,nofail  0  2" >> /etc/fstab
+fi
 mount -a
 systemctl daemon-reload
 
 export TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
 echo "export TOKEN=$TOKEN" | sudo tee -a $ENV_FILE_PATH
 echo "export INTERNAL_IP=\"$(curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/local-ipv4)\"" | sudo tee -a $ENV_FILE_PATH
+
 EOF
     tags = {
       Name    = local.TAG_NAME.NGINX_TAG_NAME
