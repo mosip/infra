@@ -85,7 +85,7 @@ env:
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   # Fix: Use lowercase variable name to match Terraform variable
   TF_VAR_ssh_private_key: ${{ secrets[inputs.SSH_PRIVATE_KEY] }}
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  GITHUB_TOKEN: ${{ secrets.GH_INFRA_PAT }}
 
 jobs:
   terraform:
@@ -103,7 +103,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Full history needed for rebase
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GH_INFRA_PAT }}
 
       - name: Check for required implementation directory
         run: |
@@ -435,7 +435,7 @@ jobs:
             echo "Changes committed and pushed successfully"
           fi
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_INFRA_PAT }}
         if: always()
 
       - name: Terraform plan / apply status
