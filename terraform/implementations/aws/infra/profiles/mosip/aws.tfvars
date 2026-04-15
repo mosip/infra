@@ -64,7 +64,7 @@ k8s_control_plane_node_count = 1
 k8s_etcd_node_count = 0
 
 # Worker
-k8s_worker_node_count = 0
+k8s_worker_node_count = 1
 
 # RKE2 Version Configuration
 rke2_version = "v1.28.9+rke2r1"
