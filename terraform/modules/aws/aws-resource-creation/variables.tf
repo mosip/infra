@@ -127,11 +127,17 @@ set -o pipefail  # trace ERR through pipes
 
 ## Mount EBS volume
 echo "[ Mount EBS volume to /srv/nfs directory ] : "
-file -s /dev/nvme1n1
-mkfs -t xfs /dev/nvme1n1
+if ! file -s /dev/nvme1n1 | grep -q filesystem; then
+  mkfs -t xfs /dev/nvme1n1
+fi
+
 mkdir -p /srv/nfs
 UUID=$(blkid -o value -s UUID /dev/nvme1n1)
-echo "UUID=$UUID    /srv/nfs xfs  defaults,nofail  0  2" >> /etc/fstab
+
+if ! grep -q "$UUID" /etc/fstab; then
+  echo "UUID=$UUID    /srv/nfs xfs  defaults,nofail  0  2" >> /etc/fstab
+fi
+
 mount -a
 systemctl daemon-reload
 
