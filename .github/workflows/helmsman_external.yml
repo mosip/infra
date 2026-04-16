@@ -80,7 +80,7 @@ jobs:
       - name: Persist workflow inputs as environment variables
         if: github.event_name == 'workflow_dispatch'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_INFRA_PAT }}
         run: |
           REPO="${{ github.repository }}"
           ENVIRONMENT="${{ github.ref_name }}"
@@ -375,7 +375,7 @@ jobs:
       - name: Trigger helmsman mosip workflow via API
         env:
           GITHUB_REPO: ${{ github.repository }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_INFRA_PAT }}
           BRANCH: ${{ github.ref_name }}
           MODE: ${{ github.event.inputs.mode }}
           DOMAIN_NAME: ${{ github.event.inputs.domain_name || vars.DOMAIN_NAME }}
