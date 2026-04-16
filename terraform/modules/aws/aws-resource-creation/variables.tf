@@ -131,7 +131,13 @@ file -s /dev/nvme1n1
 mkfs -t xfs /dev/nvme1n1
 mkdir -p /srv/nfs
 UUID=$(blkid -o value -s UUID /dev/nvme1n1)
-echo "UUID=$UUID    /srv/nfs xfs  defaults,nofail  0  2" >> /etc/fstab
+if [ -z "$UUID" ]; then
+  echo "Failed to resolve UUID for /dev/nvme1n1" >&2
+  exit 1
+fi
+if ! grep -qE "^[[:space:]]*UUID=$UUID[[:space:]]+/srv/nfs[[:space:]]+xfs[[:space:]]+" /etc/fstab; then
+  echo "UUID=$UUID    /srv/nfs xfs  defaults,nofail  0  2" >> /etc/fstab
+fi
 mount -a
 systemctl daemon-reload
 
