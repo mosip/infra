@@ -1,0 +1,65 @@
+---
+all:
+  vars:
+    cluster_name: "qabase1"
+    cluster_env_domain: "mosip.local"
+    k8s_infra_repo_url: "https://github.com/mosip/k8s-infra.git"
+    k8s_infra_branch: "v1.2.1.2"
+    install_rke2_version: "v1.28.9+rke2r1"
+    enable_rancher_import: true
+    rancher_import_url: "kubectl apply -f https://rancher.mosip.net/v3/import/w5g7xprbqfds82kp2k9xbvnfcnk5bxpnmlddp7cpv2k892tndwmwhj_c-m-kzvkppbn.yaml"
+    ansible_user: ubuntu
+    ansible_ssh_private_key_file: ./ssh_key
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+    
+  children:
+    control_plane:
+      hosts:
+        qabase1-CONTROL-PLANE-NODE-1:
+          ansible_host: 172.31.77.173
+          node_role: control_plane
+          is_primary: true
+          node_index: 0
+        qabase1-CONTROL-PLANE-NODE-2:
+          ansible_host: 172.31.72.0
+          node_role: control_plane
+          is_primary: false
+          node_index: 1
+        qabase1-CONTROL-PLANE-NODE-3:
+          ansible_host: 172.31.75.33
+          node_role: control_plane
+          is_primary: false
+          node_index: 2
+    
+    etcd:
+      hosts:
+        qabase1-ETCD-NODE-1:
+          ansible_host: 172.31.65.62
+          node_role: etcd
+        qabase1-ETCD-NODE-2:
+          ansible_host: 172.31.76.104
+          node_role: etcd
+        qabase1-ETCD-NODE-3:
+          ansible_host: 172.31.75.63
+          node_role: etcd
+    
+    workers:
+      hosts:
+        qabase1-WORKER-NODE-1:
+          ansible_host: 172.31.75.61
+          node_role: worker
+        qabase1-WORKER-NODE-2:
+          ansible_host: 172.31.69.47
+          node_role: worker
+        qabase1-WORKER-NODE-3:
+          ansible_host: 172.31.66.19
+          node_role: worker
+        qabase1-WORKER-NODE-4:
+          ansible_host: 172.31.77.117
+          node_role: worker
+
+    rke2_cluster:
+      children:
+        control_plane:
+        etcd:
+        workers:
