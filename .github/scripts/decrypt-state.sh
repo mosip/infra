@@ -23,6 +23,7 @@ usage() {
 # Parse command line arguments
 BACKEND_TYPE=""
 GPG_PASSPHRASE=""
+OPERATION="apply"
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -32,6 +33,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --passphrase)
             GPG_PASSPHRASE="$2"
+            shift 2
+            ;;
+        --operation)
+            OPERATION="$2"
             shift 2
             ;;
         --help)
@@ -68,23 +73,46 @@ fi
 # Detect encrypted state files (both standard and dynamic naming)
 echo "Detecting encrypted state files to decrypt..."
 
-# Find all .gpg files in current directory using find command for more reliable detection
+# Find encrypted state file matching backend configuration
 ALL_ENCRYPTED_FILES=()
-echo "Scanning for encrypted files..."
+echo "Scanning for targeted encrypted files..."
 
-# Use find command to get all .gpg files (more reliable than shell globbing)
-while IFS= read -r -d '' file; do
-    if [ -f "$file" ]; then
-        # Get just the filename without path
-        filename=$(basename "$file")
-        ALL_ENCRYPTED_FILES+=("$filename")
-        echo "Found encrypted file: $filename"
+if [ -f "backend.tf" ]; then
+    backend_path=$(grep -A 5 'backend "local"' backend.tf | grep 'path' | sed 's/.*path = "\([^"]*\)".*/\1/' | head -1)
+    if [ -n "$backend_path" ]; then
+        encrypted_file="${backend_path}.gpg"
+        if [ -f "$encrypted_file" ]; then
+            ALL_ENCRYPTED_FILES+=("$encrypted_file")
+            echo "Found targeted encrypted file: $encrypted_file"
+        fi
+        
+        backup_file="${backend_path}.backup.gpg"
+        if [ -f "$backup_file" ]; then
+            ALL_ENCRYPTED_FILES+=("$backup_file")
+            echo "Found targeted backup file: $backup_file"
+        fi
     fi
-done < <(find . -maxdepth 1 -name "*.gpg" -type f -print0)
+fi
+
+# Fallback to standard tfstate if dynamic not found
+if [ ${#ALL_ENCRYPTED_FILES[@]} -eq 0 ]; then
+    for file in "terraform.tfstate.gpg" "terraform.tfstate.backup.gpg"; do
+        if [ -f "$file" ]; then
+            ALL_ENCRYPTED_FILES+=("$file")
+            echo "Found standard encrypted file: $file"
+        fi
+    done
+fi
 
 if [ ${#ALL_ENCRYPTED_FILES[@]} -eq 0 ]; then
-    echo "No encrypted state files found"
-    exit 0
+    if [ "$OPERATION" = "destroy" ]; then
+        echo "ERROR: No encrypted state files found to decrypt for destruction!"
+        echo "Cannot run terraform destroy securely without an existing tracked state."
+        exit 1
+    else
+        echo "No encrypted state files found - this may be the first run"
+        exit 0
+    fi
 fi
 
 DECRYPTED_COUNT=0
