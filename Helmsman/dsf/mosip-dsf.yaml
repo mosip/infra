@@ -225,7 +225,7 @@ apps:
     set:
       # image.repository: "mosipqa/masterdata-loader"
       # image.tag: "develop"
-      mosipDataGithubBranch: "v1.2.2.0"
+      mosipDataGithubBranch: "v1.2.2.1"
       mosipDataGithubRepo: "https://github.com/mosip/mosip-data"
       mosipDataXlsfolderPath: "/home/mosip/mosip-data/mosip_master/xlsx"
       db.host: "postgres.qa11.mosip.net"
@@ -482,7 +482,7 @@ apps:
   idrepo-saltgen:
     namespace: idrepo
     enabled: true
-    version: 12.2.4
+    version: 12.3.0
     chart: mosip/idrepo-saltgen
     # set:
     #   image.repository: ""
@@ -495,7 +495,7 @@ apps:
   credential:
     namespace: idrepo
     enabled: true
-    version: 12.2.4
+    version: 12.3.0
     chart: mosip/credential
     set:
       # image.repository: "mosipid/credential-service"
@@ -511,7 +511,7 @@ apps:
   credentialrequest:
     namespace: idrepo
     enabled: true
-    version: 12.2.4
+    version: 12.3.0
     chart: mosip/credentialrequest
     set:
       # image.repository: "mosipid/credential-request-generator"
@@ -528,7 +528,7 @@ apps:
   identity:
     namespace: idrepo
     enabled: true
-    version: 12.2.4
+    version: 12.3.0
     chart: mosip/identity
     set:
       replicaCount: 2    
@@ -540,7 +540,7 @@ apps:
   vid:
     namespace: idrepo
     enabled: true
-    version: 12.2.4
+    version: 12.3.0
     chart: mosip/vid
     set:
       replicaCount: 2    
@@ -622,7 +622,7 @@ apps:
   regproc-salt:
     namespace: regproc
     enabled: true
-    version: 12.1.2
+    version: 12.0.2
     chart: mosip/regproc-salt
     set:
       image.repository: "mosipid/kernel-salt-generator"
@@ -634,7 +634,7 @@ apps:
   regproc-workflow:
     namespace: regproc
     enabled: true
-    version: 12.1.2
+    version: 12.1.3
     chart: mosip/regproc-workflow
     set:
       resources.limits.cpu: "500m"
@@ -652,7 +652,7 @@ apps:
   regproc-status:
     namespace: regproc
     enabled: true
-    version: 12.1.2
+    version: 12.1.3
     chart: mosip/regproc-status
     set:
       resources.limits.cpu: "500m"
@@ -668,7 +668,7 @@ apps:
   regproc-camel:
     namespace: regproc
     enabled: true
-    version: 12.1.2
+    version: 12.1.3
     chart: mosip/regproc-camel
     set:
       resources.limits.cpu: "1"
@@ -682,7 +682,7 @@ apps:
   regproc-pktserver:
     namespace: regproc
     enabled: true
-    version: 12.1.2
+    version: 12.1.3
     chart: mosip/regproc-pktserver
     set:
       resources.limits.cpu: "500m"
@@ -696,7 +696,7 @@ apps:
   regproc-group1:
     namespace: regproc
     enabled: true
-    version: 12.1.2
+    version: 12.1.3
     chart: mosip/regproc-group1
     set:
       resources.limits.cpu: "1"
@@ -712,7 +712,7 @@ apps:
   regproc-group2:
     namespace: regproc
     enabled: true
-    version: 12.1.2
+    version: 12.1.3
     chart: mosip/regproc-group2
     set:
     #   image.repository: ""
@@ -729,7 +729,7 @@ apps:
   regproc-group3:
     namespace: regproc
     enabled: true
-    version: 12.1.2
+    version: 12.1.3
     chart: mosip/regproc-group3
     set:
       resources.limits.cpu: "500m"
@@ -743,7 +743,7 @@ apps:
   regproc-group4:
     namespace: regproc
     enabled: true
-    version: 12.1.2
+    version: 12.1.3
     chart: mosip/regproc-group4
     set:
       resources.limits.cpu: "500m"
@@ -757,7 +757,7 @@ apps:
   regproc-group5:
     namespace: regproc
     enabled: true
-    version: 12.1.2
+    version: 12.1.3
     chart: mosip/regproc-group5
     set:
       resources.limits.cpu: "500m"
@@ -771,7 +771,7 @@ apps:
   regproc-group6:
     namespace: regproc
     enabled: true
-    version: 12.1.2
+    version: 12.1.3
     chart: mosip/regproc-group6
     set:
       resources.limits.cpu: "500m"
@@ -785,7 +785,7 @@ apps:
   regproc-group7:
     namespace: regproc
     enabled: true
-    version: 12.1.2
+    version: 12.1.3
     chart: mosip/regproc-group7
     set:
       resources.limits.cpu: "500m"
@@ -799,7 +799,7 @@ apps:
   regproc-trans:
     namespace: regproc
     enabled: true
-    version: 12.1.2
+    version: 12.1.3
     chart: mosip/regproc-trans
     set:
       resources.limits.cpu: "500m"
@@ -813,7 +813,7 @@ apps:
   regproc-notifier:
     namespace: regproc
     enabled: true
-    version: 12.1.2
+    version: 12.1.3
     chart: mosip/regproc-notifier
     set:
       resources.limits.cpu: "500m"
@@ -829,7 +829,7 @@ apps:
   regproc-reprocess:
     namespace: regproc
     enabled: true
-    version: 12.1.2
+    version: 12.1.3
     chart: mosip/regproc-reprocess
     set:
       resources.limits.cpu: "500m"
@@ -845,7 +845,7 @@ apps:
   regproc-landingzone:
     namespace: regproc
     enabled: true
-    version: 12.1.2
+    version: 12.1.3
     chart: mosip/regproc-landingzone
     set:
       resources.limits.cpu: "500m"
