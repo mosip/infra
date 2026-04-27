@@ -77,7 +77,7 @@ WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 # Rancher Import URL
 # Rancher Import Configuration
 enable_rancher_import = true
-rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/sr22c4t8g9cw579b5jnqr7mdwd5ggj84p6frffqwp5mh8rcv97zkdv_c-m-v497l92f.yaml\""
+rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/jqhzbxz82wphwglprs58w5x8wl8r8vl4zbdcbwgx4ltr4qkq8cr69r_c-m-7pdvv4r2.yaml\""
 
 # DNS Records to map
 subdomain_public   = ["resident", "prereg", "esignet", "healthservices", "signup"]
@@ -93,7 +93,7 @@ postgresql_port         = "5433"
 # MOSIP Infrastructure Repository Configuration
 mosip_infra_repo_url = "https://github.com/mosip/infra.git"
 
-mosip_infra_branch = "testgrid"
+mosip_infra_branch = "MOSIP-44258"
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
 vpc_name = "default"
