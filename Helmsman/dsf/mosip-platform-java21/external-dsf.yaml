@@ -337,6 +337,8 @@ apps:
       persistence.size: "8Gi"
       zookeeper.enabled: "true"
       zookeeper.replicaCount: "5"
+      zookeeper.requests.cpu: "512m"
+      zookeeper.requests.memory: "250Mi"      
       zookeeper.persistence.enabled: "true"
       zookeeper.persistence.size: "2Gi"
       # resources.limits.cpu: "250m"
