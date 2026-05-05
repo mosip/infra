@@ -22,7 +22,13 @@ all:
           node_index: 0
     
     
+    workers:
+      hosts:
+        ab21-WORKER-NODE-1:
+          ansible_host: 172.31.71.127
+          node_role: worker
 
     rke2_cluster:
       children:
         control_plane:
+        workers:
