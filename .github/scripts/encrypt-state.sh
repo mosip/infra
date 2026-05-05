@@ -85,7 +85,7 @@ if [ "$OPERATION" = "destroy" ]; then
             backend_path=$(grep -A 5 'backend "local"' backend.tf | grep 'path' | sed 's/.*path = "\([^"]*\)".*/\1/' | head -1)
             if [ -n "$backend_path" ]; then
                 echo "Removing targeted files for path: $backend_path"
-                rm -f "$backend_path" "${backend_path}.backup" "${backend_path}.gpg"
+                rm -f "$backend_path" "${backend_path}.backup" "${backend_path}.gpg" "${backend_path}.backup.gpg"
             fi
         fi
         
