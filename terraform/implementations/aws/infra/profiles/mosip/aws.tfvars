@@ -6,10 +6,10 @@
 # ============================================================
 
 # Environment name (infra component)
-cluster_name = "ab20"
+cluster_name = "ab21"
 
 # MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "ab20.mosip.net"
+cluster_env_domain = "ab21.mosip.net"
 
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
 mosip_email_id = "thisisbn46@gmail.com"
@@ -64,7 +64,7 @@ k8s_control_plane_node_count = 1
 k8s_etcd_node_count = 0
 
 # Worker
-k8s_worker_node_count = 1
+k8s_worker_node_count = 0
 
 # RKE2 Version Configuration
 rke2_version = "v1.28.9+rke2r1"
