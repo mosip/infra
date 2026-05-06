@@ -155,7 +155,7 @@ create_local_backend() {
     local branch_suffix="${branch:-local}"
     local state_file
     if [ -n "$profile" ]; then
-        state_file="${provider}-${component}-${profile}-${branch_suffix}-terraform.tfstate"
+        state_file="profiles/${profile}/${provider}-${component}-${profile}-${branch_suffix}-terraform.tfstate"
     else
         state_file="${provider}-${component}-${branch_suffix}-terraform.tfstate"
     fi

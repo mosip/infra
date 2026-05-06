@@ -333,7 +333,8 @@ jobs:
         run: |
           ../../../../.github/scripts/decrypt-state.sh \
             --backend-type "${{ inputs.BACKEND_TYPE }}" \
-            --passphrase "${{ secrets.GPG_PASSPHRASE }}"
+            --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
+            --operation "destroy"
 
       - name: Display Destruction Warning
         run: |
@@ -433,9 +434,17 @@ jobs:
               --destroy-success "false"
               
             echo "Adding encrypted state files for debugging purposes"
+            # Extract dynamic path from backend.tf to commit targeted profile states
+            if [ -f "backend.tf" ]; then
+              BACKEND_PATH=$(grep -A 5 'backend "local"' backend.tf | grep 'path' | sed 's/.*path = "\([^"]*\)".*/\1/' | head -1)
+              if [ -n "$BACKEND_PATH" ]; then
+                git add -f "${BACKEND_PATH}*" 2>/dev/null || echo "No isolated state files to add for $BACKEND_PATH"
+              fi
+            fi
+
             # Add both unencrypted (if any remain) and encrypted state files
-            git add -f *.tfstate* 2>/dev/null || echo "No .tfstate files found"
-            git add -f *.gpg 2>/dev/null || echo "No .gpg files found"
+            git add -f *.tfstate* 2>/dev/null || echo "No base .tfstate files found"
+            git add -f *.gpg 2>/dev/null || echo "No base .gpg files found"
           fi
           
           git add -f backend.tf 2>/dev/null || echo "No backend.tf file found"
