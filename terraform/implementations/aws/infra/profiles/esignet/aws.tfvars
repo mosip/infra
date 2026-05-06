@@ -7,10 +7,10 @@
 # ============================================================
 
 # Environment name (infra component)
-cluster_name = "ab13"
+cluster_name = "abesignet1"
 
 # eSignet's domain (ex: esignet.xyz.net)
-cluster_env_domain = "ab13.mosip.net"
+cluster_env_domain = "abesignet1.mosip.net"
 
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
 mosip_email_id = "abhisahu1920@gmail.com"
@@ -60,10 +60,10 @@ k8s_instance_root_volume_size = 64
 k8s_control_plane_node_count = 1
 
 # ETCD, Worker
-k8s_etcd_node_count = 1
+k8s_etcd_node_count = 0
 
 # Worker
-k8s_worker_node_count = 2
+k8s_worker_node_count = 0
 
 # RKE2 Version Configuration
 rke2_version = "v1.28.9+rke2r1"
