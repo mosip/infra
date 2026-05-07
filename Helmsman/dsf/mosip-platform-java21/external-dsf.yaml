@@ -165,8 +165,6 @@ apps:
       # postgresql.readReplicas.replicaCount: 1  # <-- this gives you the 2nd PostgreSQL pod
       # postgresql.readReplicas.persistence.enabled: true
       # postgresql.readReplicas.persistence.size: 8Gi
-      # PostgreSQL extended configuration
-      postgresql.primary.extendedConfiguration: "max_connections = 200\nshared_buffers = 256MB\nwork_mem = 4MB\nmaintenance_work_mem = 64MB\neffective_cache_size = 768MB\n"
       service.type: "ClusterIP"
       auth.adminUser: "admin"
       extraEnvVars[0].name: "KEYCLOAK_EXTRA_ARGS"
@@ -186,6 +184,17 @@ apps:
       rbac.rules[0].resources[0]: "pods"
       rbac.rules[0].verbs[0]: "get"
       rbac.rules[0].verbs[1]: "list"
+    # Move multiline values here — NOT in set:
+    values:
+      - |-
+        postgresql:
+          primary:
+            extendedConfiguration: |
+              max_connections = 200
+              shared_buffers = 256MB
+              work_mem = 4MB
+              maintenance_work_mem = 64MB
+              effective_cache_size = 768MB
     wait: true
     timeout: 1200
     priority: -14
