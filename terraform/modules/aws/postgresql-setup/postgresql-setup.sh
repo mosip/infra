@@ -441,5 +441,4 @@ rm -f /tmp/postgresql-ansible.log 2>/dev/null || true
 echo '[INFO] Generated Kubernetes files location:'
 echo '  /tmp/postgresql-secrets/ (cleaned up automatically on control plane after deployment)'
 echo ''
-
 echo "PostgreSQL setup completed successfully"
