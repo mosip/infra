@@ -185,16 +185,7 @@ apps:
       rbac.rules[0].verbs[0]: "get"
       rbac.rules[0].verbs[1]: "list"
     # Move multiline values here — NOT in set:
-    values:
-      - |-
-        postgresql:
-          primary:
-            extendedConfiguration: |
-              max_connections = 200
-              shared_buffers = 256MB
-              work_mem = 4MB
-              maintenance_work_mem = 64MB
-              effective_cache_size = 768MB
+    valuesFile: "$WORKDIR/utils/keycloak-postgres-values.yaml"
     wait: true
     timeout: 1200
     priority: -14
