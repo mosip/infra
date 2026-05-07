@@ -213,7 +213,7 @@ echo '[CREATE] This should take 10-15 minutes. Progress will be shown below...'
 echo '[TEST] Testing Ansible connectivity...'
 if ! timeout 30 ansible $NGINX_NODE_IP -i inventory.ini -m ping \
     --private-key="${SSH_PRIVATE_KEY_FILE:-}" \
-    --ssh-common-args="-o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/dev/null"; then
+    --ssh-common-args="-o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=$KNOWN_HOSTS_FILE"; then
     
     echo '[ERROR] Ansible connectivity test failed'
     echo '[WARNING] Continuing anyway, playbook might still work...'
@@ -229,7 +229,7 @@ echo "ansible-playbook -vv -i inventory.ini --private-key=\"${SSH_PRIVATE_KEY_FI
 set +e
 timeout 900 ansible-playbook -vv -i inventory.ini \
     --private-key="${SSH_PRIVATE_KEY_FILE:-}" \
-    --ssh-common-args="-o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/dev/null" \
+    --ssh-common-args="-o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=$KNOWN_HOSTS_FILE" \
     -e postgresql_version=$POSTGRESQL_VERSION \
     -e storage_device=$STORAGE_DEVICE \
     -e mount_point=$MOUNT_POINT \
