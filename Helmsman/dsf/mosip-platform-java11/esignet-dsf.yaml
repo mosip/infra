@@ -212,14 +212,6 @@ apps:
       extraEnvVarsCM[1]: "config-server-share"
       extraEnvVarsCM[2]: "artifactory-1202-share"
       extraEnvVarsCM[3]: "softhsm-esignet-share"
-      domainConfig.MOSIP_ESIGNET_HOST: "esignet.${domain_name}"
-      domainConfig.MOSIP_SIGNUP_HOST: "signup.${domain_name}"
-      domainConfig.MOSIP_API_HOST: "api.${domain_name}"
-      domainConfig.MOSIP_IAM_EXTERNAL_HOST: "iam.${domain_name}"
-      domainConfig.MOSIP_API_INTERNAL_HOST: "api-internal.${domain_name}"
-      domainConfig.MOSIP_KAFKA_HOST: "kafka.${domain_name}"
-      domainConfig.MOSIP_POSTGRES_HOST: "postgres.${domain_name}"
-      domainConfig.MOSIP_SMTP_HOST: "smtp.${domain_name}"
     wait: true
     timeout: 600
     priority: -11
@@ -270,7 +262,6 @@ apps:
       extraEnvVarsCM[1]: "config-server-share"
       extraEnvVarsCM[2]: "artifactory-1202-share"
       extraEnvVarsCM[3]: "softhsm-mock-identity-system-share"
-      domainConfig.MOSIP_ESIGNET_HOST: "esignet.${domain_name}"
     timeout: 480
     priority: -8
     hooks:
