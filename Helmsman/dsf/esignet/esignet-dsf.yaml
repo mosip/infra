@@ -46,6 +46,14 @@ apps:
       enable_insecure: "false"
       extraEnvVarsCM[0]: "esignet-global"
       extraEnvVarsCM[1]: "esignet-softhsm-share"
+      domainConfig.MOSIP_ESIGNET_HOST: "esignet.${domain_name}"
+      domainConfig.MOSIP_SIGNUP_HOST: "signup.${domain_name}"
+      domainConfig.MOSIP_API_HOST: "api.${domain_name}"
+      domainConfig.MOSIP_IAM_EXTERNAL_HOST: "iam.${domain_name}"
+      domainConfig.MOSIP_API_INTERNAL_HOST: "api-internal.${domain_name}"
+      domainConfig.MOSIP_KAFKA_HOST: "kafka.${domain_name}"
+      domainConfig.MOSIP_POSTGRES_HOST: "postgres.${domain_name}"
+      domainConfig.MOSIP_SMTP_HOST: "smtp.${domain_name}"
     wait: true
     timeout: 600
     priority: -12
@@ -97,6 +105,7 @@ apps:
       extraEnvVarsCM[0]: "esignet-global"
       extraEnvVarsCM[1]: "esignet-softhsm-share"
       extraEnvVarsCM[2]: "softhsm-mock-identity-system-share"
+      domainConfig.MOSIP_ESIGNET_HOST: "esignet.${domain_name}"
     timeout: 480
     priority: -9
     hooks:
