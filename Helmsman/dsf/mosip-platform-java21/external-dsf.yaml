@@ -356,6 +356,7 @@ apps:
       resources.limits.cpu: "1000m"
       resources.limits.memory: "3500Mi"
       resources.requests.cpu: "500m"
+      resources.requests.memory: "2500Mi"
       startupProbe.enabled: "true"
       startupProbe.initialDelaySeconds: "30"
       startupProbe.periodSeconds: "10"
