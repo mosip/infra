@@ -154,6 +154,15 @@ apps:
       postgresql.image.registry: "docker.io"
       postgresql.image.repository: "mosipid/postgresql"
       postgresql.image.tag: "14.2.0-debian-10-r70"
+      postgresql.primary.resources.requests.cpu: 250m
+      postgresql.primary.resources.requests.memory: 256Mi
+      # postgresql.architecture: replication
+      # postgresql.primary.replicaCount: 1
+      # postgresql.primary.persistence.enabled: true
+      # postgresql.primary.persistence.size: 8Gi
+      # postgresql.readReplicas.replicaCount: 1  # <-- this gives you the 2nd PostgreSQL pod
+      # postgresql.readReplicas.persistence.enabled: true
+      # postgresql.readReplicas.persistence.size: 8Gi
       service.type: "ClusterIP"
       auth.adminUser: "admin"
       extraEnvVars[0].name: "KEYCLOAK_EXTRA_ARGS"
@@ -332,13 +341,17 @@ apps:
       persistence.accessModes[0]: "ReadWriteOnce"
       persistence.size: "8Gi"
       zookeeper.enabled: "true"
+      zookeeper.resources.requests.cpu: "150m"
+      zookeeper.resources.requests.memory: "600Mi"
+      zookeeper.resources.limits.cpu: "300m"
+      zookeeper.resources.limits.memory: "1200Mi"
       zookeeper.replicaCount: "5"
       zookeeper.persistence.enabled: "true"
       zookeeper.persistence.size: "2Gi"
-      # resources.limits.cpu: "250m"
-      # resources.limits.memory: "1Gi"
-      resources.requests.cpu: "200m"
-      resources.requests.memory: "2000Mi"
+      resources.limits.cpu: "1000m"
+      resources.limits.memory: "3500Mi"
+      resources.requests.cpu: "500m"
+      resources.requests.memory: "2500Mi"
       startupProbe.enabled: "true"
       startupProbe.initialDelaySeconds: "30"
       startupProbe.periodSeconds: "10"

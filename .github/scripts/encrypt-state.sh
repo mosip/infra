@@ -80,11 +80,18 @@ fi
 # Handle destroy operation logic
 if [ "$OPERATION" = "destroy" ]; then
     if [ "$DESTROY_SUCCESS" = "true" ]; then
-        echo "Successful destroy operation - removing all state files"
-        # Remove all terraform state files (both standard and dynamic naming)
-        # Standard: terraform.tfstate*, Dynamic: {provider}-{component}-{branch}-terraform.tfstate*
-        rm -f terraform.tfstate* *-terraform.tfstate* *.gpg tf-plan*
-        echo "All state files cleaned up after successful destruction"
+        echo "Successful destroy operation - removing targeted state files"
+        if [ -f "backend.tf" ]; then
+            backend_path=$(grep -A 5 'backend "local"' backend.tf | grep 'path' | sed 's/.*path = "\([^"]*\)".*/\1/' | head -1)
+            if [ -n "$backend_path" ]; then
+                echo "Removing targeted files for path: $backend_path"
+                rm -f "$backend_path" "${backend_path}.backup" "${backend_path}.gpg"
+            fi
+        fi
+        
+        # Remove standard base state files natively 
+        rm -f terraform.tfstate terraform.tfstate.backup terraform.tfstate.gpg tf-plan tfplan.out
+        echo "State files cleanup completed."
         exit 0
     else
         echo "Destroy operation not fully successful - encrypting remaining state files"

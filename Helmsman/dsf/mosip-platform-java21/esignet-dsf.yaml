@@ -228,7 +228,7 @@ apps:
       istio.hosts[0]: "esignet.${domain_name}"
       extraEnvVarsCM[0]: "global"
       extraEnvVarsCM[1]: "config-server-share"
-      extraEnvVarsCM[2]: "artifactory-1202-share"
+      extraEnvVarsCM[2]: "artifactory-share"
       extraEnvVarsCM[3]: "softhsm-esignet-share"
       extraEnvVarsCM[4]: "oidc-ui"
       # image.repository: "mosipid/esignet"

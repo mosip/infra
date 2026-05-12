@@ -85,7 +85,7 @@ env:
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   # Fix: Use lowercase variable name to match Terraform variable
   TF_VAR_ssh_private_key: ${{ secrets[inputs.SSH_PRIVATE_KEY] }}
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  GITHUB_TOKEN: ${{ secrets.GH_INFRA_PAT }}
 
 jobs:
   terraform:
@@ -103,7 +103,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Full history needed for rebase
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GH_INFRA_PAT }}
 
       - name: Check for required implementation directory
         run: |
@@ -295,7 +295,8 @@ jobs:
         run: |
           ../../../../.github/scripts/decrypt-state.sh \
             --backend-type "${{ inputs.BACKEND_TYPE }}" \
-            --passphrase "${{ secrets.GPG_PASSPHRASE }}"
+            --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
+            --operation "apply"
 
       - name: Display Component Information
         run: |
@@ -372,9 +373,17 @@ jobs:
             --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
             --operation "apply"
           
-          # Force add Terraform files even if they're in .gitignore
-          git add -f *.tfstate* 2>/dev/null || echo "No .tfstate files found"
-          git add -f *.gpg 2>/dev/null || echo "No .gpg files found"
+          # Extract dynamic path from backend.tf to commit targeted profile states
+          if [ -f "backend.tf" ]; then
+            BACKEND_PATH=$(grep -A 5 'backend "local"' backend.tf | grep 'path' | sed 's/.*path = "\([^"]*\)".*/\1/' | head -1)
+            if [ -n "$BACKEND_PATH" ]; then
+              git add -f "${BACKEND_PATH}*" 2>/dev/null || echo "No isolated state files to add for $BACKEND_PATH"
+            fi
+          fi
+
+          # Force add base Terraform files even if they're in .gitignore
+          git add -f *.tfstate* 2>/dev/null || echo "No base .tfstate files found"
+          git add -f *.gpg 2>/dev/null || echo "No base .gpg files found"
           git add -f tf-plan* 2>/dev/null || echo "No tf-plan files found"
           git add -f backend.tf 2>/dev/null || echo "No backend.tf file found"
           git add -f *.tf 2>/dev/null || echo "No .tf file found"
@@ -435,7 +444,7 @@ jobs:
             echo "Changes committed and pushed successfully"
           fi
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_INFRA_PAT }}
         if: always()
 
       - name: Terraform plan / apply status
