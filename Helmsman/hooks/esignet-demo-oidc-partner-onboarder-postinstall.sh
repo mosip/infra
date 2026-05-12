@@ -166,7 +166,11 @@ function postinstall_demo_oidc_partner_onboarder() {
     kubectl -n $NS set env deployment/mock-relying-party-ui CLIENT_ID="$DEMO_OIDC_CLIENT_ID" || \
       echo "mock-relying-party-ui deployment not found, skipping env update"
   fi
-
+  kubectl label ns $NS istio-injection=enabled --overwrite
+  kubectl rollout restart deployment/esignet -n $NS
+  kubectl rollout restart deployment/oidc-ui -n $NS  
+  kubectl rollout restart deployment/mock-relying-party-service -n $NS
+  kubectl rollout restart deployment/mock-relying-party-ui -n $NS
   echo "Reports are available in S3 under onboarder bucket"
   echo "Demo OIDC partner onboarder post-install setup complete"
   return 0
