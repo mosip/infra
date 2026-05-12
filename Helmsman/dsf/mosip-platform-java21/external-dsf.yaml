@@ -74,7 +74,7 @@ apps:
       databases.mosip_audit.port: 5433
 
       databases.mosip_keymgr.enabled: "true"
-      databases.mosip_keymgr.branch: "v1.3.0"
+      databases.mosip_keymgr.branch: "v1.4.0"
       databases.mosip_keymgr.host: "postgres.${domain_name}"
       databases.mosip_keymgr.port: 5433
 
