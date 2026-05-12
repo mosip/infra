@@ -152,7 +152,7 @@ apps:
   kernel-keygen:
     namespace: keymanager
     enabled: true
-    version: 1.3.0
+    version: 1.4.0
     chart: mosip/keygen
     set:
       # image.repository: "mosipdev/keys-generator"
@@ -171,7 +171,7 @@ apps:
   keymanager:
     namespace: keymanager
     enabled: true
-    version: 1.3.0
+    version: 1.4.0
     chart: mosip/keymanager
     set:
       # image.repository: "mosipdev/kernel-keymanager-service"
@@ -230,7 +230,7 @@ apps:
     set:
       # image.repository: "mosipdev/masterdata-loader"
       # image.tag: "release-1.3.x"
-      mosipDataGithubBranch: "v1.3.0"
+      mosipDataGithubBranch: "release-1.3.x"
       mosipDataGithubRepo: "https://github.com/mosip/mosip-data"
       mosipDataXlsfolderPath: "/home/mosip/mosip-data/mosip_master/xlsx"
       db.host: "postgres.${domain_name}"
@@ -1047,11 +1047,11 @@ apps:
       extraEnvVarsCM[1]: "keycloak-env-vars"
       extraEnvVarsCM[2]: "keycloak-host"
       onboarding.modules[0].name: "ida"
-      onboarding.modules[0].enabled: false
+      onboarding.modules[0].enabled: true
       onboarding.modules[1].name: "print"
       onboarding.modules[1].enabled: true
       onboarding.modules[2].name: "abis"
-      onboarding.modules[2].enabled: false
+      onboarding.modules[2].enabled: true
       onboarding.modules[3].name: "resident"
       onboarding.modules[3].enabled: true
       onboarding.modules[4].name: "mobileid"
@@ -1065,7 +1065,7 @@ apps:
       onboarding.modules[8].name: "resident-oidc"
       onboarding.modules[8].enabled: false
       onboarding.modules[9].name: "mimoto-keybinding"
-      onboarding.modules[9].enabled: false
+      onboarding.modules[9].enabled: true
     wait: true
     timeout: 1200
     priority: -2
