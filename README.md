@@ -403,7 +403,7 @@ For detailed information about GitHub Actions workflow parameters, terraform mod
 - **Backend**: Choose backend configuration:
   - **(5)** `local` - GPG-encrypted local state (recommended for development)
     - Stores state in your GitHub repository (encrypted)
-  - **(6)** `s3` - Remote S3 backend (recommended for production)
+  - **(6)** `s3` - Remote S3 backend (if you want to store the state file in S3 bucket then give the bucket name otherwise leave it empty)
     - Stores state in AWS S3 bucket (centralized)
 - **(7)** **SSH_PRIVATE_KEY**: GitHub secret name containing SSH private key for instance access
   - Must match the `ssh_key_name` in your terraform.tfvars
@@ -841,16 +841,17 @@ After updating `aws.tfvars`, deploy or update your main infra cluster:
 - **(3)** **Branch**: Select your deployment branch (e.g., `release-0.1.0`)
 - **(4)** **Cloud Provider**: Select `aws` (Azure/GCP are placeholder implementations)
 - **(5)** **Component**: Select `infra` (MOSIP application infrastructure)
-- **(6)** **Backend**: Choose backend configuration:
-  - `local` - GPG-encrypted local state (recommended for development)
-  - `s3` - Remote S3 backend (recommended for production)
-- **(7)** **SSH_PRIVATE_KEY**: GitHub secret name containing SSH private key for instance access
+- **(6)** **Profile**: Select `esignet` / `mosip` (Select profile which you want to use for deployment)
+- **Backend**: Choose backend configuration:
+  - **(7)** `local` - GPG-encrypted local state (recommended for development)
+  - **(8)** `s3` - Remote S3 backend (If you want to store the Terraform state file in an S3 bucket, provide the bucket name. Otherwise, leave it empty to use the local backend)
+- **(9)** **SSH_PRIVATE_KEY**: GitHub secret name containing SSH private key for instance access
   - Must match the `ssh_key_name` in your terraform.tfvars
-- **Terraform apply**:
-  - **(8)** ☐ **Unchecked**  — Plan mode: runs terraform plan (shows changes without applying).
-  - **(8)** ✅ **Checked**  — Apply mode: runs terraform apply (creates/updates infrastructure).
+- **(10)** **☐ Terraform apply**:
+  - ☐ **Unchecked**  — Plan mode: runs terraform plan (shows changes without applying).
+  - ✅ **Checked**  — Apply mode: runs terraform apply (creates/updates infrastructure).
   - Tip: For your first deployment, run in plan mode first to review changes. If the plan looks correct, re-run the workflow with Apply checked.
-- **(9)** **Run Workflow**
+- **(11)** **Run Workflow**
 
 **If Workflow Fails - How to View Error Logs:**
 
