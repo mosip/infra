@@ -32,7 +32,7 @@ If you **don't need to backup any data** and want to destroy everything quickly,
 
 #### 1. Go to GitHub Actions
 
-Navigate to: **Repository → Actions → Terraform Infrastructure Destroy**
+Navigate to: **Repository → Actions → Terraform Infrastrucure Destroy**
 
 #### 2. Run the Destroy Workflow
 
@@ -45,7 +45,7 @@ Parameters:
 ├─ Branch: release-0.1.0 (or your deployment branch)
 ├─ Cloud Provider: aws
 ├─ Component: infra
-├─ Profile: esignet / mosip
+├─ Profile: esignet/mosip
 └─ Backend: local (or s3, match your deployment configuration)
 ```
 
@@ -408,7 +408,7 @@ kubectl get namespaces | grep -E "cattle|istio"
  - Branch: release-0.1.0 (your deployment branch)
  - Cloud Provider: aws
  - Component: infra
- - Profile: esignet / mosip
+ - Profile: esignet/mosip
  - Backend: local (or s3, match your deployment)
  ```
 
