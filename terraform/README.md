@@ -288,18 +288,22 @@ Encrypted State Management
 ===========================
 
 Local State Files (Encrypted with GPG):
-├── .terraform-state/
-│ ├── aws-base-infra-testgrid-terraform.tfstate.gpg ← Encrypted
-│ ├── aws-infra-testgrid-terraform.tfstate.gpg ← Encrypted 
-│ └── aws-observ-infra-testgrid-terraform.tfstate.gpg ← Encrypted
+├── terraform/implementations/aws/base-infra/
+│ └── aws-base-infra-<branch>-terraform.tfstate.gpg ← Encrypted
+├── terraform/implementations/aws/infra/profiles/<profile>/
+│ └── aws-infra-<profile>-<branch>-terraform.tfstate.gpg ← Encrypted (Profile-isolated)
+└── terraform/implementations/aws/observ-infra/
+ └── aws-observ-infra-<branch>-terraform.tfstate.gpg ← Encrypted
 
 Temporary Decrypted Files (During Operations):
-├── terraform/base-infra/
-│ └── aws-base-infra-testgrid-terraform.tfstate ← Temporary
-├── terraform/infra/
-│ └── aws-infra-testgrid-terraform.tfstate ← Temporary
-└── terraform/observ-infra/
- └── aws-observ-infra-testgrid-terraform.tfstate ← Temporary
+├── terraform/implementations/aws/base-infra/
+│ └── aws-base-infra-<branch>-terraform.tfstate ← Temporary
+├── terraform/implementations/aws/infra/profiles/<profile>/
+│ └── aws-infra-<profile>-<branch>-terraform.tfstate ← Temporary
+└── terraform/implementations/aws/observ-infra/
+ └── aws-observ-infra-<branch>-terraform.tfstate ← Temporary
+
+where <profile> = mosip/esignet
 ```
 
 ### GPG Encryption Benefits
@@ -313,14 +317,16 @@ Temporary Decrypted Files (During Operations):
 
 ### Custom State File Naming
 
-State files use descriptive naming pattern: `{provider}-{component}-{branch}-terraform.tfstate`
+State files use descriptive naming pattern: `{provider}-{component}-[{profile}]-{branch}-terraform.tfstate`
 
 ```
 Examples:
 ├── aws-base-infra-main-terraform.tfstate.gpg # Production base infrastructure
-├── aws-infra-staging-terraform.tfstate.gpg # Staging MOSIP cluster 
+├── profiles/<profile>/aws-infra-<profile>-staging-terraform.tfstate.gpg # Staging MOSIP cluster 
 ├── aws-observ-infra-development-terraform.tfstate.gpg # Dev monitoring cluster
-└── azure-infra-testgrid-terraform.tfstate.gpg # Test environment
+└── profiles/<profile>/azure-infra-<profile>-<branch>-terraform.tfstate.gpg # Test environment
+
+where <profile> = mosip/esignet
 ```
 
 ### Isolated State Files
@@ -332,19 +338,21 @@ Encrypted State File Isolation Structure
 =========================================
 
 AWS Encrypted States (.gpg files):
-├── aws-base-infra-{branch}-terraform.tfstate.gpg (VPC, Jumpserver, WireGuard)
-├── aws-infra-{branch}-terraform.tfstate.gpg (K8s for MOSIP Core/External)
-└── aws-observ-infra-{branch}-terraform.tfstate.gpg (K8s for Rancher UI, Keycloak)
+├── base-infra/aws-base-infra-{branch}-terraform.tfstate.gpg (VPC, Jumpserver, WireGuard)
+├── infra/profiles/<profile>/aws-infra-<profile>-{branch}-terraform.tfstate.gpg (K8s for Profile)
+└── observ-infra/aws-observ-infra-{branch}-terraform.tfstate.gpg (K8s for Rancher UI, Keycloak)
 
 Azure Encrypted States (.gpg files):
-├── azure-base-infra-{branch}-terraform.tfstate.gpg (VNet, Jumpserver, WireGuard) 
-├── azure-infra-{branch}-terraform.tfstate.gpg (RKE2 for MOSIP Core/External)
-└── azure-observ-infra-{branch}-terraform.tfstate.gpg (RKE2 for Rancher UI, Keycloak)
+├── base-infra/azure-base-infra-{branch}-terraform.tfstate.gpg (VNet, Jumpserver, WireGuard) 
+├── infra/profiles/<profile>/azure-infra-<profile>-{branch}-terraform.tfstate.gpg (RKE2 for Profile)
+└── observ-infra/azure-observ-infra-{branch}-terraform.tfstate.gpg (RKE2 for Rancher UI, Keycloak)
 
 GCP Encrypted States (.gpg files):
-├── gcp-base-infra-{branch}-terraform.tfstate.gpg (VPC, Jumpserver, WireGuard)
-├── gcp-infra-{branch}-terraform.tfstate.gpg (RKE2 for MOSIP Core/External)
-└── gcp-observ-infra-{branch}-terraform.tfstate.gpg (RKE2 for Rancher UI, Keycloak)
+├── base-infra/gcp-base-infra-{branch}-terraform.tfstate.gpg (VPC, Jumpserver, WireGuard)
+├── infra/profiles/<profile>/gcp-infra-<profile>-{branch}-terraform.tfstate.gpg (RKE2 for Profile)
+└── observ-infra/gcp-observ-infra-{branch}-terraform.tfstate.gpg (RKE2 for Rancher UI, Keycloak)
+
+where <profile> = mosip/esignet
 ```
 
 ### Benefits of GPG Encrypted Isolated States
