@@ -79,7 +79,7 @@ graph TD
 - **PostgreSQL Integration**: External PostgreSQL 15 setup via Terraform + Ansible (configurable)
 - **Workloads**: Authentication, Registration, Partner Management, etc.
 - **Lifecycle**: Can be destroyed and recreated as needed
-- **State File**: `{cloud}-infra-terraform.tfstate`
+- **State File**: `profiles/<profile>/{cloud}-infra-<profile>-terraform.tfstate`
 
 ### Observation Infrastructure (observ-infra)
 
@@ -239,6 +239,7 @@ terraform/
 │ │ ├── aws-resource-creation/ # VPC, subnets, security groups, EC2 instances
 │ │ ├── nginx-setup/ # Load balancer and reverse proxy configuration
 │ │ ├── postgresql-setup/ # PostgreSQL database setup and configuration
+│ │ ├── activemq-setup/ # Activemq setup
 │ │ ├── rke2-cluster/ # RKE2 Kubernetes cluster provisioning
 │ │ ├── rancher-keycloak-setup/ # Identity management and SSO setup
 │ │ └── nfs-setup/ # Network File System configuration
