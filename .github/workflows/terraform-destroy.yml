@@ -462,8 +462,8 @@ jobs:
             echo "Terraform destroy completed successfully"
           else
             echo "Committing Terraform changes..."
-            git config --global user.email ${{ github.actor }}@users.noreply.github.com
-            git config --global user.name ${{ github.actor }}
+            git config --global user.email "${GIT_ACTOR}@users.noreply.github.com"
+            git config --global user.name "${GIT_ACTOR}"
             
             # Customize commit message based on backend type and destroy outcome
             if [ "${{ inputs.BACKEND_TYPE }}" = "local" ]; then
@@ -480,7 +480,7 @@ jobs:
             
             # Pull with rebase to avoid push rejection
             echo "Pulling latest changes with rebase..."
-            pull_output=$(git pull --rebase origin ${{ github.ref_name }} 2>&1)
+            pull_output=$(git pull --rebase origin "${BRANCH_NAME}" 2>&1)
             pull_exit=$?
             echo "$pull_output"
             if [ $pull_exit -ne 0 ]; then
@@ -489,8 +489,8 @@ jobs:
               elif echo "$pull_output" | grep -qE "CONFLICT|could not apply|Resolve all conflicts|You must edit the files"; then
                 echo "⚠️ Rebase conflict detected. Aborting rebase and merging with ours strategy to preserve Terraform state..."
                 git rebase --abort
-                git fetch origin ${{ github.ref_name }}
-                git merge -X ours origin/${{ github.ref_name }} --no-edit
+                git fetch origin "${BRANCH_NAME}"
+                git merge -X ours "origin/${BRANCH_NAME}" --no-edit
                 echo "Merge complete. Terraform state preserved."
               else
                 echo "❌ git pull --rebase failed with a non-conflict error:"
@@ -504,6 +504,8 @@ jobs:
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GH_INFRA_PAT }}
+          BRANCH_NAME: ${{ github.ref_name }}
+          GIT_ACTOR: ${{ github.actor }}
         if: "${{ inputs.TERRAFORM_DESTROY == true }}"
       - name: Terraform destroy status
         if: ${{ steps.destroy.outcome == 'failure' }}
