@@ -32,7 +32,7 @@ If you **don't need to backup any data** and want to destroy everything quickly,
 
 #### 1. Go to GitHub Actions
 
-Navigate to: **Repository → Actions → Terraform Infrastrucure Destroy**
+Navigate to: **Repository → Actions → Terraform Infrastructure Destroy**
 
 #### 2. Run the Destroy Workflow
 

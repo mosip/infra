@@ -168,13 +168,13 @@ Production (main branch):
 ├── mosip-terraform-bucket-main/
 │ ├── aws-base-infra-main-terraform.tfstate
 │ ├── aws-observ-infra-main-terraform.tfstate
-│ ├── profiles/<profile>/aws-infra-<profile>-main-terraform.tfstate
+│ ├── aws-infra-<profile>-main-terraform.tfstate
 │ ├── azure-base-infra-main-terraform.tfstate
 │ ├── azure-observ-infra-main-terraform.tfstate
-│ ├── profiles/<profile>/azure-infra-<profile>-main-terraform.tfstate
+│ ├── azure-infra-<profile>-main-terraform.tfstate
 │ ├── gcp-base-infra-main-terraform.tfstate
 │ ├── gcp-observ-infra-main-terraform.tfstate
-│ └── profiles/<profile>/gcp-infra-<profile>-main-terraform.tfstate
+│ └── gcp-infra-<profile>-main-terraform.tfstate
 
 Staging (staging branch):
 ├── mosip-terraform-bucket-staging/
