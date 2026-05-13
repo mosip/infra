@@ -855,7 +855,7 @@ After updating `aws.tfvars`, deploy or update your main infra cluster:
 - **(3)** **Branch**: Select your deployment branch (e.g., `release-0.1.0`)
 - **(4)** **Cloud Provider**: Select `aws` (Azure/GCP are placeholder implementations)
 - **(5)** **Component**: Select `infra` (MOSIP application infrastructure)
-- **(6)** **Profile**: Select `esignet`/`mosip` (Select profile which you want to use for deployment)
+- **(6)** **Profile**: Select `mosip`/`esignet` (Select profile which you want to use for deployment)
 - **Backend**: Choose backend configuration:
   - **(7)** `local` - GPG-encrypted local state (recommended for development)
   - **(8)** `s3` - Remote S3 backend (If you want to store the state file in a S3 bucket, provide the bucket name. Otherwise, leave it empty to use the local backend)
@@ -1329,17 +1329,23 @@ The Helmsman deployment process follows a specific sequence with automated trigg
 
 ![Deploy External Services - Helmsman](docs/_images/helmsman-external-services.png)
 
-- **(1)** Actions → **"Deploy External services of mosip using Helmsman"** (or "Helmsman External Dependencies")
+- **(1)** Actions → **"Deploy External services of mosip using Helmsman"**
   - **Can't find it?** Search for "External" in the workflows list
-- **(2)** **Select Run workflow**
-- **(3)** **Select Branch**
+- **(2)** Click **Run workflow** button in the top right corner
+- **(3)** **Branch**: Select your deployment branch (e.g., `develop`)
+- **(4)** **Deployment profile to use**: `mosip-platform-java11` (or other appropriate profile)
+- **(5)** **Choose Helmsman mode**: `apply` (dry-run will fail due to namespace dependencies)
+- **(6)** **Domain name for this environment**: Enter the domain name (e.g., `example.xyz.net`)
+- **(7)** **Environment name**: Enter the environment name (e.g., `sandbox`, `dev`, `staging`)
+- **(8)** **Slack channel name for alerting** (optional): e.g., `#mosip-alerts`
+- **(9)** **Slack webhook URL for alerting** (optional)
+- **(10)** **Rancher cluster ID for rancher-monitoring**: e.g., `c-xxxxx`
+- **(11)** Click **Run workflow** green button
 - This workflow handles both deployments in parallel:
   - **Prerequisites**: `prereq-dsf.yaml` (monitoring, Istio, logging)
   - **External Dependencies**: `external-dsf.yaml` (databases, message queues, storage)
-- **(4)** **Mode**: `apply` (required - dry-run will fail!)
-  - **Important:** DO NOT select dry-run mode for Helmsman
-  - **Time required:** 20-40 minutes
-  - **Automatic Trigger**: Upon successful completion, this workflow automatically triggers the MOSIP services deployment
+- **Time required:** 20-40 minutes
+- **Automatic Trigger**: Upon successful completion, this workflow automatically triggers the MOSIP services deployment
 
  **What You Should See:**
 
@@ -1356,7 +1362,7 @@ The Helmsman deployment process follows a specific sequence with automated trigg
 - **Automatically triggered** after successful completion of step 1
 - Workflow: **Deploy MOSIP services using Helmsman** (`helmsman_mosip.yml`)
 - DSF file: `mosip-dsf.yaml`
-- Mode: `apply` (required - dry-run will fail due to namespace dependencies)
+- Mode: `apply` (dry-run will fail due to namespace dependencies)
 
  **Error Handling:**
 
@@ -1394,19 +1400,23 @@ The Helmsman deployment process follows a specific sequence with automated trigg
 
 - **Prerequisites**: All MOSIP core services must be running, partner onboarding completed successfully and secrets required for esignet should be updated.
 - **(1)** Actions → **Deploy eSignet using Helmsman** (`helmsman_esignet.yml`)
-- **(2)** **Select Branch**
-- **(3)** **Mode**: `apply` (required - dry-run will fail due to namespace dependencies)
-- **(4)** **Additional Options** (optional):
+- **(2)** Click **Run workflow** button in the top right corner
+- **(3)** **Select Branch**
+- **(4)** **Select Profile**: `mosip-platform-java11` or `mosip-platform-java21` or `esignet` or any other profile you want to deploy for
+- **(5)** **Mode**: `apply` (dry-run will fail due to namespace dependencies)
+- **(6)** **Additional Options** (optional):
   - **skip_mosip_dsf_check**: ☐ Unchecked by default
     - **When to enable (✅)**: Standalone eSignet deployment without full MOSIP stack
     - **What it does**: Bypasses validation check for MOSIP core services completion
     - **Use case**: Testing eSignet independently or deploying eSignet to a separate cluster
-  - **(5)** **delete_existing_jobs**: ☐ Unchecked by default
+  - **(7)** **delete_existing_jobs**: ☐ Unchecked by default
     - **When to enable (✅)**: Re-running eSignet deployment after a previous failed attempt
     - **What it does**: Removes existing partner onboarder jobs before creating new ones
     - **Use case**: Cleanup before retry deployment to avoid "job already exists" errors
     - **Important**: Only enable this on re-runs, not on first deployment
-- **(6)** **Run Workflow**:    
+- **(8)** **Domain name**: Enter the domain name for this environment (e.g., `example.xyz.net`)
+- **(9)** **Environment name**: Enter the environment name (e.g., `sandbox`, `dev`, `staging`)
+- **(10)** **Run Workflow**   
 - **Time required:** 15-25 minutes
 
  **What You Should See:**
@@ -1435,9 +1445,15 @@ The Helmsman deployment process follows a specific sequence with automated trigg
 
 - **Prerequisites**: All pods from steps 1-2 must be in `Running` state and onboarding completed successfully
 - **(1)** Actions → **Deploy Testrigs of mosip using Helmsman** (`helmsman_testrigs.yml`)
-- **(2)** workflow - **select Run workflow in right side**
-- **(3)** Branch - **Select Branch**
-- **(4)** Mode: `apply` (required - dry-run will fail due to namespace dependencies)
+- **(2)** Click **Run workflow** button in the top right corner
+- **(3)** **Branch**: Select your deployment branch (e.g., `develop`)
+- **(4)** **Choose MOSIP platform profile**: `mosip-platform-java11` (or other appropriate profile)
+- **(5)** **Choose Helmsman mode**: `apply` (dry-run will fail due to namespace dependencies)
+- **(6)** **Domain name for this environment**: Enter the domain name (e.g., `example.xyz.net`)
+- **(7)** **Environment name**: Enter the environment name (e.g., `sandbox`, `dev`, `staging`)
+- **(8)** **Slack channel name for alerting** (optional): e.g., `#mosip-alerts`
+- **(9)** **Slack webhook URL for alerting** (optional)
+- **(10)** Click **Run workflow** green button
 
 **Post-Deployment Steps:**
 

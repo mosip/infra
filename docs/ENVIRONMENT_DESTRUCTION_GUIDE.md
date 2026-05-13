@@ -45,7 +45,7 @@ Parameters:
 ├─ Branch: release-0.1.0 (or your deployment branch)
 ├─ Cloud Provider: aws
 ├─ Component: infra
-├─ Profile: esignet/mosip
+├─ Profile: mosip/esignet
 └─ Backend: local (or s3, match your deployment configuration)
 ```
 
@@ -408,7 +408,7 @@ kubectl get namespaces | grep -E "cattle|istio"
  - Branch: release-0.1.0 (your deployment branch)
  - Cloud Provider: aws
  - Component: infra
- - Profile: esignet/mosip
+ - Profile: mosip/esignet
  - Backend: local (or s3, match your deployment)
  ```
 
