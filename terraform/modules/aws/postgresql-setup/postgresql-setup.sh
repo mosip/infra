@@ -389,7 +389,7 @@ EOF
     SSH_KEY_FILE="$SSH_PRIVATE_KEY_FILE"
     # Transient known_hosts file: accept-new accepts unknown keys on first contact
     # and verifies them on subsequent connections within this run.
-    KNOWN_HOSTS_FILE=$(mktemp /tmp/ansible_known_hosts_XXXXXX)
+    # KNOWN_HOSTS_FILE=$(mktemp /tmp/ansible_known_hosts_XXXXXX)
     
     # Use SSH with proper error handling and private key
     if timeout 60 scp -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile="$KNOWN_HOSTS_FILE" -o ConnectTimeout=10 \
