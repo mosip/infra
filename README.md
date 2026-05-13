@@ -205,6 +205,18 @@ AWS_SECRET_ACCESS_KEY: "..."
 # What it's for: Secret key that pairs with access key ID (like a password)
 # IMPORTANT: Keep this SECRET! Never commit to Git or share publicly
 
+# GitHub Personal Access Token
+GH_INFRA_PAT: "github_pat_..."
+# What it's for: Required for repository operations during deployment
+# How to get: GitHub Settings → Developer Settings → Personal access tokens (Fine-grained)
+# Permissions Required:
+# - Contents: Read and write (critical, Read only causes 403 on push)
+# - Metadata: Read
+# - Actions: Read and write
+# - Environments: Read and write
+# - Variables: Read and write
+# NOTE: No Secrets permission needed (intentionally excluded)
+
 # SSH Private Key (must match ssh_key_name in tfvars)
 YOUR_SSH_KEY_NAME: | 
 # Replace YOUR_SSH_KEY_NAME with actual ssh_key_name value from your tfvars
@@ -222,6 +234,7 @@ YOUR_SSH_KEY_NAME: |
 - [ ] GPG Passphrase created (16+ characters)
 - [ ] AWS Access Key ID obtained from IAM
 - [ ] AWS Secret Access Key saved securely
+- [ ] GitHub PAT (GH_INFRA_PAT) generated with correct permissions
 - [ ] SSH key pair generated (public + private)
 - [ ] SSH public key uploaded to AWS EC2 Key Pairs
 - [ ] SSH private key added to GitHub secrets
@@ -630,7 +643,7 @@ For complete workflow usage instructions, inputs, secrets configuration, and tro
 
 #### Step 3d: MOSIP Infrastructure
 
-This step creates MOSIP Kubernetes cluster, PostgreSQL (if enabled), networking, and application infrastructure
+This step creates MOSIP Kubernetes cluster, PostgreSQL (if enabled), ActiveMQ (if enabled), networking, and application infrastructure
 
 1. **Update infra variables in `terraform/implementations/aws/infra/aws.tfvars`:**
 
