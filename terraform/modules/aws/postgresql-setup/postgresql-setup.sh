@@ -209,6 +209,10 @@ echo '[RUN] Running PostgreSQL Ansible Playbook...'
 echo "[TIME] Starting ansible-playbook at $(date)"
 echo '[CREATE] This should take 10-15 minutes. Progress will be shown below...'
 
+# Create a temp known_hosts file for this session (used by ansible and ssh below)
+KNOWN_HOSTS_FILE=$(mktemp /tmp/ansible_known_hosts_XXXXXX)
+trap 'rm -f "$KNOWN_HOSTS_FILE"' EXIT ERR INT
+
 # Test ansible connection first
 echo '[TEST] Testing Ansible connectivity...'
 if ! timeout 30 ansible $NGINX_NODE_IP -i inventory.ini -m ping \
