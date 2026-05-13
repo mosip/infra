@@ -854,7 +854,7 @@ After updating `aws.tfvars`, deploy or update your main infra cluster:
 - **(3)** **Branch**: Select your deployment branch (e.g., `release-0.1.0`)
 - **(4)** **Cloud Provider**: Select `aws` (Azure/GCP are placeholder implementations)
 - **(5)** **Component**: Select `infra` (MOSIP application infrastructure)
-- **(6)** **Profile**: Select `esignet` / `mosip` (Select profile which you want to use for deployment)
+- **(6)** **Profile**: Select `esignet`/`mosip` (Select profile which you want to use for deployment)
 - **Backend**: Choose backend configuration:
   - **(7)** `local` - GPG-encrypted local state (recommended for development)
   - **(8)** `s3` - Remote S3 backend (If you want to store the state file in a S3 bucket, provide the bucket name. Otherwise, leave it empty to use the local backend)

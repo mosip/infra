@@ -315,7 +315,7 @@ A Fine-grained Personal Access Token that allows automated processes to interact
 
 4. **Generate and Save**
    - Click **Generate token**
-   - Copy the token immediately (starts with `github_pat_`)
+   - Copy the token immediately
    - Save it securely in your password manager
 
 ### Where to Use It
