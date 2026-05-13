@@ -99,7 +99,7 @@ apps:
 
       modules.auth.enabled: true
       modules.auth.image.repository: mosipid/apitest-auth
-      modules.auth.image.tag: 1.2.1.3
+      modules.auth.image.tag: 1.3.o
       modules.auth.image.pullPolicy: Always
 
       modules.esignet.enabled: false
