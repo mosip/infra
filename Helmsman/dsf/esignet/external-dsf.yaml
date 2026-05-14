@@ -46,6 +46,8 @@ namespaces:
     protected: false
   esignet:
     protected: true
+  signup:
+    protected: false  
 apps:
   # ---------------------------------------------------------------------------
   # PostgreSQL Server
@@ -114,7 +116,7 @@ apps:
       databases.mosip_esignet.port: 5433
       databases.mosip_esignet.dml: 1
       # Mock identity system DB - disabled by default
-      databases.mosip_mockidentitysystem.enabled: "false"
+      databases.mosip_mockidentitysystem.enabled: "true"
       databases.mosip_mockidentitysystem.branch: "v0.9.3"
       databases.mosip_mockidentitysystem.host: "postgres.${domain_name}"
       databases.mosip_mockidentitysystem.repoUrl: "https://github.com/mosip/esignet-mock-services.git"
@@ -125,6 +127,61 @@ apps:
     priority: -16
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-init-db.sh"
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL Init - Signup Service Databases
+  # ---------------------------------------------------------------------------
+  # Enable when deploying signup-service.
+  # Initializes mosip_audit, mosip_kernel, mosip_otp (v1.2.0.1 branch).
+  postgres-init-signup:
+    namespace: signup
+    enabled: false
+    version: 12.0.1
+    chart: mosip/postgres-init
+    set:
+      dbUserPasswords.dbuserPassword: ""
+      # Disable all MOSIP platform databases
+      databases.mosip_toolkit.enabled: "false"
+      databases.mosip_master.enabled: "false"
+      databases.mosip_keymgr.enabled: "false"
+      databases.mosip_idmap.enabled: "false"
+      databases.mosip_prereg.enabled: "false"
+      databases.mosip_idrepo.enabled: "false"
+      databases.mosip_ida.enabled: "false"
+      databases.mosip_credential.enabled: "false"
+      databases.mosip_regprc.enabled: "false"
+      databases.mosip_regdevice.enabled: "false"
+      databases.mosip_authdevice.enabled: "false"
+      databases.mosip_pms.enabled: "false"
+      databases.mosip_hotlist.enabled: "false"
+      databases.mosip_resident.enabled: "false"
+      databases.mosip_digitalcard.enabled: "false"
+      databases.mosip_esignet.enabled: "false"
+      databases.mosip_mockidentitysystem.enabled: "false"
+      # Enable signup databases
+      databases.mosip_audit.enabled: "true"
+      databases.mosip_audit.branch: "v1.2.0.1"
+      databases.mosip_audit.repoUrl: "https://github.com/mosip/audit-manager.git"
+      databases.mosip_audit.host: "postgres.${domain_name}"
+      databases.mosip_audit.port: 5433
+      databases.mosip_audit.dml: 0
+      databases.mosip_kernel.enabled: "true"
+      databases.mosip_kernel.branch: "v1.2.0.1"
+      databases.mosip_kernel.repoUrl: "https://github.com/mosip/commons.git"
+      databases.mosip_kernel.host: "postgres.${domain_name}"
+      databases.mosip_kernel.port: 5433
+      databases.mosip_kernel.dml: 0
+      databases.mosip_otp.enabled: "true"
+      databases.mosip_otp.branch: "v1.2.0.1"
+      databases.mosip_otp.repoUrl: "https://github.com/mosip/otp-manager.git"
+      databases.mosip_otp.host: "postgres.${domain_name}"
+      databases.mosip_otp.port: 5433
+      databases.mosip_otp.dml: 0
+    wait: true
+    timeout: 300
+    priority: -16
+    hooks:
+      preInstall: "$WORKDIR/hooks/esignet-1.7.1/signup-init-db.sh"
 
   # ---------------------------------------------------------------------------
   # Redis
@@ -140,7 +197,7 @@ apps:
       image.pullPolicy: "Always"
     wait: true
     timeout: 480
-    priority: -16
+    priority: -15
     hooks:
       postInstall: "$WORKDIR/hooks/esignet-1.7.1/redis-setup.sh"
 
@@ -183,7 +240,7 @@ apps:
       startupProbe.successThreshold: "1"
     wait: true
     timeout: 1200
-    priority: -15
+    priority: -14
     hooks:
       postInstall: "$WORKDIR/hooks/esignet-1.7.1/kafka-postinstall.sh"
 
@@ -199,7 +256,7 @@ apps:
       image.pullPolicy: "Always"
     wait: true
     timeout: 1200
-    priority: -14
+    priority: -15
 
   istio-addons-kafka:
     namespace: kafka
@@ -211,7 +268,7 @@ apps:
       installName: "kafka-ui"
     wait: true
     timeout: 1200
-    priority: -13
+    priority: -14
 
   # ---------------------------------------------------------------------------
   # SoftHSM for eSignet
@@ -225,7 +282,7 @@ apps:
     chart: mosip/softhsm
     valuesFile: "$WORKDIR/utils/softhsm-esignet-values.yaml"
     timeout: 480
-    priority: -12
+    priority: -13
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-1.7.1/softhsm-esignet-setup.sh"
       postInstall: "$WORKDIR/hooks/esignet-1.7.1/softhsm-esignet-postinstall.sh"
@@ -266,7 +323,7 @@ apps:
       rbac.rules[0].verbs[1]: "list"
     wait: true
     timeout: 1200
-    priority: -11
+    priority: -12
 
   istio-addons-iam:
     namespace: keycloak
@@ -279,7 +336,7 @@ apps:
       service: "keycloak"
     wait: true
     timeout: 1200
-    priority: -10
+    priority: -11
     hooks:
       postInstall: "$WORKDIR/hooks/esignet-1.7.1/keycloak-postinstall.sh"
 
@@ -295,7 +352,7 @@ apps:
       metrics.serviceMonitor.enabled: "false"
     wait: true
     timeout: 480
-    priority: -9
+    priority: -10
     hooks:
       postInstall: "$WORKDIR/hooks/esignet-1.7.1/captcha-postinstall.sh"
 
@@ -315,7 +372,7 @@ apps:
       resourcesPreset: "none"
     wait: true
     timeout: 1200
-    priority: -8
+    priority: -9
     # Ensure minio is deployed before its Istio addons
 
   istio-addons-minio:
@@ -329,4 +386,4 @@ apps:
     timeout: 1200
     hooks:
       postInstall: "$WORKDIR/hooks/s3-setup.sh"
-    priority: -7
+    priority: -8
