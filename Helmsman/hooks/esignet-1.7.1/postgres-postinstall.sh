@@ -17,7 +17,6 @@
 set -euo pipefail
 
 POSTGRES_NS="postgres"
-DB_USER_PASSWORD="${DB_USER_PASSWORD:?ERROR: DB_USER_PASSWORD environment variable must be set}"
 POSTGRES_HOST="${POSTGRES_HOST:-postgres-postgresql.postgres}"
 POSTGRES_PORT="${POSTGRES_PORT:-5432}"
 DB_USER="${DB_USER:-esignetuser}"
@@ -27,14 +26,8 @@ echo "================================================"
 echo "eSignet 1.7.1 - Postgres Post-install"
 echo "================================================"
 
-# --- Step 1: Create db-common-secrets ---
-# Source: deploy/postgres/generate-secret-cm.py -> create_or_update_secret()
-echo "Creating db-common-secrets in $POSTGRES_NS namespace"
-kubectl -n "$POSTGRES_NS" create secret generic db-common-secrets \
-  --from-literal=db-dbuser-password="$DB_USER_PASSWORD" \
-  --dry-run=client -o yaml | kubectl apply -f -
 
-# --- Step 2: Create postgres-config configmap ---
+# --- Step 1: Create postgres-config configmap ---
 # Source: deploy/postgres/generate-secret-cm.py -> create_or_update_configmap()
 echo "Creating postgres-config configmap in $POSTGRES_NS namespace"
 kubectl -n "$POSTGRES_NS" create configmap postgres-config \
@@ -44,4 +37,4 @@ kubectl -n "$POSTGRES_NS" create configmap postgres-config \
   --from-literal=database-name="$DB_NAME" \
   --dry-run=client -o yaml | kubectl apply -f -
 
-echo "Postgres post-install completed. Secrets and configmaps created."
+echo "Postgres post-install completed."
