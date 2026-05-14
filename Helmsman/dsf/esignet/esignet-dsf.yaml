@@ -30,7 +30,8 @@ helmRepos:
 namespaces:
   esignet:
     protected: false
-
+  softhsm:
+    protected: false
 apps:
   # ---------------------------------------------------------------------------
   # eSignet v1.7.1
