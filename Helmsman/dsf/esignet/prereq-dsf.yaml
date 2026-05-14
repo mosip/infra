@@ -38,12 +38,12 @@ apps:
 
   rancher-monitoring:
     namespace: cattle-monitoring-system
-    enabled: false
+    enabled: true
     version: 103.1.0+up45.31.1
     chart: mosip/rancher-monitoring
     set:
-      grafana.global.cattle.clusterId: "<cluster-id>"
-      global.cattle.clusterId: "<cluster-id>"
+      grafana.global.cattle.clusterId: "$CLUSTER_ID"
+      global.cattle.clusterId: "$CLUSTER_ID"
     wait: true
     valuesFile: "$WORKDIR/utils/monitoring_values.yaml"
     priority: -5
@@ -67,11 +67,11 @@ apps:
       data.heapSize: "728m"
       data.persistence.enabled: "true"
       data.persistence.size: "64Gi"
-      data.resources.requests.memory: "512Mi"
+      data.resources.requests.memory: "1100Mi"
       master.heapSize: "1024m"
       master.persistence.enabled: "true"
       master.persistence.size: "4Gi"
-      master.resources.requests.memory: "728Mi"
+      master.resources.requests.memory: "1536Mi"
       kibana.persistence.enabled: "false"
       sysctlImage.repository: "mosipid/os-shell"
       sysctlImage.tag: "12-debian-12-r46"
@@ -103,7 +103,7 @@ apps:
     enabled: true
     version: 103.1.1+up4.4.0
     chart: mosip/rancher-logging
-    valuesFile: "$WORKDIR/utils/rancher-loggig-values.yaml"
+    valuesFile: "$WORKDIR/utils/rancher-logging-values.yaml"
     wait: true
     priority: -1
     timeout: 1200
