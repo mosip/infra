@@ -299,13 +299,13 @@ A Fine-grained Personal Access Token that allows automated processes to interact
 2. **Configure Token Settings**
    - **Token name**: `GH_INFRA_PAT` (or similar)
    - **Expiration**: Set as needed (e.g., 90 days)
-   - **Resource owner**: Select your organization (e.g., `mosip`)
+   - **Resource owner**: Select your organization or admin user(e.g., `mosip`)
    - **Repository access**: Select **Only select repositories** and choose your infra repository (e.g., `mosip/infra`)
 
 3. **Set Permissions**
    Set exactly these permissions:
    - Click on Add permissions button under Permissions section
-   - **Contents**: Read and write *(critical, Read only causes 403 on push)*
+   - **Contents**: Read and write *(critical, Read-only causes 403 on push)*
    - **Metadata**: Read-Only
    - **Actions**: Read and write
    - **Environments**: Read and write
