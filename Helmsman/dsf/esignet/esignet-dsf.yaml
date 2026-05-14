@@ -39,14 +39,13 @@ apps:
   esignet:
     namespace: esignet
     enabled: true
-    version: 1.7.1
+    version: 0.1.0-develop
     chart: mosip/esignet
     set:
       image.repository: "mosipid/esignet"
       image.tag: "1.7.1"
       enable_insecure: "false"
-      extraEnvVarsCM[0]: "esignet-global"
-      extraEnvVarsCM[1]: "esignet-softhsm-share"
+      extraEnvVarsCM[0]: "esignet-softhsm-share"
     wait: true
     timeout: 600
     priority: -12
@@ -59,7 +58,7 @@ apps:
   oidc-ui:
     namespace: esignet
     enabled: true
-    version: 1.7.1
+    version: 0.1.0-develop
     chart: mosip/oidc-ui
     set:
       istio.hosts[0]: "esignet.${domain_name}"
@@ -77,7 +76,7 @@ apps:
   # Enable for testing with mock identity data.
   softhsm-mock-identity-system:
     namespace: softhsm
-    enabled: false
+    enabled: true
     version: 12.0.1
     chart: mosip/softhsm
     valuesFile: "$WORKDIR/utils/softhsm-mock-identity-system-values.yaml"
@@ -90,14 +89,13 @@ apps:
 
   mock-identity-system:
     namespace: esignet
-    enabled: false
-    version: 0.9.3
+    enabled: true
+    version: 0.1.0-develop
     chart: mosip/mock-identity-system
     set:
       enable_insecure: "false"
-      extraEnvVarsCM[0]: "esignet-global"
-      extraEnvVarsCM[1]: "esignet-softhsm-share"
-      extraEnvVarsCM[2]: "softhsm-mock-identity-system-share"
+      extraEnvVarsCM[0]: "esignet-softhsm-share"
+      extraEnvVarsCM[1]: "softhsm-mock-identity-system-share"
     timeout: 480
     priority: -9
     hooks:
@@ -108,7 +106,7 @@ apps:
   # ---------------------------------------------------------------------------
   mock-relying-party-service:
     namespace: esignet
-    enabled: false
+    enabled: true
     version: 0.9.3
     chart: mosip/mock-relying-party-service
     set:
@@ -122,7 +120,7 @@ apps:
 
   mock-relying-party-ui:
     namespace: esignet
-    enabled: false
+    enabled: true
     version: 0.9.3
     chart: mosip/mock-relying-party-ui
     set:
@@ -144,7 +142,7 @@ apps:
   # ---------------------------------------------------------------------------
   esignet-resident-oidc-partner-onboarder:
     namespace: esignet
-    enabled: false
+    enabled: true
     version: 12.0.1
     chart: mosip/partner-onboarder
     set:
@@ -184,7 +182,7 @@ apps:
 
   esignet-demo-oidc-partner-onboarder:
     namespace: esignet
-    enabled: false
+    enabled: true
     version: 12.0.1
     chart: mosip/partner-onboarder
     set:
