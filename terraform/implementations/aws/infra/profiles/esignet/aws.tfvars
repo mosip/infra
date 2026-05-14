@@ -51,7 +51,7 @@ nginx_node_root_volume_size = 24
 nginx_node_ebs_volume_size = 200
 
 # NGINX node's second EBS volume size (set to 0 - not needed for standalone eSignet)
-nginx_node_ebs_volume_size_2 = 100
+nginx_node_ebs_volume_size_2 = 0
 
 # Kubernetes nodes Root volume size
 k8s_instance_root_volume_size = 64
@@ -73,15 +73,16 @@ network_cidr   = "172.0.0.0/8" # Use your actual VPC CIDR
 WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 
 # Rancher Import Configuration
-enable_rancher_import = false
-rancher_import_url    = ""
+enable_rancher_import = true
+rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/m5rmgz7flzqcr4jst65kht2vdf66kxvc9km5wfxsrxfbxh9l8bckkz_c-m-g5qs7cv9.yaml\""
 
 # DNS Records to map — only eSignet-relevant subdomains
-subdomain_public   = ["esignet", "signup", "minio"]
-subdomain_internal = ["iam", "kafka", "postgres", "keycloak"]
+
+subdomain_public   = ["esignet", "healthservices", "signup", "healthservices-mock", "esignet-mock", "signup-mock", "esignet-sunbird", "healthservices-mosipid", "esignet-mosipid", "pms-partner-cre", "pms-policy-cre", "signup-mosipid", "healthservices-mosipid-qabase", "esignet-mosipid-qabase", "pms-partner", "pms-policy", "signup-mosipid-qabase"]
+subdomain_internal = ["iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio"]
 
 # PostgreSQL Configuration
-enable_postgresql_setup = true
+enable_postgresql_setup = false
 postgresql_version      = "15"
 storage_device          = "/dev/nvme2n1"
 mount_point             = "/srv/postgres"
@@ -90,7 +91,7 @@ postgresql_port         = "5433"
 # MOSIP Infrastructure Repository Configuration
 mosip_infra_repo_url = "https://github.com/mosip/infra.git"
 
-mosip_infra_branch = "release-0.2.0"
+mosip_infra_branch = "MOSIP-44613"
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
 vpc_name = "default"
