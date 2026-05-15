@@ -79,7 +79,7 @@ apps:
     set:
       postgresHost: "postgres.${domain_name}"
     wait: true
-    priority: -17
+    priority: -4
     timeout: 1200
 
   # ---------------------------------------------------------------------------
@@ -271,7 +271,7 @@ apps:
       installName: "kafka-ui"
     wait: true
     timeout: 1200
-    priority: -14
+    priority: -1
 
   # ---------------------------------------------------------------------------
   # SoftHSM for eSignet
@@ -339,7 +339,7 @@ apps:
       service: "keycloak"
     wait: true
     timeout: 1200
-    priority: -11
+    priority: -3
     hooks:
       postInstall: "$WORKDIR/hooks/esignet-1.7.1/keycloak-postinstall.sh"
 
@@ -389,4 +389,4 @@ apps:
     timeout: 1200
     hooks:
       postInstall: "$WORKDIR/hooks/s3-setup.sh"
-    priority: -8
+    priority: -2
