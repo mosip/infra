@@ -60,6 +60,9 @@ apps:
     enabled: true
     version: 13.1.5
     chart: bitnami/postgresql
+    set:
+      image.repository: "mosipid/postgresql"
+      image.tag: "14.2.0-debian-10-r70"
     wait: true
     priority: -18
     valuesFile: "$WORKDIR/utils/postgres-values.yaml"
