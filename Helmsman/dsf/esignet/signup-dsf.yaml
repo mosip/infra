@@ -1,0 +1,185 @@
+# =============================================================================
+# eSignet Profile - Signup Services DSF (Desired State File)
+# =============================================================================
+# This DSF deploys signup-service and its dependencies on top of the
+# standalone eSignet profile. All apps are disabled by default — enable as
+# needed alongside external-dsf.yaml (which provides postgres-init-signup).
+#
+# Prerequisites (from external-dsf.yaml):
+#   - postgres-init-signup enabled (mosip_audit, mosip_kernel, mosip_otp)
+#   - Redis, Kafka, Keycloak + keycloak-postinstall (keycloak-client-secrets)
+#   - Captcha (for signup captcha validation)
+#
+# Components (in priority order):
+#   1. Signup Keycloak Init  — mosip-signup-client roles and client secret
+#   2. Kernel services       — authmanager, auditmanager, otpmanager, notifier
+#   3. Mock SMTP             — for dev/test email/SMS (optional)
+#   4. Signup service        — signup-service with esignet-mock-plugin.jar
+#   5. Signup UI             — signup-ui
+#
+# Based on eSignet signup deploy scripts:
+#   - deploy/prereq.sh
+#   - deploy/keycloak/keycloak-init.sh
+#   - deploy/kernel/install.sh
+#   - deploy/mock-smtp/install.sh
+#   - deploy/signup-with-plugins/signup-with-mock-plugin/install.sh
+#   - deploy/signup-ui/install.sh
+# =============================================================================
+
+helmDefaults:
+  tillerNamespace: kube-system
+  tillerless: true
+  install: true
+
+helmRepos:
+  mosip: https://mosip.github.io/mosip-helm
+
+namespaces:
+  signup:
+    protected: false
+  kernel:
+    protected: false
+  mock-smtp:
+    protected: false
+
+apps:
+  # ---------------------------------------------------------------------------
+  # Signup Keycloak Init
+  # ---------------------------------------------------------------------------
+  # Creates mosip-signup-client with required roles in Keycloak.
+  # Propagates mosip_signup_client_secret between keycloak and signup namespaces.
+  signup-keycloak-init:
+    namespace: signup
+    enabled: false
+    version: 12.0.2
+    chart: mosip/keycloak-init
+    valuesFile: "$WORKDIR/utils/keycloak-signup-init-values.yaml"
+    set:
+      keycloakInternalHost: "keycloak.keycloak"
+      keycloakExternalHost: "iam.${domain_name}"
+    wait: true
+    waitForJobs: true
+    timeout: 300
+    priority: -10
+    hooks:
+      preInstall: "$WORKDIR/hooks/esignet-1.7.1/signup-keycloak-init-preinstall.sh"
+      preUpgrade: "$WORKDIR/hooks/esignet-1.7.1/signup-keycloak-init-preinstall.sh"
+      postInstall: "$WORKDIR/hooks/esignet-1.7.1/signup-keycloak-init-postinstall.sh"
+      postUpgrade: "$WORKDIR/hooks/esignet-1.7.1/signup-keycloak-init-postinstall.sh"
+
+  # ---------------------------------------------------------------------------
+  # Kernel Services
+  # ---------------------------------------------------------------------------
+  # Required for audit logging (auditmanager), OTP generation (otpmanager),
+  # auth token validation (authmanager), and email/SMS dispatch (notifier).
+  # kernel-preinstall.sh creates kernel namespace and domain-config configmap.
+  authmanager:
+    namespace: kernel
+    enabled: false
+    version: 12.0.1
+    chart: mosip/authmanager
+    set:
+      enable_insecure: "false"
+    wait: true
+    timeout: 600
+    priority: -8
+    hooks:
+      preInstall: "$WORKDIR/hooks/esignet-1.7.1/kernel-preinstall.sh"
+      preUpgrade: "$WORKDIR/hooks/esignet-1.7.1/kernel-preinstall.sh"
+
+  auditmanager:
+    namespace: kernel
+    enabled: false
+    version: 12.0.1
+    chart: mosip/auditmanager
+    set:
+      enable_insecure: "false"
+    wait: true
+    timeout: 600
+    priority: -8
+    hooks:
+      preInstall: "$WORKDIR/hooks/esignet-1.7.1/kernel-preinstall.sh"
+      preUpgrade: "$WORKDIR/hooks/esignet-1.7.1/kernel-preinstall.sh"
+
+  otpmanager:
+    namespace: kernel
+    enabled: false
+    version: 12.0.1
+    chart: mosip/otpmanager
+    wait: true
+    timeout: 600
+    priority: -8
+    hooks:
+      preInstall: "$WORKDIR/hooks/esignet-1.7.1/kernel-preinstall.sh"
+      preUpgrade: "$WORKDIR/hooks/esignet-1.7.1/kernel-preinstall.sh"
+
+  notifier:
+    namespace: kernel
+    enabled: false
+    version: 12.0.1
+    chart: mosip/notifier
+    wait: true
+    timeout: 600
+    priority: -7
+    hooks:
+      postInstall: "$WORKDIR/hooks/esignet-1.7.1/notifier-postinstall.sh"
+      postUpgrade: "$WORKDIR/hooks/esignet-1.7.1/notifier-postinstall.sh"
+
+  # ---------------------------------------------------------------------------
+  # Mock SMTP (Optional — dev/test email and SMS)
+  # ---------------------------------------------------------------------------
+  mock-smtp:
+    namespace: mock-smtp
+    enabled: false
+    version: 1.0.0
+    chart: mosip/mock-smtp
+    set:
+      istio.hosts[0]: "smtp.${domain_name}"
+    wait: true
+    timeout: 300
+    priority: -5
+
+  # ---------------------------------------------------------------------------
+  # Signup Service (with esignet-mock-plugin)
+  # ---------------------------------------------------------------------------
+  # signup-service-preinstall.sh copies redis secrets, creates keycloak-host
+  # configmap, signup-captcha and signup-keystore secrets, and msg-gateway
+  # configmap/secret pointing to mock-smtp.
+  signup:
+    namespace: signup
+    enabled: false
+    version: 1.2.2
+    chart: mosip/signup
+    set:
+      image.repository: "mosipid/signup-service"
+      image.tag: "1.2.2"
+      enable_insecure: "false"
+      plugin_name_env: "esignet-mock-plugin.jar"
+      domainConfig.MOSIP_ESIGNET_HOST: "esignet.${domain_name}"
+      domainConfig.MOSIP_SIGNUP_HOST: "signup.${domain_name}"
+      domainConfig.MOSIP_IAM_EXTERNAL_HOST: "iam.${domain_name}"
+    wait: true
+    timeout: 600
+    priority: -4
+    hooks:
+      preInstall: "$WORKDIR/hooks/esignet-1.7.1/signup-service-preinstall.sh"
+      preUpgrade: "$WORKDIR/hooks/esignet-1.7.1/signup-service-preinstall.sh"
+
+  # ---------------------------------------------------------------------------
+  # Signup UI
+  # ---------------------------------------------------------------------------
+  signup-ui:
+    namespace: signup
+    enabled: false
+    version: 1.2.2
+    chart: mosip/signup-ui
+    set:
+      image.repository: "mosipid/signup-ui"
+      image.tag: "1.2.2"
+      istio.hosts[0]: "signup.${domain_name}"
+      signup_ui.signup_service_host: "signup.signup"
+      signup_ui.configmaps.signup-ui.REACT_APP_API_BASE_URL: "http://signup.signup/v1/signup"
+      signup_ui.configmaps.signup-ui.REACT_APP_SBI_DOMAIN_URI: "http://signup.signup"
+    wait: true
+    timeout: 600
+    priority: -3
