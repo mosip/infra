@@ -15,8 +15,8 @@ set -euo pipefail
 
 ESIGNET_NS="${ESIGNET_NS:-esignet}"
 CAPTCHA_NS="captcha"
-CAPTCHA_SITE_KEY="${CAPTCHA_SITE_KEY:?ERROR: CAPTCHA_SITE_KEY environment variable must be set}"
-CAPTCHA_SECRET_KEY="${CAPTCHA_SECRET_KEY:?ERROR: CAPTCHA_SECRET_KEY environment variable must be set}"
+CAPTCHA_SITE_KEY="${ESIGNET_CAPTCHA_SITE_KEY:?ERROR: ESIGNET_CAPTCHA_SITE_KEY environment variable must be set}"
+CAPTCHA_SECRET_KEY="${ESIGNET_CAPTCHA_SECRET_KEY:?ERROR: ESIGNET_CAPTCHA_SECRET_KEY environment variable must be set}"
 COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
 
 echo "================================================"

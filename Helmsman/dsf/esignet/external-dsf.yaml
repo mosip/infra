@@ -79,7 +79,7 @@ apps:
     set:
       postgresHost: "postgres.${domain_name}"
     wait: true
-    priority: -4
+    priority: -17
     timeout: 1200
 
   # ---------------------------------------------------------------------------
