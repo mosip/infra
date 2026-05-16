@@ -14,6 +14,7 @@ set -euo pipefail
 
 SIGNUP_NS="${SIGNUP_NS:-signup}"
 POSTGRES_NS="postgres"
+COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
 
 echo "================================================"
 echo "eSignet 1.7.1 - Signup DB Init Pre-install"
@@ -25,8 +26,6 @@ kubectl label namespace "$SIGNUP_NS" istio-injection=enabled --overwrite
 
 # --- Step 2: Copy postgres-postgresql secret to signup namespace ---
 echo "Copying postgres-postgresql secret to $SIGNUP_NS namespace"
-kubectl -n "$POSTGRES_NS" get secret postgres-postgresql -o yaml | \
-  sed "s|^\(\s*namespace:\) $POSTGRES_NS$|\1 $SIGNUP_NS|" | \
-  kubectl apply -f -
+$COPY_UTIL secret postgres-postgresql "$POSTGRES_NS" "$SIGNUP_NS"
 
 echo "Signup DB init pre-install completed."

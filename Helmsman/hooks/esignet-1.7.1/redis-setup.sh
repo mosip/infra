@@ -13,6 +13,7 @@ set -euo pipefail
 
 ESIGNET_NS="${ESIGNET_NS:-esignet}"
 REDIS_NS="redis"
+COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
 
 echo "================================================"
 echo "eSignet 1.7.1 - Redis Post-install Setup"
@@ -24,7 +25,6 @@ kubectl -n "$REDIS_NS" wait --for=condition=ready pod -l app.kubernetes.io/name=
   { echo "ERROR: Redis pods not ready after timeout" >&2; exit 1; }
 
 # --- Step 2: Apply redis-config configmap in redis namespace ---
-# Source: deploy/redis/redis-config.yaml
 echo "Creating redis-config configmap in $REDIS_NS namespace"
 cat <<EOF | kubectl apply -f -
 apiVersion: v1
@@ -40,17 +40,11 @@ data:
 EOF
 
 # --- Step 3: Copy redis-config configmap to esignet namespace ---
-# Source: deploy/esignet/install.sh -> ../copy_cm_func.sh configmap redis-config redis esignet
 echo "Copying redis-config configmap to $ESIGNET_NS namespace"
-kubectl -n "$REDIS_NS" get configmap redis-config -o yaml | \
-  sed "s/namespace: $REDIS_NS/namespace: $ESIGNET_NS/g" | \
-  kubectl apply -f -
+$COPY_UTIL configmap redis-config "$REDIS_NS" "$ESIGNET_NS"
 
 # --- Step 4: Copy redis secret to esignet namespace ---
-# Source: deploy/esignet/install.sh -> ../copy_cm_func.sh secret redis redis esignet
 echo "Copying redis secret to $ESIGNET_NS namespace"
-kubectl -n "$REDIS_NS" get secret redis -o yaml | \
-  sed "s/namespace: $REDIS_NS/namespace: $ESIGNET_NS/g" | \
-  kubectl apply -f -
+$COPY_UTIL secret redis "$REDIS_NS" "$ESIGNET_NS"
 
 echo "Redis setup completed. Config and credentials shared with $ESIGNET_NS namespace."

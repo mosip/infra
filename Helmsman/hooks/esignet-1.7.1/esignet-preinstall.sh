@@ -17,6 +17,7 @@ ESIGNET_NS="${ESIGNET_NS:-esignet}"
 SOFTHSM_NS="${SOFTHSM_NS:-softhsm}"
 POSTGRES_NS="postgres"
 REDIS_NS="redis"
+COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
 
 echo "================================================"
 echo "eSignet 1.7.1 - eSignet Service Pre-install"
@@ -32,63 +33,25 @@ helm repo add mosip https://mosip.github.io/mosip-helm || true
 helm repo update
 
 # --- Step 3: Copy configmaps from other namespaces ---
-# Source: deploy/esignet/install.sh -> copy_cm_func.sh calls
-
-# Copy esignet-softhsm-share configmap from softhsm namespace
 echo "Copying esignet-softhsm-share configmap from $SOFTHSM_NS"
-if kubectl -n "$SOFTHSM_NS" get configmap esignet-softhsm-share &>/dev/null; then
-  kubectl -n "$ESIGNET_NS" delete --ignore-not-found=true configmap esignet-softhsm-share
-  kubectl -n "$SOFTHSM_NS" get configmap esignet-softhsm-share -o yaml | \
-    sed "s|^\(\s*namespace:\) $SOFTHSM_NS$|\1 $ESIGNET_NS|" | \
-    kubectl -n "$ESIGNET_NS" create -f -
-else
+$COPY_UTIL configmap esignet-softhsm-share "$SOFTHSM_NS" "$ESIGNET_NS" 2>/dev/null || \
   echo "WARNING: esignet-softhsm-share configmap not found in $SOFTHSM_NS"
-fi
 
-# Copy postgres-config configmap from postgres namespace
 echo "Copying postgres-config configmap from $POSTGRES_NS"
-if kubectl -n "$POSTGRES_NS" get configmap postgres-config &>/dev/null; then
-  kubectl -n "$ESIGNET_NS" delete --ignore-not-found=true configmap postgres-config
-  kubectl -n "$POSTGRES_NS" get configmap postgres-config -o yaml | \
-    sed "s|^\(\s*namespace:\) $POSTGRES_NS$|\1 $ESIGNET_NS|" | \
-    kubectl -n "$ESIGNET_NS" create -f -
-else
+$COPY_UTIL configmap postgres-config "$POSTGRES_NS" "$ESIGNET_NS" 2>/dev/null || \
   echo "WARNING: postgres-config configmap not found in $POSTGRES_NS"
-fi
 
-# Copy redis-config configmap from redis namespace
 echo "Copying redis-config configmap from $REDIS_NS"
-if kubectl -n "$REDIS_NS" get configmap redis-config &>/dev/null; then
-  kubectl -n "$ESIGNET_NS" delete --ignore-not-found=true configmap redis-config
-  kubectl -n "$REDIS_NS" get configmap redis-config -o yaml | \
-    sed "s|^\(\s*namespace:\) $REDIS_NS$|\1 $ESIGNET_NS|" | \
-    kubectl -n "$ESIGNET_NS" create -f -
-else
+$COPY_UTIL configmap redis-config "$REDIS_NS" "$ESIGNET_NS" 2>/dev/null || \
   echo "WARNING: redis-config configmap not found in $REDIS_NS"
-fi
 
 # --- Step 4: Copy secrets from other namespaces ---
-
-# Copy esignet-softhsm secret from softhsm namespace
 echo "Copying esignet-softhsm secret from $SOFTHSM_NS"
-if kubectl -n "$SOFTHSM_NS" get secret esignet-softhsm &>/dev/null; then
-  kubectl -n "$ESIGNET_NS" delete --ignore-not-found=true secret esignet-softhsm
-  kubectl -n "$SOFTHSM_NS" get secret esignet-softhsm -o yaml | \
-    sed "s|^\(\s*namespace:\) $SOFTHSM_NS$|\1 $ESIGNET_NS|" | \
-    kubectl -n "$ESIGNET_NS" create -f -
-else
+$COPY_UTIL secret esignet-softhsm "$SOFTHSM_NS" "$ESIGNET_NS" 2>/dev/null || \
   echo "WARNING: esignet-softhsm secret not found in $SOFTHSM_NS"
-fi
 
-# Copy redis secret from redis namespace
 echo "Copying redis secret from $REDIS_NS"
-if kubectl -n "$REDIS_NS" get secret redis &>/dev/null; then
-  kubectl -n "$ESIGNET_NS" delete --ignore-not-found=true secret redis
-  kubectl -n "$REDIS_NS" get secret redis -o yaml | \
-    sed "s|^\(\s*namespace:\) $REDIS_NS$|\1 $ESIGNET_NS|" | \
-    kubectl -n "$ESIGNET_NS" create -f -
-else
+$COPY_UTIL secret redis "$REDIS_NS" "$ESIGNET_NS" 2>/dev/null || \
   echo "WARNING: redis secret not found in $REDIS_NS"
-fi
 
 echo "eSignet pre-install completed. All configmaps and secrets copied."

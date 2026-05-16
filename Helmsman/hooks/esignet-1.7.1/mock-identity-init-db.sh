@@ -13,6 +13,7 @@ set -euo pipefail
 
 ESIGNET_NS="${ESIGNET_NS:-esignet}"
 POSTGRES_NS="postgres"
+COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
 
 echo "================================================"
 echo "eSignet 1.7.1 - Mock Identity DB Init Pre-install"
@@ -24,8 +25,6 @@ kubectl label namespace "$ESIGNET_NS" istio-injection=enabled --overwrite
 
 # --- Step 2: Copy postgres-postgresql secret to esignet namespace ---
 echo "Copying postgres-postgresql secret to $ESIGNET_NS namespace"
-kubectl -n "$POSTGRES_NS" get secret postgres-postgresql -o yaml | \
-  sed "s|^\(\s*namespace:\) $POSTGRES_NS$|\1 $ESIGNET_NS|" | \
-  kubectl apply -f -
+$COPY_UTIL secret postgres-postgresql "$POSTGRES_NS" "$ESIGNET_NS"
 
 echo "Mock identity DB init pre-install completed."

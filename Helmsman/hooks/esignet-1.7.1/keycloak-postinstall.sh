@@ -18,48 +18,30 @@ KEYCLOAK_NS="keycloak"
 CHART_VERSION="${KEYCLOAK_INIT_VERSION:-12.0.2}"
 INSTALLATION_DOMAIN="${INSTALLATION_DOMAIN:-sandbox.xyz.net}"
 IAMHOST_URL="iam.${INSTALLATION_DOMAIN}"
+COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
 
 echo "================================================"
 echo "eSignet 1.7.1 - Keycloak Post-install (Init)"
 echo "================================================"
 
 # --- Step 1: Copy keycloak configmaps and secrets to esignet namespace ---
-# Source: deploy/keycloak/keycloak-init.sh - copy_cm_func.sh calls
 echo "Copying keycloak configmaps and secrets to $ESIGNET_NS namespace"
 
-# Copy keycloak-host configmap
-if kubectl -n "$KEYCLOAK_NS" get configmap keycloak-host &>/dev/null; then
-  kubectl -n "$KEYCLOAK_NS" get configmap keycloak-host -o yaml | \
-    sed "s/namespace: $KEYCLOAK_NS/namespace: $ESIGNET_NS/g" | \
-    kubectl apply -f -
-  echo "keycloak-host configmap copied."
-else
-  # Create keycloak-host configmap if keycloak didn't create it
-  echo "Creating keycloak-host configmap"
+$COPY_UTIL configmap keycloak-host "$KEYCLOAK_NS" "$ESIGNET_NS" 2>/dev/null || {
+  echo "keycloak-host not found in $KEYCLOAK_NS - creating directly"
   kubectl -n "$ESIGNET_NS" create configmap keycloak-host \
     --from-literal=keycloak-external-url="https://$IAMHOST_URL" \
     --from-literal=keycloak-internal-url="http://keycloak.$KEYCLOAK_NS" \
     --dry-run=client -o yaml | kubectl apply -f -
-fi
+}
 
-# Copy keycloak-env-vars configmap
-if kubectl -n "$KEYCLOAK_NS" get configmap keycloak-env-vars &>/dev/null; then
-  kubectl -n "$KEYCLOAK_NS" get configmap keycloak-env-vars -o yaml | \
-    sed "s/namespace: $KEYCLOAK_NS/namespace: $ESIGNET_NS/g" | \
-    kubectl apply -f -
-  echo "keycloak-env-vars configmap copied."
-fi
+$COPY_UTIL configmap keycloak-env-vars "$KEYCLOAK_NS" "$ESIGNET_NS" 2>/dev/null || \
+  echo "WARNING: keycloak-env-vars not found in $KEYCLOAK_NS"
 
-# Copy keycloak secret
-if kubectl -n "$KEYCLOAK_NS" get secret keycloak &>/dev/null; then
-  kubectl -n "$KEYCLOAK_NS" get secret keycloak -o yaml | \
-    sed "s/namespace: $KEYCLOAK_NS/namespace: $ESIGNET_NS/g" | \
-    kubectl apply -f -
-  echo "keycloak secret copied."
-fi
+$COPY_UTIL secret keycloak "$KEYCLOAK_NS" "$ESIGNET_NS" 2>/dev/null || \
+  echo "WARNING: keycloak secret not found in $KEYCLOAK_NS"
 
 # --- Step 2: Read existing client secrets if any ---
-# Source: deploy/keycloak/keycloak-init.sh - reading existing secrets
 echo "Checking for existing keycloak-client-secrets"
 HELM_SET_SECRETS=()
 
@@ -97,7 +79,6 @@ else
 fi
 
 # --- Step 3: Run keycloak-init helm chart ---
-# Source: deploy/keycloak/keycloak-init.sh - helm install keycloak-init
 echo "Installing esignet-keycloak-init"
 helm repo add mosip https://mosip.github.io/mosip-helm || true
 helm repo update
@@ -113,26 +94,9 @@ helm -n "$ESIGNET_NS" install esignet-keycloak-init mosip/keycloak-init \
   --version "$CHART_VERSION" --wait --wait-for-jobs
 
 # --- Step 4: Sync updated client secrets back to keycloak namespace ---
-# Source: deploy/keycloak/keycloak-init.sh - secret sync back
 echo "Syncing keycloak-client-secrets back to $KEYCLOAK_NS namespace"
 if kubectl -n "$ESIGNET_NS" get secret keycloak-client-secrets &>/dev/null; then
-  if kubectl -n "$KEYCLOAK_NS" get secret keycloak-client-secrets &>/dev/null; then
-    # Update existing secret in keycloak namespace
-    for key in "${!SECRET_KEYS[@]}"; do
-      val=$(kubectl -n "$ESIGNET_NS" get secret keycloak-client-secrets \
-        -o jsonpath="{.data.$key}" 2>/dev/null || echo "")
-      if [[ -n "$val" ]]; then
-        kubectl -n "$KEYCLOAK_NS" get secret keycloak-client-secrets -o json | \
-          jq --arg k "$key" --arg v "$val" '.data[$k]=$v' | \
-          kubectl apply -f -
-      fi
-    done
-  else
-    # Copy entire secret to keycloak namespace
-    kubectl -n "$ESIGNET_NS" get secret keycloak-client-secrets -o yaml | \
-      sed "s/namespace: $ESIGNET_NS/namespace: $KEYCLOAK_NS/g" | \
-      kubectl apply -f -
-  fi
+  $COPY_UTIL secret keycloak-client-secrets "$ESIGNET_NS" "$KEYCLOAK_NS"
   echo "keycloak-client-secrets synced to $KEYCLOAK_NS namespace."
 fi
 

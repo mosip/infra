@@ -18,6 +18,7 @@ set -euo pipefail
 KERNEL_NS="kernel"
 API_HOST="${MOSIP_API_HOST:-}"
 API_INTERNAL_HOST="${MOSIP_API_INTERNAL_HOST:-}"
+COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
 
 echo "================================================"
 echo "eSignet 1.7.1 - Kernel Pre-install"
@@ -28,7 +29,6 @@ kubectl create namespace "$KERNEL_NS" --dry-run=client -o yaml | kubectl apply -
 kubectl label namespace "$KERNEL_NS" istio-injection=enabled --overwrite
 
 # --- Step 2: Create domain-config configmap ---
-# Source: deploy/kernel/install.sh - creates domain-config for authmanager etc.
 echo "Creating domain-config configmap in $KERNEL_NS"
 kubectl -n "$KERNEL_NS" create configmap domain-config \
   --from-literal=mosip-api-host="$API_HOST" \
@@ -36,18 +36,9 @@ kubectl -n "$KERNEL_NS" create configmap domain-config \
   --dry-run=client -o yaml | kubectl apply -f -
 
 # --- Step 3: Copy optional configmaps from artifactory and config-server ---
-# Source: deploy/kernel/install.sh - copy_cm_func.sh calls
-# These may not exist in a minimal standalone setup — failures are non-fatal.
-for CM in artifactory-share config-server-share; do
-  for SRC_NS in artifactory config-server; do
-    if kubectl -n "$SRC_NS" get configmap "$CM" &>/dev/null 2>&1; then
-      echo "Copying $CM from $SRC_NS to $KERNEL_NS"
-      kubectl -n "$SRC_NS" get configmap "$CM" -o yaml | \
-        sed "s|^\(\s*namespace:\) $SRC_NS$|\1 $KERNEL_NS|" | \
-        kubectl apply -f -
-      break
-    fi
-  done
-done
+$COPY_UTIL configmap artifactory-share artifactory "$KERNEL_NS" 2>/dev/null || \
+  echo "WARNING: artifactory-share not found in artifactory namespace, skipping"
+$COPY_UTIL configmap config-server-share config-server "$KERNEL_NS" 2>/dev/null || \
+  echo "WARNING: config-server-share not found in config-server namespace, skipping"
 
 echo "Kernel pre-install completed."
