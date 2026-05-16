@@ -81,6 +81,8 @@ apps:
     wait: true
     priority: -17
     timeout: 1200
+    hooks:
+      preInstall: "$WORKDIR/hooks/wait-for-istio-crds.sh"
 
   # ---------------------------------------------------------------------------
   # PostgreSQL Init - eSignet Database Only
