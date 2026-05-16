@@ -32,14 +32,43 @@ namespaces:
     protected: false
   softhsm:
     protected: false
+
 apps:
+  # ---------------------------------------------------------------------------
+  # eSignet Keycloak Init
+  # ---------------------------------------------------------------------------
+  esignet-keycloak-init:
+    namespace: esignet
+    enabled: true
+    version: 12.0.2
+    chart: mosip/keycloak-init
+    valuesFile: "$WORKDIR/utils/keycloak-esignet-init-values.yaml"
+    set:
+      keycloakExternalHost: "iam.${domain_name}"
+      keycloakInternalHost: "keycloak.keycloak"
+      clientSecrets[0].name: "${PMS_CLIENT_SECRET_KEY}"
+      clientSecrets[0].secret: "${PMS_CLIENT_SECRET_VALUE}"
+      clientSecrets[1].name: "${MPARTNER_DEFAULT_AUTH_SECRET_KEY}"
+      clientSecrets[1].secret: "${MPARTNER_DEFAULT_AUTH_SECRET_VALUE}"
+      clientSecrets[2].name: "${IDA_CLIENT_SECRET_KEY}"
+      clientSecrets[2].secret: "${IDA_CLIENT_SECRET_VALUE}"
+      clientSecrets[3].name: "${DEPLOYMENT_CLIENT_SECRET_KEY}"
+      clientSecrets[3].secret: "${DEPLOYMENT_CLIENT_SECRET_VALUE}"
+      clientSecrets[4].name: "${MPARTNER_DEFAULT_MOBILE_SECRET_KEY}"
+      clientSecrets[4].secret: "${MPARTNER_DEFAULT_MOBILE_SECRET_VALUE}"
+    timeout: 480
+    priority: -13
+    hooks:
+      preInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-preinstall-keycloak-init.sh"
+      postInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-postinstall-keycloak-init.sh"
+
   # ---------------------------------------------------------------------------
   # eSignet v1.7.1
   # ---------------------------------------------------------------------------
   esignet:
     namespace: esignet
     enabled: true
-    version: 0.1.0-develop
+    version: 1.7.1
     chart: mosip/esignet
     set:
       image.repository: "mosipid/esignet"
@@ -66,7 +95,7 @@ apps:
   oidc-ui:
     namespace: esignet
     enabled: true
-    version: 0.1.0-develop
+    version: 1.7.1
     chart: mosip/oidc-ui
     set:
       istio.hosts[0]: "esignet.${domain_name}"
@@ -84,7 +113,7 @@ apps:
   # Enable for testing with mock identity data.
   softhsm-mock-identity-system:
     namespace: softhsm
-    enabled: true
+    enabled: false
     version: 12.0.1
     chart: mosip/softhsm
     valuesFile: "$WORKDIR/utils/softhsm-mock-identity-system-values.yaml"
@@ -97,13 +126,14 @@ apps:
 
   mock-identity-system:
     namespace: esignet
-    enabled: true
-    version: 0.1.0-develop
+    enabled: false
+    version: 0.9.3
     chart: mosip/mock-identity-system
     set:
       enable_insecure: "false"
       extraEnvVarsCM[0]: "esignet-softhsm-share"
       extraEnvVarsCM[1]: "softhsm-mock-identity-system-share"
+      domainConfig.MOSIP_ESIGNET_HOST: "esignet.${domain_name}"
     timeout: 480
     priority: -9
     hooks:
@@ -114,7 +144,7 @@ apps:
   # ---------------------------------------------------------------------------
   mock-relying-party-service:
     namespace: esignet
-    enabled: true
+    enabled: false
     version: 0.9.3
     chart: mosip/mock-relying-party-service
     set:
@@ -128,7 +158,7 @@ apps:
 
   mock-relying-party-ui:
     namespace: esignet
-    enabled: true
+    enabled: false
     version: 0.9.3
     chart: mosip/mock-relying-party-ui
     set:
@@ -150,7 +180,7 @@ apps:
   # ---------------------------------------------------------------------------
   esignet-resident-oidc-partner-onboarder:
     namespace: esignet
-    enabled: true
+    enabled: false
     version: 12.0.1
     chart: mosip/partner-onboarder
     set:
@@ -190,7 +220,7 @@ apps:
 
   esignet-demo-oidc-partner-onboarder:
     namespace: esignet
-    enabled: true
+    enabled: false
     version: 12.0.1
     chart: mosip/partner-onboarder
     set:
