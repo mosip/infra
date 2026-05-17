@@ -206,6 +206,10 @@ jobs:
 
       - name: Mask sensitive secrets
         run: |
+          MINIO_ROOT_PASSWORD=$(kubectl -n minio get secret minio -o jsonpath='{.data.root-password}' 2>/dev/null | base64 -d || true)
+          if [ -n "$MINIO_ROOT_PASSWORD" ]; then echo "::add-mask::$MINIO_ROOT_PASSWORD"; fi
+          echo "::add-mask::${{ secrets.ESIGNET_CAPTCHA_SITE_KEY }}"
+          echo "::add-mask::${{ secrets.ESIGNET_CAPTCHA_SECRET_KEY }}"        
           echo "::add-mask::${{ secrets.PREREG_CAPTCHA_SITE_KEY }}"
           echo "::add-mask::${{ secrets.PREREG_CAPTCHA_SECRET_KEY }}"
           echo "::add-mask::${{ secrets.ADMIN_CAPTCHA_SITE_KEY }}"
