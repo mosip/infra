@@ -45,7 +45,7 @@ namespaces:
   minio:
     protected: false
   esignet:
-    protected: true
+    protected: false
   signup:
     protected: false  
 apps:
@@ -140,7 +140,7 @@ apps:
   # Initializes mosip_audit, mosip_kernel, mosip_otp (v1.2.0.1 branch).
   postgres-init-signup:
     namespace: signup
-    enabled: false
+    enabled: true
     version: 12.0.1
     chart: mosip/postgres-init
     set:
