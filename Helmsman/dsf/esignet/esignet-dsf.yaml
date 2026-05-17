@@ -46,6 +46,7 @@ apps:
     set:
       keycloakExternalHost: "iam.${domain_name}"
       keycloakInternalHost: "keycloak.keycloak"
+      keycloak.realms.mosip.realm_config.attributes.frontendUrl: "https://iam.${domain_name}/auth"
       clientSecrets[0].name: "${PMS_CLIENT_SECRET_KEY}"
       clientSecrets[0].secret: "${PMS_CLIENT_SECRET_VALUE}"
       clientSecrets[1].name: "${MPARTNER_DEFAULT_AUTH_SECRET_KEY}"

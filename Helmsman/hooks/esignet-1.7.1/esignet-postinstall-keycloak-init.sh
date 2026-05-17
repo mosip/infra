@@ -7,6 +7,7 @@ set -euo pipefail
 
 NS="esignet"
 KEYCLOAK_NS="keycloak"
+COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
 PMS_CLIENT_SECRET_KEY="mosip_pms_client_secret"
 MPARTNER_DEFAULT_AUTH_SECRET_KEY="mpartner_default_auth_secret"
 IDA_CLIENT_SECRET_KEY="mosip_ida_client_secret"
@@ -62,8 +63,13 @@ if [ -z "$KEYCLOAK_PMS_SECRET" ] || [ -z "$KEYCLOAK_MPARTNER_SECRET" ] || \
   [ -n "$ESIGNET_MOBILE_SECRET" ] && \
     JQ_FILTER="$JQ_FILTER | .data[\"$MPARTNER_DEFAULT_MOBILE_SECRET_KEY\"]=\"$ESIGNET_MOBILE_SECRET\""
 
-  kubectl -n "$KEYCLOAK_NS" get secret keycloak-client-secrets -o json | \
-    jq "$JQ_FILTER" | kubectl apply -f -
+  if kubectl -n "$KEYCLOAK_NS" get secret keycloak-client-secrets &>/dev/null; then
+    kubectl -n "$KEYCLOAK_NS" get secret keycloak-client-secrets -o json | \
+      jq "$JQ_FILTER" | kubectl apply -f -
+  else
+    echo "keycloak-client-secrets not found in $KEYCLOAK_NS, copying from $NS"
+    $COPY_UTIL secret keycloak-client-secrets "$NS" "$KEYCLOAK_NS"
+  fi
   echo "keycloak-client-secrets synced to $KEYCLOAK_NS namespace."
 else
   echo "Secrets already exist in $KEYCLOAK_NS namespace, skipping sync."
