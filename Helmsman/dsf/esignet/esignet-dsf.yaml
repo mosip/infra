@@ -182,7 +182,7 @@ apps:
   esignet-resident-oidc-partner-onboarder:
     namespace: esignet
     enabled: false
-    version: 12.0.1
+    version: 12.0.2
     chart: mosip/partner-onboarder
     set:
       onboarding.configmaps.s3.s3-host: "http://minio.minio:9000"
