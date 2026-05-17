@@ -35,6 +35,22 @@ namespaces:
 
 apps:
   # ---------------------------------------------------------------------------
+  # SoftHSM for eSignet
+  # ---------------------------------------------------------------------------
+  # Deployed here (not in external-dsf) so esignet-softhsm-share configmap is
+  # available in esignet namespace before eSignet service starts.
+  softhsm-esignet:
+    namespace: esignet
+    enabled: true
+    version: 12.0.1
+    chart: mosip/softhsm
+    valuesFile: "$WORKDIR/utils/softhsm-esignet-values.yaml"
+    timeout: 480
+    priority: -14
+    hooks:
+      preInstall: "$WORKDIR/hooks/esignet-1.7.1/softhsm-esignet-setup.sh"
+
+  # ---------------------------------------------------------------------------
   # eSignet Keycloak Init
   # ---------------------------------------------------------------------------
   esignet-keycloak-init:

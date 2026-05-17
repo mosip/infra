@@ -34,8 +34,6 @@ namespaces:
     protected: true
   keycloak:
     protected: true
-  softhsm:
-    protected: false
   redis:
     protected: false
   kafka:
@@ -90,7 +88,7 @@ apps:
   # Only initializes the mosip_esignet database (v1.7.1 branch).
   # All other MOSIP databases are disabled since this is a standalone eSignet.
   postgres-init-esignet:
-    namespace: esignet
+    namespace: postgres
     enabled: true
     version: 12.0.1
     chart: mosip/postgres-init
@@ -132,6 +130,7 @@ apps:
     priority: -16
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-init-db.sh"
+      postInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-db-postinstall.sh"
 
   # ---------------------------------------------------------------------------
   # PostgreSQL Init - Signup Service Databases
@@ -274,23 +273,6 @@ apps:
     wait: true
     timeout: 1200
     priority: -1
-
-  # ---------------------------------------------------------------------------
-  # SoftHSM for eSignet
-  # ---------------------------------------------------------------------------
-  # Note: v1.7.1 deploy scripts install softhsm in esignet namespace,
-  # but for consistency with existing hooks, we keep it in softhsm namespace.
-  softhsm-esignet:
-    namespace: softhsm
-    enabled: true
-    version: 12.0.1
-    chart: mosip/softhsm
-    valuesFile: "$WORKDIR/utils/softhsm-esignet-values.yaml"
-    timeout: 480
-    priority: -13
-    hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/softhsm-esignet-setup.sh"
-      postInstall: "$WORKDIR/hooks/esignet-1.7.1/softhsm-esignet-postinstall.sh"
 
   # ---------------------------------------------------------------------------
   # Keycloak (IAM for API Access Control)
