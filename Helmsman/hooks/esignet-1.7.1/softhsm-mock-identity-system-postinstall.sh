@@ -11,8 +11,8 @@ echo "eSignet 1.7.1 - SoftHSM Mock Identity System Post-install"
 echo "================================================"
 
 # Wait for SoftHSM mock identity pod to be ready
-kubectl -n softhsm wait --for=condition=ready pod -l app.kubernetes.io/instance=softhsm-mock-identity-system --timeout=300s 2>/dev/null || \
-  echo "WARNING: SoftHSM mock identity system pod not yet ready."
+kubectl -n softhsm wait --for=condition=ready pod -l app.kubernetes.io/instance=softhsm-mock-identity-system --timeout=480s || \
+  { echo "ERROR: SoftHSM mock identity system pod not ready after timeout" >&2; exit 1; }
 
 # Share SoftHSM mock identity configmap with esignet namespace
 MOCK_HSM_PIN=$(kubectl -n softhsm get secret softhsm-mock-identity-system -o jsonpath='{.data.security-pin}' 2>/dev/null || echo "")

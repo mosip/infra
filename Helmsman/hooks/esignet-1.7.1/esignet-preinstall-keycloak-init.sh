@@ -13,8 +13,9 @@ echo "================================================"
 echo "eSignet 1.7.1 - Keycloak Init Pre-install"
 echo "================================================"
 
-# Clean up previous release so helm can re-create owned resources (keycloak-host etc.)
+# Clean up previous release and any kubectl-applied resources helm cannot import
 kubectl -n "$NS" delete secret --ignore-not-found=true keycloak-client-secrets
+kubectl -n "$NS" delete configmap --ignore-not-found=true keycloak-host
 helm -n "$NS" delete esignet-keycloak-init 2>/dev/null || true
 
 echo "Copying keycloak configmaps and secrets to $NS namespace"

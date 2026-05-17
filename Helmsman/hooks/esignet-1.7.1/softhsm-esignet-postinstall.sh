@@ -22,8 +22,8 @@ echo "================================================"
 
 # --- Step 1: Wait for SoftHSM pod to be ready ---
 echo "Waiting for SoftHSM pod to be ready..."
-kubectl -n "$SOFTHSM_NS" wait --for=condition=ready pod -l app.kubernetes.io/instance=esignet-softhsm --timeout=300s || \
-  echo "WARNING: SoftHSM pod not ready yet. Continuing with configmap/secret copy."
+kubectl -n "$SOFTHSM_NS" wait --for=condition=ready pod -l app.kubernetes.io/instance=esignet-softhsm --timeout=480s || \
+  { echo "ERROR: SoftHSM pod not ready after timeout" >&2; exit 1; }
 
 # --- Step 2: Copy esignet-softhsm-share configmap to esignet namespace ---
 echo "Copying esignet-softhsm-share configmap to $ESIGNET_NS namespace"

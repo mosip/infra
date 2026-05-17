@@ -28,7 +28,7 @@ helm repo update
 # --- Step 3: Wait for eSignet service to be available ---
 # Source: deploy/oidc-ui/install.sh - eSignet must be running before OIDC UI
 echo "Waiting for eSignet service to be ready..."
-kubectl -n "$ESIGNET_NS" wait --for=condition=ready pod -l app.kubernetes.io/name=esignet --timeout=300s 2>/dev/null || \
-  echo "WARNING: eSignet pods not yet ready. OIDC UI may need to retry connections."
+kubectl -n "$ESIGNET_NS" wait --for=condition=ready pod -l app.kubernetes.io/name=esignet --timeout=480s || \
+  { echo "ERROR: eSignet pods not ready after timeout" >&2; exit 1; }
 
 echo "OIDC UI pre-install completed."
