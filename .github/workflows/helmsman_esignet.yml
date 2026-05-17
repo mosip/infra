@@ -357,51 +357,55 @@ jobs:
         id: get-keycloak-secrets
         run: |
           echo "Fetching Keycloak client secrets from keycloak namespace..."
-          
-          # Set the secret key names (these are the keys used in keycloak-client-secrets)
-          export PMS_CLIENT_SECRET_KEY='mosip_pms_client_secret'
-          export MPARTNER_DEFAULT_AUTH_SECRET_KEY='mpartner_default_auth_secret'
-          
-          # Check if keycloak-client-secrets exists
+
+          # Fixed key names — written to GITHUB_ENV so Helmsman can substitute ${VAR} in DSF
+          PMS_CLIENT_SECRET_KEY='mosip_pms_client_secret'
+          MPARTNER_DEFAULT_AUTH_SECRET_KEY='mpartner_default_auth_secret'
+          IDA_CLIENT_SECRET_KEY='mosip_ida_client_secret'
+          DEPLOYMENT_CLIENT_SECRET_KEY='mosip_deployment_client_secret'
+          MPARTNER_DEFAULT_MOBILE_SECRET_KEY='mpartner_default_mobile_secret'
+
+          echo "PMS_CLIENT_SECRET_KEY=$PMS_CLIENT_SECRET_KEY" >> $GITHUB_ENV
+          echo "MPARTNER_DEFAULT_AUTH_SECRET_KEY=$MPARTNER_DEFAULT_AUTH_SECRET_KEY" >> $GITHUB_ENV
+          echo "IDA_CLIENT_SECRET_KEY=$IDA_CLIENT_SECRET_KEY" >> $GITHUB_ENV
+          echo "DEPLOYMENT_CLIENT_SECRET_KEY=$DEPLOYMENT_CLIENT_SECRET_KEY" >> $GITHUB_ENV
+          echo "MPARTNER_DEFAULT_MOBILE_SECRET_KEY=$MPARTNER_DEFAULT_MOBILE_SECRET_KEY" >> $GITHUB_ENV
+
+          fetch_secret() {
+            kubectl -n keycloak get secret keycloak-client-secrets \
+              -o jsonpath="{.data.$1}" 2>/dev/null | base64 -d 2>/dev/null || echo ""
+          }
+
+          # Check if keycloak-client-secrets exists (empty on first deploy — keycloak-init generates them)
           if kubectl -n keycloak get secret keycloak-client-secrets &>/dev/null; then
             echo "✅ keycloak-client-secrets found in keycloak namespace"
-            
-            # Fetch PMS client secret
-            PMS_CLIENT_SECRET_VALUE=$(kubectl -n keycloak get secret keycloak-client-secrets -o jsonpath="{.data.${PMS_CLIENT_SECRET_KEY}}" 2>/dev/null | base64 -d || echo "")
-            
-            # Fetch MPARTNER_DEFAULT_AUTH secret
-            MPARTNER_DEFAULT_AUTH_SECRET_VALUE=$(kubectl -n keycloak get secret keycloak-client-secrets -o jsonpath="{.data.${MPARTNER_DEFAULT_AUTH_SECRET_KEY}}" 2>/dev/null | base64 -d || echo "")
-            
-            if [ -n "$PMS_CLIENT_SECRET_VALUE" ] && [ -n "$MPARTNER_DEFAULT_AUTH_SECRET_VALUE" ]; then
-              # Mask secrets in logs
-              echo "::add-mask::$PMS_CLIENT_SECRET_VALUE"
-              echo "::add-mask::$MPARTNER_DEFAULT_AUTH_SECRET_VALUE"
-              
-              # Export for Helmsman
-              echo "PMS_CLIENT_SECRET_KEY=$PMS_CLIENT_SECRET_KEY" >> $GITHUB_ENV
-              echo "PMS_CLIENT_SECRET_VALUE=$PMS_CLIENT_SECRET_VALUE" >> $GITHUB_ENV
-              echo "MPARTNER_DEFAULT_AUTH_SECRET_KEY=$MPARTNER_DEFAULT_AUTH_SECRET_KEY" >> $GITHUB_ENV
-              echo "MPARTNER_DEFAULT_AUTH_SECRET_VALUE=$MPARTNER_DEFAULT_AUTH_SECRET_VALUE" >> $GITHUB_ENV
-              
-              echo "✅ PMS_CLIENT_SECRET_VALUE retrieved successfully"
-              echo "✅ MPARTNER_DEFAULT_AUTH_SECRET_VALUE retrieved successfully"
-            else
-              echo "⚠️ Some Keycloak client secrets are empty - keycloak-init will create them"
-              # Set empty values - keycloak-init will generate new secrets
-              echo "PMS_CLIENT_SECRET_KEY=$PMS_CLIENT_SECRET_KEY" >> $GITHUB_ENV
-              echo "PMS_CLIENT_SECRET_VALUE=" >> $GITHUB_ENV
-              echo "MPARTNER_DEFAULT_AUTH_SECRET_KEY=$MPARTNER_DEFAULT_AUTH_SECRET_KEY" >> $GITHUB_ENV
-              echo "MPARTNER_DEFAULT_AUTH_SECRET_VALUE=" >> $GITHUB_ENV
-            fi
+
+            PMS_CLIENT_SECRET_VALUE=$(fetch_secret "$PMS_CLIENT_SECRET_KEY")
+            MPARTNER_DEFAULT_AUTH_SECRET_VALUE=$(fetch_secret "$MPARTNER_DEFAULT_AUTH_SECRET_KEY")
+            IDA_CLIENT_SECRET_VALUE=$(fetch_secret "$IDA_CLIENT_SECRET_KEY")
+            DEPLOYMENT_CLIENT_SECRET_VALUE=$(fetch_secret "$DEPLOYMENT_CLIENT_SECRET_KEY")
+            MPARTNER_DEFAULT_MOBILE_SECRET_VALUE=$(fetch_secret "$MPARTNER_DEFAULT_MOBILE_SECRET_KEY")
+
+            # Mask all secret values before writing to GITHUB_ENV
+            for val in "$PMS_CLIENT_SECRET_VALUE" "$MPARTNER_DEFAULT_AUTH_SECRET_VALUE" \
+                       "$IDA_CLIENT_SECRET_VALUE" "$DEPLOYMENT_CLIENT_SECRET_VALUE" \
+                       "$MPARTNER_DEFAULT_MOBILE_SECRET_VALUE"; do
+              [ -n "$val" ] && echo "::add-mask::$val"
+            done
           else
-            echo "⚠️ keycloak-client-secrets not found in keycloak namespace"
-            echo "This is expected on first deployment - keycloak-init will create the secrets"
-            # Set empty values - keycloak-init will generate new secrets
-            echo "PMS_CLIENT_SECRET_KEY=$PMS_CLIENT_SECRET_KEY" >> $GITHUB_ENV
-            echo "PMS_CLIENT_SECRET_VALUE=" >> $GITHUB_ENV
-            echo "MPARTNER_DEFAULT_AUTH_SECRET_KEY=$MPARTNER_DEFAULT_AUTH_SECRET_KEY" >> $GITHUB_ENV
-            echo "MPARTNER_DEFAULT_AUTH_SECRET_VALUE=" >> $GITHUB_ENV
+            echo "⚠️ keycloak-client-secrets not found — first deploy, keycloak-init will generate secrets"
+            PMS_CLIENT_SECRET_VALUE=""
+            MPARTNER_DEFAULT_AUTH_SECRET_VALUE=""
+            IDA_CLIENT_SECRET_VALUE=""
+            DEPLOYMENT_CLIENT_SECRET_VALUE=""
+            MPARTNER_DEFAULT_MOBILE_SECRET_VALUE=""
           fi
+
+          echo "PMS_CLIENT_SECRET_VALUE=$PMS_CLIENT_SECRET_VALUE" >> $GITHUB_ENV
+          echo "MPARTNER_DEFAULT_AUTH_SECRET_VALUE=$MPARTNER_DEFAULT_AUTH_SECRET_VALUE" >> $GITHUB_ENV
+          echo "IDA_CLIENT_SECRET_VALUE=$IDA_CLIENT_SECRET_VALUE" >> $GITHUB_ENV
+          echo "DEPLOYMENT_CLIENT_SECRET_VALUE=$DEPLOYMENT_CLIENT_SECRET_VALUE" >> $GITHUB_ENV
+          echo "MPARTNER_DEFAULT_MOBILE_SECRET_VALUE=$MPARTNER_DEFAULT_MOBILE_SECRET_VALUE" >> $GITHUB_ENV
 
       - name: Show deployment variables
         run: |
