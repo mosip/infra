@@ -30,24 +30,24 @@ echo "================================================"
 
 kubectl create namespace "$ESIGNET_NS" --dry-run=client -o yaml | kubectl apply -f -
 
-# Create mock-relying-party-service-secrets (client private key)
-EXISTING=$(kubectl -n "$ESIGNET_NS" get secret mock-relying-party-service-secrets \
+# Create mock-relying-party-private-key-jwk (client private key)
+EXISTING=$(kubectl -n "$ESIGNET_NS" get secret mock-relying-party-private-key-jwk \
   -o jsonpath='{.data.client-private-key}' 2>/dev/null || echo "")
 if [ -z "$EXISTING" ]; then
   if [ -n "${MOCK_RELYING_PARTY_CLIENT_PRIVATE_KEY:-}" ]; then
     CLIENT_KEY_TMPFILE=$(mktemp)
     chmod 600 "$CLIENT_KEY_TMPFILE"
     echo "$MOCK_RELYING_PARTY_CLIENT_PRIVATE_KEY" | base64 -d | sed "s/'//g" | sed -z 's/\n/\\n/g' > "$CLIENT_KEY_TMPFILE"
-    kubectl -n "$ESIGNET_NS" delete secret mock-relying-party-service-secrets --ignore-not-found=true
-    kubectl -n "$ESIGNET_NS" create secret generic mock-relying-party-service-secrets \
+    kubectl -n "$ESIGNET_NS" delete secret mock-relying-party-private-key-jwk --ignore-not-found=true
+    kubectl -n "$ESIGNET_NS" create secret generic mock-relying-party-private-key-jwk \
       --from-file=client-private-key="$CLIENT_KEY_TMPFILE"
-    echo "mock-relying-party-service-secrets created."
+    echo "mock-relying-party-private-key-jwk created."
   else
     echo "ERROR: MOCK_RELYING_PARTY_CLIENT_PRIVATE_KEY is not set." >&2
     exit 1
   fi
 else
-  echo "mock-relying-party-service-secrets already exists, skipping."
+  echo "mock-relying-party-private-key-jwk already exists, skipping."
 fi
 
 # Create jwe-userinfo-service-secrets (JWE userinfo private key)
