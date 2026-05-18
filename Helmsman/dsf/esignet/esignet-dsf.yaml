@@ -97,7 +97,7 @@ apps:
       pluginNameEnv: "esignet-mock-plugin.jar"
       pluginUrlEnv: ""
       extraEnvVarsCM[0]: "esignet-softhsm-share"
-      extraEnvVarsCM[1]: "kafka-config"
+     # extraEnvVarsCM[1]: "kafka-config"
       metrics.serviceMonitor.enabled: "false"
       domainConfig.MOSIP_ESIGNET_HOST: "esignet.${domain_name}"
       domainConfig.MOSIP_SIGNUP_HOST: "signup.${domain_name}"
