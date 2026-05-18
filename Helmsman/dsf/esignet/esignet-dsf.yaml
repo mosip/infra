@@ -87,11 +87,18 @@ apps:
     enabled: true
     version: 0.1.0-develop
     chart: mosip/esignet
+    valuesFile: "$WORKDIR/utils/esignet-plugin-values.yaml"
     set:
       image.repository: "mosipid/esignet"
       image.tag: "1.7.1"
       enable_insecure: "false"
+      springConfigNameEnv: ""
+      activeProfileEnv: ""
+      pluginNameEnv: "esignet-mock-plugin.jar"
+      pluginUrlEnv: ""
       extraEnvVarsCM[0]: "esignet-softhsm-share"
+      extraEnvVarsCM[1]: "kafka-config"
+      metrics.serviceMonitor.enabled: "false"
       domainConfig.MOSIP_ESIGNET_HOST: "esignet.${domain_name}"
       domainConfig.MOSIP_SIGNUP_HOST: "signup.${domain_name}"
       domainConfig.MOSIP_API_HOST: "api.${domain_name}"
