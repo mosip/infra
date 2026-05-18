@@ -20,6 +20,11 @@ kubectl create namespace "$ESIGNET_NS" --dry-run=client -o yaml | kubectl apply 
 # Copy s3 secret from minio namespace (required by partner-onboarder Job)
 $COPY_UTIL secret s3 "$MINIO_NS" "$ESIGNET_NS"
 
+# Both partner-onboarder charts create a ConfigMap named "onboarder-namespace" in the same
+# namespace. The resident-oidc onboarder runs first and sets the Helm ownership annotation
+# to its release name — delete it so this release can create it with the correct annotation.
+kubectl -n "$ESIGNET_NS" delete configmap onboarder-namespace --ignore-not-found=true
+
 # Verify eSignet service is running
 kubectl -n "$ESIGNET_NS" wait --for=condition=ready pod -l app.kubernetes.io/name=esignet --timeout=480s || \
   { echo "ERROR: eSignet pods not ready after timeout" >&2; exit 1; }
