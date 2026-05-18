@@ -131,7 +131,7 @@ apps:
   softhsm-mock-identity-system:
     namespace: softhsm
     enabled: false
-    version: 0.1.0-develop
+    version: 12.0.1
     chart: mosip/softhsm
     valuesFile: "$WORKDIR/utils/softhsm-mock-identity-system-values.yaml"
     wait: true
@@ -143,7 +143,7 @@ apps:
 
   mock-identity-system:
     namespace: esignet
-    enabled: true
+    enabled: false
     version: 0.1.0-develop
     chart: mosip/mock-identity-system
     set:
@@ -162,7 +162,7 @@ apps:
   mock-relying-party-service:
     namespace: esignet
     enabled: true
-    version: 0.1.0-develop
+    version: 1.7.1-develop
     chart: mosip/mock-relying-party-service
     set:
       mock_relying_party_service.ESIGNET_SERVICE_URL: "http://esignet.esignet/v1/esignet"
