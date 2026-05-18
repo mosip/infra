@@ -206,37 +206,9 @@ apps:
   #   esignet-mock-rp-onboarder: for mock plugin (plugin 1) and sunbird-rc (plugin 3)
   #   esignet-misp-onboarder:    for mosip-identity-plugin (plugin 2) only
 
-  # Mock RP OIDC Partner Onboarder
-  # Onboards the mock relying party as an OIDC client.
-  # Set mosipid: "true" if using mosip-identity-plugin instead of mock plugin.
-  esignet-mock-rp-onboarder:
-    namespace: esignet
-    enabled: false
-    version: 12.0.1
-    chart: mosip/partner-onboarder
-    set:
-      onboarding.modules[0].name: "mock-rp-oidc"
-      onboarding.modules[0].enabled: "true"
-      onboarding.configmaps.s3.s3-host: "http://minio.minio:9000"
-      onboarding.configmaps.s3.s3-user-key: "admin"
-      onboarding.configmaps.s3.s3-region: ""
-      onboarding.configmaps.s3.s3-bucket-name: "onboarder"
-      onboarding.variables.mosipid: "false"
-      onboarding.variables.push_reports_to_s3: "true"
-      extraEnvVarsCM[0]: "keycloak-env-vars"
-      extraEnvVarsCM[1]: "keycloak-host"
-    wait: true
-    waitForJobs: true
-    timeout: 600
-    priority: -6
-    hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-mock-rp-onboarder-preinstall.sh"
-      preUpgrade: "$WORKDIR/hooks/esignet-1.7.1/esignet-mock-rp-onboarder-preinstall.sh"
-      postInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-mock-rp-onboarder-postinstall.sh"
-      postUpgrade: "$WORKDIR/hooks/esignet-1.7.1/esignet-mock-rp-onboarder-postinstall.sh"
-
   # eSignet MISP Partner Onboarder
   # Onboards the eSignet MISP client — only needed with mosip-identity-plugin (plugin 2).
+  # Runs FIRST so the MISP license key is written before mock-rp-onboarder starts.
   # After completion, restarts the esignet deployment to pick up the new MISP license key.
   esignet-misp-onboarder:
     namespace: esignet
@@ -259,9 +231,38 @@ apps:
     wait: true
     waitForJobs: true
     timeout: 600
+    priority: -6
+    hooks:
+      preInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-misp-onboarder-preinstall.sh"
+      preUpgrade: "$WORKDIR/hooks/esignet-1.7.1/esignet-misp-onboarder-preinstall.sh"
+      postInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-misp-onboarder-postinstall.sh"
+      postUpgrade: "$WORKDIR/hooks/esignet-1.7.1/esignet-misp-onboarder-postinstall.sh"
+
+  # Mock RP OIDC Partner Onboarder
+  # Onboards the mock relying party as an OIDC client.
+  # Enable for plugin 1 (mock) or plugin 3 (sunbird-rc). Set mosipid: "true" for mosip-identity-plugin.
+  esignet-mock-rp-onboarder:
+    namespace: esignet
+    enabled: false
+    version: 12.0.1
+    chart: mosip/partner-onboarder
+    set:
+      onboarding.modules[0].name: "mock-rp-oidc"
+      onboarding.modules[0].enabled: "true"
+      onboarding.configmaps.s3.s3-host: "http://minio.minio:9000"
+      onboarding.configmaps.s3.s3-user-key: "admin"
+      onboarding.configmaps.s3.s3-region: ""
+      onboarding.configmaps.s3.s3-bucket-name: "onboarder"
+      onboarding.variables.mosipid: "false"
+      onboarding.variables.push_reports_to_s3: "true"
+      extraEnvVarsCM[0]: "keycloak-env-vars"
+      extraEnvVarsCM[1]: "keycloak-host"
+    wait: true
+    waitForJobs: true
+    timeout: 600
     priority: -5
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-mock-rp-onboarder-preinstall.sh"
       preUpgrade: "$WORKDIR/hooks/esignet-1.7.1/esignet-mock-rp-onboarder-preinstall.sh"
-      postInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-misp-onboarder-postinstall.sh"
-      postUpgrade: "$WORKDIR/hooks/esignet-1.7.1/esignet-misp-onboarder-postinstall.sh"
+      postInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-mock-rp-onboarder-postinstall.sh"
+      postUpgrade: "$WORKDIR/hooks/esignet-1.7.1/esignet-mock-rp-onboarder-postinstall.sh"

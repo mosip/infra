@@ -161,8 +161,8 @@ Lower number = deployed first:
 | -9 | mock-identity-system (optional) | esignet |
 | -8 | mock-relying-party-service (optional) | esignet |
 | -7 | mock-relying-party-ui (optional) | esignet |
-| -6 | esignet-mock-rp-onboarder (optional) | esignet | Enable for plugin 1 (mock) or plugin 3 (sunbird) |
-| -5 | esignet-misp-onboarder (optional) | esignet | Enable for plugin 2 (mosip-identity) only |
+| -6 | esignet-misp-onboarder (optional) | esignet | Enable for plugin 2 (mosip-identity) only — runs FIRST |
+| -5 | esignet-mock-rp-onboarder (optional) | esignet | Enable for plugin 1 (mock) or plugin 3 (sunbird) |
 
 ### Signup DSF — Component Priority Order
 
@@ -222,9 +222,10 @@ Key eSignet hooks:
 | `softhsm-esignet-setup.sh` / `softhsm-esignet-postinstall.sh` | softhsm-esignet | HSM namespace + secret sharing |
 | `esignet-preinstall.sh` | esignet | Namespace, captcha secret, prerequisite setup |
 | `mock-relying-party-service-preinstall.sh` | mock-relying-party-service | Create private key K8s secrets (`mock-relying-party-service-secrets`, `jwe-userinfo-service-secrets`) from workflow env vars |
-| `esignet-mock-rp-onboarder-preinstall.sh` | esignet-mock-rp-onboarder, esignet-misp-onboarder (shared) | Copies `keycloak-env-vars` configmap + `keycloak`/`keycloak-client-secrets` secrets from keycloak ns; builds `s3` secret with `s3-user-secret` key from MinIO root-password; deletes `onboarder-namespace` CM before install; waits for esignet ready |
-| `esignet-mock-rp-onboarder-postinstall.sh` | esignet-mock-rp-onboarder | Checks job completion; restarts `mock-relying-party-service` |
-| `esignet-misp-onboarder-postinstall.sh` | esignet-misp-onboarder | Checks job completion; restarts `esignet` deployment to pick up new MISP license key |
+| `esignet-misp-onboarder-preinstall.sh` | esignet-misp-onboarder | Disables Istio injection; deletes stale `esignet-onboarder-config` CM + `esignet-onboarder-secrets` secret; copies `keycloak-env-vars`/`keycloak`/`keycloak-client-secrets` from keycloak ns; builds `s3` secret with `s3-user-secret` key from MinIO root-password; deletes `onboarder-namespace` CM; waits for esignet ready |
+| `esignet-misp-onboarder-postinstall.sh` | esignet-misp-onboarder | Checks job completion; re-enables Istio injection; restarts `esignet` deployment to pick up new MISP license key |
+| `esignet-mock-rp-onboarder-preinstall.sh` | esignet-mock-rp-onboarder | Disables Istio injection; copies `keycloak-env-vars` configmap + `keycloak`/`keycloak-client-secrets` secrets from keycloak ns; builds `s3` secret with `s3-user-secret` key from MinIO root-password; deletes `onboarder-namespace` CM before install; waits for esignet ready |
+| `esignet-mock-rp-onboarder-postinstall.sh` | esignet-mock-rp-onboarder | Checks job completion; re-enables Istio injection; restarts `mock-relying-party-service` |
 | `common-labeling-istio-and-sharing-cm-secrets-among-ns.sh` | multiple | Apply Istio labels + share configmaps/secrets across namespaces |
 
 Key Signup hooks (`Helmsman/hooks/esignet-1.7.1/`):
@@ -531,8 +532,8 @@ Plugin number is written to `/tmp/plugin_no.txt` — read by parent scripts to c
 **Partner onboarder selection** — both disabled by default, enable the one matching your plugin:
 - `esignet-mock-rp-onboarder` (module: `mock-rp-oidc`) — for plugin 1 (mock) and plugin 3 (sunbird-rc); restarts `mock-relying-party-service` after completion
 - `esignet-misp-onboarder` (module: `esignet`) — for plugin 2 (mosip-identity) only; restarts `esignet` to pick up MISP license key
-- Both use the same preinstall hook (`esignet-mock-rp-onboarder-preinstall.sh`) which copies keycloak resources + builds `s3` secret
-- **Known gap**: legacy scripts disable Istio injection on esignet ns before the onboarder Job runs — not yet implemented in hooks (Job pods with Istio sidecar never reach Completed state)
+- Each has its own preinstall hook: MISP uses `esignet-misp-onboarder-preinstall.sh` (extra cleanup of stale MISP artifacts); mock-rp uses `esignet-mock-rp-onboarder-preinstall.sh`
+- Both preinstall hooks disable Istio injection on the esignet namespace before the Job runs (Job pods with Istio sidecars never reach Completed state); both postinstall hooks re-enable it after the Job completes
 
 ### OIDC UI Configuration (prompted during install)
 

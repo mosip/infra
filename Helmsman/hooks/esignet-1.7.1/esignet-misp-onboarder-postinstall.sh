@@ -25,9 +25,15 @@ else
   kubectl -n "$ESIGNET_NS" logs -l app.kubernetes.io/instance=esignet-misp-onboarder --tail=30 2>/dev/null || true
 fi
 
+# Re-enable Istio sidecar injection now that the Job has completed
+kubectl label namespace "$ESIGNET_NS" istio-injection=enabled --overwrite
+echo "Istio injection re-enabled on namespace $ESIGNET_NS."
+
 # Restart esignet so it picks up the new MISP license key written to the secret
 if kubectl -n "$ESIGNET_NS" get deployment esignet &>/dev/null; then
   kubectl -n "$ESIGNET_NS" rollout restart deployment esignet
+  kubectl -n "$ESIGNET_NS" rollout status deployment esignet --timeout=300s || \
+    echo "WARNING: esignet rollout did not complete within timeout." >&2
   echo "esignet deployment restarted."
 else
   echo "esignet deployment not found — skipping restart."

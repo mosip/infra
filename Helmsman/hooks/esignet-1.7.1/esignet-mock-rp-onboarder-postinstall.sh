@@ -24,9 +24,15 @@ else
   kubectl -n "$ESIGNET_NS" logs -l app.kubernetes.io/instance=esignet-mock-rp-onboarder --tail=30 2>/dev/null || true
 fi
 
+# Re-enable Istio sidecar injection now that the Job has completed
+kubectl label namespace "$ESIGNET_NS" istio-injection=enabled --overwrite
+echo "Istio injection re-enabled on namespace $ESIGNET_NS."
+
 # Restart mock-relying-party-service so it picks up the newly onboarded OIDC client
 if kubectl -n "$ESIGNET_NS" get deployment mock-relying-party-service &>/dev/null; then
   kubectl -n "$ESIGNET_NS" rollout restart deployment mock-relying-party-service
+  kubectl -n "$ESIGNET_NS" rollout status deployment mock-relying-party-service --timeout=300s || \
+    echo "WARNING: mock-relying-party-service rollout did not complete within timeout." >&2
   echo "mock-relying-party-service restarted."
 else
   echo "mock-relying-party-service deployment not found — skipping restart."
