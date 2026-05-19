@@ -2,8 +2,11 @@
 postgresql:
   primary:
     extendedConfiguration: |
-      max_connections = 200
-      shared_buffers = 256MB
-      work_mem = 4MB
-      maintenance_work_mem = 64MB
-      effective_cache_size = 768MB
+      max_connections =1000
+      wal_level=logical
+      max_wal_senders=20
+      max_replication_slots=10
+      # shared_buffers = 256MB
+      # work_mem = 4MB
+      # maintenance_work_mem = 64MB
+      # effective_cache_size = 768MB
