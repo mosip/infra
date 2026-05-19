@@ -42,6 +42,9 @@ echo "Copying redis-config configmap from $REDIS_NS"
 $COPY_UTIL configmap redis-config "$REDIS_NS" "$ESIGNET_NS"
 
 # --- Step 4: Copy secrets from other namespaces ---
+echo "Copying postgres-postgresql secret from $POSTGRES_NS"
+$COPY_UTIL secret postgres-postgresql "$POSTGRES_NS" "$ESIGNET_NS"
+
 echo "Copying redis secret from $REDIS_NS"
 $COPY_UTIL secret redis "$REDIS_NS" "$ESIGNET_NS"
 
