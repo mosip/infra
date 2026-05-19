@@ -26,10 +26,10 @@ specific_availability_zones = ["ap-south-1b"]
 
 # The instance type for Kubernetes nodes (control plane, worker, etcd)
 # Smaller instance type since eSignet standalone needs fewer resources
-k8s_instance_type = "t3a.xlarge"
+k8s_instance_type = "t3a.2xlarge"
 
 # The instance type for Nginx server (load balancer)
-nginx_instance_type = "t3a.xlarge"
+nginx_instance_type = "t3a.2xlarge"
 
 # The Route 53 hosted zone ID
 zone_id = "Z090954828SJIEL6P5406"
@@ -74,7 +74,7 @@ WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 
 # Rancher Import Configuration
 enable_rancher_import = true
-rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/m5rmgz7flzqcr4jst65kht2vdf66kxvc9km5wfxsrxfbxh9l8bckkz_c-m-g5qs7cv9.yaml\""
+rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/pvrrm8hwsd26f7nsjjx24pvclvdl9h6hw6md947dvnj6t8q2lqcvf2_c-m-tfmg22p2.yaml\""
 
 # DNS Records to map — only eSignet-relevant subdomains
 
