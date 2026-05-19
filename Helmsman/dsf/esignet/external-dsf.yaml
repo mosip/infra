@@ -120,7 +120,7 @@ apps:
       databases.mosip_esignet.dml: 1
       # Mock identity system DB - disabled by default
       databases.mosip_mockidentitysystem.enabled: "true"
-      databases.mosip_mockidentitysystem.branch: "release-1.8.x"
+      databases.mosip_mockidentitysystem.branch: "release-0.13.x"
       databases.mosip_mockidentitysystem.host: "postgres.${domain_name}"
       databases.mosip_mockidentitysystem.repoUrl: "https://github.com/mosip/esignet-mock-services.git"
       databases.mosip_mockidentitysystem.port: 5432
