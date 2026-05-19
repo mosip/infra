@@ -3,25 +3,34 @@
 # eSignet 1.7.1 - Mock Identity System Pre-install
 # =============================================================================
 # Prepares esignet namespace for mock identity system deployment:
+#   - Copies softhsm-mock-identity-system secret from softhsm ns (secretKeyRef
+#     in the chart references it directly by name in the pod namespace)
 #   - Creates mockid-postgres-config sourcing values from existing CMs:
 #       database-host  → postgres-config.database-host  (esignet ns, internal K8s service)
 #       database-port  → db-mockidentitysystem-init-env-config.DB_PORT  (postgres ns)
 #       database-name  → db-mockidentitysystem-init-env-config.MOSIP_DB_NAME  (postgres ns)
-#       database-username → hardcoded (not present in any existing CM)
+#       database-username → MOCKID_DB_USER (default: mockidsystemuser)
 #   - Verifies softhsm-mock-identity-system-share ConfigMap is present
 # =============================================================================
 set -euo pipefail
 
 ESIGNET_NS="${ESIGNET_NS:-esignet}"
+SOFTHSM_NS="softhsm"
 POSTGRES_NS="postgres"
 POSTGRES_INIT_CM="db-mockidentitysystem-init-env-config"
 MOCKID_DB_USER="${MOCKID_DB_USER:-mockidsystemuser}"
+COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
 
 echo "================================================"
 echo "eSignet 1.7.1 - Mock Identity System Pre-install"
 echo "================================================"
 
 kubectl create namespace "$ESIGNET_NS" --dry-run=client -o yaml | kubectl apply -f -
+
+# Copy softhsm-mock-identity-system secret to esignet ns
+# The chart references it directly via secretKeyRef — pod and secret must be in same namespace
+$COPY_UTIL secret softhsm-mock-identity-system "$SOFTHSM_NS" "$ESIGNET_NS"
+echo "softhsm-mock-identity-system secret copied to $ESIGNET_NS."
 
 # Read internal service host from postgres-config (already in esignet ns via esignet-preinstall.sh)
 # DB_SERVERIP in postgres-init CM is the external domain — not suitable for pod-to-pod connectivity
