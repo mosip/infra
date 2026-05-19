@@ -1,0 +1,2 @@
+# kafka-override-values.yaml
+heapOpts: "-Xmx2275m -Xms2275m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
