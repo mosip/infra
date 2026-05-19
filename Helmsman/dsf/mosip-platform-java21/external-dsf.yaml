@@ -156,8 +156,8 @@ apps:
       postgresql.image.tag: "14.2.0-debian-10-r70"
       # postgresql.primary.limits.requests.cpu: 250m
       # postgresql.primary.limits.requests.memory: 256Mi
-      postgresql.primary.resources.requests.cpu: 250m
-      postgresql.primary.resources.requests.memory: 256Mi
+      postgresql.primary.resources.requests.cpu: 5120m
+      postgresql.primary.resources.requests.memory: 512Mi
       # postgresql.architecture: replication
       # postgresql.primary.replicaCount: 1
       # postgresql.primary.persistence.enabled: true
@@ -367,6 +367,8 @@ apps:
       startupProbe.timeoutSeconds: "1"
       startupProbe.failureThreshold: "30"
       startupProbe.successThreshold: "1"
+      # Move multiline values here — NOT in set:
+    valuesFile: "$WORKDIR/utils/kafka-override-values.yaml"      
     wait: true
     timeout: 1200
     priority: -7
