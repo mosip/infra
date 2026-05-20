@@ -39,7 +39,7 @@ apps:
   # ---------------------------------------------------------------------------
   # Deployed here (not in external-dsf) so esignet-softhsm-share configmap is
   # available in esignet namespace before eSignet service starts.
-  softhsm-esignet:
+  esignet-softhsm:
     namespace: esignet
     enabled: true
     version: 12.0.1
@@ -85,12 +85,12 @@ apps:
   esignet:
     namespace: esignet
     enabled: true
-    version: 1.7.1
+    version: 0.1.0-develop
     chart: mosip/esignet
     valuesFile: "$WORKDIR/utils/esignet-plugin-values.yaml"
     set:
-      image.repository: "mosipid/esignet-with-plugins"
-      image.tag: "1.7.1"
+      image.repository: "mosipqa/esignet-with-plugins"
+      image.tag: "1.8.x"
       enable_insecure: "false"
       springConfigNameEnv: ""
       activeProfileEnv: ""
@@ -119,9 +119,11 @@ apps:
   oidc-ui:
     namespace: esignet
     enabled: true
-    version: 1.7.1
+    version: 0.1.0-develop
     chart: mosip/oidc-ui
     set:
+      image.repository: "mosipqa/oidc-ui"
+      image.tag: "1.8.x"    
       istio.hosts[0]: "esignet.${domain_name}"
       oidc_ui.oidc_service_host: "esignet.esignet"
       oidc_ui.configmaps.oidc-ui.REACT_APP_API_BASE_URL: "http://esignet.esignet/v1/esignet"
@@ -137,7 +139,7 @@ apps:
   # Enable for testing with mock identity data.
   softhsm-mock-identity-system:
     namespace: softhsm
-    enabled: false
+    enabled: true
     version: 12.0.1
     chart: mosip/softhsm
     valuesFile: "$WORKDIR/utils/softhsm-mock-identity-system-values.yaml"
@@ -150,8 +152,8 @@ apps:
 
   mock-identity-system:
     namespace: esignet
-    enabled: false
-    version: 0.9.3
+    enabled: true
+    version: 0.1.0-develop
     chart: mosip/mock-identity-system
     set:
       enable_insecure: "false"
@@ -169,8 +171,8 @@ apps:
   # ---------------------------------------------------------------------------
   mock-relying-party-service:
     namespace: esignet
-    enabled: false
-    version: 0.9.3
+    enabled: true
+    version: 1.7.1-develop
     chart: mosip/mock-relying-party-service
     set:
       mock_relying_party_service.ESIGNET_SERVICE_URL: "http://esignet.esignet/v1/esignet"
@@ -184,8 +186,8 @@ apps:
 
   mock-relying-party-ui:
     namespace: esignet
-    enabled: false
-    version: 0.9.3
+    enabled: true
+    version: 0.1.0-develop
     chart: mosip/mock-relying-party-ui
     set:
       mock_relying_party_ui.mock_relying_party_ui_service_host: "healthservices.${domain_name}"
@@ -214,8 +216,8 @@ apps:
   # After completion, restarts the esignet deployment to pick up the new MISP license key.
   esignet-misp-onboarder:
     namespace: esignet
-    enabled: false
-    version: 12.0.1
+    enabled: true
+    version: 0.1.0-develop
     chart: mosip/partner-onboarder
     set:
       onboarding.modules[0].name: "esignet"
@@ -250,8 +252,8 @@ apps:
   # Enable for plugin 1 (mock) or plugin 3 (sunbird-rc). Set mosipid: "true" for mosip-identity-plugin.
   esignet-mock-rp-onboarder:
     namespace: esignet
-    enabled: false
-    version: 12.0.1
+    enabled: true
+    version: 0.1.0-develop
     chart: mosip/partner-onboarder
     set:
       onboarding.modules[0].name: "mock-rp-oidc"
