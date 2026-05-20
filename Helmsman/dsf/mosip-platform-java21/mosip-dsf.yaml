@@ -384,9 +384,6 @@ apps:
     enabled: true
     version: 1.3.0
     chart: mosip/datashare
-    # set:
-    #   # image.repository: "mosipdev/data-share-service"
-    #   # image.tag: "release-1.3.x"
     priority: -10
     timeout: 1200
 
