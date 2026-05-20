@@ -107,6 +107,7 @@ apps:
       domainConfig.MOSIP_KAFKA_HOST: "kafka.${domain_name}"
       domainConfig.MOSIP_POSTGRES_HOST: "postgres.${domain_name}"
       domainConfig.MOSIP_SMTP_HOST: "smtp.${domain_name}"
+      domainConfig.installation-domain: "${domain_name}"
     wait: true
     timeout: 600
     priority: -12
@@ -216,7 +217,7 @@ apps:
   # After completion, restarts the esignet deployment to pick up the new MISP license key.
   esignet-misp-onboarder:
     namespace: esignet
-    enabled: true
+    enabled: false
     version: 0.1.0-develop
     chart: mosip/partner-onboarder
     set:
@@ -239,6 +240,7 @@ apps:
       domainConfig.mosip-esignet-host: "esignet.${domain_name}"
       domainConfig.mosip-esignet-insurance-host: "esignet-insurance.${domain_name}"
       domainConfig.mosip-resident-host: "resident.${domain_name}"
+      domainConfig.installation-domain: "${domain_name}"
     wait: true
     waitForJobs: true
     timeout: 600
@@ -274,6 +276,7 @@ apps:
       domainConfig.mosip-esignet-host: "esignet.${domain_name}"
       domainConfig.mosip-esignet-insurance-host: "esignet-insurance.${domain_name}"
       domainConfig.mosip-resident-host: "resident.${domain_name}"
+      domainConfig.installation-domain: "${domain_name}"
     wait: true
     waitForJobs: true
     timeout: 600
