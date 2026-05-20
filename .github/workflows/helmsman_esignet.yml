@@ -34,6 +34,14 @@ on:
         description: "Domain name for this environment (e.g. example.xyz.net)"
         required: false
         type: string
+      cre_domain_name:
+        description: "CRE domain name for this environment (e.g. cre.xyz.net)"
+        required: false
+        type: string
+      qabase_domain_name:
+        description: "QA base domain name for this environment (e.g. qabase.xyz.net)"
+        required: false
+        type: string
       env_name:
         description: "Environment name (e.g. sandbox, dev, staging)"
         required: false
@@ -55,6 +63,7 @@ jobs:
       - name: Validate required variables
         run: |
           errors=()
+          PROFILE="${{ github.event.inputs.profile }}"
           DOMAIN="${{ github.event.inputs.domain_name || vars.DOMAIN_NAME }}"
           ENV="${{ github.event.inputs.env_name || vars.ENV_NAME }}"
           [ -z "$DOMAIN" ] && errors+=("domain_name is empty — set vars.DOMAIN_NAME under Environment '${{ github.ref_name }}'")
@@ -67,6 +76,20 @@ jobs:
           fi
           echo "✓ domain_name = $DOMAIN"
           echo "✓ env_name    = $ENV"
+          # cre_domain_name and qabase_domain_name are esignet standalone only.
+          # Push events always target esignet (path filter); dispatch uses explicit profile input.
+          if [ -z "$PROFILE" ] || [ "$PROFILE" = "esignet" ]; then
+            CRE_DOMAIN="${{ github.event.inputs.cre_domain_name || vars.CRE_DOMAIN_NAME }}"
+            QABASE_DOMAIN="${{ github.event.inputs.qabase_domain_name || vars.QABASE_DOMAIN_NAME }}"
+            echo "✓ cre_domain_name    = $CRE_DOMAIN (esignet standalone)"
+            echo "✓ qabase_domain_name = $QABASE_DOMAIN (esignet standalone)"
+          else
+            CRE_PROVIDED="${{ github.event.inputs.cre_domain_name }}"
+            QABASE_PROVIDED="${{ github.event.inputs.qabase_domain_name }}"
+            if [ -n "$CRE_PROVIDED" ] || [ -n "$QABASE_PROVIDED" ]; then
+              echo "⚠ cre_domain_name / qabase_domain_name are only used for esignet standalone profile — ignoring for profile=$PROFILE"
+            fi
+          fi
 
   deploy:
     runs-on: ubuntu-latest
@@ -77,8 +100,10 @@ jobs:
       KUBECONFIG: ${{ github.workspace }}/.kube/config
       PATH: ${{ github.workspace }}/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
       KUBECTL_PATH: ${{ github.workspace }}/.local/bin/kubectl
-      domain_name: ${{ github.event.inputs.domain_name || vars.DOMAIN_NAME }}
-      env_name:    ${{ github.event.inputs.env_name    || vars.ENV_NAME }}
+      domain_name:        ${{ github.event.inputs.domain_name        || vars.DOMAIN_NAME }}
+      cre_domain_name:    ${{ github.event.inputs.cre_domain_name    || vars.CRE_DOMAIN_NAME }}
+      qabase_domain_name: ${{ github.event.inputs.qabase_domain_name || vars.QABASE_DOMAIN_NAME }}
+      env_name:           ${{ github.event.inputs.env_name           || vars.ENV_NAME }}
       # All secrets below are ENVIRONMENT secrets (not repository secrets)
       # Configure them in: Repository → Settings → Environments → <branch-name> → Secrets
       # Mock Relying Party Service secrets (base64 encoded PEM)
@@ -127,8 +152,10 @@ jobs:
               echo "✗ Failed to save $name (HTTP $STATUS)"; exit 1
             fi
           }
-          save_var "DOMAIN_NAME" "${{ github.event.inputs.domain_name }}"
-          save_var "ENV_NAME"    "${{ github.event.inputs.env_name }}"
+          save_var "DOMAIN_NAME"        "${{ github.event.inputs.domain_name }}"
+          save_var "CRE_DOMAIN_NAME"    "${{ github.event.inputs.cre_domain_name }}"
+          save_var "QABASE_DOMAIN_NAME" "${{ github.event.inputs.qabase_domain_name }}"
+          save_var "ENV_NAME"           "${{ github.event.inputs.env_name }}"
 
       - name: Mask sensitive data
         run: |
@@ -409,8 +436,10 @@ jobs:
 
       - name: Show deployment variables
         run: |
-          echo "domain_name = $domain_name"
-          echo "env_name    = $env_name"
+          echo "domain_name        = $domain_name"
+          echo "cre_domain_name    = $cre_domain_name"
+          echo "qabase_domain_name = $qabase_domain_name"
+          echo "env_name           = $env_name"
 
       - name: Initiate helmsman to apply the DSF configurations
         run: |
