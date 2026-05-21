@@ -29,7 +29,17 @@ fi
 kubectl label namespace "$ESIGNET_NS" istio-injection=enabled --overwrite
 echo "Istio injection re-enabled on namespace $ESIGNET_NS."
 
-# Restart esignet so it picks up the new MISP license key written to the secret
+# Restart config-server first so it reloads the MISP key from the secret,
+# then restart esignet so it fetches the updated config from config-server.
+if kubectl -n "$ESIGNET_NS" get deployment esignet-config-server &>/dev/null; then
+  kubectl -n "$ESIGNET_NS" rollout restart deployment esignet-config-server
+  kubectl -n "$ESIGNET_NS" rollout status deployment esignet-config-server --timeout=300s || \
+    echo "WARNING: esignet-config-server rollout did not complete within timeout." >&2
+  echo "esignet-config-server restarted."
+else
+  echo "esignet-config-server deployment not found — skipping restart."
+fi
+
 if kubectl -n "$ESIGNET_NS" get deployment esignet &>/dev/null; then
   kubectl -n "$ESIGNET_NS" rollout restart deployment esignet
   kubectl -n "$ESIGNET_NS" rollout status deployment esignet --timeout=300s || \

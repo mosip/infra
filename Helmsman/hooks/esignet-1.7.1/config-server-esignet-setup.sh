@@ -1,0 +1,77 @@
+#!/bin/bash
+# =============================================================================
+# eSignet 1.7.1 - Config-Server eSignet Pre-install
+# =============================================================================
+# Based on: esignet/deploy/config-server/install.sh
+#
+# Prepares esignet namespace for config-server deployment:
+#   1. Copies keycloak-host CM and keycloak/keycloak-client-secrets secrets
+#   2. Copies esignet-softhsm secret (written by softhsm-esignet-postinstall.sh
+#      at priority -16; config-server runs at -15 so it is guaranteed present)
+#   3. Copies db-common-secrets from postgres ns
+#   4. Creates esignet-domain-config ConfigMap from workflow env vars
+#      (domain_name set by helmsman_esignet.yml; available as shell env var
+#      in all hooks run within the same workflow step)
+#   5. Pre-creates empty esignet-misp-onboarder-key secret as placeholder
+#      (MISP onboarder at priority -6 writes the real key; config-server is
+#      restarted by esignet-misp-onboarder-postinstall.sh afterwards)
+#
+# Environment Variables:
+#   ESIGNET_NS   - eSignet namespace (default: esignet)
+#   domain_name  - base domain (set by workflow, e.g. sandbox.example.net)
+# =============================================================================
+set -euo pipefail
+
+ESIGNET_NS="${ESIGNET_NS:-esignet}"
+KEYCLOAK_NS="keycloak"
+POSTGRES_NS="postgres"
+SOFTHSM_NS="softhsm"
+COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
+
+echo "================================================"
+echo "eSignet 1.7.1 - Config-Server eSignet Pre-install"
+echo "================================================"
+
+# --- Step 1: Ensure namespace with Istio ---
+kubectl create namespace "$ESIGNET_NS" --dry-run=client -o yaml | kubectl apply -f -
+kubectl label namespace "$ESIGNET_NS" istio-injection=enabled --overwrite
+
+# --- Step 2: Copy keycloak resources ---
+echo "Copying keycloak-host configmap from $KEYCLOAK_NS"
+$COPY_UTIL configmap keycloak-host "$KEYCLOAK_NS" "$ESIGNET_NS"
+
+echo "Copying keycloak secrets from $KEYCLOAK_NS"
+$COPY_UTIL secret keycloak "$KEYCLOAK_NS" "$ESIGNET_NS"
+$COPY_UTIL secret keycloak-client-secrets "$KEYCLOAK_NS" "$ESIGNET_NS"
+
+# --- Step 3: Copy softhsm secret (available after priority -16 completes) ---
+echo "Copying esignet-softhsm secret from $SOFTHSM_NS"
+$COPY_UTIL secret esignet-softhsm "$SOFTHSM_NS" "$ESIGNET_NS"
+
+# --- Step 4: Copy db-common-secrets ---
+echo "Copying db-common-secrets from $POSTGRES_NS"
+$COPY_UTIL secret db-common-secrets "$POSTGRES_NS" "$ESIGNET_NS"
+
+# --- Step 5: Create esignet-domain-config from workflow env vars ---
+# domain_name is exported by the helmsman_esignet.yml workflow step
+echo "Creating esignet-domain-config configmap (domain_name=${domain_name:-UNSET})"
+kubectl -n "$ESIGNET_NS" create configmap esignet-domain-config \
+  --from-literal=mosip-api-host="api.${domain_name}" \
+  --from-literal=mosip-api-internal-host="api-internal.${domain_name}" \
+  --from-literal=mosip-esignet-host="esignet.${domain_name}" \
+  --from-literal=mosip-signup-host="signup.${domain_name}" \
+  --dry-run=client -o yaml | kubectl apply -f -
+echo "esignet-domain-config created/updated."
+
+# --- Step 6: Pre-create empty MISP key secret as placeholder ---
+# Allows config-server pod to start. Real value written by MISP onboarder (-6).
+# esignet-misp-onboarder-postinstall.sh restarts config-server after writing.
+if ! kubectl -n "$ESIGNET_NS" get secret esignet-misp-onboarder-key &>/dev/null; then
+  kubectl -n "$ESIGNET_NS" create secret generic esignet-misp-onboarder-key \
+    --from-literal=mosip-esignet-misp-key=""
+  echo "esignet-misp-onboarder-key placeholder created."
+else
+  echo "esignet-misp-onboarder-key already exists, skipping placeholder."
+fi
+
+echo "Config-server eSignet pre-install completed."

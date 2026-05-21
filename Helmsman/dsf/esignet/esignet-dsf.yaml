@@ -89,6 +89,19 @@ apps:
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-1.7.1/softhsm-esignet-sunbird-setup.sh"
 
+  esignet-config-server:
+    namespace: esignet
+    enabled: true
+    version: 12.0.1
+    chart: mosip/config-server
+    valuesFile: "$WORKDIR/utils/config-server-esignet-values.yaml"
+    wait: true
+    timeout: 1200
+    priority: -15
+    hooks:
+      preInstall: "$WORKDIR/hooks/esignet-1.7.1/config-server-esignet-setup.sh"
+      postInstall: "$WORKDIR/hooks/esignet-1.7.1/config-server-esignet-postinstall.sh"
+
   # ---------------------------------------------------------------------------
   # eSignet Keycloak Init
   # ---------------------------------------------------------------------------
@@ -167,7 +180,7 @@ apps:
       activeProfileEnv: ""
       pluginNameEnv: "mosip-identity-plugin.jar"
       pluginUrlEnv: ""
-      extraEnvVarsCM[0]: "esignet-softhsm-share"
+      extraEnvVarsCM[0]: "esignet-softhsm-cre-share"
       #extraEnvVarsCM[1]: "kafka-config"
       metrics.serviceMonitor.enabled: "false"
       domainConfig.MOSIP_ESIGNET_HOST: "esignet-cre.${domain_name}"
@@ -199,7 +212,7 @@ apps:
       activeProfileEnv: ""
       pluginNameEnv: "mosip-identity-plugin.jar"
       pluginUrlEnv: ""
-      extraEnvVarsCM[0]: "esignet-softhsm-share"
+      extraEnvVarsCM[0]: "esignet-softhsm-qa11-share"
       #extraEnvVarsCM[1]: "kafka-config"
       metrics.serviceMonitor.enabled: "false"
       domainConfig.MOSIP_ESIGNET_HOST: "esignet-qa11.${domain_name}"
@@ -231,7 +244,7 @@ apps:
       activeProfileEnv: ""
       pluginNameEnv: "sunbird-rc-plugin.jar"
       pluginUrlEnv: ""
-      extraEnvVarsCM[0]: "esignet-softhsm-share"
+      extraEnvVarsCM[0]: "esignet-softhsm-sunbird-share"
       #extraEnvVarsCM[1]: "kafka-config"
       metrics.serviceMonitor.enabled: "false"
       domainConfig.MOSIP_ESIGNET_HOST: "esignet-sunbird.${domain_name}"
@@ -492,6 +505,62 @@ apps:
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-1.7.1/mock-relying-party-ui-sunbird-preinstall.sh"
 
+  pms-partner-cre:
+    namespace: esignet-cre
+    enabled: true
+    version: 12.2.3
+    chart: mosip/pms-partner
+    set:
+      # image.repository: "mosipid/partner-management-service"
+      # image.tag: "1.2.2.3"
+      istio.gateways[0]: "pms-partner-cre-gateway"
+      istio.corsPolicy.allowOrigins[0].prefix: "https://pms-cre.${domain_name}"
+    priority: -9
+    timeout: 1200
+    hooks:
+      preInstall: "$WORKDIR/hooks/esignet-1.7.1/pms-partner-cre-preinstall.sh"
+
+  pms-policy-cre:
+    namespace: esignet-cre
+    enabled: true
+    version: 12.2.3
+    chart: mosip/pms-policy
+    set:
+      # image.repository: "mosipid/policy-management-service"
+      # image.tag: "1.2.2.2"
+      istio.gateways[0]: "pms-partner-cre-gateway"
+      istio.corsPolicy.allowOrigins[0].prefix: "https://pms-cre.${domain_name}"
+    priority: -9
+    timeout: 1200
+
+  pms-partner-qa11:
+    namespace: esignet-qa11
+    enabled: true
+    version: 12.2.3
+    chart: mosip/pms-partner
+    set:
+      # image.repository: "mosipid/partner-management-service"
+      # image.tag: "1.2.2.3"
+      istio.gateways[0]: "pms-partner-qa11-gateway"
+      istio.corsPolicy.allowOrigins[0].prefix: "https://pms-qa11.${domain_name}"
+    priority: -9
+    timeout: 1200
+    hooks:
+      preInstall: "$WORKDIR/hooks/esignet-1.7.1/pms-partner-qa11-preinstall.sh"
+
+  pms-policy-qa11:
+    namespace: esignet-qa11
+    enabled: true
+    version: 12.2.3
+    chart: mosip/pms-policy
+    set:
+      # image.repository: "mosipid/policy-management-service"
+      # image.tag: "1.2.2.2"
+      istio.gateways[0]: "pms-partner-qa11-gateway"
+      istio.corsPolicy.allowOrigins[0].prefix: "https://pms-qa11.${domain_name}"
+    priority: -9
+    timeout: 1200     
+
   # ---------------------------------------------------------------------------
   # Partner Onboarders
   # ---------------------------------------------------------------------------
@@ -523,7 +592,7 @@ apps:
       extraEnvVarsCM[1]: "keycloak-host"
       extraEnvVarsSecret[0]: "keycloak"
       extraEnvVarsSecret[1]: "keycloak-client-secrets"
-      domainConfig.mosip-api-internal-host: "api-internal.${cre_domain_name}"
+      domainConfig.mosip-api-internal-host: "api-internal.${domain_name}"
       domainConfig.mosip-api-host: "api.${domain_name}"
       domainConfig.mosip-esignet-host: "esignet.${domain_name}"
       domainConfig.mosip-esignet-insurance-host: "esignet-insurance.${domain_name}"

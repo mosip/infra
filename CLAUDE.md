@@ -160,6 +160,7 @@ The DSF supports **4 parallel eSignet instances** — one per namespace — each
 | -16 | esignet-softhsm-cre | esignet-cre | Plugin 2 (mosip-identity) |
 | -16 | esignet-softhsm-qa11 | esignet-qa11 | Plugin 2 (mosip-identity) |
 | -16 | esignet-softhsm-sunbird | esignet-sunbird | Plugin 3 (sunbird-rc) |
+| -15 | esignet-config-server | esignet | Spring Cloud Config Server; pre+postInstall hooks copy secrets and propagate share CM |
 | -15 | esignet-keycloak-init | esignet | Shared Keycloak init — runs once for all instances |
 | -14 | esignet | esignet | Plugin 1 (mock) |
 | -14 | esignet-cre | esignet-cre | Plugin 2 (mosip-identity) |
@@ -179,6 +180,10 @@ The DSF supports **4 parallel eSignet instances** — one per namespace — each
 | -9 | mock-relying-party-ui-cre | esignet-cre | |
 | -9 | mock-relying-party-ui-qa11 | esignet-qa11 | |
 | -9 | mock-relying-party-ui-sunbird | esignet-sunbird | |
+| -9 | pms-partner-cre | esignet-cre | PMS partner; preInstall creates `pms-partner-cre-gateway` (chart has no gateway template) |
+| -9 | pms-policy-cre | esignet-cre | PMS policy; VS references `pms-partner-cre-gateway` (shared with pms-partner) |
+| -9 | pms-partner-qa11 | esignet-qa11 | PMS partner; preInstall creates `pms-partner-qa11-gateway` |
+| -9 | pms-policy-qa11 | esignet-qa11 | PMS policy; VS references `pms-partner-qa11-gateway` (shared with pms-partner) |
 | -6 | esignet-misp-onboarder (optional) | esignet | Enable for plugin 2 (mosip-identity) only — runs FIRST |
 | -5 | esignet-mock-rp-onboarder (optional) | esignet | Enable for plugin 1 (mock) or plugin 3 (sunbird) |
 
@@ -235,6 +240,8 @@ Key eSignet hooks:
 |---|---|---|
 | `pre-helmsman-cleanup.sh` | (global) | **Deletes immutable Jobs before re-deploy** — run this first on re-deployments |
 | `esignet-init-db.sh` | postgres-init-esignet | Initialize DB schema |
+| `config-server-esignet-setup.sh` | esignet-config-server | Creates esignet ns + Istio label; copies keycloak/softhsm/db secrets; creates `esignet-domain-config` CM from `$domain_name`; pre-creates empty `esignet-misp-onboarder-key` placeholder |
+| `config-server-esignet-postinstall.sh` | esignet-config-server | Copies `esignet-config-server-share` CM from `esignet` ns to `esignet-cre`, `esignet-qa11`, `esignet-sunbird` so those instances can locate the config-server |
 | `esignet-preinstall-keycloak-init.sh` | esignet-keycloak-init | Copies keycloak-env-vars + keycloak secret to esignet ns; deletes old release; fetches all 5 client secrets from keycloak ns and exports as env vars for Helmsman `${VAR}` substitution |
 | `esignet-postinstall-keycloak-init.sh` | esignet-keycloak-init | Syncs all 5 `keycloak-client-secrets` entries from esignet ns back to keycloak ns (skips if all already present) |
 | `softhsm-esignet-setup.sh` / `softhsm-esignet-postinstall.sh` | softhsm-esignet | HSM namespace + secret sharing (esignet ns) |
@@ -249,9 +256,11 @@ Key eSignet hooks:
 | `mock-relying-party-ui-preinstall.sh` | mock-relying-party-ui | Namespace creation + service check (esignet ns) |
 | `mock-relying-party-ui-{cre,qa11,sunbird}-preinstall.sh` | mock-relying-party-ui-{cre,qa11,sunbird} | Namespace creation + service check in correct namespace (esignet-cre/qa11/sunbird) |
 | `esignet-misp-onboarder-preinstall.sh` | esignet-misp-onboarder | Disables Istio injection; deletes stale `esignet-onboarder-config` CM + `esignet-onboarder-secrets` secret; copies `keycloak-env-vars`/`keycloak`/`keycloak-client-secrets` from keycloak ns; builds `s3` secret with `s3-user-secret` key from MinIO root-password; deletes `onboarder-namespace` CM; waits for esignet ready |
-| `esignet-misp-onboarder-postinstall.sh` | esignet-misp-onboarder | Checks job completion; re-enables Istio injection; restarts `esignet` deployment to pick up new MISP license key |
+| `esignet-misp-onboarder-postinstall.sh` | esignet-misp-onboarder | Checks job completion; re-enables Istio injection; restarts `esignet-config-server` first (reloads MISP key from secret), then restarts `esignet` to fetch updated config |
 | `esignet-mock-rp-onboarder-preinstall.sh` | esignet-mock-rp-onboarder | Disables Istio injection; copies `keycloak-env-vars` configmap + `keycloak`/`keycloak-client-secrets` secrets from keycloak ns; builds `s3` secret with `s3-user-secret` key from MinIO root-password; deletes `onboarder-namespace` CM before install; waits for esignet ready |
 | `esignet-mock-rp-onboarder-postinstall.sh` | esignet-mock-rp-onboarder | Checks job completion; re-enables Istio injection; restarts `mock-relying-party-service` |
+| `pms-partner-cre-preinstall.sh` | pms-partner-cre | Creates `pms-partner-cre-gateway` in `esignet-cre` (HTTPS+HTTP, TLS credential `pms-partner-cre-tls`); chart has no gateway template |
+| `pms-partner-qa11-preinstall.sh` | pms-partner-qa11 | Creates `pms-partner-qa11-gateway` in `esignet-qa11` (HTTPS+HTTP, TLS credential `pms-partner-qa11-tls`); chart has no gateway template |
 | `common-labeling-istio-and-sharing-cm-secrets-among-ns.sh` | multiple | Apply Istio labels + share configmaps/secrets across namespaces |
 
 Key Signup hooks (`Helmsman/hooks/esignet-1.7.1/`):
@@ -289,7 +298,8 @@ export WORKDIR=/path/to/Helmsman
 | `esignet-cre-plugin-values.yaml` | Plugin 2 (mosip-identity) — captcha + all IDA service URLs active; used by `esignet-cre` |
 | `esignet-qa11-plugin-values.yaml` | Plugin 2 (mosip-identity) — identical to cre; used by `esignet-qa11` |
 | `esignet-sunbird-plugin-values.yaml` | Plugin 3 (sunbird-rc) — captcha + sunbird registry URL + `NoOpKeyBinder`; used by `esignet-sunbird` |
-| `config-server-values.yaml` | Git repo config for Spring Cloud Config Server |
+| `config-server-values.yaml` | Git repo config for Spring Cloud Config Server (MOSIP platform profiles) |
+| `config-server-esignet-values.yaml` | Config-server values for **eSignet standalone** — gitRepo: `esignet-config` @ `develop`; all env vars use `configMapKeyRef`/`secretKeyRef` (no literals); domain values from `esignet-domain-config` CM created by preinstall hook |
 | `istio-gateway/` | Helm chart for Istio gateways (internal + public) and auth policies |
 | `*-istio-addons-*.tgz` | Pre-packaged Istio addon charts (logging, IAM, Kafka, MinIO, Postgres, gateway) |
 | `logging/` | Elasticsearch clusterflow/output YAMLs + 5 Kibana dashboards |
