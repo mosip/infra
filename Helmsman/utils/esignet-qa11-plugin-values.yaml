@@ -1,0 +1,38 @@
+# eSignet QA11 — plugin 2 (mosip-identity-plugin) runtime configuration.
+# pluginNameEnv=mosip-identity-plugin.jar set in DSF set: block.
+# Update IDA service URLs below to match your MOSIP IDA deployment.
+
+extraEnvVarsAdditional:
+  - name: "MOSIP_ESIGNET_CAPTCHA_SITE_KEY"
+    valueFrom:
+      secretKeyRef:
+        name: esignet-captcha
+        key: esignet-captcha-site-key
+
+  # ---------------------------------------------------------------------------
+  # Plugin 2: mosip-identity-plugin
+  # Update URLs to match your MOSIP IDA deployment.
+  # ---------------------------------------------------------------------------
+  - name: "MOSIP_ESIGNET_AUTHENTICATOR_IDA_CERT_URL"
+    value: "http://mosip-file-server.mosip-file-server/mosip-certs/ida-partner.cer"
+  - name: "MOSIP_ESIGNET_AUTHENTICATOR_IDA_KYC-AUTH-URL"
+    value: "http://ida-auth.ida/idauthentication/v1/kyc-auth/delegated/${mosip.esignet.authenticator.ida.misp-license-key}/"
+  - name: "MOSIP_ESIGNET_AUTHENTICATOR_IDA_KYC-EXCHANGE-URL"
+    value: "http://ida-auth.ida/idauthentication/v1/kyc-exchange/delegated/${mosip.esignet.authenticator.ida.misp-license-key}/"
+  - name: "MOSIP_ESIGNET_AUTHENTICATOR_IDA_SEND-OTP-URL"
+    value: "http://ida-otp.ida/idauthentication/v1/otp/${mosip.esignet.authenticator.ida.misp-license-key}/"
+  - name: "MOSIP_ESIGNET_BINDER_IDA_KEY-BINDING-URL"
+    value: "http://ida-auth.ida/idauthentication/v1/identity-key-binding/delegated/${mosip.esignet.authenticator.ida.misp-license-key}/"
+  - name: "MOSIP_ESIGNET_AUTHENTICATOR_IDA_GET-CERTIFICATES-URL"
+    value: "http://ida-internal.ida/idauthentication/v1/internal/getAllCertificates"
+  - name: "MOSIP_ESIGNET_AUTHENTICATOR_IDA_AUTH-TOKEN-URL"
+    value: "http://authmanager.kernel/v1/authmanager/authenticate/clientidsecretkey"
+  - name: "MOSIP_ESIGNET_AUTHENTICATOR_IDA_AUDIT-MANAGER-URL"
+    value: "http://auditmanager.kernel/v1/auditmanager/audits"
+  - name: "MOSIP_ESIGNET_AUTHENTICATOR_IDA_OTP-CHANNELS"
+    value: "email,phone"
+  - name: "MOSIP_ESIGNET_MISP_KEY"
+    valueFrom:
+      secretKeyRef:
+        name: esignet-misp-onboarder-key
+        key: mosip-esignet-misp-key

@@ -152,15 +152,33 @@ Lower number = deployed first:
 
 **`esignet-dsf.yaml` priority order** (runs after `external-dsf.yaml`):
 
-| Priority | Component | Namespace |
-|---|---|---|
-| -13 | esignet-keycloak-init | esignet |
-| -12 | esignet | esignet |
-| -11 | oidc-ui | esignet |
-| -10 | softhsm-mock-identity-system (optional) | softhsm |
-| -9 | mock-identity-system (optional) | esignet |
-| -8 | mock-relying-party-service (optional) | esignet |
-| -7 | mock-relying-party-ui (optional) | esignet |
+The DSF supports **4 parallel eSignet instances** — one per namespace — each with its own SoftHSM, plugin config, and service URLs. All instances share the same Keycloak, postgres, redis, and captcha infrastructure from `external-dsf.yaml`.
+
+| Priority | Component | Namespace | Notes |
+|---|---|---|---|
+| -16 | esignet-softhsm | esignet | Plugin 1 (mock) |
+| -16 | esignet-softhsm-cre | esignet-cre | Plugin 2 (mosip-identity) |
+| -16 | esignet-softhsm-qa11 | esignet-qa11 | Plugin 2 (mosip-identity) |
+| -16 | esignet-softhsm-sunbird | esignet-sunbird | Plugin 3 (sunbird-rc) |
+| -15 | esignet-keycloak-init | esignet | Shared Keycloak init — runs once for all instances |
+| -14 | esignet | esignet | Plugin 1 (mock) |
+| -14 | esignet-cre | esignet-cre | Plugin 2 (mosip-identity) |
+| -14 | esignet-qa11 | esignet-qa11 | Plugin 2 (mosip-identity) |
+| -14 | esignet-sunbird | esignet-sunbird | Plugin 3 (sunbird-rc) |
+| -13 | oidc-ui | esignet | Istio host: `esignet.${domain_name}` |
+| -13 | oidc-ui-cre | esignet-cre | Istio host: `esignet-cre.${domain_name}` |
+| -13 | oidc-ui-qa11 | esignet-qa11 | Istio host: `esignet-qa11.${domain_name}` |
+| -13 | oidc-ui-sunbird | esignet-sunbird | Istio host: `esignet-sunbird.${domain_name}` |
+| -11 | softhsm-mock-identity-system (optional) | softhsm | |
+| -11 | mock-identity-system (optional) | esignet | |
+| -10 | mock-relying-party-service | esignet | Istio via `healthservices.${domain_name}` |
+| -10 | mock-relying-party-service-cre | esignet-cre | Istio via `healthservices-cre.${domain_name}` |
+| -10 | mock-relying-party-service-qa11 | esignet-qa11 | Istio via `healthservices-qa11.${domain_name}` |
+| -10 | mock-relying-party-service-sunbird | esignet-sunbird | Istio via `healthservices-sunbird.${domain_name}` |
+| -9 | mock-relying-party-ui | esignet | |
+| -9 | mock-relying-party-ui-cre | esignet-cre | |
+| -9 | mock-relying-party-ui-qa11 | esignet-qa11 | |
+| -9 | mock-relying-party-ui-sunbird | esignet-sunbird | |
 | -6 | esignet-misp-onboarder (optional) | esignet | Enable for plugin 2 (mosip-identity) only — runs FIRST |
 | -5 | esignet-mock-rp-onboarder (optional) | esignet | Enable for plugin 1 (mock) or plugin 3 (sunbird) |
 
@@ -219,9 +237,17 @@ Key eSignet hooks:
 | `esignet-init-db.sh` | postgres-init-esignet | Initialize DB schema |
 | `esignet-preinstall-keycloak-init.sh` | esignet-keycloak-init | Copies keycloak-env-vars + keycloak secret to esignet ns; deletes old release; fetches all 5 client secrets from keycloak ns and exports as env vars for Helmsman `${VAR}` substitution |
 | `esignet-postinstall-keycloak-init.sh` | esignet-keycloak-init | Syncs all 5 `keycloak-client-secrets` entries from esignet ns back to keycloak ns (skips if all already present) |
-| `softhsm-esignet-setup.sh` / `softhsm-esignet-postinstall.sh` | softhsm-esignet | HSM namespace + secret sharing |
-| `esignet-preinstall.sh` | esignet | Namespace, captcha secret, prerequisite setup |
-| `mock-relying-party-service-preinstall.sh` | mock-relying-party-service | Create private key K8s secrets (`mock-relying-party-service-secrets`, `jwe-userinfo-service-secrets`) from workflow env vars |
+| `softhsm-esignet-setup.sh` / `softhsm-esignet-postinstall.sh` | softhsm-esignet | HSM namespace + secret sharing (esignet ns) |
+| `softhsm-esignet-{cre,qa11,sunbird}-setup.sh` | softhsm-esignet-{cre,qa11,sunbird} | Thin wrappers — set `ESIGNET_NS` and exec `softhsm-esignet-setup.sh` |
+| `esignet-preinstall.sh` | esignet | Copies postgres/redis configmaps+secrets to esignet ns |
+| `esignet-{cre,qa11,sunbird}-preinstall.sh` | esignet-{cre,qa11,sunbird} | Set `ESIGNET_NS`, call base `esignet-preinstall.sh`, then copy `esignet-captcha` secret from esignet ns — captcha-postinstall.sh only creates it in esignet ns |
+| `oidc-ui-preinstall.sh` | oidc-ui | Waits for esignet pods ready in esignet ns |
+| `oidc-ui-{cre,qa11,sunbird}-preinstall.sh` | oidc-ui-{cre,qa11,sunbird} | Thin wrappers — set `ESIGNET_NS` and exec `oidc-ui-preinstall.sh` |
+| `mock-identity-system-preinstall.sh` | mock-identity-system | Copies `softhsm-mock-identity-system` secret from softhsm ns (chart references it via `secretKeyRef` — must be in same namespace as pod); creates `mockid-postgres-config` sourcing `database-host` from `postgres-config` (esignet ns) and `database-port`/`database-name` from `db-mockidentitysystem-init-env-config` (postgres ns); verifies `softhsm-mock-identity-system-share` CM is present |
+| `mock-relying-party-service-preinstall.sh` | mock-relying-party-service | Creates K8s secrets `mock-relying-party-private-key-jwk` (key: `client-private-key`) and `jwe-userinfo-service-secrets` (key: `jwe-userinfo-private-key`) from `$MOCK_RELYING_PARTY_CLIENT_PRIVATE_KEY` and `$MOCK_RELYING_PARTY_JWE_PRIVATE_KEY` env vars injected by the workflow |
+| `mock-relying-party-service-{cre,qa11,sunbird}-preinstall.sh` | mock-relying-party-service-{cre,qa11,sunbird} | Thin wrappers — set `ESIGNET_NS` and exec base `mock-relying-party-service-preinstall.sh` (creates private key secrets in the target namespace) |
+| `mock-relying-party-ui-preinstall.sh` | mock-relying-party-ui | Namespace creation + service check (esignet ns) |
+| `mock-relying-party-ui-{cre,qa11,sunbird}-preinstall.sh` | mock-relying-party-ui-{cre,qa11,sunbird} | Namespace creation + service check in correct namespace (esignet-cre/qa11/sunbird) |
 | `esignet-misp-onboarder-preinstall.sh` | esignet-misp-onboarder | Disables Istio injection; deletes stale `esignet-onboarder-config` CM + `esignet-onboarder-secrets` secret; copies `keycloak-env-vars`/`keycloak`/`keycloak-client-secrets` from keycloak ns; builds `s3` secret with `s3-user-secret` key from MinIO root-password; deletes `onboarder-namespace` CM; waits for esignet ready |
 | `esignet-misp-onboarder-postinstall.sh` | esignet-misp-onboarder | Checks job completion; re-enables Istio injection; restarts `esignet` deployment to pick up new MISP license key |
 | `esignet-mock-rp-onboarder-preinstall.sh` | esignet-mock-rp-onboarder | Disables Istio injection; copies `keycloak-env-vars` configmap + `keycloak`/`keycloak-client-secrets` secrets from keycloak ns; builds `s3` secret with `s3-user-secret` key from MinIO root-password; deletes `onboarder-namespace` CM before install; waits for esignet ready |
@@ -256,9 +282,13 @@ export WORKDIR=/path/to/Helmsman
 | `keycloak-init-values.yaml` | Keycloak realm configuration for Java 11/21 MOSIP platform profiles — 2 clients (`mosip-pms-client`, `mpartner-default-auth`) |
 | `keycloak-esignet-init-values.yaml` | Keycloak realm configuration for **eSignet standalone** — full mosip realm with `realm_config`, 30+ roles, 6 client scopes, and 5 clients (`mosip-pms-client`, `mpartner-default-auth`, `mosip-ida-client`, `mosip-deployment-client`, `mpartner-default-mobile`). Mirrors `esignet/deploy/keycloak/keycloak-init-values.yaml`. Used by `dsf/esignet/esignet-dsf.yaml` only. |
 | `keycloak-signup-init-values.yaml` | Keycloak realm configuration for signup (mosip-signup-client) |
-| `softhsm-esignet-values.yaml` | SoftHSM for eSignet |
+| `softhsm-esignet-values.yaml` | SoftHSM for esignet namespace |
+| `softhsm-esignet-{cre,qa11,sunbird}-values.yaml` | SoftHSM for esignet-cre/qa11/sunbird — identical config; separate files give each namespace an independent PVC and pin secret |
 | `softhsm-mock-identity-system-values.yaml` | SoftHSM for mock identity |
-| `esignet-plugin-values.yaml` | eSignet `extraEnvVarsAdditional` — captcha `secretKeyRef` (always active) + commented-out plugin 2 (mosip-identity IDA URLs) and plugin 3 (sunbird-rc URLs). Uncomment the relevant section before deploying non-mock plugins. Used as `valuesFile:` in `dsf/esignet/esignet-dsf.yaml`. |
+| `esignet-plugin-values.yaml` | Plugin 1 (mock) — captcha `secretKeyRef` active; plugin 2/3 sections commented out |
+| `esignet-cre-plugin-values.yaml` | Plugin 2 (mosip-identity) — captcha + all IDA service URLs active; used by `esignet-cre` |
+| `esignet-qa11-plugin-values.yaml` | Plugin 2 (mosip-identity) — identical to cre; used by `esignet-qa11` |
+| `esignet-sunbird-plugin-values.yaml` | Plugin 3 (sunbird-rc) — captcha + sunbird registry URL + `NoOpKeyBinder`; used by `esignet-sunbird` |
 | `config-server-values.yaml` | Git repo config for Spring Cloud Config Server |
 | `istio-gateway/` | Helm chart for Istio gateways (internal + public) and auth policies |
 | `*-istio-addons-*.tgz` | Pre-packaged Istio addon charts (logging, IAM, Kafka, MinIO, Postgres, gateway) |
@@ -319,12 +349,14 @@ All secrets must be **Environment Secrets** (not Repository Secrets). Environmen
 
 **eSignet deployment (`helmsman_esignet.yml`) only:**
 
-| Secret | Format |
-|---|---|
-| `MOCK_RELYING_PARTY_CLIENT_PRIVATE_KEY` | Base64 encoded PEM |
-| `MOCK_RELYING_PARTY_JWE_PRIVATE_KEY` | Base64 encoded PEM |
-| `ESIGNET_CAPTCHA_SITE_KEY` | Plain text |
-| `ESIGNET_CAPTCHA_SECRET_KEY` | Plain text |
+| Secret | Format | Used by |
+|---|---|---|
+| `MOCK_RELYING_PARTY_CLIENT_PRIVATE_KEY` | Base64 encoded PEM | Injected as `env:` in workflow → `mock-relying-party-service-preinstall.sh` → K8s secret `mock-relying-party-private-key-jwk` |
+| `MOCK_RELYING_PARTY_JWE_PRIVATE_KEY` | Base64 encoded PEM | Injected as `env:` in workflow → `mock-relying-party-service-preinstall.sh` → K8s secret `jwe-userinfo-service-secrets` |
+| `ESIGNET_CAPTCHA_SITE_KEY` | Plain text | captcha secret in esignet ns |
+| `ESIGNET_CAPTCHA_SECRET_KEY` | Plain text | captcha secret in esignet ns |
+
+> **How secrets reach hook scripts**: `helmsman_esignet.yml` maps GitHub secrets to workflow `env:` variables. Helmsman executes hook scripts as subprocesses of that workflow step, so all `env:` vars are available as shell env vars in every hook. To run hooks locally, export them manually: `export MOCK_RELYING_PARTY_CLIENT_PRIVATE_KEY=$(base64 < client-key.pem)`
 
 **Signup deployment (`helmsman_signup.yml`) only:**
 
@@ -442,6 +474,7 @@ apps:
       domainConfig.MOSIP_KAFKA_HOST: "kafka.${domain_name}"
       domainConfig.MOSIP_POSTGRES_HOST: "postgres.${domain_name}"
       domainConfig.MOSIP_SMTP_HOST: "smtp.${domain_name}"
+      domainConfig.installation-domain: "${domain_name}"
 ```
 
 #### Compatible with ArgoCD / PipeCD / FluxCD
@@ -452,16 +485,17 @@ All GitOps tools support `valuesFiles` + `parameters` natively — `domainConfig
 
 | Chart | Approach | Notes |
 |---|---|---|
-| `esignet` | `domainConfig: {}` + `{{- range }}` loop in `deployment.yaml` | All 8 domain vars; PKCS12 keystore type still uses `extraEnvVarsAdditional[0]` (non-domain var) |
+| `esignet` | `domainConfig: {}` + `{{- range }}` loop in `deployment.yaml` | 9 domain vars (8 Spring uppercase + `installation-domain`); PKCS12 keystore type still uses `extraEnvVarsAdditional[0]` (non-domain var) |
 | `signup-service` | `domainConfig: {}` + `{{- range }}` loop | 2 domain vars (`ESIGNET_HOST`, `SIGNUP_HOST`) |
 | `mock-identity-system` | `domainConfig: {}` + `{{- range }}` loop | Domain vars as needed; initContainer uses `MOSIP_API_INTERNAL_HOST` for SSL cert |
 | `mock-relying-party-service` | `domainConfig: {}` + `{{- range }}` loop | Main container still uses `--set mock_relying_party_service.*` for app URLs; `domainConfig` is used by the initContainer (`MOSIP_API_INTERNAL_HOST` for SSL cert) |
+| `partner-onboarder` (`mosip-onboarding/helm/`) | `domainConfig: {}` + `{{- range }}` loop in `jobs.yaml` | 6 vars: `mosip-api-internal-host`, `mosip-api-host`, `mosip-esignet-host`, `mosip-esignet-insurance-host`, `mosip-resident-host`, `installation-domain` — all lowercase-hyphen (Linux env, not Spring). `installation-domain` = `${domain_name}` root domain, used by `default.sh` to build redirect/logo URIs |
 | `oidc-ui` | No `domainConfig` — uses `--set istio.hosts[0]` and `--set oidc_ui.configmaps.*` | These are Istio/ConfigMap resources, not Spring env vars |
 | `mock-relying-party-ui` | No `domainConfig` — uses `--set mock_relying_party_ui.*` | Frontend configmap entries, not Spring env vars |
 | `config-server` (published external chart) | Write the **complete** `envVariables` list into a runtime YAML override file (via `mktemp`) and pass as `-f "$override_file"` | Cannot modify chart source — `domainConfig` not available. List replacement means the override file must contain every entry, including domain values. See `deploy/config-server/install.sh` |
 | `keycloak` (published external chart) | Domain values filled directly in the committed `deploy/keycloak/values.yaml` per branch | Cannot modify chart source |
 
-#### Helm template iteration block (in each owned chart's `deployment.yaml`)
+#### Helm template iteration block (in each owned chart's `deployment.yaml`, or `jobs.yaml` for partner-onboarder)
 
 ```yaml
 {{- range $key, $val := .Values.domainConfig }}
@@ -523,9 +557,13 @@ Prompts for all 8 values at startup and exports them so child scripts inherit:
 Plugin number is written to `/tmp/plugin_no.txt` — read by parent scripts to conditionally run MISP onboarding.
 
 **Helmsman DSF plugin configuration** (eSignet standalone `dsf/esignet/esignet-dsf.yaml`):
-- `pluginNameEnv` and `pluginUrlEnv` are set directly in the DSF `set:` block — edit before deploying
-- Default: `pluginNameEnv: "esignet-mock-plugin.jar"`, `pluginUrlEnv: ""`
-- Plugin-specific env vars (IDA URLs for plugin 2, Sunbird URL for plugin 3) go in `utils/esignet-plugin-values.yaml` — uncomment the relevant section
+- `pluginNameEnv` and `pluginUrlEnv` are set directly in each app's `set:` block in the DSF
+- Each namespace has its own `valuesFile:` with the appropriate plugin's `extraEnvVarsAdditional` entries active:
+  - `esignet` → `utils/esignet-plugin-values.yaml` (plugin 1, mock — no IDA URLs needed)
+  - `esignet-cre` → `utils/esignet-cre-plugin-values.yaml` (plugin 2, mosip-identity — IDA URLs active)
+  - `esignet-qa11` → `utils/esignet-qa11-plugin-values.yaml` (plugin 2, mosip-identity — IDA URLs active)
+  - `esignet-sunbird` → `utils/esignet-sunbird-plugin-values.yaml` (plugin 3, sunbird-rc — registry URL active)
+- Update IDA/Sunbird URLs in the respective values file before deploying non-mock plugins
 - `metrics.serviceMonitor.enabled: "false"` — set to `"true"` if Prometheus Service Monitor Operator is deployed
 - `extraEnvVarsCM[1]: "kafka-config"` — always included; kafka is deployed as part of external-dsf for standalone profile
 
