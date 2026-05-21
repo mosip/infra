@@ -74,7 +74,7 @@ WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 
 # Rancher Import Configuration
 enable_rancher_import = true
-rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/pvrrm8hwsd26f7nsjjx24pvclvdl9h6hw6md947dvnj6t8q2lqcvf2_c-m-tfmg22p2.yaml\""
+rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/s5xf95c8njln92ddtd2dssd2mljqpx7ztjtjp5mbh8lt485jjv6dsz_c-m-zrzcb5lf.yaml\""
 
 # DNS Records to map — only eSignet-relevant subdomains
 
