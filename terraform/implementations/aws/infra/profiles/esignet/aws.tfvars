@@ -74,11 +74,11 @@ WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 
 # Rancher Import Configuration
 enable_rancher_import = true
-rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/s5xf95c8njln92ddtd2dssd2mljqpx7ztjtjp5mbh8lt485jjv6dsz_c-m-zrzcb5lf.yaml\""
+rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/vfkklvfgkwn4bswmz7m2xssmjwgmdrjgqqvmn9k2znq8lxdm4k42z7_c-m-wg7ltxk6.yaml\""
 
 # DNS Records to map — only eSignet-relevant subdomains
 
-subdomain_public   = ["esignet", "healthservices", "signup", "healthservices-mock", "esignet-mock", "signup-mock", "esignet-sunbird", "healthservices-mosipid", "esignet-mosipid", "pms-partner-cre", "pms-policy-cre", "signup-mosipid", "healthservices-mosipid-qabase", "esignet-mosipid-qabase", "pms-partner", "pms-policy", "signup-mosipid-qabase"]
+subdomain_public   = ["esignet", "healthservices", "signup", "esignet-sunbird", "healthservices-mosipid-cre", "esignet-mosipid-cre", "pms-partner-cre", "pms-policy-cre", "signup-mosipid-cre", "healthservices-mosipid-qa11", "esignet-mosipid-qa11", "pms-partner-qa11", "pms-policy-qa11", "signup-mosipid-qa11"]
 subdomain_internal = ["iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio"]
 
 # PostgreSQL Configuration
