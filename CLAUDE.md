@@ -173,8 +173,8 @@ The DSF supports **4 parallel eSignet instances** — one per namespace — each
 | -11 | softhsm-mock-identity-system (optional) | softhsm | |
 | -11 | mock-identity-system (optional) | esignet | |
 | -10 | mock-relying-party-service | esignet | Istio via `healthservices.${domain_name}` |
-| -10 | mock-relying-party-service-cre | esignet-cre | Istio via `healthservices-cre.${domain_name}` |
-| -10 | mock-relying-party-service-qa11 | esignet-qa11 | Istio via `healthservices-qa11.${domain_name}` |
+| -10 | mock-relying-party-service-cre | esignet-cre | Istio via `healthservices-mosipid-cre.${domain_name}` |
+| -10 | mock-relying-party-service-qa11 | esignet-qa11 | Istio via `healthservices-mosipid-qa11.${domain_name}` |
 | -10 | mock-relying-party-service-sunbird | esignet-sunbird | Istio via `healthservices-sunbird.${domain_name}` |
 | -9 | mock-relying-party-ui | esignet | |
 | -9 | mock-relying-party-ui-cre | esignet-cre | |
@@ -583,7 +583,7 @@ Plugin number is written to `/tmp/plugin_no.txt` — read by parent scripts to c
   - `esignet-sunbird` → `utils/esignet-sunbird-plugin-values.yaml` (plugin 3, sunbird-rc — registry URL active)
 - Update IDA/Sunbird URLs in the respective values file before deploying non-mock plugins
 - `metrics.serviceMonitor.enabled: "false"` — set to `"true"` if Prometheus Service Monitor Operator is deployed
-- `extraEnvVarsCM[1]: "kafka-config"` — always included; kafka is deployed as part of external-dsf for standalone profile
+- `extraEnvVarsCM[1]: "kafka-config"` — kafka is deployed as part of external-dsf for standalone profile; currently commented out in the DSF (`#extraEnvVarsCM[1]: "kafka-config"`) — uncomment if your eSignet config requires kafka event publishing
 
 **Partner onboarder selection** — both disabled by default, enable the one matching your plugin:
 - `esignet-mock-rp-onboarder` (module: `mock-rp-oidc`) — for plugin 1 (mock) and plugin 3 (sunbird-rc); restarts `mock-relying-party-service` after completion
@@ -625,6 +625,7 @@ Two charts: `esignet/` and `oidc-ui/`, both using Bitnami common library.
 - Domain values for `esignet`, `signup-service`, `mock-identity-system`, `mock-relying-party-service` come from committed `domain-values.yaml` via `-f domain-values.yaml`. Do **not** add domain prompts or `--set domainConfig.*` to install scripts — edit the committed file instead
 - `oidc-ui` and `mock-relying-party-ui` do **not** use `domainConfig` — they configure Istio hosts and app-specific configmap values via chart-specific `--set` paths; these are not Spring env vars
 - `mock-relying-party-service/templates/deployment.yaml` had a pre-existing volumes indentation bug: when `enable_insecure=true`, the static volumes (`mock-relying-party-service` ConfigMap, `conf-file`) were indented at 8 spaces while the cacerts volume was at 6, causing YAML parse failure. Fixed: all volumes list items are now at 6 spaces (consistent with `enable_insecure` cacerts volume)
+- **`ESIGNET_AUD_URL` must match `MOSIP_ESIGNET_HOST`**: in `mock-relying-party-service-{cre,qa11,sunbird}`, the `ESIGNET_AUD_URL` hostname must exactly match the public-facing `MOSIP_ESIGNET_HOST` set for that namespace. For cre the public host is `esignet-mosipid-cre.${domain_name}` and for qa11 it is `esignet-mosipid-qa11.${domain_name}` — using `esignet-cre.${domain_name}` / `esignet-qa11.${domain_name}` will cause token audience validation failures.
 - **PMS Gateway TLS secrets must exist before deploy**: `pms-partner-cre-tls` and `pms-partner-qa11-tls` must be present in `istio-system` before the gateway preInstall hook runs — provision these via cert-manager or import manually beforehand
 - **PMS policy has no gateway of its own**: `pms-policy-cre` and `pms-policy-qa11` VS both reference the corresponding `pms-partner-*-gateway`. If pms-partner is disabled or its hook hasn't run, pms-policy traffic will fail
 - PVCs/PVs are **not deleted** on `helm delete` — must be manually cleaned up
