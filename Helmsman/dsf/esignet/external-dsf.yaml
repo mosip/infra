@@ -118,6 +118,7 @@ apps:
       databases.mosip_esignet_cre.port: 5432
       databases.mosip_esignet_cre.dml: 1
       databases.mosip_esignet_cre.repoUrl: "https://github.com/mosip/esignet.git"
+      databases.mosip_esignet_cre.defaultDb: "postgres"
       databases.mosip_esignet_cre.su.user: "postgres"
       databases.mosip_esignet_cre.su.secret.name: "postgres-postgresql"
       databases.mosip_esignet_cre.su.secret.key: "postgres-password"
@@ -133,6 +134,7 @@ apps:
       databases.mosip_esignet_qa11.port: 5432
       databases.mosip_esignet_qa11.dml: 1
       databases.mosip_esignet_qa11.repoUrl: "https://github.com/mosip/esignet.git"
+      databases.mosip_esignet_qa11.defaultDb: "postgres"
       databases.mosip_esignet_qa11.su.user: "postgres"
       databases.mosip_esignet_qa11.su.secret.name: "postgres-postgresql"
       databases.mosip_esignet_qa11.su.secret.key: "postgres-password"
@@ -148,6 +150,7 @@ apps:
       databases.mosip_esignet_sunbird.port: 5432
       databases.mosip_esignet_sunbird.dml: 1
       databases.mosip_esignet_sunbird.repoUrl: "https://github.com/mosip/esignet.git"
+      databases.mosip_esignet_sunbird.defaultDb: "postgres"
       databases.mosip_esignet_sunbird.su.user: "postgres"
       databases.mosip_esignet_sunbird.su.secret.name: "postgres-postgresql"
       databases.mosip_esignet_sunbird.su.secret.key: "postgres-password"
