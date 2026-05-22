@@ -3,10 +3,12 @@
 # Update IDA service URLs below to match your MOSIP IDA deployment.
 
 extraEnvVarsAdditional:
-  - name: "MOSIP_ESIGNET_CAPTCHA_SITE_KEY"
+  - name: "MOSIP_ESIGNET_CAPTCHA_MODULE_NAME"
+    value: "esignetqa11"
+  - name: "MOSIP_ESIGNET_CAPTCHA_SITE-KEY"
     valueFrom:
       secretKeyRef:
-        name: esignet-captcha
+        name: esignet-captcha-qa11
         key: esignet-captcha-site-key
 
   # ---------------------------------------------------------------------------

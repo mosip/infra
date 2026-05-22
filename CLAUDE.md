@@ -248,7 +248,7 @@ Key eSignet hooks:
 | `softhsm-esignet-setup.sh` / `softhsm-esignet-postinstall.sh` | softhsm-esignet | HSM namespace + secret sharing (esignet ns) |
 | `softhsm-esignet-{cre,qa11,sunbird}-setup.sh` | softhsm-esignet-{cre,qa11,sunbird} | Thin wrappers — set `ESIGNET_NS` and exec `softhsm-esignet-setup.sh` |
 | `esignet-preinstall.sh` | esignet | Copies postgres/redis configmaps+secrets to esignet ns |
-| `esignet-{cre,qa11,sunbird}-preinstall.sh` | esignet-{cre,qa11,sunbird} | Set `ESIGNET_NS`, call base `esignet-preinstall.sh`, then copy `esignet-captcha` secret from esignet ns — captcha-postinstall.sh only creates it in esignet ns |
+| `esignet-{cre,qa11,sunbird}-preinstall.sh` | esignet-{cre,qa11,sunbird} | Set `ESIGNET_NS`, call base `esignet-preinstall.sh`, then create `esignet-captcha-{cre,qa11,sunbird}` secret in captcha ns from `ESIGNET_{CRE,QA11,SUNBIRD}_CAPTCHA_SITE/SECRET_KEY` env vars (injected by esignet workflow), copy to target ns, and patch captcha deployment with `MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_ESIGNET{CRE,QA11,SUNBIRD}` |
 | `oidc-ui-preinstall.sh` | oidc-ui | Waits for esignet pods ready in esignet ns |
 | `oidc-ui-{cre,qa11,sunbird}-preinstall.sh` | oidc-ui-{cre,qa11,sunbird} | Thin wrappers — set `ESIGNET_NS` and exec `oidc-ui-preinstall.sh` |
 | `mock-identity-system-preinstall.sh` | mock-identity-system | Copies `softhsm-mock-identity-system` secret from softhsm ns (chart references it via `secretKeyRef` — must be in same namespace as pod); creates `mockid-postgres-config` sourcing `database-host` from `postgres-config` (esignet ns) and `database-port`/`database-name` from `db-mockidentitysystem-init-env-config` (postgres ns); verifies `softhsm-mock-identity-system-share` CM is present |
@@ -273,7 +273,7 @@ Key Signup hooks (`Helmsman/hooks/esignet-1.7.1/`):
 | `signup-init-db.sh` | postgres-init-signup | Initializes mosip_audit, mosip_kernel, mosip_otp DB schemas for signup |
 | `kernel-preinstall.sh` | authmanager / auditmanager / otpmanager | Creates kernel namespace; creates `domain-config` configmap with `MOSIP_API_HOST`, `MOSIP_API_INTERNAL_HOST`, `MOSIP_IAM_EXTERNAL_HOST` |
 | `notifier-postinstall.sh` | notifier | Waits for notifier rollout readiness |
-| `signup-service-preinstall.sh` | signup | Copies redis/keycloak secrets; creates `keycloak-host` configmap, `signup-captcha` secret, `signup-keystore` secret, `msg-gateway` configmap+secret pointing to mock-smtp |
+| `signup-service-preinstall.sh` | signup | Copies redis/keycloak secrets; creates `keycloak-host` configmap, `signup-captcha` secret (in signup ns + copies to captcha ns + patches captcha deployment with `MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_SIGNUP`), `signup-keystore` secret, `msg-gateway` configmap+secret pointing to mock-smtp |
 | `mock-identity-init-db.sh` | postgres-init-mock-identity | Initializes mock identity DB schema |
 
 To re-run a failed hook locally:
@@ -366,6 +366,12 @@ All secrets must be **Environment Secrets** (not Repository Secrets). Environmen
 | `MOCK_RELYING_PARTY_JWE_PRIVATE_KEY` | Base64 encoded PEM | Injected as `env:` in workflow → `mock-relying-party-service-preinstall.sh` → K8s secret `jwe-userinfo-service-secrets` |
 | `ESIGNET_CAPTCHA_SITE_KEY` | Plain text | captcha secret in esignet ns |
 | `ESIGNET_CAPTCHA_SECRET_KEY` | Plain text | captcha secret in esignet ns |
+| `ESIGNET_CRE_CAPTCHA_SITE_KEY` | Plain text | captcha secret for esignet-cre ns (esignet standalone only) |
+| `ESIGNET_CRE_CAPTCHA_SECRET_KEY` | Plain text | captcha secret for esignet-cre ns (esignet standalone only) |
+| `ESIGNET_QA11_CAPTCHA_SITE_KEY` | Plain text | captcha secret for esignet-qa11 ns (esignet standalone only) |
+| `ESIGNET_QA11_CAPTCHA_SECRET_KEY` | Plain text | captcha secret for esignet-qa11 ns (esignet standalone only) |
+| `ESIGNET_SUNBIRD_CAPTCHA_SITE_KEY` | Plain text | captcha secret for esignet-sunbird ns (esignet standalone only) |
+| `ESIGNET_SUNBIRD_CAPTCHA_SECRET_KEY` | Plain text | captcha secret for esignet-sunbird ns (esignet standalone only) |
 
 > **How secrets reach hook scripts**: `helmsman_esignet.yml` maps GitHub secrets to workflow `env:` variables. Helmsman executes hook scripts as subprocesses of that workflow step, so all `env:` vars are available as shell env vars in every hook. To run hooks locally, export them manually: `export MOCK_RELYING_PARTY_CLIENT_PRIVATE_KEY=$(base64 < client-key.pem)`
 

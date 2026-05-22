@@ -102,7 +102,7 @@ apps:
       databases.mosip_esignet.scriptsDir: "mosip_esignet"
       databases.mosip_esignet.dbName: "mosip_esignet"
       databases.mosip_esignet.dbUser: "esignetuser"
-      databases.mosip_esignet.branch: "release-1.8.x"
+      databases.mosip_esignet.branch: "develop"
       databases.mosip_esignet.host: "postgres.${domain_name}"
       databases.mosip_esignet.port: 5432
       databases.mosip_esignet.dml: 1
@@ -113,7 +113,7 @@ apps:
       databases.mosip_esignet_cre.scriptsDir: "mosip_esignet"
       databases.mosip_esignet_cre.dbName: "mosip_esignet_cre"
       databases.mosip_esignet_cre.dbUser: "esignetuser_cre"
-      databases.mosip_esignet_cre.branch: "release-1.8.x"
+      databases.mosip_esignet_cre.branch: "develop"
       databases.mosip_esignet_cre.host: "postgres.${domain_name}"
       databases.mosip_esignet_cre.port: 5432
       databases.mosip_esignet_cre.dml: 1
@@ -125,7 +125,7 @@ apps:
       databases.mosip_esignet_qa11.scriptsDir: "mosip_esignet"
       databases.mosip_esignet_qa11.dbName: "mosip_esignet_qa11"
       databases.mosip_esignet_qa11.dbUser: "esignetuser_qa11"
-      databases.mosip_esignet_qa11.branch: "release-1.8.x"
+      databases.mosip_esignet_qa11.branch: "develop"
       databases.mosip_esignet_qa11.host: "postgres.${domain_name}"
       databases.mosip_esignet_qa11.port: 5432
       databases.mosip_esignet_qa11.dml: 1
@@ -137,7 +137,7 @@ apps:
       databases.mosip_esignet_sunbird.scriptsDir: "mosip_esignet"
       databases.mosip_esignet_sunbird.dbName: "mosip_esignet_sunbird"
       databases.mosip_esignet_sunbird.dbUser: "esignetuser_sunbird"
-      databases.mosip_esignet_sunbird.branch: "release-1.8.x"
+      databases.mosip_esignet_sunbird.branch: "develop"
       databases.mosip_esignet_sunbird.host: "postgres.${domain_name}"
       databases.mosip_esignet_sunbird.port: 5432
       databases.mosip_esignet_sunbird.dml: 1
@@ -149,7 +149,7 @@ apps:
       databases.mosip_mockidentitysystem.scriptsDir: "mosip_mockidentitysystem"
       databases.mosip_mockidentitysystem.dbName: "mosip_mockidentitysystem"
       databases.mosip_mockidentitysystem.dbUser: "mockidentityuser"
-      databases.mosip_mockidentitysystem.branch: "release-0.13.x"
+      databases.mosip_mockidentitysystem.branch: "develop"
       databases.mosip_mockidentitysystem.host: "postgres.${domain_name}"
       databases.mosip_mockidentitysystem.repoUrl: "https://github.com/mosip/esignet-mock-services.git"
       databases.mosip_mockidentitysystem.port: 5432

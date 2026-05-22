@@ -54,6 +54,19 @@ kubectl -n "$SIGNUP_NS" create secret generic signup-captcha \
   --from-literal=signup-captcha-secret-key="$CAPTCHA_SECRET_KEY" \
   --dry-run=client -o yaml | kubectl apply -f -
 
+echo "Copying signup-captcha secret to captcha namespace"
+$COPY_UTIL secret signup-captcha "$SIGNUP_NS" "captcha"
+
+echo "Patching captcha deployment with signup secret key"
+ENV_VAR_EXISTS=$(kubectl -n captcha get deployment captcha \
+  -o jsonpath="{.spec.template.spec.containers[0].env[?(@.name=='MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_SIGNUP')].name}" 2>/dev/null || echo "")
+if [[ -z "$ENV_VAR_EXISTS" ]]; then
+  kubectl patch deployment -n captcha captcha --type='json' \
+    -p='[{"op": "add", "path": "/spec/template/spec/containers/0/env/-", "value": {"name": "MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_SIGNUP", "valueFrom": {"secretKeyRef": {"name": "signup-captcha", "key": "signup-captcha-secret-key"}}}}]'
+else
+  echo "MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_SIGNUP already exists."
+fi
+
 # --- Step 5: Create signup-keystore secrets ---
 echo "Creating signup-keystore secrets in $SIGNUP_NS"
 kubectl -n "$SIGNUP_NS" create secret generic signup-keystore-password \
