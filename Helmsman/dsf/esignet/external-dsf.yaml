@@ -94,6 +94,9 @@ apps:
     version: 0.0.1-develop
     chart: mosip/postgres-init
     set:
+      image.repository: "mosipdev/postgres-init"
+      image.tag: "develop"
+      image.pullPolicy: "Always"
       dbUserPasswords.dbuserPassword: ""
       # ---------------------------------------------------------------------------
       # esignet namespace (plugin 1 - mock)
