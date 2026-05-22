@@ -85,48 +85,77 @@ apps:
   # ---------------------------------------------------------------------------
   # PostgreSQL Init - eSignet Database Only
   # ---------------------------------------------------------------------------
-  # Only initializes the mosip_esignet database (v1.7.1 branch).
-  # All other MOSIP databases are disabled since this is a standalone eSignet.
+  # Initializes esignet and mock-identity databases for all namespaces.
+  # Uses postgres-init 0.0.1-develop which supports dynamic dbName/dbUser per entry.
+  # scriptsDir is fixed (must match repo folder); dbName/dbUser are customized per namespace.
   postgres-init-esignet:
     namespace: postgres
     enabled: true
-    version: 12.0.1
+    version: 0.0.1-develop
     chart: mosip/postgres-init
     set:
       dbUserPasswords.dbuserPassword: ""
-      # Disable all MOSIP platform databases
-      databases.mosip_toolkit.enabled: "false"
-      databases.mosip_master.enabled: "false"
-      databases.mosip_audit.enabled: "false"
-      databases.mosip_keymgr.enabled: "false"
-      databases.mosip_kernel.enabled: "false"
-      databases.mosip_idmap.enabled: "false"
-      databases.mosip_prereg.enabled: "false"
-      databases.mosip_idrepo.enabled: "false"
-      databases.mosip_ida.enabled: "false"
-      databases.mosip_credential.enabled: "false"
-      databases.mosip_regprc.enabled: "false"
-      databases.mosip_regdevice.enabled: "false"
-      databases.mosip_authdevice.enabled: "false"
-      databases.mosip_pms.enabled: "false"
-      databases.mosip_hotlist.enabled: "false"
-      databases.mosip_resident.enabled: "false"
-      databases.mosip_digitalcard.enabled: "false"
-      # Enable eSignet database with v1.7.1 branch
+      # ---------------------------------------------------------------------------
+      # esignet namespace (plugin 1 - mock)
+      # ---------------------------------------------------------------------------
       databases.mosip_esignet.enabled: "true"
+      databases.mosip_esignet.scriptsDir: "mosip_esignet"
+      databases.mosip_esignet.dbName: "mosip_esignet"
+      databases.mosip_esignet.dbUser: "esignetuser"
       databases.mosip_esignet.branch: "release-1.8.x"
       databases.mosip_esignet.host: "postgres.${domain_name}"
       databases.mosip_esignet.port: 5432
       databases.mosip_esignet.dml: 1
-      # Mock identity system DB - disabled by default
+      # ---------------------------------------------------------------------------
+      # esignet-cre namespace (plugin 2 - mosip-identity)
+      # ---------------------------------------------------------------------------
+      databases.mosip_esignet_cre.enabled: "true"
+      databases.mosip_esignet_cre.scriptsDir: "mosip_esignet"
+      databases.mosip_esignet_cre.dbName: "mosip_esignet_cre"
+      databases.mosip_esignet_cre.dbUser: "esignetuser_cre"
+      databases.mosip_esignet_cre.branch: "release-1.8.x"
+      databases.mosip_esignet_cre.host: "postgres.${domain_name}"
+      databases.mosip_esignet_cre.port: 5432
+      databases.mosip_esignet_cre.dml: 1
+      databases.mosip_esignet_cre.repoUrl: "https://github.com/mosip/esignet.git"
+      # ---------------------------------------------------------------------------
+      # esignet-qa11 namespace (plugin 2 - mosip-identity)
+      # ---------------------------------------------------------------------------
+      databases.mosip_esignet_qa11.enabled: "true"
+      databases.mosip_esignet_qa11.scriptsDir: "mosip_esignet"
+      databases.mosip_esignet_qa11.dbName: "mosip_esignet_qa11"
+      databases.mosip_esignet_qa11.dbUser: "esignetuser_qa11"
+      databases.mosip_esignet_qa11.branch: "release-1.8.x"
+      databases.mosip_esignet_qa11.host: "postgres.${domain_name}"
+      databases.mosip_esignet_qa11.port: 5432
+      databases.mosip_esignet_qa11.dml: 1
+      databases.mosip_esignet_qa11.repoUrl: "https://github.com/mosip/esignet.git"
+      # ---------------------------------------------------------------------------
+      # esignet-sunbird namespace (plugin 3 - sunbird-rc)
+      # ---------------------------------------------------------------------------
+      databases.mosip_esignet_sunbird.enabled: "true"
+      databases.mosip_esignet_sunbird.scriptsDir: "mosip_esignet"
+      databases.mosip_esignet_sunbird.dbName: "mosip_esignet_sunbird"
+      databases.mosip_esignet_sunbird.dbUser: "esignetuser_sunbird"
+      databases.mosip_esignet_sunbird.branch: "release-1.8.x"
+      databases.mosip_esignet_sunbird.host: "postgres.${domain_name}"
+      databases.mosip_esignet_sunbird.port: 5432
+      databases.mosip_esignet_sunbird.dml: 1
+      databases.mosip_esignet_sunbird.repoUrl: "https://github.com/mosip/esignet.git"
+      # ---------------------------------------------------------------------------
+      # mock-identity-system (used with esignet namespace, plugin 1)
+      # ---------------------------------------------------------------------------
       databases.mosip_mockidentitysystem.enabled: "true"
+      databases.mosip_mockidentitysystem.scriptsDir: "mosip_mockidentitysystem"
+      databases.mosip_mockidentitysystem.dbName: "mosip_mockidentitysystem"
+      databases.mosip_mockidentitysystem.dbUser: "mockidentityuser"
       databases.mosip_mockidentitysystem.branch: "release-0.13.x"
       databases.mosip_mockidentitysystem.host: "postgres.${domain_name}"
       databases.mosip_mockidentitysystem.repoUrl: "https://github.com/mosip/esignet-mock-services.git"
       databases.mosip_mockidentitysystem.port: 5432
       databases.mosip_mockidentitysystem.dml: 1
     wait: true
-    timeout: 180
+    timeout: 300
     priority: -16
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-init-db.sh"

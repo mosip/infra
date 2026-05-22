@@ -142,7 +142,7 @@ Lower number = deployed first:
 |---|---|---|
 | -18 | postgres | postgres |
 | -17 | istio-addons-psql | postgres |
-| -16 | postgres-init-esignet, redis | esignet / redis |
+| -16 | postgres-init-esignet (`0.0.1-develop`), redis | esignet / redis | Dynamic DB creation — one DB per esignet namespace (esignet, esignet-cre, esignet-qa11, esignet-sunbird) |
 | -15 | kafka, postgres-init-mock-identity, postgres-init-signup | kafka / esignet / signup |
 | -14 | kafka-ui | kafka |
 | -12 | softhsm-esignet | softhsm |
@@ -239,7 +239,8 @@ Key eSignet hooks:
 | Hook | App | Purpose |
 |---|---|---|
 | `pre-helmsman-cleanup.sh` | (global) | **Deletes immutable Jobs before re-deploy** — run this first on re-deployments |
-| `esignet-init-db.sh` | postgres-init-esignet | Initialize DB schema |
+| `esignet-init-db.sh` | postgres-init-esignet | Pre-creates all 4 esignet namespaces (`esignet`, `esignet-cre`, `esignet-qa11`, `esignet-sunbird`) with Istio label at priority -16 so postInstall can copy `db-common-secrets` into each (namespace-specific preinstalls only run at -14) |
+| `esignet-db-postinstall.sh` | postgres-init-esignet | Copies `db-common-secrets` from `postgres` ns to all 4 esignet namespaces after init jobs complete |
 | `config-server-esignet-setup.sh` | esignet-config-server | Creates esignet ns + Istio label; copies keycloak/softhsm/db secrets; creates `esignet-domain-config` CM from `$domain_name`; pre-creates empty `esignet-misp-onboarder-key` placeholder |
 | `config-server-esignet-postinstall.sh` | esignet-config-server | Copies `esignet-config-server-share` CM from `esignet` ns to `esignet-cre`, `esignet-qa11`, `esignet-sunbird` so those instances can locate the config-server |
 | `esignet-preinstall-keycloak-init.sh` | esignet-keycloak-init | Copies keycloak-env-vars + keycloak secret to esignet ns; deletes old release; fetches all 5 client secrets from keycloak ns and exports as env vars for Helmsman `${VAR}` substitution |
@@ -504,6 +505,7 @@ All GitOps tools support `valuesFiles` + `parameters` natively — `domainConfig
 | `mock-relying-party-ui` | No `domainConfig` — uses `--set mock_relying_party_ui.*` | Frontend configmap entries, not Spring env vars |
 | `config-server` (published external chart) | Write the **complete** `envVariables` list into a runtime YAML override file (via `mktemp`) and pass as `-f "$override_file"` | Cannot modify chart source — `domainConfig` not available. List replacement means the override file must contain every entry, including domain values. See `deploy/config-server/install.sh` |
 | `keycloak` (published external chart) | Domain values filled directly in the committed `deploy/keycloak/values.yaml` per branch | Cannot modify chart source |
+| `pms-partner` / `pms-policy` (published external charts) | No `domainConfig` — uses `--set istio.gateways[0]` and `--set istio.corsPolicy.allowOrigins[0].prefix` | Charts create VirtualService only — no Gateway template. Gateway must be created separately via preInstall hook. `pms-policy` shares the `pms-partner` gateway (same gateway name in both VS configs). Setting `istio.gateways[0]` alone replaces the default 2-gateway list (`istio-system/public` + `istio-system/internal`) with the single custom gateway |
 
 #### Helm template iteration block (in each owned chart's `deployment.yaml`, or `jobs.yaml` for partner-onboarder)
 
@@ -617,6 +619,8 @@ Two charts: `esignet/` and `oidc-ui/`, both using Bitnami common library.
 - Domain values for `esignet`, `signup-service`, `mock-identity-system`, `mock-relying-party-service` come from committed `domain-values.yaml` via `-f domain-values.yaml`. Do **not** add domain prompts or `--set domainConfig.*` to install scripts — edit the committed file instead
 - `oidc-ui` and `mock-relying-party-ui` do **not** use `domainConfig` — they configure Istio hosts and app-specific configmap values via chart-specific `--set` paths; these are not Spring env vars
 - `mock-relying-party-service/templates/deployment.yaml` had a pre-existing volumes indentation bug: when `enable_insecure=true`, the static volumes (`mock-relying-party-service` ConfigMap, `conf-file`) were indented at 8 spaces while the cacerts volume was at 6, causing YAML parse failure. Fixed: all volumes list items are now at 6 spaces (consistent with `enable_insecure` cacerts volume)
+- **PMS Gateway TLS secrets must exist before deploy**: `pms-partner-cre-tls` and `pms-partner-qa11-tls` must be present in `istio-system` before the gateway preInstall hook runs — provision these via cert-manager or import manually beforehand
+- **PMS policy has no gateway of its own**: `pms-policy-cre` and `pms-policy-qa11` VS both reference the corresponding `pms-partner-*-gateway`. If pms-partner is disabled or its hook hasn't run, pms-policy traffic will fail
 - PVCs/PVs are **not deleted** on `helm delete` — must be manually cleaned up
 - `set -e` / strict flags are placed after function definitions — functionally correct but non-obvious
 - Temp env-var files (`mktemp`) from plugin config in `esignet-with-plugins/install.sh` are not cleaned up after install
@@ -628,6 +632,8 @@ Two charts: `esignet/` and `oidc-ui/`, both using Bitnami common library.
 - `esignet-keycloak-init` (eSignet standalone) runs in the **esignet namespace** with pre/postInstall hooks — mirrors the upstream MOSIP infra pattern. The preinstall fetches existing secrets from keycloak ns (empty on fresh install) and exports them for Helmsman `${VAR}` substitution as `clientSecrets[0-4]`. The postinstall syncs the 5 generated secrets back to keycloak ns.
 - `utils/keycloak-esignet-init-values.yaml` must match `esignet/deploy/keycloak/keycloak-init-values.yaml` — it is the authoritative source for the eSignet standalone Keycloak realm config. `utils/keycloak-init-values.yaml` is for Java 11/21 MOSIP platform profiles only (2 clients, no `realm_config`). Do not mix them up.
 - **MinIO re-deploy fails with PASSWORDS ERROR**: Bitnami charts require the existing `auth.rootPassword` on `helm upgrade`. Helmsman always upgrades on re-run so this error occurs on every re-deploy. Fix: the `helmsman_external.yml` workflow's "Mask sensitive secrets" step fetches and masks the minio root password from the cluster before Helmsman runs — this suppresses it from logs. No DSF changes needed; MinIO auto-generates the password on fresh install and Helmsman leaves it unchanged on re-runs (password is not passed via `--set`).
+- **postgres-init chart version is `0.0.1-develop`** (not `12.0.1`) — the published `12.0.1` chart has per-service hardcoded templates with fixed `MOSIP_DB_NAME` values and cannot support multiple esignet DBs. `0.0.1-develop` uses a single `job.yaml` that iterates over `databases:` map with configurable `scriptsDir`, `dbName`, and `dbUser` per entry. Do not revert to `12.0.1`
+- **Dynamic DB per namespace**: `scriptsDir` is fixed and must match the repo folder (`mosip_esignet`, `mosip_mockidentitysystem`); `dbName` and `dbUser` are customized per namespace (e.g. `mosip_esignet_cre` / `esignetuser_cre`). Adding a new namespace requires a new `databases.*` entry in the DSF with a unique `dbName` and `dbUser`
 - **eSignet standalone DB port is `5432`** (not `5433`) — all `postgres-init` entries in `dsf/esignet/external-dsf.yaml` use port `5432`. The Java 11/21 profiles use `5433` (custom port). Do not copy port values across profiles.
 
 ---
