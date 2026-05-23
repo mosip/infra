@@ -89,19 +89,6 @@ apps:
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-1.7.1/softhsm-esignet-sunbird-setup.sh"
 
-  esignet-config-server:
-    namespace: esignet
-    enabled: true
-    version: 12.0.1
-    chart: mosip/config-server
-    valuesFile: "$WORKDIR/utils/config-server-esignet-values.yaml"
-    wait: true
-    timeout: 1200
-    priority: -15
-    hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/config-server-esignet-setup.sh"
-      postInstall: "$WORKDIR/hooks/esignet-1.7.1/config-server-esignet-postinstall.sh"
-
   # ---------------------------------------------------------------------------
   # eSignet Keycloak Init
   # ---------------------------------------------------------------------------
@@ -130,6 +117,19 @@ apps:
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-preinstall-keycloak-init.sh"
       postInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-postinstall-keycloak-init.sh"
+
+  esignet-config-server:
+    namespace: esignet
+    enabled: true
+    version: 12.0.1
+    chart: mosip/config-server
+    valuesFile: "$WORKDIR/utils/config-server-esignet-values.yaml"
+    wait: true
+    timeout: 1200
+    priority: -14
+    hooks:
+      preInstall: "$WORKDIR/hooks/esignet-1.7.1/config-server-esignet-setup.sh"
+      postInstall: "$WORKDIR/hooks/esignet-1.7.1/config-server-esignet-postinstall.sh"      
 
   # ---------------------------------------------------------------------------
   # eSignet v1.7.1
@@ -162,7 +162,7 @@ apps:
       domainConfig.installation-domain: "${domain_name}"
     wait: true
     timeout: 600
-    priority: -14
+    priority: -13
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-preinstall.sh"
 
@@ -194,7 +194,7 @@ apps:
       domainConfig.installation-domain: "${domain_name}"
     wait: true
     timeout: 600
-    priority: -14
+    priority: -13
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-cre-preinstall.sh"
 
@@ -226,7 +226,7 @@ apps:
       domainConfig.installation-domain: "${domain_name}"
     wait: true
     timeout: 600
-    priority: -14
+    priority: -13
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-qa11-preinstall.sh"
 
@@ -258,7 +258,7 @@ apps:
       domainConfig.installation-domain: "${domain_name}"
     wait: true
     timeout: 600
-    priority: -14
+    priority: -13
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-sunbird-preinstall.sh"
 
@@ -278,7 +278,7 @@ apps:
       oidc_ui.configmaps.oidc-ui.REACT_APP_API_BASE_URL: "http://esignet.esignet/v1/esignet"
       oidc_ui.configmaps.oidc-ui.REACT_APP_SBI_DOMAIN_URI: "http://esignet.esignet"
     timeout: 1200
-    priority: -13
+    priority: -12
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-1.7.1/oidc-ui-preinstall.sh"
 
@@ -295,7 +295,7 @@ apps:
       oidc_ui.configmaps.oidc-ui.REACT_APP_API_BASE_URL: "http://esignet-cre.esignet-cre/v1/esignet"
       oidc_ui.configmaps.oidc-ui.REACT_APP_SBI_DOMAIN_URI: "http://esignet-cre.esignet-cre"
     timeout: 1200
-    priority: -13
+    priority: -12
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-1.7.1/oidc-ui-cre-preinstall.sh"
 
@@ -312,7 +312,7 @@ apps:
       oidc_ui.configmaps.oidc-ui.REACT_APP_API_BASE_URL: "http://esignet-qa11.esignet-qa11/v1/esignet"
       oidc_ui.configmaps.oidc-ui.REACT_APP_SBI_DOMAIN_URI: "http://esignet-qa11.esignet-qa11"
     timeout: 1200
-    priority: -13
+    priority: -12
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-1.7.1/oidc-ui-qa11-preinstall.sh"
 
@@ -329,7 +329,7 @@ apps:
       oidc_ui.configmaps.oidc-ui.REACT_APP_API_BASE_URL: "http://esignet-sunbird.esignet-sunbird/v1/esignet"
       oidc_ui.configmaps.oidc-ui.REACT_APP_SBI_DOMAIN_URI: "http://esignet-sunbird.esignet-sunbird"
     timeout: 1200
-    priority: -13
+    priority: -12
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-1.7.1/oidc-ui-sunbird-preinstall.sh"
 
@@ -345,7 +345,7 @@ apps:
     valuesFile: "$WORKDIR/utils/softhsm-mock-identity-system-values.yaml"
     wait: true
     timeout: 480
-    priority: -11
+    priority: -12
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-1.7.1/softhsm-mock-identity-system-preinstall.sh"
       postInstall: "$WORKDIR/hooks/esignet-1.7.1/softhsm-mock-identity-system-postinstall.sh"
