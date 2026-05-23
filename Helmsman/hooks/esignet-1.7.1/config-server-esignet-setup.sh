@@ -23,7 +23,7 @@
 set -euo pipefail
 
 ESIGNET_NS="${ESIGNET_NS:-esignet}"
-KEYCLOAK_NS="keycloak"
+KEYCLOAK_NS="esignet"
 POSTGRES_NS="postgres"
 SOFTHSM_NS="softhsm"
 COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
@@ -36,9 +36,9 @@ echo "================================================"
 kubectl create namespace "$ESIGNET_NS" --dry-run=client -o yaml | kubectl apply -f -
 kubectl label namespace "$ESIGNET_NS" istio-injection=enabled --overwrite
 
-# --- Step 2: Copy keycloak resources ---
-echo "Copying keycloak-host configmap from $KEYCLOAK_NS"
-$COPY_UTIL configmap keycloak-host "$KEYCLOAK_NS" "$ESIGNET_NS"
+# # --- Step 2: Copy keycloak resources ---
+# echo "Copying keycloak-host configmap from $KEYCLOAK_NS"
+# $COPY_UTIL configmap keycloak-host "$KEYCLOAK_NS" "$ESIGNET_NS"
 
 echo "Copying keycloak secrets from $KEYCLOAK_NS"
 $COPY_UTIL secret keycloak "$KEYCLOAK_NS" "$ESIGNET_NS"
