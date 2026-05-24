@@ -1,78 +1,32 @@
 #!/bin/bash
 # Post-install hook for esignet-keycloak-init (eSignet 1.7.1 standalone)
-# Syncs keycloak-client-secrets from esignet namespace back to keycloak namespace.
-# Mirrors hooks/esignet-postinstall-keycloak-init.sh but skips config-server sync
-# since config-server is not deployed in the eSignet standalone profile.
+# The chart runs in keycloak ns and creates keycloak-host CM and
+# keycloak-client-secrets secret there. This hook fans those resources out to
+# all esignet namespaces so every esignet instance can reference them without
+# cross-namespace lookups.
 set -euo pipefail
 
-NS="esignet"
 KEYCLOAK_NS="keycloak"
 COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
-PMS_CLIENT_SECRET_KEY="mosip_pms_client_secret"
-MPARTNER_DEFAULT_AUTH_SECRET_KEY="mpartner_default_auth_secret"
-IDA_CLIENT_SECRET_KEY="mosip_ida_client_secret"
-DEPLOYMENT_CLIENT_SECRET_KEY="mosip_deployment_client_secret"
-MPARTNER_DEFAULT_MOBILE_SECRET_KEY="mpartner_default_mobile_secret"
+
+# All esignet namespaces that need keycloak resources
+ESIGNET_NAMESPACES=(esignet esignet-cre esignet-qa11 esignet-sunbird)
 
 echo "================================================"
 echo "eSignet 1.7.1 - Keycloak Init Post-install"
 echo "================================================"
 
-echo "Checking keycloak-client-secrets in $KEYCLOAK_NS namespace"
-KEYCLOAK_PMS_SECRET=$(kubectl -n "$KEYCLOAK_NS" get secret keycloak-client-secrets \
-  -o jsonpath="{.data.$PMS_CLIENT_SECRET_KEY}" 2>/dev/null || echo "")
-KEYCLOAK_MPARTNER_SECRET=$(kubectl -n "$KEYCLOAK_NS" get secret keycloak-client-secrets \
-  -o jsonpath="{.data.$MPARTNER_DEFAULT_AUTH_SECRET_KEY}" 2>/dev/null || echo "")
-KEYCLOAK_IDA_SECRET=$(kubectl -n "$KEYCLOAK_NS" get secret keycloak-client-secrets \
-  -o jsonpath="{.data.$IDA_CLIENT_SECRET_KEY}" 2>/dev/null || echo "")
-KEYCLOAK_DEPLOYMENT_SECRET=$(kubectl -n "$KEYCLOAK_NS" get secret keycloak-client-secrets \
-  -o jsonpath="{.data.$DEPLOYMENT_CLIENT_SECRET_KEY}" 2>/dev/null || echo "")
-KEYCLOAK_MOBILE_SECRET=$(kubectl -n "$KEYCLOAK_NS" get secret keycloak-client-secrets \
-  -o jsonpath="{.data.$MPARTNER_DEFAULT_MOBILE_SECRET_KEY}" 2>/dev/null || echo "")
-
-if [ -z "$KEYCLOAK_PMS_SECRET" ] || [ -z "$KEYCLOAK_MPARTNER_SECRET" ] || \
-   [ -z "$KEYCLOAK_IDA_SECRET" ] || [ -z "$KEYCLOAK_DEPLOYMENT_SECRET" ] || \
-   [ -z "$KEYCLOAK_MOBILE_SECRET" ]; then
-  echo "Syncing keycloak-client-secrets from $NS to $KEYCLOAK_NS namespace"
-
-  if ! kubectl -n "$NS" get secret keycloak-client-secrets &>/dev/null; then
-    echo "ERROR: keycloak-client-secrets not found in $NS namespace" >&2
-    exit 1
+echo "Sharing keycloak resources from $KEYCLOAK_NS to all esignet namespaces"
+for NS_TARGET in "${ESIGNET_NAMESPACES[@]}"; do
+  if ! kubectl get namespace "$NS_TARGET" &>/dev/null; then
+    echo "Namespace $NS_TARGET does not exist, skipping"
+    continue
   fi
-
-  JQ_FILTER="."
-  ESIGNET_PMS_SECRET=$(kubectl -n "$NS" get secret keycloak-client-secrets \
-    -o jsonpath="{.data.$PMS_CLIENT_SECRET_KEY}" 2>/dev/null || echo "")
-  ESIGNET_MPARTNER_SECRET=$(kubectl -n "$NS" get secret keycloak-client-secrets \
-    -o jsonpath="{.data.$MPARTNER_DEFAULT_AUTH_SECRET_KEY}" 2>/dev/null || echo "")
-  ESIGNET_IDA_SECRET=$(kubectl -n "$NS" get secret keycloak-client-secrets \
-    -o jsonpath="{.data.$IDA_CLIENT_SECRET_KEY}" 2>/dev/null || echo "")
-  ESIGNET_DEPLOYMENT_SECRET=$(kubectl -n "$NS" get secret keycloak-client-secrets \
-    -o jsonpath="{.data.$DEPLOYMENT_CLIENT_SECRET_KEY}" 2>/dev/null || echo "")
-  ESIGNET_MOBILE_SECRET=$(kubectl -n "$NS" get secret keycloak-client-secrets \
-    -o jsonpath="{.data.$MPARTNER_DEFAULT_MOBILE_SECRET_KEY}" 2>/dev/null || echo "")
-
-  [ -n "$ESIGNET_PMS_SECRET" ] && \
-    JQ_FILTER="$JQ_FILTER | .data[\"$PMS_CLIENT_SECRET_KEY\"]=\"$ESIGNET_PMS_SECRET\""
-  [ -n "$ESIGNET_MPARTNER_SECRET" ] && \
-    JQ_FILTER="$JQ_FILTER | .data[\"$MPARTNER_DEFAULT_AUTH_SECRET_KEY\"]=\"$ESIGNET_MPARTNER_SECRET\""
-  [ -n "$ESIGNET_IDA_SECRET" ] && \
-    JQ_FILTER="$JQ_FILTER | .data[\"$IDA_CLIENT_SECRET_KEY\"]=\"$ESIGNET_IDA_SECRET\""
-  [ -n "$ESIGNET_DEPLOYMENT_SECRET" ] && \
-    JQ_FILTER="$JQ_FILTER | .data[\"$DEPLOYMENT_CLIENT_SECRET_KEY\"]=\"$ESIGNET_DEPLOYMENT_SECRET\""
-  [ -n "$ESIGNET_MOBILE_SECRET" ] && \
-    JQ_FILTER="$JQ_FILTER | .data[\"$MPARTNER_DEFAULT_MOBILE_SECRET_KEY\"]=\"$ESIGNET_MOBILE_SECRET\""
-
-  if kubectl -n "$KEYCLOAK_NS" get secret keycloak-client-secrets &>/dev/null; then
-    kubectl -n "$KEYCLOAK_NS" get secret keycloak-client-secrets -o json | \
-      jq "$JQ_FILTER" | kubectl apply -f -
-  else
-    echo "keycloak-client-secrets not found in $KEYCLOAK_NS, copying from $NS"
-    $COPY_UTIL secret keycloak-client-secrets "$NS" "$KEYCLOAK_NS"
-  fi
-  echo "keycloak-client-secrets synced to $KEYCLOAK_NS namespace."
-else
-  echo "Secrets already exist in $KEYCLOAK_NS namespace, skipping sync."
-fi
+  echo "  → $NS_TARGET"
+  $COPY_UTIL configmap keycloak-host        "$KEYCLOAK_NS" "$NS_TARGET"
+  $COPY_UTIL configmap keycloak-env-vars    "$KEYCLOAK_NS" "$NS_TARGET"
+  $COPY_UTIL secret    keycloak             "$KEYCLOAK_NS" "$NS_TARGET"
+  $COPY_UTIL secret    keycloak-client-secrets "$KEYCLOAK_NS" "$NS_TARGET"
+done
 
 echo "Post-install setup complete."

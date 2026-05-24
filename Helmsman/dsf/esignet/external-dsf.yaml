@@ -375,6 +375,40 @@ apps:
     priority: -3
 
   # ---------------------------------------------------------------------------
+  # eSignet Keycloak Init
+  # ---------------------------------------------------------------------------
+  # Runs in keycloak ns (after keycloak at -12) so all keycloak resources
+  # (keycloak secret, keycloak-env-vars CM) are already present — no preInstall
+  # copying needed. The chart creates keycloak-host CM and keycloak-client-secrets
+  # secret in keycloak ns. The postInstall hook fans both out to all esignet
+  # namespaces so they are ready when esignet-dsf runs.
+  esignet-keycloak-init:
+    namespace: keycloak
+    enabled: true
+    version: 12.0.2
+    chart: mosip/keycloak-init
+    valuesFile: "$WORKDIR/utils/keycloak-esignet-init-values.yaml"
+    set:
+      keycloakExternalHost: "iam.${domain_name}"
+      keycloakInternalHost: "keycloak.keycloak"
+      keycloak.realms.mosip.realm_config.attributes.frontendUrl: "https://iam.${domain_name}/auth"
+      clientSecrets[0].name: "${PMS_CLIENT_SECRET_KEY}"
+      clientSecrets[0].secret: "${PMS_CLIENT_SECRET_VALUE}"
+      clientSecrets[1].name: "${MPARTNER_DEFAULT_AUTH_SECRET_KEY}"
+      clientSecrets[1].secret: "${MPARTNER_DEFAULT_AUTH_SECRET_VALUE}"
+      clientSecrets[2].name: "${IDA_CLIENT_SECRET_KEY}"
+      clientSecrets[2].secret: "${IDA_CLIENT_SECRET_VALUE}"
+      clientSecrets[3].name: "${DEPLOYMENT_CLIENT_SECRET_KEY}"
+      clientSecrets[3].secret: "${DEPLOYMENT_CLIENT_SECRET_VALUE}"
+      clientSecrets[4].name: "${MPARTNER_DEFAULT_MOBILE_SECRET_KEY}"
+      clientSecrets[4].secret: "${MPARTNER_DEFAULT_MOBILE_SECRET_VALUE}"
+    wait: true
+    timeout: 480
+    priority: -1
+    hooks:
+      preInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-preinstall-keycloak-init.sh"
+      postInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-postinstall-keycloak-init.sh"
+  # ---------------------------------------------------------------------------
   # Captcha Validation Service
   # ---------------------------------------------------------------------------
   captcha:
