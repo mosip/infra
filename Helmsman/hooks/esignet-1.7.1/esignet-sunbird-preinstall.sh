@@ -17,6 +17,17 @@ CAPTCHA_SECRET_KEY="${ESIGNET_SUNBIRD_CAPTCHA_SECRET_KEY:?ERROR: ESIGNET_SUNBIRD
 
 "$WORKDIR/hooks/esignet-1.7.1/esignet-preinstall.sh"
 
+# Override postgres-config with Sunbird-specific DB values
+kubectl -n "$ESIGNET_NS" patch configmap postgres-config --type merge \
+  -p '{"data":{"database-name":"mosip_esignet_sunbird","database-username":"esignetuser_sunbird"}}'
+
+# Create esignet-misp-onboarder-key placeholder — real value written by MISP onboarder.
+if ! kubectl -n "$ESIGNET_NS" get secret esignet-misp-onboarder-key &>/dev/null; then
+  kubectl -n "$ESIGNET_NS" create secret generic esignet-misp-onboarder-key \
+    --from-literal=mosip-esignet-misp-key=""
+  echo "esignet-misp-onboarder-key placeholder created in $ESIGNET_NS"
+fi
+
 echo "Creating esignet-captcha-sunbird secret in $CAPTCHA_NS namespace"
 kubectl -n "$CAPTCHA_NS" create secret generic esignet-captcha-sunbird \
   --from-literal=esignet-captcha-site-key="$CAPTCHA_SITE_KEY" \

@@ -2,6 +2,66 @@
 # pluginNameEnv=mosip-identity-plugin.jar set in DSF set: block.
 # Update IDA service URLs below to match your MOSIP IDA deployment.
 
+# Override full extraEnvVars to use namespace-specific softhsm secret name.
+extraEnvVars:
+  - name: KEYCLOAK_EXTERNAL_URL
+    valueFrom:
+      configMapKeyRef:
+        name: keycloak-host
+        key: keycloak-external-url
+  - name: MOSIP_ESIGNET_CAPTCHA_MODULE_NAME
+    value: esignet
+  - name: REDIS_HOST
+    valueFrom:
+      configMapKeyRef:
+        name: redis-config
+        key: redis-host
+  - name: REDIS_PORT
+    valueFrom:
+      configMapKeyRef:
+        name: redis-config
+        key: redis-port
+  - name: REDIS_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: redis
+        key: redis-password
+  - name: DATABASE_HOST
+    valueFrom:
+      configMapKeyRef:
+        name: postgres-config
+        key: database-host
+  - name: DATABASE_PORT
+    valueFrom:
+      configMapKeyRef:
+        name: postgres-config
+        key: database-port
+  - name: DATABASE_NAME
+    valueFrom:
+      configMapKeyRef:
+        name: postgres-config
+        key: database-name
+  - name: DATABASE_USERNAME
+    valueFrom:
+      configMapKeyRef:
+        name: postgres-config
+        key: database-username
+  - name: DB_DBUSER_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: db-common-secrets
+        key: db-dbuser-password
+  - name: SOFTHSM_ESIGNET_SECURITY_PIN
+    valueFrom:
+      secretKeyRef:
+        name: esignet-softhsm-cre
+        key: security-pin
+  - name: MOSIP_IDA_CLIENT_SECRET
+    valueFrom:
+      secretKeyRef:
+        name: keycloak-client-secrets
+        key: mosip_ida_client_secret
+
 extraEnvVarsAdditional:
   - name: "MOSIP_ESIGNET_CAPTCHA_MODULE_NAME"
     value: "esignetcre"
