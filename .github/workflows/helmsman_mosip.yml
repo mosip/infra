@@ -181,7 +181,7 @@ jobs:
 
           # Run helmsman with the determined mode and profile
           echo "Using profile: $PROFILE"
-          helmsman --${HELMSMAN_MODE} -f $WORKDIR/dsf/${PROFILE}/mosip-dsf.yaml
+          helmsman --${HELMSMAN_MODE} --always-upgrade -f $WORKDIR/dsf/${PROFILE}/mosip-dsf.yaml
 
       - name: Health Check MOSIP Pods
         run: |
