@@ -7,13 +7,13 @@
 # ============================================================
 
 # Environment name (infra component)
-cluster_name = "estest"
+cluster_name = "esqa3"
 
 # eSignet's domain (ex: esignet.xyz.net)
-cluster_env_domain = "estest.mosip.net"
+cluster_env_domain = "esqa3.mosip.net"
 
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
-mosip_email_id = "thisisbn46@gmail.com"
+mosip_email_id = "swapnil.mohanty@technoforte.co.in"
 
 # SSH login key name for AWS node instances (ex: my-ssh-key)
 ssh_key_name = "mosip-aws"
@@ -74,11 +74,11 @@ WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 
 # Rancher Import Configuration
 enable_rancher_import = true
-rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/pvrrm8hwsd26f7nsjjx24pvclvdl9h6hw6md947dvnj6t8q2lqcvf2_c-m-tfmg22p2.yaml\""
+rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/gc2gxkjxhqfgjzcncm25xg4qg64bvlb9xrf2q2rm5xvxxlqrd98jg2_c-m-pllzmsl9.yaml\""
 
 # DNS Records to map — only eSignet-relevant subdomains
 
-subdomain_public   = ["esignet", "healthservices", "signup", "healthservices-mock", "esignet-mock", "signup-mock", "esignet-sunbird", "healthservices-mosipid", "esignet-mosipid", "pms-partner-cre", "pms-policy-cre", "signup-mosipid", "healthservices-mosipid-qabase", "esignet-mosipid-qabase", "pms-partner", "pms-policy", "signup-mosipid-qabase"]
+subdomain_public   = ["esignet", "healthservices", "signup", "healthservices-mock", "esignet-mock", "signup-mock", "esignet-sunbird", "healthservices-mosipid", "esignet-mosipid", "pms-partner-cre", "pms-policy-cre", "signup-mosipid", "healthservices-mosipid-qa11new", "esignet-mosipid-qa11new", "pms-partner", "pms-policy", "signup-mosipid-qa11new"]
 subdomain_internal = ["iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio"]
 
 # PostgreSQL Configuration
@@ -91,7 +91,7 @@ postgresql_port         = "5433"
 # MOSIP Infrastructure Repository Configuration
 mosip_infra_repo_url = "https://github.com/mosip/infra.git"
 
-mosip_infra_branch = "MOSIP-44613"
+mosip_infra_branch = "DSD-10304"
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
 vpc_name = "default"
