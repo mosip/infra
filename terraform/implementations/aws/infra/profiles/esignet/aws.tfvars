@@ -7,10 +7,10 @@
 # ============================================================
 
 # Environment name (infra component)
-cluster_name = "esqa3"
+cluster_name = "esqa181"
 
 # eSignet's domain (ex: esignet.xyz.net)
-cluster_env_domain = "esqa3.mosip.net"
+cluster_env_domain = "esqa181.mosip.net"
 
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
 mosip_email_id = "swapnil.mohanty@technoforte.co.in"
@@ -74,7 +74,7 @@ WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 
 # Rancher Import Configuration
 enable_rancher_import = true
-rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/gc2gxkjxhqfgjzcncm25xg4qg64bvlb9xrf2q2rm5xvxxlqrd98jg2_c-m-pllzmsl9.yaml\""
+rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/p2ws6bmmhlcf428qtxgllnkq29kl4j8wrmtlrjwrxpzqbpck596fl4_c-m-srnp8nkd.yaml\""
 
 # DNS Records to map — only eSignet-relevant subdomains
 
@@ -91,7 +91,7 @@ postgresql_port         = "5433"
 # MOSIP Infrastructure Repository Configuration
 mosip_infra_repo_url = "https://github.com/mosip/infra.git"
 
-mosip_infra_branch = "DSD-10304"
+mosip_infra_branch = "DSD-10312"
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
 vpc_name = "default"
