@@ -17,6 +17,9 @@ CAPTCHA_SECRET_KEY="${ESIGNET_CRE_CAPTCHA_SECRET_KEY:?ERROR: ESIGNET_CRE_CAPTCHA
 
 "$WORKDIR/hooks/esignet-1.7.1/esignet-preinstall.sh"
 
+# Copy esignet-domain-config from esignet ns (replaces 'global' CM referenced by chart defaults)
+$COPY_UTIL configmap esignet-domain-config esignet "$ESIGNET_NS"
+
 # Override postgres-config with CRE-specific DB values
 kubectl -n "$ESIGNET_NS" patch configmap postgres-config --type merge \
   -p '{"data":{"database-name":"mosip_esignet_cre","database-username":"esignetuser_cre"}}'

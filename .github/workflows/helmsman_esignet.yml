@@ -83,6 +83,10 @@ jobs:
             QABASE_DOMAIN="${{ github.event.inputs.qabase_domain_name || vars.QABASE_DOMAIN_NAME }}"
             echo "✓ cre_domain_name    = $CRE_DOMAIN (esignet standalone)"
             echo "✓ qabase_domain_name = $QABASE_DOMAIN (esignet standalone)"
+            CRE_SPRING_LABEL="${{ vars.ESIGNET_CRE_SPRING_CONFIG_LABEL }}"
+            QA11_SPRING_LABEL="${{ vars.ESIGNET_QA11_SPRING_CONFIG_LABEL }}"
+            echo "✓ cre_spring_config_label  = ${CRE_SPRING_LABEL:-develop} (esignet standalone, default: develop)"
+            echo "✓ qa11_spring_config_label = ${QA11_SPRING_LABEL:-develop} (esignet standalone, default: develop)"
           else
             CRE_PROVIDED="${{ github.event.inputs.cre_domain_name }}"
             QABASE_PROVIDED="${{ github.event.inputs.qabase_domain_name }}"
@@ -119,6 +123,11 @@ jobs:
       ESIGNET_QA11_CAPTCHA_SECRET_KEY:  ${{ secrets.ESIGNET_QA11_CAPTCHA_SECRET_KEY }}
       ESIGNET_SUNBIRD_CAPTCHA_SITE_KEY:   ${{ secrets.ESIGNET_SUNBIRD_CAPTCHA_SITE_KEY }}
       ESIGNET_SUNBIRD_CAPTCHA_SECRET_KEY: ${{ secrets.ESIGNET_SUNBIRD_CAPTCHA_SECRET_KEY }}
+      # Spring config label per namespace — controls which Git branch/tag the config-server uses
+      # Set as Environment Variables in Repository → Settings → Environments → <branch> → Variables
+      # If unset, hooks default to 'develop'
+      ESIGNET_CRE_SPRING_CONFIG_LABEL:  ${{ vars.ESIGNET_CRE_SPRING_CONFIG_LABEL }}
+      ESIGNET_QA11_SPRING_CONFIG_LABEL: ${{ vars.ESIGNET_QA11_SPRING_CONFIG_LABEL }}
       # Cluster access secrets
       KUBECONFIG_SECRET: ${{ secrets.KUBECONFIG }}
       CLUSTER_WIREGUARD_WG0: ${{ secrets.CLUSTER_WIREGUARD_WG0 }}

@@ -66,7 +66,7 @@ extraEnvVarsAdditional:
   - name: "MOSIP_ESIGNET_CAPTCHA_SITE_KEY"
     valueFrom:
       secretKeyRef:
-        name: esignet-captcha
+        name: esignet-captcha-sunbird
         key: esignet-captcha-site-key
 
   # ---------------------------------------------------------------------------

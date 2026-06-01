@@ -152,7 +152,8 @@ apps:
       pluginNameEnv: "mosip-identity-plugin.jar"
       pluginUrlEnv: ""
       extraEnvVarsCM[0]: "esignet-softhsm-cre-share"
-      #extraEnvVarsCM[1]: "kafka-config"
+      extraEnvVarsCM[1]: "esignet-domain-config"
+      extraEnvVarsCM[2]: "esignet-config-server-share"
       metrics.serviceMonitor.enabled: "false"
       domainConfig.MOSIP_ESIGNET_HOST: "esignet-mosipid-cre.${domain_name}"
       domainConfig.MOSIP_SIGNUP_HOST: "signup-mosipid-cre.${domain_name}"
@@ -184,7 +185,8 @@ apps:
       pluginNameEnv: "mosip-identity-plugin.jar"
       pluginUrlEnv: ""
       extraEnvVarsCM[0]: "esignet-softhsm-qa11-share"
-      #extraEnvVarsCM[1]: "kafka-config"
+      extraEnvVarsCM[1]: "esignet-domain-config"
+      extraEnvVarsCM[2]: "esignet-config-server-share"
       metrics.serviceMonitor.enabled: "false"
       domainConfig.MOSIP_ESIGNET_HOST: "esignet-mosipid-qa11.${domain_name}"
       domainConfig.MOSIP_SIGNUP_HOST: "signup-mosipid-qa11.${domain_name}"
@@ -486,6 +488,8 @@ apps:
       # image.tag: "1.2.2.3"
       istio.gateways[0]: "pms-partner-cre-gateway"
       istio.corsPolicy.allowOrigins[0].prefix: "https://pms-cre.${domain_name}"
+      extraEnvVarsCM[0]: "esignet-domain-config"
+      extraEnvVarsCM[1]: "esignet-config-server-share"
     priority: -9
     timeout: 1200
     hooks:
@@ -501,6 +505,8 @@ apps:
       # image.tag: "1.2.2.2"
       istio.gateways[0]: "pms-partner-cre-gateway"
       istio.corsPolicy.allowOrigins[0].prefix: "https://pms-cre.${domain_name}"
+      extraEnvVarsCM[0]: "esignet-domain-config"
+      extraEnvVarsCM[1]: "esignet-config-server-share"
     priority: -9
     timeout: 1200
 
@@ -514,6 +520,8 @@ apps:
       # image.tag: "1.2.2.3"
       istio.gateways[0]: "pms-partner-qa11-gateway"
       istio.corsPolicy.allowOrigins[0].prefix: "https://pms-qa11.${domain_name}"
+      extraEnvVarsCM[0]: "esignet-domain-config"
+      extraEnvVarsCM[1]: "esignet-config-server-share"
     priority: -9
     timeout: 1200
     hooks:
@@ -528,6 +536,8 @@ apps:
       # image.repository: "mosipid/policy-management-service"
       # image.tag: "1.2.2.2"
       istio.gateways[0]: "pms-partner-qa11-gateway"
+      extraEnvVarsCM[0]: "esignet-domain-config"
+      extraEnvVarsCM[1]: "esignet-config-server-share"
       istio.corsPolicy.allowOrigins[0].prefix: "https://pms-qa11.${domain_name}"
     priority: -9
     timeout: 1200     
