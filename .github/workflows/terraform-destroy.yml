@@ -18,7 +18,7 @@ name: terraform destroy
 
 # Prevent concurrent destroy runs for same component
 concurrency:
-  group: terraform-destroy-${{ github.event.inputs.CLOUD_PROVIDER }}-${{ github.event.inputs.TERRAFORM_COMPONENT }}-${{ github.ref_name }}
+  group: terraform-destroy-${{ github.event.inputs.CLOUD_PROVIDER }}-${{ github.event.inputs.TERRAFORM_COMPONENT }}-${{ github.event.inputs.INFRA_PROFILE }}-${{ github.ref_name }}
   cancel-in-progress: false
 
 on:
@@ -41,6 +41,14 @@ on:
           - base-infra
           - observ-infra
         default: infra
+      INFRA_PROFILE:
+        description: 'Infrastructure profile (only for infra component — ignored for base-infra/observ-infra)'
+        required: false
+        type: choice
+        options:
+          - mosip
+          - esignet
+        default: mosip
       BACKEND_TYPE:
         description: 'Choose Terraform backend type (must match the one used during creation)'
         required: true
@@ -76,7 +84,7 @@ env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   TF_VAR_ssh_private_key: ${{ secrets[inputs.SSH_PRIVATE_KEY] }}
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  GITHUB_TOKEN: ${{ secrets.GH_INFRA_PAT }}
 
 jobs:
   terraform-destroy:
@@ -94,7 +102,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Full history needed for rebase
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GH_INFRA_PAT }}
 
       - name: Check for required implementation directory
         run: |
@@ -105,11 +113,17 @@ jobs:
             exit 1
           fi
           
-          # Check if tfvars file exists
-          if [ ! -f "${{ inputs.CLOUD_PROVIDER }}.tfvars" ]; then
-            echo "Configuration file '${{ inputs.CLOUD_PROVIDER }}.tfvars' not found in current directory."
+          # Check if tfvars file exists (profile-aware for infra component)
+          TFVARS_FILE="${{ inputs.CLOUD_PROVIDER }}.tfvars"
+          if [ "${{ inputs.TERRAFORM_COMPONENT }}" = "infra" ] && [ -n "${{ inputs.INFRA_PROFILE }}" ]; then
+            TFVARS_FILE="profiles/${{ inputs.INFRA_PROFILE }}/${{ inputs.CLOUD_PROVIDER }}.tfvars"
+          fi
+          if [ ! -f "$TFVARS_FILE" ]; then
+            echo "Configuration file '$TFVARS_FILE' not found in current directory."
             exit 1
           fi
+          echo "TFVARS_FILE=$TFVARS_FILE" >> $GITHUB_ENV
+          echo "Using tfvars: $TFVARS_FILE"
 
       - name: Check Cloud Storage for Remote State (All Providers)
         run: |
@@ -169,13 +183,18 @@ jobs:
       - name: Configure Terraform Backend for State Management
         run: |
           # Use backend configuration script for cleaner code
+          PROFILE_ARG=""
+          if [ "${{ inputs.TERRAFORM_COMPONENT }}" = "infra" ] && [ -n "${{ inputs.INFRA_PROFILE }}" ]; then
+            PROFILE_ARG="--profile ${{ inputs.INFRA_PROFILE }}"
+          fi
           ../../../../.github/scripts/configure-backend.sh \
             --type "${{ inputs.BACKEND_TYPE }}" \
             --provider "${{ inputs.CLOUD_PROVIDER }}" \
             --component "${{ inputs.TERRAFORM_COMPONENT }}" \
             --branch "${{ github.ref_name }}" \
             --remote-config "${{ inputs.REMOTE_BACKEND_CONFIG }}" \
-            ${{ inputs.ENABLE_STATE_LOCKING == true && '--enable-locking' || '' }}
+            ${{ inputs.ENABLE_STATE_LOCKING == true && '--enable-locking' || '' }} \
+            $PROFILE_ARG
 
       - name: Skip SSH Host key verification
         run: |
@@ -314,7 +333,8 @@ jobs:
         run: |
           ../../../../.github/scripts/decrypt-state.sh \
             --backend-type "${{ inputs.BACKEND_TYPE }}" \
-            --passphrase "${{ secrets.GPG_PASSPHRASE }}"
+            --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
+            --operation "destroy"
 
       - name: Display Destruction Warning
         run: |
@@ -348,20 +368,20 @@ jobs:
           fi
 
       - name: Terraform refresh
-        run: terraform refresh -input=false -var-file="${{ inputs.CLOUD_PROVIDER }}.tfvars" -no-color
+        run: terraform refresh -input=false -var-file="$TFVARS_FILE" -no-color
         if: "${{ inputs.TERRAFORM_DESTROY  == true }}"
 
       - name: Terraform Destroy Plan
         id: destroy-plan
         run: |
           echo "Showing what will be destroyed..."
-          terraform plan -destroy -input=false -var-file="${{ inputs.CLOUD_PROVIDER }}.tfvars" -no-color
+          terraform plan -destroy -input=false -var-file="$TFVARS_FILE" -no-color
         if: "${{ inputs.TERRAFORM_DESTROY  == true }}"
         continue-on-error: true
 
       - name: Terraform Destroy
         id: destroy
-        run: terraform destroy -input=false -var-file="${{ inputs.CLOUD_PROVIDER }}.tfvars" -no-color -auto-approve
+        run: terraform destroy -input=false -var-file="$TFVARS_FILE" -no-color -auto-approve
         if: "${{ inputs.TERRAFORM_DESTROY  == true }}"
         continue-on-error: true
 
@@ -414,9 +434,17 @@ jobs:
               --destroy-success "false"
               
             echo "Adding encrypted state files for debugging purposes"
+            # Extract dynamic path from backend.tf to commit targeted profile states
+            if [ -f "backend.tf" ]; then
+              BACKEND_PATH=$(grep -A 5 'backend "local"' backend.tf | grep 'path' | sed 's/.*path = "\([^"]*\)".*/\1/' | head -1)
+              if [ -n "$BACKEND_PATH" ]; then
+                git add -f "${BACKEND_PATH}*" 2>/dev/null || echo "No isolated state files to add for $BACKEND_PATH"
+              fi
+            fi
+
             # Add both unencrypted (if any remain) and encrypted state files
-            git add -f *.tfstate* 2>/dev/null || echo "No .tfstate files found"
-            git add -f *.gpg 2>/dev/null || echo "No .gpg files found"
+            git add -f *.tfstate* 2>/dev/null || echo "No base .tfstate files found"
+            git add -f *.gpg 2>/dev/null || echo "No base .gpg files found"
           fi
           
           git add -f backend.tf 2>/dev/null || echo "No backend.tf file found"
@@ -475,7 +503,7 @@ jobs:
             echo "Changes committed and pushed successfully"
           fi
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_INFRA_PAT }}
         if: "${{ inputs.TERRAFORM_DESTROY == true }}"
       - name: Terraform destroy status
         if: ${{ steps.destroy.outcome == 'failure' }}

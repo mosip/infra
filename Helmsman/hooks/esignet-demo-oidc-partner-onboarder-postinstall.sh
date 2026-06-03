@@ -166,7 +166,16 @@ function postinstall_demo_oidc_partner_onboarder() {
     kubectl -n $NS set env deployment/mock-relying-party-ui CLIENT_ID="$DEMO_OIDC_CLIENT_ID" || \
       echo "mock-relying-party-ui deployment not found, skipping env update"
   fi
-
+  kubectl label ns $NS istio-injection=enabled --overwrite || \
+    echo "WARNING: Could not label namespace $NS for Istio injection"
+  kubectl rollout restart deployment/esignet -n $NS || \
+    echo "esignet deployment not found, skipping restart"
+  kubectl rollout restart deployment/oidc-ui -n $NS || \
+    echo "oidc-ui deployment not found, skipping restart"
+  kubectl rollout restart deployment/mock-relying-party-service -n $NS || \
+    echo "mock-relying-party-service deployment not found, skipping restart"
+  kubectl rollout restart deployment/mock-relying-party-ui -n $NS || \
+    echo "mock-relying-party-ui deployment not found, skipping restart"
   echo "Reports are available in S3 under onboarder bucket"
   echo "Demo OIDC partner onboarder post-install setup complete"
   return 0

@@ -46,6 +46,16 @@ variable "ZONE_ID" { type = string }
 variable "NGINX_NODE_ROOT_VOLUME_SIZE" { type = number }
 variable "NGINX_NODE_EBS_VOLUME_SIZE" { type = number }
 variable "NGINX_NODE_EBS_VOLUME_SIZE_2" { type = number }
+variable "NGINX_NODE_EBS_VOLUME_SIZE_3" {
+  type        = number
+  default     = 0
+  description = "EBS volume size (GB) for ActiveMQ data on the NGINX node — set to 0 to disable"
+}
+variable "enable_activemq_setup" {
+  description = "Enable ActiveMQ EBS volume setup on the NGINX node"
+  type        = bool
+  default     = false
+}
 variable "K8S_INSTANCE_ROOT_VOLUME_SIZE" { type = number }
 
 variable "DNS_RECORDS" {
@@ -120,7 +130,14 @@ echo "[ Mount EBS volume to /srv/nfs directory ] : "
 file -s /dev/nvme1n1
 mkfs -t xfs /dev/nvme1n1
 mkdir -p /srv/nfs
-echo "/dev/nvme1n1    /srv/nfs xfs  defaults,nofail  0  2" >> /etc/fstab
+UUID=$(blkid -o value -s UUID /dev/nvme1n1)
+if [ -z "$UUID" ]; then
+  echo "Failed to resolve UUID for /dev/nvme1n1" >&2
+  exit 1
+fi
+if ! grep -qE "^[[:space:]]*UUID=$UUID[[:space:]]+/srv/nfs[[:space:]]+xfs[[:space:]]+" /etc/fstab; then
+  echo "UUID=$UUID    /srv/nfs xfs  defaults,nofail  0  2" >> /etc/fstab
+fi
 mount -a
 systemctl daemon-reload
 
@@ -166,6 +183,17 @@ EOF
       encrypted             = false
       tags = {
         Name      = "${local.TAG_NAME.NGINX_TAG_NAME}-vol2"
+        Cluster   = var.CLUSTER_NAME
+        Component = var.CLUSTER_NAME
+      }
+      }] : [], var.enable_activemq_setup && var.NGINX_NODE_EBS_VOLUME_SIZE_3 > 0 ? [{
+      device_name           = "/dev/sdd"
+      volume_size           = var.NGINX_NODE_EBS_VOLUME_SIZE_3
+      volume_type           = "gp3"
+      delete_on_termination = true
+      encrypted             = false
+      tags = {
+        Name      = "${local.TAG_NAME.NGINX_TAG_NAME}-vol3"
         Cluster   = var.CLUSTER_NAME
         Component = var.CLUSTER_NAME
       }

@@ -155,7 +155,7 @@ jobs:
             echo "Mode: All prerequisite namespaces"
             echo "Uninstalling Istio using istioctl..."
             istioctl uninstall --purge -y || true
-            NAMESPACES=(cattle-logging-system istio-system istio-operator httpbin)
+            NAMESPACES=(cattle-logging-system istio-system istio-operator httpbin cattle-monitoring-system)
           fi
           
           echo ""
