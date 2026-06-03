@@ -62,14 +62,14 @@ apps:
   conf-secrets:
     namespace: conf-secrets 
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-rc.1
     chart: mosip/conf-secrets
     priority: -29
 
   config-server:
     namespace: config-server
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-rc.1
     chart: mosip/config-server
     set:
       # image.repository: "mosipdev/kernel-config-server"
@@ -84,7 +84,7 @@ apps:
   artifactory:
     namespace: artifactory
     enabled: true
-    version: 1.3.0
+    version: 1.3.2-rc.1
     chart: mosip/artifactory
     # set:
     #   image.repository: "mosipdev/artifactory-server"
@@ -104,7 +104,7 @@ apps:
   captcha:
     namespace: captcha
     enabled: true
-    version: 0.1.0
+    version: 0.1.1
     chart: mosip/captcha
     # set:
       # image.repository: "mosipdev/captcha-validation-service"
@@ -121,7 +121,7 @@ apps:
   mock-abis:
     namespace: abis
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-rc.1
     chart: mosip/mock-abis
     # set:
     #   image.repository: "mosipdev/mock-abis"
@@ -136,7 +136,7 @@ apps:
   mock-mv:
     namespace: abis
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-rc.1
     chart: mosip/mock-mv
     # set:
     #   image.repository: "mosipdev/mock-mv"
@@ -152,7 +152,7 @@ apps:
   kernel-keygen:
     namespace: keymanager
     enabled: true
-    version: 1.3.0
+    version: 1.4.1-rc.1
     chart: mosip/keygen
     set:
       # image.repository: "mosipdev/keys-generator"
@@ -171,7 +171,7 @@ apps:
   keymanager:
     namespace: keymanager
     enabled: true
-    version: 1.3.0
+    version: 1.4.1-rc.1
     chart: mosip/keymanager
     set:
       # image.repository: "mosipdev/kernel-keymanager-service"
@@ -190,7 +190,7 @@ apps:
   websub-consolidator:
     namespace: websub
     enabled: true
-    version: 1.3.0
+    version: 1.3.2-rc.1
     chart: mosip/websub-consolidator
     # set:
       # image.repository: "mosipdev/consolidator-websub-service"
@@ -202,7 +202,7 @@ apps:
   websub:
     namespace: websub
     enabled: true
-    version: 1.3.0
+    version: 1.3.2-rc.1
     chart: mosip/websub
     # set:
       # image.repository: "mosipdev/websub-service"
@@ -230,7 +230,7 @@ apps:
     set:
       # image.repository: "mosipdev/masterdata-loader"
       # image.tag: "release-1.3.x"
-      mosipDataGithubBranch: "v1.3.0"
+      mosipDataGithubBranch: "v1.3.2-rc.1"
       mosipDataGithubRepo: "https://github.com/mosip/mosip-data"
       mosipDataXlsfolderPath: "/home/mosip/mosip-data/mosip_master/xlsx"
       db.host: "postgres.${domain_name}"
@@ -242,18 +242,18 @@ apps:
   authmanager:
     namespace: kernel
     enabled: true
-    version: 1.3.0
+    version: 1.3.1
     chart: mosip/authmanager
     # set:
-      # image.repository: "gokulraj13/kernel-auth-service"
-      # image.tag: "MOSIP-test"
+      # image.repository: "mosipdev/kernel-auth-service"
+      # image.tag: "release-1.3.x"
     priority: -17
     timeout: 1200
 
   auditmanager:
     namespace: kernel
     enabled: true
-    version: 1.3.0
+    version: 1.3.2-rc.1
     chart: mosip/auditmanager
     # set:
       # image.repository: "mosipdev/kernel-auditmanager-service"
@@ -264,7 +264,7 @@ apps:
   idgenerator:
     namespace: kernel
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-rc.1
     chart: mosip/idgenerator
     # set:
       # image.repository: "mosipdev/kernel-idgenerator-service"
@@ -281,7 +281,7 @@ apps:
   masterdata:
     namespace: kernel
     enabled: true
-    version: 1.3.0
+    version: 1.3.1
     chart: mosip/masterdata
     set:
       # image.repository: "mosipdev/kernel-masterdata-service"
@@ -309,7 +309,7 @@ apps:
   pridgenerator:
     namespace: kernel
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-rc.1
     chart: mosip/pridgenerator
     # set:
       # image.repository: "mosipdev/kernel-pridgenerator-service"
@@ -320,7 +320,7 @@ apps:
   ridgenerator:
     namespace: kernel
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-rc.1
     chart: mosip/ridgenerator
     # set:
       # image.repository: "mosipdev/kernel-ridgenerator-service"
@@ -331,7 +331,7 @@ apps:
   syncdata:
     namespace: kernel
     enabled: true
-    version: 1.3.0
+    version: 1.3.1
     chart: mosip/syncdata
     # set:
       # image.repository: "mosipdev/kernel-syncdata-service"
@@ -347,7 +347,7 @@ apps:
   notifier:
     namespace: kernel
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-rc.1
     chart: mosip/notifier
     # set:
       # image.repository: "mosipdev/kernel-notification-service"
@@ -358,7 +358,7 @@ apps:
   biosdk-service:
     namespace: biosdk
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-rc.1
     chart: mosip/biosdk-service
     set:
       # image.repository: "mosipdev/biosdk-server"
@@ -371,7 +371,7 @@ apps:
   packetmanager:
     namespace: packetmanager
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-rc.1
     chart: mosip/packetmanager
     # set:
     #   image.repository: "mosipdev/commons-packet-service"
@@ -382,7 +382,7 @@ apps:
   datashare:
     namespace: datashare
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-rc.1
     chart: mosip/datashare
     # set:
     #   image.repository: "mosipdev/data-share-service"
@@ -428,7 +428,7 @@ apps:
   prereg-booking:
     namespace: prereg
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-rc.1
     chart: mosip/prereg-booking
     # set:
     #   image.repository: "mosipdev/pre-registration-booking-service"
@@ -473,7 +473,7 @@ apps:
   idrepo-saltgen:
     namespace: idrepo
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-rc.1
     chart: mosip/idrepo-saltgen
     # set:
     #   image.repository: "mosipdev/id-repository-salt-generator"
@@ -485,7 +485,7 @@ apps:
   credential:
     namespace: idrepo
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-rc.1
     chart: mosip/credential
     # set:
     #   image.repository: "mosipdev/credential-service"
@@ -500,7 +500,7 @@ apps:
   credentialrequest:
     namespace: idrepo
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-rc.1
     chart: mosip/credentialrequest
     # set:
     #   image.repository: "mosipdev/credential-request-generator"
@@ -515,7 +515,7 @@ apps:
   identity:
     namespace: idrepo
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-rc.1
     chart: mosip/identity
     # set:
     #   image.repository: "mosipdev/id-repository-identity-service"
@@ -526,7 +526,7 @@ apps:
   vid:
     namespace: idrepo
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-rc.1
     chart: mosip/vid
     # set:
     #   image.repository: "mosipdev/id-repository-vid-service"
@@ -603,7 +603,7 @@ apps:
   regproc-salt:
     namespace: regproc
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-rc.1
     chart: mosip/regproc-salt
     # set:
     #   image.repository: "mosipdev/kernel-salt-generator"
@@ -614,7 +614,7 @@ apps:
   regproc-workflow:
     namespace: regproc
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-rc.1
     chart: mosip/regproc-workflow
     # set:
     #   resources.limits.cpu: "500m"
@@ -632,7 +632,7 @@ apps:
   regproc-status:
     namespace: regproc
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-rc.1
     chart: mosip/regproc-status
     # set:
     #   resources.limits.cpu: "500m"
@@ -648,7 +648,7 @@ apps:
   regproc-camel:
     namespace: regproc
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-rc.1
     chart: mosip/regproc-camel
     # set:
     #   resources.limits.cpu: "1"
@@ -664,7 +664,7 @@ apps:
   regproc-pktserver:
     namespace: regproc
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-rc.1
     chart: mosip/regproc-pktserver
     # set:
     #   resources.limits.cpu: "500m"
@@ -680,7 +680,7 @@ apps:
   regproc-group1:
     namespace: regproc
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-rc.1
     chart: mosip/regproc-group1
     set:
       # resources.limits.cpu: "1"
@@ -698,7 +698,7 @@ apps:
   regproc-group2:
     namespace: regproc
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-rc.1
     chart: mosip/regproc-group2
     # set:
       # image.repository: "mosipdev/registration-processor-stage-group-2"
@@ -715,7 +715,7 @@ apps:
   regproc-group3:
     namespace: regproc
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-rc.1
     chart: mosip/regproc-group3
     # set:
     #   image.repository: "mosipdev/registration-processor-stage-group-3"
@@ -731,7 +731,7 @@ apps:
   regproc-group4:
     namespace: regproc
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-rc.1
     chart: mosip/regproc-group4
     # set:
     #   image.repository: "mosipdev/registration-processor-stage-group-4"
@@ -747,7 +747,7 @@ apps:
   regproc-group5:
     namespace: regproc
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-rc.1
     chart: mosip/regproc-group5
     # set:
     #   image.repository: "mosipdev/registration-processor-stage-group-5"
@@ -763,7 +763,7 @@ apps:
   regproc-group6:
     namespace: regproc
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-rc.1
     chart: mosip/regproc-group6
     # set:
     #   image.repository: "mosipdev/registration-processor-stage-group-6"
@@ -779,7 +779,7 @@ apps:
   regproc-group7:
     namespace: regproc
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-rc.1
     chart: mosip/regproc-group7
     # set:
     #   image.repository: "mosipdev/registration-processor-stage-group-8"
@@ -795,7 +795,7 @@ apps:
   regproc-trans:
     namespace: regproc
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-rc.1
     chart: mosip/regproc-trans
     # set:
     #   image.repository: "mosipdev/registration-processor-registration-transaction-service"
@@ -811,7 +811,7 @@ apps:
   regproc-notifier:
     namespace: regproc
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-rc.1
     chart: mosip/regproc-notifier
     # set:
     #   resources.limits.cpu: "500m"
@@ -827,7 +827,7 @@ apps:
   regproc-reprocess:
     namespace: regproc
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-rc.1
     chart: mosip/regproc-reprocess
     # set:
     #   resources.limits.cpu: "500m"
@@ -843,7 +843,7 @@ apps:
   regproc-landingzone:
     namespace: regproc
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-rc.1
     chart: mosip/regproc-landingzone
     # set:
     #   resources.limits.cpu: "500m"
@@ -859,7 +859,7 @@ apps:
   admin-hotlist:
     namespace: admin
     enabled: true
-    version: 1.3.0
+    version: 1.3.1
     chart: mosip/admin-hotlist
     # set:
     #   image.repository: "mosipdev/hotlist-service"
@@ -875,7 +875,7 @@ apps:
   admin-service:
     namespace: admin
     enabled: true
-    version: 1.3.0
+    version: 1.3.1
     chart: mosip/admin-service
     set:
       # image.repository: "mosipdev/admin-service"
@@ -906,7 +906,7 @@ apps:
   ida-keygen:
     namespace: ida
     enabled: true
-    version: 1.3.0
+    version: 1.4.1-rc.1
     chart: mosip/keygen
     set:
       # image.repository: "mosipdev/keys-generator"
@@ -924,7 +924,7 @@ apps:
   ida-auth:
     namespace: ida
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-rc.1
     chart: mosip/ida-auth
     set:
       # image.repository: "mosipdev/authentication-service"
@@ -942,7 +942,7 @@ apps:
   ida-internal:
     namespace: ida
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-rc.1
     chart: mosip/ida-internal
     # set:
       # image.repository: "mosipdev/authentication-internal-service"
@@ -958,7 +958,7 @@ apps:
   ida-otp:
     namespace: ida
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-rc.1
     chart: mosip/ida-otp
     # set:
     #   image.repository: "mosipdev/authentication-otp-service"
@@ -974,7 +974,7 @@ apps:
   print-service:
     namespace: print
     enabled: true
-    version: 1.3.0
+    version: 1.3.1
     chart: mosip/print-service
     # set:
     #   image.repository: "mosipdev/print"
@@ -1028,7 +1028,7 @@ apps:
   partner-onboarder:
     namespace: onboarder
     enabled: true
-    version: 1.3.0
+    version: 1.3.1
     chart: mosip/partner-onboarder
     set:
       # image.repository: "mosipqa/partner-onboarder"
