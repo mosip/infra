@@ -97,15 +97,15 @@ extraEnvVarsAdditional:
     value: '@phone'
   - name: MOSIP_ESIGNET_UI_CONFIG_LOGIN_ID_OPTIONS
     value: >-
-      {{ 'id': 'mobile', 'svg': 'mobile_icon', 'prefixes': {{'label':
+      {{ "{{" }} 'id': 'mobile', 'svg': 'mobile_icon', 'prefixes': {{ "{{" }}'label':
       'IND', 'value': '+91', 'maxLength': '', 'regex': ''},{'label':
-      'KHM', 'value': '+855', 'regex': ''}}, 'postfix': '@phone',
+      'KHM', 'value': '+855', 'regex': ''{{ "}}" }}, 'postfix': '@phone',
       'maxLength': '', 'regex': '' }, { 'id': 'nrc', 'svg':
       'nrc_id_icon', 'prefixes': '', 'postfix': '@nrc', 'maxLength':
       '', 'regex': '' }, { 'id': 'vid', 'svg': 'vid_icon', 'prefixes':
       '', 'postfix': '', 'maxLength': '', 'regex': '' }, { 'id':
       'email', 'svg': 'email_icon', 'prefixes': '', 'postfix':
-      '@email', 'maxLength': '', 'regex': '' }}
+      '@email', 'maxLength': '', 'regex': '' {{ "}}" }}
   - name: LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB_CLIENT
     value: DEBUG
   - name: MOSIP_ESIGNET_CAPTCHA_REQUIRED
