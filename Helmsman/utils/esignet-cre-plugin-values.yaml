@@ -75,24 +75,41 @@ extraEnvVarsAdditional:
   # Plugin 2: mosip-identity-plugin
   # Update URLs to match your MOSIP IDA deployment.
   # ---------------------------------------------------------------------------
-  - name: "MOSIP_ESIGNET_AUTHENTICATOR_IDA_CERT_URL"
-    value: "http://mosip-file-server.mosip-file-server/mosip-certs/ida-partner.cer"
-  - name: "MOSIP_ESIGNET_AUTHENTICATOR_IDA_KYC-AUTH-URL"
-    value: "http://ida-auth.ida/idauthentication/v1/kyc-auth/delegated/${mosip.esignet.authenticator.ida.misp-license-key}/"
-  - name: "MOSIP_ESIGNET_AUTHENTICATOR_IDA_KYC-EXCHANGE-URL"
-    value: "http://ida-auth.ida/idauthentication/v1/kyc-exchange/delegated/${mosip.esignet.authenticator.ida.misp-license-key}/"
-  - name: "MOSIP_ESIGNET_AUTHENTICATOR_IDA_SEND-OTP-URL"
-    value: "http://ida-otp.ida/idauthentication/v1/otp/${mosip.esignet.authenticator.ida.misp-license-key}/"
-  - name: "MOSIP_ESIGNET_BINDER_IDA_KEY-BINDING-URL"
-    value: "http://ida-auth.ida/idauthentication/v1/identity-key-binding/delegated/${mosip.esignet.authenticator.ida.misp-license-key}/"
-  - name: "MOSIP_ESIGNET_AUTHENTICATOR_IDA_GET-CERTIFICATES-URL"
-    value: "http://ida-internal.ida/idauthentication/v1/internal/getAllCertificates"
-  - name: "MOSIP_ESIGNET_AUTHENTICATOR_IDA_AUTH-TOKEN-URL"
-    value: "http://authmanager.kernel/v1/authmanager/authenticate/clientidsecretkey"
-  - name: "MOSIP_ESIGNET_AUTHENTICATOR_IDA_AUDIT-MANAGER-URL"
-    value: "http://auditmanager.kernel/v1/auditmanager/audits"
-  - name: "MOSIP_ESIGNET_AUTHENTICATOR_IDA_OTP-CHANNELS"
-    value: "email,phone"
+  - name: NAMESPACE
+    value: mosipid-cre
+  - name: plugin_name_env
+    value: mosip-identity-plugin.jar
+  - name: SPRING_KAFKA_CONSUMER_GROUP_ID
+    value: esignet-consumer-esignet-cre
+  - name: MOSIP_ESIGNET_SIGNUP_ID_TOKEN_AUDIENCE
+    value: esignet-cre-signup-esqa020
+  - name: MOSIP_ESIGNET_AUTHENTICATOR_IDA_OTP_CHANNELS
+    value: email,phone
+  - name: MOSIP_ESIGNET_SEND_OTP_ATTEMPTS
+    value: '300'
+  - name: MOSIP_ESIGNET_AUTHENTICATE_ATTEMPTS
+    value: '300'
+  - name: MOSIP_ESIGNET_AUTHENTICATION_EXPIRE_IN_SECS
+    value: '600'
+  - name: MOSIP_ESIGNET_PREAUTHENTICATION_EXPIRE_IN_SECS
+    value: '600'
+  - name: MOSIP_ESIGNET_UI_CONFIG_USERNAME_POSTFIX
+    value: '@phone'
+  - name: MOSIP_ESIGNET_UI_CONFIG_LOGIN_ID_OPTIONS
+    value: >-
+      {{ 'id': 'mobile', 'svg': 'mobile_icon', 'prefixes': {{'label':
+      'IND', 'value': '+91', 'maxLength': '', 'regex': ''},{'label':
+      'KHM', 'value': '+855', 'regex': ''}}, 'postfix': '@phone',
+      'maxLength': '', 'regex': '' }, { 'id': 'nrc', 'svg':
+      'nrc_id_icon', 'prefixes': '', 'postfix': '@nrc', 'maxLength':
+      '', 'regex': '' }, { 'id': 'vid', 'svg': 'vid_icon', 'prefixes':
+      '', 'postfix': '', 'maxLength': '', 'regex': '' }, { 'id':
+      'email', 'svg': 'email_icon', 'prefixes': '', 'postfix':
+      '@email', 'maxLength': '', 'regex': '' }}
+  - name: LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB_CLIENT
+    value: DEBUG
+  - name: MOSIP_ESIGNET_CAPTCHA_REQUIRED
+    value: "true"
   - name: "MOSIP_ESIGNET_MISP_KEY"
     valueFrom:
       secretKeyRef:
