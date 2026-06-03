@@ -304,7 +304,7 @@ apps:
   activemq:
     namespace: activemq
     enabled: true
-    version: 0.0.3
+    version: 0.0.4
     chart: mosip/activemq-artemis
     set:
       # image.repository: "mosipqa/activemq-artemis"
