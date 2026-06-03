@@ -226,7 +226,7 @@ apps:
   softhsm-kernel:
     namespace: softhsm
     enabled: true
-    version: 1.3.0
+    version: 1.4.1-rc.1
     chart: mosip/softhsm
     set:
       # resources.limits.cpu: "250m"
@@ -242,7 +242,7 @@ apps:
   softhsm-ida:
     namespace: softhsm
     enabled: true
-    version: 1.3.0
+    version: 1.4.1-rc.1
     chart: mosip/softhsm
     set:
       # resources.limits.cpu: "250m"
