@@ -154,6 +154,8 @@ apps:
       postgresql.image.registry: "docker.io"
       postgresql.image.repository: "mosipid/postgresql"
       postgresql.image.tag: "14.2.0-debian-10-r70"
+      # postgresql.primary.limits.requests.cpu: 250m
+      # postgresql.primary.limits.requests.memory: 256Mi      
       postgresql.primary.resources.requests.cpu: 250m
       postgresql.primary.resources.requests.memory: 256Mi
       # postgresql.architecture: replication
@@ -182,6 +184,7 @@ apps:
       rbac.rules[0].resources[0]: "pods"
       rbac.rules[0].verbs[0]: "get"
       rbac.rules[0].verbs[1]: "list"
+    valuesFile: "$WORKDIR/utils/keycloak-postgres-values.yaml"  
     wait: true
     timeout: 1200
     priority: -14

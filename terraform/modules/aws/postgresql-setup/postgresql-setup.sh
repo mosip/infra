@@ -209,6 +209,10 @@ echo '[RUN] Running PostgreSQL Ansible Playbook...'
 echo "[TIME] Starting ansible-playbook at $(date)"
 echo '[CREATE] This should take 10-15 minutes. Progress will be shown below...'
 
+# Create a temp known_hosts file for this session (used by ansible and ssh below)
+KNOWN_HOSTS_FILE=$(mktemp /tmp/ansible_known_hosts_XXXXXX)
+trap 'rm -f "$KNOWN_HOSTS_FILE"' EXIT ERR INT
+
 # Test ansible connection first
 echo '[TEST] Testing Ansible connectivity...'
 if ! timeout 30 ansible $NGINX_NODE_IP -i inventory.ini -m ping \
@@ -385,7 +389,7 @@ EOF
     SSH_KEY_FILE="$SSH_PRIVATE_KEY_FILE"
     # Transient known_hosts file: accept-new accepts unknown keys on first contact
     # and verifies them on subsequent connections within this run.
-    KNOWN_HOSTS_FILE=$(mktemp /tmp/ansible_known_hosts_XXXXXX)
+    # KNOWN_HOSTS_FILE=$(mktemp /tmp/ansible_known_hosts_XXXXXX)
     
     # Use SSH with proper error handling and private key
     if timeout 60 scp -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile="$KNOWN_HOSTS_FILE" -o ConnectTimeout=10 \
