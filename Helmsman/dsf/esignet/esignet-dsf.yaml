@@ -131,7 +131,6 @@ apps:
       domainConfig.MOSIP_POSTGRES_HOST: "postgres.${domain_name}"
       domainConfig.MOSIP_SMTP_HOST: "smtp.${domain_name}"
       domainConfig.installation-domain: "${domain_name}"
-    wait: true
     timeout: 600
     priority: -14
     hooks:
@@ -172,7 +171,6 @@ apps:
       domainConfig.MOSIP_ESIGNET_IDA_AUTH_DOMAIN: "https://api-internal.${cre_domain_name}"
       domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_IDA_DOMAINURI: "https://esignet-mosipid-cre.${domain_name}"
       domainConfig.MOSIP_ESIGNET_DOMAIN_URL: "https://esignet-mosipid-cre.${domain_name}"
-    wait: true
     timeout: 600
     priority: -14
     hooks:
@@ -213,7 +211,6 @@ apps:
       domainConfig.MOSIP_ESIGNET_IDA_AUTH_DOMAIN: "https://api-internal.${qabase_domain_name}"
       domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_IDA_DOMAINURI: "https://esignet-mosipid-qa11.${domain_name}"
       domainConfig.MOSIP_ESIGNET_DOMAIN_URL: "https://esignet-mosipid-qa11.${domain_name}"
-    wait: true
     timeout: 600
     priority: -14
     hooks:
@@ -245,7 +242,6 @@ apps:
       domainConfig.MOSIP_POSTGRES_HOST: "postgres.${domain_name}"
       domainConfig.MOSIP_SMTP_HOST: "smtp.${domain_name}"
       domainConfig.installation-domain: "${domain_name}"
-    wait: true
     timeout: 600
     priority: -14
     hooks:

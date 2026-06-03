@@ -76,13 +76,13 @@ extraEnvVarsAdditional:
   # Update URLs to match your MOSIP IDA deployment.
   # ---------------------------------------------------------------------------
   - name: NAMESPACE
-    value: mosipid-cre
+    value: mosipid-qa11
   - name: plugin_name_env
     value: mosip-identity-plugin.jar
   - name: SPRING_KAFKA_CONSUMER_GROUP_ID
-    value: esignet-consumer-esignet-cre
+    value: esignet-consumer-esignet-qa11
   - name: MOSIP_ESIGNET_SIGNUP_ID_TOKEN_AUDIENCE
-    value: esignet-cre-signup-esqa020
+    value: esignet-qa11-signup-esqa020
   - name: MOSIP_ESIGNET_AUTHENTICATOR_IDA_OTP_CHANNELS
     value: email,phone
   - name: MOSIP_ESIGNET_SEND_OTP_ATTEMPTS
