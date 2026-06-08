@@ -343,7 +343,7 @@ apps:
 
   minio:
     namespace: minio
-    enabled: false
+    enabled: true
     version: 10.1.6
     chart: mosip/minio
     set:
