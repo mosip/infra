@@ -513,10 +513,34 @@ jobs:
           echo "Using kubectl: $(which kubectl)"
           echo "Using kubeconfig: $KUBECONFIG"
           
+          # For esignet standalone: skip softhsm upgrade if releases already exist.
+          # The softhsm chart regenerates a random PIN on every helm upgrade (randNumeric 8).
+          # If either the softhsm pod or the esignet pod restarts after a PIN rotation,
+          # they read the new PIN but the PVC token has the old one → CKR_PIN_INCORRECT.
+          # Fix: skip softhsm upgrade on re-runs so the PIN in the secret never changes.
+          SKIP_RELEASES_ARG=""
+          if [ "$PROFILE" = "esignet" ]; then
+            SKIP_RELEASES=""
+            for pair in "esignet-softhsm:esignet" "esignet-softhsm-cre:esignet-cre" "esignet-softhsm-qa11:esignet-qa11" "esignet-softhsm-sunbird:esignet-sunbird"; do
+              release="${pair%%:*}"
+              ns="${pair##*:}"
+              if helm status "$release" -n "$ns" &>/dev/null; then
+                echo "✓ $release already installed in $ns — skipping upgrade to preserve SoftHSM PIN"
+                SKIP_RELEASES="${SKIP_RELEASES:+$SKIP_RELEASES,}$release"
+              else
+                echo "⬆ $release not found in $ns — will install fresh"
+              fi
+            done
+            if [ -n "$SKIP_RELEASES" ]; then
+              SKIP_RELEASES_ARG="--skip-releases $SKIP_RELEASES"
+              echo "SoftHSM releases skipped: $SKIP_RELEASES"
+            fi
+          fi
+
           # Run helmsman with the determined mode
           # --keep-untracked-releases prevents deletion of releases managed by other DSF files (e.g., postgres-init from external-dsf)
           echo "Using DSF: $WORKDIR/dsf/$PROFILE/esignet-dsf.yaml"
-          helmsman --${HELMSMAN_MODE} --keep-untracked-releases -f $WORKDIR/dsf/$PROFILE/esignet-dsf.yaml
+          helmsman --${HELMSMAN_MODE} --keep-untracked-releases $SKIP_RELEASES_ARG -f $WORKDIR/dsf/$PROFILE/esignet-dsf.yaml
 
       - name: Label namespace on successful deployment
         if: success() && env.HELMSMAN_MODE == 'apply'

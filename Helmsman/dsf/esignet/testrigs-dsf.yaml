@@ -1,0 +1,238 @@
+helmDefaults:
+  tillerNamespace: kube-system
+  tillerless: true
+  install: true
+
+helmRepos:
+  bitnami: https://charts.bitnami.com/bitnami
+  mosip: https://mosip.github.io/mosip-helm
+
+# Apitestrigs deploy into service namespaces (no dedicated testrig namespaces):
+#   esignet-apitestrig            → esignet ns
+#   esignet-cre-apitestrig        → esignet-cre ns
+#   esignet-qa11-apitestrig       → esignet-qa11 ns
+#   esignet-sunbird-apitestrig    → esignet-sunbird ns
+#   esignet-signup-apitestrig     → signup ns        (disabled — enable if signup deployed)
+#   signup-uitestrig              → signup-uitestrig  (disabled — enable if signup deployed)
+namespaces:
+  signup-uitestrig:
+    protected: false
+
+apps:
+  # ---------------------------------------------------------------------------
+  # eSignet API Testrig — main esignet namespace
+  # ---------------------------------------------------------------------------
+  esignet-apitestrig:
+    namespace: esignet
+    enabled: true
+    version: 0.0.1-develop
+    chart: mosip/apitestrig
+    valuesFile: "$WORKDIR/utils/esignet-apitestrig-values.yaml"
+    set:
+      extraEnvVarsSecret[0]: "apitestrig-esignet-apitestrig"
+      extraEnvVarsSecret[1]: "s3-esignet-apitestrig"
+      extraEnvVarsSecret[2]: "keycloak-client-secrets"
+      extraEnvVarsSecret[3]: "postgres-postgresql"
+      crontime: "0 2 * * *"
+      apitestrig.configmaps.s3.s3-host: 'http://minio.minio:9000'
+      apitestrig.configmaps.s3.s3-user-key: 'admin'
+      apitestrig.configmaps.s3.s3-region: ''
+      apitestrig.configmaps.db.db-server: "api-internal.${domain_name}"
+      apitestrig.configmaps.db.db-su-user: "postgres"
+      apitestrig.configmaps.db.db-port: "5432"
+      apitestrig.configmaps.apitestrig.ENV_USER: "api-internal.${env_name}"
+      apitestrig.configmaps.apitestrig.ENV_ENDPOINT: "https://esignet.${domain_name}"
+      apitestrig.configmaps.apitestrig.ENV_TESTLEVEL: "smokeAndRegression"
+      apitestrig.configmaps.apitestrig.reportExpirationInDays: "3"
+      apitestrig.configmaps.apitestrig.slack-webhook-url: "${SLACK_WEBHOOK_URL}"
+      apitestrig.configmaps.apitestrig.eSignetDeployed: "yes"
+      apitestrig.configmaps.apitestrig.NS: "esignet"
+      apitestrig.configmaps.apitestrig.servicesNotDeployed: ''
+      apitestrig.configmaps.apitestrig.uinGenerationProcessingDelayTimeInMilliSeconds: "90000"
+      apitestrig.configmaps.apitestrig.vidGenerationProcessingDelayTimeInMilliSeconds: "90000"
+      apitestrig.configmaps.apitestrig.uinGenMaxLoopCount: "20"
+      secrets.s3.s3-user-secret: "${MINIO_ROOT_PASSWORD}"
+      apitestrig.variables.push_reports_to_s3: "yes"
+    priority: -5
+    hooks:
+      preInstall: "$WORKDIR/hooks/esignet-1.7.1/apitestrig-esignet-setup.sh"
+
+  # ---------------------------------------------------------------------------
+  # eSignet API Testrig — esignet-cre namespace (mosip-identity-plugin)
+  # ---------------------------------------------------------------------------
+  esignet-cre-apitestrig:
+    namespace: esignet-cre
+    enabled: true
+    version: 0.0.1-develop
+    chart: mosip/apitestrig
+    valuesFile: "$WORKDIR/utils/esignet-apitestrig-values.yaml"
+    set:
+      extraEnvVarsSecret[0]: "apitestrig-esignet-cre-apitestrig"
+      extraEnvVarsSecret[1]: "s3-esignet-cre-apitestrig"
+      extraEnvVarsSecret[2]: "keycloak-client-secrets"
+      extraEnvVarsSecret[3]: "postgres-postgresql"
+      crontime: "0 2 * * *"
+      apitestrig.configmaps.s3.s3-host: 'http://minio.minio:9000'
+      apitestrig.configmaps.s3.s3-user-key: 'admin'
+      apitestrig.configmaps.s3.s3-region: ''
+      apitestrig.configmaps.db.db-server: "api-internal.${cre_domain_name}"
+      apitestrig.configmaps.db.db-su-user: "postgres"
+      apitestrig.configmaps.db.db-port: "5432"
+      apitestrig.configmaps.apitestrig.ENV_USER: "api-internal.${env_name}"
+      apitestrig.configmaps.apitestrig.ENV_ENDPOINT: "https://esignet-cre.${domain_name}"
+      apitestrig.configmaps.apitestrig.ENV_TESTLEVEL: "smokeAndRegression"
+      apitestrig.configmaps.apitestrig.reportExpirationInDays: "3"
+      apitestrig.configmaps.apitestrig.slack-webhook-url: "${SLACK_WEBHOOK_URL}"
+      apitestrig.configmaps.apitestrig.eSignetDeployed: "yes"
+      apitestrig.configmaps.apitestrig.NS: "esignet-cre"
+      apitestrig.configmaps.apitestrig.servicesNotDeployed: 'sunbirdrc'
+      apitestrig.configmaps.apitestrig.uinGenerationProcessingDelayTimeInMilliSeconds: "90000"
+      apitestrig.configmaps.apitestrig.vidGenerationProcessingDelayTimeInMilliSeconds: "90000"
+      apitestrig.configmaps.apitestrig.uinGenMaxLoopCount: "20"
+      apitestrig.configmaps.apitestrig.mosip_components_base_urls: "auditmanager=api-internal.${cre_domain_name};idrepository=api-internal.${cre_domain_name};authmanager=api-internal.${cre_domain_name};resident=api-internal.${cre_domain_name};partnermanager=pms-partner-cre.${cre_domain_name};idauthentication=api-internal.${cre_domain_name};masterdata=api-internal.${cre_domain_name};idgenerator=api-internal.${cre_domain_name};policymanager=pms-partner-cre.${cre_domain_name};preregistration=api-internal.${cre_domain_name};keymanager=api-internal.${cre_domain_name};"
+      secrets.s3.s3-user-secret: "${MINIO_ROOT_PASSWORD}"
+      apitestrig.variables.push_reports_to_s3: "yes"
+    priority: -4
+    hooks:
+      preInstall: "$WORKDIR/hooks/esignet-1.7.1/apitestrig-esignet-cre-setup.sh"
+
+  # ---------------------------------------------------------------------------
+  # eSignet API Testrig — esignet-qa11 namespace (mosip-identity-plugin)
+  # ---------------------------------------------------------------------------
+  esignet-qa11-apitestrig:
+    namespace: esignet-qa11
+    enabled: true
+    version: 0.0.1-develop
+    chart: mosip/apitestrig
+    valuesFile: "$WORKDIR/utils/esignet-apitestrig-values.yaml"
+    set:
+      extraEnvVarsSecret[0]: "apitestrig-esignet-qa11-apitestrig"
+      extraEnvVarsSecret[1]: "s3-esignet-qa11-apitestrig"
+      extraEnvVarsSecret[2]: "keycloak-client-secrets"
+      extraEnvVarsSecret[3]: "postgres-postgresql"
+      crontime: "0 2 * * *"
+      apitestrig.configmaps.s3.s3-host: 'http://minio.minio:9000'
+      apitestrig.configmaps.s3.s3-user-key: 'admin'
+      apitestrig.configmaps.s3.s3-region: ''
+      apitestrig.configmaps.db.db-server: "api-internal.${qabase_domain_name}"
+      apitestrig.configmaps.db.db-su-user: "postgres"
+      apitestrig.configmaps.db.db-port: "5432"
+      apitestrig.configmaps.apitestrig.ENV_USER: "api-internal.${env_name}"
+      apitestrig.configmaps.apitestrig.ENV_ENDPOINT: "https://esignet-qa11.${domain_name}"
+      apitestrig.configmaps.apitestrig.ENV_TESTLEVEL: "smokeAndRegression"
+      apitestrig.configmaps.apitestrig.reportExpirationInDays: "3"
+      apitestrig.configmaps.apitestrig.slack-webhook-url: "${SLACK_WEBHOOK_URL}"
+      apitestrig.configmaps.apitestrig.eSignetDeployed: "yes"
+      apitestrig.configmaps.apitestrig.NS: "esignet-qa11"
+      apitestrig.configmaps.apitestrig.servicesNotDeployed: 'sunbirdrc'
+      apitestrig.configmaps.apitestrig.uinGenerationProcessingDelayTimeInMilliSeconds: "90000"
+      apitestrig.configmaps.apitestrig.vidGenerationProcessingDelayTimeInMilliSeconds: "90000"
+      apitestrig.configmaps.apitestrig.uinGenMaxLoopCount: "20"
+      apitestrig.configmaps.apitestrig.mosip_components_base_urls: "auditmanager=api-internal.${qabase_domain_name};idrepository=api-internal.${qabase_domain_name};authmanager=api-internal.${qabase_domain_name};resident=api-internal.${qabase_domain_name};partnermanager=pms-partner-cre.${qabase_domain_name};idauthentication=api-internal.${qabase_domain_name};masterdata=api-internal.${qabase_domain_name};idgenerator=api-internal.${qabase_domain_name};policymanager=pms-partner-cre.${qabase_domain_name};preregistration=api-internal.${qabase_domain_name};keymanager=api-internal.${qabase_domain_name};"
+      secrets.s3.s3-user-secret: "${MINIO_ROOT_PASSWORD}"
+      apitestrig.variables.push_reports_to_s3: "yes"
+    priority: -3
+    hooks:
+      preInstall: "$WORKDIR/hooks/esignet-1.7.1/apitestrig-esignet-qa11-setup.sh"
+
+  # ---------------------------------------------------------------------------
+  # eSignet API Testrig — esignet-sunbird namespace (sunbird-rc-plugin)
+  # postInstall triggers all four testrig namespaces after last one deploys.
+  # ---------------------------------------------------------------------------
+  esignet-sunbird-apitestrig:
+    namespace: esignet-sunbird
+    enabled: true
+    version: 0.0.1-develop
+    chart: mosip/apitestrig
+    valuesFile: "$WORKDIR/utils/esignet-apitestrig-values.yaml"
+    set:
+      extraEnvVarsSecret[0]: "apitestrig-esignet-sunbird-apitestrig"
+      extraEnvVarsSecret[1]: "s3-esignet-sunbird-apitestrig"
+      extraEnvVarsSecret[2]: "keycloak-client-secrets"
+      extraEnvVarsSecret[3]: "postgres-postgresql"
+      crontime: "0 2 * * *"
+      apitestrig.configmaps.s3.s3-host: 'http://minio.minio:9000'
+      apitestrig.configmaps.s3.s3-user-key: 'admin'
+      apitestrig.configmaps.s3.s3-region: ''
+      apitestrig.configmaps.db.db-server: "api-internal.${domain_name}"
+      apitestrig.configmaps.db.db-su-user: "postgres"
+      apitestrig.configmaps.db.db-port: "5432"
+      apitestrig.configmaps.apitestrig.ENV_USER: "api-internal.${env_name}"
+      apitestrig.configmaps.apitestrig.ENV_ENDPOINT: "https://esignet-sunbird.${domain_name}"
+      apitestrig.configmaps.apitestrig.ENV_TESTLEVEL: "smokeAndRegression"
+      apitestrig.configmaps.apitestrig.reportExpirationInDays: "3"
+      apitestrig.configmaps.apitestrig.slack-webhook-url: "${SLACK_WEBHOOK_URL}"
+      apitestrig.configmaps.apitestrig.eSignetDeployed: "yes"
+      apitestrig.configmaps.apitestrig.NS: "esignet-sunbird"
+      apitestrig.configmaps.apitestrig.servicesNotDeployed: ''
+      apitestrig.configmaps.apitestrig.uinGenerationProcessingDelayTimeInMilliSeconds: "90000"
+      apitestrig.configmaps.apitestrig.vidGenerationProcessingDelayTimeInMilliSeconds: "90000"
+      apitestrig.configmaps.apitestrig.uinGenMaxLoopCount: "20"
+      apitestrig.configmaps.apitestrig.sunBirdBaseURL: "https://registry.${cre_domain_name}"
+      secrets.s3.s3-user-secret: "${MINIO_ROOT_PASSWORD}"
+      apitestrig.variables.push_reports_to_s3: "yes"
+    priority: -2
+    hooks:
+      preInstall: "$WORKDIR/hooks/esignet-1.7.1/apitestrig-esignet-sunbird-setup.sh"
+      postInstall: "$WORKDIR/hooks/esignet-1.7.1/trigger-test-jobs-esignet.sh"
+
+  # ---------------------------------------------------------------------------
+  # Signup API Test Rig — disabled by default
+  # Enable only if signup stack (signup-dsf) is deployed.
+  # ---------------------------------------------------------------------------
+  esignet-signup-apitestrig:
+    namespace: signup
+    enabled: false
+    version: 1.3.3
+    chart: mosip/apitestrig
+    valuesFile: "$WORKDIR/utils/esignet-signup-apitestrig-values.yaml"
+    set:
+      crontime: "0 2 * * *"
+      apitestrig.configmaps.s3.s3-host: 'http://minio.minio:9000'
+      apitestrig.configmaps.s3.s3-user-key: 'admin'
+      apitestrig.configmaps.s3.s3-region: ''
+      apitestrig.configmaps.db.db-server: "api-internal.${domain_name}"
+      apitestrig.configmaps.db.db-su-user: "postgres"
+      apitestrig.configmaps.db.db-port: "5432"
+      apitestrig.configmaps.apitestrig.ENV_USER: "api-internal.${env_name}"
+      apitestrig.configmaps.apitestrig.ENV_ENDPOINT: "https://api-internal.${domain_name}"
+      apitestrig.configmaps.apitestrig.ENV_TESTLEVEL: "smokeAndRegression"
+      apitestrig.configmaps.apitestrig.reportExpirationInDays: "3"
+      apitestrig.configmaps.apitestrig.slack-webhook-url: "${SLACK_WEBHOOK_URL}"
+      apitestrig.configmaps.apitestrig.eSignetDeployed: "yes"
+      apitestrig.configmaps.apitestrig.NS: "signup"
+      apitestrig.configmaps.apitestrig.servicesNotDeployed: ''
+      secrets.s3.s3-user-secret: "${MINIO_ROOT_PASSWORD}"
+      apitestrig.variables.push_reports_to_s3: "yes"
+    priority: -2
+    hooks:
+      preInstall: "$WORKDIR/hooks/esignet-1.7.1/apitestrig-signup-setup.sh"
+
+  # ---------------------------------------------------------------------------
+  # Signup UI Test Rig — disabled by default
+  # Enable only if signup stack (signup-dsf) is deployed.
+  # ---------------------------------------------------------------------------
+  signup-uitestrig:
+    namespace: signup-uitestrig
+    enabled: false
+    version: 0.0.1-develop
+    chart: mosip/uitestrig
+    valuesFile: "$WORKDIR/utils/signup-uitestrig-values.yaml"
+    set:
+      crontime: "0 3 * * *"
+      uitestrig.configmaps.s3.s3-host: "http://minio.minio:9000"
+      uitestrig.configmaps.s3.s3-user-key: "admin"
+      uitestrig.configmaps.s3.s3-region: ""
+      uitestrig.configmaps.db.db-server: "api-internal.${domain_name}"
+      uitestrig.configmaps.db.db-su-user: "postgres"
+      uitestrig.configmaps.db.db-port: "5432"
+      uitestrig.configmaps.uitestrig.ENV_USER: "api-internal.${env_name}"
+      uitestrig.configmaps.uitestrig.ENV_ENDPOINT: "https://api-internal.${domain_name}"
+      uitestrig.configmaps.uitestrig.reportExpirationInDays: "3"
+      uitestrig.configmaps.uitestrig.slack-webhook-url: "${SLACK_WEBHOOK_URL}"
+      uitestrig.configmaps.uitestrig.eSignetDeployed: "yes"
+      uitestrig.configmaps.uitestrig.NS: "signup-uitestrig"
+      uitestrig.variables.push_reports_to_s3: "yes"
+    priority: -1
+    hooks:
+      preInstall: "$WORKDIR/hooks/esignet-1.7.1/uitestrig-signup-setup.sh"
