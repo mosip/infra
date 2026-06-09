@@ -17,6 +17,20 @@ CAPTCHA_SECRET_KEY="${ESIGNET_SUNBIRD_CAPTCHA_SECRET_KEY:?ERROR: ESIGNET_SUNBIRD
 
 "$WORKDIR/hooks/esignet-1.7.1/esignet-preinstall.sh"
 
+# Create Sunbird-specific esignet-domain-config — same domain_name, but esignet/signup hosts differ
+kubectl -n "$ESIGNET_NS" create configmap esignet-domain-config \
+  --from-literal=installation-domain="${domain_name}" \
+  --from-literal=mosip-api-host="api.${domain_name}" \
+  --from-literal=mosip-api-internal-host="api-internal.${domain_name}" \
+  --from-literal=mosip-esignet-host="esignet-sunbird.${domain_name}" \
+  --from-literal=mosip-iam-external-host="iam.${domain_name}" \
+  --from-literal=mosip-kafka-host="kafka.${domain_name}" \
+  --from-literal=mosip-postgres-host="postgres.${domain_name}" \
+  --from-literal=mosip-signup-host="signup-sunbird.${domain_name}" \
+  --from-literal=mosip-smtp-host="smtp.${domain_name}" \
+  --from-literal=mosip-version="develop" \
+  --dry-run=client -o yaml | kubectl apply -f -
+
 # Override postgres-config with Sunbird-specific DB values
 kubectl -n "$ESIGNET_NS" patch configmap postgres-config --type merge \
   -p '{"data":{"database-name":"mosip_esignet_sunbird","database-username":"esignetuser_sunbird"}}'

@@ -121,6 +121,11 @@ jobs:
       ESIGNET_CRE_CAPTCHA_SECRET_KEY:   ${{ secrets.ESIGNET_CRE_CAPTCHA_SECRET_KEY }}
       ESIGNET_QA11_CAPTCHA_SITE_KEY:    ${{ secrets.ESIGNET_QA11_CAPTCHA_SITE_KEY }}
       ESIGNET_QA11_CAPTCHA_SECRET_KEY:  ${{ secrets.ESIGNET_QA11_CAPTCHA_SECRET_KEY }}
+      # CRE / QA11 remote Keycloak admin + Postgres passwords (for testrig secrets created at esignet deploy time)
+      CRE_KEYCLOAK_ADMIN_PASSWORD:  ${{ secrets.CRE_KEYCLOAK_ADMIN_PASSWORD }}
+      QA11_KEYCLOAK_ADMIN_PASSWORD: ${{ secrets.QA11_KEYCLOAK_ADMIN_PASSWORD }}
+      CRE_POSTGRES_PASSWORD:        ${{ secrets.CRE_POSTGRES_PASSWORD }}
+      QA11_POSTGRES_PASSWORD:       ${{ secrets.QA11_POSTGRES_PASSWORD }}
       ESIGNET_SUNBIRD_CAPTCHA_SITE_KEY:   ${{ secrets.ESIGNET_SUNBIRD_CAPTCHA_SITE_KEY }}
       ESIGNET_SUNBIRD_CAPTCHA_SECRET_KEY: ${{ secrets.ESIGNET_SUNBIRD_CAPTCHA_SECRET_KEY }}
       # Spring config label per namespace — controls which Git branch/tag the config-server uses

@@ -51,10 +51,16 @@ $COPY_UTIL secret db-common-secrets "$POSTGRES_NS" "$ESIGNET_NS"
 # domain_name is exported by the helmsman_esignet.yml workflow step
 echo "Creating esignet-domain-config configmap (domain_name=${domain_name:-UNSET})"
 kubectl -n "$ESIGNET_NS" create configmap esignet-domain-config \
+  --from-literal=installation-domain="${domain_name}" \
   --from-literal=mosip-api-host="api.${domain_name}" \
   --from-literal=mosip-api-internal-host="api-internal.${domain_name}" \
   --from-literal=mosip-esignet-host="esignet.${domain_name}" \
+  --from-literal=mosip-iam-external-host="iam.${domain_name}" \
+  --from-literal=mosip-kafka-host="kafka.${domain_name}" \
+  --from-literal=mosip-postgres-host="postgres.${domain_name}" \
   --from-literal=mosip-signup-host="signup.${domain_name}" \
+  --from-literal=mosip-smtp-host="smtp.${domain_name}" \
+  --from-literal=mosip-version="develop" \
   --dry-run=client -o yaml | kubectl apply -f -
 echo "esignet-domain-config created/updated."
 

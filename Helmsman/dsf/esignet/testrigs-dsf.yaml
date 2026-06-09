@@ -15,6 +15,14 @@ helmRepos:
 #   esignet-signup-apitestrig     → signup ns        (disabled — enable if signup deployed)
 #   signup-uitestrig              → signup-uitestrig  (disabled — enable if signup deployed)
 namespaces:
+  esignet-cre:
+    protected: false
+  esignet:
+    protected: false
+  esignet-qa11:
+    protected: false
+  esignet-sunbird:
+    protected: false
   signup-uitestrig:
     protected: false
 
