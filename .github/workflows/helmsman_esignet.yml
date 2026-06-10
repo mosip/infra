@@ -387,6 +387,17 @@ jobs:
                 echo "✅ $var is configured"
               fi
             done
+            echo "--- Validating esignet standalone postgres + keycloak secrets ---"
+            for var in CRE_POSTGRES_PASSWORD QA11_POSTGRES_PASSWORD \
+                       CRE_KEYCLOAK_ADMIN_PASSWORD QA11_KEYCLOAK_ADMIN_PASSWORD; do
+              val="${!var:-}"
+              if [ -z "$val" ]; then
+                echo "❌ $var secret is not configured (required for esignet standalone)"
+                MISSING_SECRETS=1
+              else
+                echo "✅ $var is configured"
+              fi
+            done
           fi
 
           if [ "$MISSING_SECRETS" -eq 1 ]; then
@@ -405,6 +416,8 @@ jobs:
               echo "  - ESIGNET_CRE_CAPTCHA_SITE_KEY / ESIGNET_CRE_CAPTCHA_SECRET_KEY"
               echo "  - ESIGNET_QA11_CAPTCHA_SITE_KEY / ESIGNET_QA11_CAPTCHA_SECRET_KEY"
               echo "  - ESIGNET_SUNBIRD_CAPTCHA_SITE_KEY / ESIGNET_SUNBIRD_CAPTCHA_SECRET_KEY"
+              echo "  - CRE_POSTGRES_PASSWORD / QA11_POSTGRES_PASSWORD"
+              echo "  - CRE_KEYCLOAK_ADMIN_PASSWORD / QA11_KEYCLOAK_ADMIN_PASSWORD"
             fi
             exit 1
           fi
