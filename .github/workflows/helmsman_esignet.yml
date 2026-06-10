@@ -70,16 +70,19 @@ jobs:
           PROFILE="${{ github.event.inputs.profile }}"
           DOMAIN="${{ github.event.inputs.domain_name || vars.DOMAIN_NAME }}"
           ENV="${{ github.event.inputs.env_name || vars.ENV_NAME }}"
-          [ -z "$DOMAIN" ] && errors+=("domain_name is empty — set vars.DOMAIN_NAME under Environment '${{ github.ref_name }}'")
-          [ -z "$ENV" ]    && errors+=("env_name is empty — set vars.ENV_NAME under Environment '${{ github.ref_name }}'")
+          ESIGNET_DB_PORT="${{ github.event.inputs.esignet_db_port || vars.ESIGNET_DB_PORT }}"
+          [ -z "$DOMAIN" ]          && errors+=("domain_name is empty — set vars.DOMAIN_NAME under Environment '${{ github.ref_name }}'")
+          [ -z "$ENV" ]             && errors+=("env_name is empty — set vars.ENV_NAME under Environment '${{ github.ref_name }}'")
+          [ -z "$ESIGNET_DB_PORT" ] && errors+=("esignet_db_port is empty — set vars.ESIGNET_DB_PORT under Environment '${{ github.ref_name }}'")
           if [ ${#errors[@]} -gt 0 ]; then
             echo "❌ Required variables missing:"
             printf '  - %s\n' "${errors[@]}"
             echo "Go to: Settings → Environments → ${{ github.ref_name }} → Variables"
             exit 1
           fi
-          echo "✓ domain_name = $DOMAIN"
-          echo "✓ env_name    = $ENV"
+          echo "✓ domain_name     = $DOMAIN"
+          echo "✓ env_name        = $ENV"
+          echo "✓ esignet_db_port = $ESIGNET_DB_PORT"
           # cre_domain_name and qabase_domain_name are esignet standalone only.
           # Push events always target esignet (path filter); dispatch uses explicit profile input.
           if [ -z "$PROFILE" ] || [ "$PROFILE" = "esignet" ]; then
