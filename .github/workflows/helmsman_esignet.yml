@@ -554,12 +554,12 @@ jobs:
               if helm status "$release" -n "$ns" &>/dev/null; then
                 echo "✓ $release already installed in $ns — skipping upgrade to preserve SoftHSM PIN"
                 SKIP_RELEASES="${SKIP_RELEASES:+$SKIP_RELEASES,}$release"
+                SKIP_RELEASES_ARG="$SKIP_RELEASES_ARG -exclude-target $release"
               else
                 echo "⬆ $release not found in $ns — will install fresh"
               fi
             done
             if [ -n "$SKIP_RELEASES" ]; then
-              SKIP_RELEASES_ARG="--skip-releases $SKIP_RELEASES"
               echo "SoftHSM releases skipped: $SKIP_RELEASES"
             fi
           fi
