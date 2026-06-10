@@ -23,6 +23,10 @@ on:
         description: "Domain name for this environment (e.g. example.xyz.net)"
         required: false
         type: string
+      db_port:
+        description: "PostgreSQL port (e.g. 5432 for esignet standalone, 5433 for MOSIP platform)"
+        required: false
+        type: string
       env_name:
         description: "Environment name (e.g. sandbox, dev, staging)"
         required: false
@@ -67,6 +71,7 @@ jobs:
       PATH: ${{ github.workspace }}/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
       KUBECTL_PATH: ${{ github.workspace }}/.local/bin/kubectl
       domain_name: ${{ github.event.inputs.domain_name || vars.DOMAIN_NAME }}
+      db_port:     ${{ github.event.inputs.db_port     || vars.DB_PORT }}
       env_name: ${{ github.event.inputs.env_name || vars.ENV_NAME }}
     steps:
       - name: Checkout repository
