@@ -106,6 +106,7 @@ jobs:
             fi
           }
           save_var "DOMAIN_NAME"        "${{ github.event.inputs.domain_name }}"
+          save_var "DB_PORT"            "${{ github.event.inputs.db_port }}"
           save_var "ENV_NAME"           "${{ github.event.inputs.env_name }}"
           save_var "CLUSTER_ID"         "${{ github.event.inputs.clusterid }}"
           save_var "SLACK_CHANNEL_NAME" "${{ github.event.inputs.slack_channel_name }}"
