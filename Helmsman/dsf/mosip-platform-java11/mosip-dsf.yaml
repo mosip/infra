@@ -229,7 +229,7 @@ apps:
       mosipDataGithubRepo: "https://github.com/mosip/mosip-data"
       mosipDataXlsfolderPath: "/home/mosip/mosip-data/mosip_master/xlsx"
       db.host: "postgres.${domain_name}"
-      db.port: 5433
+      db.port: ${db_port}
     wait: true
     priority: -11
     timeout: 1200

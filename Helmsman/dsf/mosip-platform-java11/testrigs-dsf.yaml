@@ -54,7 +54,7 @@ apps:
       apitestrig.configmaps.s3.s3-region: ''
       apitestrig.configmaps.db.db-server: "api-internal.${domain_name}"
       apitestrig.configmaps.db.db-su-user: "postgres"
-      apitestrig.configmaps.db.db-port: "5433"
+      apitestrig.configmaps.db.db-port: "${db_port}"
       apitestrig.configmaps.apitestrig.ENV_USER: "api-internal.${env_name}"
       apitestrig.configmaps.apitestrig.ENV_ENDPOINT: "https://api-internal.${domain_name}"
       apitestrig.configmaps.apitestrig.ENV_TESTLEVEL: "smokeAndRegression"
@@ -139,7 +139,7 @@ apps:
       dslorchestrator.configmaps.s3.s3-region: ''
       dslorchestrator.configmaps.db.db-server: "api-internal.${domain_name}"
       dslorchestrator.configmaps.db.db-su-user: "postgres"
-      dslorchestrator.configmaps.db.db-port: "5433"
+      dslorchestrator.configmaps.db.db-port: "${db_port}"
       dslorchestrator.configmaps.dslorchestrator.USER: "api-internal.${env_name}"
       dslorchestrator.configmaps.dslorchestrator.ENDPOINT: "https://api-internal.${domain_name}"
       dslorchestrator.configmaps.dslorchestrator.packetUtilityBaseUrl: "http://packetcreator.packetcreator:80/v1/packetcreator"
@@ -168,7 +168,7 @@ apps:
       uitestrig.configmaps.s3.s3-region: ""
       uitestrig.configmaps.db.db-server: "api-internal.${domain_name}"
       uitestrig.configmaps.db.db-su-user: "postgres"
-      uitestrig.configmaps.db.db-port: "5433"
+      uitestrig.configmaps.db.db-port: "${db_port}"
       uitestrig.configmaps.uitestrig.apiInternalEndPoint: "https://api-internal.${domain_name}"
       uitestrig.configmaps.uitestrig.apiEnvUser: "api-internal.${env_name}"
       uitestrig.configmaps.uitestrig.PmpPortalPath: "https://pmp.${domain_name}"

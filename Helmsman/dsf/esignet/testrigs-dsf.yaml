@@ -47,7 +47,7 @@ apps:
       apitestrig.configmaps.s3.s3-region: ''
       apitestrig.configmaps.db.db-server: "api-internal.${domain_name}"
       apitestrig.configmaps.db.db-su-user: "postgres"
-      apitestrig.configmaps.db.db-port: "5432"
+      apitestrig.configmaps.db.db-port: "${db_port}"
       apitestrig.configmaps.apitestrig.ENV_USER: "api-internal.${env_name}"
       apitestrig.configmaps.apitestrig.ENV_ENDPOINT: "https://esignet.${domain_name}"
       apitestrig.configmaps.apitestrig.ENV_TESTLEVEL: "smokeAndRegression"
@@ -85,7 +85,7 @@ apps:
       apitestrig.configmaps.s3.s3-region: ''
       apitestrig.configmaps.db.db-server: "api-internal.${cre_domain_name}"
       apitestrig.configmaps.db.db-su-user: "postgres"
-      apitestrig.configmaps.db.db-port: "5432"
+      apitestrig.configmaps.db.db-port: "${db_port}"
       apitestrig.configmaps.apitestrig.ENV_USER: "api-internal.${env_name}"
       apitestrig.configmaps.apitestrig.ENV_ENDPOINT: "https://esignet-cre.${domain_name}"
       apitestrig.configmaps.apitestrig.ENV_TESTLEVEL: "smokeAndRegression"
@@ -124,7 +124,7 @@ apps:
       apitestrig.configmaps.s3.s3-region: ''
       apitestrig.configmaps.db.db-server: "api-internal.${qabase_domain_name}"
       apitestrig.configmaps.db.db-su-user: "postgres"
-      apitestrig.configmaps.db.db-port: "5432"
+      apitestrig.configmaps.db.db-port: "${db_port}"
       apitestrig.configmaps.apitestrig.ENV_USER: "api-internal.${env_name}"
       apitestrig.configmaps.apitestrig.ENV_ENDPOINT: "https://esignet-qa11.${domain_name}"
       apitestrig.configmaps.apitestrig.ENV_TESTLEVEL: "smokeAndRegression"
@@ -164,7 +164,7 @@ apps:
       apitestrig.configmaps.s3.s3-region: ''
       apitestrig.configmaps.db.db-server: "api-internal.${domain_name}"
       apitestrig.configmaps.db.db-su-user: "postgres"
-      apitestrig.configmaps.db.db-port: "5432"
+      apitestrig.configmaps.db.db-port: "${db_port}"
       apitestrig.configmaps.apitestrig.ENV_USER: "api-internal.${env_name}"
       apitestrig.configmaps.apitestrig.ENV_ENDPOINT: "https://esignet-sunbird.${domain_name}"
       apitestrig.configmaps.apitestrig.ENV_TESTLEVEL: "smokeAndRegression"
@@ -201,7 +201,7 @@ apps:
       apitestrig.configmaps.s3.s3-region: ''
       apitestrig.configmaps.db.db-server: "api-internal.${domain_name}"
       apitestrig.configmaps.db.db-su-user: "postgres"
-      apitestrig.configmaps.db.db-port: "5432"
+      apitestrig.configmaps.db.db-port: "${db_port}"
       apitestrig.configmaps.apitestrig.ENV_USER: "api-internal.${env_name}"
       apitestrig.configmaps.apitestrig.ENV_ENDPOINT: "https://api-internal.${domain_name}"
       apitestrig.configmaps.apitestrig.ENV_TESTLEVEL: "smokeAndRegression"
@@ -233,7 +233,7 @@ apps:
       uitestrig.configmaps.s3.s3-region: ""
       uitestrig.configmaps.db.db-server: "api-internal.${domain_name}"
       uitestrig.configmaps.db.db-su-user: "postgres"
-      uitestrig.configmaps.db.db-port: "5432"
+      uitestrig.configmaps.db.db-port: "${db_port}"
       uitestrig.configmaps.uitestrig.ENV_USER: "api-internal.${env_name}"
       uitestrig.configmaps.uitestrig.ENV_ENDPOINT: "https://api-internal.${domain_name}"
       uitestrig.configmaps.uitestrig.reportExpirationInDays: "3"
