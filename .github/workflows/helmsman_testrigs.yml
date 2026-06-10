@@ -69,6 +69,7 @@ jobs:
       - name: Validate required variables
         run: |
           errors=()
+          PROFILE="${{ github.event.inputs.profile }}"
           DOMAIN="${{ github.event.inputs.domain_name || vars.DOMAIN_NAME }}"
           ENV="${{ github.event.inputs.env_name || vars.ENV_NAME }}"
           SLACK_CH="${{ github.event.inputs.slack_channel_name || vars.SLACK_CHANNEL_NAME }}"
@@ -79,6 +80,12 @@ jobs:
           [ -z "$SLACK_CH" ]        && errors+=("slack_channel_name is empty — set vars.SLACK_CHANNEL_NAME under Environment '${{ github.ref_name }}'")
           [ -z "$DB_PORT" ]         && errors+=("db_port is empty — set vars.DB_PORT under Environment '${{ github.ref_name }}'")
           [ -z "$ESIGNET_DB_PORT" ] && errors+=("esignet_db_port is empty — set vars.ESIGNET_DB_PORT under Environment '${{ github.ref_name }}'")
+          if [ -z "$PROFILE" ] || [ "$PROFILE" = "esignet" ]; then
+            CRE_DOMAIN="${{ github.event.inputs.cre_domain_name || vars.CRE_DOMAIN_NAME }}"
+            QABASE_DOMAIN="${{ github.event.inputs.qabase_domain_name || vars.QABASE_DOMAIN_NAME }}"
+            [ -z "$CRE_DOMAIN" ]    && errors+=("cre_domain_name is empty — set vars.CRE_DOMAIN_NAME under Environment '${{ github.ref_name }}'")
+            [ -z "$QABASE_DOMAIN" ] && errors+=("qabase_domain_name is empty — set vars.QABASE_DOMAIN_NAME under Environment '${{ github.ref_name }}'")
+          fi
           if [ ${#errors[@]} -gt 0 ]; then
             echo "❌ Required variables missing:"
             printf '  - %s\n' "${errors[@]}"
@@ -90,6 +97,10 @@ jobs:
           echo "✓ slack_channel_name = $SLACK_CH"
           echo "✓ db_port            = $DB_PORT"
           echo "✓ esignet_db_port    = $ESIGNET_DB_PORT"
+          if [ -z "$PROFILE" ] || [ "$PROFILE" = "esignet" ]; then
+            echo "✓ cre_domain_name    = $CRE_DOMAIN (esignet profile)"
+            echo "✓ qabase_domain_name = $QABASE_DOMAIN (esignet profile)"
+          fi
 
   deploy:
     runs-on: ubuntu-latest
