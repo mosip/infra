@@ -255,17 +255,17 @@ jobs:
       - name: Get MinIO root password (esignet profile)
         if: env.PROFILE == 'esignet'
         run: |
-          if kubectl -n minio get secret s3 &>/dev/null; then
-            MINIO_ROOT_PASSWORD=$(kubectl -n minio get secret s3 -o jsonpath='{.data.root-password}' | base64 -d)
+          if kubectl -n minio get secret minio &>/dev/null; then
+            MINIO_ROOT_PASSWORD=$(kubectl -n minio get secret minio -o jsonpath='{.data.root-password}' | base64 -d)
             if [ -n "$MINIO_ROOT_PASSWORD" ]; then
               echo "::add-mask::$MINIO_ROOT_PASSWORD"
               echo "MINIO_ROOT_PASSWORD=$MINIO_ROOT_PASSWORD" >> $GITHUB_ENV
               echo "✅ MINIO_ROOT_PASSWORD retrieved"
             else
-              echo "❌ root-password is empty in minio/s3 secret"; exit 1
+              echo "❌ root-password is empty in minio/minio secret"; exit 1
             fi
           else
-            echo "❌ secret s3 not found in minio namespace"; exit 1
+            echo "❌ secret minio not found in minio namespace"; exit 1
           fi
 
       - name: Check if mosip-dsf label is completed
