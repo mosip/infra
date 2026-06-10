@@ -13,7 +13,8 @@
   - **base-infra**: VPC, networking, jump server (deploy FIRST)
   - **observ-infra**: Rancher management cluster (optional)
   - **infra**: MOSIP Kubernetes cluster (main deployment)
-- **`INFRA_PROFILE`**: Profile name for isolated deployments (e.g., `mosip`, `esignet`)
+- **`INFRA_PROFILE`**: Profile name for isolated deployments (e.g., `mosip`, `esignet`, `mosip-dev`)
+  - Use alphanumeric characters and hyphens only; no slashes or special characters
   - Ensures state file separation when deploying different services
 - **`SSH_PRIVATE_KEY`**: GitHub secret name containing SSH private key for instance access
   - Must match the `ssh_key_name` in your terraform.tfvars
