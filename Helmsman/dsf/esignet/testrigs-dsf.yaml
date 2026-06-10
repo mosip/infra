@@ -23,6 +23,8 @@ namespaces:
     protected: false
   esignet-sunbird:
     protected: false
+  signup:
+    protected: false
   signup-uitestrig:
     protected: false
 
