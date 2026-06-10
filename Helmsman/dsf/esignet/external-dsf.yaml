@@ -107,7 +107,7 @@ apps:
       databases.mosip_esignet.dbUser: "esignetuser"
       databases.mosip_esignet.branch: "release-1.8.x"
       databases.mosip_esignet.host: "postgres.${domain_name}"
-      databases.mosip_esignet.port: ${db_port}
+      databases.mosip_esignet.port: ${esignet_db_port}
       databases.mosip_esignet.dml: 1
       databases.mosip_esignet_cre.repoUrl: "https://github.com/bhumi46/esignet.git"
       databases.mosip_esignet_cre.defaultDb: "postgres"
@@ -123,7 +123,7 @@ apps:
       databases.mosip_esignet_cre.dbUser: "esignetuser_cre"
       databases.mosip_esignet_cre.branch: "release-1.8.x"
       databases.mosip_esignet_cre.host: "postgres.${domain_name}"
-      databases.mosip_esignet_cre.port: ${db_port}
+      databases.mosip_esignet_cre.port: ${esignet_db_port}
       databases.mosip_esignet_cre.dml: 1
       databases.mosip_esignet_cre.repoUrl: "https://github.com/bhumi46/esignet.git"
       databases.mosip_esignet_cre.defaultDb: "postgres"
@@ -139,7 +139,7 @@ apps:
       databases.mosip_esignet_qa11.dbUser: "esignetuser_qa11"
       databases.mosip_esignet_qa11.branch: "release-1.8.x"
       databases.mosip_esignet_qa11.host: "postgres.${domain_name}"
-      databases.mosip_esignet_qa11.port: ${db_port}
+      databases.mosip_esignet_qa11.port: ${esignet_db_port}
       databases.mosip_esignet_qa11.dml: 1
       databases.mosip_esignet_qa11.repoUrl: "https://github.com/bhumi46/esignet.git"
       databases.mosip_esignet_qa11.defaultDb: "postgres"
@@ -155,7 +155,7 @@ apps:
       databases.mosip_esignet_sunbird.dbUser: "esignetuser_sunbird"
       databases.mosip_esignet_sunbird.branch: "release-1.8.x"
       databases.mosip_esignet_sunbird.host: "postgres.${domain_name}"
-      databases.mosip_esignet_sunbird.port: ${db_port}
+      databases.mosip_esignet_sunbird.port: ${esignet_db_port}
       databases.mosip_esignet_sunbird.dml: 1
       databases.mosip_esignet_sunbird.repoUrl: "https://github.com/bhumi46/esignet.git"
       databases.mosip_esignet_sunbird.defaultDb: "postgres"
@@ -172,7 +172,7 @@ apps:
       databases.mosip_mockidentitysystem.branch: "develop"
       databases.mosip_mockidentitysystem.host: "postgres.${domain_name}"
       databases.mosip_mockidentitysystem.repoUrl: "https://github.com/bhumi46/esignet-mock-services.git"
-      databases.mosip_mockidentitysystem.port: ${db_port}
+      databases.mosip_mockidentitysystem.port: ${esignet_db_port}
       databases.mosip_mockidentitysystem.dml: 1
     wait: true
     timeout: 300
@@ -216,19 +216,19 @@ apps:
       databases.mosip_audit.branch: "v1.2.0.1"
       databases.mosip_audit.repoUrl: "https://github.com/mosip/audit-manager.git"
       databases.mosip_audit.host: "postgres.${domain_name}"
-      databases.mosip_audit.port: ${db_port}
+      databases.mosip_audit.port: ${esignet_db_port}
       databases.mosip_audit.dml: 0
       databases.mosip_kernel.enabled: "true"
       databases.mosip_kernel.branch: "v1.2.0.1"
       databases.mosip_kernel.repoUrl: "https://github.com/mosip/commons.git"
       databases.mosip_kernel.host: "postgres.${domain_name}"
-      databases.mosip_kernel.port: ${db_port}
+      databases.mosip_kernel.port: ${esignet_db_port}
       databases.mosip_kernel.dml: 0
       databases.mosip_otp.enabled: "true"
       databases.mosip_otp.branch: "v1.2.0.1"
       databases.mosip_otp.repoUrl: "https://github.com/mosip/otp-manager.git"
       databases.mosip_otp.host: "postgres.${domain_name}"
-      databases.mosip_otp.port: ${db_port}
+      databases.mosip_otp.port: ${esignet_db_port}
       databases.mosip_otp.dml: 0
     wait: true
     timeout: 300

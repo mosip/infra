@@ -25,7 +25,11 @@ on:
         required: false
         type: string
       db_port:
-        description: "PostgreSQL port (e.g. 5432 for esignet standalone, 5433 for MOSIP platform)"
+        description: "PostgreSQL port for MOSIP platform external postgres (e.g. 5433)"
+        required: false
+        type: string
+      esignet_db_port:
+        description: "PostgreSQL port for eSignet standalone container postgres (e.g. 5432)"
         required: false
         type: string
       env_name:
@@ -84,6 +88,7 @@ jobs:
       KUBECTL_PATH: ${{ github.workspace }}/.local/bin/kubectl
       domain_name:        ${{ github.event.inputs.domain_name        || vars.DOMAIN_NAME }}
       db_port:            ${{ github.event.inputs.db_port            || vars.DB_PORT }}
+      esignet_db_port:    ${{ github.event.inputs.esignet_db_port    || vars.ESIGNET_DB_PORT }}
       env_name:           ${{ github.event.inputs.env_name           || vars.ENV_NAME }}
       slack_channel_name: ${{ github.event.inputs.slack_channel_name || vars.SLACK_CHANNEL_NAME }}
       SLACK_WEBHOOK_URL:  ${{ github.event.inputs.slack_webhook_url  || secrets.SLACK_WEBHOOK_URL }}
@@ -125,6 +130,7 @@ jobs:
           }
           save_var "DOMAIN_NAME"        "${{ github.event.inputs.domain_name }}"
           save_var "DB_PORT"            "${{ github.event.inputs.db_port }}"
+          save_var "ESIGNET_DB_PORT"    "${{ github.event.inputs.esignet_db_port }}"
           save_var "ENV_NAME"           "${{ github.event.inputs.env_name }}"
           save_var "SLACK_CHANNEL_NAME" "${{ github.event.inputs.slack_channel_name }}"
 
