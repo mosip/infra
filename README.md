@@ -205,6 +205,18 @@ AWS_SECRET_ACCESS_KEY: "..."
 # What it's for: Secret key that pairs with access key ID (like a password)
 # IMPORTANT: Keep this SECRET! Never commit to Git or share publicly
 
+# GitHub Personal Access Token
+GH_INFRA_PAT: "github_pat_..."
+# What it's for: Required for repository operations during deployment
+# How to get: GitHub Settings → Developer Settings → Personal access tokens (Fine-grained)
+# Permissions Required:
+# - Contents: Read and write (critical, Read only causes 403 on push)
+# - Metadata: Read
+# - Actions: Read and write
+# - Environments: Read and write
+# - Variables: Read and write
+# NOTE: No Secrets permission needed (intentionally excluded)
+
 # SSH Private Key (must match ssh_key_name in tfvars)
 YOUR_SSH_KEY_NAME: | 
 # Replace YOUR_SSH_KEY_NAME with actual ssh_key_name value from your tfvars
@@ -222,6 +234,7 @@ YOUR_SSH_KEY_NAME: |
 - [ ] GPG Passphrase created (16+ characters)
 - [ ] AWS Access Key ID obtained from IAM
 - [ ] AWS Secret Access Key saved securely
+- [ ] GitHub PAT (GH_INFRA_PAT) generated with correct permissions
 - [ ] SSH key pair generated (public + private)
 - [ ] SSH public key uploaded to AWS EC2 Key Pairs
 - [ ] SSH private key added to GitHub secrets
@@ -327,6 +340,7 @@ Add the required secrets as follows:
 - `GPG_PASSPHRASE`
 - `AWS_ACCESS_KEY_ID`
 - `AWS_SECRET_ACCESS_KEY`
+- `GH_INFRA_PAT` 
 - `YOUR_SSH_KEY_NAME` (replace with actual ssh_key_name value from tfvars, e.g., `mosip-aws`)
 - **Environment Secrets** (Settings → Secrets and variables → Actions → Environment secrets):
 - All other secrets mentioned in the Prerequisites section above (KUBECONFIG, WireGuard configs, etc.)
@@ -403,7 +417,7 @@ For detailed information about GitHub Actions workflow parameters, terraform mod
 - **Backend**: Choose backend configuration:
   - **(5)** `local` - GPG-encrypted local state (recommended for development)
     - Stores state in your GitHub repository (encrypted)
-  - **(6)** `s3` - Remote S3 backend (recommended for production)
+  - **(6)** `s3` - Remote S3 backend (If you want to store the state file in a S3 bucket, provide the bucket name. Otherwise, leave it empty to use the local backend)
     - Stores state in AWS S3 bucket (centralized)
 - **(7)** **SSH_PRIVATE_KEY**: GitHub secret name containing SSH private key for instance access
   - Must match the `ssh_key_name` in your terraform.tfvars
@@ -630,7 +644,7 @@ For complete workflow usage instructions, inputs, secrets configuration, and tro
 
 #### Step 3d: MOSIP Infrastructure
 
-This step creates MOSIP Kubernetes cluster, PostgreSQL (if enabled), networking, and application infrastructure
+This step creates MOSIP Kubernetes cluster, PostgreSQL (if enabled), ActiveMQ (if enabled), networking, and application infrastructure
 
 1. **Update infra variables in `terraform/implementations/aws/infra/aws.tfvars`:**
 
@@ -841,16 +855,17 @@ After updating `aws.tfvars`, deploy or update your main infra cluster:
 - **(3)** **Branch**: Select your deployment branch (e.g., `release-0.1.0`)
 - **(4)** **Cloud Provider**: Select `aws` (Azure/GCP are placeholder implementations)
 - **(5)** **Component**: Select `infra` (MOSIP application infrastructure)
-- **(6)** **Backend**: Choose backend configuration:
-  - `local` - GPG-encrypted local state (recommended for development)
-  - `s3` - Remote S3 backend (recommended for production)
-- **(7)** **SSH_PRIVATE_KEY**: GitHub secret name containing SSH private key for instance access
+- **(6)** **Profile**: Select `mosip`/`esignet` (Select profile which you want to use for deployment)
+- **Backend**: Choose backend configuration:
+  - **(7)** `local` - GPG-encrypted local state (recommended for development)
+  - **(8)** `s3` - Remote S3 backend (If you want to store the state file in a S3 bucket, provide the bucket name. Otherwise, leave it empty to use the local backend)
+- **(9)** **SSH_PRIVATE_KEY**: GitHub secret name containing SSH private key for instance access
   - Must match the `ssh_key_name` in your terraform.tfvars
-- **Terraform apply**:
-  - **(8)** ☐ **Unchecked**  — Plan mode: runs terraform plan (shows changes without applying).
-  - **(8)** ✅ **Checked**  — Apply mode: runs terraform apply (creates/updates infrastructure).
+- **(10)** **☐ Terraform apply**:
+  - ☐ **Unchecked**  — Plan mode: runs terraform plan (shows changes without applying).
+  - ✅ **Checked**  — Apply mode: runs terraform apply (creates/updates infrastructure).
   - Tip: For your first deployment, run in plan mode first to review changes. If the plan looks correct, re-run the workflow with Apply checked.
-- **(9)** **Run Workflow**
+- **(11)** **Run Workflow**
 
 **If Workflow Fails - How to View Error Logs:**
 
@@ -1314,17 +1329,23 @@ The Helmsman deployment process follows a specific sequence with automated trigg
 
 ![Deploy External Services - Helmsman](docs/_images/helmsman-external-services.png)
 
-- **(1)** Actions → **"Deploy External services of mosip using Helmsman"** (or "Helmsman External Dependencies")
+- **(1)** Actions → **"Deploy External services of mosip using Helmsman"**
   - **Can't find it?** Search for "External" in the workflows list
-- **(2)** **Select Run workflow**
-- **(3)** **Select Branch**
+- **(2)** Click **Run workflow** button in the top right corner
+- **(3)** **Branch**: Select your deployment branch (e.g., `develop`)
+- **(4)** **Deployment profile to use**: `mosip-platform-java11` (or other appropriate profile)
+- **(5)** **Choose Helmsman mode**: `apply` (dry-run will fail due to namespace dependencies)
+- **(6)** **Domain name for this environment**: Enter the domain name (e.g., `example.xyz.net`)
+- **(7)** **Environment name**: Enter the environment name (e.g., `sandbox`, `dev`, `staging`)
+- **(8)** **Slack channel name for alerting** (optional): e.g., `#mosip-alerts`
+- **(9)** **Slack webhook URL for alerting** (optional)
+- **(10)** **Rancher cluster ID for rancher-monitoring**: e.g., `c-xxxxx`
+- **(11)** Click **Run workflow** green button
 - This workflow handles both deployments in parallel:
   - **Prerequisites**: `prereq-dsf.yaml` (monitoring, Istio, logging)
   - **External Dependencies**: `external-dsf.yaml` (databases, message queues, storage)
-- **(4)** **Mode**: `apply` (required - dry-run will fail!)
-  - **Important:** DO NOT select dry-run mode for Helmsman
-  - **Time required:** 20-40 minutes
-  - **Automatic Trigger**: Upon successful completion, this workflow automatically triggers the MOSIP services deployment
+- **Time required:** 20-40 minutes
+- **Automatic Trigger**: Upon successful completion, this workflow automatically triggers the MOSIP services deployment
 
  **What You Should See:**
 
@@ -1341,7 +1362,7 @@ The Helmsman deployment process follows a specific sequence with automated trigg
 - **Automatically triggered** after successful completion of step 1
 - Workflow: **Deploy MOSIP services using Helmsman** (`helmsman_mosip.yml`)
 - DSF file: `mosip-dsf.yaml`
-- Mode: `apply` (required - dry-run will fail due to namespace dependencies)
+- Mode: `apply` (dry-run will fail due to namespace dependencies)
 
  **Error Handling:**
 
@@ -1379,19 +1400,23 @@ The Helmsman deployment process follows a specific sequence with automated trigg
 
 - **Prerequisites**: All MOSIP core services must be running, partner onboarding completed successfully and secrets required for esignet should be updated.
 - **(1)** Actions → **Deploy eSignet using Helmsman** (`helmsman_esignet.yml`)
-- **(2)** **Select Branch**
-- **(3)** **Mode**: `apply` (required - dry-run will fail due to namespace dependencies)
-- **(4)** **Additional Options** (optional):
+- **(2)** Click **Run workflow** button in the top right corner
+- **(3)** **Select Branch**
+- **(4)** **Select Profile**: `mosip-platform-java11` or `mosip-platform-java21` or `esignet` or any other profile you want to deploy for
+- **(5)** **Mode**: `apply` (dry-run will fail due to namespace dependencies)
+- **(6)** **Additional Options** (optional):
   - **skip_mosip_dsf_check**: ☐ Unchecked by default
     - **When to enable (✅)**: Standalone eSignet deployment without full MOSIP stack
     - **What it does**: Bypasses validation check for MOSIP core services completion
     - **Use case**: Testing eSignet independently or deploying eSignet to a separate cluster
-  - **(5)** **delete_existing_jobs**: ☐ Unchecked by default
+  - **(7)** **delete_existing_jobs**: ☐ Unchecked by default
     - **When to enable (✅)**: Re-running eSignet deployment after a previous failed attempt
     - **What it does**: Removes existing partner onboarder jobs before creating new ones
     - **Use case**: Cleanup before retry deployment to avoid "job already exists" errors
     - **Important**: Only enable this on re-runs, not on first deployment
-- **(6)** **Run Workflow**:    
+- **(8)** **Domain name**: Enter the domain name for this environment (e.g., `example.xyz.net`)
+- **(9)** **Environment name**: Enter the environment name (e.g., `sandbox`, `dev`, `staging`)
+- **(10)** **Run Workflow**   
 - **Time required:** 15-25 minutes
 
  **What You Should See:**
@@ -1420,9 +1445,15 @@ The Helmsman deployment process follows a specific sequence with automated trigg
 
 - **Prerequisites**: All pods from steps 1-2 must be in `Running` state and onboarding completed successfully
 - **(1)** Actions → **Deploy Testrigs of mosip using Helmsman** (`helmsman_testrigs.yml`)
-- **(2)** workflow - **select Run workflow in right side**
-- **(3)** Branch - **Select Branch**
-- **(4)** Mode: `apply` (required - dry-run will fail due to namespace dependencies)
+- **(2)** Click **Run workflow** button in the top right corner
+- **(3)** **Branch**: Select your deployment branch (e.g., `develop`)
+- **(4)** **Choose MOSIP platform profile**: `mosip-platform-java11` (or other appropriate profile)
+- **(5)** **Choose Helmsman mode**: `apply` (dry-run will fail due to namespace dependencies)
+- **(6)** **Domain name for this environment**: Enter the domain name (e.g., `example.xyz.net`)
+- **(7)** **Environment name**: Enter the environment name (e.g., `sandbox`, `dev`, `staging`)
+- **(8)** **Slack channel name for alerting** (optional): e.g., `#mosip-alerts`
+- **(9)** **Slack webhook URL for alerting** (optional)
+- **(10)** Click **Run workflow** green button
 
 **Post-Deployment Steps:**
 
