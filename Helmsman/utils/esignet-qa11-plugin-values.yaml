@@ -109,7 +109,7 @@ extraEnvVarsAdditional:
   - name: LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB_CLIENT
     value: DEBUG
   - name: MOSIP_ESIGNET_CAPTCHA_REQUIRED
-    value: ""
+    value: "false"
   - name: MOSIP_ESIGNET_CAPTCHA_URL
     value: http://captcha.captcha
   - name: "MOSIP_ESIGNET_MISP_KEY"

@@ -68,6 +68,8 @@ extraEnvVarsAdditional:
       secretKeyRef:
         name: esignet-captcha-sunbird
         key: esignet-captcha-site-key
+  - name: "MOSIP_ESIGNET_CAPTCHA_REQUIRED"
+    value: "false"
 
   # ---------------------------------------------------------------------------
   # Plugin 3: sunbird-rc-plugin
