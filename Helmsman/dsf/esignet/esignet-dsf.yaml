@@ -330,7 +330,7 @@ apps:
     valuesFile: "$WORKDIR/utils/softhsm-mock-identity-system-values.yaml"
     wait: true
     timeout: 480
-    priority: -11
+    priority: -12
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-standalone/softhsm-mock-identity-system-preinstall.sh"
       postInstall: "$WORKDIR/hooks/esignet-standalone/softhsm-mock-identity-system-postinstall.sh"
