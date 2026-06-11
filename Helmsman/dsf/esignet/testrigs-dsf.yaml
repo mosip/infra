@@ -39,6 +39,11 @@ apps:
     chart: mosip/apitestrig
     valuesFile: "$WORKDIR/utils/esignet-apitestrig-values.yaml"
     set:
+      extraEnvVarsCM[0]: "esignet-global"
+      extraEnvVarsCM[1]: "s3"
+      extraEnvVarsCM[2]: "keycloak-host"
+      extraEnvVarsCM[3]: "db"
+      extraEnvVarsCM[4]: "apitestrig"    
       extraEnvVarsSecret[0]: "apitestrig-esignet-apitestrig"
       extraEnvVarsSecret[1]: "s3-esignet-apitestrig"
       extraEnvVarsSecret[2]: "keycloak-client-secrets"
@@ -51,7 +56,7 @@ apps:
       apitestrig.configmaps.db.db-su-user: "postgres"
       apitestrig.configmaps.db.db-port: "${esignet_db_port}"
       apitestrig.configmaps.apitestrig.ENV_USER: "api-internal.${env_name}"
-      apitestrig.configmaps.apitestrig.ENV_ENDPOINT: "https://esignet.${domain_name}"
+      apitestrig.configmaps.apitestrig.ENV_ENDPOINT: "https://api-internal.${domain_name}"
       apitestrig.configmaps.apitestrig.ENV_TESTLEVEL: "smokeAndRegression"
       apitestrig.configmaps.apitestrig.reportExpirationInDays: "3"
       apitestrig.configmaps.apitestrig.slack-webhook-url: "${SLACK_WEBHOOK_URL}"
@@ -77,6 +82,11 @@ apps:
     chart: mosip/apitestrig
     valuesFile: "$WORKDIR/utils/esignet-apitestrig-values.yaml"
     set:
+      extraEnvVarsCM[0]: "esignet-global"
+      extraEnvVarsCM[1]: "s3"
+      extraEnvVarsCM[2]: "keycloak-host"
+      extraEnvVarsCM[3]: "db"
+      extraEnvVarsCM[4]: "apitestrig"    
       extraEnvVarsSecret[0]: "apitestrig-esignet-cre-apitestrig"
       extraEnvVarsSecret[1]: "s3-esignet-cre-apitestrig"
       extraEnvVarsSecret[2]: "keycloak-client-secrets"
@@ -89,7 +99,7 @@ apps:
       apitestrig.configmaps.db.db-su-user: "postgres"
       apitestrig.configmaps.db.db-port: "${esignet_db_port}"
       apitestrig.configmaps.apitestrig.ENV_USER: "api-internal.${env_name}"
-      apitestrig.configmaps.apitestrig.ENV_ENDPOINT: "https://esignet-cre.${domain_name}"
+      apitestrig.configmaps.apitestrig.ENV_ENDPOINT: "https://api-internal.${domain_name}"
       apitestrig.configmaps.apitestrig.ENV_TESTLEVEL: "smokeAndRegression"
       apitestrig.configmaps.apitestrig.reportExpirationInDays: "3"
       apitestrig.configmaps.apitestrig.slack-webhook-url: "${SLACK_WEBHOOK_URL}"
@@ -116,6 +126,11 @@ apps:
     chart: mosip/apitestrig
     valuesFile: "$WORKDIR/utils/esignet-apitestrig-values.yaml"
     set:
+      extraEnvVarsCM[0]: "esignet-global"
+      extraEnvVarsCM[1]: "s3"
+      extraEnvVarsCM[2]: "keycloak-host"
+      extraEnvVarsCM[3]: "db"
+      extraEnvVarsCM[4]: "apitestrig"    
       extraEnvVarsSecret[0]: "apitestrig-esignet-qa11-apitestrig"
       extraEnvVarsSecret[1]: "s3-esignet-qa11-apitestrig"
       extraEnvVarsSecret[2]: "keycloak-client-secrets"
@@ -128,7 +143,7 @@ apps:
       apitestrig.configmaps.db.db-su-user: "postgres"
       apitestrig.configmaps.db.db-port: "${esignet_db_port}"
       apitestrig.configmaps.apitestrig.ENV_USER: "api-internal.${env_name}"
-      apitestrig.configmaps.apitestrig.ENV_ENDPOINT: "https://esignet-qa11.${domain_name}"
+      apitestrig.configmaps.apitestrig.ENV_ENDPOINT: "https://api-internal.${domain_name}"
       apitestrig.configmaps.apitestrig.ENV_TESTLEVEL: "smokeAndRegression"
       apitestrig.configmaps.apitestrig.reportExpirationInDays: "3"
       apitestrig.configmaps.apitestrig.slack-webhook-url: "${SLACK_WEBHOOK_URL}"
@@ -156,6 +171,11 @@ apps:
     chart: mosip/apitestrig
     valuesFile: "$WORKDIR/utils/esignet-apitestrig-values.yaml"
     set:
+      extraEnvVarsCM[0]: "esignet-global"
+      extraEnvVarsCM[1]: "s3"
+      extraEnvVarsCM[2]: "keycloak-host"
+      extraEnvVarsCM[3]: "db"
+      extraEnvVarsCM[4]: "apitestrig"
       extraEnvVarsSecret[0]: "apitestrig-esignet-sunbird-apitestrig"
       extraEnvVarsSecret[1]: "s3-esignet-sunbird-apitestrig"
       extraEnvVarsSecret[2]: "keycloak-client-secrets"
@@ -168,7 +188,7 @@ apps:
       apitestrig.configmaps.db.db-su-user: "postgres"
       apitestrig.configmaps.db.db-port: "${esignet_db_port}"
       apitestrig.configmaps.apitestrig.ENV_USER: "api-internal.${env_name}"
-      apitestrig.configmaps.apitestrig.ENV_ENDPOINT: "https://esignet-sunbird.${domain_name}"
+      apitestrig.configmaps.apitestrig.ENV_ENDPOINT: "https://api-internal.${domain_name}"
       apitestrig.configmaps.apitestrig.ENV_TESTLEVEL: "smokeAndRegression"
       apitestrig.configmaps.apitestrig.reportExpirationInDays: "3"
       apitestrig.configmaps.apitestrig.slack-webhook-url: "${SLACK_WEBHOOK_URL}"
@@ -193,7 +213,7 @@ apps:
   esignet-signup-apitestrig:
     namespace: signup
     enabled: false
-    version: 1.3.3
+    version: 0.0.1-develop
     chart: mosip/apitestrig
     valuesFile: "$WORKDIR/utils/esignet-signup-apitestrig-values.yaml"
     set:
