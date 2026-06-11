@@ -62,10 +62,10 @@ apps:
     timeout: 300
     priority: -10
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/signup-keycloak-init-preinstall.sh"
-      preUpgrade: "$WORKDIR/hooks/esignet-1.7.1/signup-keycloak-init-preinstall.sh"
-      postInstall: "$WORKDIR/hooks/esignet-1.7.1/signup-keycloak-init-postinstall.sh"
-      postUpgrade: "$WORKDIR/hooks/esignet-1.7.1/signup-keycloak-init-postinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/signup-keycloak-init-preinstall.sh"
+      preUpgrade: "$WORKDIR/hooks/esignet-standalone/signup-keycloak-init-preinstall.sh"
+      postInstall: "$WORKDIR/hooks/esignet-standalone/signup-keycloak-init-postinstall.sh"
+      postUpgrade: "$WORKDIR/hooks/esignet-standalone/signup-keycloak-init-postinstall.sh"
 
   # ---------------------------------------------------------------------------
   # Kernel Services
@@ -84,8 +84,8 @@ apps:
     timeout: 600
     priority: -8
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/kernel-preinstall.sh"
-      preUpgrade: "$WORKDIR/hooks/esignet-1.7.1/kernel-preinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/kernel-preinstall.sh"
+      preUpgrade: "$WORKDIR/hooks/esignet-standalone/kernel-preinstall.sh"
 
   auditmanager:
     namespace: kernel
@@ -98,8 +98,8 @@ apps:
     timeout: 600
     priority: -8
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/kernel-preinstall.sh"
-      preUpgrade: "$WORKDIR/hooks/esignet-1.7.1/kernel-preinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/kernel-preinstall.sh"
+      preUpgrade: "$WORKDIR/hooks/esignet-standalone/kernel-preinstall.sh"
 
   otpmanager:
     namespace: kernel
@@ -110,8 +110,8 @@ apps:
     timeout: 600
     priority: -8
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/kernel-preinstall.sh"
-      preUpgrade: "$WORKDIR/hooks/esignet-1.7.1/kernel-preinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/kernel-preinstall.sh"
+      preUpgrade: "$WORKDIR/hooks/esignet-standalone/kernel-preinstall.sh"
 
   notifier:
     namespace: kernel
@@ -122,8 +122,8 @@ apps:
     timeout: 600
     priority: -7
     hooks:
-      postInstall: "$WORKDIR/hooks/esignet-1.7.1/notifier-postinstall.sh"
-      postUpgrade: "$WORKDIR/hooks/esignet-1.7.1/notifier-postinstall.sh"
+      postInstall: "$WORKDIR/hooks/esignet-standalone/notifier-postinstall.sh"
+      postUpgrade: "$WORKDIR/hooks/esignet-standalone/notifier-postinstall.sh"
 
   # ---------------------------------------------------------------------------
   # Mock SMTP (Optional — dev/test email and SMS)
@@ -162,8 +162,8 @@ apps:
     timeout: 600
     priority: -4
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/signup-service-preinstall.sh"
-      preUpgrade: "$WORKDIR/hooks/esignet-1.7.1/signup-service-preinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/signup-service-preinstall.sh"
+      preUpgrade: "$WORKDIR/hooks/esignet-standalone/signup-service-preinstall.sh"
 
   # ---------------------------------------------------------------------------
   # Signup UI

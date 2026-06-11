@@ -7,7 +7,7 @@
 # Prepares esignet namespace for config-server deployment:
 #   1. Ensures namespace exists with Istio injection enabled
 #   2. Copies db-common-secrets from postgres ns
-#   3. Creates esignet-domain-config ConfigMap from workflow env vars
+#   3. Creates esignet-global ConfigMap from workflow env vars
 #      (domain_name set by helmsman_esignet.yml; available as shell env var
 #      in all hooks run within the same workflow step)
 #   4. Pre-creates empty esignet-misp-onboarder-key secret as placeholder
@@ -47,10 +47,10 @@ kubectl label namespace "$ESIGNET_NS" istio-injection=enabled --overwrite
 echo "Copying db-common-secrets from $POSTGRES_NS"
 $COPY_UTIL secret db-common-secrets "$POSTGRES_NS" "$ESIGNET_NS"
 
-# --- Step 3: Create esignet-domain-config from workflow env vars ---
+# --- Step 3: Create esignet-global from workflow env vars ---
 # domain_name is exported by the helmsman_esignet.yml workflow step
-echo "Creating esignet-domain-config configmap (domain_name=${domain_name:-UNSET})"
-kubectl -n "$ESIGNET_NS" create configmap esignet-domain-config \
+echo "Creating esignet-global configmap (domain_name=${domain_name:-UNSET})"
+kubectl -n "$ESIGNET_NS" create configmap esignet-global \
   --from-literal=installation-domain="${domain_name}" \
   --from-literal=mosip-api-host="api.${domain_name}" \
   --from-literal=mosip-api-internal-host="api-internal.${domain_name}" \
@@ -62,7 +62,7 @@ kubectl -n "$ESIGNET_NS" create configmap esignet-domain-config \
   --from-literal=mosip-smtp-host="smtp.${domain_name}" \
   --from-literal=mosip-version="develop" \
   --dry-run=client -o yaml | kubectl apply -f -
-echo "esignet-domain-config created/updated."
+echo "esignet-global created/updated."
 
 # --- Step 4: Pre-create empty MISP key secret as placeholder ---
 # Allows config-server pod to start. Real value written by MISP onboarder (-6).

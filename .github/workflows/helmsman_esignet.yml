@@ -6,11 +6,11 @@ on:
       profile:
         description: "Deployment profile to use"
         required: true
-        default: "mosip-platform-java11"
+        default: "mosip-platform-1.2.0.x"
         type: choice
         options:
-          - mosip-platform-java11
-          - mosip-platform-java21
+          - mosip-platform-1.2.0.x
+          - mosip-platform-1.2.1.x
           - esignet
       mode:
         description: "Choose Helmsman mode: dry-run or apply"
@@ -32,17 +32,17 @@ on:
         type: boolean
       domain_name:
         description: "Domain name for this environment (e.g. example.xyz.net)"
-        required: false
+        required: true
         type: string
       esignet_db_port:
         description: "PostgreSQL port for eSignet databases (e.g. 5433 for MOSIP platform external postgres)"
-        required: false
+        required: true
         type: string
       cre_domain_name:
         description: "CRE domain name for this environment (e.g. cre.xyz.net)"
         required: false
         type: string
-      qabase_domain_name:
+      qa11_domain_name:
         description: "QA base domain name for this environment (e.g. qabase.xyz.net)"
         required: false
         type: string
@@ -83,22 +83,22 @@ jobs:
           echo "✓ domain_name     = $DOMAIN"
           echo "✓ env_name        = $ENV"
           echo "✓ esignet_db_port = $ESIGNET_DB_PORT"
-          # cre_domain_name and qabase_domain_name are esignet standalone only.
+          # cre_domain_name and qa11_domain_name are esignet standalone only.
           # Push events always target esignet (path filter); dispatch uses explicit profile input.
           if [ -z "$PROFILE" ] || [ "$PROFILE" = "esignet" ]; then
             CRE_DOMAIN="${{ github.event.inputs.cre_domain_name || vars.CRE_DOMAIN_NAME }}"
-            QABASE_DOMAIN="${{ github.event.inputs.qabase_domain_name || vars.QABASE_DOMAIN_NAME }}"
+            QA11_DOMAIN="${{ github.event.inputs.qa11_domain_name || vars.QA11_DOMAIN_NAME }}"
             echo "✓ cre_domain_name    = $CRE_DOMAIN (esignet standalone)"
-            echo "✓ qabase_domain_name = $QABASE_DOMAIN (esignet standalone)"
+            echo "✓ qa11_domain_name = $QA11_DOMAIN (esignet standalone)"
             CRE_SPRING_LABEL="${{ vars.ESIGNET_CRE_SPRING_CONFIG_LABEL }}"
             QA11_SPRING_LABEL="${{ vars.ESIGNET_QA11_SPRING_CONFIG_LABEL }}"
             echo "✓ cre_spring_config_label  = ${CRE_SPRING_LABEL:-develop} (esignet standalone, default: develop)"
             echo "✓ qa11_spring_config_label = ${QA11_SPRING_LABEL:-develop} (esignet standalone, default: develop)"
           else
             CRE_PROVIDED="${{ github.event.inputs.cre_domain_name }}"
-            QABASE_PROVIDED="${{ github.event.inputs.qabase_domain_name }}"
+            QABASE_PROVIDED="${{ github.event.inputs.qa11_domain_name }}"
             if [ -n "$CRE_PROVIDED" ] || [ -n "$QABASE_PROVIDED" ]; then
-              echo "⚠ cre_domain_name / qabase_domain_name are only used for esignet standalone profile — ignoring for profile=$PROFILE"
+              echo "⚠ cre_domain_name / qa11_domain_name are only used for esignet standalone profile — ignoring for profile=$PROFILE"
             fi
           fi
 
@@ -114,7 +114,7 @@ jobs:
       domain_name:        ${{ github.event.inputs.domain_name        || vars.DOMAIN_NAME }}
       esignet_db_port:    ${{ github.event.inputs.esignet_db_port    || vars.ESIGNET_DB_PORT }}
       cre_domain_name:    ${{ github.event.inputs.cre_domain_name    || vars.CRE_DOMAIN_NAME }}
-      qabase_domain_name: ${{ github.event.inputs.qabase_domain_name || vars.QABASE_DOMAIN_NAME }}
+      qa11_domain_name: ${{ github.event.inputs.qa11_domain_name || vars.QA11_DOMAIN_NAME }}
       env_name:           ${{ github.event.inputs.env_name           || vars.ENV_NAME }}
       # All secrets below are ENVIRONMENT secrets (not repository secrets)
       # Configure them in: Repository → Settings → Environments → <branch-name> → Secrets
@@ -184,7 +184,7 @@ jobs:
           save_var "DOMAIN_NAME"        "${{ github.event.inputs.domain_name }}"
           save_var "ESIGNET_DB_PORT"    "${{ github.event.inputs.esignet_db_port }}"
           save_var "CRE_DOMAIN_NAME"    "${{ github.event.inputs.cre_domain_name }}"
-          save_var "QABASE_DOMAIN_NAME" "${{ github.event.inputs.qabase_domain_name }}"
+          save_var "QA11_DOMAIN_NAME" "${{ github.event.inputs.qa11_domain_name }}"
           save_var "ENV_NAME"           "${{ github.event.inputs.env_name }}"
 
       - name: Mask sensitive data
@@ -508,7 +508,7 @@ jobs:
         run: |
           echo "domain_name        = $domain_name"
           echo "cre_domain_name    = $cre_domain_name"
-          echo "qabase_domain_name = $qabase_domain_name"
+          echo "qa11_domain_name = $qa11_domain_name"
           echo "env_name           = $env_name"
 
       - name: Initiate helmsman to apply the DSF configurations
@@ -594,7 +594,7 @@ jobs:
 
   # ---------------------------------------------------------------------------
   # Trigger signup workflow after successful esignet standalone deployment.
-  # Only fires when profile == 'esignet' (not for mosip-platform-java11/java21).
+  # Only fires when profile == 'esignet' (not for mosip-platform-1.2.0.x/java21).
   # ---------------------------------------------------------------------------
   workflow-caller:
     runs-on: ubuntu-latest

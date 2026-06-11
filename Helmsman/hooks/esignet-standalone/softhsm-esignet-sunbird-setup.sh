@@ -6,4 +6,4 @@
 # =============================================================================
 set -euo pipefail
 export ESIGNET_NS="esignet-sunbird"
-exec "$WORKDIR/hooks/esignet-1.7.1/softhsm-esignet-setup.sh"
+exec "$WORKDIR/hooks/esignet-standalone/softhsm-esignet-setup.sh"

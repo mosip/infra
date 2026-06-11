@@ -66,8 +66,8 @@ apps:
     valuesFile: "$WORKDIR/utils/postgres-values.yaml"
     timeout: 1200
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/postgres-preinstall.sh"
-      postInstall: "$WORKDIR/hooks/esignet-1.7.1/postgres-postinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/postgres-preinstall.sh"
+      postInstall: "$WORKDIR/hooks/esignet-standalone/postgres-postinstall.sh"
 
   istio-addons-psql:
     namespace: postgres
@@ -178,8 +178,8 @@ apps:
     timeout: 300
     priority: -16
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-init-db.sh"
-      postInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-db-postinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/esignet-init-db.sh"
+      postInstall: "$WORKDIR/hooks/esignet-standalone/esignet-db-postinstall.sh"
 
   # ---------------------------------------------------------------------------
   # PostgreSQL Init - Signup Service Databases
@@ -234,7 +234,7 @@ apps:
     timeout: 300
     priority: -16
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/signup-init-db.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/signup-init-db.sh"
 
   # ---------------------------------------------------------------------------
   # Redis
@@ -252,7 +252,7 @@ apps:
     timeout: 480
     priority: -15
     hooks:
-      postInstall: "$WORKDIR/hooks/esignet-1.7.1/redis-setup.sh"
+      postInstall: "$WORKDIR/hooks/esignet-standalone/redis-setup.sh"
 
   # ---------------------------------------------------------------------------
   # Kafka
@@ -295,7 +295,7 @@ apps:
     timeout: 1200
     priority: -14
     hooks:
-      postInstall: "$WORKDIR/hooks/esignet-1.7.1/kafka-postinstall.sh"
+      postInstall: "$WORKDIR/hooks/esignet-standalone/kafka-postinstall.sh"
 
   kafka-ui:
     namespace: kafka
@@ -406,8 +406,8 @@ apps:
     timeout: 480
     priority: -1
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-preinstall-keycloak-init.sh"
-      postInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-postinstall-keycloak-init.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/esignet-preinstall-keycloak-init.sh"
+      postInstall: "$WORKDIR/hooks/esignet-standalone/esignet-postinstall-keycloak-init.sh"
   # ---------------------------------------------------------------------------
   # Captcha Validation Service
   # ---------------------------------------------------------------------------
@@ -422,7 +422,7 @@ apps:
     timeout: 480
     priority: -10
     hooks:
-      postInstall: "$WORKDIR/hooks/esignet-1.7.1/captcha-postinstall.sh"
+      postInstall: "$WORKDIR/hooks/esignet-standalone/captcha-postinstall.sh"
 
   minio:
     namespace: minio

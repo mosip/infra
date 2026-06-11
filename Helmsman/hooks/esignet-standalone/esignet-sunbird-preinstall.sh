@@ -15,10 +15,10 @@ COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
 CAPTCHA_SITE_KEY="${ESIGNET_SUNBIRD_CAPTCHA_SITE_KEY:?ERROR: ESIGNET_SUNBIRD_CAPTCHA_SITE_KEY must be set}"
 CAPTCHA_SECRET_KEY="${ESIGNET_SUNBIRD_CAPTCHA_SECRET_KEY:?ERROR: ESIGNET_SUNBIRD_CAPTCHA_SECRET_KEY must be set}"
 
-"$WORKDIR/hooks/esignet-1.7.1/esignet-preinstall.sh"
+"$WORKDIR/hooks/esignet-standalone/esignet-preinstall.sh"
 
-# Create Sunbird-specific esignet-domain-config — same domain_name, but esignet/signup hosts differ
-kubectl -n "$ESIGNET_NS" create configmap esignet-domain-config \
+# Create Sunbird-specific esignet-global — same domain_name, but esignet/signup hosts differ
+kubectl -n "$ESIGNET_NS" create configmap esignet-global \
   --from-literal=installation-domain="${domain_name}" \
   --from-literal=mosip-api-host="api.${domain_name}" \
   --from-literal=mosip-api-internal-host="api-internal.${domain_name}" \

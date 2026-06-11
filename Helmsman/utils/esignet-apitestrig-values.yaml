@@ -11,7 +11,7 @@ extraEnvVarsCM:
   - keycloak-host
   - db
   - apitestrig
-  - esignet-domain-config
+  - esignet-global
 
 extraEnvVarsSecret:
   - apitestrig-esignet-apitestrig
