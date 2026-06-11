@@ -84,11 +84,12 @@ We've created comprehensive beginner-friendly guides to help you succeed:
 
 | Guide                                                                         | What You'll Learn                                                                          | When to Read                                        |
 | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | --------------------------------------------------- |
-| **[Glossary](docs/GLOSSARY.md)**                                           | Plain-language explanations of all technical terms (AWS, Kubernetes, Terraform, VPN, etc.) | Before you start - understand the terminology       |
-| **[Secret Generation Guide](docs/SECRET_GENERATION_GUIDE.md)**             | Step-by-step instructions to generate SSH keys, AWS credentials, GPG passwords, and more   | Before deployment - setup required secrets          |
-| **[Workflow Guide](docs/WORKFLOW_GUIDE.md)**                               | Visual walkthrough of GitHub Actions workflows with screenshots and navigation help        | During deployment - run workflows correctly         |
-| **[DSF Configuration Guide](docs/DSF_CONFIGURATION_GUIDE.md)**             | How to configure Helmsman files including clusterid and domain settings                    | Before Helmsman deployment - configure applications |
-| **[Environment Destruction Guide](docs/ENVIRONMENT_DESTRUCTION_GUIDE.md)** | Safe teardown procedures, backup steps, and cost monitoring                                | After deployment - clean up resources               |
+| **[Glossary](docs/GLOSSARY.md)**                                                                         | Plain-language explanations of all technical terms (AWS, Kubernetes, Terraform, VPN, etc.) | Before you start - understand the terminology            |
+| **[Secret Generation Guide](docs/SECRET_GENERATION_GUIDE.md)**                                           | Step-by-step instructions to generate SSH keys, AWS credentials, GPG passwords, and more   | Before deployment - setup required secrets               |
+| **[Workflow Guide](docs/WORKFLOW_GUIDE.md)**                                                             | Visual walkthrough of GitHub Actions workflows with screenshots and navigation help        | During deployment - run workflows correctly               |
+| **[DSF Configuration Guide](docs/DSF_CONFIGURATION_GUIDE.md)**                                           | How to configure Helmsman files including clusterid and domain settings                    | Before Helmsman deployment - configure applications       |
+| **[eSignet Standalone Deployment Guide](docs/ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md)**                   | Step-by-step guide to deploy eSignet standalone via GitHub Actions — secrets, variables, workflow order | eSignet standalone deployment |
+| **[Environment Destruction Guide](docs/ENVIRONMENT_DESTRUCTION_GUIDE.md)**                               | Safe teardown procedures, backup steps, and cost monitoring                                | After deployment - clean up resources                    |
 
 **Complete Documentation Index:** [View All Documentation](docs/README.md)
 

@@ -593,36 +593,37 @@ jobs:
           kubectl get pods -n esignet 2>/dev/null || echo "esignet namespace not ready"
 
   # ---------------------------------------------------------------------------
-  # Trigger signup workflow after successful esignet standalone deployment.
-  # Only fires when profile == 'esignet' (not for mosip-platform-1.2.0.x/java21).
+  # [DISABLED] Auto-trigger signup workflow after esignet standalone deployment.
+  # Signup deployment configuration is currently in progress.
+  # Re-enable this job once signup DSF is finalised and tested.
   # ---------------------------------------------------------------------------
-  workflow-caller:
-    runs-on: ubuntu-latest
-    needs: [deploy]
-    if: |
-      success() &&
-      (github.event.inputs.profile == 'esignet' || github.event_name == 'push')
-    environment:
-      name: ${{ github.ref_name }}
-    steps:
-      - name: Trigger helmsman signup workflow
-        env:
-          GH_TOKEN: ${{ secrets.GH_INFRA_PAT }}
-        run: |
-          DOMAIN="${{ github.event.inputs.domain_name || vars.DOMAIN_NAME }}"
-          ENV="${{ github.event.inputs.env_name || vars.ENV_NAME }}"
-          MODE="${{ github.event.inputs.mode || 'apply' }}"
-
-          echo "Triggering signup workflow for profile=esignet"
-          echo "  domain_name = $DOMAIN"
-          echo "  env_name    = $ENV"
-          echo "  mode        = $MODE"
-
-          curl -f -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/helmsman_signup.yml/dispatches" \
-            -d "{\"ref\":\"${{ github.ref_name }}\",\"inputs\":{\"mode\":\"$MODE\",\"profile\":\"esignet\",\"domain_name\":\"$DOMAIN\",\"env_name\":\"$ENV\"}}"
-
-          echo "✅ Signup workflow triggered successfully"
+  # workflow-caller:
+  #   runs-on: ubuntu-latest
+  #   needs: [deploy]
+  #   if: |
+  #     success() &&
+  #     (github.event.inputs.profile == 'esignet' || github.event_name == 'push')
+  #   environment:
+  #     name: ${{ github.ref_name }}
+  #   steps:
+  #     - name: Trigger helmsman signup workflow
+  #       env:
+  #         GH_TOKEN: ${{ secrets.GH_INFRA_PAT }}
+  #       run: |
+  #         DOMAIN="${{ github.event.inputs.domain_name || vars.DOMAIN_NAME }}"
+  #         ENV="${{ github.event.inputs.env_name || vars.ENV_NAME }}"
+  #         MODE="${{ github.event.inputs.mode || 'apply' }}"
+  #
+  #         echo "Triggering signup workflow for profile=esignet"
+  #         echo "  domain_name = $DOMAIN"
+  #         echo "  env_name    = $ENV"
+  #         echo "  mode        = $MODE"
+  #
+  #         curl -f -X POST \
+  #           -H "Accept: application/vnd.github+json" \
+  #           -H "Authorization: Bearer $GH_TOKEN" \
+  #           -H "X-GitHub-Api-Version: 2022-11-28" \
+  #           "https://api.github.com/repos/${{ github.repository }}/actions/workflows/helmsman_signup.yml/dispatches" \
+  #           -d "{\"ref\":\"${{ github.ref_name }}\",\"inputs\":{\"mode\":\"$MODE\",\"profile\":\"esignet\",\"domain_name\":\"$DOMAIN\",\"env_name\":\"$ENV\"}}"
+  #
+  #         echo "✅ Signup workflow triggered successfully"

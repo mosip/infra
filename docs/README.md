@@ -59,6 +59,7 @@ Welcome to the MOSIP Infrastructure documentation! This index helps you find exa
 | **[Secret Generation Guide](SECRET_GENERATION_GUIDE.md)** | How to create all required secrets and credentials | Everyone before deployment |
 | **[Workflow Guide](WORKFLOW_GUIDE.md)** | Visual GitHub Actions workflow navigation | Everyone during deployment |
 | **[DSF Configuration Guide](DSF_CONFIGURATION_GUIDE.md)** | Helmsman configuration file explained in detail | Everyone before Helmsman deployment |
+| **[eSignet Standalone Deployment Guide](ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md)** | Step-by-step guide to deploy eSignet standalone via GitHub Actions — secrets, variables, workflow order | eSignet standalone deployments |
 | **[Environment Destruction Guide](ENVIRONMENT_DESTRUCTION_GUIDE.md)** | Safe resource cleanup and cost management | Everyone when decommissioning |
 | **[Helmsman Destroy Guide](HELMSMAN_DESTROY_GUIDE.md)** | How to safely undeploy MOSIP services from Kubernetes | Everyone when removing services |
 
