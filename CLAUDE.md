@@ -171,7 +171,7 @@ The DSF supports **4 parallel eSignet instances** — one per namespace — each
 | -13 | oidc-ui-cre | esignet-cre | Istio host: `esignet-cre.${domain_name}` |
 | -13 | oidc-ui-qa11 | esignet-qa11 | Istio host: `esignet-qa11.${domain_name}` |
 | -13 | oidc-ui-sunbird | esignet-sunbird | Istio host: `esignet-sunbird.${domain_name}` |
-| -11 | softhsm-mock-identity-system (optional) | softhsm | |
+| -12 | softhsm-mock-identity-system (optional) | softhsm | Must precede mock-identity-system — postInstall creates the secret that mock-identity-system-preinstall.sh copies |
 | -11 | mock-identity-system (optional) | esignet | |
 | -10 | mock-relying-party-service | esignet | Istio via `healthservices.${domain_name}` |
 | -10 | mock-relying-party-service-cre | esignet-cre | Istio via `healthservices-mosipid-cre.${domain_name}` |
