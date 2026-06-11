@@ -11,7 +11,7 @@ MOSIP Rapid Deployment — Terraform for cloud infrastructure + Helmsman for Kub
 - **GPG-encrypted local Terraform state**: state files are encrypted and committed to Git per-branch — no S3/remote backend dependency. File naming: `{provider}-{component}-{branch}-terraform.tfstate.gpg`
 - **Helmsman DSFs organized by deployment profile** (not a single flat folder)
 - **~73 hook scripts** for pre/post-install automation; all are idempotent and accept `KUBECONFIG` as optional first argument
-- **Versioned hooks**: `Helmsman/hooks/esignet-1.7.1/` contains version-specific overrides (takes precedence over root-level hooks when referenced in a DSF)
+- **Versioned hooks**: `Helmsman/hooks/esignet-standalone/` contains version-specific overrides (takes precedence over root-level hooks when referenced in a DSF)
 - **Ansible** for external PostgreSQL provisioning (in `Helmsman/utils/ansible/`)
 
 ---
@@ -96,13 +96,13 @@ Helmsman/dsf/
 │   ├── esignet-dsf.yaml
 │   ├── signup-dsf.yaml         # Signup stack (deployed after esignet-dsf)
 │   └── testrigs-dsf.yaml       # API/UI testrigs for all 4 esignet namespaces
-├── mosip-platform-java11/      # Full MOSIP platform with Java 11
+├── mosip-platform-1.2.0.x/      # Full MOSIP platform with Java 11
 │   ├── prereq-dsf.yaml
 │   ├── external-dsf.yaml
 │   ├── mosip-dsf.yaml
 │   ├── esignet-dsf.yaml
 │   └── testrigs-dsf.yaml
-└── mosip-platform-java21/      # Full MOSIP platform with Java 21
+└── mosip-platform-1.2.1.x/      # Full MOSIP platform with Java 21
     ├── prereq-dsf.yaml
     ├── external-dsf.yaml
     ├── mosip-dsf.yaml
@@ -164,7 +164,7 @@ The DSF supports **4 parallel eSignet instances** — one per namespace — each
 | -16 | esignet-softhsm-sunbird | esignet-sunbird | Plugin 3 (sunbird-rc) |
 | -15 | esignet-config-server | esignet | Spring Cloud Config Server; pre+postInstall hooks copy secrets and propagate share CM |
 | -14 | esignet | esignet | Plugin 1 (mock) |
-| -14 | esignet-cre | esignet-cre | Plugin 2 (mosip-identity); DSF overrides `extraEnvVarsCM[1]: esignet-domain-config`, `extraEnvVarsCM[2]: esignet-config-server-share` (replaces chart defaults `[global, config-server-share]`) |
+| -14 | esignet-cre | esignet-cre | Plugin 2 (mosip-identity); DSF overrides `extraEnvVarsCM[1]: esignet-global`, `extraEnvVarsCM[2]: esignet-config-server-share` (replaces chart defaults `[global, config-server-share]`) |
 | -14 | esignet-qa11 | esignet-qa11 | Plugin 2 (mosip-identity); same `extraEnvVarsCM` overrides as esignet-cre |
 | -14 | esignet-sunbird | esignet-sunbird | Plugin 3 (sunbird-rc) |
 | -13 | oidc-ui | esignet | Istio host: `esignet.${domain_name}` |
@@ -181,9 +181,9 @@ The DSF supports **4 parallel eSignet instances** — one per namespace — each
 | -9 | mock-relying-party-ui-cre | esignet-cre | |
 | -9 | mock-relying-party-ui-qa11 | esignet-qa11 | |
 | -9 | mock-relying-party-ui-sunbird | esignet-sunbird | |
-| -9 | pms-partner-cre | esignet-cre | PMS partner; preInstall creates `pms-partner-cre-gateway` (chart has no gateway template); DSF overrides `extraEnvVarsCM[0]: esignet-domain-config`, `extraEnvVarsCM[1]: esignet-config-server-share` |
+| -9 | pms-partner-cre | esignet-cre | PMS partner; preInstall creates `pms-partner-cre-gateway` (chart has no gateway template); DSF overrides `extraEnvVarsCM[0]: esignet-global`, `extraEnvVarsCM[1]: esignet-config-server-share` |
 | -9 | pms-policy-cre | esignet-cre | PMS policy; VS references `pms-partner-cre-gateway` (shared with pms-partner); same `extraEnvVarsCM` overrides as pms-partner-cre |
-| -9 | pms-partner-qa11 | esignet-qa11 | PMS partner; preInstall creates `pms-partner-qa11-gateway`; DSF overrides `extraEnvVarsCM[0]: esignet-domain-config`, `extraEnvVarsCM[1]: esignet-config-server-share` |
+| -9 | pms-partner-qa11 | esignet-qa11 | PMS partner; preInstall creates `pms-partner-qa11-gateway`; DSF overrides `extraEnvVarsCM[0]: esignet-global`, `extraEnvVarsCM[1]: esignet-config-server-share` |
 | -9 | pms-policy-qa11 | esignet-qa11 | PMS policy; VS references `pms-partner-qa11-gateway` (shared with pms-partner); same `extraEnvVarsCM` overrides as pms-partner-qa11 |
 | -6 | esignet-misp-onboarder (optional) | esignet | Enable for plugin 2 (mosip-identity) only — runs FIRST |
 | -5 | esignet-mock-rp-onboarder (optional) | esignet | Enable for plugin 1 (mock) or plugin 3 (sunbird) |
@@ -227,7 +227,7 @@ Still requires manual update per environment:
 
 73 shell scripts executed by Helmsman as `preInstall`/`postInstall` steps. Two layers:
 - **Root-level hooks** — default hooks used by all profiles
-- **`esignet-1.7.1/` subdirectory** — version-specific overrides for eSignet 1.7.1 (takes precedence when referenced in eSignet DSF)
+- **`esignet-standalone/` subdirectory** — version-specific overrides for eSignet 1.7.1 (takes precedence when referenced in eSignet DSF)
 
 **Hook naming convention:**
 - `{service}-setup.sh` — main initialization (runs once, creates namespaces/resources)
@@ -244,14 +244,14 @@ Key eSignet hooks:
 | `pre-helmsman-cleanup.sh` | (global) | **Deletes immutable Jobs before re-deploy** — run this first on re-deployments |
 | `esignet-init-db.sh` | postgres-init-esignet | Pre-creates all 4 esignet namespaces (`esignet`, `esignet-cre`, `esignet-qa11`, `esignet-sunbird`) with Istio label at priority -16 so postInstall can copy `db-common-secrets` into each (namespace-specific preinstalls only run at -14) |
 | `esignet-db-postinstall.sh` | postgres-init-esignet | Copies `db-common-secrets` from `postgres` ns to all 4 esignet namespaces after init jobs complete |
-| `config-server-esignet-setup.sh` | esignet-config-server | Creates esignet ns + Istio label; copies db secrets (`db-common-secrets` from postgres ns, `redis`/`redis-config` from redis ns); creates `esignet-domain-config` CM in esignet ns with 10 keys from `${domain_name}`: `installation-domain`, `mosip-api-host`, `mosip-api-internal-host`, `mosip-esignet-host` (`esignet.${domain_name}`), `mosip-iam-external-host`, `mosip-kafka-host`, `mosip-postgres-host`, `mosip-signup-host`, `mosip-smtp-host`, `mosip-version`; pre-creates empty `esignet-misp-onboarder-key` placeholder. **Does NOT copy softhsm secret** — the softhsm Helm chart installs directly into the esignet namespace, so no cross-namespace copy is needed. **Does NOT copy keycloak resources** — those are pre-populated by `esignet-postinstall-keycloak-init.sh` in external-dsf |
+| `config-server-esignet-setup.sh` | esignet-config-server | Creates esignet ns + Istio label; copies db secrets (`db-common-secrets` from postgres ns, `redis`/`redis-config` from redis ns); creates `esignet-global` CM in esignet ns with 10 keys from `${domain_name}`: `installation-domain`, `mosip-api-host`, `mosip-api-internal-host`, `mosip-esignet-host` (`esignet.${domain_name}`), `mosip-iam-external-host`, `mosip-kafka-host`, `mosip-postgres-host`, `mosip-signup-host`, `mosip-smtp-host`, `mosip-version`; pre-creates empty `esignet-misp-onboarder-key` placeholder. **Does NOT copy softhsm secret** — the softhsm Helm chart installs directly into the esignet namespace, so no cross-namespace copy is needed. **Does NOT copy keycloak resources** — those are pre-populated by `esignet-postinstall-keycloak-init.sh` in external-dsf |
 | `config-server-esignet-postinstall.sh` | esignet-config-server | Copies `esignet-config-server-share` CM from `esignet` ns to `esignet-cre`, `esignet-qa11`, `esignet-sunbird` so those instances can locate the config-server |
 | `esignet-preinstall-keycloak-init.sh` | esignet-keycloak-init | Deletes old `esignet-keycloak-init` release from keycloak ns (helm manages `keycloak-host` and `keycloak-client-secrets` — no manual kubectl delete needed); also cleans up old esignet-ns release (migration); fetches all 5 client secrets from keycloak ns for Helmsman `${VAR}` substitution (empty on fresh install — chart generates them) |
 | `esignet-postinstall-keycloak-init.sh` | esignet-keycloak-init | Fans out `keycloak-host` CM, `keycloak-env-vars` CM, `keycloak` secret, and `keycloak-client-secrets` secret from keycloak ns to all 4 esignet namespaces (esignet, esignet-cre, esignet-qa11, esignet-sunbird); skips any namespace that does not exist |
 | `softhsm-esignet-setup.sh` / `softhsm-esignet-postinstall.sh` | softhsm-esignet | HSM namespace + secret sharing (esignet ns) |
 | `softhsm-esignet-{cre,qa11,sunbird}-setup.sh` | softhsm-esignet-{cre,qa11,sunbird} | Thin wrappers — set `ESIGNET_NS` and exec `softhsm-esignet-setup.sh` |
 | `esignet-preinstall.sh` | esignet | Copies postgres/redis configmaps+secrets to esignet ns |
-| `esignet-{cre,qa11,sunbird}-preinstall.sh` | esignet-{cre,qa11,sunbird} | Set `ESIGNET_NS`, call base `esignet-preinstall.sh`, then: (1) **create namespace-specific `esignet-domain-config`** CM directly in target ns — all keys use `${domain_name}` except `mosip-esignet-host` and `mosip-signup-host` which use namespace-specific subdomains (`esignet-mosipid-cre`, `signup-mosipid-cre` / `esignet-mosipid-qa11`, `signup-mosipid-qa11` / `esignet-sunbird`, `signup-sunbird`); (2) patch `postgres-config` with env-specific `database-name` and `database-username` (e.g. `mosip_esignet_cre`/`esignetuser_cre`); (3) create `esignet-misp-onboarder-key` placeholder secret if absent; (4) create `esignet-captcha-{cre,qa11,sunbird}` secret in captcha ns from `ESIGNET_{CRE,QA11,SUNBIRD}_CAPTCHA_SITE/SECRET_KEY` env vars (injected by esignet workflow), copy to target ns, and patch captcha deployment with `MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_ESIGNET{CRE,QA11,SUNBIRD}`; **(cre and qa11 only)** (5) create `postgres-postgresql-{cre,qa11}` secret from `CRE/QA11_POSTGRES_PASSWORD`; (6) create `keycloak-host-{cre,qa11}` CM with 5 keys — `keycloak-external-host/url` → `iam.${cre/qabase_domain_name}`, `keycloak-internal-host/url/service-url` → `keycloak.keycloak`; (7) fetch all confidential clients from remote CRE/QA11 Keycloak REST API using `CRE/QA11_KEYCLOAK_ADMIN_PASSWORD` → create `keycloak-client-secrets-{cre,qa11}` (key per client: `{clientId_with_underscores}_secret`) |
+| `esignet-{cre,qa11,sunbird}-preinstall.sh` | esignet-{cre,qa11,sunbird} | Set `ESIGNET_NS`, call base `esignet-preinstall.sh`, then: (1) **create namespace-specific `esignet-global`** CM directly in target ns — all keys use `${domain_name}` except `mosip-esignet-host` and `mosip-signup-host` which use namespace-specific subdomains (`esignet-mosipid-cre`, `signup-mosipid-cre` / `esignet-mosipid-qa11`, `signup-mosipid-qa11` / `esignet-sunbird`, `signup-sunbird`); (2) patch `postgres-config` with env-specific `database-name` and `database-username` (e.g. `mosip_esignet_cre`/`esignetuser_cre`); (3) create `esignet-misp-onboarder-key` placeholder secret if absent; (4) create `esignet-captcha-{cre,qa11,sunbird}` secret in captcha ns from `ESIGNET_{CRE,QA11,SUNBIRD}_CAPTCHA_SITE/SECRET_KEY` env vars (injected by esignet workflow), copy to target ns, and patch captcha deployment with `MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_ESIGNET{CRE,QA11,SUNBIRD}`; **(cre and qa11 only)** (5) create `postgres-postgresql-{cre,qa11}` secret from `CRE/QA11_POSTGRES_PASSWORD`; (6) create `keycloak-host-{cre,qa11}` CM with 5 keys — `keycloak-external-host/url` → `iam.${cre/qa11_domain_name}`, `keycloak-internal-host/url/service-url` → `keycloak.keycloak`; (7) fetch all confidential clients from remote CRE/QA11 Keycloak REST API using `CRE/QA11_KEYCLOAK_ADMIN_PASSWORD` → create `keycloak-client-secrets-{cre,qa11}` (key per client: `{clientId_with_underscores}_secret`) |
 | `oidc-ui-preinstall.sh` | oidc-ui | Waits for esignet pods ready in esignet ns |
 | `oidc-ui-{cre,qa11,sunbird}-preinstall.sh` | oidc-ui-{cre,qa11,sunbird} | Thin wrappers — set `ESIGNET_NS` and exec `oidc-ui-preinstall.sh` |
 | `mock-identity-system-preinstall.sh` | mock-identity-system | Copies `softhsm-mock-identity-system` secret from softhsm ns (chart references it via `secretKeyRef` — must be in same namespace as pod); creates `mockid-postgres-config` with `database-host` read from `postgres-config` in esignet ns and hardcoded defaults for `database-name`/`database-username`/`database-port` (`mosip_mockidentitysystem`/`mockidsystemuser`/`5432`) — overridable via `MOCKID_DB_NAME`/`MOCKID_DB_USER`/`MOCKID_DB_PORT` env vars (no dependency on `db-mockidentitysystem-init-env-config` CM); verifies `softhsm-mock-identity-system-share` CM is present |
@@ -267,7 +267,7 @@ Key eSignet hooks:
 | `pms-partner-qa11-preinstall.sh` | pms-partner-qa11 | Creates `pms-partner-qa11-gateway` in `esignet-qa11` (HTTPS+HTTP, TLS credential `pms-partner-qa11-tls`); chart has no gateway template |
 | `common-labeling-istio-and-sharing-cm-secrets-among-ns.sh` | multiple | Apply Istio labels + share configmaps/secrets across namespaces |
 
-Key Signup hooks (`Helmsman/hooks/esignet-1.7.1/`):
+Key Signup hooks (`Helmsman/hooks/esignet-standalone/`):
 
 | Hook | App | Purpose |
 |---|---|---|
@@ -279,7 +279,7 @@ Key Signup hooks (`Helmsman/hooks/esignet-1.7.1/`):
 | `signup-service-preinstall.sh` | signup | Copies redis/keycloak secrets; creates `keycloak-host` configmap, `signup-captcha` secret (in signup ns + copies to captcha ns + patches captcha deployment with `MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_SIGNUP`), `signup-keystore` secret, `msg-gateway` configmap+secret pointing to mock-smtp |
 | `mock-identity-init-db.sh` | postgres-init-mock-identity | Initializes mock identity DB schema |
 
-Key Testrig hooks (`Helmsman/hooks/esignet-1.7.1/`):
+Key Testrig hooks (`Helmsman/hooks/esignet-standalone/`):
 
 | Hook | App | Purpose |
 |---|---|---|
@@ -314,11 +314,11 @@ export WORKDIR=/path/to/Helmsman
 | `esignet-cre-plugin-values.yaml` | Plugin 2 (mosip-identity) — captcha + all IDA service URLs active; overrides full `extraEnvVars` list (SOFTHSM_ESIGNET_SECURITY_PIN references `esignet-softhsm-cre`); used by `esignet-cre` |
 | `esignet-qa11-plugin-values.yaml` | Plugin 2 (mosip-identity) — identical to cre; SOFTHSM_ESIGNET_SECURITY_PIN references `esignet-softhsm-qa11`; used by `esignet-qa11` |
 | `esignet-sunbird-plugin-values.yaml` | Plugin 3 (sunbird-rc) — captcha + sunbird registry URL + `NoOpKeyBinder`; overrides full `extraEnvVars` list (SOFTHSM_ESIGNET_SECURITY_PIN references `esignet-softhsm-sunbird`); used by `esignet-sunbird` |
-| `esignet-apitestrig-values.yaml` | Shared values for all 4 esignet apitestrig releases — enables `mosipdev/apitest-esignet:develop` image; `extraEnvVarsCM`: `[s3, keycloak-host, db, apitestrig, esignet-domain-config]`; `extraEnvVarsSecret` defaults overridden per-release in DSF via indexed `set:` |
+| `esignet-apitestrig-values.yaml` | Shared values for all 4 esignet apitestrig releases — enables `mosipdev/apitest-esignet:develop` image; `extraEnvVarsCM`: `[s3, keycloak-host, db, apitestrig, esignet-global]`; `extraEnvVarsSecret` defaults overridden per-release in DSF via indexed `set:` |
 | `esignet-signup-apitestrig-values.yaml` | Values for signup apitestrig — `mosipid/apitest-esignet-signup:1.2.2` image; same CM pattern |
 | `signup-uitestrig-values.yaml` | Values for signup UI testrig — `mosipdev/uitest-signup:develop` image; `extraEnvVarsCM`: `[s3, keycloak-host, db, uitestrig]` |
 | `config-server-values.yaml` | Git repo config for Spring Cloud Config Server (MOSIP platform profiles) |
-| `config-server-esignet-values.yaml` | Config-server values for **eSignet standalone** — gitRepo: `esignet-config` @ `develop`; all env vars use `configMapKeyRef`/`secretKeyRef` (no literals); domain values from `esignet-domain-config` CM created by preinstall hook |
+| `config-server-esignet-values.yaml` | Config-server values for **eSignet standalone** — gitRepo: `esignet-config` @ `develop`; all env vars use `configMapKeyRef`/`secretKeyRef` (no literals); domain values from `esignet-global` CM created by preinstall hook |
 | `istio-gateway/` | Helm chart for Istio gateways (internal + public) and auth policies |
 | `*-istio-addons-*.tgz` | Pre-packaged Istio addon charts (logging, IAM, Kafka, MinIO, Postgres, gateway) |
 | `logging/` | Elasticsearch clusterflow/output YAMLs + 5 Kibana dashboards |
@@ -645,7 +645,7 @@ Two charts: `esignet/` and `oidc-ui/`, both using Bitnami common library.
 - `config-server` is a **published external chart** — `domainConfig` cannot be added to it. Domain values are injected by building a complete `envVariables` list in a runtime `mktemp` YAML file and passing it as `-f "$override_file"`. Since `envVariables` is a list and Helm replaces lists on `-f` merge, the override file must include every entry (not just the domain ones). Do not use `--set envVariables[N].value=...` — index-based list `--set` is fragile and replaces the whole list anyway
 - **SoftHSM secret name follows the Helm release name**: the softhsm chart creates a secret named `<release-name>` (e.g. release `esignet-softhsm-cre` → secret `esignet-softhsm-cre`). The esignet chart's default `extraEnvVars` references `esignet-softhsm` — which only exists in the main esignet namespace. For cre/qa11/sunbird, the full `extraEnvVars` list is overridden in each plugin values file so `SOFTHSM_ESIGNET_SECURITY_PIN` references the correct release-named secret (`esignet-softhsm-cre`, `esignet-softhsm-qa11`, `esignet-softhsm-sunbird`). Do NOT use `fullnameOverride` in softhsm values files — it renames the share ConfigMap too, breaking the name convention for all downstream consumers
 - **postgres-config is copied with esignet default DB values then patched per namespace**: `esignet-preinstall.sh` copies `postgres-config` from the postgres ns (which carries `mosip_esignet`/`esignetuser` values). Each cre/qa11/sunbird preinstall hook then runs `kubectl patch configmap postgres-config --type merge` to override `database-name` and `database-username` with env-specific values (e.g. `mosip_esignet_cre`/`esignetuser_cre`). The patch runs after the copy so only the two differing keys change, preserving host/port
-- **`global` CM replaced by `esignet-domain-config` for cre/qa11 and pms charts**: the esignet chart defaults include `extraEnvVarsCM: [global, config-server-share]` which causes `configmap "global" not found` in esignet-cre/qa11 and pms-partner/policy namespaces. These are overridden in `esignet-dsf.yaml` via indexed `extraEnvVarsCM[N]` keys: `extraEnvVarsCM[1]: esignet-domain-config` + `extraEnvVarsCM[2]: esignet-config-server-share` for esignet-cre/qa11; `extraEnvVarsCM[0]: esignet-domain-config` + `extraEnvVarsCM[1]: esignet-config-server-share` for pms-partner/policy. **Each namespace creates its own `esignet-domain-config`** — cre/qa11/sunbird preinstall hooks `kubectl create configmap ... | kubectl apply -f -` directly in the target ns (idempotent). All keys use `${domain_name}`; only `mosip-esignet-host` and `mosip-signup-host` differ per namespace. Do NOT copy from esignet ns — the main esignet CM has `esignet.${domain_name}` which is wrong for cre/qa11/sunbird. `esignet-config-server-share` is still copied by `config-server-esignet-postinstall.sh`
+- **`global` CM replaced by `esignet-global` for cre/qa11 and pms charts**: the esignet chart defaults include `extraEnvVarsCM: [global, config-server-share]` which causes `configmap "global" not found` in esignet-cre/qa11 and pms-partner/policy namespaces. These are overridden in `esignet-dsf.yaml` via indexed `extraEnvVarsCM[N]` keys: `extraEnvVarsCM[1]: esignet-global` + `extraEnvVarsCM[2]: esignet-config-server-share` for esignet-cre/qa11; `extraEnvVarsCM[0]: esignet-global` + `extraEnvVarsCM[1]: esignet-config-server-share` for pms-partner/policy. **Each namespace creates its own `esignet-global`** — cre/qa11/sunbird preinstall hooks `kubectl create configmap ... | kubectl apply -f -` directly in the target ns (idempotent). All keys use `${domain_name}`; only `mosip-esignet-host` and `mosip-signup-host` differ per namespace. Do NOT copy from esignet ns — the main esignet CM has `esignet.${domain_name}` which is wrong for cre/qa11/sunbird. `esignet-config-server-share` is still copied by `config-server-esignet-postinstall.sh`
 - `extraEnvVars` in Helm values is a **list** — Helm replaces lists on `-f` merge, wiping all `configMapKeyRef`/`secretKeyRef` entries. Never try to partially override `extraEnvVars` via a second values file. Domain vars use the `domainConfig` map instead (merges cleanly); PKCS12 keystore type and other conditional vars use `extraEnvVarsAdditional` (base is `[]`, replacing empty list loses nothing)
 - Domain values for `esignet`, `signup-service`, `mock-identity-system`, `mock-relying-party-service` come from committed `domain-values.yaml` via `-f domain-values.yaml`. Do **not** add domain prompts or `--set domainConfig.*` to install scripts — edit the committed file instead
 - `oidc-ui` and `mock-relying-party-ui` do **not** use `domainConfig` — they configure Istio hosts and app-specific configmap values via chart-specific `--set` paths; these are not Spring env vars
@@ -672,7 +672,7 @@ Two charts: `esignet/` and `oidc-ui/`, both using Bitnami common library.
 - **`--skip-releases` flag does not exist in Helmsman v3.17.1** — use `-exclude-target <release>` (one flag per release) to exclude specific apps. The softhsm skip logic in `helmsman_esignet.yml` builds the argument as `-exclude-target esignet-softhsm -exclude-target esignet-softhsm-cre ...` inside the loop rather than a comma-separated list.
 - **Testrigs workflow must use `--keep-untracked-releases`** — without this flag, Helmsman sees releases deployed by `esignet-dsf.yaml` (esignet, oidc-ui, softhsm, mock-relying-party-service, etc.) as "Helmsman-managed but not in testrigs-dsf.yaml" and **deletes them**. Always pass `--keep-untracked-releases` when running any DSF that covers only a subset of deployed releases.
 - **`signup` namespace must be declared in `namespaces:` of `testrigs-dsf.yaml`** — `esignet-signup-apitestrig` deploys into the `signup` namespace; Helmsman validation fails if it is not listed in the `namespaces:` block even though the namespace already exists in the cluster.
-- **`helmsman_testrigs.yml` requires `cre_domain_name` and `qabase_domain_name` for the `esignet` profile** — `testrigs-dsf.yaml` uses `${cre_domain_name}` and `${qabase_domain_name}` for CRE/QA11 apitestrig `db-server` and `mosip_components_base_urls`. Set `vars.CRE_DOMAIN_NAME` and `vars.QABASE_DOMAIN_NAME` in the GitHub Environment, or provide them as workflow inputs. The validate-inputs job enforces this when `profile=esignet`.
+- **`helmsman_testrigs.yml` requires `cre_domain_name` and `qa11_domain_name` for the `esignet` profile** — `testrigs-dsf.yaml` uses `${cre_domain_name}` and `${qa11_domain_name}` for CRE/QA11 apitestrig `db-server` and `mosip_components_base_urls`. Set `vars.CRE_DOMAIN_NAME` and `vars.QA11_DOMAIN_NAME` in the GitHub Environment, or provide them as workflow inputs. The validate-inputs job enforces this when `profile=esignet`.
 - **`helmsman_esignet.yml` validates 4 extra secrets for the `esignet` profile** — `CRE_POSTGRES_PASSWORD`, `QA11_POSTGRES_PASSWORD`, `CRE_KEYCLOAK_ADMIN_PASSWORD`, `QA11_KEYCLOAK_ADMIN_PASSWORD` are checked in the "Validate required secrets" deploy step (inside `if [ "$PROFILE" = "esignet" ]`). These are all Environment secrets (not vars). The workflow fails fast before Helmsman runs if any are missing.
 
 ---

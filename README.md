@@ -1333,7 +1333,7 @@ The Helmsman deployment process follows a specific sequence with automated trigg
   - **Can't find it?** Search for "External" in the workflows list
 - **(2)** Click **Run workflow** button in the top right corner
 - **(3)** **Branch**: Select your deployment branch (e.g., `develop`)
-- **(4)** **Deployment profile to use**: `mosip-platform-java11` (or other appropriate profile)
+- **(4)** **Deployment profile to use**: `mosip-platform-1.2.0.x` (or other appropriate profile)
 - **(5)** **Choose Helmsman mode**: `apply` (dry-run will fail due to namespace dependencies)
 - **(6)** **Domain name for this environment**: Enter the domain name (e.g., `example.xyz.net`)
 - **(7)** **Environment name**: Enter the environment name (e.g., `sandbox`, `dev`, `staging`)
@@ -1402,7 +1402,7 @@ The Helmsman deployment process follows a specific sequence with automated trigg
 - **(1)** Actions → **Deploy eSignet using Helmsman** (`helmsman_esignet.yml`)
 - **(2)** Click **Run workflow** button in the top right corner
 - **(3)** **Select Branch**
-- **(4)** **Select Profile**: `mosip-platform-java11` or `mosip-platform-java21` or `esignet` or any other profile you want to deploy for
+- **(4)** **Select Profile**: `mosip-platform-1.2.0.x` or `mosip-platform-1.2.1.x` or `esignet` or any other profile you want to deploy for
 - **(5)** **Mode**: `apply` (dry-run will fail due to namespace dependencies)
 - **(6)** **Additional Options** (optional):
   - **skip_mosip_dsf_check**: ☐ Unchecked by default
@@ -1447,7 +1447,7 @@ The Helmsman deployment process follows a specific sequence with automated trigg
 - **(1)** Actions → **Deploy Testrigs of mosip using Helmsman** (`helmsman_testrigs.yml`)
 - **(2)** Click **Run workflow** button in the top right corner
 - **(3)** **Branch**: Select your deployment branch (e.g., `develop`)
-- **(4)** **Choose MOSIP platform profile**: `mosip-platform-java11` (or other appropriate profile)
+- **(4)** **Choose MOSIP platform profile**: `mosip-platform-1.2.0.x` (or other appropriate profile)
 - **(5)** **Choose Helmsman mode**: `apply` (dry-run will fail due to namespace dependencies)
 - **(6)** **Domain name for this environment**: Enter the domain name (e.g., `example.xyz.net`)
 - **(7)** **Environment name**: Enter the environment name (e.g., `sandbox`, `dev`, `staging`)

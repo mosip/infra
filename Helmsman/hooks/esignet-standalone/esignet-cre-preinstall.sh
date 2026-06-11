@@ -17,10 +17,10 @@ CAPTCHA_SECRET_KEY="${ESIGNET_CRE_CAPTCHA_SECRET_KEY:?ERROR: ESIGNET_CRE_CAPTCHA
 CRE_POSTGRES_PASS="${CRE_POSTGRES_PASSWORD:?ERROR: CRE_POSTGRES_PASSWORD must be set}"
 CRE_KC_ADMIN_PASS="${CRE_KEYCLOAK_ADMIN_PASSWORD:?ERROR: CRE_KEYCLOAK_ADMIN_PASSWORD must be set}"
 
-"$WORKDIR/hooks/esignet-1.7.1/esignet-preinstall.sh"
+"$WORKDIR/hooks/esignet-standalone/esignet-preinstall.sh"
 
-# Create CRE-specific esignet-domain-config — same domain_name, but esignet/signup hosts differ
-kubectl -n "$ESIGNET_NS" create configmap esignet-domain-config \
+# Create CRE-specific esignet-global — same domain_name, but esignet/signup hosts differ
+kubectl -n "$ESIGNET_NS" create configmap esignet-global \
   --from-literal=installation-domain="${domain_name}" \
   --from-literal=mosip-api-host="api.${domain_name}" \
   --from-literal=mosip-api-internal-host="api-internal.${domain_name}" \

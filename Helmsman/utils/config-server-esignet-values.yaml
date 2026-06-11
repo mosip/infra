@@ -2,7 +2,7 @@
 # Based on: esignet/deploy/config-server/values.yaml
 #
 # Domain values (API_HOST, ESIGNET_HOST, etc.) are read from the
-# esignet-domain-config ConfigMap created by config-server-esignet-setup.sh
+# esignet-global ConfigMap created by config-server-esignet-setup.sh
 # from workflow env vars — no static domain values here.
 #
 # envVariables is a Helm list — this file is the single source of truth for
@@ -40,14 +40,14 @@ envVariables:
   - name: SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_MOSIP_API_PUBLIC_HOST
     valueFrom:
       configMapKeyRef:
-        name: esignet-domain-config
+        name: esignet-global
         key: mosip-api-host
     enabled: true
 
   - name: SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_MOSIP_API_INTERNAL_HOST
     valueFrom:
       configMapKeyRef:
-        name: esignet-domain-config
+        name: esignet-global
         key: mosip-api-internal-host
     enabled: true
 
@@ -68,7 +68,7 @@ envVariables:
   - name: SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_MOSIP_ESIGNET_HOST
     valueFrom:
       configMapKeyRef:
-        name: esignet-domain-config
+        name: esignet-global
         key: mosip-esignet-host
     enabled: true
 
@@ -134,6 +134,6 @@ envVariables:
   - name: SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_MOSIP_SIGNUP_HOST
     valueFrom:
       configMapKeyRef:
-        name: esignet-domain-config
+        name: esignet-global
         key: mosip-signup-host
     enabled: true

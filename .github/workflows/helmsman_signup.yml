@@ -10,8 +10,8 @@ on:
         type: choice
         options:
           - esignet
-          - mosip-platform-java11
-          - mosip-platform-java21
+          - mosip-platform-1.2.0.x
+          - mosip-platform-1.2.1.x
       mode:
         description: "Choose Helmsman mode: dry-run or apply"
         required: true
@@ -27,7 +27,7 @@ on:
         type: boolean
       domain_name:
         description: "Domain name for this environment (e.g. example.xyz.net)"
-        required: false
+        required: true
         type: string
       env_name:
         description: "Environment name (e.g. sandbox, dev, staging)"

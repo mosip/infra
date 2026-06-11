@@ -7,4 +7,4 @@
 # =============================================================================
 set -euo pipefail
 export ESIGNET_NS="esignet-sunbird"
-exec "$WORKDIR/hooks/esignet-1.7.1/mock-relying-party-service-preinstall.sh"
+exec "$WORKDIR/hooks/esignet-standalone/mock-relying-party-service-preinstall.sh"

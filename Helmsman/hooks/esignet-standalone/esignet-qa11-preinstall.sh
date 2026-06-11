@@ -17,10 +17,10 @@ CAPTCHA_SECRET_KEY="${ESIGNET_QA11_CAPTCHA_SECRET_KEY:?ERROR: ESIGNET_QA11_CAPTC
 QA11_POSTGRES_PASS="${QA11_POSTGRES_PASSWORD:?ERROR: QA11_POSTGRES_PASSWORD must be set}"
 QA11_KC_ADMIN_PASS="${QA11_KEYCLOAK_ADMIN_PASSWORD:?ERROR: QA11_KEYCLOAK_ADMIN_PASSWORD must be set}"
 
-"$WORKDIR/hooks/esignet-1.7.1/esignet-preinstall.sh"
+"$WORKDIR/hooks/esignet-standalone/esignet-preinstall.sh"
 
-# Create QA11-specific esignet-domain-config — same domain_name, but esignet/signup hosts differ
-kubectl -n "$ESIGNET_NS" create configmap esignet-domain-config \
+# Create QA11-specific esignet-global — same domain_name, but esignet/signup hosts differ
+kubectl -n "$ESIGNET_NS" create configmap esignet-global \
   --from-literal=installation-domain="${domain_name}" \
   --from-literal=mosip-api-host="api.${domain_name}" \
   --from-literal=mosip-api-internal-host="api-internal.${domain_name}" \
@@ -72,15 +72,15 @@ kubectl -n "$ESIGNET_NS" create secret generic postgres-postgresql-qa11 \
 # --- keycloak-host-qa11 CM (external URL points to QA11 Keycloak) ---
 echo "Creating keycloak-host-qa11 configmap in $ESIGNET_NS"
 kubectl -n "$ESIGNET_NS" create configmap keycloak-host-qa11 \
-  --from-literal=keycloak-external-host="iam.${qabase_domain_name}" \
-  --from-literal=keycloak-external-url="https://iam.${qabase_domain_name}" \
+  --from-literal=keycloak-external-host="iam.${qa11_domain_name}" \
+  --from-literal=keycloak-external-url="https://iam.${qa11_domain_name}" \
   --from-literal=keycloak-internal-host="keycloak.keycloak" \
   --from-literal=keycloak-internal-service-url="http://keycloak.keycloak/auth/" \
   --from-literal=keycloak-internal-url="http://keycloak.keycloak" \
   --dry-run=client -o yaml | kubectl apply -f -
 
 # --- keycloak-client-secrets-qa11: fetch all confidential clients from QA11 Keycloak ---
-KC_HOST="iam.${qabase_domain_name}"
+KC_HOST="iam.${qa11_domain_name}"
 REALM="mosip"
 
 echo "Fetching admin token from $KC_HOST"

@@ -54,7 +54,7 @@ apps:
     timeout: 480
     priority: -16
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/softhsm-esignet-setup.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/softhsm-esignet-setup.sh"
 
   esignet-softhsm-cre:
     namespace: esignet-cre
@@ -65,7 +65,7 @@ apps:
     timeout: 480
     priority: -16
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/softhsm-esignet-cre-setup.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/softhsm-esignet-cre-setup.sh"
 
   esignet-softhsm-qa11:
     namespace: esignet-qa11
@@ -76,7 +76,7 @@ apps:
     timeout: 480
     priority: -16
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/softhsm-esignet-qa11-setup.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/softhsm-esignet-qa11-setup.sh"
 
   esignet-softhsm-sunbird:
     namespace: esignet-sunbird
@@ -87,7 +87,7 @@ apps:
     timeout: 480
     priority: -16
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/softhsm-esignet-sunbird-setup.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/softhsm-esignet-sunbird-setup.sh"
 
   esignet-config-server:
     namespace: esignet
@@ -99,8 +99,8 @@ apps:
     timeout: 1200
     priority: -15
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/config-server-esignet-setup.sh"
-      postInstall: "$WORKDIR/hooks/esignet-1.7.1/config-server-esignet-postinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/config-server-esignet-setup.sh"
+      postInstall: "$WORKDIR/hooks/esignet-standalone/config-server-esignet-postinstall.sh"
 
   # ---------------------------------------------------------------------------
   # eSignet v1.7.1
@@ -134,7 +134,7 @@ apps:
     timeout: 600
     priority: -14
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-preinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/esignet-preinstall.sh"
 
   esignet-cre:
     namespace: esignet-cre
@@ -151,7 +151,7 @@ apps:
       pluginNameEnv: "mosip-identity-plugin.jar"
       pluginUrlEnv: ""
       extraEnvVarsCM[0]: "esignet-softhsm-cre-share"
-      extraEnvVarsCM[1]: "esignet-domain-config"
+      extraEnvVarsCM[1]: "esignet-global"
       metrics.serviceMonitor.enabled: "false"
       domainConfig.MOSIP_ESIGNET_HOST: "esignet-mosipid-cre.${domain_name}"
       domainConfig.MOSIP_SIGNUP_HOST: "signup-mosipid-cre.${domain_name}"
@@ -174,7 +174,7 @@ apps:
     timeout: 600
     priority: -14
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-cre-preinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/esignet-cre-preinstall.sh"
 
   esignet-qa11:
     namespace: esignet-qa11
@@ -191,30 +191,30 @@ apps:
       pluginNameEnv: "mosip-identity-plugin.jar"
       pluginUrlEnv: ""
       extraEnvVarsCM[0]: "esignet-softhsm-qa11-share"
-      extraEnvVarsCM[1]: "esignet-domain-config"
+      extraEnvVarsCM[1]: "esignet-global"
       metrics.serviceMonitor.enabled: "false"
       domainConfig.MOSIP_ESIGNET_HOST: "esignet-mosipid-qa11.${domain_name}"
       domainConfig.MOSIP_SIGNUP_HOST: "signup-mosipid-qa11.${domain_name}"
       domainConfig.MOSIP_API_HOST: "api.${domain_name}"
       domainConfig.MOSIP_IAM_EXTERNAL_HOST: "iam.${domain_name}"
-      domainConfig.MOSIP_API_INTERNAL_HOST: "api-internal.${qabase_domain_name}"
+      domainConfig.MOSIP_API_INTERNAL_HOST: "api-internal.${qa11_domain_name}"
       domainConfig.MOSIP_KAFKA_HOST: "kafka.${domain_name}"
       domainConfig.MOSIP_POSTGRES_HOST: "postgres.${domain_name}"
       domainConfig.MOSIP_SMTP_HOST: "smtp.${domain_name}"
       domainConfig.installation-domain: "${domain_name}"
-      domainConfig.IDA_AUTH_URL: "https://api-internal.${qabase_domain_name}"
-      domainConfig.IDA_OTP_URL: "https://api-internal.${qabase_domain_name}"
-      domainConfig.IDA_INTERNAL_URL: "https://api-internal.${qabase_domain_name}"
-      domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_IDA_CERT_URL: "https://api-internal.${qabase_domain_name}/mosip-certs/ida-partner.cer"
-      domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_IDA_AUTH_TOKEN_URL: "https://api-internal.${qabase_domain_name}/v1/authmanager/authenticate/clientidsecretkey"
-      domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_IDA_AUDIT_MANAGER_URL: "https://api-internal.${qabase_domain_name}/v1/auditmanager/audits"
-      domainConfig.MOSIP_ESIGNET_IDA_AUTH_DOMAIN: "https://api-internal.${qabase_domain_name}"
+      domainConfig.IDA_AUTH_URL: "https://api-internal.${qa11_domain_name}"
+      domainConfig.IDA_OTP_URL: "https://api-internal.${qa11_domain_name}"
+      domainConfig.IDA_INTERNAL_URL: "https://api-internal.${qa11_domain_name}"
+      domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_IDA_CERT_URL: "https://api-internal.${qa11_domain_name}/mosip-certs/ida-partner.cer"
+      domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_IDA_AUTH_TOKEN_URL: "https://api-internal.${qa11_domain_name}/v1/authmanager/authenticate/clientidsecretkey"
+      domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_IDA_AUDIT_MANAGER_URL: "https://api-internal.${qa11_domain_name}/v1/auditmanager/audits"
+      domainConfig.MOSIP_ESIGNET_IDA_AUTH_DOMAIN: "https://api-internal.${qa11_domain_name}"
       domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_IDA_DOMAINURI: "https://esignet-mosipid-qa11.${domain_name}"
       domainConfig.MOSIP_ESIGNET_DOMAIN_URL: "https://esignet-mosipid-qa11.${domain_name}"
     timeout: 600
     priority: -14
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-qa11-preinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/esignet-qa11-preinstall.sh"
 
   esignet-sunbird:
     namespace: esignet-sunbird
@@ -245,7 +245,7 @@ apps:
     timeout: 600
     priority: -14
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-sunbird-preinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/esignet-sunbird-preinstall.sh"
 
   # ---------------------------------------------------------------------------
   # OIDC UI v1.7.1
@@ -265,7 +265,7 @@ apps:
     timeout: 1200
     priority: -13
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/oidc-ui-preinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/oidc-ui-preinstall.sh"
 
   oidc-ui-cre:
     namespace: esignet-cre
@@ -282,7 +282,7 @@ apps:
     timeout: 1200
     priority: -13
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/oidc-ui-cre-preinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/oidc-ui-cre-preinstall.sh"
 
   oidc-ui-qa11:
     namespace: esignet-qa11
@@ -299,7 +299,7 @@ apps:
     timeout: 1200
     priority: -13
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/oidc-ui-qa11-preinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/oidc-ui-qa11-preinstall.sh"
 
   oidc-ui-sunbird:
     namespace: esignet-sunbird
@@ -316,7 +316,7 @@ apps:
     timeout: 1200
     priority: -13
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/oidc-ui-sunbird-preinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/oidc-ui-sunbird-preinstall.sh"
 
   # ---------------------------------------------------------------------------
   # Mock Identity System (Optional)
@@ -332,8 +332,8 @@ apps:
     timeout: 480
     priority: -11
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/softhsm-mock-identity-system-preinstall.sh"
-      postInstall: "$WORKDIR/hooks/esignet-1.7.1/softhsm-mock-identity-system-postinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/softhsm-mock-identity-system-preinstall.sh"
+      postInstall: "$WORKDIR/hooks/esignet-standalone/softhsm-mock-identity-system-postinstall.sh"
 
   mock-identity-system:
     namespace: esignet
@@ -349,7 +349,7 @@ apps:
     timeout: 480
     priority: -11
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/mock-identity-system-preinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/mock-identity-system-preinstall.sh"
 
   # ---------------------------------------------------------------------------
   # Mock Relying Party (Optional)
@@ -367,7 +367,7 @@ apps:
     timeout: 480
     priority: -10
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/mock-relying-party-service-preinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/mock-relying-party-service-preinstall.sh"
 
   mock-relying-party-service-cre:
     namespace: esignet-cre
@@ -382,7 +382,7 @@ apps:
     timeout: 480
     priority: -10
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/mock-relying-party-service-cre-preinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/mock-relying-party-service-cre-preinstall.sh"
 
   mock-relying-party-service-qa11:
     namespace: esignet-qa11
@@ -397,7 +397,7 @@ apps:
     timeout: 480
     priority: -10
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/mock-relying-party-service-qa11-preinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/mock-relying-party-service-qa11-preinstall.sh"
 
   mock-relying-party-service-sunbird:
     namespace: esignet-sunbird
@@ -412,7 +412,7 @@ apps:
     timeout: 480
     priority: -10
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/mock-relying-party-service-sunbird-preinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/mock-relying-party-service-sunbird-preinstall.sh"
 
   mock-relying-party-ui:
     namespace: esignet
@@ -431,7 +431,7 @@ apps:
     timeout: 480
     priority: -9
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/mock-relying-party-ui-preinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/mock-relying-party-ui-preinstall.sh"
 
   mock-relying-party-ui-cre:
     namespace: esignet-cre
@@ -450,7 +450,7 @@ apps:
     timeout: 480
     priority: -9
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/mock-relying-party-ui-cre-preinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/mock-relying-party-ui-cre-preinstall.sh"
 
   mock-relying-party-ui-qa11:
     namespace: esignet-qa11
@@ -469,7 +469,7 @@ apps:
     timeout: 480
     priority: -9
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/mock-relying-party-ui-qa11-preinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/mock-relying-party-ui-qa11-preinstall.sh"
 
   mock-relying-party-ui-sunbird:
     namespace: esignet-sunbird
@@ -488,7 +488,7 @@ apps:
     timeout: 480
     priority: -9
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/mock-relying-party-ui-sunbird-preinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/mock-relying-party-ui-sunbird-preinstall.sh"
 
   pms-partner-cre:
     namespace: esignet-cre
@@ -500,12 +500,12 @@ apps:
       # image.tag: "1.2.2.3"
       istio.gateways[0]: "pms-partner-cre-gateway"
       istio.corsPolicy.allowOrigins[0].prefix: "https://pms-cre.${domain_name}"
-      extraEnvVarsCM[0]: "esignet-domain-config"
+      extraEnvVarsCM[0]: "esignet-global"
       extraEnvVarsCM[1]: "esignet-config-server-share"
     priority: -9
     timeout: 1200
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/pms-partner-cre-preinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/pms-partner-cre-preinstall.sh"
 
   pms-policy-cre:
     namespace: esignet-cre
@@ -517,7 +517,7 @@ apps:
       # image.tag: "1.2.2.2"
       istio.gateways[0]: "pms-partner-cre-gateway"
       istio.corsPolicy.allowOrigins[0].prefix: "https://pms-cre.${domain_name}"
-      extraEnvVarsCM[0]: "esignet-domain-config"
+      extraEnvVarsCM[0]: "esignet-global"
       extraEnvVarsCM[1]: "esignet-config-server-share"
     priority: -9
     timeout: 1200
@@ -532,12 +532,12 @@ apps:
       # image.tag: "1.2.2.3"
       istio.gateways[0]: "pms-partner-qa11-gateway"
       istio.corsPolicy.allowOrigins[0].prefix: "https://pms-qa11.${domain_name}"
-      extraEnvVarsCM[0]: "esignet-domain-config"
+      extraEnvVarsCM[0]: "esignet-global"
       extraEnvVarsCM[1]: "esignet-config-server-share"
     priority: -9
     timeout: 1200
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/pms-partner-qa11-preinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/pms-partner-qa11-preinstall.sh"
 
   pms-policy-qa11:
     namespace: esignet-qa11
@@ -548,7 +548,7 @@ apps:
       # image.repository: "mosipid/policy-management-service"
       # image.tag: "1.2.2.2"
       istio.gateways[0]: "pms-partner-qa11-gateway"
-      extraEnvVarsCM[0]: "esignet-domain-config"
+      extraEnvVarsCM[0]: "esignet-global"
       extraEnvVarsCM[1]: "esignet-config-server-share"
       istio.corsPolicy.allowOrigins[0].prefix: "https://pms-qa11.${domain_name}"
     priority: -9
@@ -596,10 +596,10 @@ apps:
     timeout: 600
     priority: -6
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-misp-onboarder-preinstall.sh"
-      preUpgrade: "$WORKDIR/hooks/esignet-1.7.1/esignet-misp-onboarder-preinstall.sh"
-      postInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-misp-onboarder-postinstall.sh"
-      postUpgrade: "$WORKDIR/hooks/esignet-1.7.1/esignet-misp-onboarder-postinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/esignet-misp-onboarder-preinstall.sh"
+      preUpgrade: "$WORKDIR/hooks/esignet-standalone/esignet-misp-onboarder-preinstall.sh"
+      postInstall: "$WORKDIR/hooks/esignet-standalone/esignet-misp-onboarder-postinstall.sh"
+      postUpgrade: "$WORKDIR/hooks/esignet-standalone/esignet-misp-onboarder-postinstall.sh"
 
   # Mock RP OIDC Partner Onboarder
   # Onboards the mock relying party as an OIDC client.
@@ -632,9 +632,9 @@ apps:
     timeout: 600
     priority: -5
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-mock-rp-onboarder-preinstall.sh"
-      preUpgrade: "$WORKDIR/hooks/esignet-1.7.1/esignet-mock-rp-onboarder-preinstall.sh"
-      postInstall: "$WORKDIR/hooks/esignet-1.7.1/esignet-mock-rp-onboarder-postinstall.sh"
-      postUpgrade: "$WORKDIR/hooks/esignet-1.7.1/esignet-mock-rp-onboarder-postinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/esignet-mock-rp-onboarder-preinstall.sh"
+      preUpgrade: "$WORKDIR/hooks/esignet-standalone/esignet-mock-rp-onboarder-preinstall.sh"
+      postInstall: "$WORKDIR/hooks/esignet-standalone/esignet-mock-rp-onboarder-postinstall.sh"
+      postUpgrade: "$WORKDIR/hooks/esignet-standalone/esignet-mock-rp-onboarder-postinstall.sh"
 
       

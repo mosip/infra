@@ -6,11 +6,11 @@ on:
       profile:
         description: "Deployment profile to use"
         required: true
-        default: "mosip-platform-java11"
+        default: "mosip-platform-1.2.0.x"
         type: choice
         options:
-          - mosip-platform-java11
-          - mosip-platform-java21
+          - mosip-platform-1.2.0.x
+          - mosip-platform-1.2.1.x
           - esignet
       mode:
         description: "Choose Helmsman mode: dry-run or apply"
@@ -22,15 +22,15 @@ on:
           - apply
       domain_name:
         description: "Domain name for this environment (e.g. example.xyz.net)"
-        required: false
+        required: true
         type: string
       db_port:
         description: "PostgreSQL port for MOSIP platform external postgres (e.g. 5433)"
-        required: false
+        required: true
         type: string
       esignet_db_port:
         description: "PostgreSQL port for eSignet standalone container postgres (e.g. 5432)"
-        required: false
+        required: true
         type: string
       env_name:
         description: "Environment name (e.g. sandbox, dev, staging)"
@@ -46,7 +46,7 @@ on:
         type: string
       clusterid:
         description: "Rancher cluster ID for rancher-monitoring (e.g. c-xxxxx)"
-        required: false
+        required: true
         type: string
   push:
     paths:
