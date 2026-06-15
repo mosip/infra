@@ -5,11 +5,13 @@
 # Automates the manual jumpserver process:
 #   1. SSH into the WireGuard VM.
 #   2. cd into the WireGuard env dir (default /home/ubuntu/wireguard_env_2026).
-#   3. Allocate the next 3 free peers (assigned.txt is the source of truth) and
-#      append them for the new environment - one peer per secret:
-#         peerA <env>(TF_WG_CONFIG)
-#         peerB <env>(CLUSTER_WIREGUARD_WG0)
-#         peerC <env>(CLUSTER_WIREGUARD_WG1)
+#   3. Allocate the next 3 free peers in the pool (peer1..peerN, filling gaps
+#      like peer66 before peer101). assigned.txt is the source of truth; if a
+#      peer directory or assigned.txt line is missing, create it on the VM first.
+#      Append assignments for the new environment - one peer per secret.
+#      Supports two assigned.txt layouts:
+#         peerN: username          (legacy colon format on /home/ubuntu)
+#         peerN env(SECRET_NAME)   (MOSIP per-secret format)
 #   4. For each peer's client conf (config/peerN/peerN.conf):
 #         - remove the `DNS = ...` line
 #         - set `AllowedIPs = 172.31.0.0/16`
@@ -37,6 +39,7 @@ TICKET="${TICKET:-}"
 TF_PEER=""
 WG0_PEER=""
 WG1_PEER=""
+MAX_PEERS=""
 DRY_RUN="false"
 
 # Secret name -> peer variable mapping is fixed in this order.
@@ -60,6 +63,7 @@ Optional:
   --tf-peer  <peerN>    Force the TF_WG_CONFIG peer          (default: next free)
   --wg0-peer <peerN>    Force the CLUSTER_WIREGUARD_WG0 peer (default: next free)
   --wg1-peer <peerN>    Force the CLUSTER_WIREGUARD_WG1 peer (default: next free)
+  --max-peers <n>       Peer pool size peer1..peerN (default: max(100, highest seen))
   --dry-run             Resolve + transform + print actions without writing anything
   -h, --help            Show this help
 
@@ -67,7 +71,7 @@ Requires: gh (authenticated with a token that can write environment secrets), ss
 EOF
 }
 
-log()  { echo "[wg-onboard] $*"; }
+log()  { echo "[wg-onboard] $*" >&2; }
 err()  { echo "[wg-onboard][ERROR] $*" >&2; }
 die()  { err "$*"; exit 1; }
 
@@ -83,6 +87,7 @@ while [[ $# -gt 0 ]]; do
     --tf-peer)     TF_PEER="$2"; shift 2 ;;
     --wg0-peer)    WG0_PEER="$2"; shift 2 ;;
     --wg1-peer)    WG1_PEER="$2"; shift 2 ;;
+    --max-peers)   MAX_PEERS="$2"; shift 2 ;;
     --dry-run)     DRY_RUN="true"; shift ;;
     -h|--help)     usage; exit 0 ;;
     *)             die "Unknown argument: $1 (use --help)" ;;
@@ -118,70 +123,338 @@ ssh_cmd() {
 # ---- Read current state from the jumpserver --------------------------------
 log "Reading assigned.txt and peer inventory from jumpserver ${JUMPSERVER_HOST} ..."
 ASSIGNED_CONTENT="$(ssh_cmd "cat '$ASSIGNED_FILE' 2>/dev/null" || true)"
+ASSIGNED_CONTENT="${ASSIGNED_CONTENT//$'\r'/}"
 PEER_LISTING="$(ssh_cmd "ls '$CONFIG_DIR'" 2>/dev/null || true)"
 [[ -n "$PEER_LISTING" ]] || die "Could not list $CONFIG_DIR on jumpserver (check --wg-dir / connectivity)"
 
+if [[ -z "$ASSIGNED_CONTENT" ]]; then
+  log "WARNING: $ASSIGNED_FILE is empty or unreadable over SSH — every peer will look FREE"
+else
+  assigned_lines="$(printf '%s\n' "$ASSIGNED_CONTENT" | sed '/^[[:space:]]*$/d' | wc -l | tr -d ' ')"
+  log "Loaded $ASSIGNED_FILE ($assigned_lines non-empty lines)"
+fi
+
 # Peers that physically exist as client configs
 mapfile -t EXISTING_PEERS < <(printf '%s\n' "$PEER_LISTING" | grep -E '^peer[0-9]+$' | sort -t r -k2 -n)
-[[ ${#EXISTING_PEERS[@]} -gt 0 ]] || die "No peer directories found under $CONFIG_DIR"
 
-# Peers already taken (a peerN line in assigned.txt that has a non-empty label)
+peer_number() {
+  local peer="$1"
+  [[ "$peer" =~ ^peer([0-9]+)$ ]] || return 1
+  echo "${BASH_REMATCH[1]}"
+}
+
+# Normalize "peer1" or "peer1:" from assigned.txt first field.
+normalize_peer_token() {
+  local token="${1//$'\r'/}"
+  token="${token%%:*}"
+  echo "$token"
+}
+
+# Parse one assigned.txt line -> PARSED_PEER / PARSED_LABEL (label empty = free).
+parse_assigned_line() {
+  local line="${1//$'\r'/}"
+  local peer rest
+  PARSED_PEER=""
+  PARSED_LABEL=""
+  [[ -z "${line//[[:space:]]/}" ]] && return 1
+  peer="$(normalize_peer_token "$(awk '{print $1}' <<<"$line")")"
+  [[ "$peer" =~ ^peer[0-9]+$ ]] || return 1
+  if [[ "$line" =~ ^peer[0-9]+:[[:space:]]*(.*)$ ]]; then
+    rest="${BASH_REMATCH[1]}"
+  else
+    rest="$(awk '{$1=""; sub(/^ +/,""); print}' <<<"$line")"
+  fi
+  rest="${rest//$'\r'/}"
+  PARSED_PEER="$peer"
+  PARSED_LABEL="$rest"
+  return 0
+}
+
+assigned_line_exists() {
+  local peer="$1"
+  grep -qE "^${peer}([[:space:]]|:)" <<<"$ASSIGNED_CONTENT"
+}
+
+highest_peer_number() {
+  local max=0 n peer
+  for peer in "${EXISTING_PEERS[@]}"; do
+    n="$(peer_number "$peer" || true)"
+    [[ -n "$n" && "$n" -gt "$max" ]] && max="$n"
+  done
+  while IFS= read -r line; do
+    parse_assigned_line "$line" || continue
+    n="$(peer_number "$PARSED_PEER" || true)"
+    [[ -n "$n" && "$n" -gt "$max" ]] && max="$n"
+  done <<<"$ASSIGNED_CONTENT"
+  echo "$max"
+}
+
+if [[ -z "$MAX_PEERS" ]]; then
+  detected_max="$(highest_peer_number)"
+  MAX_PEERS=$(( detected_max > 100 ? detected_max : 100 ))
+else
+  [[ "$MAX_PEERS" =~ ^[0-9]+$ && "$MAX_PEERS" -gt 0 ]] || die "--max-peers must be a positive integer"
+fi
+log "Peer pool: peer1..peer${MAX_PEERS} (gap-fill order, create missing peers on demand)"
+
+CAN_CREATE_PEERS="false"
+if [[ ${#EXISTING_PEERS[@]} -gt 0 ]] \
+  || ssh_cmd "test -f '$CONFIG_DIR/templates/peer.conf' || test -f '$CONFIG_DIR/peer1/peer1.conf'" 2>/dev/null; then
+  CAN_CREATE_PEERS="true"
+else
+  die "No peer directories or templates under $CONFIG_DIR (cannot create missing peers)"
+fi
+
+# Detect assigned.txt layout (colon vs per-secret MOSIP format).
+ASSIGNED_FORMAT="mosip"
+if grep -qE '^peer[0-9]+:' <<<"$ASSIGNED_CONTENT"; then
+  ASSIGNED_FORMAT="colon"
+  log "Detected assigned.txt colon format (peerN: username)"
+fi
+
+# Peers already taken: any peerN line with a non-empty label/username.
 declare -A TAKEN=()
 while IFS= read -r line; do
-  [[ -z "$line" ]] && continue
-  peer="$(awk '{print $1}' <<<"$line")"
-  [[ "$peer" =~ ^peer[0-9]+$ ]] || continue
-  rest="$(awk '{$1=""; sub(/^ +/,""); print}' <<<"$line")"
-  [[ -n "$rest" ]] && TAKEN["$peer"]=1
+  parse_assigned_line "$line" || continue
+  [[ -n "${PARSED_LABEL//[[:space:]]/}" ]] && TAKEN["$PARSED_PEER"]=1
 done <<<"$ASSIGNED_CONTENT"
+
+if [[ ${#TAKEN[@]} -gt 0 ]]; then
+  taken_sample="$(printf '%s\n' "${!TAKEN[@]}" | sort -t r -k2 -n | head -5 | paste -sd, -)"
+  log "Marked ${#TAKEN[@]} peers as taken in $ASSIGNED_FILE (e.g. ${taken_sample})"
+else
+  log "No taken peers parsed from $ASSIGNED_FILE — will start from peer1 unless gaps apply"
+fi
+
+peer_config_exists() {
+  local peer="$1"
+  ssh_cmd "test -f '$CONFIG_DIR/$peer/$peer.conf'" 2>/dev/null
+}
+
+ensure_assigned_entry() {
+  local peer="$1"
+  assigned_line_exists "$peer" && return 0
+  if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "$ASSIGNED_FORMAT" == "colon" ]]; then
+      log "DRY RUN - would append free slot to $ASSIGNED_FILE: ${peer}:"
+    else
+      log "DRY RUN - would append free slot to $ASSIGNED_FILE: ${peer}"
+    fi
+    return 0
+  fi
+  log "Adding free slot ${peer} to $ASSIGNED_FILE ..."
+  if [[ "$ASSIGNED_FORMAT" == "colon" ]]; then
+    printf '%s:\n' "$peer" | ssh_cmd "cat >> '$ASSIGNED_FILE'"
+    ASSIGNED_CONTENT+=$'\n'"${peer}:"
+  else
+    printf '%s \n' "$peer" | ssh_cmd "cat >> '$ASSIGNED_FILE'"
+    ASSIGNED_CONTENT+=$'\n'"${peer} "
+  fi
+}
+
+ensure_peer_exists() {
+  local peer="$1"
+  peer_config_exists "$peer" && return 0
+  [[ "$CAN_CREATE_PEERS" == "true" ]] || die "Peer $peer is missing under $CONFIG_DIR and cannot be created"
+  local peer_num
+  peer_num="$(peer_number "$peer")" || die "Invalid peer id: $peer"
+
+  if [[ "$DRY_RUN" == "true" ]]; then
+    log "DRY RUN - would create missing peer $peer on jumpserver"
+    ensure_assigned_entry "$peer"
+    return 0
+  fi
+
+  log "Creating missing peer $peer on jumpserver ..."
+  ssh_cmd "bash -s" "$peer_num" "$CONFIG_DIR" <<'REMOTE_CREATE_PEER'
+set -euo pipefail
+PEER_NUM="$1"
+CONFIG_DIR="$2"
+PEER_ID="peer${PEER_NUM}"
+
+if [[ -f "$CONFIG_DIR/$PEER_ID/$PEER_ID.conf" ]]; then
+  exit 0
+fi
+
+mapfile -t REF_DIRS < <(ls -d "$CONFIG_DIR"/peer[0-9]* 2>/dev/null | sort -t r -k2 -n)
+[[ ${#REF_DIRS[@]} -gt 0 ]] || { echo "No reference peer under $CONFIG_DIR" >&2; exit 1; }
+REF_DIR="${REF_DIRS[0]}"
+REF_ID="$(basename "$REF_DIR")"
+REF_CONF="$REF_DIR/$REF_ID.conf"
+[[ -f "$REF_CONF" ]] || { echo "Missing reference conf: $REF_CONF" >&2; exit 1; }
+
+INTERFACE="$(grep -m1 '^Address' "$REF_CONF" | awk '{print $NF}' | awk -F. '{print $1"."$2"."$3}')"
+ENDPOINT="$(grep -m1 '^Endpoint' "$REF_CONF" | awk '{print $NF}')"
+SERVER_PUBKEY="$(grep -m1 '^PublicKey' "$REF_CONF" | awk '{print $NF}')"
+PEERDNS="$(grep -m1 '^DNS' "$REF_CONF" | awk '{print $NF}')"
+[[ -n "$INTERFACE" && -n "$ENDPOINT" && -n "$SERVER_PUBKEY" ]] \
+  || { echo "Could not read reference WireGuard settings from $REF_CONF" >&2; exit 1; }
+[[ -n "$PEERDNS" ]] || PEERDNS="${INTERFACE}.1"
+
+C="$(docker ps --format '{{.Names}}' | grep -iE 'wireguard|wg' | head -1 || true)"
+[[ -n "$C" ]] || { echo "WireGuard docker container not found" >&2; exit 1; }
+
+mkdir -p "$CONFIG_DIR/$PEER_ID"
+umask 077
+docker exec "$C" wg genkey | tee "$CONFIG_DIR/$PEER_ID/privatekey-$PEER_ID" \
+  | docker exec -i "$C" wg pubkey > "$CONFIG_DIR/$PEER_ID/publickey-$PEER_ID"
+docker exec "$C" wg genpsk > "$CONFIG_DIR/$PEER_ID/presharedkey-$PEER_ID"
+
+CLIENT_IP=""
+for idx in $(seq 2 254); do
+  PROPOSED="${INTERFACE}.${idx}"
+  if ! grep -qR "${PROPOSED}" "$CONFIG_DIR"/peer*/*.conf 2>/dev/null; then
+    CLIENT_IP="$PROPOSED"
+    break
+  fi
+done
+[[ -n "$CLIENT_IP" ]] || { echo "No free client IP in ${INTERFACE}.0/24" >&2; exit 1; }
+
+PRIV="$(cat "$CONFIG_DIR/$PEER_ID/privatekey-$PEER_ID")"
+PSK="$(cat "$CONFIG_DIR/$PEER_ID/presharedkey-$PEER_ID")"
+PUB="$(cat "$CONFIG_DIR/$PEER_ID/publickey-$PEER_ID")"
+
+cat > "$CONFIG_DIR/$PEER_ID/$PEER_ID.conf" <<EOF
+[Interface]
+Address = ${CLIENT_IP}
+PrivateKey = ${PRIV}
+ListenPort = 51820
+DNS = ${PEERDNS}
+
+[Peer]
+PublicKey = ${SERVER_PUBKEY}
+PresharedKey = ${PSK}
+Endpoint = ${ENDPOINT}
+AllowedIPs = 0.0.0.0/0, ::/0
+EOF
+
+if [[ -f "$CONFIG_DIR/wg_confs/wg0.conf" ]]; then
+  WG_CONF="$CONFIG_DIR/wg_confs/wg0.conf"
+else
+  WG_CONF="$CONFIG_DIR/wg0.conf"
+fi
+
+cat >> "$WG_CONF" <<EOF
+
+[Peer]
+# ${PEER_ID}
+PublicKey = ${PUB}
+PresharedKey = ${PSK}
+AllowedIPs = ${CLIENT_IP}/32
+
+EOF
+
+docker exec "$C" wg set wg0 peer "$PUB" preshared-key "$PSK" allowed-ips "${CLIENT_IP}/32" \
+  || docker restart "$C" >/dev/null
+REMOTE_CREATE_PEER
+
+  ensure_assigned_entry "$peer"
+}
+
+record_peer_assignment() {
+  local peer="$1"
+  local assignment="$2"
+  ssh_cmd "bash -s" "$peer" "$assignment" "$ASSIGNED_FILE" "$ASSIGNED_FORMAT" <<'REMOTE_RECORD_ASSIGNMENT'
+set -euo pipefail
+peer="$1"
+assignment="$2"
+file="$3"
+format="$4"
+if [[ "$format" == "colon" ]]; then
+  line="${peer}: ${assignment}"
+  if grep -qE "^${peer}:" "$file"; then
+    sed -i "s|^${peer}:.*|${line}|" "$file"
+  elif grep -qE "^${peer}([[:space:]]|$)" "$file"; then
+    sed -i "s|^${peer}.*|${line}|" "$file"
+  else
+    printf '%s\n' "$line" >> "$file"
+  fi
+else
+  line="${peer} ${assignment}"
+  if grep -qE "^${peer}([[:space:]]|$)" "$file"; then
+    sed -i "s|^${peer}.*|${line}|" "$file"
+  else
+    printf '%s\n' "$line" >> "$file"
+  fi
+fi
+REMOTE_RECORD_ASSIGNMENT
+}
 
 # ---- Reuse existing allocation for this env, if present (idempotent) -------
 find_assigned_peer() {
   local secret="$1"
   awk -v env="$ENV_NAME" -v sec="($secret)" '
-    $1 ~ /^peer[0-9]+$/ {
+    $1 ~ /^peer[0-9]+:?$/ {
+      peer=$1
+      sub(/:$/, "", peer)
       desc=substr($0, index($0,$2))
-      if (index(desc, env) && index(desc, sec)) { print $1; exit }
+      if (index(desc, env) && index(desc, sec)) { print peer; exit }
     }' <<<"$ASSIGNED_CONTENT"
+}
+
+find_colon_env_peers() {
+  local line
+  while IFS= read -r line; do
+    parse_assigned_line "$line" || continue
+    [[ "$PARSED_LABEL" == "$ENV_NAME" ]] && echo "$PARSED_PEER"
+  done <<<"$ASSIGNED_CONTENT"
 }
 
 REUSED="false"
 if [[ -z "$TF_PEER" && -z "$WG0_PEER" && -z "$WG1_PEER" ]]; then
-  rtf="$(find_assigned_peer TF_WG_CONFIG)"
-  rwg0="$(find_assigned_peer CLUSTER_WIREGUARD_WG0)"
-  rwg1="$(find_assigned_peer CLUSTER_WIREGUARD_WG1)"
-  if [[ -n "$rtf" && -n "$rwg0" && -n "$rwg1" ]]; then
-    TF_PEER="$rtf"; WG0_PEER="$rwg0"; WG1_PEER="$rwg1"; REUSED="true"
-    log "Reusing existing allocation for $ENV_NAME: TF=$TF_PEER WG0=$WG0_PEER WG1=$WG1_PEER"
+  if [[ "$ASSIGNED_FORMAT" == "colon" ]]; then
+    mapfile -t COLON_REUSED < <(find_colon_env_peers | sort -t r -k2 -n)
+    if [[ ${#COLON_REUSED[@]} -ge 3 ]]; then
+      TF_PEER="${COLON_REUSED[0]}"; WG0_PEER="${COLON_REUSED[1]}"; WG1_PEER="${COLON_REUSED[2]}"
+      REUSED="true"
+      log "Reusing existing colon-format allocation for $ENV_NAME: TF=$TF_PEER WG0=$WG0_PEER WG1=$WG1_PEER"
+    fi
+  else
+    rtf="$(find_assigned_peer TF_WG_CONFIG)"
+    rwg0="$(find_assigned_peer CLUSTER_WIREGUARD_WG0)"
+    rwg1="$(find_assigned_peer CLUSTER_WIREGUARD_WG1)"
+    if [[ -n "$rtf" && -n "$rwg0" && -n "$rwg1" ]]; then
+      TF_PEER="$rtf"; WG0_PEER="$rwg0"; WG1_PEER="$rwg1"; REUSED="true"
+      log "Reusing existing allocation for $ENV_NAME: TF=$TF_PEER WG0=$WG0_PEER WG1=$WG1_PEER"
+    fi
   fi
 fi
 
 # ---- Allocate next free peers for any not explicitly set / reused ----------
-# Build ordered list of free peers (exist in config, not taken, not already chosen here)
+# Walk peer1..peerMAX in numeric order so gaps (e.g. peer66) are reused first.
 declare -A CHOSEN=()
 [[ -n "$TF_PEER"  ]] && CHOSEN["$TF_PEER"]=1
 [[ -n "$WG0_PEER" ]] && CHOSEN["$WG0_PEER"]=1
 [[ -n "$WG1_PEER" ]] && CHOSEN["$WG1_PEER"]=1
 
 next_free_peer() {
-  local p
-  for p in "${EXISTING_PEERS[@]}"; do
-    if [[ -z "${TAKEN[$p]:-}" && -z "${CHOSEN[$p]:-}" ]]; then
-      echo "$p"; return 0
+  local n peer
+  for n in $(seq 1 "$MAX_PEERS"); do
+    peer="peer${n}"
+    if [[ -z "${TAKEN[$peer]:-}" && -z "${CHOSEN[$peer]:-}" ]]; then
+      ensure_peer_exists "$peer"
+      echo "$peer"
+      return 0
     fi
   done
   return 1
 }
 
 if [[ "$REUSED" != "true" ]]; then
-  if [[ -z "$TF_PEER"  ]]; then TF_PEER="$(next_free_peer)"  || die "No free peers left"; CHOSEN["$TF_PEER"]=1;  fi
-  if [[ -z "$WG0_PEER" ]]; then WG0_PEER="$(next_free_peer)" || die "No free peers left"; CHOSEN["$WG0_PEER"]=1; fi
-  if [[ -z "$WG1_PEER" ]]; then WG1_PEER="$(next_free_peer)" || die "No free peers left"; CHOSEN["$WG1_PEER"]=1; fi
+  if [[ -z "$TF_PEER"  ]]; then TF_PEER="$(next_free_peer)"  || die "No free peers left in peer1..peer${MAX_PEERS}"; CHOSEN["$TF_PEER"]=1;  fi
+  if [[ -z "$WG0_PEER" ]]; then WG0_PEER="$(next_free_peer)" || die "No free peers left in peer1..peer${MAX_PEERS}"; CHOSEN["$WG0_PEER"]=1; fi
+  if [[ -z "$WG1_PEER" ]]; then WG1_PEER="$(next_free_peer)" || die "No free peers left in peer1..peer${MAX_PEERS}"; CHOSEN["$WG1_PEER"]=1; fi
 fi
 
-# sanity: all three distinct and exist
 for p in "$TF_PEER" "$WG0_PEER" "$WG1_PEER"; do
-  printf '%s\n' "${EXISTING_PEERS[@]}" | grep -qx "$p" || die "Peer $p does not exist under $CONFIG_DIR"
+  if [[ -n "${TAKEN[$p]:-}" ]]; then
+    die "Refusing to allocate $p — already assigned in $ASSIGNED_FILE (script may have failed to read labels; check file format/permissions)"
+  fi
+done
+
+# Ensure explicit/reused peers exist before reading their confs
+for p in "$TF_PEER" "$WG0_PEER" "$WG1_PEER"; do
+  ensure_peer_exists "$p"
 done
 [[ "$TF_PEER" != "$WG0_PEER" && "$TF_PEER" != "$WG1_PEER" && "$WG0_PEER" != "$WG1_PEER" ]] \
   || die "Peers must be distinct (TF=$TF_PEER WG0=$WG0_PEER WG1=$WG1_PEER)"
@@ -197,6 +470,10 @@ transform_conf() {
 
 fetch_and_transform() {
   local peer="$1" raw
+  if [[ "$DRY_RUN" == "true" ]] && ! peer_config_exists "$peer"; then
+    echo "[DRY RUN] peer config for $peer not present yet"
+    return 0
+  fi
   raw="$(ssh_cmd "cat '$CONFIG_DIR/$peer/$peer.conf' 2>/dev/null || sudo cat '$CONFIG_DIR/$peer/$peer.conf'" 2>/dev/null || true)"
   [[ -n "$raw" ]] || die "Could not read $CONFIG_DIR/$peer/$peer.conf"
   grep -q '^[[:space:]]*AllowedIPs' <<<"$raw" || die "$peer.conf has no AllowedIPs line"
@@ -207,24 +484,40 @@ log "Fetching and transforming peer configs ..."
 TF_CONF="$(fetch_and_transform "$TF_PEER")"
 WG0_CONF="$(fetch_and_transform "$WG0_PEER")"
 WG1_CONF="$(fetch_and_transform "$WG1_PEER")"
-log "Transformed: stripped DNS, set AllowedIPs=${ALLOWED_IPS} on all three confs."
+if [[ "$DRY_RUN" != "true" ]]; then
+  log "Transformed: stripped DNS, set AllowedIPs=${ALLOWED_IPS} on all three confs."
+fi
 
 if [[ "$DRY_RUN" == "true" ]]; then
-  log "DRY RUN - would append to $ASSIGNED_FILE:"
-  log "    $TF_PEER  ${LABEL}(TF_WG_CONFIG)"
-  log "    $WG0_PEER ${LABEL}(CLUSTER_WIREGUARD_WG0)"
-  log "    $WG1_PEER ${LABEL}(CLUSTER_WIREGUARD_WG1)"
+  log "DRY RUN - would update $ASSIGNED_FILE:"
+  if [[ "$ASSIGNED_FORMAT" == "colon" ]]; then
+    log "    $TF_PEER: $ENV_NAME"
+    log "    $WG0_PEER: $ENV_NAME"
+    log "    $WG1_PEER: $ENV_NAME"
+  else
+    log "    $TF_PEER  ${LABEL}(TF_WG_CONFIG)"
+    log "    $WG0_PEER ${LABEL}(CLUSTER_WIREGUARD_WG0)"
+    log "    $WG1_PEER ${LABEL}(CLUSTER_WIREGUARD_WG1)"
+  fi
   log "DRY RUN - would create env '$ENV_NAME' and set 3 secrets (values not shown)."
-  log "DRY RUN - AllowedIPs in each conf: $(grep -h '^AllowedIPs' <<<"$TF_CONF" | head -1)"
+  if grep -q '^AllowedIPs' <<<"$TF_CONF" 2>/dev/null; then
+    log "DRY RUN - AllowedIPs in each conf: $(grep -h '^AllowedIPs' <<<"$TF_CONF" | head -1)"
+  fi
   exit 0
 fi
 
-# ---- Append to assigned.txt on the jumpserver (skip if reused) -------------
+# ---- Update assigned.txt on the jumpserver (skip if reused) ------------------
 if [[ "$REUSED" != "true" ]]; then
   log "Recording assignment in $ASSIGNED_FILE on jumpserver ..."
-  printf '%s %s(TF_WG_CONFIG)\n%s %s(CLUSTER_WIREGUARD_WG0)\n%s %s(CLUSTER_WIREGUARD_WG1)\n' \
-    "$TF_PEER" "$LABEL" "$WG0_PEER" "$LABEL" "$WG1_PEER" "$LABEL" \
-    | ssh_cmd "cat >> '$ASSIGNED_FILE'"
+  if [[ "$ASSIGNED_FORMAT" == "colon" ]]; then
+    record_peer_assignment "$TF_PEER" "$ENV_NAME"
+    record_peer_assignment "$WG0_PEER" "$ENV_NAME"
+    record_peer_assignment "$WG1_PEER" "$ENV_NAME"
+  else
+    record_peer_assignment "$TF_PEER" "${LABEL}(TF_WG_CONFIG)"
+    record_peer_assignment "$WG0_PEER" "${LABEL}(CLUSTER_WIREGUARD_WG0)"
+    record_peer_assignment "$WG1_PEER" "${LABEL}(CLUSTER_WIREGUARD_WG1)"
+  fi
 fi
 
 # ---- Create the GitHub environment + publish the three secrets -------------
