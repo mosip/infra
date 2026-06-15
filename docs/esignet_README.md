@@ -18,8 +18,8 @@ The eSignet DSF (Desired State File) deploys a complete authentication stack inc
 ### Prerequisites
 
 1. Kubernetes cluster with Istio installed
-2. MOSIP DSF deployed (or run in standalone mode)
-3. GitHub Actions secrets configured
+2. External services deployed (prereq-dsf + external-dsf from `helmsman_external.yml`)
+3. GitHub Actions secrets and Environment Variables configured
 4. WireGuard VPN access to cluster
 
 
@@ -38,6 +38,8 @@ Configure in **Repository → Settings → Environments → `<branch-name>` → 
 | `MOCK_RELYING_PARTY_JWE_PRIVATE_KEY` | JWE userinfo private key | Base64 encoded PEM |
 | `ESIGNET_CAPTCHA_SITE_KEY` | Google reCAPTCHA site key | Plain text |
 | `ESIGNET_CAPTCHA_SECRET_KEY` | Google reCAPTCHA secret key | Plain text |
+
+> **eSignet standalone profile** requires additional per-namespace captcha secrets and Keycloak/Postgres passwords for CRE, QA11, and Sunbird environments. See [ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md](ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md) for the full secrets list.
 
 ### Creating Environment Secrets
 
@@ -103,38 +105,25 @@ Get reCAPTCHA keys from [Google reCAPTCHA Admin Console](https://www.google.com/
 
 ---
 
-## Repository Variables (Optional)
-
-Configure in **Repository → Settings → Secrets and variables → Actions → Variables**:
-
-| Variable | Description | Values |
-|----------|-------------|--------|
-| `ESIGNET_STANDALONE_MODE` | Skip MOSIP DSF check for push-triggered runs | `true` / `false` |
-
----
-
 ## Deployment Modes
 
-### 1. Dependent Mode (Default)
+### Default: MOSIP Platform
 
-Requires MOSIP DSF to be completed first. The workflow checks for `mosip-dsf=completed` label.
+This guide covers eSignet deployed as part of a full MOSIP platform. eSignet is deployed **after** MOSIP core services are running:
 
 ```
-┌─────────────┐     ┌─────────────┐
-│  MOSIP DSF  │ ──► │ eSignet DSF │
-└─────────────┘     └─────────────┘
+helmsman_external.yml (profile=mosip-platform-1.2.0.x)
+         ↓
+helmsman_mosip.yml (auto-triggered)
+         ↓
+helmsman_esignet.yml (profile=mosip-platform-1.2.0.x)
 ```
 
-### 2. Standalone Mode
+Use `skip_mosip_dsf_check=false` (default) — the workflow checks for the `mosip-dsf=completed` label before deploying.
 
-Deploy eSignet independently without MOSIP DSF dependency.
+Set `skip_mosip_dsf_check=true` only if you need to re-run eSignet independently after it has already been deployed once.
 
-**Enable via:**
-
-| Trigger | Method |
-|---------|--------|
-| Manual run | Set `skip_mosip_dsf_check = true` |
-| Push triggered | Set `ESIGNET_STANDALONE_MODE = true` variable |
+> **For eSignet standalone** (no full MOSIP, 4 parallel instances): see [ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md](ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md).
 
 ---
 
@@ -162,28 +151,22 @@ Components are deployed by priority (lower = earlier):
 ## DSF Configuration
 
 ### File Location
+
 ```
-Helmsman/dsf/esignet-dsf.yaml
+Helmsman/dsf/mosip-platform-1.2.0.x/esignet-dsf.yaml   (Java 11)
+Helmsman/dsf/mosip-platform-1.2.1.x/esignet-dsf.yaml   (Java 21)
 ```
 
-### Key Configurations to Update
+The workflow selects the correct subdirectory based on the `profile` input.
 
-Update these values for your environment:
+### Domain and Environment Configuration
 
-```yaml
-# Domain configurations (replace sandbox.xyz.net)
-keycloakExternalHost: "iam.YOUR_DOMAIN.net"
-istio.hosts[0]: "esignet.YOUR_DOMAIN.net"
-mock_relying_party_ui.mock_relying_party_ui_service_host: "healthservices.YOUR_DOMAIN.net"
+**No manual domain edits needed in the DSF file.** All hostnames and service URLs are resolved via `${domain_name}` substitution at deploy time.
 
-# PostgreSQL host
-databases.mosip_esignet.host: "postgres.YOUR_DOMAIN.net"
-databases.mosip_esignet.port: 5433
+Set your domain as a GitHub Environment Variable:
+- **Repository → Settings → Environments → `<branch-name>` → Variables → `DOMAIN_NAME`**
 
-# eSignet URLs
-mock_relying_party_ui.ESIGNET_UI_BASE_URL: "https://esignet.YOUR_DOMAIN.net"
-mock_relying_party_service.ESIGNET_AUD_URL: "https://esignet.YOUR_DOMAIN.net/v1/esignet/oauth/v2/token"
-```
+The workflow also reads `vars.ESIGNET_DB_PORT` for the PostgreSQL port (typically `5433` for MOSIP platform external postgres).
 
 ### Enable/Disable Components
 
@@ -256,10 +239,14 @@ Custom Helm values are stored in:
 
 ### Workflow Inputs
 
-| Input | Description | Required | Default |
-|-------|-------------|----------|---------|
-| `mode` | `dry-run` (preview) or `apply` (deploy) | Yes | `dry-run` |
-| `skip_mosip_dsf_check` | Skip MOSIP DSF dependency check | No | `false` |
+| Input | Description | Required | Notes |
+|-------|-------------|----------|-------|
+| `profile` | Deployment profile | Yes | `mosip-platform-1.2.0.x` or `mosip-platform-1.2.1.x` |
+| `mode` | `dry-run` or `apply` | Yes | Always use `apply` — dry-run will fail |
+| `domain_name` | Your base domain | Yes | Or set `vars.DOMAIN_NAME` in GitHub Environment |
+| `esignet_db_port` | PostgreSQL port | Yes | `5433` for MOSIP platform external postgres (or `vars.ESIGNET_DB_PORT`) |
+| `skip_mosip_dsf_check` | Skip MOSIP DSF completion check | No | Default `false` — set `true` only for re-runs |
+| `delete_existing_jobs` | Delete stale onboarder jobs before deploy | No | Set `true` when re-running after a failure |
 
 ---
 
@@ -376,12 +363,13 @@ export WORKDIR=/path/to/Helmsman
 # Set environment
 export KUBECONFIG=~/.kube/config
 export WORKDIR=$(pwd)/Helmsman
+export domain_name=sandbox.example.net
 
-# Dry run (preview changes)
-helmsman --dry-run -f $WORKDIR/dsf/esignet-dsf.yaml
+# Apply eSignet (MOSIP platform profile — Java 11)
+helmsman --apply -f $WORKDIR/dsf/mosip-platform-1.2.0.x/esignet-dsf.yaml
 
-# Apply changes
-helmsman --apply -f $WORKDIR/dsf/esignet-dsf.yaml
+# Apply eSignet (MOSIP platform profile — Java 21)
+helmsman --apply -f $WORKDIR/dsf/mosip-platform-1.2.1.x/esignet-dsf.yaml
 ```
 
 ### Test Individual Hooks
@@ -404,8 +392,10 @@ export WORKDIR=$(pwd)
 ### Uninstall eSignet Stack
 
 ```bash
-# Using Helmsman (recommended)
-helmsman --destroy -f Helmsman/dsf/esignet-dsf.yaml
+# Using Helmsman (recommended — select your profile)
+helmsman --destroy -f Helmsman/dsf/mosip-platform-1.2.0.x/esignet-dsf.yaml
+# or
+helmsman --destroy -f Helmsman/dsf/mosip-platform-1.2.1.x/esignet-dsf.yaml
 
 # Or manually via Helm
 helm uninstall esignet -n esignet

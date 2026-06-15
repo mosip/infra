@@ -236,10 +236,25 @@ If Terraform Apply = ☐ (unchecked)
 
 ### Deployment Flow
 
+**eSignet standalone profile** (`profile=esignet`):
 ```
-Prerequisites & External → MOSIP Services → eSignet → Test Rigs
- (parallel: prereq + external)   (auto-triggered)  (manual)  (manual)
+External (prereq + external-dsf, parallel) → eSignet → Signup (auto-triggered) → Testrigs
 ```
+
+**MOSIP platform profiles** (`profile=mosip-platform-1.2.0.x` or `mosip-platform-1.2.1.x`):
+```
+External (prereq + external-dsf, parallel) → MOSIP (auto-triggered) → eSignet → Testrigs
+```
+
+### Profile Selection
+
+Each Helmsman workflow takes a `profile` input that selects the DSF subdirectory to use:
+
+| Profile | DSF directory | Use case |
+|---------|--------------|----------|
+| `esignet` | `Helmsman/dsf/esignet/` | eSignet standalone (no full MOSIP) |
+| `mosip-platform-1.2.0.x` | `Helmsman/dsf/mosip-platform-1.2.0.x/` | Full MOSIP, Java 11 |
+| `mosip-platform-1.2.1.x` | `Helmsman/dsf/mosip-platform-1.2.1.x/` | Full MOSIP, Java 21 |
 
 ### Understanding Helmsman Modes
 
@@ -259,7 +274,7 @@ Mode: apply ✅
 
 ### Workflow 1: Prerequisites & External Dependencies
 
-**What it does**: Deploys monitoring, Istio, databases, message queues, storage
+**What it does**: Deploys monitoring, Istio, databases, message queues, storage, Keycloak
 
 **Workflow Name in GitHub**: `Deploy External services of mosip using Helmsman`
 
@@ -272,9 +287,7 @@ Mode: apply ✅
 
 2. **Find the Workflow**
  ```
- Left Sidebar: Look for:
- - "Deploy External services of mosip using Helmsman"
- - Keywords: "External" or "Dependencies"
+ Left Sidebar: "Deploy External services of mosip using Helmsman"
  ```
 
 3. **Start the Workflow**
@@ -284,22 +297,32 @@ Mode: apply ✅
 
 4. **Configure Parameters**
 
- | Parameter | What to Select | Why? |
- |-----------|---------------|------|
- | **Branch** | `release-0.1.0` | Your deployment branch |
- | **Mode** | `apply` | MUST be apply, not dry-run! |
+ | Parameter | What to Select | Notes |
+ |-----------|---------------|-------|
+ | **Branch** | Your deployment branch | Selects the GitHub Environment for secrets/vars |
+ | **profile** | `esignet` / `mosip-platform-1.2.0.x` / `mosip-platform-1.2.1.x` | Selects DSF subdirectory |
+ | **mode** | `apply` | MUST be apply, not dry-run! |
+ | **domain_name** | `sandbox.example.net` | Your deployment domain (or set `vars.DOMAIN_NAME`) |
+ | **db_port** | `5433` | MOSIP platform external postgres port (or `vars.DB_PORT`) |
+ | **esignet_db_port** | `5432` | eSignet container postgres port (or `vars.ESIGNET_DB_PORT`) |
+ | **env_name** | `sandbox` | Environment display name (or `vars.ENV_NAME`) |
+ | **clusterid** | `c-m-abc12xyz` | Rancher cluster ID for monitoring (or `vars.CLUSTER_ID`) |
+ | **slack_channel_name** | `#mosip-alerts` | For alerting (or `vars.SLACK_CHANNEL_NAME`) |
+
+ > **Tip**: If you configure GitHub Environment Variables (`vars.*`), you don't need to fill these in for each run — the workflow reads them automatically.
 
 5. **What Happens** (20-40 minutes)
  
  Deploys TWO DSF files in parallel:
  
- - **Prerequisites**: Monitoring, Istio, Logging
- - **External Dependencies**: PostgreSQL, MinIO, Kafka, Keycloak
+ - **Prerequisites**: Monitoring, Istio, Logging (`prereq-dsf.yaml`)
+ - **External Dependencies**: PostgreSQL, Redis, Kafka, SoftHSM, Keycloak, Captcha, MinIO (`external-dsf.yaml`)
 
 6. **Automatic Trigger**
  ```
- ✅ On success → Automatically triggers MOSIP Services deployment
+ ✅ On success → Automatically triggers MOSIP Services deployment (for MOSIP platform profiles)
  ```
+ > For `profile=esignet`, the MOSIP auto-trigger is skipped — run the eSignet workflow directly next.
 
 ---
 
@@ -309,13 +332,16 @@ Mode: apply ✅
 
 **Workflow Name**: `Deploy MOSIP services using Helmsman`
 
-**Trigger**: Automatically runs after Workflow 1 succeeds
+**Trigger**: Automatically runs after Workflow 1 succeeds (MOSIP platform profiles only — NOT triggered for `profile=esignet`)
 
 **Manual Run** (if needed):
-```
-Branch: release-0.1.0
-Mode: apply
-```
+
+| Parameter | Value |
+|-----------|-------|
+| Branch | Your deployment branch |
+| profile | `mosip-platform-1.2.0.x` or `mosip-platform-1.2.1.x` |
+| mode | `apply` |
+| domain_name | Your domain |
 
 **Monitor Progress** (30-60 minutes):
 - Config Server, Artifactory, Kernel services
@@ -329,11 +355,11 @@ Mode: apply
 
 ### Workflow 3: eSignet (Manual)
 
-**What it does**: Deploys eSignet authentication stack
+**What it does**: Deploys eSignet authentication stack (1 instance for MOSIP platform profiles, 4 parallel instances for eSignet standalone)
 
 **Workflow Name**: `Deploy eSignet using Helmsman`
 
-**Prerequisites**: MOSIP core services must be running
+**Prerequisites**: External services must be running (Workflow 1 complete)
 
 #### Step-by-Step Navigation
 
@@ -342,40 +368,50 @@ Mode: apply
  GitHub Actions → "Deploy eSignet using Helmsman"
  ```
 
-2. **Run the Workflow**
- ```
- Click: "Run workflow"
- Branch: release-0.1.0
- Mode: apply
- ```
+2. **Configure Parameters**
 
-3. **Additional Options** (optional)
+ | Parameter | What to Select | Notes |
+ |-----------|---------------|-------|
+ | **Branch** | Your deployment branch | |
+ | **profile** | `esignet` / `mosip-platform-1.2.0.x` / `mosip-platform-1.2.1.x` | Must match what you used for external-dsf |
+ | **mode** | `apply` | MUST be apply! |
+ | **domain_name** | `sandbox.example.net` | Or set `vars.DOMAIN_NAME` |
+ | **esignet_db_port** | `5432` (esignet) / `5433` (MOSIP platform) | Or set `vars.ESIGNET_DB_PORT` |
+ | **cre_domain_name** | `cre.example.net` | esignet profile only — CRE environment domain |
+ | **qa11_domain_name** | `qa11.example.net` | esignet profile only — QA11 environment domain |
+ | **skip_mosip_dsf_check** | `true` for standalone, `false` when MOSIP is deployed | |
+ | **delete_existing_jobs** | `true` when re-running after a failed attempt | Cleans up stale onboarder jobs |
 
- | Option | When to Enable |
- |--------|----------------|
- | `skip_mosip_dsf_check` | Standalone eSignet deployment without MOSIP |
- | `delete_existing_jobs` | Re-running after failed attempt |
-
-4. **Monitor Progress** (15-25 minutes)
+3. **Monitor Progress** (25-35 minutes for esignet profile with 4 instances)
  ```
- → eSignet services
- → OIDC client configuration
- → Keycloak integration
+ → SoftHSM (all 4 namespaces)
+ → Config server
+ → eSignet core (all 4 namespaces in parallel)
+ → OIDC UI (all 4 namespaces)
  → Mock identity system
+ → Mock relying party
+ ```
+
+4. **Auto-trigger** (esignet profile only)
+ ```
+ ✅ On success → Automatically triggers Signup workflow
  ```
 
 **Check Status:**
 ```bash
 kubectl get pods -n esignet
+kubectl get pods -n esignet-cre    # esignet profile only
+kubectl get pods -n esignet-qa11   # esignet profile only
+kubectl get pods -n esignet-sunbird # esignet profile only
 ```
 
 ---
 
 ### Workflow 4: Test Rigs (Manual, Optional)
 
-**What it does**: Deploys automated testing infrastructure
+**What it does**: Deploys automated testing infrastructure (API/UI test rigs as CronJobs)
 
-**IMPORTANT**: Only run after ALL services (MOSIP + eSignet) are running!
+**IMPORTANT**: Only run after ALL services are running and stable!
 
 #### Step-by-Step Navigation
 
@@ -390,18 +426,32 @@ kubectl get pods -n esignet
  GitHub Actions → "Deploy Testrigs of mosip using Helmsman"
  ```
 
-3. **Run the Workflow**
+3. **Configure Parameters**
+
+ | Parameter | What to Select | Notes |
+ |-----------|---------------|-------|
+ | **Branch** | Your deployment branch | |
+ | **profile** | Same as your deployment profile | |
+ | **mode** | `apply` | |
+ | **domain_name** | `sandbox.example.net` | Or `vars.DOMAIN_NAME` |
+ | **cre_domain_name** | `cre.example.net` | esignet profile only |
+ | **qa11_domain_name** | `qa11.example.net` | esignet profile only |
+ | **db_port** | `5433` | MOSIP platform only |
+ | **esignet_db_port** | `5432` | eSignet profile |
+
+4. **Monitor Progress** (10-20 minutes)
  ```
- Click: "Run workflow"
- Branch: release-0.1.0
- Mode: apply
+ → esignet-apitestrig (esignet profile: 4 instances across all namespaces)
+ → signup-apitestrig (if signup was deployed)
+ → API / DSL / UI test rigs (MOSIP platform profiles)
  ```
 
-4. **Monitor Progress** (15-30 minutes)
- ```
- → API Test Rig
- → DSL Test Rig 
- → UI Test Rig
+5. **Verify CronJobs Created**
+ ```bash
+ kubectl get cronjobs -n esignet
+ kubectl get cronjobs -n esignet-cre   # esignet profile
+ kubectl get cronjobs -n esignet-qa11  # esignet profile
+ kubectl get cronjobs -n esignet-sunbird # esignet profile
  ```
 
 ---
@@ -510,18 +560,34 @@ dry-run ❌ Fails due to missing shared resources
 
 ---
 
-#### DSF File Selection
+#### Profile Selection
 ```
-DSF File: [prereq-dsf.yaml | external-dsf.yaml | mosip-dsf.yaml | testrigs-dsf.yaml]
+profile: [esignet | mosip-platform-1.2.0.x | mosip-platform-1.2.1.x]
 ```
 
-**Deployment Order**:
-1. `prereq-dsf.yaml` - Monitoring, Istio
-2. `external-dsf.yaml` - Databases, queues
-3. `mosip-dsf.yaml` - MOSIP services
-4. `testrigs-dsf.yaml` - Testing infrastructure
+Selects the DSF subdirectory under `Helmsman/dsf/`. Must be consistent across all workflows in a deployment:
 
-**Note**: Some workflows handle multiple DSFs automatically!
+| Profile | DSF directory | Use when |
+|---------|--------------|----------|
+| `esignet` | `Helmsman/dsf/esignet/` | eSignet-only deployment |
+| `mosip-platform-1.2.0.x` | `Helmsman/dsf/mosip-platform-1.2.0.x/` | Full MOSIP, Java 11 |
+| `mosip-platform-1.2.1.x` | `Helmsman/dsf/mosip-platform-1.2.1.x/` | Full MOSIP, Java 21 |
+
+---
+
+#### Domain and Environment Inputs
+
+These inputs override the corresponding GitHub Environment Variables for a single run:
+
+| Input | Fallback variable | Purpose |
+|-------|------------------|---------|
+| `domain_name` | `vars.DOMAIN_NAME` | Base domain for all services |
+| `env_name` | `vars.ENV_NAME` | Environment display name |
+| `clusterid` | `vars.CLUSTER_ID` | Rancher cluster ID |
+| `db_port` | `vars.DB_PORT` | MOSIP platform postgres port |
+| `esignet_db_port` | `vars.ESIGNET_DB_PORT` | eSignet postgres port |
+| `cre_domain_name` | `vars.CRE_DOMAIN_NAME` | CRE environment base domain (esignet profile) |
+| `qa11_domain_name` | `vars.QA11_DOMAIN_NAME` | QA11 environment base domain (esignet profile) |
 
 ---
 
@@ -652,42 +718,63 @@ Updating existing deployment → ☐ Uncheck first to see changes
 
 ### For Helmsman Workflows
 
-- [ ] KUBECONFIG secret added
-- [ ] WireGuard cluster access configured
-- [ ] Previous Helmsman steps completed
-- [ ] All pods from previous steps are Running
-- [ ] Mode set to `apply` (not dry-run!)
-- [ ] DSF files updated with correct domains
+- [ ] KUBECONFIG secret added (raw YAML, not base64)
+- [ ] WireGuard secrets (`CLUSTER_WIREGUARD_WG0`, `CLUSTER_WIREGUARD_WG1`) configured
+- [ ] GitHub Environment Variables set (`DOMAIN_NAME`, `ENV_NAME`, `CLUSTER_ID`, `SLACK_CHANNEL_NAME`, `DB_PORT`, `ESIGNET_DB_PORT`)
+- [ ] Previous Helmsman steps completed and all pods Running
+- [ ] Mode set to `apply` (never dry-run — it will fail!)
+- [ ] Profile selected consistently across all workflow runs
 
 ---
 
 ## Visual Workflow Summary
 
+### eSignet Standalone (`profile=esignet`)
+
 ```
 DEPLOYMENT FLOW:
 
 1. Terraform: Base Infrastructure
- └── Creates VPC, networking, jump server
- └── PAUSE: Configure WireGuard VPN
+ └── VPC, networking, WireGuard jump server
 
-2. Terraform: Main Infrastructure 
- └── Creates Kubernetes cluster
- └── PAUSE: Get KUBECONFIG, add to secrets
+2. Terraform: Main Infrastructure
+ └── RKE2 Kubernetes cluster
+ └── PAUSE: Add KUBECONFIG secret
 
-3. Helmsman: External Dependencies
- └── Deploys monitoring, Istio, databases
- └── ✅ Auto-triggers next step on success
+3. Helmsman: External Dependencies  [helmsman_external.yml, profile=esignet]
+ └── prereq-dsf + external-dsf (parallel)
+ └── PostgreSQL, Redis, Kafka, SoftHSM, Keycloak, Captcha, MinIO
 
-4. Helmsman: MOSIP Services (auto or manual)
- └── Deploys MOSIP applications
+4. Helmsman: eSignet  [helmsman_esignet.yml, profile=esignet]
+ └── 4 parallel instances (esignet / esignet-cre / esignet-qa11 / esignet-sunbird)
+ └── ✅ Auto-triggers Signup workflow on success
+
+5. Helmsman: Signup  [helmsman_signup.yml — auto-triggered]
+ └── Signup service, signup-ui, kernel services
+
+6. Helmsman: Test Rigs  [helmsman_testrigs.yml, profile=esignet, manual]
+ └── API testrigs for all 4 esignet namespaces
+ └── ✅ Deployment Complete!
+```
+
+### Full MOSIP Platform (`profile=mosip-platform-1.2.0.x` or `mosip-platform-1.2.1.x`)
+
+```
+DEPLOYMENT FLOW:
+
+1. Terraform: Base Infrastructure
+2. Terraform: Main Infrastructure
+3. Helmsman: External Dependencies  [helmsman_external.yml, profile=mosip-platform-*]
+ └── ✅ Auto-triggers MOSIP workflow on success
+
+4. Helmsman: MOSIP Core Services  [helmsman_mosip.yml — auto-triggered]
+ └── 50+ microservices across 22 namespaces
  └── PAUSE: Verify all pods Running
 
-5. Helmsman: eSignet (manual)
- └── Deploys eSignet authentication stack
- └── PAUSE: Verify eSignet pods Running
+5. Helmsman: eSignet  [helmsman_esignet.yml, profile=mosip-platform-*]
+ └── 1 eSignet instance in esignet namespace
 
-6. Helmsman: Test Rigs (manual, optional)
- └── Deploys testing infrastructure
+6. Helmsman: Test Rigs  [helmsman_testrigs.yml, manual]
  └── ✅ Deployment Complete!
 ```
 
