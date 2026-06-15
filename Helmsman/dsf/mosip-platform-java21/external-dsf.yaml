@@ -65,123 +65,212 @@ apps:
       databases.mosip_master.enabled: "true"
       databases.mosip_master.scriptsDir: "mosip_master"
       databases.mosip_master.dbName: "mosip_master"
-      databases.mosip_master.dbUser: "postgres"
+      databases.mosip_master.dbUser: "masteruser"
       databases.mosip_master.branch: "develop"
       databases.mosip_master.host: "postgres.${domain_name}"
       databases.mosip_master.port: 5433
+      databases.mosip_master.dml: 1
+      databases.mosip_master.repoUrl: "https://github.com/mosip/admin-services.git"
+      databases.mosip_master.defaultDb: "postgres"
+      databases.mosip_master.su.user: "postgres"
+      databases.mosip_master.su.secret.name: "postgres-postgresql"
+      databases.mosip_master.su.secret.key: "postgres-password"
       
       databases.mosip_audit.enabled: "true"
       databases.mosip_audit.scriptsDir: "mosip_audit"
       databases.mosip_audit.dbName: "mosip_audit"
-      databases.mosip_audit.dbUser: "postgres"
+      databases.mosip_audit.dbUser: "audituser"
       databases.mosip_audit.branch: "develop"
       databases.mosip_audit.host: "postgres.${domain_name}"
       databases.mosip_audit.port: 5433
-      databases.mosip_audit.dml: 1
+      databases.mosip_audit.dml: 0
+      databases.mosip_audit.repoUrl: "https://github.com/mosip/audit-manager.git"
+      databases.mosip_audit.defaultDb: "postgres"
+      databases.mosip_audit.su.user: "postgres"
+      databases.mosip_audit.su.secret.name: "postgres-postgresql"
+      databases.mosip_audit.su.secret.key: "postgres-password"
 
       databases.mosip_keymgr.enabled: "true"
       databases.mosip_keymgr.scriptsDir: "mosip_keymgr"
       databases.mosip_keymgr.dbName: "mosip_keymgr"
-      databases.mosip_keymgr.dbUser: "postgres"
-      databases.mosip_keymgr.branch: "release-1.8.x"
+      databases.mosip_keymgr.dbUser: "keymgruser"
+      databases.mosip_keymgr.branch: "develop"
       databases.mosip_keymgr.host: "postgres.${domain_name}"
       databases.mosip_keymgr.port: 5433
+      databases.mosip_keymgr.dml: 1
+      databases.mosip_keymgr.repoUrl: "https://github.com/mosip/keymanager.git"
+      databases.mosip_keymgr.defaultDb: "postgres"
+      databases.mosip_keymgr.su.user: "postgres"
+      databases.mosip_keymgr.su.secret.name: "postgres-postgresql"
+      databases.mosip_keymgr.su.secret.key: "postgres-password"
 
       databases.mosip_kernel.enabled: "true"
       databases.mosip_kernel.scriptsDir: "mosip_kernel"
       databases.mosip_kernel.dbName: "mosip_kernel"
-      databases.mosip_kernel.dbUser: "postgres"
+      databases.mosip_kernel.dbUser: "kerneluser"
       databases.mosip_kernel.branch: "develop"
       databases.mosip_kernel.host: "postgres.${domain_name}"
       databases.mosip_kernel.port: 5433
+      databases.mosip_kernel.dml: 0
+      databases.mosip_kernel.repoUrl: "https://github.com/mosip/commons.git"
+      databases.mosip_kernel.defaultDb: "postgres"
+      databases.mosip_kernel.su.user: "postgres"
+      databases.mosip_kernel.su.secret.name: "postgres-postgresql"
+      databases.mosip_kernel.su.secret.key: "postgres-password"
 
       databases.mosip_idmap.enabled: "true"
       databases.mosip_idmap.scriptsDir: "mosip_idmap"
       databases.mosip_idmap.dbName: "mosip_idmap"
-      databases.mosip_idmap.dbUser: "postgres"
+      databases.mosip_idmap.dbUser: "idmapuser"
       databases.mosip_idmap.branch: "develop"
       databases.mosip_idmap.host: "postgres.${domain_name}"
       databases.mosip_idmap.port: 5433
+      databases.mosip_idmap.dml: 0
+      databases.mosip_idmap.repoUrl: "https://github.com/mosip/id-repository.git"
+      databases.mosip_idmap.defaultDb: "postgres"
+      databases.mosip_idmap.su.user: "postgres"
+      databases.mosip_idmap.su.secret.name: "postgres-postgresql"
+      databases.mosip_idmap.su.secret.key: "postgres-password"
       
       databases.mosip_prereg.enabled: "true"
       databases.mosip_prereg.scriptsDir: "mosip_prereg"
       databases.mosip_prereg.dbName: "mosip_prereg"
-      databases.mosip_prereg.dbUser: "postgres"
+      databases.mosip_prereg.dbUser: "prereguser"
       databases.mosip_prereg.branch: "develop"
       databases.mosip_prereg.host: "postgres.${domain_name}"
       databases.mosip_prereg.port: 5433
+      databases.mosip_prereg.dml: 0
+      databases.mosip_prereg.repoUrl: "https://github.com/mosip/pre-registration.git"
+      databases.mosip_prereg.defaultDb: "postgres"
+      databases.mosip_prereg.su.user: "postgres"
+      databases.mosip_prereg.su.secret.name: "postgres-postgresql"
+      databases.mosip_prereg.su.secret.key: "postgres-password"
 
       databases.mosip_idrepo.enabled: "true"
       databases.mosip_idrepo.scriptsDir: "mosip_idrepo"
       databases.mosip_idrepo.dbName: "mosip_idrepo"
-      databases.mosip_idrepo.dbUser: "postgres"
+      databases.mosip_idrepo.dbUser: "idrepouser"
       databases.mosip_idrepo.branch: "develop"
       databases.mosip_idrepo.host: "postgres.${domain_name}"
       databases.mosip_idrepo.port: 5433
+      databases.mosip_idrepo.dml: 0
+      databases.mosip_idrepo.repoUrl: "https://github.com/mosip/id-repository.git"
+      databases.mosip_idrepo.defaultDb: "postgres"
+      databases.mosip_idrepo.su.user: "postgres"
+      databases.mosip_idrepo.su.secret.name: "postgres-postgresql"
+      databases.mosip_idrepo.su.secret.key: "postgres-password"
 
       databases.mosip_ida.enabled: "true"
       databases.mosip_ida.scriptsDir: "mosip_ida"
       databases.mosip_ida.dbName: "mosip_ida"
-      databases.mosip_ida.dbUser: "postgres"
+      databases.mosip_ida.dbUser: "idauser"
       databases.mosip_ida.branch: "develop"
       databases.mosip_ida.host: "postgres.${domain_name}"
       databases.mosip_ida.port: 5433
+      databases.mosip_ida.dml: 1
+      databases.mosip_ida.repoUrl: "https://github.com/mosip/id-authentication.git"
+      databases.mosip_ida.defaultDb: "postgres"
+      databases.mosip_ida.su.user: "postgres"
+      databases.mosip_ida.su.secret.name: "postgres-postgresql"
+      databases.mosip_ida.su.secret.key: "postgres-password"
 
       databases.mosip_credential.enabled: "true"
       databases.mosip_credential.scriptsDir: "mosip_credential"
       databases.mosip_credential.dbName: "mosip_credential"
-      databases.mosip_credential.dbUser: "postgres"
+      databases.mosip_credential.dbUser: "credentialuser"
       databases.mosip_credential.branch: "develop"
       databases.mosip_credential.host: "postgres.${domain_name}"
       databases.mosip_credential.port: 5433
+      databases.mosip_credential.dml: 0
+      databases.mosip_credential.repoUrl: "https://github.com/mosip/id-repository.git"
+      databases.mosip_credential.defaultDb: "postgres"
+      databases.mosip_credential.su.user: "postgres"
+      databases.mosip_credential.su.secret.name: "postgres-postgresql"
+      databases.mosip_credential.su.secret.key: "postgres-password"
 
       databases.mosip_regprc.enabled: "true"
       databases.mosip_regprc.scriptsDir: "mosip_regprc"
       databases.mosip_regprc.dbName: "mosip_regprc"
-      databases.mosip_regprc.dbUser: "postgres"
+      databases.mosip_regprc.dbUser: "regprcuser"
       databases.mosip_regprc.branch: "develop"
       databases.mosip_regprc.host: "postgres.${domain_name}"
       databases.mosip_regprc.port: 5433
+      databases.mosip_regprc.dml: 1
+      databases.mosip_regprc.repoUrl: "https://github.com/mosip/registration.git"
+      databases.mosip_regprc.defaultDb: "postgres"
+      databases.mosip_regprc.su.user: "postgres"
+      databases.mosip_regprc.su.secret.name: "postgres-postgresql"
+      databases.mosip_regprc.su.secret.key: "postgres-password"
 
       databases.mosip_pms.enabled: "true"
       databases.mosip_pms.scriptsDir: "mosip_pms"
       databases.mosip_pms.dbName: "mosip_pms"
-      databases.mosip_pms.dbUser: "postgres"
+      databases.mosip_pms.dbUser: "pmsuser"
       databases.mosip_pms.branch: "develop"
       databases.mosip_pms.host: "postgres.${domain_name}"
       databases.mosip_pms.port: 5433
+      databases.mosip_pms.dml: 1
+      databases.mosip_pms.repoUrl: "https://github.com/mosip/partner-management-services.git"
+      databases.mosip_pms.defaultDb: "postgres"
+      databases.mosip_pms.su.user: "postgres"
+      databases.mosip_pms.su.secret.name: "postgres-postgresql"
+      databases.mosip_pms.su.secret.key: "postgres-password"
 
       databases.mosip_hotlist.enabled: "true"
       databases.mosip_hotlist.scriptsDir: "mosip_hotlist"
       databases.mosip_hotlist.dbName: "mosip_hotlist"
-      databases.mosip_hotlist.dbUser: "postgres"
+      databases.mosip_hotlist.dbUser: "hotlistuser"
       databases.mosip_hotlist.branch: "develop"
       databases.mosip_hotlist.host: "postgres.${domain_name}"
       databases.mosip_hotlist.port: 5433
+      databases.mosip_hotlist.dml: 0
+      databases.mosip_hotlist.repoUrl: "https://github.com/mosip/admin-services.git"
+      databases.mosip_hotlist.defaultDb: "postgres"
+      databases.mosip_hotlist.su.user: "postgres"
+      databases.mosip_hotlist.su.secret.name: "postgres-postgresql"
+      databases.mosip_hotlist.su.secret.key: "postgres-password"
 
       databases.mosip_resident.enabled: "true"
       databases.mosip_resident.scriptsDir: "mosip_resident"
       databases.mosip_resident.dbName: "mosip_resident"
-      databases.mosip_resident.dbUser: "postgres"
+      databases.mosip_resident.dbUser: "residentuser"
       databases.mosip_resident.branch: "develop"
       databases.mosip_resident.host: "postgres.${domain_name}"
       databases.mosip_resident.port: 5433
+      databases.mosip_resident.dml: 0
+      databases.mosip_resident.repoUrl: "https://github.com/mosip/resident-services.git"
+      databases.mosip_resident.defaultDb: "postgres"
+      databases.mosip_resident.su.user: "postgres"
+      databases.mosip_resident.su.secret.name: "postgres-postgresql"
+      databases.mosip_resident.su.secret.key: "postgres-password"
 
       databases.mosip_otp.enabled: "true"
       databases.mosip_otp.scriptsDir: "mosip_otp"
       databases.mosip_otp.dbName: "mosip_otp"
-      databases.mosip_otp.dbUser: "postgres"
+      databases.mosip_otp.dbUser: "otpuser"
       databases.mosip_otp.branch: "develop"
       databases.mosip_otp.host: "postgres.${domain_name}"
       databases.mosip_otp.port: 5433
+      databases.mosip_otp.dml: 0
+      databases.mosip_otp.repoUrl: "https://github.com/mosip/otp-manager.git"
+      databases.mosip_otp.defaultDb: "postgres"
+      databases.mosip_otp.su.user: "postgres"
+      databases.mosip_otp.su.secret.name: "postgres-postgresql"
+      databases.mosip_otp.su.secret.key: "postgres-password"
 
       databases.mosip_digitalcard.enabled: "true"
       databases.mosip_digitalcard.scriptsDir: "mosip_digitalcard"
       databases.mosip_digitalcard.dbName: "mosip_digitalcard"
-      databases.mosip_digitalcard.dbUser: "postgres"
+      databases.mosip_digitalcard.dbUser: "digitalcarduser"
       databases.mosip_digitalcard.branch: "develop"
       databases.mosip_digitalcard.host: "postgres.${domain_name}"
       databases.mosip_digitalcard.port: 5433
+      databases.mosip_digitalcard.dml: 0
+      databases.mosip_digitalcard.repoUrl: "https://github.com/mosip/digital-card-service.git"
+      databases.mosip_digitalcard.defaultDb: "postgres"
+      databases.mosip_digitalcard.su.user: "postgres"
+      databases.mosip_digitalcard.su.secret.name: "postgres-postgresql"
+      databases.mosip_digitalcard.su.secret.key: "postgres-password"
     wait: true
     timeout: 1200
     priority: -15
