@@ -1,0 +1,66 @@
+name: WireGuard onboard environment
+
+on:
+  workflow_dispatch:
+    inputs:
+      ENV_NAME:
+        description: 'Environment / branch name to onboard'
+        required: true
+        type: string
+      JUMPSERVER_HOST:
+        description: 'WireGuard VM IP'
+        required: true
+        type: string
+        default: '3.7.248.153'
+      SSH_PRIVATE_KEY:
+        description: 'Repo secret name for jumpserver SSH key'
+        required: true
+        type: string
+        default: SSH_PRIVATE_KEY
+      TICKET:
+        required: false
+        type: string
+      WG_DIR:
+        required: false
+        type: string
+        default: /home/ubuntu/wireguard_env_2026
+      ALLOWED_IPS:
+        required: false
+        type: string
+        default: 172.31.0.0/16
+      DRY_RUN:
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  onboard:
+    runs-on: self-hosted   # Test-unito/WG runner, NOT mosip runner
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
+
+      - name: Write SSH private key
+        env:
+          SSH_KEY: ${{ secrets[inputs.SSH_PRIVATE_KEY] }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/jumpserver_key
+          chmod 600 ~/.ssh/jumpserver_key
+          ssh-keygen -l -f ~/.ssh/jumpserver_key >/dev/null || exit 1
+
+      - name: Run WireGuard onboarding
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          chmod +x scripts/wg-onboard.sh
+          scripts/wg-onboard.sh \
+            --env "${{ inputs.ENV_NAME }}" \
+            --host "${{ inputs.JUMPSERVER_HOST }}" \
+            --ssh-key ~/.ssh/jumpserver_key \
+            --repo "${{ github.repository }}" \
+            --wg-dir "${{ inputs.WG_DIR }}" \
+            --allowed-ips "${{ inputs.ALLOWED_IPS }}" \
+            ${{ inputs.TICKET != '' && format('--ticket {0}', inputs.TICKET) || '' }} \
+            ${{ inputs.DRY_RUN == true && '--dry-run' || '' }}
