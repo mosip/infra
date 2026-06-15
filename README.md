@@ -84,11 +84,12 @@ We've created comprehensive beginner-friendly guides to help you succeed:
 
 | Guide                                                                         | What You'll Learn                                                                          | When to Read                                        |
 | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | --------------------------------------------------- |
-| **[Glossary](docs/GLOSSARY.md)**                                           | Plain-language explanations of all technical terms (AWS, Kubernetes, Terraform, VPN, etc.) | Before you start - understand the terminology       |
-| **[Secret Generation Guide](docs/SECRET_GENERATION_GUIDE.md)**             | Step-by-step instructions to generate SSH keys, AWS credentials, GPG passwords, and more   | Before deployment - setup required secrets          |
-| **[Workflow Guide](docs/WORKFLOW_GUIDE.md)**                               | Visual walkthrough of GitHub Actions workflows with screenshots and navigation help        | During deployment - run workflows correctly         |
-| **[DSF Configuration Guide](docs/DSF_CONFIGURATION_GUIDE.md)**             | How to configure Helmsman files including clusterid and domain settings                    | Before Helmsman deployment - configure applications |
-| **[Environment Destruction Guide](docs/ENVIRONMENT_DESTRUCTION_GUIDE.md)** | Safe teardown procedures, backup steps, and cost monitoring                                | After deployment - clean up resources               |
+| **[Glossary](docs/GLOSSARY.md)**                                                                         | Plain-language explanations of all technical terms (AWS, Kubernetes, Terraform, VPN, etc.) | Before you start - understand the terminology            |
+| **[Secret Generation Guide](docs/SECRET_GENERATION_GUIDE.md)**                                           | Step-by-step instructions to generate SSH keys, AWS credentials, GPG passwords, and more   | Before deployment - setup required secrets               |
+| **[Workflow Guide](docs/WORKFLOW_GUIDE.md)**                                                             | Visual walkthrough of GitHub Actions workflows with screenshots and navigation help        | During deployment - run workflows correctly               |
+| **[DSF Configuration Guide](docs/DSF_CONFIGURATION_GUIDE.md)**                                           | How to configure Helmsman files including clusterid and domain settings                    | Before Helmsman deployment - configure applications       |
+| **[eSignet Standalone Deployment Guide](docs/ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md)**                   | Step-by-step guide to deploy eSignet standalone via GitHub Actions — secrets, variables, workflow order | eSignet standalone deployment |
+| **[Environment Destruction Guide](docs/ENVIRONMENT_DESTRUCTION_GUIDE.md)**                               | Safe teardown procedures, backup steps, and cost monitoring                                | After deployment - clean up resources                    |
 
 **Complete Documentation Index:** [View All Documentation](docs/README.md)
 
@@ -761,7 +762,7 @@ This step creates MOSIP Kubernetes cluster, PostgreSQL (if enabled), ActiveMQ (i
 
 > **Important Notes:**
 >
-> - Ensure `cluster_name` and `cluster_env_domain` match values used in Helmsman DSF files
+> - Ensure `cluster_name` and `cluster_env_domain` match `ENV_NAME` and `DOMAIN_NAME` set as GitHub Environment Variables — these drive all Helmsman DSF domain substitution
 > - Set `enable_postgresql_setup = true` for production deployments with external PostgreSQL,If enable_postgresql_setup = true, Terraform will automatically:
 >   - Provision dedicated EBS volume for PostgreSQL on nginx node
 >   - Install and configure PostgreSQL 15 via Ansible playbooks
@@ -932,278 +933,77 @@ To regenerate import URL if needed:
 >
 > **Detailed DSF Guide:** [DSF Configuration Guide](docs/DSF_CONFIGURATION_GUIDE.md) - Comprehensive guide with examples and explanations!
 
-#### Step 4a: Update DSF Configuration Files
+#### Step 4a: Configure GitHub Environment Variables
 
-1. **Clone the repository (if not already done):**
+**No manual DSF file edits are required per environment.** All domain, cluster, port, and environment name values are resolved at deploy time via Helmsman's `${VAR}` substitution. You configure them once as GitHub Environment Variables and every workflow run picks them up automatically.
 
-```bash
- git clone https://github.com/mosip/infra.git
- cd infra/Helmsman
-```
+Navigate to **Repository → Settings → Environments → `<branch-name>` → Variables** and add:
 
-2. **Navigate to DSF configuration directory:**
+| Variable | Example value | Used by |
+|----------|--------------|---------|
+| `DOMAIN_NAME` | `soil38.mosip.net` | All DSFs — hostnames, Istio VS, DB hosts |
+| `ENV_NAME` | `soil38` | Landing page, testrig user |
+| `CLUSTER_ID` | `c-m-abc12xyz` | `prereq-dsf.yaml` — rancher-monitoring |
+| `SLACK_CHANNEL_NAME` | `#mosip-alerts` | `prereq-dsf.yaml` — alerting |
+| `DB_PORT` | `5433` | MOSIP platform external postgres port |
+| `ESIGNET_DB_PORT` | `5432` | eSignet container postgres port |
 
-```bash
- cd dsf/
-```
+> **Domain consistency**: `DOMAIN_NAME` must match `cluster_env_domain` in `aws.tfvars`. `ENV_NAME` must match `cluster_name`. No in-file replacements needed.
 
-3. **Update prereq-dsf.yaml:**
+**Finding your clusterid (for `CLUSTER_ID`):**
+- **Rancher UI**: Open your cluster → the URL contains `c-m-xxxxx` — that's your clusterid
+- **kubectl**: `kubectl get setting cluster-id -n cattle-system -o jsonpath='{.value}'`
+- Only needed if `rancher_import = true` in your Terraform config
 
-> **IMPORTANT CONFIGURATION:** This file requires **clusterid** configuration **only if you're using Rancher UI** (when `rancher_import = true`)! See [DSF Configuration Guide - clusterid](docs/DSF_CONFIGURATION_GUIDE.md#critical-configuration-clusterid)
+**Alerting (Slack) setup:**
 
- **Critical Updates Required:**
+Create a Slack incoming webhook ([guide](https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks/)), then add:
+- `SLACK_CHANNEL_NAME` variable (e.g. `#mosip-alerts`)
+- `SLACK_WEBHOOK_URL` environment secret
 
-- **clusterid Configuration (OPTIONAL - only if using Rancher):**
-- **When needed?** Only if `rancher_import = true` in your terraform configuration
-- **Skip if:** Deploying without Rancher UI (`rancher_import = false`) - ignore this entire section
-- **What is this?** Unique identifier for your Rancher-managed cluster
-- **Why needed?** Monitoring dashboards won't work without it in Rancher deployments
-- **How to find:** See [DSF Guide - Finding clusterid](docs/DSF_CONFIGURATION_GUIDE.md#how-to-find-your-clusterid)
-- **Location in file:** Around line 40-45
-- **What to change:**
+**reCAPTCHA keys (MOSIP platform profiles):**
 
-```yaml
- set:
- grafana.global.cattle.clusterId: "c-m-pbrcfglw" # ← REPLACE THIS
- global.cattle.clusterId: "c-m-pbrcfglw" # ← REPLACE THIS
-```
+📖 **[View detailed reCAPTCHA Setup Guide](docs/RECAPTCHA_SETUP_GUIDE.md)**
 
-- **Alerting Configuration:**
-Alerting is part of cluster monitoring, where alert notifications are sent to the configured email or Slack channel.
-- `<slack-channel-name>` → Slack channel name configured for alert notifications.
-- `<slack-api-url>` → Slack API URL configured for alert notifications.
-- `<env-name>` → provide the cluster name.
+Create reCAPTCHA v2 keys for each domain at [Google reCAPTCHA Admin](https://www.google.com/recaptcha/admin/create), then add as **Environment Secrets**:
 
-> **Note:**
-> - Create a Slack incoming webhook: [Slack incoming webhooks guide](https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks/)
-> - Create a Slack app for your environment from the above URL.
-> - After creating the app, select `Incoming webhooks` from the **Features** section.
-> - Activate Incoming webhooks.
-> - Select `Add New Webhook To Workspace` and choose a Slack channel where alerts should be notified.
-> - The incoming webhook URL will be created.
-> - Update `slack_api_url`, `channel`, and `env-name` in the `rancher-monitoring` section in `prereq-dsf.yaml`.
+| Secret | Domain |
+|--------|--------|
+| `PREREG_CAPTCHA_SITE_KEY` / `PREREG_CAPTCHA_SECRET_KEY` | `prereg.your-domain.net` |
+| `ADMIN_CAPTCHA_SITE_KEY` / `ADMIN_CAPTCHA_SECRET_KEY` | `admin.your-domain.net` |
+| `RESIDENT_CAPTCHA_SITE_KEY` / `RESIDENT_CAPTCHA_SECRET_KEY` | `resident.your-domain.net` |
 
+The `external-dsf.yaml` reads these via `${PREREG_CAPTCHA_SITE_KEY}` etc. — no DSF edits needed.
 
-- **Domain Validation (Double-check):**
-- `<env-name>` → your cluster name (e.g., `soil38`)
-- `sandbox.xyz.net` → your domain name (e.g., `soil38.mosip.net`)
-- **Why?** Every service needs to know its web address
-- **Chart Versions:** Verify and update to latest stable versions
-- Check [MOSIP Helm Repository](https://mosip.github.io/mosip-helm) for latest versions
-- **Namespace Configuration:** Ensure proper namespace isolation
-- **What is namespace?** Like separate folders for different applications
+**PostgreSQL configuration:**
 
-> **Note:** Maintain consistency with your Terraform configuration:
->
-> - `<env-name>` should match `cluster_name` in `aws.tfvars`
-> - `sandbox.xyz.net` should match `cluster_env_domain` in `aws.tfvars`.
-> - These above variables MUST be identical or deployment will fail because the same domain is being mapped in the route-53 service in aws.
-> - If the cluster is created manually instead of using terraform scripts then user can provide the `values` for above two variables as per his requirement, no need to match variables in `aws.tfvars`. 
+The only DSF setting that still requires a manual decision is `postgres.enabled` in `external-dsf.yaml`:
 
 ```yaml
- # Configure monitoring, Istio, logging
- helmRepos:
- rancher-latest: "https://releases.rancher.com/server-charts/latest"
-
- apps:
- rancher-monitoring:
- enabled: true
- namespace: cattle-monitoring-system
- # DON'T FORGET: Update clusterid here! See above
+apps:
+  postgres:
+    enabled: false  # false = use external Terraform-provisioned PostgreSQL
+                    # true  = deploy container PostgreSQL (for dev/test)
 ```
 
- **Need detailed help?** [DSF Configuration Guide - Prerequisites](docs/DSF_CONFIGURATION_GUIDE.md#prerequisites-dsf-configuration)
+Set this to match your Terraform `enable_postgresql_setup` value. Everything else (host, port, credentials) is resolved automatically from environment variables and hooks.
 
-4. **Update external-dsf.yaml:**
-
- **Critical Updates Required:**
-
-- **Domain Validation (Double-check):**
-- `<sandbox>` → your cluster name (e.g., `soil`)
-- `sandbox.xyz.net` → your domain name (e.g., `soil.mosip.net`)
-- **Chart Versions:** Update Helm chart versions to latest stable releases
-- **Database Branch:** Verify correct branch for DB scripts and schema
-- **PostgreSQL Configuration:** Match with Terraform `enable_postgresql_setup` setting
-
-> **Note:** Maintain consistency with your Terraform configuration:
-> - `<sandbox>` should match `cluster_name` in `aws.tfvars`
-> - `sandbox.xyz.net` should match `cluster_env_domain` in `aws.tfvars`.
-> - These above variables MUST be identical or deployment will fail because the same domain is being mapped in the route-53 service in aws.
-> - If the cluster is created manually instead of using terraform scripts then user can provide the `values` for above two variables as per his requirement, no need to match variables in `aws.tfvars`.
-
-- **Configure reCAPTCHA keys:**
-
-1. **Create reCAPTCHA keys for each domain:** 
-   
-   📖 **[View detailed reCAPTCHA Setup Guide with screenshots](docs/RECAPTCHA_SETUP_GUIDE.md)**
-
-- Go to [Google reCAPTCHA Admin](https://www.google.com/recaptcha/admin/create)
-- Create reCAPTCHA v2 ("I'm not a robot" Checkbox) for each domain:
-- **PreReg domain**: `prereg.your-domain.net` (e.g., `prereg.soil.mosip.net`)
-- **Admin domain**: `admin.your-domain.net` (e.g., `admin.soil.mosip.net`)
-- **Resident domain**: `resident.your-domain.net` (e.g., `resident.soil.mosip.net`)
-
-2. **Update captcha-setup.sh arguments in external-dsf.yaml (around line 315):**
+**Database branch (MOSIP platform):**
 
 ```yaml
- hooks:
- postInstall: "$WORKDIR/hooks/captcha-setup.sh PREREG_SITE_KEY PREREG_SECRET_KEY ADMIN_SITE_KEY ADMIN_SECRET_KEY RESIDENT_SITE_KEY RESIDENT_SECRET_KEY"
+# In mosip-dsf.yaml — update to match your MOSIP version
+gitRepo:
+  dbBranch: "v1.2.0.2"   # must match your deployed MOSIP chart versions
 ```
 
- **Arguments order:**
+**What you should NOT edit manually in DSF files:**
+- Domain names or cluster names (use `vars.DOMAIN_NAME` / `vars.ENV_NAME`)
+- Keycloak hostnames (derived from `${domain_name}`)
+- eSignet service URLs (derived from `${domain_name}`)
+- Test rig endpoints (derived from `${domain_name}`)
+- Captcha keys (passed as GitHub Secrets via `${VAR}` substitution)
 
-- **Argument 1**: PreReg site key
-- **Argument 2**: PreReg secret key
-- **Argument 3**: Admin site key
-- **Argument 4**: Admin secret key
-- **Argument 5**: Resident site key
-- **Argument 6**: Resident secret key
-
-3. **Example configuration:**
-
-```yaml
- hooks:
- postInstall: "$WORKDIR/hooks/captcha-setup.sh 6LfkAMwrAAAAAATB1WhkIhzuAVMtOs9VWabODoZ_ 6LfkAMwrAAAAAHQAT93nTGcLKa-h3XYhGoNSG-NL 6LdNAcwrAAAAAETGWvz-3I12vZ5V8vPJLu2ct9CO 6LdNAcwrAAAAAE4iWGJ-g6Dc2HreeJdIwAl5h1iL 6LdRAcwrAAAAAFUEHHKK5D_bSrwAPqdqAJqo4mCk 6LdRAcwrAAAAAOeVl6yHGBCBA8ye9GsUOy4pi9s9"
-```
-
-```yaml
- # Configure external dependencies
- apps:
- postgresql:
- # Set based on your Terraform configuration:
- enabled: false # false if enable_postgresql_setup = true (external PostgreSQL via Terraform)
- # true if enable_postgresql_setup = false (container PostgreSQL)
- minio:
- enabled: true
- kafka:
- enabled: true
-```
-
-5. **Update mosip-dsf.yaml:**
-
- **Critical Updates Required:**
-
-- **Domain Validation (Double-check):**
-> - `<sandbox>` should match `cluster_name` in `aws.tfvars`
-> - `sandbox.xyz.net` should match `cluster_env_domain` in `aws.tfvars`.
-> - These above variables MUST be identical or deployment will fail because the same domain is being mapped in the route-53 service in aws.
-> - If the cluster is created manually instead of using terraform scripts then user can provide the `values` for above two variables as per his requirement, no need to match variables in `aws.tfvars`.
-- **Chart Versions:** Update MOSIP service chart versions to compatible releases
-- **Database Branch:** Ensure correct MOSIP DB scripts branch matches deployment version
-- **Service Dependencies:** Verify all required external services are properly configured
-- **Resource Limits:** Adjust CPU/memory limits based on environment requirements
-
-> **Note:** Maintain consistency with your Terraform configuration:
->
-> - `<sandbox>` should match `cluster_name` in `aws.tfvars`
-> - `sandbox.xyz.net` should match `cluster_env_domain` in `aws.tfvars`.
-> - These above variables MUST be identical or deployment will fail because the same domain is being mapped in the route-53 service in aws.
-> - If the cluster is created manually instead of using terraform scripts then user can provide the `values` for above two variables as per his requirement, no need to match variables in `aws.tfvars`.
-
-```yaml
- # Configure MOSIP services 
- apps:
- config-server:
- enabled: true
- artifactory:
- enabled: true
- kernel:
- enabled: true
-```
-
-6. **Update esignet-dsf.yaml:**
-
- **Critical Updates Required:**
-
-- **Domain Validation (Double-check):**
-  - `<sandbox>` → your cluster name (e.g., `soil`)
-  - `sandbox.xyz.net` → your domain name (e.g., `soil.mosip.net`)
-  - **eSignet Domain**: `esignet.sandbox.xyz.net` → `esignet.soil.mosip.net`
-- **Chart Versions:** Update eSignet chart versions to latest stable releases
-- **Database Branch:** Verify correct eSignet DB scripts branch
-- **OIDC Configuration:** Configure OIDC client settings and redirect URLs
-- **Mock Services:** Enable/disable mock identity system and relying party based on requirements
-- **Keycloak Integration:** Ensure Keycloak endpoints and realm settings are correct
-
-> **Note:** Maintain consistency with your Terraform configuration:
->
-> - `<sandbox>` should match `cluster_name` in `aws.tfvars`
-> - `sandbox.xyz.net` should match `cluster_env_domain` in `aws.tfvars`
-> - eSignet requires MOSIP core services to be deployed first (unless using standalone mode)
-
-```yaml
- # Configure eSignet services 
- apps:
- esignet:
- enabled: true
- mock-identity-system:
- enabled: true # Set to false for production with real identity system
- oidc-ui:
- enabled: true
- mock-relying-party:
- enabled: true # Set to false for production
-```
-
- **eSignet-Specific Configuration:**
-
-- **Mock Identity System:**
-  - Enable (`true`) for development/testing without MOSIP integration
-  - Disable (`false`) for production with real MOSIP identity system
-- **OIDC Client Configuration:**
-  - Update redirect URIs for your domain
-  - Configure client IDs and secrets
-  - Set up allowed scopes and claims
-- **Keycloak Settings:**
-  - Verify Keycloak realm: typically `esignet`
-  - Update Keycloak host: `https://iam.sandbox.xyz.net` → `https://iam.soil.mosip.net`
-  - Ensure Keycloak client credentials are configured
-
- **Need detailed help?** [DSF Configuration Guide - eSignet](docs/esignet_README.md#dsf-configuration)
-
-7. **Update testrigs-dsf.yaml (if deploying test environment):**
-
- **Critical Updates Required:**
-
-- **Domain Validation (Double-check):**
-> - `<sandbox>` should match `cluster_name` in `aws.tfvars`
-> - `sandbox.xyz.net` should match `cluster_env_domain` in `aws.tfvars`.
-> - These above variables MUST be identical or deployment will fail because the same domain is being mapped in the route-53 service in aws.
-> - If the cluster is created manually instead of using terraform scripts then user can provide the `values` for above two variables as per his requirement, no need to match variables in `aws.tfvars`.
-- **Test Chart Versions:** Update test rig chart versions to match MOSIP service versions
-- **Database Branch:** Ensure test DB scripts use correct branch
-- **Test Configuration:** Update test endpoints, API versions, and test data paths
-- **Resource Allocation:** Configure appropriate test environment resource limits
-
-> **Critical Validation Checklist for All DSF Files:**
->
-> **Domain Configuration (Validate Twice):**
-> - `<sandbox>` should match `cluster_name` in `aws.tfvars`
-> - `sandbox.xyz.net` should match `cluster_env_domain` in `aws.tfvars`.
-> - These above variables MUST be identical or deployment will fail because the same domain is being mapped in the route-53 service in aws.
-> - If the cluster is created manually instead of using terraform scripts then user can provide the `values` for above two variables as per his requirement, no need to match variables in `aws.tfvars`.
-> - Verify domain DNS resolution is working
-> - Ensure SSL certificate coverage for all subdomains
->
-> **Version Management:**
->
-> - **Chart Versions**: Update all Helm chart versions to latest compatible releases
-> - **Database Branch**: Verify DB scripts branch matches your MOSIP deployment version
-> - **Service Versions**: Ensure MOSIP service versions are compatible across all DSF files
->
-> **Configuration Consistency:**
->
-> - `<sandbox>` must match `cluster_name` in `terraform/implementations/aws/infra/aws.tfvars`
-> - `sandbox.xyz.net` must match `cluster_env_domain` in `terraform/implementations/aws/infra/aws.tfvars`
-> - These above variables MUST be identical or deployment will fail because the same domain is being mapped in the route-53 service in aws.
-> - If the cluster is created manually instead of using terraform scripts then user can provide the `values` for above two variables as per his requirement, no need to match variables in `aws.tfvars`.
-> - PostgreSQL settings must align with `enable_postgresql_setup` in Terraform configuration
->
-> **Environment-Specific Updates:**
->
-> - Resource limits and requests based on environment capacity
-> - Storage class configurations for persistent volumes
-> - Ingress controller and load balancer settings
-> - Security context and RBAC configurations
+**Need detailed help?** [DSF Configuration Guide](docs/DSF_CONFIGURATION_GUIDE.md)
 
 #### Step 4b: Configure Repository Secrets for Helmsman
 
