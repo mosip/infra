@@ -75,19 +75,37 @@ log()  { echo "[wg-onboard] $*" >&2; }
 err()  { echo "[wg-onboard][ERROR] $*" >&2; }
 die()  { err "$*"; exit 1; }
 
+require_arg() {
+  local flag="$1"
+  [[ $# -ge 2 && -n "${2:-}" && "$2" != --* ]] || die "$flag requires a value"
+}
+
+urlencode() {
+  local input="$1" output="" i c
+  local LC_ALL=C
+  for ((i = 0; i < ${#input}; i++)); do
+    c="${input:i:1}"
+    case "$c" in
+      [a-zA-Z0-9.~_-]) output+="$c" ;;
+      *) printf -v output '%s%%%02X' "$output" "'$c" ;;
+    esac
+  done
+  printf '%s' "$output"
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --env)         ENV_NAME="$2"; shift 2 ;;
-    --host)        JUMPSERVER_HOST="$2"; shift 2 ;;
-    --ssh-key)     SSH_KEY="$2"; shift 2 ;;
-    --repo)        REPO="$2"; shift 2 ;;
-    --ticket)      TICKET="$2"; shift 2 ;;
-    --wg-dir)      WG_DIR="$2"; shift 2 ;;
-    --allowed-ips) ALLOWED_IPS="$2"; shift 2 ;;
-    --tf-peer)     TF_PEER="$2"; shift 2 ;;
-    --wg0-peer)    WG0_PEER="$2"; shift 2 ;;
-    --wg1-peer)    WG1_PEER="$2"; shift 2 ;;
-    --max-peers)   MAX_PEERS="$2"; shift 2 ;;
+    --env)         require_arg --env "$2";         ENV_NAME="$2"; shift 2 ;;
+    --host)        require_arg --host "$2";        JUMPSERVER_HOST="$2"; shift 2 ;;
+    --ssh-key)     require_arg --ssh-key "$2";     SSH_KEY="$2"; shift 2 ;;
+    --repo)        require_arg --repo "$2";        REPO="$2"; shift 2 ;;
+    --ticket)      require_arg --ticket "$2";      TICKET="$2"; shift 2 ;;
+    --wg-dir)      require_arg --wg-dir "$2";      WG_DIR="$2"; shift 2 ;;
+    --allowed-ips) require_arg --allowed-ips "$2"; ALLOWED_IPS="$2"; shift 2 ;;
+    --tf-peer)     require_arg --tf-peer "$2";     TF_PEER="$2"; shift 2 ;;
+    --wg0-peer)    require_arg --wg0-peer "$2";    WG0_PEER="$2"; shift 2 ;;
+    --wg1-peer)    require_arg --wg1-peer "$2";    WG1_PEER="$2"; shift 2 ;;
+    --max-peers)   require_arg --max-peers "$2";   MAX_PEERS="$2"; shift 2 ;;
     --dry-run)     DRY_RUN="true"; shift ;;
     -h|--help)     usage; exit 0 ;;
     *)             die "Unknown argument: $1 (use --help)" ;;
@@ -115,8 +133,19 @@ log "Target repo: $REPO"
 log "Target environment: $ENV_NAME (label: $LABEL)"
 log "WireGuard dir: $WG_DIR | AllowedIPs: $ALLOWED_IPS"
 
+if [[ -n "${SSH_KNOWN_HOSTS:-}" ]]; then
+  [[ -f "$SSH_KNOWN_HOSTS" ]] || die "SSH_KNOWN_HOSTS file not found: $SSH_KNOWN_HOSTS"
+else
+  SSH_KNOWN_HOSTS="$(mktemp /tmp/wg_onboard_known_hosts.XXXXXX)"
+  trap 'rm -f "$SSH_KNOWN_HOSTS"' EXIT
+fi
+
 ssh_cmd() {
-  ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no -o ConnectTimeout=15 \
+  ssh -i "$SSH_KEY" \
+    -o BatchMode=yes \
+    -o StrictHostKeyChecking=accept-new \
+    -o UserKnownHostsFile="$SSH_KNOWN_HOSTS" \
+    -o ConnectTimeout=15 \
     "${SSH_USER}@${JUMPSERVER_HOST}" "$@"
 }
 
@@ -159,15 +188,22 @@ parse_assigned_line() {
   [[ -z "${line//[[:space:]]/}" ]] && return 1
   peer="$(normalize_peer_token "$(awk '{print $1}' <<<"$line")")"
   [[ "$peer" =~ ^peer[0-9]+$ ]] || return 1
-  if [[ "$line" =~ ^peer[0-9]+:[[:space:]]*(.*)$ ]]; then
+  if [[ "$line" =~ ^peer[0-9]+[[:space:]]*:[[:space:]]*(.*)$ ]]; then
     rest="${BASH_REMATCH[1]}"
   else
     rest="$(awk '{$1=""; sub(/^ +/,""); print}' <<<"$line")"
   fi
   rest="${rest//$'\r'/}"
+  rest="$(awk '{$1=$1; print}' <<<"$rest")"
   PARSED_PEER="$peer"
   PARSED_LABEL="$rest"
   return 0
+}
+
+# Blank label or explicit ": available" means the peer is free.
+peer_label_is_taken() {
+  local label="${1//[[:space:]]/}"
+  [[ -n "$label" && "${label,,}" != "available" ]]
 }
 
 assigned_line_exists() {
@@ -207,7 +243,7 @@ fi
 
 # Detect assigned.txt layout (colon vs per-secret MOSIP format).
 ASSIGNED_FORMAT="mosip"
-if grep -qE '^peer[0-9]+:' <<<"$ASSIGNED_CONTENT"; then
+if grep -qE '^peer[0-9]+[[:space:]]*:' <<<"$ASSIGNED_CONTENT"; then
   ASSIGNED_FORMAT="colon"
   log "Detected assigned.txt colon format (peerN: username)"
 fi
@@ -216,7 +252,7 @@ fi
 declare -A TAKEN=()
 while IFS= read -r line; do
   parse_assigned_line "$line" || continue
-  [[ -n "${PARSED_LABEL//[[:space:]]/}" ]] && TAKEN["$PARSED_PEER"]=1
+  peer_label_is_taken "$PARSED_LABEL" && TAKEN["$PARSED_PEER"]=1
 done <<<"$ASSIGNED_CONTENT"
 
 if [[ ${#TAKEN[@]} -gt 0 ]]; then
@@ -383,12 +419,17 @@ REMOTE_RECORD_ASSIGNMENT
 # ---- Reuse existing allocation for this env, if present (idempotent) -------
 find_assigned_peer() {
   local secret="$1"
-  awk -v env="$ENV_NAME" -v sec="($secret)" '
+  awk -v env="$ENV_NAME" -v secret="$secret" '
     $1 ~ /^peer[0-9]+:?$/ {
       peer=$1
       sub(/:$/, "", peer)
-      desc=substr($0, index($0,$2))
-      if (index(desc, env) && index(desc, sec)) { print peer; exit }
+      desc=$0
+      sub(/^[[:space:]]*peer[0-9]+[[:space:]]*:?[[:space:]]*/, "", desc)
+      suffix="(" secret ")"
+      if (length(desc) < length(suffix)) next
+      if (substr(desc, length(desc) - length(suffix) + 1) != suffix) next
+      label=substr(desc, 1, length(desc) - length(suffix))
+      if (label == env || index(label, env "(") == 1) { print peer; exit }
     }' <<<"$ASSIGNED_CONTENT"
 }
 
@@ -447,7 +488,7 @@ if [[ "$REUSED" != "true" ]]; then
 fi
 
 for p in "$TF_PEER" "$WG0_PEER" "$WG1_PEER"; do
-  if [[ -n "${TAKEN[$p]:-}" ]]; then
+  if [[ "$REUSED" != "true" && -n "${TAKEN[$p]:-}" ]]; then
     die "Refusing to allocate $p — already assigned in $ASSIGNED_FILE (script may have failed to read labels; check file format/permissions)"
   fi
 done
@@ -522,8 +563,9 @@ fi
 
 # ---- Create the GitHub environment + publish the three secrets -------------
 log "Ensuring GitHub environment '$ENV_NAME' exists ..."
+ENV_NAME_ENC="$(urlencode "$ENV_NAME")"
 gh api --method PUT -H "Accept: application/vnd.github+json" \
-  "repos/${REPO}/environments/${ENV_NAME}" >/dev/null
+  "repos/${REPO}/environments/${ENV_NAME_ENC}" >/dev/null
 
 log "Publishing environment secrets ..."
 printf '%s' "$TF_CONF"  | gh secret set TF_WG_CONFIG          --env "$ENV_NAME" --repo "$REPO" --body -
@@ -535,7 +577,7 @@ if [[ ! -f "$ALLOCATION_FILE" ]]; then
   printf 'env_name\ttf_peer\twg0_peer\twg1_peer\tallocated_at\n' > "$ALLOCATION_FILE"
 fi
 TMP="$(mktemp)"
-grep -vP "^${ENV_NAME}\t" "$ALLOCATION_FILE" > "$TMP" || true
+awk -F '\t' -v env="$ENV_NAME" 'NR == 1 || $1 != env' "$ALLOCATION_FILE" > "$TMP"
 printf '%s\t%s\t%s\t%s\t%s\n' "$ENV_NAME" "$TF_PEER" "$WG0_PEER" "$WG1_PEER" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$TMP"
 mv "$TMP" "$ALLOCATION_FILE"
 
