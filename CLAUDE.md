@@ -310,11 +310,11 @@ export WORKDIR=/path/to/Helmsman
 | `softhsm-esignet-values.yaml` | SoftHSM for esignet namespace |
 | `softhsm-esignet-{cre,qa11,sunbird}-values.yaml` | SoftHSM for esignet-cre/qa11/sunbird — identical config; separate files give each namespace an independent PVC and pin secret |
 | `softhsm-mock-identity-system-values.yaml` | SoftHSM for mock identity |
-| `esignet-plugin-values.yaml` | Plugin 1 (mock) — captcha `secretKeyRef` active; plugin 2/3 sections commented out |
-| `esignet-cre-plugin-values.yaml` | Plugin 2 (mosip-identity) — captcha + all IDA service URLs active; overrides full `extraEnvVars` list (SOFTHSM_ESIGNET_SECURITY_PIN references `esignet-softhsm-cre`); used by `esignet-cre` |
-| `esignet-qa11-plugin-values.yaml` | Plugin 2 (mosip-identity) — identical to cre; SOFTHSM_ESIGNET_SECURITY_PIN references `esignet-softhsm-qa11`; used by `esignet-qa11` |
-| `esignet-sunbird-plugin-values.yaml` | Plugin 3 (sunbird-rc) — captcha + sunbird registry URL + `NoOpKeyBinder`; overrides full `extraEnvVars` list (SOFTHSM_ESIGNET_SECURITY_PIN references `esignet-softhsm-sunbird`); used by `esignet-sunbird` |
-| `esignet-apitestrig-values.yaml` | Shared values for all 4 esignet apitestrig releases — enables `mosipdev/apitest-esignet:develop` image; `extraEnvVarsCM`: `[s3, keycloak-host, db, apitestrig, esignet-global]`; `extraEnvVarsSecret` defaults overridden per-release in DSF via indexed `set:` |
+| `esignet-plugin-values.yaml` | Plugin 1 (mock) — captcha `secretKeyRef` active + `MOSIP_ESIGNET_CAPTCHA_REQUIRED=false`; plugin 2/3 sections commented out |
+| `esignet-cre-plugin-values.yaml` | Plugin 2 (mosip-identity) — captcha + all IDA service URLs active + `MOSIP_ESIGNET_CAPTCHA_REQUIRED=false`; overrides full `extraEnvVars` list (SOFTHSM_ESIGNET_SECURITY_PIN references `esignet-softhsm-cre`); used by `esignet-cre` |
+| `esignet-qa11-plugin-values.yaml` | Plugin 2 (mosip-identity) — identical to cre + `MOSIP_ESIGNET_CAPTCHA_REQUIRED=false`; SOFTHSM_ESIGNET_SECURITY_PIN references `esignet-softhsm-qa11`; used by `esignet-qa11` |
+| `esignet-sunbird-plugin-values.yaml` | Plugin 3 (sunbird-rc) — captcha + sunbird registry URL + `NoOpKeyBinder` + `MOSIP_ESIGNET_CAPTCHA_REQUIRED=false`; overrides full `extraEnvVars` list (SOFTHSM_ESIGNET_SECURITY_PIN references `esignet-softhsm-sunbird`); used by `esignet-sunbird` |
+| `esignet-apitestrig-values.yaml` | Shared values for all 4 esignet apitestrig releases — enables `mosipdev/apitest-esignet:develop` image; `extraEnvVarsCM`: `[s3, keycloak-host, db, apitestrig, esignet-global]`; `extraEnvVarsSecret` defaults overridden per-release in DSF via indexed `set:`; each release sets `eSignetbaseurl` (`https://esignet[-<ns>].${domain_name}`) and `esignetActuatorPropertySection` (`classpath:/application-default.properties`) in `apitestrig.configmaps.apitestrig.*` |
 | `esignet-signup-apitestrig-values.yaml` | Values for signup apitestrig — `mosipid/apitest-esignet-signup:1.2.2` image; same CM pattern |
 | `signup-uitestrig-values.yaml` | Values for signup UI testrig — `mosipdev/uitest-signup:develop` image; `extraEnvVarsCM`: `[s3, keycloak-host, db, uitestrig]` |
 | `config-server-values.yaml` | Git repo config for Spring Cloud Config Server (MOSIP platform profiles) |
