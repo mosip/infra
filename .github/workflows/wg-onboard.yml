@@ -35,7 +35,7 @@ on:
 
 jobs:
   onboard:
-    runs-on: self-hosted   # Test-unito/WG runner, NOT mosip runner
+    runs-on: ubuntu-latest   # Test-unito/WG runner, NOT mosip runner
     steps:
       - uses: actions/checkout@v4
         with:
