@@ -935,9 +935,13 @@ To regenerate import URL if needed:
 
 #### Step 4a: Configure GitHub Environment Variables
 
-**No manual DSF file edits are required per environment.** All domain, cluster, port, and environment name values are resolved at deploy time via Helmsman's `${VAR}` substitution. You configure them once as GitHub Environment Variables and every workflow run picks them up automatically.
+**No manual DSF file edits are required per environment.** All domain, cluster, port, and environment name values are resolved at deploy time via Helmsman's `${VAR}` substitution.
 
-Navigate to **Repository → Settings → Environments → `<branch-name>` → Variables** and add:
+**How values are provided:**
+
+When you trigger a Helmsman workflow manually (`workflow_dispatch`), you enter these values directly as **workflow inputs** — no pre-configuration needed. The GitHub Environment (`<branch-name>`) must already exist (created automatically when Terraform runs or manually via Repository → Settings → Environments).
+
+For **push-triggered runs** (no workflow inputs), values fall back to GitHub Environment Variables. In that case, navigate to **Repository → Settings → Environments → `<branch-name>` → Variables** and add:
 
 | Variable | Example value | Used by |
 |----------|--------------|---------|
@@ -1007,7 +1011,7 @@ gitRepo:
 
 #### Step 4b: Configure Repository Secrets for Helmsman
 
-**After updating all DSF files**, configure the required repository secrets for Helmsman deployments:
+Configure the required secrets for Helmsman deployments in **Repository → Settings → Environments → `<branch-name>` → Secrets**:
 
 1. **Update Repository Branch Configuration:**
 
@@ -1105,173 +1109,29 @@ gitRepo:
 
 #### Step 4c: Run Helmsman Deployments via GitHub Actions
 
-> **Need visual guidance?** See [Workflow Guide - Helmsman Workflows](docs/WORKFLOW_GUIDE.md#helmsman-workflows) for detailed step-by-step instructions!
+> **Always use `apply` mode.** The `dry-run` mode will fail because MOSIP services reference ConfigMaps and Secrets from other namespaces that don't exist at dry-run time.
 
-The Helmsman deployment process follows a specific sequence with automated triggers and error handling mechanisms:
+Follow the sequence below. The flow differs by profile:
 
-> **Important**: Always use `apply` mode for Helmsman deployments. The `dry-run` mode will fail due to dependencies on shared configmaps and secrets from other namespaces that are not available during dry-run validation.
->
-> **Why does dry-run fail?** Helmsman checks if resources exist before deployment. In dry-run mode, these resources aren't created yet, so validation fails. Think of it like checking if ingredients are in the kitchen before actually cooking - but in dry-run mode, the ingredients haven't been bought yet!
-
-**Understanding Workflow Names:**
-
-| Actual Workflow Name in GitHub                     | Where to Find           |
-| -------------------------------------------------- | ----------------------- |
-| "Deploy External services of mosip using Helmsman" | Actions → Left sidebar |
-| "Deploy MOSIP services using Helmsman"             | Actions → Left sidebar |
-| "Deploy Testrigs of mosip using Helmsman"          | Actions → Left sidebar |
-
-> **Can't find the workflow?** Look for keywords like "External", "MOSIP", or "Deploy" in the left sidebar. See [Workflow Guide](docs/WORKFLOW_GUIDE.md#understanding-workflow-basics) for navigation help!
-
-1. **Deploy Prerequisites & External Dependencies:**
-
-> **Detailed Steps:** [Workflow Guide - Prerequisites &amp; External Dependencies](docs/WORKFLOW_GUIDE.md#workflow-1-prerequisites--external-dependencies)
-
-![Deploy External Services - Helmsman](docs/_images/helmsman-external-services.png)
-
-- **(1)** Actions → **"Deploy External services of mosip using Helmsman"**
-  - **Can't find it?** Search for "External" in the workflows list
-- **(2)** Click **Run workflow** button in the top right corner
-- **(3)** **Branch**: Select your deployment branch (e.g., `develop`)
-- **(4)** **Deployment profile to use**: `mosip-platform-1.2.0.x` (or other appropriate profile)
-- **(5)** **Choose Helmsman mode**: `apply` (dry-run will fail due to namespace dependencies)
-- **(6)** **Domain name for this environment**: Enter the domain name (e.g., `example.xyz.net`)
-- **(7)** **Environment name**: Enter the environment name (e.g., `sandbox`, `dev`, `staging`)
-- **(8)** **Slack channel name for alerting** (optional): e.g., `#mosip-alerts`
-- **(9)** **Slack webhook URL for alerting** (optional)
-- **(10)** **Rancher cluster ID for rancher-monitoring**: e.g., `c-xxxxx`
-- **(11)** Click **Run workflow** green button
-- This workflow handles both deployments in parallel:
-  - **Prerequisites**: `prereq-dsf.yaml` (monitoring, Istio, logging)
-  - **External Dependencies**: `external-dsf.yaml` (databases, message queues, storage)
-- **Time required:** 20-40 minutes
-- **Automatic Trigger**: Upon successful completion, this workflow automatically triggers the MOSIP services deployment
-
- **What You Should See:**
-
-- ✅ Monitoring stack deploying (Prometheus, Grafana)
-- ✅ Istio service mesh installing
-- ✅ PostgreSQL database starting (if container mode)
-- ✅ MinIO storage deploying
-- ✅ Kafka message queue starting
-
-> **Note**: The `helmsman_external.yml` workflow deploys both prereq and external dependencies in parallel for optimal deployment time.
-
-2. **Deploy MOSIP Services (Automated):**
-
-- **Automatically triggered** after successful completion of step 1
-- Workflow: **Deploy MOSIP services using Helmsman** (`helmsman_mosip.yml`)
-- DSF file: `mosip-dsf.yaml`
-- Mode: `apply` (dry-run will fail due to namespace dependencies)
-
- **Error Handling:**
-
-- If the automatic trigger fails, manually trigger: Actions → **Deploy MOSIP services using Helmsman**
-
-3. **Verify All Pods are Running:**
-
- Before proceeding to test rigs, ensure all MOSIP services are properly deployed:
-
-```bash
- # Check all MOSIP pods are running
- kubectl get pods -A
- kubectl get pods -n keycloak
- kubectl get pods -n postgres
- 
- # Ensure no pods are in pending/error state
- kubectl get pods --all-namespaces | grep -v Running | grep -v Completed
+**eSignet standalone:**
+```
+External + Prereqs  →  eSignet (manual)  →  Signup (auto)  →  Testrigs (manual)
 ```
 
-4. **Handle Onboarding Failures (If Required):**
-
-> **⚠️ Important**: The partner-onboarder pod will run successfully, but you must check the onboarding reports in MinIO to verify if all partners were onboarded correctly. Failed onboardings must be manually re-executed before deploying test rigs.
-
-**When to check and rerun onboarding:**
-
-- After the partner-onboarder pod completes (check MinIO reports for failures)
-- When onboarding reports show failed partner registrations
-- Before deploying test rigs to ensure all prerequisites are met
-
-**How to check onboarding status and rerun if needed:** Refer to the comprehensive [MOSIP Onboarding Guide](docs/ONBOARDING_GUIDE.md) for detailed troubleshooting and retry procedures.
-
-5. **Deploy eSignet (Manual):**
-
-![Deploy eSignet - Helmsman](docs/_images/esignet.png)
-
-- **Prerequisites**: All MOSIP core services must be running, partner onboarding completed successfully and secrets required for esignet should be updated.
-- **(1)** Actions → **Deploy eSignet using Helmsman** (`helmsman_esignet.yml`)
-- **(2)** Click **Run workflow** button in the top right corner
-- **(3)** **Select Branch**
-- **(4)** **Select Profile**: `mosip-platform-1.2.0.x` or `mosip-platform-1.2.1.x` or `esignet` or any other profile you want to deploy for
-- **(5)** **Mode**: `apply` (dry-run will fail due to namespace dependencies)
-- **(6)** **Additional Options** (optional):
-  - **skip_mosip_dsf_check**: ☐ Unchecked by default
-    - **When to enable (✅)**: Standalone eSignet deployment without full MOSIP stack
-    - **What it does**: Bypasses validation check for MOSIP core services completion
-    - **Use case**: Testing eSignet independently or deploying eSignet to a separate cluster
-  - **(7)** **delete_existing_jobs**: ☐ Unchecked by default
-    - **When to enable (✅)**: Re-running eSignet deployment after a previous failed attempt
-    - **What it does**: Removes existing partner onboarder jobs before creating new ones
-    - **Use case**: Cleanup before retry deployment to avoid "job already exists" errors
-    - **Important**: Only enable this on re-runs, not on first deployment
-- **(8)** **Domain name**: Enter the domain name for this environment (e.g., `example.xyz.net`)
-- **(9)** **Environment name**: Enter the environment name (e.g., `sandbox`, `dev`, `staging`)
-- **(10)** **Run Workflow**   
-- **Time required:** 15-25 minutes
-
- **What You Should See:**
-
-- ✅ eSignet services deploying
-- ✅ OIDC client configuration
-- ✅ Keycloak integration setup
-- ✅ Mock identity system (if configured)
-- ✅ All eSignet pods running
-
- **Verify eSignet Deployment:**
-
-```bash
- # Check eSignet pods
- kubectl get pods -n esignet
- 
- # Verify eSignet services
- kubectl get services -n esignet
+**MOSIP platform:**
+```
+External + Prereqs  →  MOSIP (auto)  →  eSignet (manual)  →  Testrigs (manual)
 ```
 
-> **Note**: For detailed eSignet configuration and deployment guide, see [eSignet Deployment Guide](docs/esignet_README.md)
+| Step | Workflow | Trigger | Profile | Guide |
+|------|----------|---------|---------|-------|
+| 1 | External + Prereqs | Manual | All profiles | [HELMSMAN_EXTERNAL_GUIDE.md](docs/HELMSMAN_EXTERNAL_GUIDE.md) |
+| 2 | MOSIP services | Auto (from step 1) | MOSIP platform only | [HELMSMAN_MOSIP_GUIDE.md](docs/HELMSMAN_MOSIP_GUIDE.md) |
+| 3 | eSignet | Manual | MOSIP platform | [esignet_README.md](docs/esignet_README.md) |
+| | | | Standalone (4 instances) | [ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md](docs/ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md) |
+| 4 | Testrigs | Manual | All profiles | [HELMSMAN_TESTRIGS_GUIDE.md](docs/HELMSMAN_TESTRIGS_GUIDE.md) |
 
-6. **Deploy Test Rigs (Manual):**
-
-![Deploy Test Rigs - Helmsman](docs/_images/helmsman-testrigs.png)
-
-- **Prerequisites**: All pods from steps 1-2 must be in `Running` state and onboarding completed successfully
-- **(1)** Actions → **Deploy Testrigs of mosip using Helmsman** (`helmsman_testrigs.yml`)
-- **(2)** Click **Run workflow** button in the top right corner
-- **(3)** **Branch**: Select your deployment branch (e.g., `develop`)
-- **(4)** **Choose MOSIP platform profile**: `mosip-platform-1.2.0.x` (or other appropriate profile)
-- **(5)** **Choose Helmsman mode**: `apply` (dry-run will fail due to namespace dependencies)
-- **(6)** **Domain name for this environment**: Enter the domain name (e.g., `example.xyz.net`)
-- **(7)** **Environment name**: Enter the environment name (e.g., `sandbox`, `dev`, `staging`)
-- **(8)** **Slack channel name for alerting** (optional): e.g., `#mosip-alerts`
-- **(9)** **Slack webhook URL for alerting** (optional)
-- **(10)** Click **Run workflow** green button
-
-**Post-Deployment Steps:**
-
-After test rigs deployment completes:
-
-1. **Update cron schedules**: Update the cron time for all CronJobs in the `dslrig`, `apitestrig`, and `uitestrig` namespaces as needed
-2. **Trigger DSL orchestrator**:
-
-   ```bash
-   kubectl create job --from=cronjob/cronjob-dslorchestrator-full dslrig-manual-run -n dslrig
-   ```
-
-   > **Note**: This job will run for more than 3 hours. Monitor progress with:
-   >
-   > ```bash
-   > kubectl logs -f job/dslrig-manual-run -n dslrig
-   > ```
-   >
+Each guide covers: profile-specific secrets, workflow inputs, step-by-step run instructions, and verification commands.
 
 ### 7. Verify Deployment
 
@@ -1308,9 +1168,15 @@ The Deployment Steps Guide provides the essential deployment flow. For comprehen
 
 #### **Helmsman Deployment Documentation**
 
-- **Location**: [`Helmsman/dsf/README.md`](Helmsman/dsf/README.md)
-- **Contents**: Complete DSF configuration reference, hook scripts, environment management, customization options
-- **Use Cases**: Custom service configurations, environment-specific deployments, service scaling and tuning
+| Guide | Purpose |
+|-------|---------|
+| [HELMSMAN_EXTERNAL_GUIDE.md](docs/HELMSMAN_EXTERNAL_GUIDE.md) | Deploy prereqs + external services (step 1 for all profiles) |
+| [HELMSMAN_MOSIP_GUIDE.md](docs/HELMSMAN_MOSIP_GUIDE.md) | Deploy MOSIP core services + partner onboarding (MOSIP platform profiles) |
+| [esignet_README.md](docs/esignet_README.md) | Deploy eSignet with MOSIP platform |
+| [ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md](docs/ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md) | Deploy eSignet standalone (4 parallel instances) |
+| [HELMSMAN_TESTRIGS_GUIDE.md](docs/HELMSMAN_TESTRIGS_GUIDE.md) | Deploy API/UI/DSL testrigs (all profiles) |
+| [DSF_CONFIGURATION_GUIDE.md](docs/DSF_CONFIGURATION_GUIDE.md) | DSF structure, profile selection, variable substitution reference |
+| [HELMSMAN_DESTROY_GUIDE.md](docs/HELMSMAN_DESTROY_GUIDE.md) | Safe removal of deployed services |
 
 #### **WireGuard VPN Setup Guide**
 
