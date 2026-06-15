@@ -62,79 +62,124 @@ apps:
     version: 1.3.0
     chart: mosip/postgres-init
     set:
-      dbUserPasswords.dbuserPassword: ""
       databases.mosip_master.enabled: "true"
-      databases.mosip_master.branch: "v1.3.1"
+      databases.mosip_master.scriptsDir: "mosip_master"
+      databases.mosip_master.dbName: "mosip_master"
+      databases.mosip_master.dbUser: "postgres"
+      databases.mosip_master.branch: "develop"
       databases.mosip_master.host: "postgres.${domain_name}"
       databases.mosip_master.port: 5433
-
+      
       databases.mosip_audit.enabled: "true"
-      databases.mosip_audit.branch: "v1.3.2-rc.1"
+      databases.mosip_audit.scriptsDir: "mosip_audit"
+      databases.mosip_audit.dbName: "mosip_audit"
+      databases.mosip_audit.dbUser: "postgres"
+      databases.mosip_audit.branch: "develop"
       databases.mosip_audit.host: "postgres.${domain_name}"
       databases.mosip_audit.port: 5433
+      databases.mosip_audit.dml: 1
 
       databases.mosip_keymgr.enabled: "true"
-      databases.mosip_keymgr.branch: "v1.4.1-rc.1"
+      databases.mosip_keymgr.scriptsDir: "mosip_keymgr"
+      databases.mosip_keymgr.dbName: "mosip_keymgr"
+      databases.mosip_keymgr.dbUser: "postgres"
+      databases.mosip_keymgr.branch: "release-1.8.x"
       databases.mosip_keymgr.host: "postgres.${domain_name}"
       databases.mosip_keymgr.port: 5433
 
       databases.mosip_kernel.enabled: "true"
-      databases.mosip_kernel.branch: "v1.3.1-rc.1"
+      databases.mosip_kernel.scriptsDir: "mosip_kernel"
+      databases.mosip_kernel.dbName: "mosip_kernel"
+      databases.mosip_kernel.dbUser: "postgres"
+      databases.mosip_kernel.branch: "develop"
       databases.mosip_kernel.host: "postgres.${domain_name}"
       databases.mosip_kernel.port: 5433
 
       databases.mosip_idmap.enabled: "true"
-      databases.mosip_idmap.branch: "v1.3.1-rc.1"
+      databases.mosip_idmap.scriptsDir: "mosip_idmap"
+      databases.mosip_idmap.dbName: "mosip_idmap"
+      databases.mosip_idmap.dbUser: "postgres"
+      databases.mosip_idmap.branch: "develop"
       databases.mosip_idmap.host: "postgres.${domain_name}"
       databases.mosip_idmap.port: 5433
-
+      
       databases.mosip_prereg.enabled: "true"
-      databases.mosip_prereg.branch: "v1.3.0"
+      databases.mosip_prereg.scriptsDir: "mosip_prereg"
+      databases.mosip_prereg.dbName: "mosip_prereg"
+      databases.mosip_prereg.dbUser: "postgres"
+      databases.mosip_prereg.branch: "develop"
       databases.mosip_prereg.host: "postgres.${domain_name}"
       databases.mosip_prereg.port: 5433
 
       databases.mosip_idrepo.enabled: "true"
-      databases.mosip_idrepo.branch: "v1.3.1-rc.1"
+      databases.mosip_idrepo.scriptsDir: "mosip_idrepo"
+      databases.mosip_idrepo.dbName: "mosip_idrepo"
+      databases.mosip_idrepo.dbUser: "postgres"
+      databases.mosip_idrepo.branch: "develop"
       databases.mosip_idrepo.host: "postgres.${domain_name}"
       databases.mosip_idrepo.port: 5433
 
       databases.mosip_ida.enabled: "true"
-      databases.mosip_ida.branch: "v1.3.1-rc.1"
+      databases.mosip_ida.scriptsDir: "mosip_ida"
+      databases.mosip_ida.dbName: "mosip_ida"
+      databases.mosip_ida.dbUser: "postgres"
+      databases.mosip_ida.branch: "develop"
       databases.mosip_ida.host: "postgres.${domain_name}"
       databases.mosip_ida.port: 5433
 
       databases.mosip_credential.enabled: "true"
-      databases.mosip_credential.branch: "v1.3.1-rc.1"
+      databases.mosip_credential.scriptsDir: "mosip_credential"
+      databases.mosip_credential.dbName: "mosip_credential"
+      databases.mosip_credential.dbUser: "postgres"
+      databases.mosip_credential.branch: "develop"
       databases.mosip_credential.host: "postgres.${domain_name}"
       databases.mosip_credential.port: 5433
 
       databases.mosip_regprc.enabled: "true"
-      databases.mosip_regprc.branch: "v1.3.1-rc.1"
+      databases.mosip_regprc.scriptsDir: "mosip_regprc"
+      databases.mosip_regprc.dbName: "mosip_regprc"
+      databases.mosip_regprc.dbUser: "postgres"
+      databases.mosip_regprc.branch: "develop"
       databases.mosip_regprc.host: "postgres.${domain_name}"
       databases.mosip_regprc.port: 5433
 
       databases.mosip_pms.enabled: "true"
-      databases.mosip_pms.branch: "v1.2.2.3"
+      databases.mosip_pms.scriptsDir: "mosip_pms"
+      databases.mosip_pms.dbName: "mosip_pms"
+      databases.mosip_pms.dbUser: "postgres"
+      databases.mosip_pms.branch: "develop"
       databases.mosip_pms.host: "postgres.${domain_name}"
       databases.mosip_pms.port: 5433
 
       databases.mosip_hotlist.enabled: "true"
-      databases.mosip_hotlist.branch: "v1.3.1"
+      databases.mosip_hotlist.scriptsDir: "mosip_hotlist"
+      databases.mosip_hotlist.dbName: "mosip_hotlist"
+      databases.mosip_hotlist.dbUser: "postgres"
+      databases.mosip_hotlist.branch: "develop"
       databases.mosip_hotlist.host: "postgres.${domain_name}"
       databases.mosip_hotlist.port: 5433
 
       databases.mosip_resident.enabled: "true"
-      databases.mosip_resident.branch: "v1.3.0"
+      databases.mosip_resident.scriptsDir: "mosip_resident"
+      databases.mosip_resident.dbName: "mosip_resident"
+      databases.mosip_resident.dbUser: "postgres"
+      databases.mosip_resident.branch: "develop"
       databases.mosip_resident.host: "postgres.${domain_name}"
       databases.mosip_resident.port: 5433
 
       databases.mosip_otp.enabled: "true"
-      databases.mosip_otp.branch: "v1.3.0"
+      databases.mosip_otp.scriptsDir: "mosip_otp"
+      databases.mosip_otp.dbName: "mosip_otp"
+      databases.mosip_otp.dbUser: "postgres"
+      databases.mosip_otp.branch: "develop"
       databases.mosip_otp.host: "postgres.${domain_name}"
       databases.mosip_otp.port: 5433
 
       databases.mosip_digitalcard.enabled: "true"
-      databases.mosip_digitalcard.branch: "v1.3.0"
+      databases.mosip_digitalcard.scriptsDir: "mosip_digitalcard"
+      databases.mosip_digitalcard.dbName: "mosip_digitalcard"
+      databases.mosip_digitalcard.dbUser: "postgres"
+      databases.mosip_digitalcard.branch: "develop"
       databases.mosip_digitalcard.host: "postgres.${domain_name}"
       databases.mosip_digitalcard.port: 5433
     wait: true
