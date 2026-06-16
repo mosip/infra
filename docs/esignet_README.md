@@ -222,6 +222,8 @@ Custom Helm values are stored in:
 
 ### Deploy via GitHub Actions
 
+![Deploy eSignet - Helmsman](_images/esignet.png)
+
 1. Go to **Actions** → **Deploy eSignet using Helmsman**
 2. Select mode: `dry-run` (preview) or `apply` (deploy)
 3. Click **Run workflow**

@@ -47,6 +47,8 @@ All secrets are **Environment Secrets** — configure at **Repository → Settin
 
 If the automatic trigger fails or you need to re-run independently:
 
+![Deploy MOSIP Services - Helmsman](_images/helmsman-mosip.png)
+
 - **(1)** Go to **Actions** → **"Deploy MOSIP services using Helmsman"**
 - **(2)** Click **Run workflow** button in the top right corner
 - **(3)** **Branch** — select your deployment branch

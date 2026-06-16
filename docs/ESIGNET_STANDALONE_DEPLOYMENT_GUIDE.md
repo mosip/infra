@@ -188,7 +188,7 @@ Step 4 → Deploy Testrigs (optional) (helmsman_testrigs.yml)   ~10 min
 
 6. Click the green **`Run workflow`** button
 
-> 📸 Screenshot: `_images/esignet-standalone-step1-external.png`
+![Deploy External Services - Helmsman](_images/helmsman-external-services.png)
 
 **How to know it succeeded:** Click into the running workflow. Wait for all jobs to show a green tick. Then run:
 ```bash
@@ -222,7 +222,7 @@ All pods should show `Running` or `Completed`.
 
 4. Click the green **`Run workflow`** button
 
-> 📸 Screenshot: `_images/esignet-standalone-step2-esignet.png`
+![Deploy eSignet - Helmsman](_images/esignet.png)
 
 **How to know it succeeded:**
 ```bash
@@ -270,7 +270,7 @@ All pods should show `Running`.
 
 4. Click the green **`Run workflow`** button
 
-> 📸 Screenshot: `_images/esignet-standalone-step4-testrigs.png`
+![Deploy Test Rigs - Helmsman](_images/helmsman-testrigs.png)
 
 **How to know it succeeded:** The workflow log should show all Helmsman releases applied without errors. Verify that test cronjobs were created:
 ```bash

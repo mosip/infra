@@ -81,7 +81,7 @@ No additional secrets required — MinIO root password is read automatically fro
 
 ## Step-by-Step: Run the Workflow
 
-![Deploy Test Rigs - Helmsman](docs/_images/helmsman-testrigs.png)
+![Deploy Test Rigs - Helmsman](_images/helmsman-testrigs.png)
 
 - **(1)** Go to **Actions** → **"Deploy Testrigs of mosip using Helmsman"**
   > Can't find it? Search for "Testrig" or "Testrigs" in the workflows list.

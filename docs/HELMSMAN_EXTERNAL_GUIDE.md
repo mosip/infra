@@ -85,7 +85,7 @@ reCAPTCHA v2 keys for each MOSIP service domain — add as **Environment Secrets
 
 ## Step-by-Step: Run the Workflow
 
-![Deploy External Services - Helmsman](docs/_images/helmsman-external-services.png)
+![Deploy External Services - Helmsman](_images/helmsman-external-services.png)
 
 - **(1)** Go to **Actions** → **"Deploy External services of mosip using Helmsman"**
   > Can't find it? Search for "External" in the workflows list on the left sidebar.
