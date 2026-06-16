@@ -65,6 +65,8 @@ No additional secrets required — MinIO root password is read automatically fro
 | `profile` | Deployment profile | `esignet` / `mosip-platform-1.2.0.x` / `mosip-platform-1.2.1.x` |
 | `mode` | Helmsman mode | Always `apply` — dry-run will fail |
 | `domain_name` | Base domain for this environment | `soil38.mosip.net` |
+| `db_port` | External postgres port — MOSIP platform only | `5433` |
+| `esignet_db_port` | eSignet container postgres port — eSignet profile only | `5432` |
 | `env_name` | Environment name | `soil38` |
 | `slack_channel_name` | Slack channel for alerting (optional) | `#mosip-alerts` |
 
@@ -83,19 +85,23 @@ No additional secrets required — MinIO root password is read automatically fro
 
 ![Deploy Test Rigs - Helmsman](_images/helmsman-testrigs.png)
 
-- **(1)** Go to **Actions** → **"Deploy Testrigs of mosip using Helmsman"**
+- **(1)** Go to **Actions** (top of the repository page) → click **"Deploy Testrigs of mosip using Helmsman"** in the list on the left.
   > Can't find it? Search for "Testrig" or "Testrigs" in the workflows list.
-- **(2)** Click **Run workflow** button in the top right corner
-- **(3)** **Branch** — select your deployment branch (e.g., `MOSIP-44613`)
-- **(4)** **Deployment profile** — select your profile (e.g., `mosip-platform-1.2.0.x` or `esignet`)
-- **(5)** **Helmsman mode** — select `apply` (dry-run will fail)
-- **(6)** **Domain name** — enter your base domain (e.g., `soil38.mosip.net`)
-- **(7)** **Environment name** — enter your env name (e.g., `soil38`)
-- **(8)** **Slack channel name** (optional) — e.g., `#mosip-alerts`
-- **(9)** **Slack webhook URL** (optional) — your Slack incoming webhook URL
-- **(10)** *(eSignet profile only)* **CRE domain name** — e.g., `cre.mosip.net`
-- **(11)** *(eSignet profile only)* **QA11 domain name** — e.g., `qa11.mosip.net`
-- **(12)** Click **Run workflow** green button
+- **(2)** Click the **Run workflow** dropdown button (top right) — this opens the form shown above.
+- **(3)** **Branch** — pick the branch you're deploying from (e.g., `MOSIP-44613`).
+- **(4)** **Deployment profile to use** — pick the profile you want (e.g., `mosip-platform-1.2.0.x` or `esignet`).
+- **(5)** **Choose Helmsman mode: dry-run or apply** — always pick **`apply`**.
+- **(6)** **Domain name for this environment** — type the web domain this environment should use (e.g., `example.xyz.net`).
+- **(7)** **CRE domain name** *(eSignet profile only)* — type the base domain used by the CRE eSignet instance (e.g., `cre.xyz.net`). Leave blank for MOSIP platform profiles.
+- **(8)** **QA base domain name** *(eSignet profile only)* — type the base domain used by the QA11 eSignet instance (e.g., `qa11.xyz.net`). Leave blank for MOSIP platform profiles.
+- **(9)** **PostgreSQL port for MOSIP platform external postgres** — only fill this in if you picked a `mosip-platform-*` profile in step 4. Type `5433` (or whatever port your external PostgreSQL uses).
+- **(10)** **PostgreSQL port for esignet standalone container postgres** — only fill this in if you picked the `esignet` profile in step 4. Type `5432`.
+- **(11)** **Environment name** — a short nickname for this environment (e.g., `sandbox`, `dev`, `staging`).
+- **(12)** **Slack channel name for alerting** (optional) — the Slack channel that should receive test result notifications (e.g., `#mosip-alerts`). Leave blank if you don't want Slack alerts.
+- **(13)** **Slack webhook URL for alerting** (optional) — leave this blank; it's normally already saved as the `SLACK_WEBHOOK_URL` secret in your GitHub environment.
+- **(14)** Click the green **Run workflow** button to start the deployment.
+
+> **Note:** Steps 7–10 all appear in the form regardless of which profile you picked — fill in only the ones that match your profile (CRE/QA11 domains for `esignet`, PostgreSQL port for `mosip-platform-*`) and leave the rest blank.
 
 > **Important:** Always pass `--keep-untracked-releases` — without it Helmsman will delete releases from previous DSFs (esignet, oidc-ui, etc.) that aren't listed in `testrigs-dsf.yaml`. The workflow handles this automatically.
 

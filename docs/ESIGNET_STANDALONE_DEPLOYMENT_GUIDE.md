@@ -180,11 +180,13 @@ Step 4 → Deploy Testrigs (optional) (helmsman_testrigs.yml)   ~10 min
 | `profile` | `esignet` |
 | `mode` | `apply` |
 | `domain_name` | your base domain — e.g. `sandbox.xyz.net` |
-| `db_port` | `5432` |
-| `esignet_db_port` | `5432` |
+| `db_port` *(MOSIP platform external postgres)* | leave blank — not used by the `esignet` profile |
+| `esignet_db_port` *(esignet container postgres)* | `5432` |
 | `clusterid` | your Rancher cluster ID — e.g. `c-xxxxx` |
 | `env_name` | a short label for your environment — e.g. `sandbox` |
 | `slack_channel_name` | your Slack channel — e.g. `#mosip-alerts` |
+
+> **Note:** The form always shows both `db_port` and `esignet_db_port` fields regardless of profile — for `esignet`, fill in only `esignet_db_port` and leave `db_port` blank.
 
 6. Click the green **`Run workflow`** button
 
@@ -214,11 +216,15 @@ All pods should show `Running` or `Completed`.
 |---|---|
 | `profile` | `esignet` |
 | `mode` | `apply` |
+| `skip_mosip_dsf_check` | **tick this** — standalone has no MOSIP deployment to wait for |
+| `delete_existing_jobs` | tick only if re-running after a failure; leave unticked on first deploy |
 | `domain_name` | your base domain — e.g. `sandbox.xyz.net` |
 | `esignet_db_port` | `5432` |
 | `cre_domain_name` | CRE base domain — e.g. `cre.xyz.net` *(leave blank if not using CRE)* |
 | `qa11_domain_name` | QA11 base domain — e.g. `qa11.xyz.net` *(leave blank if not using QA11)* |
 | `env_name` | your environment name — e.g. `sandbox` |
+
+> **Important:** Always tick `skip_mosip_dsf_check` for standalone eSignet — without it, the workflow waits for a `mosip-dsf=completed` namespace label that will never appear (there is no full MOSIP deployment in this mode), and the workflow will fail.
 
 4. Click the green **`Run workflow`** button
 
@@ -261,10 +267,10 @@ All pods should show `Running`.
 | `profile` | `esignet` |
 | `mode` | `apply` |
 | `domain_name` | your base domain — e.g. `sandbox.xyz.net` |
-| `db_port` | `5432` |
-| `esignet_db_port` | `5432` |
 | `cre_domain_name` | CRE base domain *(if CRE was deployed in Step 2)* |
 | `qa11_domain_name` | QA11 base domain *(if QA11 was deployed in Step 2)* |
+| `db_port` *(MOSIP platform external postgres)* | leave blank — not used by the `esignet` profile |
+| `esignet_db_port` *(esignet container postgres)* | `5432` |
 | `env_name` | your environment name |
 | `slack_channel_name` | your Slack channel |
 

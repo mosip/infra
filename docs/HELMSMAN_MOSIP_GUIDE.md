@@ -49,14 +49,15 @@ If the automatic trigger fails or you need to re-run independently:
 
 ![Deploy MOSIP Services - Helmsman](_images/helmsman-mosip.png)
 
-- **(1)** Go to **Actions** → **"Deploy MOSIP services using Helmsman"**
-- **(2)** Click **Run workflow** button in the top right corner
-- **(3)** **Branch** — select your deployment branch
-- **(4)** **Deployment profile** — select `mosip-platform-1.2.0.x` or `mosip-platform-1.2.1.x`
-- **(5)** **Helmsman mode** — select `apply`
-- **(6)** **Domain name** — enter your base domain (e.g., `soil38.mosip.net`)
-- **(7)** **Environment name** — enter your env name (e.g., `soil38`)
-- **(8)** Click **Run workflow** green button
+- **(1)** Go to **Actions** (top of the repository page) → click **"Deploy MOSIP services using Helmsman"** in the list on the left.
+- **(2)** Click the **Run workflow** dropdown button (top right) — this opens the form shown above.
+- **(3)** **Branch** — pick the branch you're deploying from (e.g., `MOSIP-44613`).
+- **(4)** **Choose MOSIP platform profile** — pick `mosip-platform-1.2.0.x` (Java 11) or `mosip-platform-1.2.1.x` (Java 21).
+- **(5)** **Choose Helmsman mode: dry-run or apply** — always pick **`apply`**.
+- **(6)** **Domain name for this environment** — type the web domain this environment should use (e.g., `example.xyz.net`).
+- **(7)** **PostgreSQL port** — type `5433` for MOSIP platform. (The field's placeholder text also mentions `5432` for eSignet standalone, but that profile doesn't use this workflow — always use `5433` here.)
+- **(8)** **Environment name** — a short nickname for this environment (e.g., `sandbox`, `dev`, `staging`).
+- **(9)** Click the green **Run workflow** button to start the deployment.
 
 ---
 

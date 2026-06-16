@@ -87,18 +87,22 @@ reCAPTCHA v2 keys for each MOSIP service domain — add as **Environment Secrets
 
 ![Deploy External Services - Helmsman](_images/helmsman-external-services.png)
 
-- **(1)** Go to **Actions** → **"Deploy External services of mosip using Helmsman"**
-  > Can't find it? Search for "External" in the workflows list on the left sidebar.
-- **(2)** Click **Run workflow** button in the top right corner
-- **(3)** **Branch** — select your deployment branch (e.g., `MOSIP-44613`)
-- **(4)** **Deployment profile** — select your profile (e.g., `mosip-platform-1.2.0.x` or `esignet`)
-- **(5)** **Helmsman mode** — select `apply` (dry-run will fail due to cross-namespace dependencies)
-- **(6)** **Domain name** — enter your base domain (e.g., `soil38.mosip.net`)
-- **(7)** **Environment name** — enter your env name (e.g., `soil38`)
-- **(8)** **Slack channel name** (optional) — e.g., `#mosip-alerts`
-- **(9)** **Slack webhook URL** (optional) — your Slack incoming webhook URL
-- **(10)** **Rancher cluster ID** — e.g., `c-m-abc12xyz` (find in Rancher URL or via `kubectl get setting cluster-id -n cattle-system -o jsonpath='{.value}'`). Only required if `rancher_import = true` in your Terraform config.
-- **(11)** Click **Run workflow** green button
+- **(1)** Go to **Actions** (top of the repository page) → click **"Deploy External services of mosip using Helmsman"** in the list on the left.
+  > Can't find it? Search for "External" in the workflows list.
+- **(2)** Click the **Run workflow** dropdown button (top right) — this opens the form shown above.
+- **(3)** **Branch** — pick the branch you're deploying from (e.g., `MOSIP-44613`).
+- **(4)** **Deployment profile to use** — pick the profile you want (e.g., `mosip-platform-1.2.0.x` for full MOSIP, or `esignet` for eSignet standalone).
+- **(5)** **Choose Helmsman mode: dry-run or apply** — always pick **`apply`**. (`dry-run` is not a safe preview here — it will fail because required resources don't exist yet.)
+- **(6)** **Domain name for this environment** — type the web domain this environment should use (e.g., `example.xyz.net`).
+- **(7)** **PostgreSQL port for MOSIP platform external postgres** — only fill this in if you picked a `mosip-platform-*` profile in step 4. Type `5433` (or whatever port your external PostgreSQL uses).
+- **(8)** **PostgreSQL port for esignet standalone container postgres** — only fill this in if you picked the `esignet` profile in step 4. Type `5432`.
+- **(9)** **Environment name** — a short nickname for this environment (e.g., `sandbox`, `dev`, `staging`).
+- **(10)** **Slack channel name for alerting** (optional) — the Slack channel that should receive alerts (e.g., `#mosip-alerts`). Leave blank if you don't want Slack alerts.
+- **(11)** **Slack webhook URL for alerting** (optional) — leave this blank; it's normally already saved as the `SLACK_WEBHOOK_URL` secret in your GitHub environment.
+- **(12)** **Rancher cluster ID for rancher-monitoring** — only needed if your cluster is imported into Rancher (`rancher_import = true` in your Terraform config). Find it in the Rancher URL (looks like `c-m-xxxxx`) or run `kubectl get setting cluster-id -n cattle-system -o jsonpath='{.value}'`.
+- **(13)** Click the green **Run workflow** button to start the deployment.
+
+> **Note:** Steps 7 and 8 both always appear in the form regardless of which profile you picked — just fill in the one that matches your profile and leave the other blank.
 
 ---
 

@@ -224,9 +224,19 @@ Custom Helm values are stored in:
 
 ![Deploy eSignet - Helmsman](_images/esignet.png)
 
-1. Go to **Actions** → **Deploy eSignet using Helmsman**
-2. Select mode: `dry-run` (preview) or `apply` (deploy)
-3. Click **Run workflow**
+- **(1)** Go to **Actions** (top of the repository page) → click **"Deploy eSignet using Helmsman"** in the list on the left.
+- **(2)** Click the **Run workflow** dropdown button (top right) — this opens the form shown above.
+- **(3)** **Branch** — pick the branch you're deploying from (e.g., `MOSIP-44613`).
+- **(4)** **Deployment profile to use** — pick the profile you want (e.g., `mosip-platform-1.2.0.x`, or `esignet` for standalone).
+- **(5)** **Choose Helmsman mode: dry-run or apply** — always pick **`apply`**.
+- **(6)** **Skip MOSIP DSF completion check** (checkbox) — for eSignet standalone deployments, tick this. For MOSIP platform profiles, leave it unticked (default) so the workflow waits for MOSIP to finish first.
+- **(7)** **Delete existing onboarder jobs before deploy** (checkbox) — only tick this when re-running after a failure. Leave unticked on a first-time deploy.
+- **(8)** **Domain name for this environment** — type the web domain this environment should use (e.g., `example.xyz.net`).
+- **(9)** **PostgreSQL port for esignet databases** — type `5432` for eSignet standalone, or `5433` if this is part of a MOSIP platform profile.
+- **(10)** **CRE domain name** *(eSignet standalone only)* — base domain for the CRE eSignet instance (e.g., `cre.xyz.net`). Leave blank if you're not deploying CRE.
+- **(11)** **QA11 domain name** *(eSignet standalone only)* — base domain for the QA11 eSignet instance (e.g., `qa11.xyz.net`). Leave blank if you're not deploying QA11.
+- **(12)** **Environment name** — a short nickname for this environment (e.g., `sandbox`, `dev`, `staging`).
+- **(13)** Click the green **Run workflow** button to start the deployment.
 
 ---
 
@@ -243,11 +253,14 @@ Custom Helm values are stored in:
 
 | Input | Description | Required | Notes |
 |-------|-------------|----------|-------|
-| `profile` | Deployment profile | Yes | `mosip-platform-1.2.0.x` or `mosip-platform-1.2.1.x` |
+| `profile` | Deployment profile | Yes | `mosip-platform-1.2.0.x`, `mosip-platform-1.2.1.x`, or `esignet` (standalone) |
 | `mode` | `dry-run` or `apply` | Yes | Always use `apply` — dry-run will fail |
 | `domain_name` | Your base domain | Yes | Or set `vars.DOMAIN_NAME` in GitHub Environment |
-| `esignet_db_port` | PostgreSQL port | Yes | `5433` for MOSIP platform external postgres (or `vars.ESIGNET_DB_PORT`) |
-| `skip_mosip_dsf_check` | Skip MOSIP DSF completion check | No | Default `false` — set `true` only for re-runs |
+| `esignet_db_port` | PostgreSQL port for esignet databases | Yes | `5433` for MOSIP platform external postgres, `5432` for eSignet standalone (or `vars.ESIGNET_DB_PORT`) |
+| `env_name` | Environment name shown on the landing page | Yes | Or set `vars.ENV_NAME` in GitHub Environment |
+| `cre_domain_name` | Base domain for the CRE eSignet instance | No | eSignet standalone only — leave blank otherwise (or `vars.CRE_DOMAIN_NAME`) |
+| `qa11_domain_name` | Base domain for the QA11 eSignet instance | No | eSignet standalone only — leave blank otherwise (or `vars.QA11_DOMAIN_NAME`) |
+| `skip_mosip_dsf_check` | Skip MOSIP DSF completion check | No | Tick for eSignet standalone deploys; default `false` otherwise |
 | `delete_existing_jobs` | Delete stale onboarder jobs before deploy | No | Set `true` when re-running after a failure |
 
 ---
