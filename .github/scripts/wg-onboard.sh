@@ -256,21 +256,23 @@ peer_label_is_taken() {
 
 record_assignment() {
   local peer="$1" assignment="$2" format="$3" file="$4"
+  local safe_assignment="${assignment//\\/\\\\}"
+  safe_assignment="${safe_assignment//&/\\&}"
   if [[ "$format" == "colon" ]]; then
-    local line="${peer}: ${assignment}"
+    local line="${peer}: ${safe_assignment}"
     if grep -qE "^${peer}:" "$file"; then
       sed -i "s|^${peer}:.*|${line}|" "$file"
     elif grep -qE "^${peer}([[:space:]]|$)" "$file"; then
       sed -i "s|^${peer}.*|${line}|" "$file"
     else
-      printf '%s\n' "$line" >> "$file"
+      printf '%s\n' "${peer}: ${assignment}" >> "$file"
     fi
   else
-    local line="${peer} ${assignment}"
+    local line="${peer} ${safe_assignment}"
     if grep -qE "^${peer}([[:space:]]|$)" "$file"; then
       sed -i "s|^${peer}.*|${line}|" "$file"
     else
-      printf '%s\n' "$line" >> "$file"
+      printf '%s\n' "${peer} ${assignment}" >> "$file"
     fi
   fi
 }
@@ -347,7 +349,7 @@ AllowedIPs = ${CLIENT_IP}/32
 
 EOF
 
-  docker exec "$C" wg set wg0 peer "$PUB" preshared-key "$PSK" allowed-ips "${CLIENT_IP}/32" \
+  echo "$PSK" | docker exec -i "$C" sh -c 'cat > /tmp/psk.tmp && wg set wg0 peer "'"$PUB"'" preshared-key /tmp/psk.tmp allowed-ips "'"${CLIENT_IP}/32"'" && rm -f /tmp/psk.tmp' \
     || docker restart "$C" >/dev/null
 }
 
