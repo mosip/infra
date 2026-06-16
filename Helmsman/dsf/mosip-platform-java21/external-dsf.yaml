@@ -62,6 +62,8 @@ apps:
     version: 0.0.1-develop
     chart: mosip/postgres-init
     set:
+      image.repository: "mosipdev/postgres-init"
+      image.tag: "develop"
       databases.mosip_master.enabled: "true"
       databases.mosip_master.scriptsDir: "mosip_master"
       databases.mosip_master.dbName: "mosip_master"
