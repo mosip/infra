@@ -74,7 +74,7 @@ apps:
 
       modules.masterdata.enabled: true
       modules.masterdata.image.repository: mosipid/apitest-masterdata
-      modules.masterdata.image.tag: 1.3.1
+      modules.masterdata.image.tag: 1.3.0
       modules.masterdata.image.pullPolicy: Always
 
       modules.idrepo.enabled: true
@@ -84,7 +84,7 @@ apps:
 
       modules.partner.enabled: true
       modules.partner.image.repository: mosipid/apitest-pms
-      modules.partner.image.tag: 1.2.2.2
+      modules.partner.image.tag: 1.2.2.3
       modules.partner.image.pullPolicy: Always
 
       modules.pms.enabled: false
