@@ -62,7 +62,7 @@ apps:
   conf-secrets:
     namespace: conf-secrets 
     enabled: true
-    version: 1.3.1-rc.1
+    version: 0.0.1-develop
     chart: mosip/conf-secrets
     priority: -29
 
@@ -213,7 +213,7 @@ apps:
   mock-smtp:
     namespace: mock-smtp
     enabled: true
-    version: 1.0.0
+    version: 0.0.1-develop
     chart: mosip/mock-smtp
     set:
       # image.repository: "mosipdev/mock-smtp"
@@ -230,7 +230,7 @@ apps:
     set:
       image.repository: "mosipdev2/masterdata-loader"
       image.tag: "develop"
-      mosipDataGithubBranch: "v1.3.2-rc.1"
+      mosipDataGithubBranch: "develop"
       mosipDataGithubRepo: "https://github.com/mosip/mosip-data"
       mosipDataXlsfolderPath: "/home/mosip/mosip-data/mosip_master/xlsx"
       db.host: "postgres.${domain_name}"
@@ -393,7 +393,7 @@ apps:
   prereg-gateway:
     namespace: prereg
     enabled: true
-    version: 1.0.0
+    version: 0.0.1-develop
     chart: mosip/istio-addons
     set:
       istio.name: "prereg-gateway"
@@ -406,7 +406,7 @@ apps:
   prereg-captcha:
     namespace: prereg
     enabled: false
-    version: 1.3.0
+    version: 0.0.1-develop
     chart: mosip/prereg-captcha
     # set:
     #   image.repository: "mosipid/pre-registration-captcha-service"
@@ -906,7 +906,7 @@ apps:
   ida-keygen:
     namespace: ida
     enabled: true
-    version: 1.4.1-rc.1
+    version: 0.0.1-develop
     chart: mosip/keygen
     set:
       image.repository: "mosipdev2/keys-generator"
@@ -1014,7 +1014,7 @@ apps:
   resident-ui:
     namespace: resident
     enabled: true
-    version: 0.9.1
+    version: 0.0.1-develop
     chart: mosip/resident-ui
     set:
       # image.repository: "mosipdev2/resident-ui"
@@ -1047,11 +1047,11 @@ apps:
       extraEnvVarsCM[1]: "keycloak-env-vars"
       extraEnvVarsCM[2]: "keycloak-host"
       onboarding.modules[0].name: "ida"
-      onboarding.modules[0].enabled: false
+      onboarding.modules[0].enabled: true
       onboarding.modules[1].name: "print"
       onboarding.modules[1].enabled: true
       onboarding.modules[2].name: "abis"
-      onboarding.modules[2].enabled: false
+      onboarding.modules[2].enabled: true
       onboarding.modules[3].name: "resident"
       onboarding.modules[3].enabled: true
       onboarding.modules[4].name: "mobileid"
@@ -1091,12 +1091,12 @@ apps:
   regclient:
     namespace: regclient
     enabled: true
-    version: 0.0.1-develop
+    version: 12.0.3
     chart: mosip/regclient
     set:
       startupProbe.failureThreshold: "60"
-      image.repository: "mosipdev2/registration-client"
-      image.tag: "develop"
+      # image.repository: "mosipdev2/registration-client"
+      # image.tag: "release-1.3.x"
       # regclient.version: "1.3.0-SNAPSHOT"
       regclient.upgradeServerUrl: "https://regclient.${domain_name}"
       regclient.healthCheckUrl: "https://api-internal.${domain_name}/v1/syncdata/actuator/health"
