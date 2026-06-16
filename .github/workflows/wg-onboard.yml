@@ -1,0 +1,93 @@
+name: WireGuard onboard environment
+
+# Self-service WireGuard onboarding for a new environment.
+# Allocates free WireGuard peers from the jumpserver and publishes them as
+# GitHub *environment* secrets (TF_WG_CONFIG, CLUSTER_WIREGUARD_WG0/WG1) so a
+# QA/dev team can run the Terraform + Helmsman workflows without DevOps.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ENV_NAME:
+        description: 'Environment / branch name to onboard (becomes the GitHub environment name)'
+        required: true
+        type: string
+      JUMPSERVER_HOST:
+        description: 'Jumpserver / WireGuard VM public IP or DNS (SSH reachable)'
+        required: true
+        type: string
+      SSH_PRIVATE_KEY:
+        description: 'Name of the repo secret holding the jumpserver SSH private key'
+        required: true
+        type: string
+        default: SSH_PRIVATE_KEY
+      TICKET:
+        description: 'Optional ticket id to record in assigned.txt (e.g. DSD-10264)'
+        required: false
+        type: string
+      WG_DIR:
+        description: 'WireGuard env dir on the VM'
+        required: false
+        type: string
+        default: /home/ubuntu/wireguard_env_2026
+      ALLOWED_IPS:
+        description: 'AllowedIPs to set in each conf'
+        required: false
+        type: string
+        default: 172.31.0.0/16
+      DRY_RUN:
+        description: 'Resolve and print actions without creating env/secrets'
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  onboard:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
+
+      - name: Write SSH private key
+        env:
+          SSH_KEY: ${{ secrets[inputs.SSH_PRIVATE_KEY] }}
+        run: |
+          mkdir -p ~/.ssh
+          # Use printf + strip CR so multi-line PEMs / CRLF secrets are written intact
+          printf '%s\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/jumpserver_key
+          chmod 600 ~/.ssh/jumpserver_key
+          if ! ssh-keygen -l -f ~/.ssh/jumpserver_key >/dev/null 2>&1; then
+            echo "ERROR: secret '${{ inputs.SSH_PRIVATE_KEY }}' is not a valid private key (check format/newlines/CRLF)"
+            exit 1
+          fi
+
+      - name: Run WireGuard onboarding
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          chmod +x scripts/wg-onboard.sh
+          scripts/wg-onboard.sh \
+            --env "${{ inputs.ENV_NAME }}" \
+            --host "${{ inputs.JUMPSERVER_HOST }}" \
+            --ssh-key ~/.ssh/jumpserver_key \
+            --repo "${{ github.repository }}" \
+            --wg-dir "${{ inputs.WG_DIR }}" \
+            --allowed-ips "${{ inputs.ALLOWED_IPS }}" \
+            ${{ inputs.TICKET != '' && format('--ticket {0}', inputs.TICKET) || '' }} \
+            ${{ inputs.DRY_RUN == true && '--dry-run' || '' }}
+
+      - name: Commit updated peer allocation
+        if: ${{ inputs.DRY_RUN == false }}
+        run: |
+          if git diff --quiet -- scripts/wg-peer-allocation.tsv; then
+            echo "No allocation change to commit"
+          else
+            git config user.email "${{ github.actor }}@users.noreply.github.com"
+            git config user.name "${{ github.actor }}"
+            git add scripts/wg-peer-allocation.tsv
+            git commit -s -m "wg: allocate peers for environment ${{ inputs.ENV_NAME }}"
+            git push
+          fi
