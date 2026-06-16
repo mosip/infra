@@ -69,7 +69,7 @@ apps:
   config-server:
     namespace: config-server
     enabled: true
-    version: 0.0.1-develop
+    version: 0.0.2-develop
     chart: mosip/config-server
     set:
       image.repository: "mosipdev2/kernel-config-server"
