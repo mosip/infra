@@ -59,7 +59,7 @@ apps:
   postgres-init:
     namespace: postgres
     enabled: true
-    version: 1.3.0
+    version: 0.0.1-develop
     chart: mosip/postgres-init
     set:
       databases.mosip_master.enabled: "true"
