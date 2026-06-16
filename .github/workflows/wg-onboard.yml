@@ -89,7 +89,7 @@ jobs:
           )
           [[ -n "$INPUT_TICKET" ]] && args+=(--ticket "$INPUT_TICKET")
           [[ "$INPUT_DRY_RUN" == "true" ]] && args+=(--dry-run)
-          .github/workflows/scripts/wg-onboard.sh "${args[@]}"
+          .github/scripts/wg-onboard.sh "${args[@]}"
       - name: Commit updated peer allocation
         if: ${{ inputs.DRY_RUN == false }}
         env:
