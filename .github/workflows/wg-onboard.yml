@@ -21,7 +21,9 @@ on:
       MOSIP_AWS_PEM:
         description: 'Name of the repo secret holding the jumpserver SSH private key'
         required: true
-        type: string
+        type: choice
+        options:
+          - MOSIP_AWS_PEM
         default: MOSIP_AWS_PEM
       TICKET:
         description: 'Optional ticket id to record in assigned.txt (e.g. DSD-10264)'
@@ -55,8 +57,8 @@ jobs:
 
       - name: Write SSH private key
         env:
-          SSH_KEY: ${{ secrets[inputs.MOSIP_AWS_PEM] }}
-          SSH_KEY_NAME: ${{ inputs.MOSIP_AWS_PEM }}
+          SSH_KEY: ${{ secrets.MOSIP_AWS_PEM }}
+          SSH_KEY_NAME: MOSIP_AWS_PEM
         run: |
           mkdir -p ~/.ssh
           # Use printf + strip CR so multi-line PEMs / CRLF secrets are written intact
