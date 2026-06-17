@@ -9,7 +9,6 @@ set -euo pipefail
 
 ESIGNET_NS="${ESIGNET_NS:-esignet}"
 KEYCLOAK_NS="keycloak"
-MINIO_NS="minio"
 COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
 
 echo "================================================"
@@ -26,18 +25,6 @@ echo "Istio injection disabled on namespace $ESIGNET_NS."
 $COPY_UTIL configmap keycloak-env-vars "$KEYCLOAK_NS" "$ESIGNET_NS"
 $COPY_UTIL secret keycloak "$KEYCLOAK_NS" "$ESIGNET_NS"
 $COPY_UTIL secret keycloak-client-secrets "$KEYCLOAK_NS" "$ESIGNET_NS"
-
-# Build s3 secret with the key the partner-onboarder chart expects (s3-user-secret)
-# MinIO Bitnami chart stores the root password under the root-password key
-S3_PASSWORD=$(kubectl -n "$MINIO_NS" get secret s3 -o jsonpath='{.data.root-password}' 2>/dev/null | base64 -d || echo "")
-if [ -n "$S3_PASSWORD" ]; then
-  kubectl -n "$ESIGNET_NS" create secret generic s3 \
-    --from-literal=s3-user-secret="$S3_PASSWORD" \
-    --dry-run=client -o yaml | kubectl apply -f -
-  echo "s3 secret created/updated in $ESIGNET_NS."
-else
-  echo "WARNING: could not read root-password from minio/$MINIO_NS s3 secret — MinIO reports may fail." >&2
-fi
 
 # Both partner-onboarder charts create a ConfigMap named "onboarder-namespace".
 # Delete it before install so this release owns it with the correct annotation.
