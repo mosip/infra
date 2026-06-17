@@ -35,18 +35,17 @@ graph TB
     %% Infrastructure Phase
     C --> D[Terraform: base-infra<br/>VPC, Networking, WireGuard]
     D --> OBS{Deploy<br/>Observability?}
-    OBS -->|Yes| F[Terraform: observ-infra<br/>Rancher + Monitoring]
+    OBS -->|Yes| F[Terraform: observ-infra<br/>Rancher UI + Keycloak]
     OBS -->|No| PS
     F --> PS
 
-    %% Profile Selection — drives both Terraform infra and Helmsman DSF
-    PS{Select Profile}
-    PS -->|esignet standalone| TF_ES[Terraform: infra<br/>profile: esignet]
-    PS -->|mosip-platform-1.2.0.x| TF_MP[Terraform: infra<br/>profile: mosip]
-    PS -->|mosip-platform-1.2.1.x| TF_MP
+    %% Terraform Profile Selection
+    PS{Select Terraform<br/>Profile}
+    PS -->|esignet| TF_ES[Terraform: infra<br/>profile: esignet<br/>4-node K8s cluster]
+    PS -->|mosip| TF_MP[Terraform: infra<br/>profile: mosip<br/>7-node K8s cluster]
 
-    %% ── eSignet Standalone Flow ──────────────────────────────
-    TF_ES --> ES_EXT[Helmsman: Prereqs + External<br/>prereq-dsf + external-dsf]
+    %% ── eSignet Standalone Flow — Helmsman profile: esignet ─────
+    TF_ES --> ES_EXT[Helmsman: Prereqs + External<br/>profile: esignet]
     ES_EXT --> ES_ESIGNET[Helmsman: eSignet Standalone<br/>4 parallel namespaces]
 
     ES_ESIGNET --> NS1[esignet<br/>mock plugin]
@@ -59,9 +58,11 @@ graph TB
     NS3 --> ES_TRIGS
     NS4 --> ES_TRIGS
 
-    %% ── MOSIP Platform Flow ──────────────────────────────────
-    TF_MP --> MP_EXT[Helmsman: Prereqs + External<br/>prereq-dsf + external-dsf]
-    MP_EXT --> MP_MOSIP[Helmsman: MOSIP Core<br/>auto-triggered — 22 namespaces]
+    %% ── MOSIP Platform Flow — Helmsman profile selection ────────
+    TF_MP --> MP_VER{Helmsman<br/>Profile}
+    MP_VER -->|mosip-platform-1.2.0.x| MP_EXT[Helmsman: Prereqs + External]
+    MP_VER -->|mosip-platform-1.2.1.x| MP_EXT
+    MP_EXT --> MP_MOSIP[Helmsman: MOSIP Core<br/>auto-triggered]
     MP_MOSIP --> MP_ESIGNET[Helmsman: eSignet<br/>with MOSIP platform]
     MP_ESIGNET --> MP_TRIGS[Helmsman: Testrigs]
 
@@ -85,7 +86,7 @@ graph TB
     class MP_EXT,MP_MOSIP,MP_ESIGNET,MP_TRIGS mosip
     class NS1,NS2,NS3,NS4 ns
     class V,DONE success
-    class OBS,PS decision
+    class OBS,PS,MP_VER decision
 ```
 
 > **Note:** Complete Terraform scripts are available only for **AWS**. For **Azure and GCP**, only placeholder structures are configured - community contributions are welcome to implement full functionality.
