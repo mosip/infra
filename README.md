@@ -26,6 +26,7 @@ For detailed MOSIP platform architecture Diagram, visit: [MOSIP Platform Archite
 ## Complete Deployment Flow
 
 ```mermaid
+%%{init: {'theme': 'neutral'}}%%
 graph TB
     %% Prerequisites
     A[Fork Repository] --> B[Configure Secrets]
@@ -33,16 +34,19 @@ graph TB
 
     %% Infrastructure Phase
     C --> D[Terraform: base-infra<br/>VPC, Networking, WireGuard]
-    D --> E{Deploy<br/>Observability?}
-    E -->|Yes| F[Terraform: observ-infra<br/>Rancher + Monitoring]
-    E -->|No| G[Terraform: infra<br/>K8s Cluster + PostgreSQL]
-    F --> G
+    D --> OBS{Deploy<br/>Observability?}
+    OBS -->|Yes| F[Terraform: observ-infra<br/>Rancher + Monitoring]
+    OBS -->|No| PS
+    F --> PS
 
-    %% Profile Selection
-    G --> PS{Select<br/>Profile}
+    %% Profile Selection — drives both Terraform infra and Helmsman DSF
+    PS{Select Profile}
+    PS -->|esignet standalone| TF_ES[Terraform: infra<br/>profile: esignet]
+    PS -->|mosip-platform-1.2.0.x| TF_MP[Terraform: infra<br/>profile: mosip]
+    PS -->|mosip-platform-1.2.1.x| TF_MP
 
     %% ── eSignet Standalone Flow ──────────────────────────────
-    PS -->|esignet standalone| ES_EXT[Helmsman: Prereqs + External<br/>prereq-dsf + external-dsf]
+    TF_ES --> ES_EXT[Helmsman: Prereqs + External<br/>prereq-dsf + external-dsf]
     ES_EXT --> ES_ESIGNET[Helmsman: eSignet Standalone<br/>4 parallel namespaces]
 
     ES_ESIGNET --> NS1[esignet<br/>mock plugin]
@@ -56,9 +60,7 @@ graph TB
     NS4 --> ES_TRIGS
 
     %% ── MOSIP Platform Flow ──────────────────────────────────
-    PS -->|mosip-platform-1.2.0.x| MP_EXT[Helmsman: Prereqs + External<br/>prereq-dsf + external-dsf]
-    PS -->|mosip-platform-1.2.1.x| MP_EXT
-
+    TF_MP --> MP_EXT[Helmsman: Prereqs + External<br/>prereq-dsf + external-dsf]
     MP_EXT --> MP_MOSIP[Helmsman: MOSIP Core<br/>auto-triggered — 22 namespaces]
     MP_MOSIP --> MP_ESIGNET[Helmsman: eSignet<br/>with MOSIP platform]
     MP_ESIGNET --> MP_TRIGS[Helmsman: Testrigs]
@@ -68,22 +70,22 @@ graph TB
     MP_TRIGS --> V
     V --> DONE[Deployment Complete]
 
-    %% Styling
-    classDef prereq fill:#fff3e0,stroke:#ff8f00,stroke-width:2px
-    classDef terraform fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
-    classDef helmsman fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    classDef mosip fill:#e8eaf6,stroke:#3949ab,stroke-width:2px
-    classDef ns fill:#f1f8e9,stroke:#558b2f,stroke-width:1px
-    classDef success fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
-    classDef decision fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+    %% Styling — transparent fills for readability in both light and dark themes
+    classDef prereq fill:none,stroke:#ff8f00,stroke-width:2px
+    classDef terraform fill:none,stroke:#1976d2,stroke-width:2px
+    classDef helmsman fill:none,stroke:#7b1fa2,stroke-width:2px
+    classDef mosip fill:none,stroke:#3949ab,stroke-width:2px
+    classDef ns fill:none,stroke:#558b2f,stroke-width:1px
+    classDef success fill:none,stroke:#388e3c,stroke-width:2px
+    classDef decision fill:none,stroke:#c2185b,stroke-width:2px
 
     class A,B,C prereq
-    class D,F,G terraform
-    class ES_EXT,ES_ESIGNET,ES_SIGNUP,ES_TRIGS helmsman
+    class D,F,TF_ES,TF_MP terraform
+    class ES_EXT,ES_ESIGNET,ES_TRIGS helmsman
     class MP_EXT,MP_MOSIP,MP_ESIGNET,MP_TRIGS mosip
     class NS1,NS2,NS3,NS4 ns
     class V,DONE success
-    class E,PS decision
+    class OBS,PS decision
 ```
 
 > **Note:** Complete Terraform scripts are available only for **AWS**. For **Azure and GCP**, only placeholder structures are configured - community contributions are welcome to implement full functionality.
