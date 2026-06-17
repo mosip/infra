@@ -128,7 +128,6 @@ fi
 
 CONFIG_DIR="$WG_DIR/config"
 ASSIGNED_FILE="$WG_DIR/assigned.txt"
-# Flock lock in /tmp — WG_DIR often cannot create new files (docker/root ownership).
 ASSIGN_LOCK_FILE="/tmp/wg-onboard-$(printf '%s' "$ASSIGNED_FILE" | cksum | awk '{print $1}').lock"
 LABEL="$ENV_NAME"
 [[ -n "$TICKET" ]] && LABEL="${ENV_NAME}(${TICKET})"
@@ -150,6 +149,8 @@ ssh_cmd() {
     -o StrictHostKeyChecking=accept-new \
     -o UserKnownHostsFile="$SSH_KNOWN_HOSTS" \
     -o ConnectTimeout=15 \
+    -o ServerAliveInterval=30 \
+    -o ServerAliveCountMax=3 \
     "${SSH_USER}@${JUMPSERVER_HOST}" "$@"
 }
 
@@ -177,7 +178,7 @@ highest_config_peer() {
 
 if [[ -z "$MAX_PEERS" ]]; then
   max="$(highest_config_peer)"
-  MAX_PEERS=$(( max > 300 ? max : 300 ))
+  MAX_PEERS=$(( max > 100 ? max : 100 ))
 else
   [[ "$MAX_PEERS" =~ ^[0-9]+$ && "$MAX_PEERS" -gt 0 ]] || die "--max-peers must be a positive integer"
   detected_max="$(highest_config_peer)"
@@ -199,9 +200,8 @@ peer_config_exists() {
   ssh_cmd "test -f '$CONFIG_DIR/$peer/$peer.conf'" 2>/dev/null
 }
 
-# ---- Flock-guarded read → select → record on the jumpserver ---------------
-# Runs atomically on the VM before secrets are published (eliminates the race
-# where two workflows read the same free peers and both append assigned.txt).
+# ---- Flock-guarded peer allocation/record on the jumpserver ----------------
+# Selection and assigned.txt recording happen under one lock to prevent races.
 atomic_allocate_peers() {
   # SSH omits empty argv entries; placeholders keep arg positions stable for bash -s.
   local force_tf="${TF_PEER:-__none__}"
@@ -266,23 +266,51 @@ record_assignment() {
   local peer="$1" assignment="$2" format="$3" file="$4"
   local safe_assignment="${assignment//\\/\\\\}"
   safe_assignment="${safe_assignment//&/\\&}"
+  local tmp
+  tmp="$(mktemp)"
   if [[ "$format" == "colon" ]]; then
-    local line="${peer}: ${safe_assignment}"
-    if grep -qE "^${peer}:" "$file"; then
-      sed -i "s|^${peer}:.*|${line}|" "$file"
-    elif grep -qE "^${peer}([[:space:]]|$)" "$file"; then
-      sed -i "s|^${peer}.*|${line}|" "$file"
-    else
-      printf '%s\n' "${peer}: ${assignment}" >> "$file"
-    fi
+    awk -v peer="$peer" -v assignment="$assignment" '
+      BEGIN {
+        replaced=0
+        new_line=peer ": " assignment
+      }
+      $1 ~ ("^" peer ":$") || $1 ~ ("^" peer "$") {
+        if (!replaced) {
+          print new_line
+          replaced=1
+        }
+        next
+      }
+      { print }
+      END {
+        if (!replaced) {
+          print new_line
+        }
+      }
+    ' "$file" > "$tmp"
   else
-    local line="${peer} ${safe_assignment}"
-    if grep -qE "^${peer}([[:space:]]|$)" "$file"; then
-      sed -i "s|^${peer}.*|${line}|" "$file"
-    else
-      printf '%s\n' "${peer} ${assignment}" >> "$file"
-    fi
+    awk -v peer="$peer" -v assignment="$assignment" '
+      BEGIN {
+        replaced=0
+        new_line=peer " " assignment
+      }
+      $1 ~ ("^" peer ":?$") {
+        if (!replaced) {
+          print new_line
+          replaced=1
+        }
+        next
+      }
+      { print }
+      END {
+        if (!replaced) {
+          print new_line
+        }
+      }
+    ' "$file" > "$tmp"
   fi
+  cat "$tmp" > "$file"
+  rm -f "$tmp"
 }
 
 ensure_peer_conf() {
@@ -358,13 +386,35 @@ AllowedIPs = ${CLIENT_IP}/32
 EOF
 
   echo "$PSK" | docker exec -i "$C" sh -c 'cat > /tmp/psk.tmp && wg set wg0 peer "'"$PUB"'" preshared-key /tmp/psk.tmp allowed-ips "'"${CLIENT_IP}/32"'" && rm -f /tmp/psk.tmp' \
-    || docker restart "$C" >/dev/null
+    || { echo "ERROR: failed updating WireGuard runtime for $PEER_ID" >&2; return 1; }
+}
+
+mosip_peer_for_secret() {
+  local secret="$1" content="$2"
+  awk -v env="$ENV_NAME" -v secret="$secret" '
+    $1 ~ /^peer[0-9]+:?$/ {
+      peer=$1; sub(/:$/, "", peer)
+      desc=$0; sub(/^[[:space:]]*peer[0-9]+[[:space:]]*:?[[:space:]]*/, "", desc)
+      suffix="(" secret ")"
+      if (length(desc) < length(suffix)) next
+      if (substr(desc, length(desc) - length(suffix) + 1) != suffix) next
+      label=substr(desc, 1, length(desc) - length(suffix))
+      if (label == env || index(label, env "(") == 1) { print peer; exit }
+    }' <<<"$content"
+}
+
+mark_env_peer() {
+  local peer="$1"
+  [[ -n "$peer" ]] || return 0
+  ENV_PEERS["$peer"]=1
+  CHOSEN["$peer"]=1
 }
 
 run_allocation() {
   local assigned_content line n peer
-  local -A TAKEN=() CHOSEN=()
+  local -A TAKEN=() CHOSEN=() ENV_PEERS=()
   local tf="" wg0="" wg1="" reused="false" format="mosip"
+  local record_tf="false" record_wg0="false" record_wg1="false"
 
   assigned_content="$(cat "$ASSIGNED_FILE" 2>/dev/null || true)"
   assigned_content="${assigned_content//$'\r'/}"
@@ -384,44 +434,21 @@ run_allocation() {
         parse_assigned_line "$line" || continue
         [[ "$PARSED_LABEL" == "$ENV_NAME" ]] && echo "$PARSED_PEER"
       done <<<"$assigned_content" | sort -t r -k2 -n)
-      if [[ ${#colon_reused[@]} -ge 3 ]]; then
-        tf="${colon_reused[0]}"; wg0="${colon_reused[1]}"; wg1="${colon_reused[2]}"
-        reused="true"
-      fi
+      tf="${colon_reused[0]:-}"
+      wg0="${colon_reused[1]:-}"
+      wg1="${colon_reused[2]:-}"
+      mark_env_peer "$tf"
+      mark_env_peer "$wg0"
+      mark_env_peer "$wg1"
+      [[ -n "$tf" && -n "$wg0" && -n "$wg1" ]] && reused="true"
     else
-      tf="$(awk -v env="$ENV_NAME" -v secret="TF_WG_CONFIG" '
-        $1 ~ /^peer[0-9]+:?$/ {
-          peer=$1; sub(/:$/, "", peer)
-          desc=$0; sub(/^[[:space:]]*peer[0-9]+[[:space:]]*:?[[:space:]]*/, "", desc)
-          suffix="(" secret ")"
-          if (length(desc) < length(suffix)) next
-          if (substr(desc, length(desc) - length(suffix) + 1) != suffix) next
-          label=substr(desc, 1, length(desc) - length(suffix))
-          if (label == env || index(label, env "(") == 1) { print peer; exit }
-        }' <<<"$assigned_content")"
-      wg0="$(awk -v env="$ENV_NAME" -v secret="CLUSTER_WIREGUARD_WG0" '
-        $1 ~ /^peer[0-9]+:?$/ {
-          peer=$1; sub(/:$/, "", peer)
-          desc=$0; sub(/^[[:space:]]*peer[0-9]+[[:space:]]*:?[[:space:]]*/, "", desc)
-          suffix="(" secret ")"
-          if (length(desc) < length(suffix)) next
-          if (substr(desc, length(desc) - length(suffix) + 1) != suffix) next
-          label=substr(desc, 1, length(desc) - length(suffix))
-          if (label == env || index(label, env "(") == 1) { print peer; exit }
-        }' <<<"$assigned_content")"
-      wg1="$(awk -v env="$ENV_NAME" -v secret="CLUSTER_WIREGUARD_WG1" '
-        $1 ~ /^peer[0-9]+:?$/ {
-          peer=$1; sub(/:$/, "", peer)
-          desc=$0; sub(/^[[:space:]]*peer[0-9]+[[:space:]]*:?[[:space:]]*/, "", desc)
-          suffix="(" secret ")"
-          if (length(desc) < length(suffix)) next
-          if (substr(desc, length(desc) - length(suffix) + 1) != suffix) next
-          label=substr(desc, 1, length(desc) - length(suffix))
-          if (label == env || index(label, env "(") == 1) { print peer; exit }
-        }' <<<"$assigned_content")"
-      if [[ -n "$tf" && -n "$wg0" && -n "$wg1" ]]; then
-        reused="true"
-      fi
+      tf="$(mosip_peer_for_secret TF_WG_CONFIG "$assigned_content")"
+      wg0="$(mosip_peer_for_secret CLUSTER_WIREGUARD_WG0 "$assigned_content")"
+      wg1="$(mosip_peer_for_secret CLUSTER_WIREGUARD_WG1 "$assigned_content")"
+      mark_env_peer "$tf"
+      mark_env_peer "$wg0"
+      mark_env_peer "$wg1"
+      [[ -n "$tf" && -n "$wg0" && -n "$wg1" ]] && reused="true"
     fi
   fi
 
@@ -449,31 +476,61 @@ run_allocation() {
   fi
 
   for peer in "$tf" "$wg0" "$wg1"; do
-    [[ "$reused" != "true" && -n "${TAKEN[$peer]:-}" ]] \
+    [[ -n "${TAKEN[$peer]:-}" && -z "${ENV_PEERS[$peer]:-}" ]] \
       && { echo "ERROR: $peer already assigned in $ASSIGNED_FILE" >&2; return 1; }
     [[ "$peer" =~ ^peer[0-9]+$ ]] || { echo "ERROR: invalid peer id $peer" >&2; return 1; }
     n="${peer#peer}"
-    ensure_peer_conf "$n" || true
+    ensure_peer_conf "$n" || { echo "ERROR: failed creating $peer" >&2; return 1; }
   done
 
   [[ "$tf" != "$wg0" && "$tf" != "$wg1" && "$wg0" != "$wg1" ]] \
     || { echo "ERROR: peers must be distinct (tf=$tf wg0=$wg0 wg1=$wg1)" >&2; return 1; }
 
-  if [[ "$reused" != "true" && "$DRY_RUN" != "true" ]]; then
+  [[ -z "${ENV_PEERS[$tf]:-}"  ]] && record_tf="true"
+  [[ -z "${ENV_PEERS[$wg0]:-}" ]] && record_wg0="true"
+  [[ -z "${ENV_PEERS[$wg1]:-}" ]] && record_wg1="true"
+
+  if [[ "$DRY_RUN" != "true" ]]; then
     if [[ "$format" == "colon" ]]; then
-      record_assignment "$tf"  "$ENV_NAME" "$format" "$ASSIGNED_FILE"
-      record_assignment "$wg0" "$ENV_NAME" "$format" "$ASSIGNED_FILE"
-      record_assignment "$wg1" "$ENV_NAME" "$format" "$ASSIGNED_FILE"
+      [[ "$record_tf" == "true"  ]] && record_assignment "$tf"  "$ENV_NAME" "$format" "$ASSIGNED_FILE"
+      [[ "$record_wg0" == "true" ]] && record_assignment "$wg0" "$ENV_NAME" "$format" "$ASSIGNED_FILE"
+      [[ "$record_wg1" == "true" ]] && record_assignment "$wg1" "$ENV_NAME" "$format" "$ASSIGNED_FILE"
     else
-      record_assignment "$tf"  "${LABEL}(TF_WG_CONFIG)" "$format" "$ASSIGNED_FILE"
-      record_assignment "$wg0" "${LABEL}(CLUSTER_WIREGUARD_WG0)" "$format" "$ASSIGNED_FILE"
-      record_assignment "$wg1" "${LABEL}(CLUSTER_WIREGUARD_WG1)" "$format" "$ASSIGNED_FILE"
+      [[ "$record_tf" == "true"  ]] && record_assignment "$tf"  "${LABEL}(TF_WG_CONFIG)" "$format" "$ASSIGNED_FILE"
+      [[ "$record_wg0" == "true" ]] && record_assignment "$wg0" "${LABEL}(CLUSTER_WIREGUARD_WG0)" "$format" "$ASSIGNED_FILE"
+      [[ "$record_wg1" == "true" ]] && record_assignment "$wg1" "${LABEL}(CLUSTER_WIREGUARD_WG1)" "$format" "$ASSIGNED_FILE"
     fi
   fi
 
-  printf 'ASSIGNED_FORMAT=%s\nREUSED=%s\nTF_PEER=%s\nWG0_PEER=%s\nWG1_PEER=%s\n' \
-    "$format" "$reused" "$tf" "$wg0" "$wg1"
+  printf 'ASSIGNED_FORMAT=%s\nREUSED=%s\nTF_PEER=%s\nWG0_PEER=%s\nWG1_PEER=%s\nRECORD_TF=%s\nRECORD_WG0=%s\nRECORD_WG1=%s\n' \
+    "$format" "$reused" "$tf" "$wg0" "$wg1" "$record_tf" "$record_wg0" "$record_wg1"
 }
+
+exec 9>"$LOCK_FILE"
+if ! flock -w 120 9; then
+  echo "ERROR: timed out waiting for allocation lock ($LOCK_FILE)" >&2
+  exit 1
+fi
+run_allocation
+REMOTE_ATOMIC_ALLOCATE
+}
+
+atomic_rollback_assignments() {
+  local record_tf="$1" record_wg0="$2" record_wg1="$3"
+  [[ "$record_tf" == "true" || "$record_wg0" == "true" || "$record_wg1" == "true" ]] || return 0
+  ssh_cmd bash -s \
+    "$ASSIGNED_FILE" "$ASSIGN_LOCK_FILE" "$TF_PEER" "$WG0_PEER" "$WG1_PEER" "$record_tf" "$record_wg0" "$record_wg1" \
+    <<'REMOTE_ROLLBACK_ASSIGNMENTS'
+set -euo pipefail
+
+ASSIGNED_FILE="$1"
+LOCK_FILE="$2"
+TF_PEER="$3"
+WG0_PEER="$4"
+WG1_PEER="$5"
+RECORD_TF="$6"
+RECORD_WG0="$7"
+RECORD_WG1="$8"
 
 exec 9>"$LOCK_FILE" || { echo "ERROR: cannot create allocation lock ($LOCK_FILE)" >&2; exit 1; }
 if ! flock -w 120 9; then
@@ -485,8 +542,19 @@ if [[ ! -w "$ASSIGNED_FILE" && ! -w "$wg_dir" ]]; then
   echo "ERROR: cannot write $ASSIGNED_FILE (check ownership/permissions on $wg_dir)" >&2
   exit 1
 fi
-run_allocation
-REMOTE_ATOMIC_ALLOCATE
+
+remove_peer_line() {
+  local peer="$1" file="$2" tmp
+  tmp="$(mktemp)"
+  awk -v p="$peer" '$1 !~ ("^" p ":?$")' "$file" > "$tmp"
+  cat "$tmp" > "$file"
+  rm -f "$tmp"
+}
+
+[[ "$RECORD_TF" == "true"  ]] && remove_peer_line "$TF_PEER" "$ASSIGNED_FILE"
+[[ "$RECORD_WG0" == "true" ]] && remove_peer_line "$WG0_PEER" "$ASSIGNED_FILE"
+[[ "$RECORD_WG1" == "true" ]] && remove_peer_line "$WG1_PEER" "$ASSIGNED_FILE"
+REMOTE_ROLLBACK_ASSIGNMENTS
 }
 
 log "Allocating peers on jumpserver under flock ($ASSIGN_LOCK_FILE) ..."
@@ -496,6 +564,9 @@ REUSED="false"
 TF_PEER=""
 WG0_PEER=""
 WG1_PEER=""
+RECORD_TF="false"
+RECORD_WG0="false"
+RECORD_WG1="false"
 while IFS= read -r line; do
   [[ "$line" == *=* ]] || continue
   case "${line%%=*}" in
@@ -504,6 +575,9 @@ while IFS= read -r line; do
     TF_PEER)         TF_PEER="${line#*=}" ;;
     WG0_PEER)        WG0_PEER="${line#*=}" ;;
     WG1_PEER)        WG1_PEER="${line#*=}" ;;
+    RECORD_TF)       RECORD_TF="${line#*=}" ;;
+    RECORD_WG0)      RECORD_WG0="${line#*=}" ;;
+    RECORD_WG1)      RECORD_WG1="${line#*=}" ;;
   esac
 done <<<"$ALLOC_RESULT"
 [[ -n "$TF_PEER" && -n "$WG0_PEER" && -n "$WG1_PEER" ]] \
@@ -511,6 +585,8 @@ done <<<"$ALLOC_RESULT"
 
 if [[ "$REUSED" == "true" ]]; then
   log "Reusing existing allocation for $ENV_NAME: TF=$TF_PEER WG0=$WG0_PEER WG1=$WG1_PEER"
+elif [[ "$RECORD_TF" != "true" || "$RECORD_WG0" != "true" || "$RECORD_WG1" != "true" ]]; then
+  log "Resuming partial allocation for $ENV_NAME: TF=$TF_PEER WG0=$WG0_PEER WG1=$WG1_PEER"
 elif [[ "$ASSIGNED_FORMAT" == "colon" ]]; then
   log "Detected assigned.txt colon format (peerN: username)"
 fi
@@ -519,9 +595,13 @@ log "Allocation -> TF_WG_CONFIG=$TF_PEER | CLUSTER_WIREGUARD_WG0=$WG0_PEER | CLU
 
 # ---- Fetch + transform each peer conf --------------------------------------
 transform_conf() {
-  # stdin: raw peer conf -> stdout: DNS removed, AllowedIPs replaced
-  sed -e '/^[[:space:]]*DNS[[:space:]]*=/d' \
-      -e "s#^[[:space:]]*AllowedIPs[[:space:]]*=.*#AllowedIPs = ${ALLOWED_IPS}#"
+  # stdin: raw peer conf -> stdout: DNS removed, [Peer] AllowedIPs replaced
+  awk -v ips="$ALLOWED_IPS" '
+    /^\[Peer\]/ { peer=1; print; next }
+    peer && /^[[:space:]]*AllowedIPs[[:space:]]*=/ { print "AllowedIPs = " ips; next }
+    /^[[:space:]]*DNS[[:space:]]*=/ { next }
+    { print }
+  '
 }
 
 fetch_and_transform() {
@@ -545,15 +625,15 @@ if [[ "$DRY_RUN" != "true" ]]; then
 fi
 
 if [[ "$DRY_RUN" == "true" ]]; then
-  log "DRY RUN - would update $ASSIGNED_FILE:"
+  log "DRY RUN - would update $ASSIGNED_FILE under allocation lock:"
   if [[ "$ASSIGNED_FORMAT" == "colon" ]]; then
-    log "    $TF_PEER: $ENV_NAME"
-    log "    $WG0_PEER: $ENV_NAME"
-    log "    $WG1_PEER: $ENV_NAME"
+    [[ "$RECORD_TF" == "true"  ]] && log "    $TF_PEER: $ENV_NAME"
+    [[ "$RECORD_WG0" == "true" ]] && log "    $WG0_PEER: $ENV_NAME"
+    [[ "$RECORD_WG1" == "true" ]] && log "    $WG1_PEER: $ENV_NAME"
   else
-    log "    $TF_PEER  ${LABEL}(TF_WG_CONFIG)"
-    log "    $WG0_PEER ${LABEL}(CLUSTER_WIREGUARD_WG0)"
-    log "    $WG1_PEER ${LABEL}(CLUSTER_WIREGUARD_WG1)"
+    [[ "$RECORD_TF" == "true"  ]] && log "    $TF_PEER  ${LABEL}(TF_WG_CONFIG)"
+    [[ "$RECORD_WG0" == "true" ]] && log "    $WG0_PEER ${LABEL}(CLUSTER_WIREGUARD_WG0)"
+    [[ "$RECORD_WG1" == "true" ]] && log "    $WG1_PEER ${LABEL}(CLUSTER_WIREGUARD_WG1)"
   fi
   log "DRY RUN - would create env '$ENV_NAME' and set 3 secrets (values not shown)."
   if grep -q '^AllowedIPs' <<<"$TF_CONF" 2>/dev/null; then
@@ -566,23 +646,40 @@ fi
 log "Ensuring GitHub environment '$ENV_NAME' exists ..."
 ENV_NAME_ENC="$(urlencode "$ENV_NAME")"
 gh api --method PUT -H "Accept: application/vnd.github+json" \
-  "repos/${REPO}/environments/${ENV_NAME_ENC}" >/dev/null
+  "repos/${REPO}/environments/${ENV_NAME_ENC}" >/dev/null \
+  || die "Failed creating environment '$ENV_NAME' in $REPO"
 
 log "Publishing environment secrets ..."
 PEER_CONFS=("$TF_CONF" "$WG0_CONF" "$WG1_CONF")
+PUBLISHED_SECRETS=0
 for i in "${!SECRET_NAMES[@]}"; do
-  printf '%s' "${PEER_CONFS[$i]}" \
-    | gh secret set "${SECRET_NAMES[$i]}" --env "$ENV_NAME" --repo "$REPO" --body -
+  if printf '%s' "${PEER_CONFS[$i]}" \
+    | gh secret set "${SECRET_NAMES[$i]}" --env "$ENV_NAME" --repo "$REPO" --body -; then
+    PUBLISHED_SECRETS=$((PUBLISHED_SECRETS + 1))
+    log "Published ${SECRET_NAMES[$i]}"
+  else
+    err "Failed to publish ${SECRET_NAMES[$i]} (${PUBLISHED_SECRETS}/3 succeeded)"
+    err "Rolling back newly recorded assignments in $ASSIGNED_FILE ..."
+    atomic_rollback_assignments "$RECORD_TF" "$RECORD_WG0" "$RECORD_WG1" \
+      || err "Rollback failed; please fix $ASSIGNED_FILE manually for peers TF=$TF_PEER WG0=$WG0_PEER WG1=$WG1_PEER"
+    exit 1
+  fi
 done
 
 # ---- Mirror allocation into the repo tracker (for visibility/PR history) ----
 if [[ ! -f "$ALLOCATION_FILE" ]]; then
   printf 'env_name\ttf_peer\twg0_peer\twg1_peer\tallocated_at\n' > "$ALLOCATION_FILE"
 fi
+exec 8>"${ALLOCATION_FILE}.lock"
+if ! flock -w 30 8; then
+  die "Timed out waiting to update repo tracker lock ${ALLOCATION_FILE}.lock"
+fi
 TMP="$(mktemp)"
+trap 'rm -f "$TMP"' EXIT
 awk -F '\t' -v env="$ENV_NAME" 'NR == 1 || $1 != env' "$ALLOCATION_FILE" > "$TMP"
 printf '%s\t%s\t%s\t%s\t%s\n' "$ENV_NAME" "$TF_PEER" "$WG0_PEER" "$WG1_PEER" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$TMP"
 mv "$TMP" "$ALLOCATION_FILE"
+trap - EXIT
 
 log "Done. Environment '$ENV_NAME' onboarded with peers TF=$TF_PEER WG0=$WG0_PEER WG1=$WG1_PEER."
 log "Server tracker: $ASSIGNED_FILE | repo tracker: $ALLOCATION_FILE (commit it)."
