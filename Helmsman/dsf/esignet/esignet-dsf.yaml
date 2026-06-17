@@ -108,7 +108,7 @@ apps:
   esignet:
     namespace: esignet
     enabled: true
-    version: 0.1.0-develop
+    version: 0.0.1-develop
     chart: mosip/esignet
     valuesFile: "$WORKDIR/utils/esignet-plugin-values.yaml"
     set:
@@ -179,7 +179,7 @@ apps:
   esignet-qa11:
     namespace: esignet-qa11
     enabled: true
-    version: 0.1.0-develop
+    version: 0.0.1-develop
     chart: mosip/esignet
     valuesFile: "$WORKDIR/utils/esignet-qa11-plugin-values.yaml"
     set:
@@ -219,7 +219,7 @@ apps:
   esignet-sunbird:
     namespace: esignet-sunbird
     enabled: true
-    version: 0.1.0-develop
+    version: 0.0.1-develop
     chart: mosip/esignet
     valuesFile: "$WORKDIR/utils/esignet-sunbird-plugin-values.yaml"
     set:
@@ -253,7 +253,7 @@ apps:
   oidc-ui:
     namespace: esignet
     enabled: true
-    version: 0.1.0-develop
+    version: 0.0.1-develop
     chart: mosip/oidc-ui
     set:
       image.repository: "mosipqa/oidc-ui"
@@ -287,7 +287,7 @@ apps:
   oidc-ui-qa11:
     namespace: esignet-qa11
     enabled: true
-    version: 0.1.0-develop
+    version: 0.0.1-develop
     chart: mosip/oidc-ui
     set:
       image.repository: "mosipqa/oidc-ui"
@@ -304,7 +304,7 @@ apps:
   oidc-ui-sunbird:
     namespace: esignet-sunbird
     enabled: true
-    version: 0.1.0-develop
+    version: 0.0.1-develop
     chart: mosip/oidc-ui
     set:
       image.repository: "mosipqa/oidc-ui"
@@ -338,7 +338,7 @@ apps:
   mock-identity-system:
     namespace: esignet
     enabled: true
-    version: 0.1.0-develop
+    version: 0.0.1-develop
     chart: mosip/mock-identity-system
     set:
       enable_insecure: "false"
@@ -357,7 +357,7 @@ apps:
   mock-relying-party-service:
     namespace: esignet
     enabled: true
-    version: 1.7.1-develop
+    version: 0.0.1-develop
     chart: mosip/mock-relying-party-service
     set:
       mock_relying_party_service.ESIGNET_SERVICE_URL: "http://esignet.esignet/v1/esignet"
@@ -372,7 +372,7 @@ apps:
   mock-relying-party-service-cre:
     namespace: esignet-cre
     enabled: true
-    version: 1.7.1-develop
+    version: 0.0.1-develop
     chart: mosip/mock-relying-party-service
     set:
       mock_relying_party_service.ESIGNET_SERVICE_URL: "http://esignet-cre.esignet-cre/v1/esignet"
@@ -387,7 +387,7 @@ apps:
   mock-relying-party-service-qa11:
     namespace: esignet-qa11
     enabled: true
-    version: 1.7.1-develop
+    version: 0.0.1-develop
     chart: mosip/mock-relying-party-service
     set:
       mock_relying_party_service.ESIGNET_SERVICE_URL: "http://esignet-qa11.esignet-qa11/v1/esignet"
@@ -402,7 +402,7 @@ apps:
   mock-relying-party-service-sunbird:
     namespace: esignet-sunbird
     enabled: true
-    version: 1.7.1-develop
+    version: 0.0.1-develop
     chart: mosip/mock-relying-party-service
     set:
       mock_relying_party_service.ESIGNET_SERVICE_URL: "http://esignet-sunbird.esignet-sunbird/v1/esignet"
@@ -417,7 +417,7 @@ apps:
   mock-relying-party-ui:
     namespace: esignet
     enabled: true
-    version: 0.1.0-develop
+    version: 0.0.1-develop
     chart: mosip/mock-relying-party-ui
     set:
       mock_relying_party_ui.mock_relying_party_ui_service_host: "healthservices.${domain_name}"
@@ -436,7 +436,7 @@ apps:
   mock-relying-party-ui-cre:
     namespace: esignet-cre
     enabled: true
-    version: 0.1.0-develop
+    version: 0.0.1-develop
     chart: mosip/mock-relying-party-ui
     set:
       mock_relying_party_ui.mock_relying_party_ui_service_host: "healthservices-mosipid-cre.${domain_name}"
@@ -455,7 +455,7 @@ apps:
   mock-relying-party-ui-qa11:
     namespace: esignet-qa11
     enabled: true
-    version: 0.1.0-develop
+    version: 0.0.1-develop
     chart: mosip/mock-relying-party-ui
     set:
       mock_relying_party_ui.mock_relying_party_ui_service_host: "healthservices-mosipid-qa11.${domain_name}"
@@ -474,7 +474,7 @@ apps:
   mock-relying-party-ui-sunbird:
     namespace: esignet-sunbird
     enabled: true
-    version: 0.1.0-develop
+    version: 0.0.1-develop
     chart: mosip/mock-relying-party-ui
     set:
       mock_relying_party_ui.mock_relying_party_ui_service_host: "healthservices-sunbird.${domain_name}"
@@ -568,7 +568,7 @@ apps:
   esignet-misp-onboarder:
     namespace: esignet
     enabled: false
-    version: 0.1.0-develop
+    version: 0.0.1-develop
     chart: mosip/partner-onboarder
     set:
       onboarding.modules[0].name: "esignet"
@@ -607,7 +607,7 @@ apps:
   esignet-mock-rp-onboarder:
     namespace: esignet
     enabled: true
-    version: 0.1.0-develop
+    version: 0.0.1-develop
     chart: mosip/partner-onboarder
     set:
       onboarding.modules[0].name: "mock-rp-oidc"
@@ -636,5 +636,3 @@ apps:
       preUpgrade: "$WORKDIR/hooks/esignet-standalone/esignet-mock-rp-onboarder-preinstall.sh"
       postInstall: "$WORKDIR/hooks/esignet-standalone/esignet-mock-rp-onboarder-postinstall.sh"
       postUpgrade: "$WORKDIR/hooks/esignet-standalone/esignet-mock-rp-onboarder-postinstall.sh"
-
-      
