@@ -136,11 +136,18 @@ log "Target repo: $REPO"
 log "Target environment: $ENV_NAME (label: $LABEL)"
 log "WireGuard dir: $WG_DIR | AllowedIPs: $ALLOWED_IPS"
 
+SSH_KNOWN_HOSTS_IS_TEMP="false"
+wg_onboard_exit_cleanup() {
+  [[ -n "${TMP:-}" && -f "$TMP" ]] && rm -f "$TMP"
+  [[ "$SSH_KNOWN_HOSTS_IS_TEMP" == "true" ]] && rm -f "$SSH_KNOWN_HOSTS"
+}
+trap wg_onboard_exit_cleanup EXIT
+
 if [[ -n "${SSH_KNOWN_HOSTS:-}" ]]; then
   [[ -f "$SSH_KNOWN_HOSTS" ]] || die "SSH_KNOWN_HOSTS file not found: $SSH_KNOWN_HOSTS"
 else
   SSH_KNOWN_HOSTS="$(mktemp /tmp/wg_onboard_known_hosts.XXXXXX)"
-  trap 'rm -f "$SSH_KNOWN_HOSTS"' EXIT
+  SSH_KNOWN_HOSTS_IS_TEMP="true"
 fi
 
 ssh_cmd() {
@@ -675,11 +682,10 @@ if ! flock -w 30 8; then
   die "Timed out waiting to update repo tracker lock ${ALLOCATION_FILE}.lock"
 fi
 TMP="$(mktemp)"
-trap 'rm -f "$TMP"' EXIT
 awk -F '\t' -v env="$ENV_NAME" 'NR == 1 || $1 != env' "$ALLOCATION_FILE" > "$TMP"
 printf '%s\t%s\t%s\t%s\t%s\n' "$ENV_NAME" "$TF_PEER" "$WG0_PEER" "$WG1_PEER" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$TMP"
 mv "$TMP" "$ALLOCATION_FILE"
-trap - EXIT
+TMP=""
 
 log "Done. Environment '$ENV_NAME' onboarded with peers TF=$TF_PEER WG0=$WG0_PEER WG1=$WG1_PEER."
 log "Server tracker: $ASSIGNED_FILE | repo tracker: $ALLOCATION_FILE (commit it)."
