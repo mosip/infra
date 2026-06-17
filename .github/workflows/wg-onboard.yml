@@ -18,11 +18,11 @@ on:
         description: 'Jumpserver / WireGuard VM public IP or DNS (SSH reachable)'
         required: true
         type: string
-      SSH_PRIVATE_KEY:
+      MOSIP_AWS_PEM:
         description: 'Name of the repo secret holding the jumpserver SSH private key'
         required: true
         type: string
-        default: SSH_PRIVATE_KEY
+        default: MOSIP_AWS_PEM
       TICKET:
         description: 'Optional ticket id to record in assigned.txt (e.g. DSD-10264)'
         required: false
@@ -50,13 +50,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          token: ${{ secrets.PAT_TOKEN }}
+          token: ${{ secrets.ACTION_PAT }}
           persist-credentials: false
 
       - name: Write SSH private key
         env:
-          SSH_KEY: ${{ secrets[inputs.SSH_PRIVATE_KEY] }}
-          SSH_KEY_NAME: ${{ inputs.SSH_PRIVATE_KEY }}
+          SSH_KEY: ${{ secrets[inputs.MOSIP_AWS_PEM] }}
+          SSH_KEY_NAME: ${{ inputs.MOSIP_AWS_PEM }}
         run: |
           mkdir -p ~/.ssh
           # Use printf + strip CR so multi-line PEMs / CRLF secrets are written intact
@@ -68,8 +68,8 @@ jobs:
           fi
       - name: Run WireGuard onboarding
         env:
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+          GH_TOKEN: ${{ secrets.ACTION_PAT }}
+          GITHUB_TOKEN: ${{ secrets.ACTION_PAT }}
           INPUT_ENV_NAME: ${{ inputs.ENV_NAME }}
           INPUT_JUMPSERVER_HOST: ${{ inputs.JUMPSERVER_HOST }}
           INPUT_WG_DIR: ${{ inputs.WG_DIR }}
@@ -93,7 +93,7 @@ jobs:
       - name: Commit updated peer allocation
         if: ${{ inputs.DRY_RUN == false }}
         env:
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+          GH_TOKEN: ${{ secrets.ACTION_PAT }}
           INPUT_ENV_NAME: ${{ inputs.ENV_NAME }}
           GIT_AUTHOR_NAME: ${{ github.actor }}
           GIT_AUTHOR_EMAIL: ${{ github.actor }}@users.noreply.github.com
