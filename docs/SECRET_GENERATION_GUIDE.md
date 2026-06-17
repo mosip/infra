@@ -7,7 +7,7 @@ This guide provides step-by-step instructions for generating all required secret
 1. [SSH Keys](#1-ssh-keys)
 2. [GPG Passphrase](#2-gpg-passphrase)
 3. [AWS Credentials](#3-aws-credentials)
-4. [GitHub Personal Access Token (GH_INFRA_PAT)](#4-github-personal-access-token-gh_infra_pat)
+4. [GitHub Personal Access Token (GH_INFRA_PAT)](#4-github-personal-access-token-gh_infra_pat) — required for signup workflow auto-trigger and repository operations
 5. [WireGuard VPN Configuration](#5-wireguard-vpn-configuration)
 6. [Kubernetes Config (KUBECONFIG)](#6-kubernetes-config-kubeconfig)
 7. [reCAPTCHA Keys](#7-recaptcha-keys)
