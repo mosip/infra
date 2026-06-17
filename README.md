@@ -27,49 +27,63 @@ For detailed MOSIP platform architecture Diagram, visit: [MOSIP Platform Archite
 
 ```mermaid
 graph TB
- %% Prerequisites
- A[Fork Repository] --> B[Configure Secrets]
- B --> C[Select Cloud Provider]
- 
- %% Infrastructure Phase
- C --> D[Terraform: base-infra<br/>VPC, Networking, WireGuard]
- D --> E{Deploy<br/>Observability?}
- E -->|Yes| F[Terraform: observ-infra<br/>Rancher UI, Monitoring]
- E -->|No| G[Terraform: infra<br/>MOSIP Infrastructure]
- F --> G
- 
- %% Helmsman Deployment Phase
- G --> H[Helmsman: Prerequisites<br/>Monitoring, Istio, Logging]
- H --> I[Helmsman: External Deps<br/>PostgreSQL, Keycloak, MinIO]
- 
- %% MOSIP Services
- I --> J[Helmsman: MOSIP Services]
- J --> J1{Deploy<br/>eSignet?}
- J1 -->|Yes| J2[Helmsman: eSignet Stack<br/>Redis, SoftHSM, Keycloak,<br/>Mock Identity, OIDC UI]
- J1 -->|No| K{Deploy<br/>Test Rigs?}
- J2 --> K
- K -->|Yes| L[Helmsman: Test Rigs<br/>API, UI, DSL Testing]
- K -->|No| M[Verify Deployment]
- L --> M
- 
- %% Final Verification
- M --> N[Access MOSIP Platform]
- N --> O[Deployment Complete]
- 
- %% Styling
- classDef prereq fill:#fff3e0,stroke:#ff8f00,stroke-width:2px
- classDef terraform fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
- classDef helmsman fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
- classDef esignet fill:#e0f2f1,stroke:#00695c,stroke-width:2px
- classDef success fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
- classDef decision fill:#fce4ec,stroke:#c2185b,stroke-width:2px
- 
- class A,B,C prereq
- class D,F,G terraform
- class H,I,J,L helmsman
- class J2 esignet
- class M,N,O success
- class E,K,J1 decision
+    %% Prerequisites
+    A[Fork Repository] --> B[Configure Secrets]
+    B --> C[Select Cloud Provider]
+
+    %% Infrastructure Phase
+    C --> D[Terraform: base-infra<br/>VPC, Networking, WireGuard]
+    D --> E{Deploy<br/>Observability?}
+    E -->|Yes| F[Terraform: observ-infra<br/>Rancher + Monitoring]
+    E -->|No| G[Terraform: infra<br/>K8s Cluster + PostgreSQL]
+    F --> G
+
+    %% Profile Selection
+    G --> PS{Select<br/>Profile}
+
+    %% ── eSignet Standalone Flow ──────────────────────────────
+    PS -->|esignet standalone| ES_EXT[Helmsman: Prereqs + External<br/>prereq-dsf + external-dsf]
+    ES_EXT --> ES_ESIGNET[Helmsman: eSignet Standalone<br/>4 parallel namespaces]
+
+    ES_ESIGNET --> NS1[esignet<br/>mock plugin]
+    ES_ESIGNET --> NS2[esignet-cre<br/>mosip-identity plugin]
+    ES_ESIGNET --> NS3[esignet-qa11<br/>mosip-identity plugin]
+    ES_ESIGNET --> NS4[esignet-sunbird<br/>sunbird-rc plugin]
+
+    NS1 --> ES_TRIGS[Helmsman: Testrigs<br/>4x eSignet testrigs]
+    NS2 --> ES_TRIGS
+    NS3 --> ES_TRIGS
+    NS4 --> ES_TRIGS
+
+    %% ── MOSIP Platform Flow ──────────────────────────────────
+    PS -->|mosip-platform-1.2.0.x| MP_EXT[Helmsman: Prereqs + External<br/>prereq-dsf + external-dsf]
+    PS -->|mosip-platform-1.2.1.x| MP_EXT
+
+    MP_EXT --> MP_MOSIP[Helmsman: MOSIP Core<br/>auto-triggered — 22 namespaces]
+    MP_MOSIP --> MP_ESIGNET[Helmsman: eSignet<br/>with MOSIP platform]
+    MP_ESIGNET --> MP_TRIGS[Helmsman: Testrigs]
+
+    %% Final Verification
+    ES_TRIGS --> V[Verify Deployment]
+    MP_TRIGS --> V
+    V --> DONE[Deployment Complete]
+
+    %% Styling
+    classDef prereq fill:#fff3e0,stroke:#ff8f00,stroke-width:2px
+    classDef terraform fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    classDef helmsman fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef mosip fill:#e8eaf6,stroke:#3949ab,stroke-width:2px
+    classDef ns fill:#f1f8e9,stroke:#558b2f,stroke-width:1px
+    classDef success fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
+    classDef decision fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+
+    class A,B,C prereq
+    class D,F,G terraform
+    class ES_EXT,ES_ESIGNET,ES_SIGNUP,ES_TRIGS helmsman
+    class MP_EXT,MP_MOSIP,MP_ESIGNET,MP_TRIGS mosip
+    class NS1,NS2,NS3,NS4 ns
+    class V,DONE success
+    class E,PS decision
 ```
 
 > **Note:** Complete Terraform scripts are available only for **AWS**. For **Azure and GCP**, only placeholder structures are configured - community contributions are welcome to implement full functionality.
