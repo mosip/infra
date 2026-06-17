@@ -162,8 +162,18 @@ If Terraform Apply = ☐ (unchecked)
  | **Use workflow from** | `Branch: release-0.1.0` | Your branch | Dropdown at top |
  | **Cloud Provider** | `aws` | `aws` | Where to deploy |
  | **Component** | `infra` | `infra` | Main MOSIP infrastructure |
+ | **Profile** | `esignet` or `mosip` | `esignet` | Selects tfvars and cluster size — see below |
  | **Backend** | `local` or `s3` | `local` | State storage location |
  | **Terraform apply** | ✅ | ✅ | Check to deploy, uncheck for dry run |
+
+ **Profile options for `infra` component:**
+
+ | Profile | tfvars loaded | Cluster size | Use for |
+ |---------|--------------|--------------|---------|
+ | `esignet` | `profiles/esignet/aws.tfvars` | 4-node K8s cluster | eSignet standalone |
+ | `mosip` | `profiles/mosip/aws.tfvars` | 7-node K8s cluster | Full MOSIP platform |
+
+ > **Note**: `base-infra` and `observ-infra` do not use a profile — this field only applies to the `infra` component.
 
 5. **Run the Workflow**
  ```
@@ -238,7 +248,7 @@ If Terraform Apply = ☐ (unchecked)
 
 **eSignet standalone profile** (`profile=esignet`):
 ```
-External (prereq + external-dsf, parallel) → eSignet → Signup (auto-triggered) → Testrigs
+External (prereq + external-dsf, parallel) → eSignet (4 parallel instances) → Testrigs
 ```
 
 **MOSIP platform profiles** (`profile=mosip-platform-1.2.0.x` or `mosip-platform-1.2.1.x`):
@@ -392,9 +402,9 @@ Mode: apply ✅
  → Mock relying party
  ```
 
-4. **Auto-trigger** (esignet profile only)
+4. **Next step**
  ```
- ✅ On success → Automatically triggers Signup workflow
+ ✅ On success → Run Testrigs workflow manually
  ```
 
 **Check Status:**
@@ -502,6 +512,21 @@ Component: [base-infra | infra | observ-infra]
 | `base-infra` | VPC, networking, jump server | **1st** (foundation) |
 | `observ-infra` | Rancher management cluster | **2nd** (optional) |
 | `infra` | MOSIP Kubernetes cluster | **3rd** (main deployment) |
+
+---
+
+#### Infra Profile
+```
+Profile: [esignet | mosip]
+```
+**Applies to**: `infra` component only (`base-infra` and `observ-infra` ignore this field)
+
+| Profile | tfvars file | Cluster size | Use for |
+|---------|------------|--------------|---------|
+| `esignet` | `profiles/esignet/aws.tfvars` | 4-node K8s cluster | eSignet standalone deployment |
+| `mosip` | `profiles/mosip/aws.tfvars` | 7-node K8s cluster | Full MOSIP platform deployment |
+
+**Important**: The Terraform profile (`esignet` / `mosip`) and the Helmsman profile (`esignet` / `mosip-platform-1.2.0.x` / `mosip-platform-1.2.1.x`) are separate inputs. After running `infra` with `profile=mosip`, you choose the specific MOSIP platform version when running the Helmsman workflows.
 
 ---
 
@@ -747,12 +772,8 @@ DEPLOYMENT FLOW:
 
 4. Helmsman: eSignet  [helmsman_esignet.yml, profile=esignet]
  └── 4 parallel instances (esignet / esignet-cre / esignet-qa11 / esignet-sunbird)
- └── ✅ Auto-triggers Signup workflow on success
 
-5. Helmsman: Signup  [helmsman_signup.yml — auto-triggered]
- └── Signup service, signup-ui, kernel services
-
-6. Helmsman: Test Rigs  [helmsman_testrigs.yml, profile=esignet, manual]
+5. Helmsman: Test Rigs  [helmsman_testrigs.yml, profile=esignet, manual]
  └── API testrigs for all 4 esignet namespaces
  └── ✅ Deployment Complete!
 ```
