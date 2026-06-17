@@ -4,13 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       profile:
-        description: "Choose MOSIP platform profile"
+        description: "Choose deployment profile"
         required: true
-        default: "mosip-platform-java11"
+        default: "mosip-platform-1.2.0.x"
         type: choice
         options:
-          - mosip-platform-java11
-          - mosip-platform-java21
+          - mosip-platform-1.2.0.x
+          - mosip-platform-1.2.1.x
+          - esignet
       mode:
         description: "Choose Helmsman mode: dry-run or apply"
         required: true
@@ -21,7 +22,23 @@ on:
           - apply
       domain_name:
         description: "Domain name for this environment (e.g. example.xyz.net)"
+        required: true
+        type: string
+      cre_domain_name:
+        description: "CRE domain name (e.g. cre.xyz.net) — required for esignet profile"
         required: false
+        type: string
+      qa11_domain_name:
+        description: "QA base domain name (e.g. qabase.xyz.net) — required for esignet profile"
+        required: false
+        type: string
+      db_port:
+        description: "PostgreSQL port for MOSIP platform external postgres (e.g. 5433)"
+        required: true
+        type: string
+      esignet_db_port:
+        description: "PostgreSQL port for eSignet standalone container postgres (e.g. 5432)"
+        required: true
         type: string
       env_name:
         description: "Environment name (e.g. sandbox, dev, staging)"
@@ -52,12 +69,23 @@ jobs:
       - name: Validate required variables
         run: |
           errors=()
+          PROFILE="${{ github.event.inputs.profile }}"
           DOMAIN="${{ github.event.inputs.domain_name || vars.DOMAIN_NAME }}"
           ENV="${{ github.event.inputs.env_name || vars.ENV_NAME }}"
           SLACK_CH="${{ github.event.inputs.slack_channel_name || vars.SLACK_CHANNEL_NAME }}"
-          [ -z "$DOMAIN" ]    && errors+=("domain_name is empty — set vars.DOMAIN_NAME under Environment '${{ github.ref_name }}'")
-          [ -z "$ENV" ]       && errors+=("env_name is empty — set vars.ENV_NAME under Environment '${{ github.ref_name }}'")
-          [ -z "$SLACK_CH" ]  && errors+=("slack_channel_name is empty — set vars.SLACK_CHANNEL_NAME under Environment '${{ github.ref_name }}'")
+          DB_PORT="${{ github.event.inputs.db_port || vars.DB_PORT }}"
+          ESIGNET_DB_PORT="${{ github.event.inputs.esignet_db_port || vars.ESIGNET_DB_PORT }}"
+          [ -z "$DOMAIN" ]          && errors+=("domain_name is empty — set vars.DOMAIN_NAME under Environment '${{ github.ref_name }}'")
+          [ -z "$ENV" ]             && errors+=("env_name is empty — set vars.ENV_NAME under Environment '${{ github.ref_name }}'")
+          [ -z "$SLACK_CH" ]        && errors+=("slack_channel_name is empty — set vars.SLACK_CHANNEL_NAME under Environment '${{ github.ref_name }}'")
+          [ -z "$DB_PORT" ]         && errors+=("db_port is empty — set vars.DB_PORT under Environment '${{ github.ref_name }}'")
+          [ -z "$ESIGNET_DB_PORT" ] && errors+=("esignet_db_port is empty — set vars.ESIGNET_DB_PORT under Environment '${{ github.ref_name }}'")
+          if [ -z "$PROFILE" ] || [ "$PROFILE" = "esignet" ]; then
+            CRE_DOMAIN="${{ github.event.inputs.cre_domain_name || vars.CRE_DOMAIN_NAME }}"
+            QA11_DOMAIN="${{ github.event.inputs.qa11_domain_name || vars.QA11_DOMAIN_NAME }}"
+            [ -z "$CRE_DOMAIN" ]    && errors+=("cre_domain_name is empty — set vars.CRE_DOMAIN_NAME under Environment '${{ github.ref_name }}'")
+            [ -z "$QA11_DOMAIN" ] && errors+=("qa11_domain_name is empty — set vars.QA11_DOMAIN_NAME under Environment '${{ github.ref_name }}'")
+          fi
           if [ ${#errors[@]} -gt 0 ]; then
             echo "❌ Required variables missing:"
             printf '  - %s\n' "${errors[@]}"
@@ -67,6 +95,12 @@ jobs:
           echo "✓ domain_name        = $DOMAIN"
           echo "✓ env_name           = $ENV"
           echo "✓ slack_channel_name = $SLACK_CH"
+          echo "✓ db_port            = $DB_PORT"
+          echo "✓ esignet_db_port    = $ESIGNET_DB_PORT"
+          if [ -z "$PROFILE" ] || [ "$PROFILE" = "esignet" ]; then
+            echo "✓ cre_domain_name    = $CRE_DOMAIN (esignet profile)"
+            echo "✓ qa11_domain_name = $QA11_DOMAIN (esignet profile)"
+          fi
 
   deploy:
     runs-on: ubuntu-latest
@@ -78,6 +112,10 @@ jobs:
       PATH: ${{ github.workspace }}/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
       KUBECTL_PATH: ${{ github.workspace }}/.local/bin/kubectl
       domain_name:        ${{ github.event.inputs.domain_name        || vars.DOMAIN_NAME }}
+      cre_domain_name:    ${{ github.event.inputs.cre_domain_name    || vars.CRE_DOMAIN_NAME }}
+      qa11_domain_name: ${{ github.event.inputs.qa11_domain_name || vars.QA11_DOMAIN_NAME }}
+      db_port:            ${{ github.event.inputs.db_port            || vars.DB_PORT }}
+      esignet_db_port:    ${{ github.event.inputs.esignet_db_port    || vars.ESIGNET_DB_PORT }}
       env_name:           ${{ github.event.inputs.env_name           || vars.ENV_NAME }}
       slack_channel_name: ${{ github.event.inputs.slack_channel_name || vars.SLACK_CHANNEL_NAME }}
       SLACK_WEBHOOK_URL:  ${{ github.event.inputs.slack_webhook_url  || secrets.SLACK_WEBHOOK_URL }}
@@ -118,6 +156,10 @@ jobs:
             fi
           }
           save_var "DOMAIN_NAME"        "${{ github.event.inputs.domain_name }}"
+          save_var "CRE_DOMAIN_NAME"    "${{ github.event.inputs.cre_domain_name }}"
+          save_var "QA11_DOMAIN_NAME" "${{ github.event.inputs.qa11_domain_name }}"
+          save_var "DB_PORT"            "${{ github.event.inputs.db_port }}"
+          save_var "ESIGNET_DB_PORT"    "${{ github.event.inputs.esignet_db_port }}"
           save_var "ENV_NAME"           "${{ github.event.inputs.env_name }}"
           save_var "SLACK_CHANNEL_NAME" "${{ github.event.inputs.slack_channel_name }}"
 
@@ -233,13 +275,40 @@ jobs:
           kubectl version --client
           kubectl get nodes
           kubectl cluster-info
+      - name: Get MinIO root password (esignet profile)
+        if: env.PROFILE == 'esignet'
+        run: |
+          if kubectl -n minio get secret minio &>/dev/null; then
+            MINIO_ROOT_PASSWORD=$(kubectl -n minio get secret minio -o jsonpath='{.data.root-password}' | base64 -d)
+            if [ -n "$MINIO_ROOT_PASSWORD" ]; then
+              echo "::add-mask::$MINIO_ROOT_PASSWORD"
+              echo "MINIO_ROOT_PASSWORD=$MINIO_ROOT_PASSWORD" >> $GITHUB_ENV
+              echo "✅ MINIO_ROOT_PASSWORD retrieved"
+            else
+              echo "❌ root-password is empty in minio/minio secret"; exit 1
+            fi
+          else
+            echo "❌ secret minio not found in minio namespace"; exit 1
+          fi
+
       - name: Check if mosip-dsf label is completed
+        if: env.PROFILE != 'esignet'
         run: |
           STATUS=$(kubectl get namespace default -o jsonpath='{.metadata.labels.mosip-dsf}')
           if [[ "$STATUS" != "completed" ]]; then
             echo "❌ MOSIP DSF not completed."
             exit 1
           fi
+
+      - name: Check if esignet-dsf label is completed
+        if: env.PROFILE == 'esignet'
+        run: |
+          STATUS=$(kubectl get namespace default -o jsonpath='{.metadata.labels.esignet-dsf}' 2>/dev/null || echo "")
+          if [[ "$STATUS" != "completed" ]]; then
+            echo "❌ eSignet DSF not completed. Run helmsman_esignet.yml first."
+            exit 1
+          fi
+          echo "✅ eSignet DSF is completed. Proceeding with testrig deployment."
       - name: Show deployment variables
         run: |
           echo "domain_name        = $domain_name"
@@ -257,4 +326,4 @@ jobs:
 
           # Run helmsman with the determined mode and profile
           echo "Using profile: $PROFILE"
-          helmsman --${HELMSMAN_MODE} -f $WORKDIR/dsf/${PROFILE}/testrigs-dsf.yaml
+          helmsman --${HELMSMAN_MODE} --keep-untracked-releases -f $WORKDIR/dsf/${PROFILE}/testrigs-dsf.yaml

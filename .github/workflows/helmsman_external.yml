@@ -6,11 +6,11 @@ on:
       profile:
         description: "Deployment profile to use"
         required: true
-        default: "mosip-platform-java11"
+        default: "mosip-platform-1.2.0.x"
         type: choice
         options:
-          - mosip-platform-java11
-          - mosip-platform-java21
+          - mosip-platform-1.2.0.x
+          - mosip-platform-1.2.1.x
           - esignet
       mode:
         description: "Choose Helmsman mode: dry-run or apply"
@@ -22,7 +22,15 @@ on:
           - apply
       domain_name:
         description: "Domain name for this environment (e.g. example.xyz.net)"
-        required: false
+        required: true
+        type: string
+      db_port:
+        description: "PostgreSQL port for MOSIP platform external postgres (e.g. 5433)"
+        required: true
+        type: string
+      esignet_db_port:
+        description: "PostgreSQL port for eSignet standalone container postgres (e.g. 5432)"
+        required: true
         type: string
       env_name:
         description: "Environment name (e.g. sandbox, dev, staging)"
@@ -38,7 +46,7 @@ on:
         type: string
       clusterid:
         description: "Rancher cluster ID for rancher-monitoring (e.g. c-xxxxx)"
-        required: false
+        required: true
         type: string
   push:
     paths:
@@ -62,10 +70,14 @@ jobs:
           ENV="${{ github.event.inputs.env_name || vars.ENV_NAME }}"
           CLUSTER="${{ github.event.inputs.clusterid || vars.CLUSTER_ID }}"
           SLACK_CH="${{ github.event.inputs.slack_channel_name || vars.SLACK_CHANNEL_NAME }}"
-          [ -z "$DOMAIN" ]    && errors+=("domain_name is empty — set vars.DOMAIN_NAME under Environment '${{ github.ref_name }}'")
-          [ -z "$ENV" ]       && errors+=("env_name is empty — set vars.ENV_NAME under Environment '${{ github.ref_name }}'")
-          [ -z "$CLUSTER" ]   && errors+=("clusterid is empty — set vars.CLUSTER_ID under Environment '${{ github.ref_name }}'")
-          [ -z "$SLACK_CH" ]  && errors+=("slack_channel_name is empty — set vars.SLACK_CHANNEL_NAME under Environment '${{ github.ref_name }}'")
+          DB_PORT="${{ github.event.inputs.db_port || vars.DB_PORT }}"
+          ESIGNET_DB_PORT="${{ github.event.inputs.esignet_db_port || vars.ESIGNET_DB_PORT }}"
+          [ -z "$DOMAIN" ]          && errors+=("domain_name is empty — set vars.DOMAIN_NAME under Environment '${{ github.ref_name }}'")
+          [ -z "$ENV" ]             && errors+=("env_name is empty — set vars.ENV_NAME under Environment '${{ github.ref_name }}'")
+          [ -z "$CLUSTER" ]         && errors+=("clusterid is empty — set vars.CLUSTER_ID under Environment '${{ github.ref_name }}'")
+          [ -z "$SLACK_CH" ]        && errors+=("slack_channel_name is empty — set vars.SLACK_CHANNEL_NAME under Environment '${{ github.ref_name }}'")
+          [ -z "$DB_PORT" ]         && errors+=("db_port is empty — set vars.DB_PORT under Environment '${{ github.ref_name }}'")
+          [ -z "$ESIGNET_DB_PORT" ] && errors+=("esignet_db_port is empty — set vars.ESIGNET_DB_PORT under Environment '${{ github.ref_name }}'")
           if [ ${#errors[@]} -gt 0 ]; then
             echo "❌ Required variables missing:"
             printf '  - %s\n' "${errors[@]}"
@@ -76,6 +88,8 @@ jobs:
           echo "✓ env_name           = $ENV"
           echo "✓ clusterid          = $CLUSTER"
           echo "✓ slack_channel_name = $SLACK_CH"
+          echo "✓ db_port            = $DB_PORT"
+          echo "✓ esignet_db_port    = $ESIGNET_DB_PORT"
 
       - name: Persist workflow inputs as environment variables
         if: github.event_name == 'workflow_dispatch'
@@ -102,6 +116,8 @@ jobs:
             fi
           }
           save_var "DOMAIN_NAME"        "${{ github.event.inputs.domain_name }}"
+          save_var "DB_PORT"            "${{ github.event.inputs.db_port }}"
+          save_var "ESIGNET_DB_PORT"    "${{ github.event.inputs.esignet_db_port }}"
           save_var "ENV_NAME"           "${{ github.event.inputs.env_name }}"
           save_var "CLUSTER_ID"         "${{ github.event.inputs.clusterid }}"
           save_var "SLACK_CHANNEL_NAME" "${{ github.event.inputs.slack_channel_name }}"
@@ -182,10 +198,14 @@ jobs:
       ISTIOCTL_PATH: ${{ github.workspace }}/istio-1.22.0/bin/istioctl
       KUBECTL_PATH: ${{ github.workspace }}/.local/bin/kubectl
       domain_name:         ${{ github.event.inputs.domain_name         || vars.DOMAIN_NAME }}
+      db_port:             ${{ github.event.inputs.db_port             || vars.DB_PORT }}
+      esignet_db_port:     ${{ github.event.inputs.esignet_db_port     || vars.ESIGNET_DB_PORT }}
       env_name:            ${{ github.event.inputs.env_name            || vars.ENV_NAME }}
       slack_channel_name:  ${{ github.event.inputs.slack_channel_name  || vars.SLACK_CHANNEL_NAME }}
       SLACK_WEBHOOK_URL:   ${{ github.event.inputs.slack_webhook_url   || secrets.SLACK_WEBHOOK_URL }}
       CLUSTER_ID:          ${{ github.event.inputs.clusterid           || vars.CLUSTER_ID }}
+      ESIGNET_CAPTCHA_SITE_KEY: ${{ secrets.ESIGNET_CAPTCHA_SITE_KEY }}
+      ESIGNET_CAPTCHA_SECRET_KEY: ${{ secrets.ESIGNET_CAPTCHA_SECRET_KEY }}
       PREREG_CAPTCHA_SITE_KEY: ${{ secrets.PREREG_CAPTCHA_SITE_KEY }}
       PREREG_CAPTCHA_SECRET_KEY: ${{ secrets.PREREG_CAPTCHA_SECRET_KEY }}
       ADMIN_CAPTCHA_SITE_KEY: ${{ secrets.ADMIN_CAPTCHA_SITE_KEY }}
@@ -204,6 +224,11 @@ jobs:
 
       - name: Mask sensitive secrets
         run: |
+          MINIO_ROOT_PASSWORD=$(kubectl -n minio get secret minio -o jsonpath='{.data.root-password}' 2>/dev/null | base64 -d || true)
+          if [ -n "$MINIO_ROOT_PASSWORD" ]; then echo "::add-mask::$MINIO_ROOT_PASSWORD"; fi
+          echo "MINIO_ROOT_PASSWORD=$MINIO_ROOT_PASSWORD" >> $GITHUB_ENV
+          echo "::add-mask::${{ secrets.ESIGNET_CAPTCHA_SITE_KEY }}"
+          echo "::add-mask::${{ secrets.ESIGNET_CAPTCHA_SECRET_KEY }}"
           echo "::add-mask::${{ secrets.PREREG_CAPTCHA_SITE_KEY }}"
           echo "::add-mask::${{ secrets.PREREG_CAPTCHA_SECRET_KEY }}"
           echo "::add-mask::${{ secrets.ADMIN_CAPTCHA_SITE_KEY }}"
@@ -314,6 +339,32 @@ jobs:
           
           # Test istioctl functionality  
           istioctl version --remote=false
+      - name: Export keycloak client secrets for esignet-keycloak-init
+        if: contains(matrix.dsf_files, 'esignet/external-dsf.yaml')
+        run: |
+          # Read existing client secrets from keycloak ns — empty on fresh install,
+          # real values on re-run. Helmsman resolves ${VAR} at parse time so these
+          # must be in $GITHUB_ENV before helmsman starts.
+          get_secret() {
+            kubectl -n keycloak get secret keycloak-client-secrets \
+              -o jsonpath="{.data.$1}" 2>/dev/null | base64 -d || echo ""
+          }
+          PMS=$(get_secret mosip_pms_client_secret)
+          MPARTNER=$(get_secret mpartner_default_auth_secret)
+          IDA=$(get_secret mosip_ida_client_secret)
+          DEPLOY=$(get_secret mosip_deployment_client_secret)
+          MOBILE=$(get_secret mpartner_default_mobile_secret)
+          [ -n "$PMS" ]     && echo "::add-mask::$PMS"
+          [ -n "$MPARTNER" ] && echo "::add-mask::$MPARTNER"
+          [ -n "$IDA" ]     && echo "::add-mask::$IDA"
+          [ -n "$DEPLOY" ]  && echo "::add-mask::$DEPLOY"
+          [ -n "$MOBILE" ]  && echo "::add-mask::$MOBILE"
+          echo "PMS_CLIENT_SECRET_VALUE=$PMS"                       >> $GITHUB_ENV
+          echo "MPARTNER_DEFAULT_AUTH_SECRET_VALUE=$MPARTNER"       >> $GITHUB_ENV
+          echo "IDA_CLIENT_SECRET_VALUE=$IDA"                       >> $GITHUB_ENV
+          echo "DEPLOYMENT_CLIENT_SECRET_VALUE=$DEPLOY"             >> $GITHUB_ENV
+          echo "MPARTNER_DEFAULT_MOBILE_SECRET_VALUE=$MOBILE"       >> $GITHUB_ENV
+
       - name: Check if external-dsf label is completed only for push
         if: github.event_name == 'push'
         run: |

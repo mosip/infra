@@ -1,0 +1,27 @@
+modules:
+  esignet-signup:
+    enabled: true
+    image:
+      repository: mosipid/apitest-esignet-signup
+      tag: 1.2.2
+      pullPolicy: Always
+
+extraEnvVarsCM:
+  - s3
+  - keycloak-host
+  - db
+  - apitestrig
+
+extraEnvVarsSecret:
+  - apitestrig-esignet-signup-apitestrig
+  - s3-esignet-signup-apitestrig
+  - keycloak-client-secrets
+  - postgres-postgresql
+
+resources:
+  limits:
+    cpu: 300m
+    memory: 500Mi
+  requests:
+    cpu: 300m
+    memory: 500Mi

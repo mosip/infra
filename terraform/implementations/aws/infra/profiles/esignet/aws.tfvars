@@ -26,10 +26,10 @@ specific_availability_zones = []
 
 # The instance type for Kubernetes nodes (control plane, worker, etcd)
 # Smaller instance type since eSignet standalone needs fewer resources
-k8s_instance_type = "t3a.xlarge"
+k8s_instance_type = "t3a.2xlarge"
 
 # The instance type for Nginx server (load balancer)
-nginx_instance_type = "t3a.xlarge"
+nginx_instance_type = "t3a.2xlarge"
 
 # The Route 53 hosted zone ID
 zone_id = "<route53_zone_id>"
@@ -77,11 +77,12 @@ enable_rancher_import = true
 rancher_import_url    = "\"<rancher-import-url>\""
 
 # DNS Records to map — only eSignet-relevant subdomains
-subdomain_public   = ["esignet", "signup", "minio"]
-subdomain_internal = ["iam", "kafka", "postgres", "keycloak"]
+
+subdomain_public   = ["esignet", "healthservices", "signup", "esignet-sunbird", "healthservices-sunbird", "healthservices-mosipid-cre", "esignet-mosipid-cre", "pms-partner-cre", "pms-policy-cre", "signup-mosipid-cre", "healthservices-mosipid-qa11", "esignet-mosipid-qa11", "pms-partner-qa11", "pms-policy-qa11", "signup-mosipid-qa11"]
+subdomain_internal = ["iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio"]
 
 # PostgreSQL Configuration
-enable_postgresql_setup = true
+enable_postgresql_setup = false
 postgresql_version      = "15"
 storage_device          = "/dev/nvme2n1"
 mount_point             = "/srv/postgres"
@@ -90,7 +91,7 @@ postgresql_port         = "5433"
 # MOSIP Infrastructure Repository Configuration
 mosip_infra_repo_url = "https://github.com/mosip/infra.git"
 
-mosip_infra_branch = "release-0.2.0"
+mosip_infra_branch = "develop"
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
 vpc_name = "<vpc-name>"
@@ -105,4 +106,4 @@ nginx_node_ebs_volume_size_3 = 0     # Volume size in GB (e.g. 100); 0 = disable
 
 activemq_storage_device    = "/dev/nvme3n1"
 activemq_mount_point       = "/srv/activemq"
-activemq_nfs_allowed_hosts = "*"  # Restrict to cluster CIDR in production e.g. "10.0.0.0/8"
+activemq_nfs_allowed_hosts = "*" # Restrict to cluster CIDR in production e.g. "10.0.0.0/8"

@@ -1,0 +1,85 @@
+# eSignet Sunbird — plugin 3 (sunbird-rc-plugin) runtime configuration.
+# pluginNameEnv=sunbird-rc-plugin.jar set in DSF set: block.
+# Update MOSIP_ESIGNET_SUNBIRD_RC_REGISTRY_GET_URL to your Sunbird registry host.
+
+# Override full extraEnvVars to use namespace-specific softhsm secret name.
+extraEnvVars:
+  - name: KEYCLOAK_EXTERNAL_URL
+    valueFrom:
+      configMapKeyRef:
+        name: keycloak-host
+        key: keycloak-external-url
+  - name: MOSIP_ESIGNET_CAPTCHA_MODULE_NAME
+    value: esignet
+  - name: REDIS_HOST
+    valueFrom:
+      configMapKeyRef:
+        name: redis-config
+        key: redis-host
+  - name: REDIS_PORT
+    valueFrom:
+      configMapKeyRef:
+        name: redis-config
+        key: redis-port
+  - name: REDIS_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: redis
+        key: redis-password
+  - name: DATABASE_HOST
+    valueFrom:
+      configMapKeyRef:
+        name: postgres-config
+        key: database-host
+  - name: DATABASE_PORT
+    valueFrom:
+      configMapKeyRef:
+        name: postgres-config
+        key: database-port
+  - name: DATABASE_NAME
+    valueFrom:
+      configMapKeyRef:
+        name: postgres-config
+        key: database-name
+  - name: DATABASE_USERNAME
+    valueFrom:
+      configMapKeyRef:
+        name: postgres-config
+        key: database-username
+  - name: DB_DBUSER_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: db-common-secrets
+        key: db-dbuser-password
+  - name: SOFTHSM_ESIGNET_SECURITY_PIN
+    valueFrom:
+      secretKeyRef:
+        name: esignet-softhsm-sunbird
+        key: security-pin
+  - name: MOSIP_IDA_CLIENT_SECRET
+    valueFrom:
+      secretKeyRef:
+        name: keycloak-client-secrets
+        key: mosip_ida_client_secret
+
+extraEnvVarsAdditional:
+  - name: "MOSIP_ESIGNET_CAPTCHA_SITE_KEY"
+    valueFrom:
+      secretKeyRef:
+        name: esignet-captcha-sunbird
+        key: esignet-captcha-site-key
+  - name: "MOSIP_ESIGNET_CAPTCHA_REQUIRED"
+    value: "false"
+
+  # ---------------------------------------------------------------------------
+  # Plugin 3: sunbird-rc-plugin
+  # Update URLs to match your Sunbird RC registry deployment.
+  # ---------------------------------------------------------------------------
+  - name: "MOSIP_ESIGNET_SUNBIRD_RC_REGISTRY_GET_URL"
+    value: "https://your-sunbird-registry-host"
+  - name: "MOSIP_ESIGNET_AUTHENTICATOR_SUNBIRD_RC_AUTH_FACTOR_KBI_REGISTRY_SEARCH_URL"
+    value: "https://your-sunbird-registry-host/api/v1/Insurance/search"
+  - name: "MOSIP_ESIGNET_INTEGRATION_AUDIT_PLUGIN"
+    value: "LoggerAuditService"
+  - name: "MOSIP_ESIGNET_INTEGRATION_KEY_BINDER"
+    value: "NoOpKeyBinder"
