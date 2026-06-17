@@ -450,6 +450,18 @@ jobs:
             echo "DB_USER_PASSWORD=" >> $GITHUB_ENV
           fi
 
+      - name: Get MinIO root password
+        if: ${{ env.PROFILE == 'esignet' }}
+        run: |
+          MINIO_ROOT_PASSWORD=$(kubectl -n minio get secret minio -o jsonpath='{.data.root-password}' | base64 -d)
+          if [ -n "$MINIO_ROOT_PASSWORD" ]; then
+            echo "::add-mask::$MINIO_ROOT_PASSWORD"
+            echo "MINIO_ROOT_PASSWORD=$MINIO_ROOT_PASSWORD" >> $GITHUB_ENV
+            echo "✅ MINIO_ROOT_PASSWORD retrieved"
+          else
+            echo "❌ root-password is empty in minio/minio secret — deploy external-dsf first"; exit 1
+          fi
+
       - name: Get Keycloak Client Secrets for esignet-keycloak-init
         id: get-keycloak-secrets
         run: |
