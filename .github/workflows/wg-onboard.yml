@@ -110,10 +110,13 @@ jobs:
           GIT_COMMITTER_EMAIL: ${{ github.actor }}@users.noreply.github.com
         run: |
           tracker=".github/scripts/wg-peer-allocation.tsv"
-          git pull --rebase origin "${GITHUB_REF_NAME}"
           if git diff --quiet -- "$tracker"; then
             echo "No allocation change to commit"
           else
+            if ! git pull --rebase --autostash origin "${GITHUB_REF_NAME}"; then
+              echo "ERROR: Rebase failed (concurrent tracker update?). Resolve on ${GITHUB_REF_NAME} and re-run."
+              exit 1
+            fi
             git add "$tracker"
             git commit -s -m "wg: allocate peers for environment $INPUT_ENV_NAME"
             git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:${GITHUB_REF_NAME}"
