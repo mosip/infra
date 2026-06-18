@@ -281,7 +281,7 @@ apps:
   masterdata:
     namespace: kernel
     enabled: true
-    version: 1.3.1
+    version: 1.3.2-rc.1
     chart: mosip/masterdata
     set:
       # image.repository: "mosipdev/kernel-masterdata-service"
