@@ -222,17 +222,17 @@ atomic_allocate_peers() {
   local force_wg0="${WG0_PEER:-__none__}"
   local force_wg1="${WG1_PEER:-__none__}"
   ssh_cmd bash -s -- \
-    "$(remote_quote "$ASSIGNED_FILE")" \
-    "$(remote_quote "$ASSIGN_LOCK_FILE")" \
-    "$(remote_quote "$CONFIG_DIR")" \
-    "$(remote_quote "$ENV_NAME")" \
-    "$(remote_quote "$LABEL")" \
-    "$(remote_quote "$MAX_PEERS")" \
-    "$(remote_quote "$force_tf")" \
-    "$(remote_quote "$force_wg0")" \
-    "$(remote_quote "$force_wg1")" \
-    "$(remote_quote "$DRY_RUN")" \
-    "$(remote_quote "$CAN_CREATE_PEERS")" \
+    "$ASSIGNED_FILE" \
+    "$ASSIGN_LOCK_FILE" \
+    "$CONFIG_DIR" \
+    "$ENV_NAME" \
+    "$LABEL" \
+    "$MAX_PEERS" \
+    "$force_tf" \
+    "$force_wg0" \
+    "$force_wg1" \
+    "$DRY_RUN" \
+    "$CAN_CREATE_PEERS" \
     <<'REMOTE_ATOMIC_ALLOCATE'
 set -euo pipefail
 
@@ -556,14 +556,14 @@ atomic_rollback_assignments() {
   local record_tf="$1" record_wg0="$2" record_wg1="$3"
   [[ "$record_tf" == "true" || "$record_wg0" == "true" || "$record_wg1" == "true" ]] || return 0
   ssh_cmd bash -s -- \
-    "$(remote_quote "$ASSIGNED_FILE")" \
-    "$(remote_quote "$ASSIGN_LOCK_FILE")" \
-    "$(remote_quote "$TF_PEER")" \
-    "$(remote_quote "$WG0_PEER")" \
-    "$(remote_quote "$WG1_PEER")" \
-    "$(remote_quote "$record_tf")" \
-    "$(remote_quote "$record_wg0")" \
-    "$(remote_quote "$record_wg1")" \
+    "$ASSIGNED_FILE" \
+    "$ASSIGN_LOCK_FILE" \
+    "$TF_PEER" \
+    "$WG0_PEER" \
+    "$WG1_PEER" \
+    "$record_tf" \
+    "$record_wg0" \
+    "$record_wg1" \
     <<'REMOTE_ROLLBACK_ASSIGNMENTS'
 set -euo pipefail
 
