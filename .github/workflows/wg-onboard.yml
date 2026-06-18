@@ -5,7 +5,7 @@ name: WireGuard onboard environment
 # GitHub *environment* secrets (TF_WG_CONFIG, CLUSTER_WIREGUARD_WG0/WG1) so a
 # QA/dev team can run the Terraform + Helmsman workflows without DevOps.
 #
-# Requires .github/scripts/wg-onboard.sh (mosip/infra PR #247).
+# Requires .github/scripts/wg-onboard.sh (mosip/infra PR #253).
 
 on:
   workflow_dispatch:
@@ -45,6 +45,9 @@ on:
         type: boolean
         default: true
 
+permissions:
+  contents: read
+
 jobs:
   onboard:
     runs-on: self-hosted
@@ -60,14 +63,15 @@ jobs:
           SSH_KEY: ${{ secrets.MOSIP_AWS_PEM }}
           SSH_KEY_NAME: MOSIP_AWS_PEM
         run: |
-          mkdir -p ~/.ssh
-          # Use printf + strip CR so multi-line PEMs / CRLF secrets are written intact
-          printf '%s\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/jumpserver_key
-          chmod 600 ~/.ssh/jumpserver_key
-          if ! ssh-keygen -l -f ~/.ssh/jumpserver_key >/dev/null 2>&1; then
+          SSH_KEY_PATH="${RUNNER_TEMP}/jumpserver_key"
+          printf '%s\n' "$SSH_KEY" | tr -d '\r' > "$SSH_KEY_PATH"
+          chmod 600 "$SSH_KEY_PATH"
+          if ! ssh-keygen -l -f "$SSH_KEY_PATH" >/dev/null 2>&1; then
             echo "ERROR: secret '$SSH_KEY_NAME' is not a valid private key (check format/newlines/CRLF)"
             exit 1
           fi
+          echo "SSH_KEY_PATH=$SSH_KEY_PATH" >> "$GITHUB_ENV"
+
       - name: Run WireGuard onboarding
         env:
           GH_TOKEN: ${{ secrets.ACTION_PAT }}
@@ -80,11 +84,11 @@ jobs:
           INPUT_DRY_RUN: ${{ inputs.DRY_RUN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
-          chmod +x .github/workflows/scripts/wg-onboard.sh
+          chmod +x .github/scripts/wg-onboard.sh
           args=(
             --env "$INPUT_ENV_NAME"
             --host "$INPUT_JUMPSERVER_HOST"
-            --ssh-key ~/.ssh/jumpserver_key
+            --ssh-key "$SSH_KEY_PATH"
             --repo "$GITHUB_REPOSITORY"
             --wg-dir "$INPUT_WG_DIR"
             --allowed-ips "$INPUT_ALLOWED_IPS"
@@ -92,6 +96,11 @@ jobs:
           [[ -n "$INPUT_TICKET" ]] && args+=(--ticket "$INPUT_TICKET")
           [[ "$INPUT_DRY_RUN" == "true" ]] && args+=(--dry-run)
           .github/scripts/wg-onboard.sh "${args[@]}"
+
+      - name: Cleanup SSH private key
+        if: always()
+        run: rm -f "${SSH_KEY_PATH:-}"
+
       - name: Commit updated peer allocation
         if: ${{ inputs.DRY_RUN == false }}
         env:
