@@ -55,7 +55,7 @@ apps:
   # generate-secret-cm.py or manual secret/configmap creation.
   postgres:
     namespace: postgres
-    enabled: true
+    enabled: false
     version: 13.1.5
     chart: bitnami/postgresql
     set:
@@ -71,7 +71,7 @@ apps:
 
   istio-addons-psql:
     namespace: postgres
-    enabled: true
+    enabled: false
     version: 0.1.0
     chart: $WORKDIR/utils/istio-addons/postgres-istio-addons-0.1.0.tgz
     set:
@@ -90,7 +90,7 @@ apps:
   # scriptsDir is fixed (must match repo folder); dbName/dbUser are customized per namespace.
   postgres-init-esignet:
     namespace: postgres
-    enabled: true
+    enabled: false
     version: 0.0.1-develop
     chart: mosip/postgres-init
     set:
@@ -188,7 +188,7 @@ apps:
   # Initializes mosip_audit, mosip_kernel, mosip_otp (v1.2.0.1 branch).
   postgres-init-signup:
     namespace: signup
-    enabled: true
+    enabled: false
     version: 12.0.1
     chart: mosip/postgres-init
     set:
@@ -241,7 +241,7 @@ apps:
   # ---------------------------------------------------------------------------
   redis:
     namespace: redis
-    enabled: true
+    enabled: false
     version: 17.3.14
     chart: bitnami/redis
     set:
@@ -259,7 +259,7 @@ apps:
   # ---------------------------------------------------------------------------
   kafka:
     namespace: kafka
-    enabled: true
+    enabled: false
     version: 18.3.1
     chart: bitnami/kafka
     set:
@@ -299,7 +299,7 @@ apps:
 
   kafka-ui:
     namespace: kafka
-    enabled: true
+    enabled: false
     version: 0.4.2
     chart: kafka-ui/kafka-ui
     set:
@@ -313,7 +313,7 @@ apps:
 
   istio-addons-kafka:
     namespace: kafka
-    enabled: true
+    enabled: false
     version: 1.2.0
     chart: $WORKDIR/utils/istio-addons/kafka-istio-addons-1.2.0.tgz
     set:
@@ -330,7 +330,7 @@ apps:
   # API access control for eSignet client management APIs.
   keycloak:
     namespace: keycloak
-    enabled: true
+    enabled: false
     version: 7.1.18
     chart: mosip/keycloak
     set:
@@ -363,7 +363,7 @@ apps:
 
   istio-addons-iam:
     namespace: keycloak
-    enabled: true
+    enabled: false
     version: 0.1.0
     chart: $WORKDIR/utils/istio-addons/iam-istio-addons-0.1.0.tgz
     set:
@@ -384,7 +384,7 @@ apps:
   # namespaces so they are ready when esignet-dsf runs.
   esignet-keycloak-init:
     namespace: keycloak
-    enabled: true
+    enabled: false
     version: 12.0.2
     chart: mosip/keycloak-init
     valuesFile: "$WORKDIR/utils/keycloak-esignet-init-values.yaml"
@@ -413,7 +413,7 @@ apps:
   # ---------------------------------------------------------------------------
   captcha:
     namespace: captcha
-    enabled: true
+    enabled: false
     version: 0.1.0-beta.1
     chart: mosip/captcha
     set:
@@ -426,7 +426,7 @@ apps:
 
   minio:
     namespace: minio
-    enabled: true
+    enabled: false
     version: 10.1.6
     chart: mosip/minio
     set:
@@ -445,7 +445,7 @@ apps:
 
   istio-addons-minio:
     namespace: minio
-    enabled: true
+    enabled: false
     version: 1.2.0
     chart: $WORKDIR/utils/istio-addons/minio-istio-addons-1.2.0.tgz
     set:
