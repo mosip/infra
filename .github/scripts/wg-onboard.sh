@@ -285,12 +285,40 @@ peer_label_is_taken() {
   [[ -n "$label" && "${label,,}" != "available" ]]
 }
 
+assigned_file_writable() {
+  local file="$1" dir
+  dir="$(dirname "$file")"
+  if [[ -e "$file" ]]; then
+    if [[ ! -w "$file" ]]; then
+      echo "ERROR: $file is not writable by $(whoami) ($(stat -c '%U:%G %a' "$file" 2>/dev/null || echo 'stat failed'))" >&2
+      echo "Fix on jumpserver: sudo chown ubuntu:ubuntu '$file' && sudo chmod u+w '$file'" >&2
+      return 1
+    fi
+  elif [[ ! -w "$dir" ]]; then
+    echo "ERROR: cannot create $file (directory $dir not writable by $(whoami))" >&2
+    return 1
+  fi
+}
+
+atomic_replace_file() {
+  local src="$1" dest="$2"
+  if ! mv -f "$src" "$dest"; then
+    rm -f "$src"
+    echo "ERROR: cannot update $dest (check ownership/permissions)" >&2
+    return 1
+  fi
+}
+
 record_assignment() {
   local peer="$1" assignment="$2" format="$3" file="$4"
   local safe_assignment="${assignment//\\/\\\\}"
   safe_assignment="${safe_assignment//&/\\&}"
-  local tmp
-  tmp="$(mktemp)"
+  local dir tmp
+  dir="$(dirname "$file")"
+  tmp="$(mktemp "$dir/.assigned.XXXXXX")" || {
+    echo "ERROR: cannot create temp file in $dir" >&2
+    return 1
+  }
   if [[ "$format" == "colon" ]]; then
     awk -v peer="$peer" -v assignment="$assignment" '
       BEGIN {
@@ -332,7 +360,7 @@ record_assignment() {
       }
     ' "$file" > "$tmp"
   fi
-  mv -f "$tmp" "$file"
+  atomic_replace_file "$tmp" "$file"
 }
 
 ensure_peer_conf() {
@@ -528,6 +556,7 @@ run_allocation() {
   [[ -z "${ENV_PEERS[$wg1]:-}" ]] && record_wg1="true"
 
   if [[ "$DRY_RUN" != "true" ]]; then
+    assigned_file_writable "$ASSIGNED_FILE" || return 1
     if [[ "$format" == "colon" ]]; then
       [[ "$record_tf" == "true"  ]] && record_assignment "$tf"  "$ENV_NAME" "$format" "$ASSIGNED_FILE"
       [[ "$record_wg0" == "true" ]] && record_assignment "$wg0" "$ENV_NAME" "$format" "$ASSIGNED_FILE"
@@ -588,10 +617,14 @@ if [[ ! -w "$ASSIGNED_FILE" && ! -w "$wg_dir" ]]; then
 fi
 
 remove_peer_line() {
-  local peer="$1" file="$2" tmp
-  tmp="$(mktemp)"
+  local peer="$1" file="$2" dir tmp
+  dir="$(dirname "$file")"
+  tmp="$(mktemp "$dir/.assigned.XXXXXX")" || {
+    echo "ERROR: cannot create temp file in $dir" >&2
+    return 1
+  }
   awk -v p="$peer" '$1 !~ ("^" p ":?$")' "$file" > "$tmp"
-  mv -f "$tmp" "$file"
+  atomic_replace_file "$tmp" "$file"
 }
 
 [[ "$RECORD_TF" == "true"  ]] && remove_peer_line "$TF_PEER" "$ASSIGNED_FILE"
@@ -624,6 +657,27 @@ rollback_allocation_state() {
   atomic_rollback_assignments "$RECORD_TF" "$RECORD_WG0" "$RECORD_WG1" \
     || err "Assignment rollback failed; fix $ASSIGNED_FILE manually for TF=$TF_PEER WG0=$WG0_PEER WG1=$WG1_PEER"
 }
+
+if [[ "$DRY_RUN" != "true" ]]; then
+  log "Checking assigned.txt is writable on ${JUMPSERVER_HOST} ..."
+  if ! ssh_cmd bash -s -- "$ASSIGNED_FILE" <<'REMOTE_WRITABLE_CHECK'; then
+set -euo pipefail
+ASSIGNED_FILE="$1"
+wg_dir="$(dirname "$ASSIGNED_FILE")"
+if [[ -e "$ASSIGNED_FILE" ]]; then
+  if [[ ! -w "$ASSIGNED_FILE" ]]; then
+    echo "ERROR: $ASSIGNED_FILE is not writable by $(whoami) ($(stat -c '%U:%G %a' "$ASSIGNED_FILE" 2>/dev/null || echo 'stat failed'))" >&2
+    echo "Fix: sudo chown ubuntu:ubuntu '$ASSIGNED_FILE' && sudo chmod u+w '$ASSIGNED_FILE'" >&2
+    exit 1
+  fi
+elif [[ ! -w "$wg_dir" ]]; then
+  echo "ERROR: cannot create $ASSIGNED_FILE (directory $wg_dir not writable by $(whoami))" >&2
+  exit 1
+fi
+REMOTE_WRITABLE_CHECK
+    die "assigned.txt is not writable on jumpserver (fix permissions before re-running)"
+  fi
+fi
 
 log "Allocating peers on jumpserver under flock ($ASSIGN_LOCK_FILE) ..."
 ALLOC_RESULT="$(atomic_allocate_peers)" || die "Peer allocation failed on jumpserver"
