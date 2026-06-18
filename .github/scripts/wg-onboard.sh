@@ -93,19 +93,24 @@ urlencode() {
   printf '%s' "$output"
 }
 
+remote_quote() {
+  local s=${1//\'/\'\\\'\'}
+  printf "'%s'" "$s"
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --env)         require_arg --env "$2";         ENV_NAME="$2"; shift 2 ;;
-    --host)        require_arg --host "$2";        JUMPSERVER_HOST="$2"; shift 2 ;;
-    --ssh-key)     require_arg --ssh-key "$2";     SSH_KEY="$2"; shift 2 ;;
-    --repo)        require_arg --repo "$2";        REPO="$2"; shift 2 ;;
-    --ticket)      require_arg --ticket "$2";      TICKET="$2"; shift 2 ;;
-    --wg-dir)      require_arg --wg-dir "$2";      WG_DIR="$2"; shift 2 ;;
-    --allowed-ips) require_arg --allowed-ips "$2"; ALLOWED_IPS="$2"; shift 2 ;;
-    --tf-peer)     require_arg --tf-peer "$2";     TF_PEER="$2"; shift 2 ;;
-    --wg0-peer)    require_arg --wg0-peer "$2";    WG0_PEER="$2"; shift 2 ;;
-    --wg1-peer)    require_arg --wg1-peer "$2";    WG1_PEER="$2"; shift 2 ;;
-    --max-peers)   require_arg --max-peers "$2";   MAX_PEERS="$2"; shift 2 ;;
+    --env)         require_arg --env "${2-}";         ENV_NAME="$2"; shift 2 ;;
+    --host)        require_arg --host "${2-}";        JUMPSERVER_HOST="$2"; shift 2 ;;
+    --ssh-key)     require_arg --ssh-key "${2-}";     SSH_KEY="$2"; shift 2 ;;
+    --repo)        require_arg --repo "${2-}";        REPO="$2"; shift 2 ;;
+    --ticket)      require_arg --ticket "${2-}";      TICKET="$2"; shift 2 ;;
+    --wg-dir)      require_arg --wg-dir "${2-}";      WG_DIR="$2"; shift 2 ;;
+    --allowed-ips) require_arg --allowed-ips "${2-}"; ALLOWED_IPS="$2"; shift 2 ;;
+    --tf-peer)     require_arg --tf-peer "${2-}";     TF_PEER="$2"; shift 2 ;;
+    --wg0-peer)    require_arg --wg0-peer "${2-}";    WG0_PEER="$2"; shift 2 ;;
+    --wg1-peer)    require_arg --wg1-peer "${2-}";    WG1_PEER="$2"; shift 2 ;;
+    --max-peers)   require_arg --max-peers "${2-}";   MAX_PEERS="$2"; shift 2 ;;
     --dry-run)     DRY_RUN="true"; shift ;;
     -h|--help)     usage; exit 0 ;;
     *)             die "Unknown argument: $1 (use --help)" ;;
@@ -137,8 +142,9 @@ log "Target environment: $ENV_NAME (label: $LABEL)"
 log "WireGuard dir: $WG_DIR | AllowedIPs: $ALLOWED_IPS"
 
 SSH_KNOWN_HOSTS_IS_TEMP="false"
+TRACKER_TMP=""
 wg_onboard_exit_cleanup() {
-  [[ -n "${TMP:-}" && -f "$TMP" ]] && rm -f "$TMP"
+  [[ -n "$TRACKER_TMP" && -f "$TRACKER_TMP" ]] && rm -f "$TRACKER_TMP"
   [[ "$SSH_KNOWN_HOSTS_IS_TEMP" == "true" ]] && rm -f "$SSH_KNOWN_HOSTS"
 }
 trap wg_onboard_exit_cleanup EXIT
@@ -163,7 +169,7 @@ ssh_cmd() {
 
 # ---- Preflight: jumpserver connectivity + peer pool sizing -------------------
 log "Checking jumpserver connectivity and peer inventory on ${JUMPSERVER_HOST} ..."
-PEER_LISTING="$(ssh_cmd "ls '$CONFIG_DIR'" 2>/dev/null || true)"
+PEER_LISTING="$(ssh_cmd bash -c "ls -1 $(remote_quote "$CONFIG_DIR")" 2>/dev/null || true)"
 [[ -n "$PEER_LISTING" ]] || die "Could not list $CONFIG_DIR on jumpserver (check --wg-dir / connectivity)"
 
 mapfile -t EXISTING_PEERS < <(printf '%s\n' "$PEER_LISTING" | grep -E '^peer[0-9]+$' | sort -t r -k2 -n)
@@ -196,15 +202,15 @@ log "Peer pool: peer1..peer${MAX_PEERS} (gap-fill order, create missing peers on
 
 CAN_CREATE_PEERS="false"
 if [[ ${#EXISTING_PEERS[@]} -gt 0 ]] \
-  || ssh_cmd "test -f '$CONFIG_DIR/templates/peer.conf' || test -f '$CONFIG_DIR/peer1/peer1.conf'" 2>/dev/null; then
+  || ssh_cmd bash -c "test -f $(remote_quote "$CONFIG_DIR/templates/peer.conf") || test -f $(remote_quote "$CONFIG_DIR/peer1/peer1.conf")" 2>/dev/null; then
   CAN_CREATE_PEERS="true"
 else
   die "No peer directories or templates under $CONFIG_DIR (cannot create missing peers)"
 fi
 
 peer_config_exists() {
-  local peer="$1"
-  ssh_cmd "test -f '$CONFIG_DIR/$peer/$peer.conf'" 2>/dev/null
+  local peer="$1" conf="$CONFIG_DIR/$peer/$peer.conf"
+  ssh_cmd bash -c "test -f $(remote_quote "$conf")" 2>/dev/null
 }
 
 # ---- Flock-guarded peer allocation/record on the jumpserver ----------------
@@ -214,9 +220,18 @@ atomic_allocate_peers() {
   local force_tf="${TF_PEER:-__none__}"
   local force_wg0="${WG0_PEER:-__none__}"
   local force_wg1="${WG1_PEER:-__none__}"
-  ssh_cmd bash -s \
-    "$ASSIGNED_FILE" "$ASSIGN_LOCK_FILE" "$CONFIG_DIR" "$ENV_NAME" "$LABEL" \
-    "$MAX_PEERS" "$force_tf" "$force_wg0" "$force_wg1" "$DRY_RUN" "$CAN_CREATE_PEERS" \
+  ssh_cmd bash -s -- \
+    $(remote_quote "$ASSIGNED_FILE") \
+    $(remote_quote "$ASSIGN_LOCK_FILE") \
+    $(remote_quote "$CONFIG_DIR") \
+    $(remote_quote "$ENV_NAME") \
+    $(remote_quote "$LABEL") \
+    $(remote_quote "$MAX_PEERS") \
+    $(remote_quote "$force_tf") \
+    $(remote_quote "$force_wg0") \
+    $(remote_quote "$force_wg1") \
+    $(remote_quote "$DRY_RUN") \
+    $(remote_quote "$CAN_CREATE_PEERS") \
     <<'REMOTE_ATOMIC_ALLOCATE'
 set -euo pipefail
 
@@ -316,8 +331,7 @@ record_assignment() {
       }
     ' "$file" > "$tmp"
   fi
-  cat "$tmp" > "$file"
-  rm -f "$tmp"
+  mv -f "$tmp" "$file"
 }
 
 ensure_peer_conf() {
@@ -435,33 +449,46 @@ run_allocation() {
     peer_label_is_taken "$PARSED_LABEL" && TAKEN["$PARSED_PEER"]=1
   done <<<"$assigned_content"
 
-  if [[ -z "$FORCE_TF" && -z "$FORCE_WG0" && -z "$FORCE_WG1" ]]; then
-    if [[ "$format" == "colon" ]]; then
-      mapfile -t colon_reused < <(while IFS= read -r line; do
-        parse_assigned_line "$line" || continue
-        [[ "$PARSED_LABEL" == "$ENV_NAME" ]] && echo "$PARSED_PEER"
-      done <<<"$assigned_content" | sort -t r -k2 -n)
-      tf="${colon_reused[0]:-}"
-      wg0="${colon_reused[1]:-}"
-      wg1="${colon_reused[2]:-}"
-      mark_env_peer "$tf"
-      mark_env_peer "$wg0"
-      mark_env_peer "$wg1"
-      [[ -n "$tf" && -n "$wg0" && -n "$wg1" ]] && reused="true"
-    else
-      tf="$(mosip_peer_for_secret TF_WG_CONFIG "$assigned_content")"
-      wg0="$(mosip_peer_for_secret CLUSTER_WIREGUARD_WG0 "$assigned_content")"
-      wg1="$(mosip_peer_for_secret CLUSTER_WIREGUARD_WG1 "$assigned_content")"
-      mark_env_peer "$tf"
-      mark_env_peer "$wg0"
-      mark_env_peer "$wg1"
-      [[ -n "$tf" && -n "$wg0" && -n "$wg1" ]] && reused="true"
-    fi
+  if [[ "$format" == "colon" ]]; then
+    mapfile -t colon_reused < <(while IFS= read -r line; do
+      parse_assigned_line "$line" || continue
+      [[ "$PARSED_LABEL" == "$ENV_NAME" ]] && echo "$PARSED_PEER"
+    done <<<"$assigned_content" | sort -t r -k2 -n)
+    tf="${colon_reused[0]:-}"
+    wg0="${colon_reused[1]:-}"
+    wg1="${colon_reused[2]:-}"
+    mark_env_peer "$tf"
+    mark_env_peer "$wg0"
+    mark_env_peer "$wg1"
+    [[ -n "$tf" && -n "$wg0" && -n "$wg1" ]] && reused="true"
+  else
+    tf="$(mosip_peer_for_secret TF_WG_CONFIG "$assigned_content")"
+    wg0="$(mosip_peer_for_secret CLUSTER_WIREGUARD_WG0 "$assigned_content")"
+    wg1="$(mosip_peer_for_secret CLUSTER_WIREGUARD_WG1 "$assigned_content")"
+    mark_env_peer "$tf"
+    mark_env_peer "$wg0"
+    mark_env_peer "$wg1"
+    [[ -n "$tf" && -n "$wg0" && -n "$wg1" ]] && reused="true"
   fi
 
-  [[ -n "$FORCE_TF"  ]] && tf="$FORCE_TF"  && CHOSEN["$tf"]=1
-  [[ -n "$FORCE_WG0" ]] && wg0="$FORCE_WG0" && CHOSEN["$wg0"]=1
-  [[ -n "$FORCE_WG1" ]] && wg1="$FORCE_WG1" && CHOSEN["$wg1"]=1
+  if [[ -n "$FORCE_TF" ]]; then
+    [[ -n "$tf" && "$FORCE_TF" != "$tf" ]] \
+      && { echo "ERROR: --tf-peer $FORCE_TF conflicts with existing $tf for $ENV_NAME" >&2; return 1; }
+    tf="$FORCE_TF"
+    CHOSEN["$tf"]=1
+  fi
+  if [[ -n "$FORCE_WG0" ]]; then
+    [[ -n "$wg0" && "$FORCE_WG0" != "$wg0" ]] \
+      && { echo "ERROR: --wg0-peer $FORCE_WG0 conflicts with existing $wg0 for $ENV_NAME" >&2; return 1; }
+    wg0="$FORCE_WG0"
+    CHOSEN["$wg0"]=1
+  fi
+  if [[ -n "$FORCE_WG1" ]]; then
+    [[ -n "$wg1" && "$FORCE_WG1" != "$wg1" ]] \
+      && { echo "ERROR: --wg1-peer $FORCE_WG1 conflicts with existing $wg1 for $ENV_NAME" >&2; return 1; }
+    wg1="$FORCE_WG1"
+    CHOSEN["$wg1"]=1
+  fi
 
   next_free() {
     local i pnum
@@ -487,6 +514,8 @@ run_allocation() {
       && { echo "ERROR: $peer already assigned in $ASSIGNED_FILE" >&2; return 1; }
     [[ "$peer" =~ ^peer[0-9]+$ ]] || { echo "ERROR: invalid peer id $peer" >&2; return 1; }
     n="${peer#peer}"
+    (( n >= 1 && n <= MAX_PEERS )) \
+      || { echo "ERROR: $peer is outside peer1..peer${MAX_PEERS}" >&2; return 1; }
     ensure_peer_conf "$n" || { echo "ERROR: failed creating $peer" >&2; return 1; }
   done
 
@@ -525,8 +554,15 @@ REMOTE_ATOMIC_ALLOCATE
 atomic_rollback_assignments() {
   local record_tf="$1" record_wg0="$2" record_wg1="$3"
   [[ "$record_tf" == "true" || "$record_wg0" == "true" || "$record_wg1" == "true" ]] || return 0
-  ssh_cmd bash -s \
-    "$ASSIGNED_FILE" "$ASSIGN_LOCK_FILE" "$TF_PEER" "$WG0_PEER" "$WG1_PEER" "$record_tf" "$record_wg0" "$record_wg1" \
+  ssh_cmd bash -s -- \
+    $(remote_quote "$ASSIGNED_FILE") \
+    $(remote_quote "$ASSIGN_LOCK_FILE") \
+    $(remote_quote "$TF_PEER") \
+    $(remote_quote "$WG0_PEER") \
+    $(remote_quote "$WG1_PEER") \
+    $(remote_quote "$record_tf") \
+    $(remote_quote "$record_wg0") \
+    $(remote_quote "$record_wg1") \
     <<'REMOTE_ROLLBACK_ASSIGNMENTS'
 set -euo pipefail
 
@@ -554,14 +590,33 @@ remove_peer_line() {
   local peer="$1" file="$2" tmp
   tmp="$(mktemp)"
   awk -v p="$peer" '$1 !~ ("^" p ":?$")' "$file" > "$tmp"
-  cat "$tmp" > "$file"
-  rm -f "$tmp"
+  mv -f "$tmp" "$file"
 }
 
 [[ "$RECORD_TF" == "true"  ]] && remove_peer_line "$TF_PEER" "$ASSIGNED_FILE"
 [[ "$RECORD_WG0" == "true" ]] && remove_peer_line "$WG0_PEER" "$ASSIGNED_FILE"
 [[ "$RECORD_WG1" == "true" ]] && remove_peer_line "$WG1_PEER" "$ASSIGNED_FILE"
 REMOTE_ROLLBACK_ASSIGNMENTS
+}
+
+rollback_published_secrets() {
+  local count="$1" i
+  [[ "$count" -gt 0 ]] || return 0
+  for ((i = 0; i < count; i++)); do
+    if gh secret delete "${SECRET_NAMES[$i]}" --env "$ENV_NAME" --repo "$REPO" 2>/dev/null; then
+      log "Deleted secret ${SECRET_NAMES[$i]}"
+    else
+      err "Failed to delete secret ${SECRET_NAMES[$i]}"
+    fi
+  done
+}
+
+rollback_allocation_state() {
+  local published_count="$1"
+  err "Rolling back published secrets and assignments for $ENV_NAME ..."
+  rollback_published_secrets "$published_count"
+  atomic_rollback_assignments "$RECORD_TF" "$RECORD_WG0" "$RECORD_WG1" \
+    || err "Assignment rollback failed; fix $ASSIGNED_FILE manually for TF=$TF_PEER WG0=$WG0_PEER WG1=$WG1_PEER"
 }
 
 log "Allocating peers on jumpserver under flock ($ASSIGN_LOCK_FILE) ..."
@@ -612,12 +667,12 @@ transform_conf() {
 }
 
 fetch_and_transform() {
-  local peer="$1" raw
+  local peer="$1" raw conf="$CONFIG_DIR/$peer/$peer.conf"
   if [[ "$DRY_RUN" == "true" ]] && ! peer_config_exists "$peer"; then
     echo "[DRY RUN] peer config for $peer not present yet"
     return 0
   fi
-  raw="$(ssh_cmd "cat '$CONFIG_DIR/$peer/$peer.conf' 2>/dev/null || sudo cat '$CONFIG_DIR/$peer/$peer.conf'" 2>/dev/null || true)"
+  raw="$(ssh_cmd bash -c "cat $(remote_quote "$conf") 2>/dev/null || sudo cat $(remote_quote "$conf")" 2>/dev/null || true)"
   [[ -n "$raw" ]] || die "Could not read $CONFIG_DIR/$peer/$peer.conf"
   grep -q '^[[:space:]]*AllowedIPs' <<<"$raw" || die "$peer.conf has no AllowedIPs line"
   transform_conf <<<"$raw"
@@ -652,9 +707,15 @@ fi
 # ---- Create the GitHub environment + publish the three secrets -------------
 log "Ensuring GitHub environment '$ENV_NAME' exists ..."
 ENV_NAME_ENC="$(urlencode "$ENV_NAME")"
-gh api --method PUT -H "Accept: application/vnd.github+json" \
-  "repos/${REPO}/environments/${ENV_NAME_ENC}" >/dev/null \
-  || die "Failed creating environment '$ENV_NAME' in $REPO"
+if ! gh api --method PUT -H "Accept: application/vnd.github+json" \
+  "repos/${REPO}/environments/${ENV_NAME_ENC}" >/dev/null; then
+  err "Failed creating environment '$ENV_NAME' in $REPO"
+  if [[ "$RECORD_TF" == "true" || "$RECORD_WG0" == "true" || "$RECORD_WG1" == "true" ]]; then
+    atomic_rollback_assignments "$RECORD_TF" "$RECORD_WG0" "$RECORD_WG1" \
+      || err "Rollback failed; fix $ASSIGNED_FILE manually for TF=$TF_PEER WG0=$WG0_PEER WG1=$WG1_PEER"
+  fi
+  die "Environment creation failed"
+fi
 
 log "Publishing environment secrets ..."
 PEER_CONFS=("$TF_CONF" "$WG0_CONF" "$WG1_CONF")
@@ -666,9 +727,7 @@ for i in "${!SECRET_NAMES[@]}"; do
     log "Published ${SECRET_NAMES[$i]}"
   else
     err "Failed to publish ${SECRET_NAMES[$i]} (${PUBLISHED_SECRETS}/3 succeeded)"
-    err "Rolling back newly recorded assignments in $ASSIGNED_FILE ..."
-    atomic_rollback_assignments "$RECORD_TF" "$RECORD_WG0" "$RECORD_WG1" \
-      || err "Rollback failed; please fix $ASSIGNED_FILE manually for peers TF=$TF_PEER WG0=$WG0_PEER WG1=$WG1_PEER"
+    rollback_allocation_state "$PUBLISHED_SECRETS"
     exit 1
   fi
 done
@@ -681,11 +740,11 @@ exec 8>"${ALLOCATION_FILE}.lock"
 if ! flock -w 30 8; then
   die "Timed out waiting to update repo tracker lock ${ALLOCATION_FILE}.lock"
 fi
-TMP="$(mktemp)"
-awk -F '\t' -v env="$ENV_NAME" 'NR == 1 || $1 != env' "$ALLOCATION_FILE" > "$TMP"
-printf '%s\t%s\t%s\t%s\t%s\n' "$ENV_NAME" "$TF_PEER" "$WG0_PEER" "$WG1_PEER" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$TMP"
-mv "$TMP" "$ALLOCATION_FILE"
-TMP=""
+TRACKER_TMP="$(mktemp)"
+awk -F '\t' -v env="$ENV_NAME" 'NR == 1 || $1 != env' "$ALLOCATION_FILE" > "$TRACKER_TMP"
+printf '%s\t%s\t%s\t%s\t%s\n' "$ENV_NAME" "$TF_PEER" "$WG0_PEER" "$WG1_PEER" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$TRACKER_TMP"
+mv "$TRACKER_TMP" "$ALLOCATION_FILE"
+TRACKER_TMP=""
 
 log "Done. Environment '$ENV_NAME' onboarded with peers TF=$TF_PEER WG0=$WG0_PEER WG1=$WG1_PEER."
 log "Server tracker: $ASSIGNED_FILE | repo tracker: $ALLOCATION_FILE (commit it)."
