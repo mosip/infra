@@ -169,7 +169,7 @@ ssh_cmd() {
 
 # ---- Preflight: jumpserver connectivity + peer pool sizing -------------------
 log "Checking jumpserver connectivity and peer inventory on ${JUMPSERVER_HOST} ..."
-PEER_LISTING="$(ssh_cmd bash -c "ls -1 $(remote_quote "$CONFIG_DIR")" 2>/dev/null || true)"
+PEER_LISTING="$(ssh_cmd "ls -1 $(remote_quote "$CONFIG_DIR")" 2>/dev/null || true)"
 [[ -n "$PEER_LISTING" ]] || die "Could not list $CONFIG_DIR on jumpserver (check --wg-dir / connectivity)"
 
 mapfile -t EXISTING_PEERS < <(printf '%s\n' "$PEER_LISTING" | grep -E '^peer[0-9]+$' | sort -t r -k2 -n)
@@ -202,15 +202,16 @@ log "Peer pool: peer1..peer${MAX_PEERS} (gap-fill order, create missing peers on
 
 CAN_CREATE_PEERS="false"
 if [[ ${#EXISTING_PEERS[@]} -gt 0 ]] \
-  || ssh_cmd bash -c "test -f $(remote_quote "$CONFIG_DIR/templates/peer.conf") || test -f $(remote_quote "$CONFIG_DIR/peer1/peer1.conf")" 2>/dev/null; then
+  || ssh_cmd "test -f $(remote_quote "$CONFIG_DIR/templates/peer.conf") || test -f $(remote_quote "$CONFIG_DIR/peer1/peer1.conf")" 2>/dev/null; then
   CAN_CREATE_PEERS="true"
 else
   die "No peer directories or templates under $CONFIG_DIR (cannot create missing peers)"
 fi
 
 peer_config_exists() {
-  local peer="$1" conf="$CONFIG_DIR/$peer/$peer.conf"
-  ssh_cmd bash -c "test -f $(remote_quote "$conf")" 2>/dev/null
+  local peer="$1"
+  local conf="$CONFIG_DIR/$peer/$peer.conf"
+  ssh_cmd "test -f $(remote_quote "$conf")" 2>/dev/null
 }
 
 # ---- Flock-guarded peer allocation/record on the jumpserver ----------------
@@ -221,17 +222,17 @@ atomic_allocate_peers() {
   local force_wg0="${WG0_PEER:-__none__}"
   local force_wg1="${WG1_PEER:-__none__}"
   ssh_cmd bash -s -- \
-    $(remote_quote "$ASSIGNED_FILE") \
-    $(remote_quote "$ASSIGN_LOCK_FILE") \
-    $(remote_quote "$CONFIG_DIR") \
-    $(remote_quote "$ENV_NAME") \
-    $(remote_quote "$LABEL") \
-    $(remote_quote "$MAX_PEERS") \
-    $(remote_quote "$force_tf") \
-    $(remote_quote "$force_wg0") \
-    $(remote_quote "$force_wg1") \
-    $(remote_quote "$DRY_RUN") \
-    $(remote_quote "$CAN_CREATE_PEERS") \
+    "$(remote_quote "$ASSIGNED_FILE")" \
+    "$(remote_quote "$ASSIGN_LOCK_FILE")" \
+    "$(remote_quote "$CONFIG_DIR")" \
+    "$(remote_quote "$ENV_NAME")" \
+    "$(remote_quote "$LABEL")" \
+    "$(remote_quote "$MAX_PEERS")" \
+    "$(remote_quote "$force_tf")" \
+    "$(remote_quote "$force_wg0")" \
+    "$(remote_quote "$force_wg1")" \
+    "$(remote_quote "$DRY_RUN")" \
+    "$(remote_quote "$CAN_CREATE_PEERS")" \
     <<'REMOTE_ATOMIC_ALLOCATE'
 set -euo pipefail
 
@@ -555,14 +556,14 @@ atomic_rollback_assignments() {
   local record_tf="$1" record_wg0="$2" record_wg1="$3"
   [[ "$record_tf" == "true" || "$record_wg0" == "true" || "$record_wg1" == "true" ]] || return 0
   ssh_cmd bash -s -- \
-    $(remote_quote "$ASSIGNED_FILE") \
-    $(remote_quote "$ASSIGN_LOCK_FILE") \
-    $(remote_quote "$TF_PEER") \
-    $(remote_quote "$WG0_PEER") \
-    $(remote_quote "$WG1_PEER") \
-    $(remote_quote "$record_tf") \
-    $(remote_quote "$record_wg0") \
-    $(remote_quote "$record_wg1") \
+    "$(remote_quote "$ASSIGNED_FILE")" \
+    "$(remote_quote "$ASSIGN_LOCK_FILE")" \
+    "$(remote_quote "$TF_PEER")" \
+    "$(remote_quote "$WG0_PEER")" \
+    "$(remote_quote "$WG1_PEER")" \
+    "$(remote_quote "$record_tf")" \
+    "$(remote_quote "$record_wg0")" \
+    "$(remote_quote "$record_wg1")" \
     <<'REMOTE_ROLLBACK_ASSIGNMENTS'
 set -euo pipefail
 
@@ -600,21 +601,26 @@ REMOTE_ROLLBACK_ASSIGNMENTS
 }
 
 rollback_published_secrets() {
-  local count="$1" i
+  local count="$1" i failed="false"
   [[ "$count" -gt 0 ]] || return 0
   for ((i = 0; i < count; i++)); do
     if gh secret delete "${SECRET_NAMES[$i]}" --env "$ENV_NAME" --repo "$REPO" 2>/dev/null; then
       log "Deleted secret ${SECRET_NAMES[$i]}"
     else
       err "Failed to delete secret ${SECRET_NAMES[$i]}"
+      failed="true"
     fi
   done
+  [[ "$failed" != "true" ]]
 }
 
 rollback_allocation_state() {
   local published_count="$1"
   err "Rolling back published secrets and assignments for $ENV_NAME ..."
-  rollback_published_secrets "$published_count"
+  if ! rollback_published_secrets "$published_count"; then
+    err "Skipping assignment rollback because at least one GitHub secret could not be deleted; keep $ASSIGNED_FILE reserved and clean up manually."
+    return 0
+  fi
   atomic_rollback_assignments "$RECORD_TF" "$RECORD_WG0" "$RECORD_WG1" \
     || err "Assignment rollback failed; fix $ASSIGNED_FILE manually for TF=$TF_PEER WG0=$WG0_PEER WG1=$WG1_PEER"
 }
@@ -667,12 +673,13 @@ transform_conf() {
 }
 
 fetch_and_transform() {
-  local peer="$1" raw conf="$CONFIG_DIR/$peer/$peer.conf"
+  local peer="$1" raw
+  local conf="$CONFIG_DIR/$peer/$peer.conf"
   if [[ "$DRY_RUN" == "true" ]] && ! peer_config_exists "$peer"; then
     echo "[DRY RUN] peer config for $peer not present yet"
     return 0
   fi
-  raw="$(ssh_cmd bash -c "cat $(remote_quote "$conf") 2>/dev/null || sudo cat $(remote_quote "$conf")" 2>/dev/null || true)"
+  raw="$(ssh_cmd "cat $(remote_quote "$conf") 2>/dev/null || sudo cat $(remote_quote "$conf")" 2>/dev/null || true)"
   [[ -n "$raw" ]] || die "Could not read $CONFIG_DIR/$peer/$peer.conf"
   grep -q '^[[:space:]]*AllowedIPs' <<<"$raw" || die "$peer.conf has no AllowedIPs line"
   transform_conf <<<"$raw"
@@ -740,9 +747,10 @@ exec 8>"${ALLOCATION_FILE}.lock"
 if ! flock -w 30 8; then
   die "Timed out waiting to update repo tracker lock ${ALLOCATION_FILE}.lock"
 fi
-TRACKER_TMP="$(mktemp)"
+TRACKER_TMP="$(mktemp "$(dirname "$ALLOCATION_FILE")/.wg-peer-allocation.XXXXXX")"
 awk -F '\t' -v env="$ENV_NAME" 'NR == 1 || $1 != env' "$ALLOCATION_FILE" > "$TRACKER_TMP"
 printf '%s\t%s\t%s\t%s\t%s\n' "$ENV_NAME" "$TF_PEER" "$WG0_PEER" "$WG1_PEER" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$TRACKER_TMP"
+chmod --reference="$ALLOCATION_FILE" "$TRACKER_TMP" 2>/dev/null || true
 mv "$TRACKER_TMP" "$ALLOCATION_FILE"
 TRACKER_TMP=""
 
