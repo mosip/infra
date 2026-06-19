@@ -41,7 +41,7 @@ graph TB
 
     %% Terraform Profile Selection
     PS{Select Terraform<br/>Profile}
-    PS -->|esignet-standalone| TF_ES[Terraform: infra<br/>profile: esignet-standalone<br/>4-node K8s cluster]
+    PS -->|esignet(standalone)| TF_ES[Terraform: infra<br/>profile: esignet(standalone)<br/>4-node K8s cluster]
     PS -->|mosip| TF_MP[Terraform: infra<br/>profile: mosip<br/>7-node K8s cluster]
 
     %% ── eSignet Standalone Flow — Helmsman profile: esignet ─────
