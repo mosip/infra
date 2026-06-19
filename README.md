@@ -48,10 +48,10 @@ graph TB
     TF_ES --> ES_EXT[Helmsman: Prereqs + External<br/>profile: esignet]
     ES_EXT --> ES_ESIGNET[Helmsman: eSignet Standalone<br/>4 parallel namespaces]
 
-    ES_ESIGNET --> NS1[esignet<br/>mock plugin]
-    ES_ESIGNET --> NS2[esignet-cre<br/>mosip-identity plugin]
-    ES_ESIGNET --> NS3[esignet-qa11<br/>mosip-identity plugin]
-    ES_ESIGNET --> NS4[esignet-sunbird<br/>sunbird-rc plugin]
+    ES_ESIGNET --> NS1[esignet-standalone<br/>mock plugin]
+    ES_ESIGNET --> NS2[mosip-identity plugin]
+    ES_ESIGNET --> NS3[mosip-identity plugin]
+    ES_ESIGNET --> NS4[sunbird-rc plugin]
 
     NS1 --> ES_TRIGS[Helmsman: Testrigs<br/>4x eSignet testrigs]
     NS2 --> ES_TRIGS
