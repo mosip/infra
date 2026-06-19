@@ -167,6 +167,15 @@ ssh_cmd() {
     "${SSH_USER}@${JUMPSERVER_HOST}" "$@"
 }
 
+# Run a remote bash script from stdin with positional args ($1, $2, ...).
+# Each "$@" element is sent as a separate SSH argv word; the remote shell does
+# not re-parse them, so values with spaces stay intact in $1..$n. Do not wrap
+# these args in remote_quote() — that is only for inline remote command strings
+# (ls, test, cat) where a single shell line is executed.
+ssh_bash_stdin() {
+  ssh_cmd bash -s -- "$@"
+}
+
 # ---- Preflight: jumpserver connectivity + peer pool sizing -------------------
 log "Checking jumpserver connectivity and peer inventory on ${JUMPSERVER_HOST} ..."
 PEER_LISTING="$(ssh_cmd "ls -1 $(remote_quote "$CONFIG_DIR")" 2>/dev/null || true)"
@@ -221,7 +230,7 @@ atomic_allocate_peers() {
   local force_tf="${TF_PEER:-__none__}"
   local force_wg0="${WG0_PEER:-__none__}"
   local force_wg1="${WG1_PEER:-__none__}"
-  ssh_cmd bash -s -- \
+  ssh_bash_stdin \
     "$ASSIGNED_FILE" \
     "$ASSIGN_LOCK_FILE" \
     "$CONFIG_DIR" \
@@ -584,7 +593,7 @@ REMOTE_ATOMIC_ALLOCATE
 atomic_rollback_assignments() {
   local record_tf="$1" record_wg0="$2" record_wg1="$3"
   [[ "$record_tf" == "true" || "$record_wg0" == "true" || "$record_wg1" == "true" ]] || return 0
-  ssh_cmd bash -s -- \
+  ssh_bash_stdin \
     "$ASSIGNED_FILE" \
     "$ASSIGN_LOCK_FILE" \
     "$TF_PEER" \
@@ -669,7 +678,7 @@ rollback_allocation_state() {
 
 if [[ "$DRY_RUN" != "true" ]]; then
   log "Checking assigned.txt is writable on ${JUMPSERVER_HOST} ..."
-  if ! ssh_cmd bash -s -- "$ASSIGNED_FILE" <<'REMOTE_WRITABLE_CHECK'; then
+  if ! ssh_bash_stdin "$ASSIGNED_FILE" <<'REMOTE_WRITABLE_CHECK'; then
 set -euo pipefail
 ASSIGNED_FILE="$1"
 wg_dir="$(dirname "$ASSIGNED_FILE")"
