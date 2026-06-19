@@ -7,10 +7,11 @@ This guide provides step-by-step instructions for generating all required secret
 1. [SSH Keys](#1-ssh-keys)
 2. [GPG Passphrase](#2-gpg-passphrase)
 3. [AWS Credentials](#3-aws-credentials)
-4. [WireGuard VPN Configuration](#4-wireguard-vpn-configuration)
-5. [Kubernetes Config (KUBECONFIG)](#5-kubernetes-config-kubeconfig)
-6. [reCAPTCHA Keys](#6-recaptcha-keys)
-7. [How to Add Secrets to GitHub](#how-to-add-secrets-to-github)
+4. [GitHub Personal Access Token (GH_INFRA_PAT)](#4-github-personal-access-token-gh_infra_pat)
+5. [WireGuard VPN Configuration](#5-wireguard-vpn-configuration)
+6. [Kubernetes Config (KUBECONFIG)](#6-kubernetes-config-kubeconfig)
+7. [reCAPTCHA Keys](#7-recaptcha-keys)
+8. [How to Add Secrets to GitHub](#8-how-to-add-secrets-to-github)
 
 ---
 
@@ -277,7 +278,60 @@ Add as **Repository Secrets** in GitHub:
 
 ---
 
-## 4. WireGuard VPN Configuration
+## 4. GitHub Personal Access Token (GH_INFRA_PAT)
+
+### What is it?
+A Fine-grained Personal Access Token that allows automated processes to interact with your GitHub repository.
+
+### Why do you need it?
+- Required for repository operations during deployment
+- Allows workflow to configure environments and variables
+- If not provided or configured incorrectly, deployment will fail with a 403 error on push.
+
+### How to Generate GH_INFRA_PAT
+
+1. **Go to GitHub Settings**
+   - Click your profile picture (top right) → Settings
+   - Scroll down to bottom left and click **Developer settings**
+   - Click **Personal access tokens** → **Fine-grained tokens**
+   - Click **Generate new token**
+
+2. **Configure Token Settings**
+   - **Token name**: `GH_INFRA_PAT` (or similar)
+   - **Expiration**: Set as needed (e.g., 90 days)
+   - **Resource owner**: Select your organization or admin user(e.g., `mosip`)
+   - **Repository access**: Select **Only select repositories** and choose your infra repository (e.g., `mosip/infra`)
+
+3. **Set Permissions**
+   Set exactly these permissions:
+   - Click on Add permissions button under Permissions section
+   - **Contents**: Read and write *(critical, Read-only causes 403 on push)*
+   - **Metadata**: Read-Only
+   - **Actions**: Read and write
+   - **Environments**: Read and write
+   - **Variables**: Read and write
+   
+   *NOTE: No Secrets permission needed (intentionally excluded)*
+
+4. **Generate and Save**
+   - Click **Generate token**
+   - Copy the token immediately
+   - Save it securely in your password manager
+
+### Where to Use It
+Add as **Repository Secret** in GitHub:
+- **Name**: `GH_INFRA_PAT`
+- **Value**: `github_pat_...` (your generated token)
+
+### Common Pitfalls
+- ❌ Choosing "Read-only" for Contents (causes 403 error on push)
+- ❌ Adding Secrets permission (not needed, violates least-privilege)
+- ❌ Selecting "All repositories" instead of "Only select repositories"
+- ❌ Not saving the token after generating
+
+---
+
+## 5. WireGuard VPN Configuration
 
 ### What is it?
 WireGuard is a modern VPN that creates secure connections to your private infrastructure.
@@ -367,7 +421,7 @@ Add as **Environment Secrets** in GitHub (not repository secrets):
 
 ---
 
-## 5. Kubernetes Config (KUBECONFIG)
+## 6. Kubernetes Config (KUBECONFIG)
 
 ### What is it?
 KUBECONFIG is a configuration file that contains credentials and connection details for your Kubernetes cluster.
@@ -471,7 +525,7 @@ users:
 
 ---
 
-## 6. reCAPTCHA Keys
+## 7. reCAPTCHA Keys
 
 ### What is it?
 reCAPTCHA is Google's service that protects websites from bots and spam by verifying users are human.
@@ -557,7 +611,7 @@ hooks:
 
 ---
 
-## 7. How to Add Secrets to GitHub
+## 8. How to Add Secrets to GitHub
 
 ### Understanding Secret Types
 
@@ -591,6 +645,7 @@ hooks:
  - `GPG_PASSPHRASE`
  - `AWS_ACCESS_KEY_ID`
  - `AWS_SECRET_ACCESS_KEY`
+ - `GH_INFRA_PAT`
  - `mosip-aws` (or your SSH key name)
 
 ### Step-by-Step: Adding Environment Secrets
@@ -626,6 +681,7 @@ Repository Structure:
 │ ├── GPG_PASSPHRASE
 │ ├── AWS_ACCESS_KEY_ID
 │ ├── AWS_SECRET_ACCESS_KEY
+│ ├── GH_INFRA_PAT
 │ └── mosip-aws (SSH private key)
 │
 └── Environments
@@ -662,6 +718,7 @@ Use this checklist to ensure you've generated and configured all required secret
 - [ ] GPG Passphrase generated and added
 - [ ] AWS Access Key ID obtained and added
 - [ ] AWS Secret Access Key obtained and added
+- [ ] GitHub PAT (GH_INFRA_PAT) generated with correct permissions and added
 
 ### Infrastructure Deployment
 - [ ] Terraform base-infra deployed successfully
