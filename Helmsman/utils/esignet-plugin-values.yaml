@@ -99,7 +99,7 @@ extraEnvVarsAdditional:
         name: esignet-captcha
         key: esignet-captcha-site-key
   - name: "MOSIP_ESIGNET_CAPTCHA_REQUIRED"
-    value: "false"
+    value: ""
 
   # ---------------------------------------------------------------------------
   # Plugin 2: mosip-identity-plugin

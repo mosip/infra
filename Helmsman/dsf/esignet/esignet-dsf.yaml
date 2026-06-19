@@ -242,6 +242,9 @@ apps:
       domainConfig.MOSIP_POSTGRES_HOST: "postgres.${domain_name}"
       domainConfig.MOSIP_SMTP_HOST: "smtp.${domain_name}"
       domainConfig.installation-domain: "${domain_name}"
+      domainConfig.MOSIP_ESIGNET_SUNBIRD_RC_REGISTRY_GET_URL: "https://registry.${cre_domain_name}"
+      domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_SUNBIRD_RC_AUTH_FACTOR_KBI_REGISTRY_SEARCH_URL: "https://registry.${cre_domain_name}/api/v1/Insurance/search"
+      domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_SUNBIRD_RC_REGISTRY_GET_URL: "https://registry.${cre_domain_name}/api/v1/Insurance/"
     timeout: 600
     priority: -14
     hooks:
@@ -346,6 +349,8 @@ apps:
       extraEnvVarsCM[1]: "softhsm-mock-identity-system-share"
       domainConfig.MOSIP_ESIGNET_HOST: "esignet.${domain_name}"
       domainConfig.MOSIP_API_INTERNAL_HOST: "api-internal.${domain_name}"
+      domainConfig.MOSIP_MOCK_IDA_IDENTITY_SCHEMA_URL: "https://raw.githubusercontent.com/prathmeshj12/addidentityschema_testing/refs/heads/main/email-signup-schema-testing.json"
+      domainConfig.MOSIP_MOCK_UI_SPEC_SCHEMA_URL: "https://raw.githubusercontent.com/prathmeshj12/addidentityschema_testing/refs/heads/main/ui_spec_reset_password_phone.json"
     timeout: 480
     priority: -11
     hooks:

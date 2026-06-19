@@ -212,7 +212,7 @@ apps:
     priority: -2
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-standalone/apitestrig-esignet-sunbird-setup.sh"
-      postInstall: "$WORKDIR/hooks/esignet-standalone/trigger-test-jobs-esignet.sh"
+      # postInstall: "$WORKDIR/hooks/esignet-standalone/trigger-test-jobs-esignet.sh"
 
   # ---------------------------------------------------------------------------
   # Signup API Test Rig — disabled by default
