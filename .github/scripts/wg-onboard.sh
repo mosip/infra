@@ -616,6 +616,15 @@ if [[ ! -w "$ASSIGNED_FILE" && ! -w "$wg_dir" ]]; then
   exit 1
 fi
 
+atomic_replace_file() {
+  local src="$1" dest="$2"
+  if ! mv -f "$src" "$dest"; then
+    rm -f "$src"
+    echo "ERROR: cannot update $dest (check ownership/permissions)" >&2
+    return 1
+  fi
+}
+
 remove_peer_line() {
   local peer="$1" file="$2" dir tmp
   dir="$(dirname "$file")"
