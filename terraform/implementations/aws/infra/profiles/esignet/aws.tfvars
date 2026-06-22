@@ -74,7 +74,7 @@ WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 
 # Rancher Import Configuration
 enable_rancher_import = true
-rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/k4n4cg8x2tnxb2d75pmzbhbbwr25vrgwjrftq9jdvghs6lkgg4btxj_c-m-rwmshq5m.yaml\""
+rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/pcssxcfpxwhjgkn9xxfrwdbs8fsd6zcgqm8pmvpczv9zhdr6v75mls_c-m-s6d252c6.yaml\""
 
 # DNS Records to map — only eSignet-relevant subdomains
 
@@ -91,7 +91,7 @@ postgresql_port         = "5433"
 # MOSIP Infrastructure Repository Configuration
 mosip_infra_repo_url = "https://github.com/mosip/infra.git"
 
-mosip_infra_branch = "DSD-10312"
+mosip_infra_branch = "DSD-10424"
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
 vpc_name = "default"
