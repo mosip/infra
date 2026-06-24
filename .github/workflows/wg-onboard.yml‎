@@ -47,7 +47,7 @@ concurrency:
 
 jobs:
   onboard:
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 20
     steps:
       - name: Validate required secrets
