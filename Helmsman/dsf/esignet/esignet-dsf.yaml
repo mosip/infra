@@ -69,7 +69,7 @@ apps:
 
   esignet-softhsm-mosipid2:
     namespace: esignet-mosipid2
-    enabled: true
+    enabled: false
     version: 12.0.1
     chart: mosip/softhsm
     valuesFile: "$WORKDIR/utils/softhsm-esignet-mosipid2-values.yaml"
@@ -91,7 +91,7 @@ apps:
 
   esignet-config-server:
     namespace: esignet-mock
-    enabled: true
+    enabled: false
     version: 12.0.1
     chart: mosip/config-server
     valuesFile: "$WORKDIR/utils/config-server-esignet-values.yaml"
@@ -178,7 +178,7 @@ apps:
 
   esignet-mosipid2:
     namespace: esignet-mosipid2
-    enabled: true
+    enabled: false
     version: 0.0.1-develop
     chart: mosip/esignet
     valuesFile: "$WORKDIR/utils/esignet-mosipid2-plugin-values.yaml"
@@ -289,7 +289,7 @@ apps:
 
   oidc-ui-mosipid2:
     namespace: esignet-mosipid2
-    enabled: true
+    enabled: false
     version: 0.0.1-develop
     chart: mosip/oidc-ui
     set:
@@ -393,7 +393,7 @@ apps:
 
   mock-relying-party-service-mosipid2:
     namespace: esignet-mosipid2
-    enabled: true
+    enabled: false
     version: 0.0.1-develop
     chart: mosip/mock-relying-party-service
     set:
@@ -463,7 +463,7 @@ apps:
 
   mock-relying-party-ui-mosipid2:
     namespace: esignet-mosipid2
-    enabled: true
+    enabled: false
     version: 0.0.1-develop
     chart: mosip/mock-relying-party-ui
     set:
@@ -503,7 +503,7 @@ apps:
 
   pms-partner-mosipid1:
     namespace: esignet-mosipid1
-    enabled: true
+    enabled: false
     version: 12.2.3
     chart: mosip/pms-partner
     set:
@@ -520,7 +520,7 @@ apps:
 
   pms-policy-mosipid1:
     namespace: esignet-mosipid1
-    enabled: true
+    enabled: false
     version: 12.2.3
     chart: mosip/pms-policy
     set:
@@ -535,7 +535,7 @@ apps:
 
   pms-partner-mosipid2:
     namespace: esignet-mosipid2
-    enabled: true
+    enabled: false
     version: 12.2.3
     chart: mosip/pms-partner
     set:
@@ -552,7 +552,7 @@ apps:
 
   pms-policy-mosipid2:
     namespace: esignet-mosipid2
-    enabled: true
+    enabled: false
     version: 12.2.3
     chart: mosip/pms-policy
     set:
@@ -622,7 +622,7 @@ apps:
     chart: mosip/partner-onboarder
     set:
       image.repository: "mosipid/partner-onboarder"
-      image.tag: "1.3.0-beta.1"    
+      image.tag: "1.3.0-beta.1"
       onboarding.modules[0].name: "mock-rp-oidc"
       onboarding.modules[0].enabled: "true"
       onboarding.configmaps.s3.s3-host: "http://minio.minio:9000"
