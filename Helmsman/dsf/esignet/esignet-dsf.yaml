@@ -113,7 +113,7 @@ apps:
     valuesFile: "$WORKDIR/utils/esignet-plugin-values.yaml"
     set:
       image.repository: "mosipqa/esignet-with-plugins"
-      image.tag: "1.8.x"
+      image.tag: "develop"
       enable_insecure: "false"
       springConfigNameEnv: ""
       activeProfileEnv: ""
@@ -144,7 +144,7 @@ apps:
     valuesFile: "$WORKDIR/utils/esignet-mosipid1-plugin-values.yaml"
     set:
       image.repository: "mosipqa/esignet-with-plugins"
-      image.tag: "1.8.x"
+      image.tag: "develop"
       enable_insecure: "false"
       springConfigNameEnv: ""
       activeProfileEnv: ""
@@ -184,7 +184,7 @@ apps:
     valuesFile: "$WORKDIR/utils/esignet-mosipid2-plugin-values.yaml"
     set:
       image.repository: "mosipqa/esignet-with-plugins"
-      image.tag: "1.8.x"
+      image.tag: "develop"
       enable_insecure: "false"
       springConfigNameEnv: ""
       activeProfileEnv: ""
@@ -224,7 +224,7 @@ apps:
     valuesFile: "$WORKDIR/utils/esignet-sunbird-plugin-values.yaml"
     set:
       image.repository: "mosipqa/esignet-with-plugins"
-      image.tag: "1.8.x"
+      image.tag: "develop"
       enable_insecure: "false"
       springConfigNameEnv: ""
       activeProfileEnv: ""
@@ -260,11 +260,11 @@ apps:
     chart: mosip/oidc-ui
     set:
       image.repository: "mosipqa/oidc-ui"
-      image.tag: "1.8.x"    
+      image.tag: "develop"    
       istio.hosts[0]: "esignet.${domain_name}"
-      oidc_ui.oidc_service_host: "esignet-mock.esignet-mock"
-      oidc_ui.configmaps.oidc-ui.REACT_APP_API_BASE_URL: "http://esignet-mock.esignet-mock/v1/esignet"
-      oidc_ui.configmaps.oidc-ui.REACT_APP_SBI_DOMAIN_URI: "http://esignet-mock.esignet-mock"
+      oidc_ui.oidc_service_host: "esignet.esignet-mock"
+      oidc_ui.configmaps.oidc-ui.REACT_APP_API_BASE_URL: "http://esignet.esignet-mock/v1/esignet"
+      oidc_ui.configmaps.oidc-ui.REACT_APP_SBI_DOMAIN_URI: "http://esignet.esignet-mock"
     timeout: 1200
     priority: -13
     hooks:
@@ -277,7 +277,7 @@ apps:
     chart: mosip/oidc-ui
     set:
       image.repository: "mosipqa/oidc-ui"
-      image.tag: "1.8.x"
+      image.tag: "develop"
       istio.hosts[0]: "esignet-mosipid1.${domain_name}"
       oidc_ui.oidc_service_host: "esignet-mosipid1.esignet-mosipid1"
       oidc_ui.configmaps.oidc-ui.REACT_APP_API_BASE_URL: "http://esignet-mosipid1.esignet-mosipid1/v1/esignet"
@@ -294,7 +294,7 @@ apps:
     chart: mosip/oidc-ui
     set:
       image.repository: "mosipqa/oidc-ui"
-      image.tag: "1.8.x"
+      image.tag: "develop"
       istio.hosts[0]: "esignet-mosipid2.${domain_name}"
       oidc_ui.oidc_service_host: "esignet-mosipid2.esignet-mosipid2"
       oidc_ui.configmaps.oidc-ui.REACT_APP_API_BASE_URL: "http://esignet-mosipid2.esignet-mosipid2/v1/esignet"
