@@ -367,7 +367,7 @@ apps:
     version: 0.0.1-develop
     chart: mosip/mock-relying-party-service
     set:
-      mock_relying_party_service.ESIGNET_SERVICE_URL: "http://esignet-mock.esignet-mock/v1/esignet"
+      mock_relying_party_service.ESIGNET_SERVICE_URL: "http://esignet.esignet-mock/v1/esignet"
       mock_relying_party_service.ESIGNET_AUD_URL: "https://esignet.${domain_name}/v1/esignet/oauth/v2/token"
       enable_insecure: "false"
       domainConfig.MOSIP_API_INTERNAL_HOST: "api-internal.${domain_name}"
