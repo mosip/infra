@@ -17,7 +17,7 @@ helmRepos:
 namespaces:
   esignet-mosipid1:
     protected: false
-  esignet:
+  esignet-mock:
     protected: false
   esignet-mosipid2:
     protected: false
