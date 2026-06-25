@@ -337,6 +337,8 @@ apps:
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-standalone/softhsm-mock-identity-system-preinstall.sh"
       postInstall: "$WORKDIR/hooks/esignet-standalone/softhsm-mock-identity-system-postinstall.sh"
+      preUpgrade: "$WORKDIR/hooks/esignet-standalone/softhsm-mock-identity-system-preinstall.sh"
+      postUpgrade: "$WORKDIR/hooks/esignet-standalone/softhsm-mock-identity-system-postinstall.sh"
 
   mock-identity-system:
     namespace: esignet-mock
