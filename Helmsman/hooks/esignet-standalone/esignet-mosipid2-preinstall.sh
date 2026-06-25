@@ -1,41 +1,41 @@
 #!/bin/bash
 # =============================================================================
-# eSignet 1.7.1 - eSignet CRE Service Pre-install
+# eSignet 1.7.1 - eSignet MOSIPID2 Service Pre-install
 # =============================================================================
-# Wrapper: sets ESIGNET_NS=esignet-cre, runs base esignet preinstall (copies
-# postgres + redis config/secrets), then creates esignet-captcha-cre secret
-# in the captcha namespace from workflow env vars, copies it to esignet-cre,
-# and patches the captcha deployment with the CRE secret key.
+# Wrapper: sets ESIGNET_NS=esignet-mosipid2, runs base esignet preinstall (copies
+# postgres + redis config/secrets), then creates esignet-captcha-mosipid2 secret
+# in the captcha namespace from workflow env vars, copies it to esignet-mosipid2,
+# and patches the captcha deployment with the MOSIPID2 secret key.
 # =============================================================================
 set -euo pipefail
 
-export ESIGNET_NS="esignet-cre"
+export ESIGNET_NS="esignet-mosipid2"
 CAPTCHA_NS="captcha"
 COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
-CAPTCHA_SITE_KEY="${ESIGNET_CRE_CAPTCHA_SITE_KEY:?ERROR: ESIGNET_CRE_CAPTCHA_SITE_KEY must be set}"
-CAPTCHA_SECRET_KEY="${ESIGNET_CRE_CAPTCHA_SECRET_KEY:?ERROR: ESIGNET_CRE_CAPTCHA_SECRET_KEY must be set}"
-CRE_POSTGRES_PASS="${CRE_POSTGRES_PASSWORD:?ERROR: CRE_POSTGRES_PASSWORD must be set}"
-CRE_KC_ADMIN_PASS="${CRE_KEYCLOAK_ADMIN_PASSWORD:?ERROR: CRE_KEYCLOAK_ADMIN_PASSWORD must be set}"
+CAPTCHA_SITE_KEY="${ESIGNET_MOSIPID2_CAPTCHA_SITE_KEY:?ERROR: ESIGNET_MOSIPID2_CAPTCHA_SITE_KEY must be set}"
+CAPTCHA_SECRET_KEY="${ESIGNET_MOSIPID2_CAPTCHA_SECRET_KEY:?ERROR: ESIGNET_MOSIPID2_CAPTCHA_SECRET_KEY must be set}"
+MOSIPID2_POSTGRES_PASS="${MOSIPID2_POSTGRES_PASSWORD:?ERROR: MOSIPID2_POSTGRES_PASSWORD must be set}"
+MOSIPID2_KC_ADMIN_PASS="${MOSIPID2_KEYCLOAK_ADMIN_PASSWORD:?ERROR: MOSIPID2_KEYCLOAK_ADMIN_PASSWORD must be set}"
 
 "$WORKDIR/hooks/esignet-standalone/esignet-preinstall.sh"
 
-# Create CRE-specific esignet-global — same domain_name, but esignet/signup hosts differ
+# Create MOSIPID2-specific esignet-global — same domain_name, but esignet/signup hosts differ
 kubectl -n "$ESIGNET_NS" create configmap esignet-global \
   --from-literal=installation-domain="${domain_name}" \
   --from-literal=mosip-api-host="api.${domain_name}" \
   --from-literal=mosip-api-internal-host="api-internal.${domain_name}" \
-  --from-literal=mosip-esignet-host="esignet-mosipid-cre.${domain_name}" \
+  --from-literal=mosip-esignet-host="esignet-mosipid2.${domain_name}" \
   --from-literal=mosip-iam-external-host="iam.${domain_name}" \
   --from-literal=mosip-kafka-host="kafka.${domain_name}" \
   --from-literal=mosip-postgres-host="postgres.${domain_name}" \
-  --from-literal=mosip-signup-host="signup-mosipid-cre.${domain_name}" \
+  --from-literal=mosip-signup-host="signup-mosipid2.${domain_name}" \
   --from-literal=mosip-smtp-host="smtp.${domain_name}" \
   --from-literal=mosip-version="develop" \
   --dry-run=client -o yaml | kubectl apply -f -
 
-# Override postgres-config with CRE-specific DB values
+# Override postgres-config with MOSIPID2-specific DB values
 kubectl -n "$ESIGNET_NS" patch configmap postgres-config --type merge \
-  -p '{"data":{"database-name":"mosip_esignet_cre","database-username":"esignetuser_cre"}}'
+  -p '{"data":{"database-name":"mosip_esignet_mosipid2","database-username":"esignetuser_mosipid2"}}'
 
 # Create esignet-misp-onboarder-key placeholder — real value written by MISP onboarder.
 if ! kubectl -n "$ESIGNET_NS" get secret esignet-misp-onboarder-key &>/dev/null; then
@@ -44,50 +44,50 @@ if ! kubectl -n "$ESIGNET_NS" get secret esignet-misp-onboarder-key &>/dev/null;
   echo "esignet-misp-onboarder-key placeholder created in $ESIGNET_NS"
 fi
 
-echo "Creating esignet-captcha-cre secret in $CAPTCHA_NS namespace"
-kubectl -n "$CAPTCHA_NS" create secret generic esignet-captcha-cre \
+echo "Creating esignet-captcha-mosipid2 secret in $CAPTCHA_NS namespace"
+kubectl -n "$CAPTCHA_NS" create secret generic esignet-captcha-mosipid2 \
   --from-literal=esignet-captcha-site-key="$CAPTCHA_SITE_KEY" \
   --from-literal=esignet-captcha-secret-key="$CAPTCHA_SECRET_KEY" \
   --dry-run=client -o yaml | kubectl apply -f -
 
-echo "Copying esignet-captcha-cre secret from $CAPTCHA_NS to $ESIGNET_NS"
-$COPY_UTIL secret esignet-captcha-cre "$CAPTCHA_NS" "$ESIGNET_NS"
+echo "Copying esignet-captcha-mosipid2 secret from $CAPTCHA_NS to $ESIGNET_NS"
+$COPY_UTIL secret esignet-captcha-mosipid2 "$CAPTCHA_NS" "$ESIGNET_NS"
 
-echo "Patching captcha deployment with ESIGNETCRE secret key"
+echo "Patching captcha deployment with ESIGNETMOSIPID2 secret key"
 ENV_VAR_EXISTS=$(kubectl -n "$CAPTCHA_NS" get deployment captcha \
-  -o jsonpath="{.spec.template.spec.containers[0].env[?(@.name=='MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_ESIGNETCRE')].name}" 2>/dev/null || echo "")
+  -o jsonpath="{.spec.template.spec.containers[0].env[?(@.name=='MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_ESIGNETMOSIPID2')].name}" 2>/dev/null || echo "")
 if [[ -z "$ENV_VAR_EXISTS" ]]; then
   kubectl patch deployment -n "$CAPTCHA_NS" captcha --type='json' \
-    -p='[{"op": "add", "path": "/spec/template/spec/containers/0/env/-", "value": {"name": "MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_ESIGNETCRE", "valueFrom": {"secretKeyRef": {"name": "esignet-captcha-cre", "key": "esignet-captcha-secret-key"}}}}]'
+    -p='[{"op": "add", "path": "/spec/template/spec/containers/0/env/-", "value": {"name": "MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_ESIGNETMOSIPID2", "valueFrom": {"secretKeyRef": {"name": "esignet-captcha-mosipid2", "key": "esignet-captcha-secret-key"}}}}]'
 else
-  echo "MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_ESIGNETCRE already exists."
+  echo "MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_ESIGNETMOSIPID2 already exists."
 fi
 
-# --- postgres-postgresql-cre secret (CRE remote postgres password) ---
-echo "Creating postgres-postgresql-cre secret in $ESIGNET_NS"
-kubectl -n "$ESIGNET_NS" create secret generic postgres-postgresql-cre \
-  --from-literal=postgres-password="${CRE_POSTGRES_PASS}" \
+# --- postgres-postgresql-mosipid2 secret (MOSIPID2 remote postgres password) ---
+echo "Creating postgres-postgresql-mosipid2 secret in $ESIGNET_NS"
+kubectl -n "$ESIGNET_NS" create secret generic postgres-postgresql-mosipid2 \
+  --from-literal=postgres-password="${MOSIPID2_POSTGRES_PASS}" \
   --dry-run=client -o yaml | kubectl apply -f -
 
-# --- keycloak-host-cre CM (external URL points to CRE Keycloak) ---
-echo "Creating keycloak-host-cre configmap in $ESIGNET_NS"
-kubectl -n "$ESIGNET_NS" create configmap keycloak-host-cre \
-  --from-literal=keycloak-external-host="iam.${cre_domain_name}" \
-  --from-literal=keycloak-external-url="https://iam.${cre_domain_name}" \
+# --- keycloak-host-mosipid2 CM (external URL points to MOSIPID2 Keycloak) ---
+echo "Creating keycloak-host-mosipid2 configmap in $ESIGNET_NS"
+kubectl -n "$ESIGNET_NS" create configmap keycloak-host-mosipid2 \
+  --from-literal=keycloak-external-host="iam.${mosipid2_domain_name}" \
+  --from-literal=keycloak-external-url="https://iam.${mosipid2_domain_name}" \
   --from-literal=keycloak-internal-host="keycloak.keycloak" \
   --from-literal=keycloak-internal-service-url="http://keycloak.keycloak/auth/" \
   --from-literal=keycloak-internal-url="http://keycloak.keycloak" \
   --dry-run=client -o yaml | kubectl apply -f -
 
-# --- keycloak-client-secrets-cre: fetch all confidential clients from CRE Keycloak ---
-KC_HOST="iam.${cre_domain_name}"
+# --- keycloak-client-secrets-mosipid2: fetch all confidential clients from MOSIPID2 Keycloak ---
+KC_HOST="iam.${mosipid2_domain_name}"
 REALM="mosip"
 
 echo "Fetching admin token from $KC_HOST"
 TOKEN_RESPONSE=$(curl -sf -X POST \
   "https://${KC_HOST}/auth/realms/master/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "grant_type=password&client_id=admin-cli&username=admin&password=${CRE_KC_ADMIN_PASS}")
+  -d "grant_type=password&client_id=admin-cli&username=admin&password=${MOSIPID2_KC_ADMIN_PASS}")
 ADMIN_TOKEN=$(echo "$TOKEN_RESPONSE" | jq -r '.access_token')
 if [[ -z "$ADMIN_TOKEN" || "$ADMIN_TOKEN" == "null" ]]; then
   echo "❌ Failed to get admin token from $KC_HOST" >&2; exit 1
@@ -116,12 +116,12 @@ while IFS= read -r client_json; do
 done < <(echo "$CLIENTS" | jq -c '.[]')
 
 if [[ ${#SECRET_ARGS[@]} -eq 0 ]]; then
-  echo "❌ No client secrets fetched from CRE Keycloak" >&2; exit 1
+  echo "❌ No client secrets fetched from MOSIPID2 Keycloak" >&2; exit 1
 fi
-echo "Creating keycloak-client-secrets-cre in $ESIGNET_NS (${#SECRET_ARGS[@]} clients)"
-kubectl -n "$ESIGNET_NS" create secret generic keycloak-client-secrets-cre \
+echo "Creating keycloak-client-secrets-mosipid2 in $ESIGNET_NS (${#SECRET_ARGS[@]} clients)"
+kubectl -n "$ESIGNET_NS" create secret generic keycloak-client-secrets-mosipid2 \
   "${SECRET_ARGS[@]}" \
   --dry-run=client -o yaml | kubectl apply -f -
-echo "✓ keycloak-client-secrets-cre created"
+echo "✓ keycloak-client-secrets-mosipid2 created"
 
-echo "eSignet CRE pre-install completed."
+echo "eSignet MOSIPID2 pre-install completed."

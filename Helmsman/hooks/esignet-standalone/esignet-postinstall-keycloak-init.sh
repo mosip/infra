@@ -10,7 +10,7 @@ KEYCLOAK_NS="keycloak"
 COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
 
 # All esignet namespaces that need keycloak resources
-ESIGNET_NAMESPACES=(esignet esignet-cre esignet-qa11 esignet-sunbird)
+ESIGNET_NAMESPACES=(esignet esignet-mosipid1 esignet-mosipid2 esignet-sunbird)
 
 echo "================================================"
 echo "eSignet 1.7.1 - Keycloak Init Post-install"

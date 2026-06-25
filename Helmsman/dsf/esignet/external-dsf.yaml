@@ -109,43 +109,43 @@ apps:
       databases.mosip_esignet.host: "postgres.${domain_name}"
       databases.mosip_esignet.port: ${esignet_db_port}
       databases.mosip_esignet.dml: 1
-      databases.mosip_esignet_cre.repoUrl: "https://github.com/mosip/esignet.git"
-      databases.mosip_esignet_cre.defaultDb: "postgres"
-      databases.mosip_esignet_cre.su.user: "postgres"
-      databases.mosip_esignet_cre.su.secret.name: "postgres-postgresql"
-      databases.mosip_esignet_cre.su.secret.key: "postgres-password"      
+      databases.mosip_esignet_mosipid1.repoUrl: "https://github.com/mosip/esignet.git"
+      databases.mosip_esignet_mosipid1.defaultDb: "postgres"
+      databases.mosip_esignet_mosipid1.su.user: "postgres"
+      databases.mosip_esignet_mosipid1.su.secret.name: "postgres-postgresql"
+      databases.mosip_esignet_mosipid1.su.secret.key: "postgres-password"
       # ---------------------------------------------------------------------------
-      # esignet-cre namespace (plugin 2 - mosip-identity)
+      # esignet-mosipid1 namespace (plugin 2 - mosip-identity)
       # ---------------------------------------------------------------------------
-      databases.mosip_esignet_cre.enabled: "true"
-      databases.mosip_esignet_cre.scriptsDir: "mosip_esignet"
-      databases.mosip_esignet_cre.dbName: "mosip_esignet_cre"
-      databases.mosip_esignet_cre.dbUser: "esignetuser_cre"
-      databases.mosip_esignet_cre.branch: "develop"
-      databases.mosip_esignet_cre.host: "postgres.${domain_name}"
-      databases.mosip_esignet_cre.port: ${esignet_db_port}
-      databases.mosip_esignet_cre.dml: 1
-      databases.mosip_esignet_cre.repoUrl: "https://github.com/mosip/esignet.git"
-      databases.mosip_esignet_cre.defaultDb: "postgres"
-      databases.mosip_esignet_cre.su.user: "postgres"
-      databases.mosip_esignet_cre.su.secret.name: "postgres-postgresql"
-      databases.mosip_esignet_cre.su.secret.key: "postgres-password"
+      databases.mosip_esignet_mosipid1.enabled: "true"
+      databases.mosip_esignet_mosipid1.scriptsDir: "mosip_esignet"
+      databases.mosip_esignet_mosipid1.dbName: "mosip_esignet_mosipid1"
+      databases.mosip_esignet_mosipid1.dbUser: "esignetuser_mosipid1"
+      databases.mosip_esignet_mosipid1.branch: "develop"
+      databases.mosip_esignet_mosipid1.host: "postgres.${domain_name}"
+      databases.mosip_esignet_mosipid1.port: ${esignet_db_port}
+      databases.mosip_esignet_mosipid1.dml: 1
+      databases.mosip_esignet_mosipid1.repoUrl: "https://github.com/mosip/esignet.git"
+      databases.mosip_esignet_mosipid1.defaultDb: "postgres"
+      databases.mosip_esignet_mosipid1.su.user: "postgres"
+      databases.mosip_esignet_mosipid1.su.secret.name: "postgres-postgresql"
+      databases.mosip_esignet_mosipid1.su.secret.key: "postgres-password"
       # ---------------------------------------------------------------------------
-      # esignet-qa11 namespace (plugin 2 - mosip-identity)
+      # esignet-mosipid2 namespace (plugin 2 - mosip-identity)
       # ---------------------------------------------------------------------------
-      databases.mosip_esignet_qa11.enabled: "true"
-      databases.mosip_esignet_qa11.scriptsDir: "mosip_esignet"
-      databases.mosip_esignet_qa11.dbName: "mosip_esignet_qa11"
-      databases.mosip_esignet_qa11.dbUser: "esignetuser_qa11"
-      databases.mosip_esignet_qa11.branch: "develop"
-      databases.mosip_esignet_qa11.host: "postgres.${domain_name}"
-      databases.mosip_esignet_qa11.port: ${esignet_db_port}
-      databases.mosip_esignet_qa11.dml: 1
-      databases.mosip_esignet_qa11.repoUrl: "https://github.com/mosip/esignet.git"
-      databases.mosip_esignet_qa11.defaultDb: "postgres"
-      databases.mosip_esignet_qa11.su.user: "postgres"
-      databases.mosip_esignet_qa11.su.secret.name: "postgres-postgresql"
-      databases.mosip_esignet_qa11.su.secret.key: "postgres-password"
+      databases.mosip_esignet_mosipid2.enabled: "true"
+      databases.mosip_esignet_mosipid2.scriptsDir: "mosip_esignet"
+      databases.mosip_esignet_mosipid2.dbName: "mosip_esignet_mosipid2"
+      databases.mosip_esignet_mosipid2.dbUser: "esignetuser_mosipid2"
+      databases.mosip_esignet_mosipid2.branch: "develop"
+      databases.mosip_esignet_mosipid2.host: "postgres.${domain_name}"
+      databases.mosip_esignet_mosipid2.port: ${esignet_db_port}
+      databases.mosip_esignet_mosipid2.dml: 1
+      databases.mosip_esignet_mosipid2.repoUrl: "https://github.com/mosip/esignet.git"
+      databases.mosip_esignet_mosipid2.defaultDb: "postgres"
+      databases.mosip_esignet_mosipid2.su.user: "postgres"
+      databases.mosip_esignet_mosipid2.su.secret.name: "postgres-postgresql"
+      databases.mosip_esignet_mosipid2.su.secret.key: "postgres-password"
       # ---------------------------------------------------------------------------
       # esignet-sunbird namespace (plugin 3 - sunbird-rc)
       # ---------------------------------------------------------------------------

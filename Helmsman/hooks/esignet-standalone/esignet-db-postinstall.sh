@@ -15,7 +15,7 @@ echo "================================================"
 echo "eSignet 1.7.1 - Database Init Post-install"
 echo "================================================"
 
-for NS in esignet esignet-cre esignet-qa11 esignet-sunbird; do
+for NS in esignet esignet-mosipid1 esignet-mosipid2 esignet-sunbird; do
   echo "Copying db-common-secrets from $POSTGRES_NS to $NS"
   $COPY_UTIL secret db-common-secrets "$POSTGRES_NS" "$NS"
 done

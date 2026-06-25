@@ -1,10 +1,10 @@
 #!/bin/bash
 # =============================================================================
-# eSignet 1.7.1 - Mock Relying Party Service QA11 Pre-install
+# eSignet 1.7.1 - Mock Relying Party Service MOSIPID2 Pre-install
 # =============================================================================
-# Wrapper: sets ESIGNET_NS=esignet-qa11 and delegates to base mock-rp-service
+# Wrapper: sets ESIGNET_NS=esignet-mosipid2 and delegates to base mock-rp-service
 # preinstall (creates private key secrets in the target namespace).
 # =============================================================================
 set -euo pipefail
-export ESIGNET_NS="esignet-qa11"
+export ESIGNET_NS="esignet-mosipid2"
 exec "$WORKDIR/hooks/esignet-standalone/mock-relying-party-service-preinstall.sh"

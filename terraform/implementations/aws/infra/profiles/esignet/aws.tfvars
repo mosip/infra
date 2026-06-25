@@ -78,7 +78,7 @@ rancher_import_url    = "\"<rancher-import-url>\""
 
 # DNS Records to map — only eSignet-relevant subdomains
 
-subdomain_public   = ["esignet", "healthservices", "signup", "esignet-sunbird", "healthservices-sunbird", "healthservices-mosipid-cre", "esignet-mosipid-cre", "pms-partner-cre", "pms-policy-cre", "signup-mosipid-cre", "healthservices-mosipid-qa11", "esignet-mosipid-qa11", "pms-partner-qa11", "pms-policy-qa11", "signup-mosipid-qa11"]
+subdomain_public   = ["esignet", "healthservices", "signup", "esignet-sunbird", "healthservices-sunbird", "healthservices-mosipid1", "esignet-mosipid1", "pms-mosipid1", "signup-mosipid1", "healthservices-mosipid2", "esignet-mosipid2", "pms-mosipid2", "signup-mosipid2"]
 subdomain_internal = ["iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio"]
 
 # PostgreSQL Configuration

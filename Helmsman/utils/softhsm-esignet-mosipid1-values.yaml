@@ -1,4 +1,4 @@
-# SoftHSM values for esignet-cre namespace
+# SoftHSM values for esignet-mosipid1 namespace
 # Identical to softhsm-esignet-values.yaml — separate file so each namespace
 # gets an independent SoftHSM PVC and pin secret.
 

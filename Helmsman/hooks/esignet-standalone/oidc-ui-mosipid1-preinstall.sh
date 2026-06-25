@@ -1,9 +1,9 @@
 #!/bin/bash
 # =============================================================================
-# eSignet 1.7.1 - SoftHSM eSignet QA11 Pre-install Setup
+# eSignet 1.7.1 - OIDC UI MOSIPID1 Pre-install
 # =============================================================================
-# Wrapper: sets ESIGNET_NS=esignet-qa11 and delegates to base softhsm setup.
+# Wrapper: sets ESIGNET_NS=esignet-mosipid1 and delegates to base oidc-ui preinstall.
 # =============================================================================
 set -euo pipefail
-export ESIGNET_NS="esignet-qa11"
-exec "$WORKDIR/hooks/esignet-standalone/softhsm-esignet-setup.sh"
+export ESIGNET_NS="esignet-mosipid1"
+exec "$WORKDIR/hooks/esignet-standalone/oidc-ui-preinstall.sh"

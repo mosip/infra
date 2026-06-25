@@ -38,12 +38,12 @@ on:
         description: "PostgreSQL port for eSignet databases (e.g. 5433 for MOSIP platform external postgres)"
         required: true
         type: string
-      cre_domain_name:
-        description: "CRE domain name for this environment (e.g. cre.xyz.net)"
+      mosipid1_domain_name:
+        description: "MOSIP-ID1 domain name for this environment (e.g. mosipenv1.xyz.net)"
         required: false
         type: string
-      qa11_domain_name:
-        description: "QA base domain name for this environment (e.g. qabase.xyz.net)"
+      mosipid2_domain_name:
+        description: "MOSIP-ID2 domain name for this environment (e.g. qabase.xyz.net)"
         required: false
         type: string
       env_name:
@@ -83,22 +83,22 @@ jobs:
           echo "✓ domain_name     = $DOMAIN"
           echo "✓ env_name        = $ENV"
           echo "✓ esignet_db_port = $ESIGNET_DB_PORT"
-          # cre_domain_name and qa11_domain_name are esignet standalone only.
+          # mosipid1_domain_name and mosipid2_domain_name are esignet standalone only.
           # Push events always target esignet (path filter); dispatch uses explicit profile input.
           if [ -z "$PROFILE" ] || [ "$PROFILE" = "esignet" ]; then
-            CRE_DOMAIN="${{ github.event.inputs.cre_domain_name || vars.CRE_DOMAIN_NAME }}"
-            QA11_DOMAIN="${{ github.event.inputs.qa11_domain_name || vars.QA11_DOMAIN_NAME }}"
-            echo "✓ cre_domain_name    = $CRE_DOMAIN (esignet standalone)"
-            echo "✓ qa11_domain_name = $QA11_DOMAIN (esignet standalone)"
-            CRE_SPRING_LABEL="${{ vars.ESIGNET_CRE_SPRING_CONFIG_LABEL }}"
-            QA11_SPRING_LABEL="${{ vars.ESIGNET_QA11_SPRING_CONFIG_LABEL }}"
-            echo "✓ cre_spring_config_label  = ${CRE_SPRING_LABEL:-develop} (esignet standalone, default: develop)"
-            echo "✓ qa11_spring_config_label = ${QA11_SPRING_LABEL:-develop} (esignet standalone, default: develop)"
+            MOSIPID1_DOMAIN="${{ github.event.inputs.mosipid1_domain_name || vars.MOSIPID1_DOMAIN_NAME }}"
+            MOSIPID2_DOMAIN="${{ github.event.inputs.mosipid2_domain_name || vars.MOSIPID2_DOMAIN_NAME }}"
+            echo "✓ mosipid1_domain_name = $MOSIPID1_DOMAIN (esignet standalone)"
+            echo "✓ mosipid2_domain_name = $MOSIPID2_DOMAIN (esignet standalone)"
+            MOSIPID1_SPRING_LABEL="${{ vars.ESIGNET_MOSIPID1_SPRING_CONFIG_LABEL }}"
+            MOSIPID2_SPRING_LABEL="${{ vars.ESIGNET_MOSIPID2_SPRING_CONFIG_LABEL }}"
+            echo "✓ mosipid1_spring_config_label = ${MOSIPID1_SPRING_LABEL:-develop} (esignet standalone, default: develop)"
+            echo "✓ mosipid2_spring_config_label = ${MOSIPID2_SPRING_LABEL:-develop} (esignet standalone, default: develop)"
           else
-            CRE_PROVIDED="${{ github.event.inputs.cre_domain_name }}"
-            QABASE_PROVIDED="${{ github.event.inputs.qa11_domain_name }}"
-            if [ -n "$CRE_PROVIDED" ] || [ -n "$QABASE_PROVIDED" ]; then
-              echo "⚠ cre_domain_name / qa11_domain_name are only used for esignet standalone profile — ignoring for profile=$PROFILE"
+            MOSIPID1_PROVIDED="${{ github.event.inputs.mosipid1_domain_name }}"
+            MOSIPID2_PROVIDED="${{ github.event.inputs.mosipid2_domain_name }}"
+            if [ -n "$MOSIPID1_PROVIDED" ] || [ -n "$MOSIPID2_PROVIDED" ]; then
+              echo "⚠ mosipid1_domain_name / mosipid2_domain_name are only used for esignet standalone profile — ignoring for profile=$PROFILE"
             fi
           fi
 
@@ -111,11 +111,12 @@ jobs:
       KUBECONFIG: ${{ github.workspace }}/.kube/config
       PATH: ${{ github.workspace }}/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
       KUBECTL_PATH: ${{ github.workspace }}/.local/bin/kubectl
-      domain_name:        ${{ github.event.inputs.domain_name        || vars.DOMAIN_NAME }}
-      esignet_db_port:    ${{ github.event.inputs.esignet_db_port    || vars.ESIGNET_DB_PORT }}
-      cre_domain_name:    ${{ github.event.inputs.cre_domain_name    || vars.CRE_DOMAIN_NAME }}
-      qa11_domain_name: ${{ github.event.inputs.qa11_domain_name || vars.QA11_DOMAIN_NAME }}
-      env_name:           ${{ github.event.inputs.env_name           || vars.ENV_NAME }}
+      domain_name:           ${{ github.event.inputs.domain_name           || vars.DOMAIN_NAME }}
+      esignet_db_port:       ${{ github.event.inputs.esignet_db_port       || vars.ESIGNET_DB_PORT }}
+      mosipid1_domain_name:  ${{ github.event.inputs.mosipid1_domain_name  || vars.MOSIPID1_DOMAIN_NAME }}
+      mosipid2_domain_name:  ${{ github.event.inputs.mosipid2_domain_name  || vars.MOSIPID2_DOMAIN_NAME }}
+      sunbird_domain_name:   ${{ vars.SUNBIRD_DOMAIN_NAME }}
+      env_name:              ${{ github.event.inputs.env_name              || vars.ENV_NAME }}
       # All secrets below are ENVIRONMENT secrets (not repository secrets)
       # Configure them in: Repository → Settings → Environments → <branch-name> → Secrets
       # Mock Relying Party Service secrets (base64 encoded PEM)
@@ -125,22 +126,22 @@ jobs:
       ESIGNET_CAPTCHA_SITE_KEY: ${{ secrets.ESIGNET_CAPTCHA_SITE_KEY }}
       ESIGNET_CAPTCHA_SECRET_KEY: ${{ secrets.ESIGNET_CAPTCHA_SECRET_KEY }}
       # Per-namespace captcha secrets — required for esignet standalone profile only
-      ESIGNET_CRE_CAPTCHA_SITE_KEY:     ${{ secrets.ESIGNET_CRE_CAPTCHA_SITE_KEY }}
-      ESIGNET_CRE_CAPTCHA_SECRET_KEY:   ${{ secrets.ESIGNET_CRE_CAPTCHA_SECRET_KEY }}
-      ESIGNET_QA11_CAPTCHA_SITE_KEY:    ${{ secrets.ESIGNET_QA11_CAPTCHA_SITE_KEY }}
-      ESIGNET_QA11_CAPTCHA_SECRET_KEY:  ${{ secrets.ESIGNET_QA11_CAPTCHA_SECRET_KEY }}
-      # CRE / QA11 remote Keycloak admin + Postgres passwords (for testrig secrets created at esignet deploy time)
-      CRE_KEYCLOAK_ADMIN_PASSWORD:  ${{ secrets.CRE_KEYCLOAK_ADMIN_PASSWORD }}
-      QA11_KEYCLOAK_ADMIN_PASSWORD: ${{ secrets.QA11_KEYCLOAK_ADMIN_PASSWORD }}
-      CRE_POSTGRES_PASSWORD:        ${{ secrets.CRE_POSTGRES_PASSWORD }}
-      QA11_POSTGRES_PASSWORD:       ${{ secrets.QA11_POSTGRES_PASSWORD }}
+      ESIGNET_MOSIPID1_CAPTCHA_SITE_KEY:     ${{ secrets.ESIGNET_MOSIPID1_CAPTCHA_SITE_KEY }}
+      ESIGNET_MOSIPID1_CAPTCHA_SECRET_KEY:   ${{ secrets.ESIGNET_MOSIPID1_CAPTCHA_SECRET_KEY }}
+      ESIGNET_MOSIPID2_CAPTCHA_SITE_KEY:     ${{ secrets.ESIGNET_MOSIPID2_CAPTCHA_SITE_KEY }}
+      ESIGNET_MOSIPID2_CAPTCHA_SECRET_KEY:   ${{ secrets.ESIGNET_MOSIPID2_CAPTCHA_SECRET_KEY }}
+      # MOSIPID1 / MOSIPID2 remote Keycloak admin + Postgres passwords
+      MOSIPID1_KEYCLOAK_ADMIN_PASSWORD: ${{ secrets.MOSIPID1_KEYCLOAK_ADMIN_PASSWORD }}
+      MOSIPID2_KEYCLOAK_ADMIN_PASSWORD: ${{ secrets.MOSIPID2_KEYCLOAK_ADMIN_PASSWORD }}
+      MOSIPID1_POSTGRES_PASSWORD:       ${{ secrets.MOSIPID1_POSTGRES_PASSWORD }}
+      MOSIPID2_POSTGRES_PASSWORD:       ${{ secrets.MOSIPID2_POSTGRES_PASSWORD }}
       ESIGNET_SUNBIRD_CAPTCHA_SITE_KEY:   ${{ secrets.ESIGNET_SUNBIRD_CAPTCHA_SITE_KEY }}
       ESIGNET_SUNBIRD_CAPTCHA_SECRET_KEY: ${{ secrets.ESIGNET_SUNBIRD_CAPTCHA_SECRET_KEY }}
       # Spring config label per namespace — controls which Git branch/tag the config-server uses
       # Set as Environment Variables in Repository → Settings → Environments → <branch> → Variables
       # If unset, hooks default to 'develop'
-      ESIGNET_CRE_SPRING_CONFIG_LABEL:  ${{ vars.ESIGNET_CRE_SPRING_CONFIG_LABEL }}
-      ESIGNET_QA11_SPRING_CONFIG_LABEL: ${{ vars.ESIGNET_QA11_SPRING_CONFIG_LABEL }}
+      ESIGNET_MOSIPID1_SPRING_CONFIG_LABEL: ${{ vars.ESIGNET_MOSIPID1_SPRING_CONFIG_LABEL }}
+      ESIGNET_MOSIPID2_SPRING_CONFIG_LABEL: ${{ vars.ESIGNET_MOSIPID2_SPRING_CONFIG_LABEL }}
       # Cluster access secrets
       KUBECONFIG_SECRET: ${{ secrets.KUBECONFIG }}
       CLUSTER_WIREGUARD_WG0: ${{ secrets.CLUSTER_WIREGUARD_WG0 }}
@@ -181,11 +182,11 @@ jobs:
               echo "✗ Failed to save $name (HTTP $STATUS)"; exit 1
             fi
           }
-          save_var "DOMAIN_NAME"        "${{ github.event.inputs.domain_name }}"
-          save_var "ESIGNET_DB_PORT"    "${{ github.event.inputs.esignet_db_port }}"
-          save_var "CRE_DOMAIN_NAME"    "${{ github.event.inputs.cre_domain_name }}"
-          save_var "QA11_DOMAIN_NAME" "${{ github.event.inputs.qa11_domain_name }}"
-          save_var "ENV_NAME"           "${{ github.event.inputs.env_name }}"
+          save_var "DOMAIN_NAME"           "${{ github.event.inputs.domain_name }}"
+          save_var "ESIGNET_DB_PORT"       "${{ github.event.inputs.esignet_db_port }}"
+          save_var "MOSIPID1_DOMAIN_NAME"  "${{ github.event.inputs.mosipid1_domain_name }}"
+          save_var "MOSIPID2_DOMAIN_NAME"  "${{ github.event.inputs.mosipid2_domain_name }}"
+          save_var "ENV_NAME"              "${{ github.event.inputs.env_name }}"
 
       - name: Mask sensitive data
         run: |
@@ -196,10 +197,10 @@ jobs:
           echo "::add-mask::${{ secrets.CLUSTER_WIREGUARD_WG0 }}"
           echo "::add-mask::${{ secrets.ESIGNET_CAPTCHA_SITE_KEY }}"
           echo "::add-mask::${{ secrets.ESIGNET_CAPTCHA_SECRET_KEY }}"
-          echo "::add-mask::${{ secrets.ESIGNET_CRE_CAPTCHA_SITE_KEY }}"
-          echo "::add-mask::${{ secrets.ESIGNET_CRE_CAPTCHA_SECRET_KEY }}"
-          echo "::add-mask::${{ secrets.ESIGNET_QA11_CAPTCHA_SITE_KEY }}"
-          echo "::add-mask::${{ secrets.ESIGNET_QA11_CAPTCHA_SECRET_KEY }}"
+          echo "::add-mask::${{ secrets.ESIGNET_MOSIPID1_CAPTCHA_SITE_KEY }}"
+          echo "::add-mask::${{ secrets.ESIGNET_MOSIPID1_CAPTCHA_SECRET_KEY }}"
+          echo "::add-mask::${{ secrets.ESIGNET_MOSIPID2_CAPTCHA_SITE_KEY }}"
+          echo "::add-mask::${{ secrets.ESIGNET_MOSIPID2_CAPTCHA_SECRET_KEY }}"
           echo "::add-mask::${{ secrets.ESIGNET_SUNBIRD_CAPTCHA_SITE_KEY }}"
           echo "::add-mask::${{ secrets.ESIGNET_SUNBIRD_CAPTCHA_SECRET_KEY }}"
 
@@ -376,8 +377,8 @@ jobs:
           # Per-namespace captcha secrets — only required for esignet standalone profile
           if [ "$PROFILE" = "esignet" ]; then
             echo "--- Validating esignet standalone captcha secrets ---"
-            for var in ESIGNET_CRE_CAPTCHA_SITE_KEY ESIGNET_CRE_CAPTCHA_SECRET_KEY \
-                       ESIGNET_QA11_CAPTCHA_SITE_KEY ESIGNET_QA11_CAPTCHA_SECRET_KEY \
+            for var in ESIGNET_MOSIPID1_CAPTCHA_SITE_KEY ESIGNET_MOSIPID1_CAPTCHA_SECRET_KEY \
+                       ESIGNET_MOSIPID2_CAPTCHA_SITE_KEY ESIGNET_MOSIPID2_CAPTCHA_SECRET_KEY \
                        ESIGNET_SUNBIRD_CAPTCHA_SITE_KEY ESIGNET_SUNBIRD_CAPTCHA_SECRET_KEY; do
               val="${!var:-}"
               if [ -z "$val" ]; then
@@ -388,8 +389,8 @@ jobs:
               fi
             done
             echo "--- Validating esignet standalone postgres + keycloak secrets ---"
-            for var in CRE_POSTGRES_PASSWORD QA11_POSTGRES_PASSWORD \
-                       CRE_KEYCLOAK_ADMIN_PASSWORD QA11_KEYCLOAK_ADMIN_PASSWORD; do
+            for var in MOSIPID1_POSTGRES_PASSWORD MOSIPID2_POSTGRES_PASSWORD \
+                       MOSIPID1_KEYCLOAK_ADMIN_PASSWORD MOSIPID2_KEYCLOAK_ADMIN_PASSWORD; do
               val="${!var:-}"
               if [ -z "$val" ]; then
                 echo "❌ $var secret is not configured (required for esignet standalone)"
@@ -413,11 +414,11 @@ jobs:
             echo "  - ESIGNET_CAPTCHA_SITE_KEY (reCAPTCHA site key - plain text)"
             echo "  - ESIGNET_CAPTCHA_SECRET_KEY (reCAPTCHA secret key - plain text)"
             if [ "$PROFILE" = "esignet" ]; then
-              echo "  - ESIGNET_CRE_CAPTCHA_SITE_KEY / ESIGNET_CRE_CAPTCHA_SECRET_KEY"
-              echo "  - ESIGNET_QA11_CAPTCHA_SITE_KEY / ESIGNET_QA11_CAPTCHA_SECRET_KEY"
+              echo "  - ESIGNET_MOSIPID1_CAPTCHA_SITE_KEY / ESIGNET_MOSIPID1_CAPTCHA_SECRET_KEY"
+              echo "  - ESIGNET_MOSIPID2_CAPTCHA_SITE_KEY / ESIGNET_MOSIPID2_CAPTCHA_SECRET_KEY"
               echo "  - ESIGNET_SUNBIRD_CAPTCHA_SITE_KEY / ESIGNET_SUNBIRD_CAPTCHA_SECRET_KEY"
-              echo "  - CRE_POSTGRES_PASSWORD / QA11_POSTGRES_PASSWORD"
-              echo "  - CRE_KEYCLOAK_ADMIN_PASSWORD / QA11_KEYCLOAK_ADMIN_PASSWORD"
+              echo "  - MOSIPID1_POSTGRES_PASSWORD / MOSIPID2_POSTGRES_PASSWORD"
+              echo "  - MOSIPID1_KEYCLOAK_ADMIN_PASSWORD / MOSIPID2_KEYCLOAK_ADMIN_PASSWORD"
             fi
             exit 1
           fi
@@ -518,10 +519,11 @@ jobs:
 
       - name: Show deployment variables
         run: |
-          echo "domain_name        = $domain_name"
-          echo "cre_domain_name    = $cre_domain_name"
-          echo "qa11_domain_name = $qa11_domain_name"
-          echo "env_name           = $env_name"
+          echo "domain_name           = $domain_name"
+          echo "mosipid1_domain_name  = $mosipid1_domain_name"
+          echo "mosipid2_domain_name  = $mosipid2_domain_name"
+          echo "sunbird_domain_name   = $sunbird_domain_name"
+          echo "env_name              = $env_name"
 
       - name: Initiate helmsman to apply the DSF configurations
         run: |
@@ -560,7 +562,7 @@ jobs:
           SKIP_RELEASES_ARG=""
           if [ "$PROFILE" = "esignet" ]; then
             SKIP_RELEASES=""
-            for pair in "esignet-softhsm:esignet" "esignet-softhsm-cre:esignet-cre" "esignet-softhsm-qa11:esignet-qa11" "esignet-softhsm-sunbird:esignet-sunbird"; do
+            for pair in "esignet-softhsm:esignet" "esignet-softhsm-mosipid1:esignet-mosipid1" "esignet-softhsm-mosipid2:esignet-mosipid2" "esignet-softhsm-sunbird:esignet-sunbird"; do
               release="${pair%%:*}"
               ns="${pair##*:}"
               if helm status "$release" -n "$ns" &>/dev/null; then
