@@ -11,7 +11,7 @@
 # =============================================================================
 set -euo pipefail
 
-ESIGNET_NS="${ESIGNET_NS:-esignet}"
+ESIGNET_NS="${ESIGNET_NS:-esignet-mock}"
 
 CLIENT_KEY_TMPFILE=""
 JWE_KEY_TMPFILE=""

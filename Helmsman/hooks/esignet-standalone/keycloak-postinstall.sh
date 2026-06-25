@@ -13,7 +13,7 @@
 # =============================================================================
 set -euo pipefail
 
-ESIGNET_NS="${ESIGNET_NS:-esignet}"
+ESIGNET_NS="${ESIGNET_NS:-esignet-mock}"
 KEYCLOAK_NS="keycloak"
 CHART_VERSION="${KEYCLOAK_INIT_VERSION:-12.0.2}"
 INSTALLATION_DOMAIN="${INSTALLATION_DOMAIN:-sandbox.xyz.net}"

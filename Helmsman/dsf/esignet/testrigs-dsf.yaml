@@ -33,7 +33,7 @@ apps:
   # eSignet API Testrig — main esignet namespace
   # ---------------------------------------------------------------------------
   esignet-apitestrig:
-    namespace: esignet
+    namespace: esignet-mock
     enabled: true
     version: 0.0.1-develop
     chart: mosip/apitestrig
@@ -61,7 +61,7 @@ apps:
       apitestrig.configmaps.apitestrig.reportExpirationInDays: "3"
       apitestrig.configmaps.apitestrig.slack-webhook-url: "${SLACK_WEBHOOK_URL}"
       apitestrig.configmaps.apitestrig.eSignetDeployed: "yes"
-      apitestrig.configmaps.apitestrig.NS: "esignet"
+      apitestrig.configmaps.apitestrig.NS: "esignet-mock"
       apitestrig.configmaps.apitestrig.servicesNotDeployed: ''
       apitestrig.configmaps.apitestrig.uinGenerationProcessingDelayTimeInMilliSeconds: "90000"
       apitestrig.configmaps.apitestrig.vidGenerationProcessingDelayTimeInMilliSeconds: "90000"

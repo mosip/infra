@@ -11,7 +11,7 @@
 # =============================================================================
 set -euo pipefail
 
-ESIGNET_NS="${ESIGNET_NS:-esignet}"
+ESIGNET_NS="${ESIGNET_NS:-esignet-mock}"
 KAFKA_URL="${KAFKA_URL:-kafka-0.kafka-headless.kafka.svc.cluster.local:9092,kafka-1.kafka-headless.kafka.svc.cluster.local:9092,kafka-2.kafka-headless.kafka.svc.cluster.local:9092}"
 
 echo "================================================"

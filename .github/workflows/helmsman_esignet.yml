@@ -562,7 +562,7 @@ jobs:
           SKIP_RELEASES_ARG=""
           if [ "$PROFILE" = "esignet" ]; then
             SKIP_RELEASES=""
-            for pair in "esignet-softhsm:esignet" "esignet-softhsm-mosipid1:esignet-mosipid1" "esignet-softhsm-mosipid2:esignet-mosipid2" "esignet-softhsm-sunbird:esignet-sunbird"; do
+            for pair in "esignet-softhsm:esignet-mock" "esignet-softhsm-mosipid1:esignet-mosipid1" "esignet-softhsm-mosipid2:esignet-mosipid2" "esignet-softhsm-sunbird:esignet-sunbird"; do
               release="${pair%%:*}"
               ns="${pair##*:}"
               if helm status "$release" -n "$ns" &>/dev/null; then

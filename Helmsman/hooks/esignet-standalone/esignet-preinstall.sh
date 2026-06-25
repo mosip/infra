@@ -2,19 +2,19 @@
 # =============================================================================
 # eSignet 1.7.1 - eSignet Service Pre-install
 # =============================================================================
-# Based on: deploy/esignet/install.sh
-# Prepares esignet namespace with postgres and redis configmaps/secrets
+# Based on: deploy/esignet-mock/install.sh
+# Prepares esignet-mock namespace with postgres and redis configmaps/secrets
 # before eSignet helm chart deployment.
 #
-# softhsm-esignet deploys in the esignet namespace (priority -14, before
-# esignet at -12), so esignet-softhsm-share is already present — no copy needed.
+# softhsm-esignet-mock deploys in the esignet-mock namespace (priority -14, before
+# esignet-mock at -12), so esignet-softhsm-share is already present — no copy needed.
 #
 # Environment Variables:
-#   ESIGNET_NS   - eSignet namespace (default: esignet)
+#   ESIGNET_NS   - eSignet namespace (default: esignet-mock)
 # =============================================================================
 set -euo pipefail
 
-ESIGNET_NS="${ESIGNET_NS:-esignet}"
+ESIGNET_NS="${ESIGNET_NS:-esignet-mock}"
 POSTGRES_NS="postgres"
 REDIS_NS="redis"
 COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
@@ -23,7 +23,7 @@ echo "================================================"
 echo "eSignet 1.7.1 - eSignet Service Pre-install"
 echo "================================================"
 
-# --- Step 1: Ensure esignet namespace exists with Istio ---
+# --- Step 1: Ensure esignet-mock namespace exists with Istio ---
 echo "Setting up $ESIGNET_NS namespace"
 kubectl create namespace "$ESIGNET_NS" --dry-run=client -o yaml | kubectl apply -f -
 kubectl label namespace "$ESIGNET_NS" istio-injection=enabled --overwrite
@@ -34,7 +34,7 @@ helm repo update
 
 # --- Step 3: Copy configmaps from other namespaces ---
 # All external services (postgres, redis) are guaranteed deployed before
-# esignet-dsf runs.
+# esignet-mock-dsf runs.
 echo "Copying postgres-config configmap from $POSTGRES_NS"
 $COPY_UTIL configmap postgres-config "$POSTGRES_NS" "$ESIGNET_NS"
 

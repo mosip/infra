@@ -42,7 +42,7 @@ namespaces:
     protected: false
   minio:
     protected: false
-  esignet:
+  esignet-mock:
     protected: false
   signup:
     protected: false  

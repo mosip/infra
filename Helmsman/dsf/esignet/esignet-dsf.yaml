@@ -28,7 +28,7 @@ helmRepos:
   mosip: https://mosip.github.io/mosip-helm
 
 namespaces:
-  esignet:
+  esignet-mock:
     protected: false
   softhsm:
     protected: false
@@ -46,7 +46,7 @@ apps:
   # Deployed here (not in external-dsf) so esignet-softhsm-share configmap is
   # available in esignet namespace before eSignet service starts.
   esignet-softhsm:
-    namespace: esignet
+    namespace: esignet-mock
     enabled: true
     version: 12.0.1
     chart: mosip/softhsm
@@ -90,7 +90,7 @@ apps:
       preInstall: "$WORKDIR/hooks/esignet-standalone/softhsm-esignet-sunbird-setup.sh"
 
   esignet-config-server:
-    namespace: esignet
+    namespace: esignet-mock
     enabled: true
     version: 12.0.1
     chart: mosip/config-server
@@ -105,8 +105,8 @@ apps:
   # ---------------------------------------------------------------------------
   # eSignet v1.7.1
   # ---------------------------------------------------------------------------
-  esignet:
-    namespace: esignet
+  esignet-mock:
+    namespace: esignet-mock
     enabled: true
     version: 0.0.1-develop
     chart: mosip/esignet
@@ -254,7 +254,7 @@ apps:
   # OIDC UI v1.7.1
   # ---------------------------------------------------------------------------
   oidc-ui:
-    namespace: esignet
+    namespace: esignet-mock
     enabled: true
     version: 0.0.1-develop
     chart: mosip/oidc-ui
@@ -262,9 +262,9 @@ apps:
       image.repository: "mosipqa/oidc-ui"
       image.tag: "1.8.x"    
       istio.hosts[0]: "esignet.${domain_name}"
-      oidc_ui.oidc_service_host: "esignet.esignet"
-      oidc_ui.configmaps.oidc-ui.REACT_APP_API_BASE_URL: "http://esignet.esignet/v1/esignet"
-      oidc_ui.configmaps.oidc-ui.REACT_APP_SBI_DOMAIN_URI: "http://esignet.esignet"
+      oidc_ui.oidc_service_host: "esignet-mock.esignet-mock"
+      oidc_ui.configmaps.oidc-ui.REACT_APP_API_BASE_URL: "http://esignet-mock.esignet-mock/v1/esignet"
+      oidc_ui.configmaps.oidc-ui.REACT_APP_SBI_DOMAIN_URI: "http://esignet-mock.esignet-mock"
     timeout: 1200
     priority: -13
     hooks:
@@ -339,7 +339,7 @@ apps:
       postInstall: "$WORKDIR/hooks/esignet-standalone/softhsm-mock-identity-system-postinstall.sh"
 
   mock-identity-system:
-    namespace: esignet
+    namespace: esignet-mock
     enabled: true
     version: 0.0.1-develop
     chart: mosip/mock-identity-system
@@ -360,12 +360,12 @@ apps:
   # Mock Relying Party (Optional)
   # ---------------------------------------------------------------------------
   mock-relying-party-service:
-    namespace: esignet
+    namespace: esignet-mock
     enabled: true
     version: 0.0.1-develop
     chart: mosip/mock-relying-party-service
     set:
-      mock_relying_party_service.ESIGNET_SERVICE_URL: "http://esignet.esignet/v1/esignet"
+      mock_relying_party_service.ESIGNET_SERVICE_URL: "http://esignet-mock.esignet-mock/v1/esignet"
       mock_relying_party_service.ESIGNET_AUD_URL: "https://esignet.${domain_name}/v1/esignet/oauth/v2/token"
       enable_insecure: "false"
       domainConfig.MOSIP_API_INTERNAL_HOST: "api-internal.${domain_name}"
@@ -420,7 +420,7 @@ apps:
       preInstall: "$WORKDIR/hooks/esignet-standalone/mock-relying-party-service-sunbird-preinstall.sh"
 
   mock-relying-party-ui:
-    namespace: esignet
+    namespace: esignet-mock
     enabled: true
     version: 0.0.1-develop
     chart: mosip/mock-relying-party-ui
@@ -571,7 +571,7 @@ apps:
   # Runs FIRST so the MISP license key is written before mock-rp-onboarder starts.
   # After completion, restarts the esignet deployment to pick up the new MISP license key.
   esignet-misp-onboarder:
-    namespace: esignet
+    namespace: esignet-mock
     enabled: false
     version: 0.0.1-develop
     chart: mosip/partner-onboarder
@@ -583,7 +583,7 @@ apps:
       onboarding.configmaps.s3.s3-region: ""
       onboarding.configmaps.s3.s3-bucket-name: "onboarder"
       onboarding.secrets.s3.s3-user-secret: "${MINIO_ROOT_PASSWORD}"
-      onboarding.configmaps.onboarder-namespace.ns_esignet: "esignet"
+      onboarding.configmaps.onboarder-namespace.ns_esignet: "esignet-mock"
       onboarding.variables.push_reports_to_s3: "true"
       onboarding.variables.mosipid: "false"
       extraEnvVarsCM[0]: "keycloak-env-vars"
@@ -610,7 +610,7 @@ apps:
   # Onboards the mock relying party as an OIDC client.
   # Enable for plugin 1 (mock) or plugin 3 (sunbird-rc). Set mosipid: "true" for mosip-identity-plugin.
   esignet-mock-rp-onboarder:
-    namespace: esignet
+    namespace: esignet-mock
     enabled: true
     version: 0.0.1-develop
     chart: mosip/partner-onboarder

@@ -11,7 +11,7 @@
 # =============================================================================
 set -euo pipefail
 
-ESIGNET_NS="${ESIGNET_NS:-esignet}"
+ESIGNET_NS="${ESIGNET_NS:-esignet-mock}"
 
 echo "================================================"
 echo "eSignet 1.7.1 - OIDC UI Pre-install"

@@ -3,7 +3,7 @@
 # eSignet 1.7.1 - Trigger Testrig CronJobs
 # =============================================================================
 # Immediately triggers testrig CronJobs after deployment:
-#   apitestrig  → esignet ns   (cronjob-apitestrig-esignet)
+#   apitestrig  → esignet-mock ns   (cronjob-apitestrig-esignet-mock)
 #   signup-apitestrig → signup ns  (if deployed)
 #   signup-uitestrig  → signup-uitestrig ns (if deployed)
 # =============================================================================
@@ -63,8 +63,8 @@ echo "================================================"
 echo "eSignet 1.7.1 - Trigger Testrig CronJobs"
 echo "================================================"
 
-echo "=== eSignet API Testrig (esignet ns) ==="
-trigger_all_in_ns esignet || OVERALL_SUCCESS=false
+echo "=== eSignet API Testrig (esignet-mock ns) ==="
+trigger_all_in_ns esignet-mock || OVERALL_SUCCESS=false
 
 echo "=== eSignet-MOSIPID1 API Testrig (esignet-mosipid1 ns) ==="
 trigger_all_in_ns esignet-mosipid1 || OVERALL_SUCCESS=false

@@ -14,7 +14,7 @@
 # =============================================================================
 set -euo pipefail
 
-ESIGNET_NS="${ESIGNET_NS:-esignet}"
+ESIGNET_NS="${ESIGNET_NS:-esignet-mock}"
 SOFTHSM_NS="softhsm"
 MOCKID_DB_NAME="${MOCKID_DB_NAME:-mosip_mockidentitysystem}"
 MOCKID_DB_USER="${MOCKID_DB_USER:-mockidsystemuser}"

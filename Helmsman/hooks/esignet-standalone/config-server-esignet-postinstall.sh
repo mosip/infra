@@ -2,7 +2,7 @@
 # =============================================================================
 # eSignet 1.7.1 - Config-Server eSignet Post-install
 # =============================================================================
-# Copies esignet-config-server-share CM from esignet ns to mosipid1/mosipid2/sunbird,
+# Copies esignet-config-server-share CM from esignet-mock ns to mosipid1/mosipid2/sunbird,
 # then patches active_profile_env and spring_config_label_env per namespace
 # so each instance points to the correct config server profile and Git label.
 #
@@ -12,7 +12,7 @@
 # =============================================================================
 set -euo pipefail
 
-SOURCE_NS="esignet"
+SOURCE_NS="esignet-mock"
 COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
 CM_NAME="esignet-config-server-share"
 
