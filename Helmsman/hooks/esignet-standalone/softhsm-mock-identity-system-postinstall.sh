@@ -14,14 +14,14 @@ echo "================================================"
 kubectl -n softhsm wait --for=condition=ready pod -l app.kubernetes.io/instance=softhsm-mock-identity-system --timeout=480s || \
   { echo "ERROR: SoftHSM mock identity system pod not ready after timeout" >&2; exit 1; }
 
-# Share SoftHSM mock identity configmap with esignet namespace
+# Share SoftHSM mock identity configmap with esignet-mock namespace
 MOCK_HSM_PIN=$(kubectl -n softhsm get secret softhsm-mock-identity-system -o jsonpath='{.data.security-pin}' 2>/dev/null || echo "")
 
 if [ -n "$MOCK_HSM_PIN" ]; then
-  kubectl -n esignet create configmap softhsm-mock-identity-system-share \
+  kubectl -n esignet-mock create configmap softhsm-mock-identity-system-share \
     --from-literal=softhsm-pin="$(echo -n "$MOCK_HSM_PIN" | base64 -d)" \
     --dry-run=client -o yaml | kubectl apply -f -
-  echo "SoftHSM mock identity system credentials shared with esignet namespace."
+  echo "SoftHSM mock identity system credentials shared with esignet-mock namespace."
 else
   echo "WARNING: SoftHSM mock identity system secret not found."
 fi
