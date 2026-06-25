@@ -39,7 +39,7 @@ Configure in **Repository → Settings → Environments → `<branch-name>` → 
 | `ESIGNET_CAPTCHA_SITE_KEY` | Google reCAPTCHA site key | Plain text |
 | `ESIGNET_CAPTCHA_SECRET_KEY` | Google reCAPTCHA secret key | Plain text |
 
-> **eSignet standalone profile** requires additional per-namespace captcha secrets and Keycloak/Postgres passwords for CRE, QA11, and Sunbird environments. See [ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md](ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md) for the full secrets list.
+> **eSignet standalone profile** requires additional per-namespace captcha secrets and Keycloak/Postgres passwords for MOSIP-ID1, MOSIP-ID2, and Sunbird environments. See [ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md](ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md) for the full secrets list.
 
 ### Creating Environment Secrets
 
@@ -233,8 +233,8 @@ Custom Helm values are stored in:
 - **(7)** **Delete existing onboarder jobs before deploy** (checkbox) — only tick this when re-running after a failure. Leave unticked on a first-time deploy.
 - **(8)** **Domain name for this environment** — type the web domain this environment should use (e.g., `example.xyz.net`).
 - **(9)** **PostgreSQL port for esignet databases** — type `5432` for eSignet standalone, or `5433` if this is part of a MOSIP platform profile.
-- **(10)** **CRE domain name** *(eSignet standalone only)* — base domain for the CRE eSignet instance (e.g., `cre.xyz.net`). Leave blank if you're not deploying CRE.
-- **(11)** **QA11 domain name** *(eSignet standalone only)* — base domain for the QA11 eSignet instance (e.g., `qa11.xyz.net`). Leave blank if you're not deploying QA11.
+- **(10)** **MOSIP-ID1 domain name** *(eSignet standalone only)* — base domain for the MOSIP-ID1 eSignet instance (e.g., `mosipid1.xyz.net`). Leave blank if you're not deploying MOSIP-ID1.
+- **(11)** **MOSIP-ID2 domain name** *(eSignet standalone only)* — base domain for the MOSIP-ID2 eSignet instance (e.g., `mosipid2.xyz.net`). Leave blank if you're not deploying MOSIP-ID2.
 - **(12)** **Environment name** — a short nickname for this environment (e.g., `sandbox`, `dev`, `staging`).
 - **(13)** Click the green **Run workflow** button to start the deployment.
 
@@ -258,8 +258,8 @@ Custom Helm values are stored in:
 | `domain_name` | Your base domain | Yes | Or set `vars.DOMAIN_NAME` in GitHub Environment |
 | `esignet_db_port` | PostgreSQL port for esignet databases | Yes | `5433` for MOSIP platform external postgres, `5432` for eSignet standalone (or `vars.ESIGNET_DB_PORT`) |
 | `env_name` | Environment name shown on the landing page | Yes | Or set `vars.ENV_NAME` in GitHub Environment |
-| `cre_domain_name` | Base domain for the CRE eSignet instance | No | eSignet standalone only — leave blank otherwise (or `vars.CRE_DOMAIN_NAME`) |
-| `qa11_domain_name` | Base domain for the QA11 eSignet instance | No | eSignet standalone only — leave blank otherwise (or `vars.QA11_DOMAIN_NAME`) |
+| `mosipid1_domain_name` | Base domain for the MOSIP-ID1 eSignet instance | No | eSignet standalone only — leave blank otherwise (or `vars.MOSIPID1_DOMAIN_NAME`) |
+| `mosipid2_domain_name` | Base domain for the MOSIP-ID2 eSignet instance | No | eSignet standalone only — leave blank otherwise (or `vars.MOSIPID2_DOMAIN_NAME`) |
 | `skip_mosip_dsf_check` | Skip MOSIP DSF completion check | No | Tick for eSignet standalone deploys; default `false` otherwise |
 | `delete_existing_jobs` | Delete stale onboarder jobs before deploy | No | Set `true` when re-running after a failure |
 

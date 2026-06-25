@@ -23,7 +23,7 @@ Choose the profile that matches your deployment target:
 
 | Profile | Use when |
 |---------|----------|
-| `esignet` | eSignet standalone — 4 parallel instances (esignet, esignet-cre, esignet-qa11, esignet-sunbird). No full MOSIP stack. |
+| `esignet` | eSignet standalone — 4 parallel instances (esignet, esignet-mosipid1, esignet-mosipid2, esignet-sunbird). No full MOSIP stack. |
 | `mosip-platform-1.2.0.x` | Full MOSIP platform with Java 11 |
 | `mosip-platform-1.2.1.x` | Full MOSIP platform with Java 21 |
 
@@ -50,7 +50,7 @@ All secrets are **Environment Secrets** — configure at **Repository → Settin
 | `ESIGNET_CAPTCHA_SITE_KEY` | Google reCAPTCHA site key for the main esignet namespace |
 | `ESIGNET_CAPTCHA_SECRET_KEY` | Google reCAPTCHA secret key for the main esignet namespace |
 
-> For CRE, QA11, and Sunbird namespace captcha secrets, see [ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md](ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md).
+> For MOSIP-ID1, MOSIP-ID2, and Sunbird namespace captcha secrets, see [ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md](ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md).
 
 ### MOSIP platform profiles only
 

@@ -4,7 +4,7 @@ This guide walks you through deploying eSignet standalone on your Kubernetes clu
 You do **not** need to run any commands on your local machine — everything runs in the cloud via GitHub workflows.
 
 **What gets deployed:**
-- 4 parallel eSignet instances (esignet, esignet-cre, esignet-qa11, esignet-sunbird)
+- 4 parallel eSignet instances (esignet, esignet-mosipid1, esignet-mosipid2, esignet-sunbird)
 - OIDC UI for each instance
 - Mock Relying Party service and UI
 - Supporting infrastructure: Postgres, Redis, Kafka, Keycloak, SoftHSM, Captcha, MinIO
@@ -38,8 +38,8 @@ Complete this checklist before triggering any workflow:
 - [ ] DNS records for all domain names are pointed to your cluster's load balancer
 - [ ] Google reCAPTCHA v2 keys are generated — you need **5 separate site/secret key pairs**:
   - one for `esignet` namespace
-  - one for `esignet-cre` namespace
-  - one for `esignet-qa11` namespace
+  - one for `esignet-mosipid1` namespace
+  - one for `esignet-mosipid2` namespace
   - one for `esignet-sunbird` namespace
   - one for `signup` namespace
   - See [reCAPTCHA Setup Guide](RECAPTCHA_SETUP_GUIDE.md)
@@ -105,18 +105,18 @@ Path to create: `Your profile → Settings → Developer settings → Personal a
 |---|---|
 | `MOCK_RELYING_PARTY_CLIENT_PRIVATE_KEY` | Base64-encoded PEM — mock relying party client private key |
 | `MOCK_RELYING_PARTY_JWE_PRIVATE_KEY` | Base64-encoded PEM — JWE userinfo private key |
-| `ESIGNET_CRE_CAPTCHA_SITE_KEY` | reCAPTCHA **site** key for `esignet-cre` namespace |
-| `ESIGNET_CRE_CAPTCHA_SECRET_KEY` | reCAPTCHA **secret** key for `esignet-cre` namespace |
-| `ESIGNET_QA11_CAPTCHA_SITE_KEY` | reCAPTCHA **site** key for `esignet-qa11` namespace |
-| `ESIGNET_QA11_CAPTCHA_SECRET_KEY` | reCAPTCHA **secret** key for `esignet-qa11` namespace |
+| `ESIGNET_MOSIPID1_CAPTCHA_SITE_KEY` | reCAPTCHA **site** key for `esignet-mosipid1` namespace |
+| `ESIGNET_MOSIPID1_CAPTCHA_SECRET_KEY` | reCAPTCHA **secret** key for `esignet-mosipid1` namespace |
+| `ESIGNET_MOSIPID2_CAPTCHA_SITE_KEY` | reCAPTCHA **site** key for `esignet-mosipid2` namespace |
+| `ESIGNET_MOSIPID2_CAPTCHA_SECRET_KEY` | reCAPTCHA **secret** key for `esignet-mosipid2` namespace |
 | `ESIGNET_SUNBIRD_CAPTCHA_SITE_KEY` | reCAPTCHA **site** key for `esignet-sunbird` namespace |
 | `ESIGNET_SUNBIRD_CAPTCHA_SECRET_KEY` | reCAPTCHA **secret** key for `esignet-sunbird` namespace |
-| `CRE_POSTGRES_PASSWORD` | Postgres superuser password for the CRE remote environment |
-| `QA11_POSTGRES_PASSWORD` | Postgres superuser password for the QA11 remote environment |
-| `CRE_KEYCLOAK_ADMIN_PASSWORD` | Keycloak admin password for the CRE remote environment |
-| `QA11_KEYCLOAK_ADMIN_PASSWORD` | Keycloak admin password for the QA11 remote environment |
+| `MOSIPID1_POSTGRES_PASSWORD` | Postgres superuser password for the MOSIP-ID1 remote environment |
+| `MOSIPID2_POSTGRES_PASSWORD` | Postgres superuser password for the MOSIP-ID2 remote environment |
+| `MOSIPID1_KEYCLOAK_ADMIN_PASSWORD` | Keycloak admin password for the MOSIP-ID1 remote environment |
+| `MOSIPID2_KEYCLOAK_ADMIN_PASSWORD` | Keycloak admin password for the MOSIP-ID2 remote environment |
 
-> ⚠️ `CRE_KEYCLOAK_ADMIN_PASSWORD` and `QA11_KEYCLOAK_ADMIN_PASSWORD` are the admin passwords of the **remote** CRE and QA11 Keycloak instances (not the local one deployed by this stack). The preinstall hook calls those Keycloak REST APIs to fetch client secrets. A wrong domain or wrong password here will cause the preinstall to fail with a curl error.
+> ⚠️ `MOSIPID1_KEYCLOAK_ADMIN_PASSWORD` and `MOSIPID2_KEYCLOAK_ADMIN_PASSWORD` are the admin passwords of the **remote** MOSIP-ID1 and MOSIP-ID2 Keycloak instances (not the local one deployed by this stack). The preinstall hook calls those Keycloak REST APIs to fetch client secrets. A wrong domain or wrong password here will cause the preinstall to fail with a curl error.
 
 **For `helmsman_signup.yml` (set now even though signup is not yet active):**
 
@@ -140,10 +140,10 @@ Navigate to: `Repository → Settings → Environments → <your-branch-name> �
 | `ENV_NAME` | `sandbox` | **Yes** | Short environment label shown on the landing page |
 | `CLUSTER_ID` | `c-xxxxx` | **Yes** | Rancher cluster ID used by monitoring setup |
 | `SLACK_CHANNEL_NAME` | `#mosip-alerts` | **Yes** | Slack channel name for alert notifications |
-| `CRE_DOMAIN_NAME` | `cre.xyz.net` | Optional | Base domain for the CRE eSignet instance |
-| `QA11_DOMAIN_NAME` | `qa11.xyz.net` | Optional | Base domain for the QA11 eSignet instance |
-| `ESIGNET_CRE_SPRING_CONFIG_LABEL` | `develop` | Optional | Git branch/tag for CRE config-server (defaults to `develop`) |
-| `ESIGNET_QA11_SPRING_CONFIG_LABEL` | `develop` | Optional | Git branch/tag for QA11 config-server (defaults to `develop`) |
+| `MOSIPID1_DOMAIN_NAME` | `mosipid1.xyz.net` | Optional | Base domain for the MOSIP-ID1 eSignet instance |
+| `MOSIPID2_DOMAIN_NAME` | `mosipid2.xyz.net` | Optional | Base domain for the MOSIP-ID2 eSignet instance |
+| `ESIGNET_MOSIPID1_SPRING_CONFIG_LABEL` | `develop` | Optional | Git branch/tag for MOSIP-ID1 config-server (defaults to `develop`) |
+| `ESIGNET_MOSIPID2_SPRING_CONFIG_LABEL` | `develop` | Optional | Git branch/tag for MOSIP-ID2 config-server (defaults to `develop`) |
 | `ESIGNET_STANDALONE_MODE` | `true` | Optional | Set to `true` to skip the MOSIP DSF completion check |
 
 ---
@@ -202,7 +202,7 @@ All pods should show `Running` or `Completed`.
 
 ### Step 2 — Deploy eSignet
 
-> **What this does:** Deploys the eSignet application itself — 4 separate instances (main, CRE, QA11, Sunbird), the OIDC login UI for each, and the Mock Relying Party service for testing.
+> **What this does:** Deploys the eSignet application itself — 4 separate instances (main, MOSIP-ID1, MOSIP-ID2, Sunbird), the OIDC login UI for each, and the Mock Relying Party service for testing.
 > Only run this after Step 1 is fully complete.
 
 **GitHub Actions workflow name:** `Deploy eSignet using Helmsman`
@@ -220,8 +220,8 @@ All pods should show `Running` or `Completed`.
 | `delete_existing_jobs` | tick only if re-running after a failure; leave unticked on first deploy |
 | `domain_name` | your base domain — e.g. `sandbox.xyz.net` |
 | `esignet_db_port` | `5432` |
-| `cre_domain_name` | CRE base domain — e.g. `cre.xyz.net` *(leave blank if not using CRE)* |
-| `qa11_domain_name` | QA11 base domain — e.g. `qa11.xyz.net` *(leave blank if not using QA11)* |
+| `mosipid1_domain_name` | MOSIP-ID1 base domain — e.g. `mosipid1.xyz.net` *(leave blank if not using MOSIP-ID1)* |
+| `mosipid2_domain_name` | MOSIP-ID2 base domain — e.g. `mosipid2.xyz.net` *(leave blank if not using MOSIP-ID2)* |
 | `env_name` | your environment name — e.g. `sandbox` |
 
 > **Important:** Always tick `skip_mosip_dsf_check` for standalone eSignet — without it, the workflow waits for a `mosip-dsf=completed` namespace label that will never appear (there is no full MOSIP deployment in this mode), and the workflow will fail.
@@ -232,7 +232,7 @@ All pods should show `Running` or `Completed`.
 
 **How to know it succeeded:**
 ```bash
-kubectl get pods -n esignet && kubectl get pods -n esignet-cre && kubectl get pods -n esignet-qa11 && kubectl get pods -n esignet-sunbird
+kubectl get pods -n esignet && kubectl get pods -n esignet-mosipid1 && kubectl get pods -n esignet-mosipid2 && kubectl get pods -n esignet-sunbird
 ```
 All pods should show `Running`.
 
@@ -267,8 +267,8 @@ All pods should show `Running`.
 | `profile` | `esignet` |
 | `mode` | `apply` |
 | `domain_name` | your base domain — e.g. `sandbox.xyz.net` |
-| `cre_domain_name` | CRE base domain *(if CRE was deployed in Step 2)* |
-| `qa11_domain_name` | QA11 base domain *(if QA11 was deployed in Step 2)* |
+| `mosipid1_domain_name` | MOSIP-ID1 base domain *(if MOSIP-ID1 was deployed in Step 2)* |
+| `mosipid2_domain_name` | MOSIP-ID2 base domain *(if MOSIP-ID2 was deployed in Step 2)* |
 | `db_port` *(MOSIP platform external postgres)* | leave blank — not used by the `esignet` profile |
 | `esignet_db_port` *(esignet container postgres)* | `5432` |
 | `env_name` | your environment name |
@@ -281,8 +281,8 @@ All pods should show `Running`.
 **How to know it succeeded:** The workflow log should show all Helmsman releases applied without errors. Verify that test cronjobs were created:
 ```bash
 kubectl get cronjobs -n esignet
-kubectl get cronjobs -n esignet-cre
-kubectl get cronjobs -n esignet-qa11
+kubectl get cronjobs -n esignet-mosipid1
+kubectl get cronjobs -n esignet-mosipid2
 kubectl get cronjobs -n esignet-sunbird
 ```
 
@@ -305,8 +305,8 @@ Run these commands against your cluster to confirm everything is healthy:
 ```bash
 # Check all pods across eSignet namespaces
 kubectl get pods -n esignet
-kubectl get pods -n esignet-cre
-kubectl get pods -n esignet-qa11
+kubectl get pods -n esignet-mosipid1
+kubectl get pods -n esignet-mosipid2
 kubectl get pods -n esignet-sunbird
 
 # Check Istio virtual services (confirms domain routing)
@@ -327,6 +327,6 @@ kubectl get pods --all-namespaces | grep -v Running | grep -v Completed | grep -
 | eSignet OIDC UI | `https://esignet.sandbox.xyz.net` |
 | Mock Relying Party UI | `https://healthservices.sandbox.xyz.net` |
 | Keycloak | `https://iam.sandbox.xyz.net` |
-| CRE eSignet | `https://esignet-mosipid-cre.sandbox.xyz.net` |
-| QA11 eSignet | `https://esignet-mosipid-qa11.sandbox.xyz.net` |
+| MOSIP-ID1 eSignet | `https://esignet-mosipid1.sandbox.xyz.net` |
+| MOSIP-ID2 eSignet | `https://esignet-mosipid2.sandbox.xyz.net` |
 | Sunbird eSignet | `https://esignet-sunbird.sandbox.xyz.net` |

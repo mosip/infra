@@ -539,9 +539,9 @@ apps:
 
 #### 1. Test Endpoints
 
-All API endpoints in `testrigs-dsf.yaml` use `${domain_name}` substitution — no manual edits needed. For the eSignet profile, `${cre_domain_name}` and `${qa11_domain_name}` are also used for the CRE and QA11 testrig database hosts. Set these as GitHub Environment Variables:
-- `vars.CRE_DOMAIN_NAME` (e.g. `cre.example.net`)
-- `vars.QA11_DOMAIN_NAME` (e.g. `qa11.example.net`)
+All API endpoints in `testrigs-dsf.yaml` use `${domain_name}` substitution — no manual edits needed. For the eSignet profile, `${mosipid1_domain_name}` and `${mosipid2_domain_name}` are also used for the MOSIP-ID1 and MOSIP-ID2 testrig database hosts. Set these as GitHub Environment Variables:
+- `vars.MOSIPID1_DOMAIN_NAME` (e.g. `mosipid1.example.net`)
+- `vars.MOSIPID2_DOMAIN_NAME` (e.g. `mosipid2.example.net`)
 
 #### 2. Test Data Configuration
 
@@ -692,7 +692,7 @@ apps:
 
 - [ ] GitHub Environment Variables set for your branch (`vars.DOMAIN_NAME`, `vars.ENV_NAME`, `vars.CLUSTER_ID`, `vars.SLACK_CHANNEL_NAME`)
 - [ ] Port variables set: `vars.DB_PORT` (MOSIP platform profiles), `vars.ESIGNET_DB_PORT` (eSignet profile)
-- [ ] For eSignet profile: `vars.CRE_DOMAIN_NAME` and `vars.QA11_DOMAIN_NAME` also set
+- [ ] For eSignet profile: `vars.MOSIPID1_DOMAIN_NAME` and `vars.MOSIPID2_DOMAIN_NAME` also set
 - [ ] No manual `<sandbox>` or domain placeholder edits needed in DSF files
 
 ### Before Deploying prereq-dsf.yaml
@@ -719,7 +719,7 @@ apps:
 
 - [ ] All MOSIP/eSignet services running
 - [ ] Test data branch matches MOSIP version
-- [ ] `vars.CRE_DOMAIN_NAME` and `vars.QA11_DOMAIN_NAME` set (esignet profile)
+- [ ] `vars.MOSIPID1_DOMAIN_NAME` and `vars.MOSIPID2_DOMAIN_NAME` set (esignet profile)
 
 ---
 
@@ -795,8 +795,8 @@ apps:
 | Slack channel | `vars.SLACK_CHANNEL_NAME` | GitHub Environment Variables | Alerting in prereq-dsf |
 | MOSIP postgres port | `vars.DB_PORT` | GitHub Environment Variables | MOSIP platform external postgres (5433) |
 | eSignet postgres port | `vars.ESIGNET_DB_PORT` | GitHub Environment Variables | eSignet container postgres (5432) |
-| CRE domain | `vars.CRE_DOMAIN_NAME` | GitHub Environment Variables | esignet profile — CRE testrig hosts |
-| QA11 domain | `vars.QA11_DOMAIN_NAME` | GitHub Environment Variables | esignet profile — QA11 testrig hosts |
+| MOSIP-ID1 domain | `vars.MOSIPID1_DOMAIN_NAME` | GitHub Environment Variables | esignet profile — MOSIP-ID1 testrig hosts |
+| MOSIP-ID2 domain | `vars.MOSIPID2_DOMAIN_NAME` | GitHub Environment Variables | esignet profile — MOSIP-ID2 testrig hosts |
 
 **DSF file manual edits (one-time per environment):**
 

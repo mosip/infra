@@ -14,11 +14,11 @@ Deploy API, UI, and DSL test rigs after all services are running and partner onb
 
 | Profile | What deploys | Namespaces |
 |---------|-------------|------------|
-| `esignet` | `esignet-apitestrig` into 4 namespaces; optional signup apitestrig + uitestrig | `esignet`, `esignet-cre`, `esignet-qa11`, `esignet-sunbird`, `signup` |
+| `esignet` | `esignet-apitestrig` into 4 namespaces; optional signup apitestrig + uitestrig | `esignet`, `esignet-mosipid1`, `esignet-mosipid2`, `esignet-sunbird`, `signup` |
 | `mosip-platform-1.2.0.x` | API testrig, UI testrig, DSL testrig | MOSIP testrig namespaces |
 | `mosip-platform-1.2.1.x` | Same as above | MOSIP testrig namespaces |
 
-> **eSignet standalone (`esignet` profile):** Requires two additional workflow inputs — `cre_domain_name` and `qa11_domain_name` — for the CRE and QA11 apitestrig endpoints. The workflow validates these are provided before running.
+> **eSignet standalone (`esignet` profile):** Requires two additional workflow inputs — `mosipid1_domain_name` and `mosipid2_domain_name` — for the MOSIP-ID1 and MOSIP-ID2 apitestrig endpoints. The workflow validates these are provided before running.
 
 ---
 
@@ -74,10 +74,10 @@ No additional secrets required — MinIO root password is read automatically fro
 
 | Input | Description | Example |
 |-------|-------------|---------|
-| `cre_domain_name` | Domain for the CRE eSignet instance | `cre.mosip.net` |
-| `qa11_domain_name` | Domain for the QA11 eSignet instance | `qa11.mosip.net` |
+| `mosipid1_domain_name` | Domain for the MOSIP-ID1 eSignet instance | `mosipid1.mosip.net` |
+| `mosipid2_domain_name` | Domain for the MOSIP-ID2 eSignet instance | `mosipid2.mosip.net` |
 
-> If not provided as inputs, values fall back to GitHub Environment Variables: `vars.CRE_DOMAIN_NAME` and `vars.QA11_DOMAIN_NAME`.
+> If not provided as inputs, values fall back to GitHub Environment Variables: `vars.MOSIPID1_DOMAIN_NAME` and `vars.MOSIPID2_DOMAIN_NAME`.
 
 ---
 
@@ -92,8 +92,8 @@ No additional secrets required — MinIO root password is read automatically fro
 - **(4)** **Deployment profile to use** — pick the profile you want (e.g., `mosip-platform-1.2.0.x` or `esignet`).
 - **(5)** **Choose Helmsman mode: dry-run or apply** — always pick **`apply`**.
 - **(6)** **Domain name for this environment** — type the web domain this environment should use (e.g., `example.xyz.net`).
-- **(7)** **CRE domain name** *(eSignet profile only)* — type the base domain used by the CRE eSignet instance (e.g., `cre.xyz.net`). Leave blank for MOSIP platform profiles.
-- **(8)** **QA base domain name** *(eSignet profile only)* — type the base domain used by the QA11 eSignet instance (e.g., `qa11.xyz.net`). Leave blank for MOSIP platform profiles.
+- **(7)** **MOSIP-ID1 domain name** *(eSignet profile only)* — type the base domain used by the MOSIP-ID1 eSignet instance (e.g., `mosipid1.xyz.net`). Leave blank for MOSIP platform profiles.
+- **(8)** **QA base domain name** *(eSignet profile only)* — type the base domain used by the MOSIP-ID2 eSignet instance (e.g., `mosipid2.xyz.net`). Leave blank for MOSIP platform profiles.
 - **(9)** **PostgreSQL port for MOSIP platform external postgres** — only fill this in if you picked a `mosip-platform-*` profile in step 4. Type `5433` (or whatever port your external PostgreSQL uses).
 - **(10)** **PostgreSQL port for esignet standalone container postgres** — only fill this in if you picked the `esignet` profile in step 4. Type `5432`.
 - **(11)** **Environment name** — a short nickname for this environment (e.g., `sandbox`, `dev`, `staging`).
@@ -101,7 +101,7 @@ No additional secrets required — MinIO root password is read automatically fro
 - **(13)** **Slack webhook URL for alerting** (optional) — leave this blank; it's normally already saved as the `SLACK_WEBHOOK_URL` secret in your GitHub environment.
 - **(14)** Click the green **Run workflow** button to start the deployment.
 
-> **Note:** Steps 7–10 all appear in the form regardless of which profile you picked — fill in only the ones that match your profile (CRE/QA11 domains for `esignet`, PostgreSQL port for `mosip-platform-*`) and leave the rest blank.
+> **Note:** Steps 7–10 all appear in the form regardless of which profile you picked — fill in only the ones that match your profile (MOSIP-ID1/MOSIP-ID2 domains for `esignet`, PostgreSQL port for `mosip-platform-*`) and leave the rest blank.
 
 > **Important:** Always pass `--keep-untracked-releases` — without it Helmsman will delete releases from previous DSFs (esignet, oidc-ui, etc.) that aren't listed in `testrigs-dsf.yaml`. The workflow handles this automatically.
 
@@ -123,8 +123,8 @@ kubectl get cronjobs -n dslrig
 
 # For eSignet standalone
 kubectl get cronjobs -n esignet
-kubectl get cronjobs -n esignet-cre
-kubectl get cronjobs -n esignet-qa11
+kubectl get cronjobs -n esignet-mosipid1
+kubectl get cronjobs -n esignet-mosipid2
 kubectl get cronjobs -n esignet-sunbird
 ```
 
@@ -163,8 +163,8 @@ kubectl get pods -n dslrig
 
 # Check testrig pods (eSignet standalone)
 kubectl get pods -n esignet      # esignet-apitestrig cronjob
-kubectl get pods -n esignet-cre
-kubectl get pods -n esignet-qa11
+kubectl get pods -n esignet-mosipid1
+kubectl get pods -n esignet-mosipid2
 kubectl get pods -n esignet-sunbird
 kubectl get pods -n signup       # signup-apitestrig (if enabled)
 ```
