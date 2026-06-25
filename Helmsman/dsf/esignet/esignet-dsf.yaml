@@ -448,7 +448,7 @@ apps:
     chart: mosip/mock-relying-party-ui
     set:
       mock_relying_party_ui.mock_relying_party_ui_service_host: "healthservices-mosipid1.${domain_name}"
-      mock_relying_party_ui.MOCK_RELYING_PARTY_SERVICE_INTERNAL_URL: "http://mock-relying-party-service.esignet-mosipid1"
+      mock_relying_party_ui.MOCK_RELYING_PARTY_SERVICE_INTERNAL_URL: "http://mock-relying-party-service-mosipid1.esignet-mosipid1"
       mock_relying_party_ui.ESIGNET_UI_BASE_URL: "https://esignet-mosipid1.${domain_name}"
       mock_relying_party_ui.MOCK_RELYING_PARTY_SERVER_URL: "https://healthservices-mosipid1.${domain_name}/mock-relying-party-service"
       mock_relying_party_ui.REDIRECT_URI: "https://healthservices-mosipid1.${domain_name}/userprofile"
@@ -468,7 +468,7 @@ apps:
     chart: mosip/mock-relying-party-ui
     set:
       mock_relying_party_ui.mock_relying_party_ui_service_host: "healthservices-mosipid2.${domain_name}"
-      mock_relying_party_ui.MOCK_RELYING_PARTY_SERVICE_INTERNAL_URL: "http://mock-relying-party-service.esignet-mosipid2"
+      mock_relying_party_ui.MOCK_RELYING_PARTY_SERVICE_INTERNAL_URL: "http://mock-relying-party-service-mosipid2.esignet-mosipid2"
       mock_relying_party_ui.ESIGNET_UI_BASE_URL: "https://esignet-mosipid2.${domain_name}"
       mock_relying_party_ui.MOCK_RELYING_PARTY_SERVER_URL: "https://healthservices-mosipid2.${domain_name}/mock-relying-party-service"
       mock_relying_party_ui.REDIRECT_URI: "https://healthservices-mosipid2.${domain_name}/userprofile"
@@ -488,7 +488,7 @@ apps:
     chart: mosip/mock-relying-party-ui
     set:
       mock_relying_party_ui.mock_relying_party_ui_service_host: "healthservices-sunbird.${domain_name}"
-      mock_relying_party_ui.MOCK_RELYING_PARTY_SERVICE_INTERNAL_URL: "http://mock-relying-party-service.esignet-sunbird"
+      mock_relying_party_ui.MOCK_RELYING_PARTY_SERVICE_INTERNAL_URL: "http://mock-relying-party-service-sunbird.esignet-sunbird"
       mock_relying_party_ui.ESIGNET_UI_BASE_URL: "https://esignet-sunbird.${domain_name}"
       mock_relying_party_ui.MOCK_RELYING_PARTY_SERVER_URL: "https://healthservices-sunbird.${domain_name}/mock-relying-party-service"
       mock_relying_party_ui.REDIRECT_URI: "https://healthservices-sunbird.${domain_name}/userprofile"
@@ -628,6 +628,7 @@ apps:
       onboarding.configmaps.s3.s3-region: ""
       onboarding.secrets.s3.s3-user-secret: "${MINIO_ROOT_PASSWORD}"
       onboarding.configmaps.s3.s3-bucket-name: "onboarder"
+      onboarding.configmaps.onboarder-namespace.ns_esignet: "esignet-mock"
       onboarding.variables.mosipid: "false"
       onboarding.variables.push_reports_to_s3: "true"
       extraEnvVarsCM[0]: "keycloak-env-vars"
