@@ -4,8 +4,8 @@ This guide walks you through deploying eSignet standalone on your Kubernetes clu
 You do **not** need to run any commands on your local machine — everything runs in the cloud via GitHub workflows.
 
 **What gets deployed:**
-- 4 parallel eSignet instances (esignet, esignet-mosipid1, esignet-mosipid2, esignet-sunbird)
-- OIDC UI for each instance
+- Up to 4 eSignet instances (esignet, esignet-mosipid1, esignet-mosipid2, esignet-sunbird) — **mosipid1 is enabled by default; mosipid2 is optional**
+- OIDC UI for each enabled instance
 - Mock Relying Party service and UI
 - Supporting infrastructure: Postgres, Redis, Kafka, Keycloak, SoftHSM, Captcha, MinIO
 
@@ -15,17 +15,52 @@ You do **not** need to run any commands on your local machine — everything run
 
 ## Table of Contents
 
-1. [Before You Start](#1-before-you-start)
-2. [One-time GitHub Environment Setup](#2-one-time-github-environment-setup)
+1. [Understanding the eSignet Instances](#0-understanding-the-esignet-instances)
+2. [Before You Start](#1-before-you-start)
+3. [One-time GitHub Environment Setup](#2-one-time-github-environment-setup)
    - [Secrets](#a-secrets)
    - [Environment Variables](#b-environment-variables)
-3. [Deployment Steps](#3-deployment-steps)
+4. [Deployment Steps](#3-deployment-steps)
    - [Step 1 — Deploy External Services](#step-1--deploy-external-services)
    - [Step 2 — Deploy eSignet](#step-2--deploy-esignet)
    - [Step 3 — Deploy Signup (in progress)](#step-3--deploy-signup)
    - [Step 4 — Deploy Testrigs (optional)](#step-4--deploy-testrigs-optional)
-4. [Re-deploying or Re-running](#4-re-deploying-or-re-running)
-5. [Verifying Deployment](#5-verifying-deployment)
+5. [Re-deploying or Re-running](#4-re-deploying-or-re-running)
+6. [Verifying Deployment](#5-verifying-deployment)
+
+---
+
+## 0. Understanding the eSignet Instances
+
+This deployment can run up to **4 separate eSignet instances** on the same cluster, each isolated in its own Kubernetes namespace. Think of each instance as a completely independent eSignet service — it has its own database, its own Keycloak clients, its own domain name, and its own identity plugin.
+
+| Instance | Namespace | What it connects to | Enabled by default |
+|---|---|---|---|
+| **eSignet (main)** | `esignet` | Mock identity — for demos and testing without a live MOSIP system | Yes |
+| **eSignet MOSIP-ID1** | `esignet-mosipid1` | A real MOSIP identity system at `MOSIPID1_DOMAIN_NAME` | **Yes** |
+| **eSignet MOSIP-ID2** | `esignet-mosipid2` | A second real MOSIP identity system at `MOSIPID2_DOMAIN_NAME` | No |
+| **eSignet Sunbird** | `esignet-sunbird` | A Sunbird RC credential registry | Yes |
+
+### When do you need mosipid1?
+
+Use `esignet-mosipid1` when you want eSignet to authenticate citizens against a **real MOSIP identity system**. You give it the domain of your MOSIP environment (e.g. `mosipenv.your-org.net`) via the `MOSIPID1_DOMAIN_NAME` variable, and the deployment automatically connects eSignet to that system's identity APIs, database, and Keycloak.
+
+**This is enabled by default** — if you have a MOSIP system to connect to, fill in the `MOSIPID1_DOMAIN_NAME` variable and the related secrets and it will be deployed as part of the normal workflow run.
+
+### When do you need mosipid2?
+
+`esignet-mosipid2` is **disabled by default**. Enable it only if you need to run **two eSignet instances that each connect to a different MOSIP environment** on the same cluster — for example, one pointing at a production MOSIP environment and another at a staging one.
+
+If you only have one MOSIP system to connect to, leave mosipid2 disabled. You do not need to configure any mosipid2 secrets or variables.
+
+**To enable mosipid2:**
+
+1. In `Helmsman/dsf/esignet/esignet-dsf.yaml`, find the mosipid2 app blocks and change `enabled: false` → `enabled: true` for each
+2. Add the `MOSIPID2_DOMAIN_NAME` environment variable in your GitHub Environment (Section 2B)
+3. Add these secrets in your GitHub Environment (Section 2A):
+   - `ESIGNET_MOSIPID2_CAPTCHA_SITE_KEY` and `ESIGNET_MOSIPID2_CAPTCHA_SECRET_KEY`
+   - `MOSIPID2_POSTGRES_PASSWORD` and `MOSIPID2_KEYCLOAK_ADMIN_PASSWORD`
+4. Provide the `mosipid2_domain_name` input when running the eSignet workflow (Step 2)
 
 ---
 
@@ -36,12 +71,12 @@ Complete this checklist before triggering any workflow:
 - [ ] Kubernetes cluster is up and running
 - [ ] `KUBECONFIG` file is available for your cluster
 - [ ] DNS records for all domain names are pointed to your cluster's load balancer
-- [ ] Google reCAPTCHA v2 keys are generated — you need **5 separate site/secret key pairs**:
+- [ ] Google reCAPTCHA v2 keys are generated — you need **at minimum 4 site/secret key pairs** (one per enabled instance):
   - one for `esignet` namespace
   - one for `esignet-mosipid1` namespace
-  - one for `esignet-mosipid2` namespace
   - one for `esignet-sunbird` namespace
   - one for `signup` namespace
+  - one for `esignet-mosipid2` namespace *(only if you are enabling mosipid2 — see [Section 0](#0-understanding-the-esignet-instances))*
   - See [reCAPTCHA Setup Guide](RECAPTCHA_SETUP_GUIDE.md)
 - [ ] Mock Relying Party PEM key pair is generated (client private key + JWE private key)
 - [ ] GitHub Environment named after your branch (e.g. `MOSIP-44613`) exists under:
@@ -107,14 +142,14 @@ Path to create: `Your profile → Settings → Developer settings → Personal a
 | `MOCK_RELYING_PARTY_JWE_PRIVATE_KEY` | Base64-encoded PEM — JWE userinfo private key |
 | `ESIGNET_MOSIPID1_CAPTCHA_SITE_KEY` | reCAPTCHA **site** key for `esignet-mosipid1` namespace |
 | `ESIGNET_MOSIPID1_CAPTCHA_SECRET_KEY` | reCAPTCHA **secret** key for `esignet-mosipid1` namespace |
-| `ESIGNET_MOSIPID2_CAPTCHA_SITE_KEY` | reCAPTCHA **site** key for `esignet-mosipid2` namespace |
-| `ESIGNET_MOSIPID2_CAPTCHA_SECRET_KEY` | reCAPTCHA **secret** key for `esignet-mosipid2` namespace |
+| `ESIGNET_MOSIPID2_CAPTCHA_SITE_KEY` | reCAPTCHA **site** key for `esignet-mosipid2` namespace *(only needed if mosipid2 is enabled)* |
+| `ESIGNET_MOSIPID2_CAPTCHA_SECRET_KEY` | reCAPTCHA **secret** key for `esignet-mosipid2` namespace *(only needed if mosipid2 is enabled)* |
 | `ESIGNET_SUNBIRD_CAPTCHA_SITE_KEY` | reCAPTCHA **site** key for `esignet-sunbird` namespace |
 | `ESIGNET_SUNBIRD_CAPTCHA_SECRET_KEY` | reCAPTCHA **secret** key for `esignet-sunbird` namespace |
-| `MOSIPID1_POSTGRES_PASSWORD` | Postgres superuser password for the MOSIP-ID1 remote environment |
-| `MOSIPID2_POSTGRES_PASSWORD` | Postgres superuser password for the MOSIP-ID2 remote environment |
-| `MOSIPID1_KEYCLOAK_ADMIN_PASSWORD` | Keycloak admin password for the MOSIP-ID1 remote environment |
-| `MOSIPID2_KEYCLOAK_ADMIN_PASSWORD` | Keycloak admin password for the MOSIP-ID2 remote environment |
+| `MOSIPID1_POSTGRES_PASSWORD` | Postgres superuser password for the MOSIP-ID1 remote MOSIP environment |
+| `MOSIPID2_POSTGRES_PASSWORD` | Postgres superuser password for the MOSIP-ID2 remote MOSIP environment *(only needed if mosipid2 is enabled)* |
+| `MOSIPID1_KEYCLOAK_ADMIN_PASSWORD` | Keycloak admin password for the MOSIP-ID1 remote MOSIP environment |
+| `MOSIPID2_KEYCLOAK_ADMIN_PASSWORD` | Keycloak admin password for the MOSIP-ID2 remote MOSIP environment *(only needed if mosipid2 is enabled)* |
 
 > ⚠️ `MOSIPID1_KEYCLOAK_ADMIN_PASSWORD` and `MOSIPID2_KEYCLOAK_ADMIN_PASSWORD` are the admin passwords of the **remote** MOSIP-ID1 and MOSIP-ID2 Keycloak instances (not the local one deployed by this stack). The preinstall hook calls those Keycloak REST APIs to fetch client secrets. A wrong domain or wrong password here will cause the preinstall to fail with a curl error.
 
@@ -140,10 +175,10 @@ Navigate to: `Repository → Settings → Environments → <your-branch-name> �
 | `ENV_NAME` | `sandbox` | **Yes** | Short environment label shown on the landing page |
 | `CLUSTER_ID` | `c-xxxxx` | **Yes** | Rancher cluster ID used by monitoring setup |
 | `SLACK_CHANNEL_NAME` | `#mosip-alerts` | **Yes** | Slack channel name for alert notifications |
-| `MOSIPID1_DOMAIN_NAME` | `mosipid1.xyz.net` | Optional | Base domain for the MOSIP-ID1 eSignet instance |
-| `MOSIPID2_DOMAIN_NAME` | `mosipid2.xyz.net` | Optional | Base domain for the MOSIP-ID2 eSignet instance |
+| `MOSIPID1_DOMAIN_NAME` | `mosipid1.xyz.net` | Optional | Base domain of the MOSIP environment that `esignet-mosipid1` connects to (required if mosipid1 is enabled) |
+| `MOSIPID2_DOMAIN_NAME` | `mosipid2.xyz.net` | Optional | Base domain of the second MOSIP environment — only set this if you have enabled mosipid2 (see [Section 0](#0-understanding-the-esignet-instances)) |
 | `ESIGNET_MOSIPID1_SPRING_CONFIG_LABEL` | `develop` | Optional | Git branch/tag for MOSIP-ID1 config-server (defaults to `develop`) |
-| `ESIGNET_MOSIPID2_SPRING_CONFIG_LABEL` | `develop` | Optional | Git branch/tag for MOSIP-ID2 config-server (defaults to `develop`) |
+| `ESIGNET_MOSIPID2_SPRING_CONFIG_LABEL` | `develop` | Optional | Git branch/tag for MOSIP-ID2 config-server — only relevant if mosipid2 is enabled (defaults to `develop`) |
 | `ESIGNET_STANDALONE_MODE` | `true` | Optional | Set to `true` to skip the MOSIP DSF completion check |
 
 ---
