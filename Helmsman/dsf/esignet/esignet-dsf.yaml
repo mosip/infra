@@ -242,9 +242,9 @@ apps:
       domainConfig.MOSIP_POSTGRES_HOST: "postgres.${domain_name}"
       domainConfig.MOSIP_SMTP_HOST: "smtp.${domain_name}"
       domainConfig.installation-domain: "${domain_name}"
-      domainConfig.MOSIP_ESIGNET_SUNBIRD_RC_REGISTRY_GET_URL: "https://registry.${sunbird_domain_name}"
-      domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_SUNBIRD_RC_AUTH_FACTOR_KBI_REGISTRY_SEARCH_URL: "https://registry.${sunbird_domain_name}/api/v1/Insurance/search"
-      domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_SUNBIRD_RC_REGISTRY_GET_URL: "https://registry.${sunbird_domain_name}/api/v1/Insurance/"
+      domainConfig.MOSIP_ESIGNET_SUNBIRD_RC_REGISTRY_GET_URL: "https://registry.${mosipid1_domain_name}"
+      domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_SUNBIRD_RC_AUTH_FACTOR_KBI_REGISTRY_SEARCH_URL: "https://registry.${mosipid1_domain_name}/api/v1/Insurance/search"
+      domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_SUNBIRD_RC_REGISTRY_GET_URL: "https://registry.${mosipid1_domain_name}/api/v1/Insurance/"
     timeout: 600
     priority: -14
     hooks:
@@ -262,9 +262,9 @@ apps:
       image.repository: "mosipqa/oidc-ui"
       image.tag: "develop"    
       istio.hosts[0]: "esignet.${domain_name}"
-      oidc_ui.oidc_service_host: "esignet.esignet-mock"
-      oidc_ui.configmaps.oidc-ui.REACT_APP_API_BASE_URL: "http://esignet.esignet-mock/v1/esignet"
-      oidc_ui.configmaps.oidc-ui.REACT_APP_SBI_DOMAIN_URI: "http://esignet.esignet-mock"
+      oidc_ui.oidc_service_host: "esignet-mock.esignet-mock"
+      oidc_ui.configmaps.oidc-ui.REACT_APP_API_BASE_URL: "http://esignet-mock.esignet-mock/v1/esignet"
+      oidc_ui.configmaps.oidc-ui.REACT_APP_SBI_DOMAIN_URI: "http://esignet-mock.esignet-mock"
     timeout: 1200
     priority: -13
     hooks:
@@ -367,7 +367,7 @@ apps:
     version: 0.0.1-develop
     chart: mosip/mock-relying-party-service
     set:
-      mock_relying_party_service.ESIGNET_SERVICE_URL: "http://esignet.esignet-mock/v1/esignet"
+      mock_relying_party_service.ESIGNET_SERVICE_URL: "http://esignet-mock.esignet-mock/v1/esignet"
       mock_relying_party_service.ESIGNET_AUD_URL: "https://esignet.${domain_name}/v1/esignet/oauth/v2/token"
       enable_insecure: "false"
       domainConfig.MOSIP_API_INTERNAL_HOST: "api-internal.${domain_name}"
@@ -428,6 +428,7 @@ apps:
     chart: mosip/mock-relying-party-ui
     set:
       mock_relying_party_ui.mock_relying_party_ui_service_host: "healthservices.${domain_name}"
+      mock_relying_party_ui.MOCK_RELYING_PARTY_SERVICE_INTERNAL_URL: "http://mock-relying-party-service.esignet-mock"
       mock_relying_party_ui.ESIGNET_UI_BASE_URL: "https://esignet.${domain_name}"
       mock_relying_party_ui.MOCK_RELYING_PARTY_SERVER_URL: "https://healthservices.${domain_name}/mock-relying-party-service"
       mock_relying_party_ui.REDIRECT_URI: "https://healthservices.${domain_name}/userprofile"
@@ -447,6 +448,7 @@ apps:
     chart: mosip/mock-relying-party-ui
     set:
       mock_relying_party_ui.mock_relying_party_ui_service_host: "healthservices-mosipid1.${domain_name}"
+      mock_relying_party_ui.MOCK_RELYING_PARTY_SERVICE_INTERNAL_URL: "http://mock-relying-party-service.esignet-mosipid1"
       mock_relying_party_ui.ESIGNET_UI_BASE_URL: "https://esignet-mosipid1.${domain_name}"
       mock_relying_party_ui.MOCK_RELYING_PARTY_SERVER_URL: "https://healthservices-mosipid1.${domain_name}/mock-relying-party-service"
       mock_relying_party_ui.REDIRECT_URI: "https://healthservices-mosipid1.${domain_name}/userprofile"
@@ -466,6 +468,7 @@ apps:
     chart: mosip/mock-relying-party-ui
     set:
       mock_relying_party_ui.mock_relying_party_ui_service_host: "healthservices-mosipid2.${domain_name}"
+      mock_relying_party_ui.MOCK_RELYING_PARTY_SERVICE_INTERNAL_URL: "http://mock-relying-party-service.esignet-mosipid2"
       mock_relying_party_ui.ESIGNET_UI_BASE_URL: "https://esignet-mosipid2.${domain_name}"
       mock_relying_party_ui.MOCK_RELYING_PARTY_SERVER_URL: "https://healthservices-mosipid2.${domain_name}/mock-relying-party-service"
       mock_relying_party_ui.REDIRECT_URI: "https://healthservices-mosipid2.${domain_name}/userprofile"
@@ -485,6 +488,7 @@ apps:
     chart: mosip/mock-relying-party-ui
     set:
       mock_relying_party_ui.mock_relying_party_ui_service_host: "healthservices-sunbird.${domain_name}"
+      mock_relying_party_ui.MOCK_RELYING_PARTY_SERVICE_INTERNAL_URL: "http://mock-relying-party-service.esignet-sunbird"
       mock_relying_party_ui.ESIGNET_UI_BASE_URL: "https://esignet-sunbird.${domain_name}"
       mock_relying_party_ui.MOCK_RELYING_PARTY_SERVER_URL: "https://healthservices-sunbird.${domain_name}/mock-relying-party-service"
       mock_relying_party_ui.REDIRECT_URI: "https://healthservices-sunbird.${domain_name}/userprofile"
