@@ -57,7 +57,7 @@ extraEnvVars:
   - name: MOSIP_IDA_CLIENT_SECRET
     valueFrom:
       secretKeyRef:
-        name: keycloak-client-secrets
+        name: keycloak-client-secrets-mosipid2
         key: mosip_ida_client_secret
 
 extraEnvVarsAdditional:

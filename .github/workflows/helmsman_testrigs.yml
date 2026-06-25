@@ -24,12 +24,12 @@ on:
         description: "Domain name for this environment (e.g. example.xyz.net)"
         required: true
         type: string
-      cre_domain_name:
-        description: "CRE domain name (e.g. cre.xyz.net) — required for esignet profile"
+      mosipid1_domain_name:
+        description: "MOSIP-ID1 domain name (e.g. mosipenv1.xyz.net) — required for esignet profile"
         required: false
         type: string
-      qa11_domain_name:
-        description: "QA base domain name (e.g. qabase.xyz.net) — required for esignet profile"
+      mosipid2_domain_name:
+        description: "MOSIP-ID2 domain name (e.g. mosipenv2.xyz.net) — required for esignet profile"
         required: false
         type: string
       db_port:
@@ -81,10 +81,10 @@ jobs:
           [ -z "$DB_PORT" ]         && errors+=("db_port is empty — set vars.DB_PORT under Environment '${{ github.ref_name }}'")
           [ -z "$ESIGNET_DB_PORT" ] && errors+=("esignet_db_port is empty — set vars.ESIGNET_DB_PORT under Environment '${{ github.ref_name }}'")
           if [ -z "$PROFILE" ] || [ "$PROFILE" = "esignet" ]; then
-            CRE_DOMAIN="${{ github.event.inputs.cre_domain_name || vars.CRE_DOMAIN_NAME }}"
-            QA11_DOMAIN="${{ github.event.inputs.qa11_domain_name || vars.QA11_DOMAIN_NAME }}"
-            [ -z "$CRE_DOMAIN" ]    && errors+=("cre_domain_name is empty — set vars.CRE_DOMAIN_NAME under Environment '${{ github.ref_name }}'")
-            [ -z "$QA11_DOMAIN" ] && errors+=("qa11_domain_name is empty — set vars.QA11_DOMAIN_NAME under Environment '${{ github.ref_name }}'")
+            MOSIPID1_DOMAIN="${{ github.event.inputs.mosipid1_domain_name || vars.MOSIPID1_DOMAIN_NAME }}"
+            MOSIPID2_DOMAIN="${{ github.event.inputs.mosipid2_domain_name || vars.MOSIPID2_DOMAIN_NAME }}"
+            [ -z "$MOSIPID1_DOMAIN" ]    && errors+=("mosipid1_domain_name is empty — set vars.MOSIPID1_DOMAIN_NAME under Environment '${{ github.ref_name }}'")
+            [ -z "$MOSIPID2_DOMAIN" ] && errors+=("mosipid2_domain_name is empty — set vars.MOSIPID2_DOMAIN_NAME under Environment '${{ github.ref_name }}'")
           fi
           if [ ${#errors[@]} -gt 0 ]; then
             echo "❌ Required variables missing:"
@@ -98,8 +98,8 @@ jobs:
           echo "✓ db_port            = $DB_PORT"
           echo "✓ esignet_db_port    = $ESIGNET_DB_PORT"
           if [ -z "$PROFILE" ] || [ "$PROFILE" = "esignet" ]; then
-            echo "✓ cre_domain_name    = $CRE_DOMAIN (esignet profile)"
-            echo "✓ qa11_domain_name = $QA11_DOMAIN (esignet profile)"
+            echo "✓ mosipid1_domain_name    = $MOSIPID1_DOMAIN (esignet profile)"
+            echo "✓ mosipid2_domain_name = $MOSIPID2_DOMAIN (esignet profile)"
           fi
 
   deploy:
@@ -112,8 +112,8 @@ jobs:
       PATH: ${{ github.workspace }}/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
       KUBECTL_PATH: ${{ github.workspace }}/.local/bin/kubectl
       domain_name:        ${{ github.event.inputs.domain_name        || vars.DOMAIN_NAME }}
-      cre_domain_name:    ${{ github.event.inputs.cre_domain_name    || vars.CRE_DOMAIN_NAME }}
-      qa11_domain_name: ${{ github.event.inputs.qa11_domain_name || vars.QA11_DOMAIN_NAME }}
+      mosipid1_domain_name:    ${{ github.event.inputs.mosipid1_domain_name    || vars.MOSIPID1_DOMAIN_NAME }}
+      mosipid2_domain_name: ${{ github.event.inputs.mosipid2_domain_name || vars.MOSIPID2_DOMAIN_NAME }}
       db_port:            ${{ github.event.inputs.db_port            || vars.DB_PORT }}
       esignet_db_port:    ${{ github.event.inputs.esignet_db_port    || vars.ESIGNET_DB_PORT }}
       env_name:           ${{ github.event.inputs.env_name           || vars.ENV_NAME }}
@@ -156,8 +156,8 @@ jobs:
             fi
           }
           save_var "DOMAIN_NAME"        "${{ github.event.inputs.domain_name }}"
-          save_var "CRE_DOMAIN_NAME"    "${{ github.event.inputs.cre_domain_name }}"
-          save_var "QA11_DOMAIN_NAME" "${{ github.event.inputs.qa11_domain_name }}"
+          save_var "MOSIPID1_DOMAIN_NAME"    "${{ github.event.inputs.mosipid1_domain_name }}"
+          save_var "MOSIPID2_DOMAIN_NAME" "${{ github.event.inputs.mosipid2_domain_name }}"
           save_var "DB_PORT"            "${{ github.event.inputs.db_port }}"
           save_var "ESIGNET_DB_PORT"    "${{ github.event.inputs.esignet_db_port }}"
           save_var "ENV_NAME"           "${{ github.event.inputs.env_name }}"
