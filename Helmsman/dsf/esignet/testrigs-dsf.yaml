@@ -206,7 +206,7 @@ apps:
       apitestrig.configmaps.apitestrig.uinGenMaxLoopCount: "20"
       apitestrig.configmaps.apitestrig.eSignetbaseurl: "https://esignet-sunbird.${domain_name}"
       apitestrig.configmaps.apitestrig.esignetActuatorPropertySection: "classpath:/application-default.properties"
-      apitestrig.configmaps.apitestrig.sunBirdBaseURL: "https://registry.${sunbird_domain_name}"
+      apitestrig.configmaps.apitestrig.sunBirdBaseURL: "https://registry.${mosipid1_domain_name}"
       secrets.s3.s3-user-secret: "${MINIO_ROOT_PASSWORD}"
       apitestrig.variables.push_reports_to_s3: "yes"
     priority: -2

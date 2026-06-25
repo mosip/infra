@@ -115,7 +115,6 @@ jobs:
       esignet_db_port:       ${{ github.event.inputs.esignet_db_port       || vars.ESIGNET_DB_PORT }}
       mosipid1_domain_name:  ${{ github.event.inputs.mosipid1_domain_name  || vars.MOSIPID1_DOMAIN_NAME }}
       mosipid2_domain_name:  ${{ github.event.inputs.mosipid2_domain_name  || vars.MOSIPID2_DOMAIN_NAME }}
-      sunbird_domain_name:   ${{ vars.SUNBIRD_DOMAIN_NAME }}
       env_name:              ${{ github.event.inputs.env_name              || vars.ENV_NAME }}
       # All secrets below are ENVIRONMENT secrets (not repository secrets)
       # Configure them in: Repository → Settings → Environments → <branch-name> → Secrets
@@ -522,7 +521,6 @@ jobs:
           echo "domain_name           = $domain_name"
           echo "mosipid1_domain_name  = $mosipid1_domain_name"
           echo "mosipid2_domain_name  = $mosipid2_domain_name"
-          echo "sunbird_domain_name   = $sunbird_domain_name"
           echo "env_name              = $env_name"
 
       - name: Initiate helmsman to apply the DSF configurations
@@ -601,10 +599,10 @@ jobs:
           echo "Commit: ${{ github.sha }}"
           echo ""
           echo "Namespaces created/updated:"
-          kubectl get ns esignet softhsm keycloak redis postgres 2>/dev/null || echo "Some namespaces may not exist yet"
+          kubectl get ns esignet-mock esignet-mosipid1 esignet-mosipid2 esignet-sunbird softhsm keycloak redis postgres 2>/dev/null || echo "Some namespaces may not exist yet"
           echo ""
           echo "eSignet pods status:"
-          kubectl get pods -n esignet 2>/dev/null || echo "esignet namespace not ready"
+          kubectl get pods -n esignet-mock 2>/dev/null || echo "esignet-mock namespace not ready"
 
   # ---------------------------------------------------------------------------
   # Trigger signup workflow after successful esignet standalone deployment.

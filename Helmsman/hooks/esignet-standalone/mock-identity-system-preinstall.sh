@@ -9,7 +9,7 @@
 #
 # Environment Variables:
 #   MOCKID_DB_NAME  - Mock identity DB name (default: mosip_mockidentitysystem)
-#   MOCKID_DB_USER  - Mock identity DB user (default: mockidsystemuser)
+#   MOCKID_DB_USER  - Mock identity DB user (default: mockidentityuser)
 #   MOCKID_DB_PORT  - Postgres port (default: 5432)
 # =============================================================================
 set -euo pipefail
@@ -17,7 +17,7 @@ set -euo pipefail
 ESIGNET_NS="${ESIGNET_NS:-esignet-mock}"
 SOFTHSM_NS="softhsm"
 MOCKID_DB_NAME="${MOCKID_DB_NAME:-mosip_mockidentitysystem}"
-MOCKID_DB_USER="${MOCKID_DB_USER:-mockidsystemuser}"
+MOCKID_DB_USER="${MOCKID_DB_USER:-mockidentityuser}"
 MOCKID_DB_PORT="${MOCKID_DB_PORT:-5432}"
 COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
 
