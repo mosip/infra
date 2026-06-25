@@ -36,7 +36,7 @@ This deployment can run up to **4 separate eSignet instances** on the same clust
 
 | Instance | Namespace | What it connects to | Enabled by default |
 |---|---|---|---|
-| **eSignet (main)** | `esignet` | Mock identity — for demos and testing without a live MOSIP system | Yes |
+| **eSignet (main)** | `esignet-mock` | Mock identity — for demos and testing without a live MOSIP system | Yes |
 | **eSignet MOSIP-ID1** | `esignet-mosipid1` | A real MOSIP identity system at `MOSIPID1_DOMAIN_NAME` | **Yes** |
 | **eSignet MOSIP-ID2** | `esignet-mosipid2` | A second real MOSIP identity system at `MOSIPID2_DOMAIN_NAME` | No |
 | **eSignet Sunbird** | `esignet-sunbird` | A Sunbird RC credential registry | Yes |
@@ -72,7 +72,7 @@ Complete this checklist before triggering any workflow:
 - [ ] `KUBECONFIG` file is available for your cluster
 - [ ] DNS records for all domain names are pointed to your cluster's load balancer
 - [ ] Google reCAPTCHA v2 keys are generated — you need **at minimum 4 site/secret key pairs** (one per enabled instance):
-  - one for `esignet` namespace
+  - one for `esignet-mock` namespace
   - one for `esignet-mosipid1` namespace
   - one for `esignet-sunbird` namespace
   - one for `signup` namespace
@@ -131,8 +131,8 @@ Path to create: `Your profile → Settings → Developer settings → Personal a
 
 | Secret Name | What it is |
 |---|---|
-| `ESIGNET_CAPTCHA_SITE_KEY` | reCAPTCHA **site** key for the main `esignet` namespace |
-| `ESIGNET_CAPTCHA_SECRET_KEY` | reCAPTCHA **secret** key for the main `esignet` namespace |
+| `ESIGNET_CAPTCHA_SITE_KEY` | reCAPTCHA **site** key for the main `esignet-mock` namespace |
+| `ESIGNET_CAPTCHA_SECRET_KEY` | reCAPTCHA **secret** key for the main `esignet-mock` namespace |
 
 **For `helmsman_esignet.yml`:**
 
@@ -267,7 +267,7 @@ All pods should show `Running` or `Completed`.
 
 **How to know it succeeded:**
 ```bash
-kubectl get pods -n esignet && kubectl get pods -n esignet-mosipid1 && kubectl get pods -n esignet-mosipid2 && kubectl get pods -n esignet-sunbird
+kubectl get pods -n esignet-mock && kubectl get pods -n esignet-mosipid1 && kubectl get pods -n esignet-mosipid2 && kubectl get pods -n esignet-sunbird
 ```
 All pods should show `Running`.
 
@@ -315,7 +315,7 @@ All pods should show `Running`.
 
 **How to know it succeeded:** The workflow log should show all Helmsman releases applied without errors. Verify that test cronjobs were created:
 ```bash
-kubectl get cronjobs -n esignet
+kubectl get cronjobs -n esignet-mock
 kubectl get cronjobs -n esignet-mosipid1
 kubectl get cronjobs -n esignet-mosipid2
 kubectl get cronjobs -n esignet-sunbird
@@ -339,16 +339,16 @@ Run these commands against your cluster to confirm everything is healthy:
 
 ```bash
 # Check all pods across eSignet namespaces
-kubectl get pods -n esignet
+kubectl get pods -n esignet-mock
 kubectl get pods -n esignet-mosipid1
 kubectl get pods -n esignet-mosipid2
 kubectl get pods -n esignet-sunbird
 
 # Check Istio virtual services (confirms domain routing)
-kubectl get virtualservice -n esignet
+kubectl get virtualservice -n esignet-mock
 
 # Check Helm releases
-helm list -n esignet
+helm list -n esignet-mock
 helm list -n keycloak
 
 # Quick health check — should return no non-Running pods
