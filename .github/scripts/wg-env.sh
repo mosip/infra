@@ -221,7 +221,8 @@ run_offboard() {
   resolve_peers_from_assigned() {
     local content="$1"
     local format="mosip" line peer tf wg0 wg1
-    local -A seen=() peers=()
+    local -A seen=()
+    local -a peers=()
 
     content="${content//$'\r'/}"
     [[ -n "${content//[[:space:]]/}" ]] || return 0
@@ -344,7 +345,10 @@ line_matches_env() {
     return
   fi
   rest="$(awk '{$1=""; sub(/^ +/,""); print}' <<<"$line")"
-  [[ "$rest" == "$ENV_NAME"* ]]
+  case "$rest" in
+    "$ENV_NAME"|"$ENV_NAME"\(*) return 0 ;;
+    *) return 1 ;;
+  esac
 }
 
 dir="$(dirname "$ASSIGNED_FILE")"
@@ -383,7 +387,15 @@ REMOTE_FREE_ASSIGNMENTS
   }
 
   log "Reading assigned.txt from ${JUMPSERVER_HOST} ..."
-  ASSIGNED_CONTENT="$(ssh_cmd "cat $(remote_quote "$ASSIGNED_FILE")" 2>/dev/null || true)"
+  read_status=0
+  ASSIGNED_CONTENT="$(
+    ssh_cmd "if [[ -f $(remote_quote "$ASSIGNED_FILE") ]]; then cat $(remote_quote "$ASSIGNED_FILE"); else exit 42; fi" 2>/dev/null
+  )" || read_status=$?
+  case "$read_status" in
+    0) ;;
+    42) ASSIGNED_CONTENT="" ;;
+    *) die "Failed reading assigned.txt from ${JUMPSERVER_HOST}" ;;
+  esac
   mapfile -t PEERS_TO_FREE < <(resolve_peers_from_assigned "$ASSIGNED_CONTENT")
 
   if ((${#PEERS_TO_FREE[@]})); then
