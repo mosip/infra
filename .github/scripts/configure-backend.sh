@@ -15,7 +15,7 @@ usage() {
     echo "  -c, --component       Component: base-infra, infra, observ-infra (required)"
     echo "  -b, --branch          Branch name for state key (required for remote)"
     echo "  -r, --remote-config   Remote backend config string (required for remote)"
-    echo "  --profile             Infrastructure profile (e.g., mosip, esignet) - included in state key"
+    echo "  --profile             Infrastructure profile (e.g., mosip, esignet-standalone) - included in state key"
     echo "  --enable-locking      Enable state locking (optional, for production)"
     echo "  -h, --help            Show this help message"
     echo ""

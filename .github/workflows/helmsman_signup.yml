@@ -6,10 +6,10 @@ on:
       profile:
         description: "Deployment profile to use"
         required: true
-        default: "esignet"
+        default: "esignet-standalone"
         type: choice
         options:
-          - esignet
+          - esignet-standalone
           - mosip-platform-1.2.0.x
           - mosip-platform-1.2.1.x
       mode:

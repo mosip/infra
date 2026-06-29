@@ -11,7 +11,7 @@ on:
         options:
           - mosip-platform-1.2.0.x
           - mosip-platform-1.2.1.x
-          - esignet
+          - esignet-standalone
       mode:
         description: "Choose Helmsman mode: dry-run or apply"
         required: true
@@ -90,7 +90,7 @@ jobs:
           echo "✓ esignet_db_port = $ESIGNET_DB_PORT"
           # mosipid1_domain_name and mosipid2_domain_name are esignet standalone only.
           # Push events always target esignet (path filter); dispatch uses explicit profile input.
-          if [ -z "$PROFILE" ] || [ "$PROFILE" = "esignet" ]; then
+          if [ -z "$PROFILE" ] || [ "$PROFILE" = "esignet-standalone" ]; then
             MOSIPID1_DOMAIN="${{ github.event.inputs.mosipid1_domain_name || vars.MOSIPID1_DOMAIN_NAME }}"
             MOSIPID2_DOMAIN="${{ github.event.inputs.mosipid2_domain_name || vars.MOSIPID2_DOMAIN_NAME }}"
             echo "✓ mosipid1_domain_name = $MOSIPID1_DOMAIN (esignet standalone)"
@@ -325,7 +325,7 @@ jobs:
           kubectl cluster-info
 
       - name: Check if mosip-dsf label is completed
-        if: ${{ github.event.inputs.skip_mosip_dsf_check != 'true' && vars.ESIGNET_STANDALONE_MODE != 'true' && github.event.inputs.profile != 'esignet' }}
+        if: ${{ github.event.inputs.skip_mosip_dsf_check != 'true' && vars.ESIGNET_STANDALONE_MODE != 'true' && github.event.inputs.profile != 'esignet-standalone' }}
         run: |
           STATUS=$(kubectl get namespace default -o jsonpath='{.metadata.labels.mosip-dsf}' 2>/dev/null || echo "")
           if [[ "$STATUS" != "completed" ]]; then
@@ -380,7 +380,7 @@ jobs:
           fi
           
           # Per-namespace captcha secrets — only required for esignet standalone profile
-          if [ "$PROFILE" = "esignet" ]; then
+          if [ "$PROFILE" = "esignet-standalone" ]; then
             echo "--- Validating esignet standalone mosipid1 captcha secrets ---"
             for var in ESIGNET_MOSIPID1_CAPTCHA_SITE_KEY ESIGNET_MOSIPID1_CAPTCHA_SECRET_KEY \
                        ESIGNET_SUNBIRD_CAPTCHA_SITE_KEY ESIGNET_SUNBIRD_CAPTCHA_SECRET_KEY; do
@@ -431,7 +431,7 @@ jobs:
             echo "  - MOCK_RELYING_PARTY_JWE_PRIVATE_KEY (base64 encoded PEM)"
             echo "  - ESIGNET_CAPTCHA_SITE_KEY (reCAPTCHA site key - plain text)"
             echo "  - ESIGNET_CAPTCHA_SECRET_KEY (reCAPTCHA secret key - plain text)"
-            if [ "$PROFILE" = "esignet" ]; then
+            if [ "$PROFILE" = "esignet-standalone" ]; then
               echo "  - ESIGNET_MOSIPID1_CAPTCHA_SITE_KEY / ESIGNET_MOSIPID1_CAPTCHA_SECRET_KEY"
               echo "  - ESIGNET_SUNBIRD_CAPTCHA_SITE_KEY / ESIGNET_SUNBIRD_CAPTCHA_SECRET_KEY"
               echo "  - MOSIPID1_POSTGRES_PASSWORD / MOSIPID1_KEYCLOAK_ADMIN_PASSWORD"
@@ -472,7 +472,7 @@ jobs:
           fi
 
       - name: Get MinIO root password
-        if: ${{ env.PROFILE == 'esignet' }}
+        if: ${{ env.PROFILE == 'esignet-standalone' }}
         run: |
           MINIO_ROOT_PASSWORD=$(kubectl -n minio get secret minio -o jsonpath='{.data.root-password}' | base64 -d)
           if [ -n "$MINIO_ROOT_PASSWORD" ]; then
@@ -579,7 +579,7 @@ jobs:
           # they read the new PIN but the PVC token has the old one → CKR_PIN_INCORRECT.
           # Fix: skip softhsm upgrade on re-runs so the PIN in the secret never changes.
           SKIP_RELEASES_ARG=""
-          if [ "$PROFILE" = "esignet" ]; then
+          if [ "$PROFILE" = "esignet-standalone" ]; then
             SKIP_RELEASES=""
             for pair in "esignet-softhsm:esignet-mock" "esignet-softhsm-mosipid1:esignet-mosipid1" "esignet-softhsm-mosipid2:esignet-mosipid2" "esignet-softhsm-sunbird:esignet-sunbird"; do
               release="${pair%%:*}"
@@ -627,14 +627,14 @@ jobs:
 
   # ---------------------------------------------------------------------------
   # Trigger signup workflow after successful esignet standalone deployment.
-  # Only fires when profile == 'esignet' (not for mosip-platform-1.2.0.x/java21).
+  # Only fires when profile == 'esignet-standalone' (not for mosip-platform-1.2.0.x/java21).
   # ---------------------------------------------------------------------------
   # workflow-caller:
   #   runs-on: ubuntu-latest
   #   needs: [deploy]
   #   if: |
   #     success() &&
-  #     (github.event.inputs.profile == 'esignet' || github.event_name == 'push')
+  #     (github.event.inputs.profile == 'esignet-standalone' || github.event_name == 'push')
   #   environment:
   #     name: ${{ github.ref_name }}
   #   steps:
