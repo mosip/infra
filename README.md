@@ -26,50 +26,65 @@ For detailed MOSIP platform architecture Diagram, visit: [MOSIP Platform Archite
 ## Complete Deployment Flow
 
 ```mermaid
+%%{init: {'theme': 'neutral'}}%%
 graph TB
- %% Prerequisites
- A[Fork Repository] --> B[Configure Secrets]
- B --> C[Select Cloud Provider]
- 
- %% Infrastructure Phase
- C --> D[Terraform: base-infra<br/>VPC, Networking, WireGuard]
- D --> E{Deploy<br/>Observability?}
- E -->|Yes| F[Terraform: observ-infra<br/>Rancher UI, Monitoring]
- E -->|No| G[Terraform: infra<br/>MOSIP Infrastructure]
- F --> G
- 
- %% Helmsman Deployment Phase
- G --> H[Helmsman: Prerequisites<br/>Monitoring, Istio, Logging]
- H --> I[Helmsman: External Deps<br/>PostgreSQL, Keycloak, MinIO]
- 
- %% MOSIP Services
- I --> J[Helmsman: MOSIP Services]
- J --> J1{Deploy<br/>eSignet?}
- J1 -->|Yes| J2[Helmsman: eSignet Stack<br/>Redis, SoftHSM, Keycloak,<br/>Mock Identity, OIDC UI]
- J1 -->|No| K{Deploy<br/>Test Rigs?}
- J2 --> K
- K -->|Yes| L[Helmsman: Test Rigs<br/>API, UI, DSL Testing]
- K -->|No| M[Verify Deployment]
- L --> M
- 
- %% Final Verification
- M --> N[Access MOSIP Platform]
- N --> O[Deployment Complete]
- 
- %% Styling
- classDef prereq fill:#fff3e0,stroke:#ff8f00,stroke-width:2px
- classDef terraform fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
- classDef helmsman fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
- classDef esignet fill:#e0f2f1,stroke:#00695c,stroke-width:2px
- classDef success fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
- classDef decision fill:#fce4ec,stroke:#c2185b,stroke-width:2px
- 
- class A,B,C prereq
- class D,F,G terraform
- class H,I,J,L helmsman
- class J2 esignet
- class M,N,O success
- class E,K,J1 decision
+    %% Prerequisites
+    A[Fork Repository] --> B[Configure Secrets]
+    B --> C[Select Cloud Provider]
+
+    %% Infrastructure Phase
+    C --> D[Terraform: base-infra<br/>VPC, Networking, WireGuard]
+    D --> OBS{Deploy<br/>Observability?}
+    OBS -->|Yes| F[Terraform: observ-infra<br/>Rancher UI + Keycloak]
+    OBS -->|No| PS
+    F --> PS
+
+    %% Terraform Profile Selection
+    PS{Select Terraform<br/>Profile}
+    PS -->|esignet(standalone)| TF_ES[Terraform: infra<br/>profile: esignet(standalone)<br/>4-node K8s cluster]
+    PS -->|mosip| TF_MP[Terraform: infra<br/>profile: mosip<br/>7-node K8s cluster]
+
+    %% ── eSignet Standalone Flow — Helmsman profile: esignet ─────
+    TF_ES --> ES_EXT[Helmsman: Prereqs + External<br/>profile: esignet]
+    ES_EXT --> ES_ESIGNET[Helmsman: eSignet Standalone<br/>4 parallel namespaces]
+
+    ES_ESIGNET --> NS1[esignet mock plugin]
+    ES_ESIGNET --> NS2[mosip-identity plugin]
+    ES_ESIGNET --> NS4[sunbird-rc plugin]
+
+    NS1 --> ES_TRIGS[Helmsman: Testrigs<br/>4x eSignet testrigs]
+    NS2 --> ES_TRIGS
+    NS4 --> ES_TRIGS
+
+    %% ── MOSIP Platform Flow — Helmsman profile selection ────────
+    TF_MP --> MP_VER{Helmsman<br/>Profile}
+    MP_VER -->|mosip-platform-1.2.0.x| MP_EXT[Helmsman: Prereqs + External]
+    MP_VER -->|mosip-platform-1.2.1.x| MP_EXT
+    MP_EXT --> MP_MOSIP[Helmsman: MOSIP Core<br/>auto-triggered]
+    MP_MOSIP --> MP_ESIGNET[Helmsman: eSignet<br/>with MOSIP platform]
+    MP_ESIGNET --> MP_TRIGS[Helmsman: Testrigs]
+
+    %% Final Verification
+    ES_TRIGS --> V[Verify Deployment]
+    MP_TRIGS --> V
+    V --> DONE[Deployment Complete]
+
+    %% Styling — transparent fills for readability in both light and dark themes
+    classDef prereq fill:none,stroke:#ff8f00,stroke-width:2px
+    classDef terraform fill:none,stroke:#1976d2,stroke-width:2px
+    classDef helmsman fill:none,stroke:#7b1fa2,stroke-width:2px
+    classDef mosip fill:none,stroke:#3949ab,stroke-width:2px
+    classDef ns fill:none,stroke:#558b2f,stroke-width:1px
+    classDef success fill:none,stroke:#388e3c,stroke-width:2px
+    classDef decision fill:none,stroke:#c2185b,stroke-width:2px
+
+    class A,B,C prereq
+    class D,F,TF_ES,TF_MP terraform
+    class ES_EXT,ES_ESIGNET,ES_TRIGS helmsman
+    class MP_EXT,MP_MOSIP,MP_ESIGNET,MP_TRIGS mosip
+    class NS1,NS2,NS3,NS4 ns
+    class V,DONE success
+    class OBS,PS,MP_VER decision
 ```
 
 > **Note:** Complete Terraform scripts are available only for **AWS**. For **Azure and GCP**, only placeholder structures are configured - community contributions are welcome to implement full functionality.
@@ -84,11 +99,12 @@ We've created comprehensive beginner-friendly guides to help you succeed:
 
 | Guide                                                                         | What You'll Learn                                                                          | When to Read                                        |
 | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | --------------------------------------------------- |
-| **[Glossary](docs/GLOSSARY.md)**                                           | Plain-language explanations of all technical terms (AWS, Kubernetes, Terraform, VPN, etc.) | Before you start - understand the terminology       |
-| **[Secret Generation Guide](docs/SECRET_GENERATION_GUIDE.md)**             | Step-by-step instructions to generate SSH keys, AWS credentials, GPG passwords, and more   | Before deployment - setup required secrets          |
-| **[Workflow Guide](docs/WORKFLOW_GUIDE.md)**                               | Visual walkthrough of GitHub Actions workflows with screenshots and navigation help        | During deployment - run workflows correctly         |
-| **[DSF Configuration Guide](docs/DSF_CONFIGURATION_GUIDE.md)**             | How to configure Helmsman files including clusterid and domain settings                    | Before Helmsman deployment - configure applications |
-| **[Environment Destruction Guide](docs/ENVIRONMENT_DESTRUCTION_GUIDE.md)** | Safe teardown procedures, backup steps, and cost monitoring                                | After deployment - clean up resources               |
+| **[Glossary](docs/GLOSSARY.md)**                                                                         | Plain-language explanations of all technical terms (AWS, Kubernetes, Terraform, VPN, etc.) | Before you start - understand the terminology            |
+| **[Secret Generation Guide](docs/SECRET_GENERATION_GUIDE.md)**                                           | Step-by-step instructions to generate SSH keys, AWS credentials, GPG passwords, and more   | Before deployment - setup required secrets               |
+| **[Workflow Guide](docs/WORKFLOW_GUIDE.md)**                                                             | Visual walkthrough of GitHub Actions workflows with screenshots and navigation help        | During deployment - run workflows correctly               |
+| **[DSF Configuration Guide](docs/DSF_CONFIGURATION_GUIDE.md)**                                           | How to configure Helmsman files including clusterid and domain settings                    | Before Helmsman deployment - configure applications       |
+| **[eSignet Standalone Deployment Guide](docs/ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md)**                   | Step-by-step guide to deploy eSignet standalone via GitHub Actions — secrets, variables, workflow order | eSignet standalone deployment |
+| **[Environment Destruction Guide](docs/ENVIRONMENT_DESTRUCTION_GUIDE.md)**                               | Safe teardown procedures, backup steps, and cost monitoring                                | After deployment - clean up resources                    |
 
 **Complete Documentation Index:** [View All Documentation](docs/README.md)
 
@@ -761,7 +777,7 @@ This step creates MOSIP Kubernetes cluster, PostgreSQL (if enabled), ActiveMQ (i
 
 > **Important Notes:**
 >
-> - Ensure `cluster_name` and `cluster_env_domain` match values used in Helmsman DSF files
+> - Ensure `cluster_name` and `cluster_env_domain` match `ENV_NAME` and `DOMAIN_NAME` set as GitHub Environment Variables — these drive all Helmsman DSF domain substitution
 > - Set `enable_postgresql_setup = true` for production deployments with external PostgreSQL,If enable_postgresql_setup = true, Terraform will automatically:
 >   - Provision dedicated EBS volume for PostgreSQL on nginx node
 >   - Install and configure PostgreSQL 15 via Ansible playbooks
@@ -932,282 +948,85 @@ To regenerate import URL if needed:
 >
 > **Detailed DSF Guide:** [DSF Configuration Guide](docs/DSF_CONFIGURATION_GUIDE.md) - Comprehensive guide with examples and explanations!
 
-#### Step 4a: Update DSF Configuration Files
+#### Step 4a: Configure GitHub Environment Variables
 
-1. **Clone the repository (if not already done):**
+**No manual DSF file edits are required per environment.** All domain, cluster, port, and environment name values are resolved at deploy time via Helmsman's `${VAR}` substitution.
 
-```bash
- git clone https://github.com/mosip/infra.git
- cd infra/Helmsman
-```
+**How values are provided:**
 
-2. **Navigate to DSF configuration directory:**
+When you trigger a Helmsman workflow manually (`workflow_dispatch`), you enter these values directly as **workflow inputs** — no pre-configuration needed. The GitHub Environment (`<branch-name>`) must already exist (created automatically when Terraform runs or manually via Repository → Settings → Environments).
 
-```bash
- cd dsf/
-```
+For **push-triggered runs** (no workflow inputs), values fall back to GitHub Environment Variables. In that case, navigate to **Repository → Settings → Environments → `<branch-name>` → Variables** and add:
 
-3. **Update prereq-dsf.yaml:**
+| Variable | Example value | Used by |
+|----------|--------------|---------|
+| `DOMAIN_NAME` | `soil38.mosip.net` | All DSFs — hostnames, Istio VS, DB hosts |
+| `ENV_NAME` | `soil38` | Landing page, testrig user |
+| `CLUSTER_ID` | `c-m-abc12xyz` | `prereq-dsf.yaml` — rancher-monitoring |
+| `SLACK_CHANNEL_NAME` | `#mosip-alerts` | `prereq-dsf.yaml` — alerting |
+| `DB_PORT` | `5433` | MOSIP platform external postgres port |
+| `ESIGNET_DB_PORT` | `5432` | eSignet container postgres port |
 
-> **IMPORTANT CONFIGURATION:** This file requires **clusterid** configuration **only if you're using Rancher UI** (when `rancher_import = true`)! See [DSF Configuration Guide - clusterid](docs/DSF_CONFIGURATION_GUIDE.md#critical-configuration-clusterid)
+> **Domain consistency**: `DOMAIN_NAME` must match `cluster_env_domain` in `aws.tfvars`. `ENV_NAME` must match `cluster_name`. No in-file replacements needed.
 
- **Critical Updates Required:**
+**Finding your clusterid (for `CLUSTER_ID`):**
+- **Rancher UI**: Open your cluster → the URL contains `c-m-xxxxx` — that's your clusterid
+- **kubectl**: `kubectl get setting cluster-id -n cattle-system -o jsonpath='{.value}'`
+- Only needed if `rancher_import = true` in your Terraform config
 
-- **clusterid Configuration (OPTIONAL - only if using Rancher):**
-- **When needed?** Only if `rancher_import = true` in your terraform configuration
-- **Skip if:** Deploying without Rancher UI (`rancher_import = false`) - ignore this entire section
-- **What is this?** Unique identifier for your Rancher-managed cluster
-- **Why needed?** Monitoring dashboards won't work without it in Rancher deployments
-- **How to find:** See [DSF Guide - Finding clusterid](docs/DSF_CONFIGURATION_GUIDE.md#how-to-find-your-clusterid)
-- **Location in file:** Around line 40-45
-- **What to change:**
+**Alerting (Slack) setup:**
 
-```yaml
- set:
- grafana.global.cattle.clusterId: "c-m-pbrcfglw" # ← REPLACE THIS
- global.cattle.clusterId: "c-m-pbrcfglw" # ← REPLACE THIS
-```
+Create a Slack incoming webhook ([guide](https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks/)), then add:
+- `SLACK_CHANNEL_NAME` variable (e.g. `#mosip-alerts`)
+- `SLACK_WEBHOOK_URL` environment secret
 
-- **Alerting Configuration:**
-Alerting is part of cluster monitoring, where alert notifications are sent to the configured email or Slack channel.
-- `<slack-channel-name>` → Slack channel name configured for alert notifications.
-- `<slack-api-url>` → Slack API URL configured for alert notifications.
-- `<env-name>` → provide the cluster name.
+**reCAPTCHA keys (MOSIP platform profiles):**
 
-> **Note:**
-> - Create a Slack incoming webhook: [Slack incoming webhooks guide](https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks/)
-> - Create a Slack app for your environment from the above URL.
-> - After creating the app, select `Incoming webhooks` from the **Features** section.
-> - Activate Incoming webhooks.
-> - Select `Add New Webhook To Workspace` and choose a Slack channel where alerts should be notified.
-> - The incoming webhook URL will be created.
-> - Update `slack_api_url`, `channel`, and `env-name` in the `rancher-monitoring` section in `prereq-dsf.yaml`.
+📖 **[View detailed reCAPTCHA Setup Guide](docs/RECAPTCHA_SETUP_GUIDE.md)**
 
+Create reCAPTCHA v2 keys for each domain at [Google reCAPTCHA Admin](https://www.google.com/recaptcha/admin/create), then add as **Environment Secrets**:
 
-- **Domain Validation (Double-check):**
-- `<env-name>` → your cluster name (e.g., `soil38`)
-- `sandbox.xyz.net` → your domain name (e.g., `soil38.mosip.net`)
-- **Why?** Every service needs to know its web address
-- **Chart Versions:** Verify and update to latest stable versions
-- Check [MOSIP Helm Repository](https://mosip.github.io/mosip-helm) for latest versions
-- **Namespace Configuration:** Ensure proper namespace isolation
-- **What is namespace?** Like separate folders for different applications
+| Secret | Domain |
+|--------|--------|
+| `PREREG_CAPTCHA_SITE_KEY` / `PREREG_CAPTCHA_SECRET_KEY` | `prereg.your-domain.net` |
+| `ADMIN_CAPTCHA_SITE_KEY` / `ADMIN_CAPTCHA_SECRET_KEY` | `admin.your-domain.net` |
+| `RESIDENT_CAPTCHA_SITE_KEY` / `RESIDENT_CAPTCHA_SECRET_KEY` | `resident.your-domain.net` |
 
-> **Note:** Maintain consistency with your Terraform configuration:
->
-> - `<env-name>` should match `cluster_name` in `aws.tfvars`
-> - `sandbox.xyz.net` should match `cluster_env_domain` in `aws.tfvars`.
-> - These above variables MUST be identical or deployment will fail because the same domain is being mapped in the route-53 service in aws.
-> - If the cluster is created manually instead of using terraform scripts then user can provide the `values` for above two variables as per his requirement, no need to match variables in `aws.tfvars`. 
+The `external-dsf.yaml` reads these via `${PREREG_CAPTCHA_SITE_KEY}` etc. — no DSF edits needed.
+
+**PostgreSQL configuration:**
+
+The only DSF setting that still requires a manual decision is `postgres.enabled` in `external-dsf.yaml`:
 
 ```yaml
- # Configure monitoring, Istio, logging
- helmRepos:
- rancher-latest: "https://releases.rancher.com/server-charts/latest"
-
- apps:
- rancher-monitoring:
- enabled: true
- namespace: cattle-monitoring-system
- # DON'T FORGET: Update clusterid here! See above
+apps:
+  postgres:
+    enabled: false  # false = use external Terraform-provisioned PostgreSQL
+                    # true  = deploy container PostgreSQL (for dev/test)
 ```
 
- **Need detailed help?** [DSF Configuration Guide - Prerequisites](docs/DSF_CONFIGURATION_GUIDE.md#prerequisites-dsf-configuration)
+Set this to match your Terraform `enable_postgresql_setup` value. Everything else (host, port, credentials) is resolved automatically from environment variables and hooks.
 
-4. **Update external-dsf.yaml:**
-
- **Critical Updates Required:**
-
-- **Domain Validation (Double-check):**
-- `<sandbox>` → your cluster name (e.g., `soil`)
-- `sandbox.xyz.net` → your domain name (e.g., `soil.mosip.net`)
-- **Chart Versions:** Update Helm chart versions to latest stable releases
-- **Database Branch:** Verify correct branch for DB scripts and schema
-- **PostgreSQL Configuration:** Match with Terraform `enable_postgresql_setup` setting
-
-> **Note:** Maintain consistency with your Terraform configuration:
-> - `<sandbox>` should match `cluster_name` in `aws.tfvars`
-> - `sandbox.xyz.net` should match `cluster_env_domain` in `aws.tfvars`.
-> - These above variables MUST be identical or deployment will fail because the same domain is being mapped in the route-53 service in aws.
-> - If the cluster is created manually instead of using terraform scripts then user can provide the `values` for above two variables as per his requirement, no need to match variables in `aws.tfvars`.
-
-- **Configure reCAPTCHA keys:**
-
-1. **Create reCAPTCHA keys for each domain:** 
-   
-   📖 **[View detailed reCAPTCHA Setup Guide with screenshots](docs/RECAPTCHA_SETUP_GUIDE.md)**
-
-- Go to [Google reCAPTCHA Admin](https://www.google.com/recaptcha/admin/create)
-- Create reCAPTCHA v2 ("I'm not a robot" Checkbox) for each domain:
-- **PreReg domain**: `prereg.your-domain.net` (e.g., `prereg.soil.mosip.net`)
-- **Admin domain**: `admin.your-domain.net` (e.g., `admin.soil.mosip.net`)
-- **Resident domain**: `resident.your-domain.net` (e.g., `resident.soil.mosip.net`)
-
-2. **Update captcha-setup.sh arguments in external-dsf.yaml (around line 315):**
+**Database branch (MOSIP platform):**
 
 ```yaml
- hooks:
- postInstall: "$WORKDIR/hooks/captcha-setup.sh PREREG_SITE_KEY PREREG_SECRET_KEY ADMIN_SITE_KEY ADMIN_SECRET_KEY RESIDENT_SITE_KEY RESIDENT_SECRET_KEY"
+# In mosip-dsf.yaml — update to match your MOSIP version
+gitRepo:
+  dbBranch: "v1.2.0.2"   # must match your deployed MOSIP chart versions
 ```
 
- **Arguments order:**
+**What you should NOT edit manually in DSF files:**
+- Domain names or cluster names (use `vars.DOMAIN_NAME` / `vars.ENV_NAME`)
+- Keycloak hostnames (derived from `${domain_name}`)
+- eSignet service URLs (derived from `${domain_name}`)
+- Test rig endpoints (derived from `${domain_name}`)
+- Captcha keys (passed as GitHub Secrets via `${VAR}` substitution)
 
-- **Argument 1**: PreReg site key
-- **Argument 2**: PreReg secret key
-- **Argument 3**: Admin site key
-- **Argument 4**: Admin secret key
-- **Argument 5**: Resident site key
-- **Argument 6**: Resident secret key
-
-3. **Example configuration:**
-
-```yaml
- hooks:
- postInstall: "$WORKDIR/hooks/captcha-setup.sh 6LfkAMwrAAAAAATB1WhkIhzuAVMtOs9VWabODoZ_ 6LfkAMwrAAAAAHQAT93nTGcLKa-h3XYhGoNSG-NL 6LdNAcwrAAAAAETGWvz-3I12vZ5V8vPJLu2ct9CO 6LdNAcwrAAAAAE4iWGJ-g6Dc2HreeJdIwAl5h1iL 6LdRAcwrAAAAAFUEHHKK5D_bSrwAPqdqAJqo4mCk 6LdRAcwrAAAAAOeVl6yHGBCBA8ye9GsUOy4pi9s9"
-```
-
-```yaml
- # Configure external dependencies
- apps:
- postgresql:
- # Set based on your Terraform configuration:
- enabled: false # false if enable_postgresql_setup = true (external PostgreSQL via Terraform)
- # true if enable_postgresql_setup = false (container PostgreSQL)
- minio:
- enabled: true
- kafka:
- enabled: true
-```
-
-5. **Update mosip-dsf.yaml:**
-
- **Critical Updates Required:**
-
-- **Domain Validation (Double-check):**
-> - `<sandbox>` should match `cluster_name` in `aws.tfvars`
-> - `sandbox.xyz.net` should match `cluster_env_domain` in `aws.tfvars`.
-> - These above variables MUST be identical or deployment will fail because the same domain is being mapped in the route-53 service in aws.
-> - If the cluster is created manually instead of using terraform scripts then user can provide the `values` for above two variables as per his requirement, no need to match variables in `aws.tfvars`.
-- **Chart Versions:** Update MOSIP service chart versions to compatible releases
-- **Database Branch:** Ensure correct MOSIP DB scripts branch matches deployment version
-- **Service Dependencies:** Verify all required external services are properly configured
-- **Resource Limits:** Adjust CPU/memory limits based on environment requirements
-
-> **Note:** Maintain consistency with your Terraform configuration:
->
-> - `<sandbox>` should match `cluster_name` in `aws.tfvars`
-> - `sandbox.xyz.net` should match `cluster_env_domain` in `aws.tfvars`.
-> - These above variables MUST be identical or deployment will fail because the same domain is being mapped in the route-53 service in aws.
-> - If the cluster is created manually instead of using terraform scripts then user can provide the `values` for above two variables as per his requirement, no need to match variables in `aws.tfvars`.
-
-```yaml
- # Configure MOSIP services 
- apps:
- config-server:
- enabled: true
- artifactory:
- enabled: true
- kernel:
- enabled: true
-```
-
-6. **Update esignet-dsf.yaml:**
-
- **Critical Updates Required:**
-
-- **Domain Validation (Double-check):**
-  - `<sandbox>` → your cluster name (e.g., `soil`)
-  - `sandbox.xyz.net` → your domain name (e.g., `soil.mosip.net`)
-  - **eSignet Domain**: `esignet.sandbox.xyz.net` → `esignet.soil.mosip.net`
-- **Chart Versions:** Update eSignet chart versions to latest stable releases
-- **Database Branch:** Verify correct eSignet DB scripts branch
-- **OIDC Configuration:** Configure OIDC client settings and redirect URLs
-- **Mock Services:** Enable/disable mock identity system and relying party based on requirements
-- **Keycloak Integration:** Ensure Keycloak endpoints and realm settings are correct
-
-> **Note:** Maintain consistency with your Terraform configuration:
->
-> - `<sandbox>` should match `cluster_name` in `aws.tfvars`
-> - `sandbox.xyz.net` should match `cluster_env_domain` in `aws.tfvars`
-> - eSignet requires MOSIP core services to be deployed first (unless using standalone mode)
-
-```yaml
- # Configure eSignet services 
- apps:
- esignet:
- enabled: true
- mock-identity-system:
- enabled: true # Set to false for production with real identity system
- oidc-ui:
- enabled: true
- mock-relying-party:
- enabled: true # Set to false for production
-```
-
- **eSignet-Specific Configuration:**
-
-- **Mock Identity System:**
-  - Enable (`true`) for development/testing without MOSIP integration
-  - Disable (`false`) for production with real MOSIP identity system
-- **OIDC Client Configuration:**
-  - Update redirect URIs for your domain
-  - Configure client IDs and secrets
-  - Set up allowed scopes and claims
-- **Keycloak Settings:**
-  - Verify Keycloak realm: typically `esignet`
-  - Update Keycloak host: `https://iam.sandbox.xyz.net` → `https://iam.soil.mosip.net`
-  - Ensure Keycloak client credentials are configured
-
- **Need detailed help?** [DSF Configuration Guide - eSignet](docs/esignet_README.md#dsf-configuration)
-
-7. **Update testrigs-dsf.yaml (if deploying test environment):**
-
- **Critical Updates Required:**
-
-- **Domain Validation (Double-check):**
-> - `<sandbox>` should match `cluster_name` in `aws.tfvars`
-> - `sandbox.xyz.net` should match `cluster_env_domain` in `aws.tfvars`.
-> - These above variables MUST be identical or deployment will fail because the same domain is being mapped in the route-53 service in aws.
-> - If the cluster is created manually instead of using terraform scripts then user can provide the `values` for above two variables as per his requirement, no need to match variables in `aws.tfvars`.
-- **Test Chart Versions:** Update test rig chart versions to match MOSIP service versions
-- **Database Branch:** Ensure test DB scripts use correct branch
-- **Test Configuration:** Update test endpoints, API versions, and test data paths
-- **Resource Allocation:** Configure appropriate test environment resource limits
-
-> **Critical Validation Checklist for All DSF Files:**
->
-> **Domain Configuration (Validate Twice):**
-> - `<sandbox>` should match `cluster_name` in `aws.tfvars`
-> - `sandbox.xyz.net` should match `cluster_env_domain` in `aws.tfvars`.
-> - These above variables MUST be identical or deployment will fail because the same domain is being mapped in the route-53 service in aws.
-> - If the cluster is created manually instead of using terraform scripts then user can provide the `values` for above two variables as per his requirement, no need to match variables in `aws.tfvars`.
-> - Verify domain DNS resolution is working
-> - Ensure SSL certificate coverage for all subdomains
->
-> **Version Management:**
->
-> - **Chart Versions**: Update all Helm chart versions to latest compatible releases
-> - **Database Branch**: Verify DB scripts branch matches your MOSIP deployment version
-> - **Service Versions**: Ensure MOSIP service versions are compatible across all DSF files
->
-> **Configuration Consistency:**
->
-> - `<sandbox>` must match `cluster_name` in `terraform/implementations/aws/infra/aws.tfvars`
-> - `sandbox.xyz.net` must match `cluster_env_domain` in `terraform/implementations/aws/infra/aws.tfvars`
-> - These above variables MUST be identical or deployment will fail because the same domain is being mapped in the route-53 service in aws.
-> - If the cluster is created manually instead of using terraform scripts then user can provide the `values` for above two variables as per his requirement, no need to match variables in `aws.tfvars`.
-> - PostgreSQL settings must align with `enable_postgresql_setup` in Terraform configuration
->
-> **Environment-Specific Updates:**
->
-> - Resource limits and requests based on environment capacity
-> - Storage class configurations for persistent volumes
-> - Ingress controller and load balancer settings
-> - Security context and RBAC configurations
+**Need detailed help?** [DSF Configuration Guide](docs/DSF_CONFIGURATION_GUIDE.md)
 
 #### Step 4b: Configure Repository Secrets for Helmsman
 
-**After updating all DSF files**, configure the required repository secrets for Helmsman deployments:
+Configure the required secrets for Helmsman deployments in **Repository → Settings → Environments → `<branch-name>` → Secrets**:
 
 1. **Update Repository Branch Configuration:**
 
@@ -1305,173 +1124,29 @@ Alerting is part of cluster monitoring, where alert notifications are sent to th
 
 #### Step 4c: Run Helmsman Deployments via GitHub Actions
 
-> **Need visual guidance?** See [Workflow Guide - Helmsman Workflows](docs/WORKFLOW_GUIDE.md#helmsman-workflows) for detailed step-by-step instructions!
+> **Always use `apply` mode.** The `dry-run` mode will fail because MOSIP services reference ConfigMaps and Secrets from other namespaces that don't exist at dry-run time.
 
-The Helmsman deployment process follows a specific sequence with automated triggers and error handling mechanisms:
+Follow the sequence below. The flow differs by profile:
 
-> **Important**: Always use `apply` mode for Helmsman deployments. The `dry-run` mode will fail due to dependencies on shared configmaps and secrets from other namespaces that are not available during dry-run validation.
->
-> **Why does dry-run fail?** Helmsman checks if resources exist before deployment. In dry-run mode, these resources aren't created yet, so validation fails. Think of it like checking if ingredients are in the kitchen before actually cooking - but in dry-run mode, the ingredients haven't been bought yet!
-
-**Understanding Workflow Names:**
-
-| Actual Workflow Name in GitHub                     | Where to Find           |
-| -------------------------------------------------- | ----------------------- |
-| "Deploy External services of mosip using Helmsman" | Actions → Left sidebar |
-| "Deploy MOSIP services using Helmsman"             | Actions → Left sidebar |
-| "Deploy Testrigs of mosip using Helmsman"          | Actions → Left sidebar |
-
-> **Can't find the workflow?** Look for keywords like "External", "MOSIP", or "Deploy" in the left sidebar. See [Workflow Guide](docs/WORKFLOW_GUIDE.md#understanding-workflow-basics) for navigation help!
-
-1. **Deploy Prerequisites & External Dependencies:**
-
-> **Detailed Steps:** [Workflow Guide - Prerequisites &amp; External Dependencies](docs/WORKFLOW_GUIDE.md#workflow-1-prerequisites--external-dependencies)
-
-![Deploy External Services - Helmsman](docs/_images/helmsman-external-services.png)
-
-- **(1)** Actions → **"Deploy External services of mosip using Helmsman"**
-  - **Can't find it?** Search for "External" in the workflows list
-- **(2)** Click **Run workflow** button in the top right corner
-- **(3)** **Branch**: Select your deployment branch (e.g., `develop`)
-- **(4)** **Deployment profile to use**: `mosip-platform-1.2.0.x` (or other appropriate profile)
-- **(5)** **Choose Helmsman mode**: `apply` (dry-run will fail due to namespace dependencies)
-- **(6)** **Domain name for this environment**: Enter the domain name (e.g., `example.xyz.net`)
-- **(7)** **Environment name**: Enter the environment name (e.g., `sandbox`, `dev`, `staging`)
-- **(8)** **Slack channel name for alerting** (optional): e.g., `#mosip-alerts`
-- **(9)** **Slack webhook URL for alerting** (optional)
-- **(10)** **Rancher cluster ID for rancher-monitoring**: e.g., `c-xxxxx`
-- **(11)** Click **Run workflow** green button
-- This workflow handles both deployments in parallel:
-  - **Prerequisites**: `prereq-dsf.yaml` (monitoring, Istio, logging)
-  - **External Dependencies**: `external-dsf.yaml` (databases, message queues, storage)
-- **Time required:** 20-40 minutes
-- **Automatic Trigger**: Upon successful completion, this workflow automatically triggers the MOSIP services deployment
-
- **What You Should See:**
-
-- ✅ Monitoring stack deploying (Prometheus, Grafana)
-- ✅ Istio service mesh installing
-- ✅ PostgreSQL database starting (if container mode)
-- ✅ MinIO storage deploying
-- ✅ Kafka message queue starting
-
-> **Note**: The `helmsman_external.yml` workflow deploys both prereq and external dependencies in parallel for optimal deployment time.
-
-2. **Deploy MOSIP Services (Automated):**
-
-- **Automatically triggered** after successful completion of step 1
-- Workflow: **Deploy MOSIP services using Helmsman** (`helmsman_mosip.yml`)
-- DSF file: `mosip-dsf.yaml`
-- Mode: `apply` (dry-run will fail due to namespace dependencies)
-
- **Error Handling:**
-
-- If the automatic trigger fails, manually trigger: Actions → **Deploy MOSIP services using Helmsman**
-
-3. **Verify All Pods are Running:**
-
- Before proceeding to test rigs, ensure all MOSIP services are properly deployed:
-
-```bash
- # Check all MOSIP pods are running
- kubectl get pods -A
- kubectl get pods -n keycloak
- kubectl get pods -n postgres
- 
- # Ensure no pods are in pending/error state
- kubectl get pods --all-namespaces | grep -v Running | grep -v Completed
+**eSignet standalone:**
+```
+External + Prereqs  →  eSignet (manual)  →  Signup (auto)  →  Testrigs (manual)
 ```
 
-4. **Handle Onboarding Failures (If Required):**
-
-> **⚠️ Important**: The partner-onboarder pod will run successfully, but you must check the onboarding reports in MinIO to verify if all partners were onboarded correctly. Failed onboardings must be manually re-executed before deploying test rigs.
-
-**When to check and rerun onboarding:**
-
-- After the partner-onboarder pod completes (check MinIO reports for failures)
-- When onboarding reports show failed partner registrations
-- Before deploying test rigs to ensure all prerequisites are met
-
-**How to check onboarding status and rerun if needed:** Refer to the comprehensive [MOSIP Onboarding Guide](docs/ONBOARDING_GUIDE.md) for detailed troubleshooting and retry procedures.
-
-5. **Deploy eSignet (Manual):**
-
-![Deploy eSignet - Helmsman](docs/_images/esignet.png)
-
-- **Prerequisites**: All MOSIP core services must be running, partner onboarding completed successfully and secrets required for esignet should be updated.
-- **(1)** Actions → **Deploy eSignet using Helmsman** (`helmsman_esignet.yml`)
-- **(2)** Click **Run workflow** button in the top right corner
-- **(3)** **Select Branch**
-- **(4)** **Select Profile**: `mosip-platform-1.2.0.x` or `mosip-platform-1.2.1.x` or `esignet` or any other profile you want to deploy for
-- **(5)** **Mode**: `apply` (dry-run will fail due to namespace dependencies)
-- **(6)** **Additional Options** (optional):
-  - **skip_mosip_dsf_check**: ☐ Unchecked by default
-    - **When to enable (✅)**: Standalone eSignet deployment without full MOSIP stack
-    - **What it does**: Bypasses validation check for MOSIP core services completion
-    - **Use case**: Testing eSignet independently or deploying eSignet to a separate cluster
-  - **(7)** **delete_existing_jobs**: ☐ Unchecked by default
-    - **When to enable (✅)**: Re-running eSignet deployment after a previous failed attempt
-    - **What it does**: Removes existing partner onboarder jobs before creating new ones
-    - **Use case**: Cleanup before retry deployment to avoid "job already exists" errors
-    - **Important**: Only enable this on re-runs, not on first deployment
-- **(8)** **Domain name**: Enter the domain name for this environment (e.g., `example.xyz.net`)
-- **(9)** **Environment name**: Enter the environment name (e.g., `sandbox`, `dev`, `staging`)
-- **(10)** **Run Workflow**   
-- **Time required:** 15-25 minutes
-
- **What You Should See:**
-
-- ✅ eSignet services deploying
-- ✅ OIDC client configuration
-- ✅ Keycloak integration setup
-- ✅ Mock identity system (if configured)
-- ✅ All eSignet pods running
-
- **Verify eSignet Deployment:**
-
-```bash
- # Check eSignet pods
- kubectl get pods -n esignet
- 
- # Verify eSignet services
- kubectl get services -n esignet
+**MOSIP platform:**
+```
+External + Prereqs  →  MOSIP (auto)  →  eSignet (manual)  →  Testrigs (manual)
 ```
 
-> **Note**: For detailed eSignet configuration and deployment guide, see [eSignet Deployment Guide](docs/esignet_README.md)
+| Step | Workflow | Trigger | Profile | Guide |
+|------|----------|---------|---------|-------|
+| 1 | External + Prereqs | Manual | All profiles | [HELMSMAN_EXTERNAL_GUIDE.md](docs/HELMSMAN_EXTERNAL_GUIDE.md) |
+| 2 | MOSIP services | Auto (from step 1) | MOSIP platform only | [HELMSMAN_MOSIP_GUIDE.md](docs/HELMSMAN_MOSIP_GUIDE.md) |
+| 3 | eSignet | Manual | MOSIP platform | [esignet_README.md](docs/esignet_README.md) |
+| | | | Standalone (4 instances) | [ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md](docs/ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md) |
+| 4 | Testrigs | Manual | All profiles | [HELMSMAN_TESTRIGS_GUIDE.md](docs/HELMSMAN_TESTRIGS_GUIDE.md) |
 
-6. **Deploy Test Rigs (Manual):**
-
-![Deploy Test Rigs - Helmsman](docs/_images/helmsman-testrigs.png)
-
-- **Prerequisites**: All pods from steps 1-2 must be in `Running` state and onboarding completed successfully
-- **(1)** Actions → **Deploy Testrigs of mosip using Helmsman** (`helmsman_testrigs.yml`)
-- **(2)** Click **Run workflow** button in the top right corner
-- **(3)** **Branch**: Select your deployment branch (e.g., `develop`)
-- **(4)** **Choose MOSIP platform profile**: `mosip-platform-1.2.0.x` (or other appropriate profile)
-- **(5)** **Choose Helmsman mode**: `apply` (dry-run will fail due to namespace dependencies)
-- **(6)** **Domain name for this environment**: Enter the domain name (e.g., `example.xyz.net`)
-- **(7)** **Environment name**: Enter the environment name (e.g., `sandbox`, `dev`, `staging`)
-- **(8)** **Slack channel name for alerting** (optional): e.g., `#mosip-alerts`
-- **(9)** **Slack webhook URL for alerting** (optional)
-- **(10)** Click **Run workflow** green button
-
-**Post-Deployment Steps:**
-
-After test rigs deployment completes:
-
-1. **Update cron schedules**: Update the cron time for all CronJobs in the `dslrig`, `apitestrig`, and `uitestrig` namespaces as needed
-2. **Trigger DSL orchestrator**:
-
-   ```bash
-   kubectl create job --from=cronjob/cronjob-dslorchestrator-full dslrig-manual-run -n dslrig
-   ```
-
-   > **Note**: This job will run for more than 3 hours. Monitor progress with:
-   >
-   > ```bash
-   > kubectl logs -f job/dslrig-manual-run -n dslrig
-   > ```
-   >
+Each guide covers: profile-specific secrets, workflow inputs, step-by-step run instructions, and verification commands.
 
 ### 7. Verify Deployment
 
@@ -1508,9 +1183,15 @@ The Deployment Steps Guide provides the essential deployment flow. For comprehen
 
 #### **Helmsman Deployment Documentation**
 
-- **Location**: [`Helmsman/dsf/README.md`](Helmsman/dsf/README.md)
-- **Contents**: Complete DSF configuration reference, hook scripts, environment management, customization options
-- **Use Cases**: Custom service configurations, environment-specific deployments, service scaling and tuning
+| Guide | Purpose |
+|-------|---------|
+| [HELMSMAN_EXTERNAL_GUIDE.md](docs/HELMSMAN_EXTERNAL_GUIDE.md) | Deploy prereqs + external services (step 1 for all profiles) |
+| [HELMSMAN_MOSIP_GUIDE.md](docs/HELMSMAN_MOSIP_GUIDE.md) | Deploy MOSIP core services + partner onboarding (MOSIP platform profiles) |
+| [esignet_README.md](docs/esignet_README.md) | Deploy eSignet with MOSIP platform |
+| [ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md](docs/ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md) | Deploy eSignet standalone (4 parallel instances) |
+| [HELMSMAN_TESTRIGS_GUIDE.md](docs/HELMSMAN_TESTRIGS_GUIDE.md) | Deploy API/UI/DSL testrigs (all profiles) |
+| [DSF_CONFIGURATION_GUIDE.md](docs/DSF_CONFIGURATION_GUIDE.md) | DSF structure, profile selection, variable substitution reference |
+| [HELMSMAN_DESTROY_GUIDE.md](docs/HELMSMAN_DESTROY_GUIDE.md) | Safe removal of deployed services |
 
 #### **WireGuard VPN Setup Guide**
 

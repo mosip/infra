@@ -13,9 +13,15 @@
   - **base-infra**: VPC, networking, jump server (deploy FIRST)
   - **observ-infra**: Rancher management cluster (optional)
   - **infra**: MOSIP Kubernetes cluster (main deployment)
-- **`INFRA_PROFILE`**: Profile name for isolated deployments (e.g., `mosip`, `esignet`, `mosip-dev`)
-  - Use alphanumeric characters and hyphens only; no slashes or special characters
-  - Ensures state file separation when deploying different services
+- **`INFRA_PROFILE`**: Deployment profile — only applies to the `infra` component (`base-infra` and `observ-infra` ignore this field)
+
+  | Profile | tfvars file | Cluster size | Use for |
+  |---------|-------------|--------------|---------|
+  | `esignet` | `profiles/esignet/aws.tfvars` | 4-node K8s cluster | eSignet standalone deployment |
+  | `mosip` | `profiles/mosip/aws.tfvars` | 7-node K8s cluster | Full MOSIP platform deployment |
+
+  - Selecting the profile determines which `aws.tfvars` is loaded and therefore the cluster node count, instance types, and DNS subdomains provisioned
+  - The Terraform state file is also scoped per profile so both can coexist on the same branch without conflicting state
 - **`SSH_PRIVATE_KEY`**: GitHub secret name containing SSH private key for instance access
   - Must match the `ssh_key_name` in your terraform.tfvars
   - [How to create SSH keys](SECRET_GENERATION_GUIDE.md#1-ssh-keys)
