@@ -165,8 +165,7 @@ kubectl get jobs -n onboarder
 After deleting the failed report jobs, you need to update the `mosip-dsf.yaml` file to configure which modules should be re-onboarded:
 
 1. **Navigate to the mosip-dsf.yaml file:**
-   - Location: `Helmsman/dsf/mosip-platform-1.2.0.x/mosip-dsf.yaml` (Java 11)
-   - Location: `Helmsman/dsf/mosip-platform-1.2.1.x/mosip-dsf.yaml` (Java 21)
+   - Location: `Helmsman/dsf/mosip-dsf.yaml`
 
 2. **Find the partner-onboarder app section:**
    - Search for `partner-onboarder:` in the file
@@ -214,11 +213,11 @@ partner-onboarder:
 ```
 
 4. **Commit the changes:**
-   - Commit the updated `mosip-dsf.yaml` in the appropriate profile directory to your repository
+   - Commit the updated `mosip-dsf.yaml` file to your repository
    - This will automatically trigger the Helmsman workflow
 
 5. **The workflow will automatically:**
-   - Detect the changes in the profile's `mosip-dsf.yaml`
+   - Detect the changes in `mosip-dsf.yaml`
    - Recreate the partner-onboarder job
    - Re-run onboarding only for the modules with `enabled: true`
 
