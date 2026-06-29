@@ -54,7 +54,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: wg-env-${{ inputs.ACTION }}-${{ inputs.ENV_NAME }}
+  group: wg-env-${{ inputs.ENV_NAME }}
   cancel-in-progress: false
 
 jobs:
@@ -87,8 +87,9 @@ jobs:
           GH_VERSION=2.63.2
           curl -fsSL "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_amd64.tar.gz" \
             | tar -xz -C "${RUNNER_TEMP}"
-          echo "${RUNNER_TEMP}/gh_${GH_VERSION}_linux_amd64/bin" >> "$GITHUB_PATH"
-          gh --version
+          GH_BIN="${RUNNER_TEMP}/gh_${GH_VERSION}_linux_amd64/bin"
+          echo "$GH_BIN" >> "$GITHUB_PATH"
+          "$GH_BIN/gh" --version
 
       - name: Write SSH private key
         env:
@@ -106,8 +107,8 @@ jobs:
 
       - name: Run WireGuard onboard/offboard
         env:
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+          GH_TOKEN: ${{ secrets.ACTION_PAT }}
+          GITHUB_TOKEN: ${{ secrets.ACTION_PAT }}
           INPUT_ACTION: ${{ inputs.ACTION }}
           INPUT_ENV_NAME: ${{ inputs.ENV_NAME }}
           INPUT_JUMPSERVER_HOST: ${{ inputs.JUMPSERVER_HOST }}
@@ -118,7 +119,7 @@ jobs:
           INPUT_DRY_RUN: ${{ inputs.DRY_RUN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
-          chmod +x .github/workflows/scripts/wg-env.sh
+          chmod +x .github/scripts/wg-env.sh
           args=(
             "$INPUT_ACTION"
             --env "$INPUT_ENV_NAME"
@@ -135,7 +136,7 @@ jobs:
             args+=(--keep-environment)
           fi
           [[ "$INPUT_DRY_RUN" == "true" ]] && args+=(--dry-run)
-          .github/workflows/scripts/wg-env.sh "${args[@]}"
+          .github/scripts/wg-env.sh "${args[@]}"
 
       - name: Cleanup SSH private key
         if: always()
@@ -144,7 +145,7 @@ jobs:
       - name: Commit updated peer allocation
         if: ${{ inputs.DRY_RUN == false }}
         env:
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+          GH_TOKEN: ${{ secrets.ACTION_PAT }}
           INPUT_ACTION: ${{ inputs.ACTION }}
           INPUT_ENV_NAME: ${{ inputs.ENV_NAME }}
           GIT_AUTHOR_NAME: ${{ github.actor }}
