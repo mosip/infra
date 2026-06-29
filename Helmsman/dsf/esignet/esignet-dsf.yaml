@@ -69,7 +69,7 @@ apps:
 
   esignet-softhsm-mosipid2:
     namespace: esignet-mosipid2
-    enabled: false
+    enabled: ${MOSIPID2_ENABLED}
     version: 12.0.1
     chart: mosip/softhsm
     valuesFile: "$WORKDIR/utils/softhsm-esignet-mosipid2-values.yaml"
@@ -178,7 +178,7 @@ apps:
 
   esignet-mosipid2:
     namespace: esignet-mosipid2
-    enabled: false
+    enabled: ${MOSIPID2_ENABLED}
     version: 0.0.1-develop
     chart: mosip/esignet
     valuesFile: "$WORKDIR/utils/esignet-mosipid2-plugin-values.yaml"
@@ -289,7 +289,7 @@ apps:
 
   oidc-ui-mosipid2:
     namespace: esignet-mosipid2
-    enabled: false
+    enabled: ${MOSIPID2_ENABLED}
     version: 0.0.1-develop
     chart: mosip/oidc-ui
     set:
@@ -393,7 +393,7 @@ apps:
 
   mock-relying-party-service-mosipid2:
     namespace: esignet-mosipid2
-    enabled: false
+    enabled: ${MOSIPID2_ENABLED}
     version: 0.0.1-develop
     chart: mosip/mock-relying-party-service
     set:
@@ -463,7 +463,7 @@ apps:
 
   mock-relying-party-ui-mosipid2:
     namespace: esignet-mosipid2
-    enabled: false
+    enabled: ${MOSIPID2_ENABLED}
     version: 0.0.1-develop
     chart: mosip/mock-relying-party-ui
     set:

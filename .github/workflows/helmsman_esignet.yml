@@ -50,6 +50,11 @@ on:
         description: "Environment name (e.g. sandbox, dev, staging)"
         required: false
         type: string
+      enable_mosipid2:
+        description: "Enable MOSIP-ID2 eSignet instance (deploys softhsm, esignet, oidc-ui, mock-rp for mosipid2)"
+        required: false
+        default: false
+        type: boolean
   push:
     paths:
       - Helmsman/dsf/**/esignet-dsf.yaml
@@ -116,6 +121,7 @@ jobs:
       mosipid1_domain_name:  ${{ github.event.inputs.mosipid1_domain_name  || vars.MOSIPID1_DOMAIN_NAME }}
       mosipid2_domain_name:  ${{ github.event.inputs.mosipid2_domain_name  || vars.MOSIPID2_DOMAIN_NAME }}
       env_name:              ${{ github.event.inputs.env_name              || vars.ENV_NAME }}
+      MOSIPID2_ENABLED:      ${{ github.event.inputs.enable_mosipid2 == 'true' && 'true' || 'false' }}
       # All secrets below are ENVIRONMENT secrets (not repository secrets)
       # Configure them in: Repository → Settings → Environments → <branch-name> → Secrets
       # Mock Relying Party Service secrets (base64 encoded PEM)
@@ -375,9 +381,8 @@ jobs:
           
           # Per-namespace captcha secrets — only required for esignet standalone profile
           if [ "$PROFILE" = "esignet" ]; then
-            echo "--- Validating esignet standalone captcha secrets ---"
+            echo "--- Validating esignet standalone mosipid1 captcha secrets ---"
             for var in ESIGNET_MOSIPID1_CAPTCHA_SITE_KEY ESIGNET_MOSIPID1_CAPTCHA_SECRET_KEY \
-                       ESIGNET_MOSIPID2_CAPTCHA_SITE_KEY ESIGNET_MOSIPID2_CAPTCHA_SECRET_KEY \
                        ESIGNET_SUNBIRD_CAPTCHA_SITE_KEY ESIGNET_SUNBIRD_CAPTCHA_SECRET_KEY; do
               val="${!var:-}"
               if [ -z "$val" ]; then
@@ -387,9 +392,8 @@ jobs:
                 echo "✅ $var is configured"
               fi
             done
-            echo "--- Validating esignet standalone postgres + keycloak secrets ---"
-            for var in MOSIPID1_POSTGRES_PASSWORD MOSIPID2_POSTGRES_PASSWORD \
-                       MOSIPID1_KEYCLOAK_ADMIN_PASSWORD MOSIPID2_KEYCLOAK_ADMIN_PASSWORD; do
+            echo "--- Validating esignet standalone mosipid1 postgres + keycloak secrets ---"
+            for var in MOSIPID1_POSTGRES_PASSWORD MOSIPID1_KEYCLOAK_ADMIN_PASSWORD; do
               val="${!var:-}"
               if [ -z "$val" ]; then
                 echo "❌ $var secret is not configured (required for esignet standalone)"
@@ -398,6 +402,21 @@ jobs:
                 echo "✅ $var is configured"
               fi
             done
+            if [ "$MOSIPID2_ENABLED" = "true" ]; then
+              echo "--- Validating mosipid2 captcha + postgres + keycloak secrets ---"
+              for var in ESIGNET_MOSIPID2_CAPTCHA_SITE_KEY ESIGNET_MOSIPID2_CAPTCHA_SECRET_KEY \
+                         MOSIPID2_POSTGRES_PASSWORD MOSIPID2_KEYCLOAK_ADMIN_PASSWORD; do
+                val="${!var:-}"
+                if [ -z "$val" ]; then
+                  echo "❌ $var secret is not configured (required when enable_mosipid2=true)"
+                  MISSING_SECRETS=1
+                else
+                  echo "✅ $var is configured"
+                fi
+              done
+            else
+              echo "ℹ mosipid2 disabled — skipping mosipid2 secret validation"
+            fi
           fi
 
           if [ "$MISSING_SECRETS" -eq 1 ]; then
@@ -414,10 +433,12 @@ jobs:
             echo "  - ESIGNET_CAPTCHA_SECRET_KEY (reCAPTCHA secret key - plain text)"
             if [ "$PROFILE" = "esignet" ]; then
               echo "  - ESIGNET_MOSIPID1_CAPTCHA_SITE_KEY / ESIGNET_MOSIPID1_CAPTCHA_SECRET_KEY"
-              echo "  - ESIGNET_MOSIPID2_CAPTCHA_SITE_KEY / ESIGNET_MOSIPID2_CAPTCHA_SECRET_KEY"
               echo "  - ESIGNET_SUNBIRD_CAPTCHA_SITE_KEY / ESIGNET_SUNBIRD_CAPTCHA_SECRET_KEY"
-              echo "  - MOSIPID1_POSTGRES_PASSWORD / MOSIPID2_POSTGRES_PASSWORD"
-              echo "  - MOSIPID1_KEYCLOAK_ADMIN_PASSWORD / MOSIPID2_KEYCLOAK_ADMIN_PASSWORD"
+              echo "  - MOSIPID1_POSTGRES_PASSWORD / MOSIPID1_KEYCLOAK_ADMIN_PASSWORD"
+              if [ "$MOSIPID2_ENABLED" = "true" ]; then
+                echo "  - ESIGNET_MOSIPID2_CAPTCHA_SITE_KEY / ESIGNET_MOSIPID2_CAPTCHA_SECRET_KEY"
+                echo "  - MOSIPID2_POSTGRES_PASSWORD / MOSIPID2_KEYCLOAK_ADMIN_PASSWORD"
+              fi
             fi
             exit 1
           fi
