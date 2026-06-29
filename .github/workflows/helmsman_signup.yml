@@ -1,14 +1,15 @@
-name: Deploy Mosip services of mosip using Helmsman
+name: Deploy Signup services using Helmsman
 
 on:
   workflow_dispatch:
     inputs:
       profile:
-        description: "Choose MOSIP platform profile"
+        description: "Deployment profile to use"
         required: true
-        default: "mosip-platform-1.2.0.x"
+        default: "esignet-standalone"
         type: choice
         options:
+          - esignet-standalone
           - mosip-platform-1.2.0.x
           - mosip-platform-1.2.1.x
       mode:
@@ -19,12 +20,13 @@ on:
         options:
           - dry-run
           - apply
+      delete_existing_jobs:
+        description: "Delete existing signup/kernel jobs before deployment (required for re-runs)"
+        required: false
+        default: false
+        type: boolean
       domain_name:
         description: "Domain name for this environment (e.g. example.xyz.net)"
-        required: true
-        type: string
-      db_port:
-        description: "PostgreSQL port (e.g. 5432 for esignet standalone, 5433 for MOSIP platform)"
         required: true
         type: string
       env_name:
@@ -33,7 +35,7 @@ on:
         type: string
   push:
     paths:
-      - Helmsman/dsf/**/mosip-dsf.yaml
+      - Helmsman/dsf/**/signup-dsf.yaml
 
 permissions:
   actions: write
@@ -50,10 +52,8 @@ jobs:
           errors=()
           DOMAIN="${{ github.event.inputs.domain_name || vars.DOMAIN_NAME }}"
           ENV="${{ github.event.inputs.env_name || vars.ENV_NAME }}"
-          DB_PORT="${{ github.event.inputs.db_port || vars.DB_PORT }}"
-          [ -z "$DOMAIN" ]  && errors+=("domain_name is empty — set vars.DOMAIN_NAME under Environment '${{ github.ref_name }}'")
-          [ -z "$ENV" ]     && errors+=("env_name is empty — set vars.ENV_NAME under Environment '${{ github.ref_name }}'")
-          [ -z "$DB_PORT" ] && errors+=("db_port is empty — set vars.DB_PORT under Environment '${{ github.ref_name }}'")
+          [ -z "$DOMAIN" ] && errors+=("domain_name is empty — set vars.DOMAIN_NAME under Environment '${{ github.ref_name }}'")
+          [ -z "$ENV" ]    && errors+=("env_name is empty — set vars.ENV_NAME under Environment '${{ github.ref_name }}'")
           if [ ${#errors[@]} -gt 0 ]; then
             echo "❌ Required variables missing:"
             printf '  - %s\n' "${errors[@]}"
@@ -62,7 +62,6 @@ jobs:
           fi
           echo "✓ domain_name = $DOMAIN"
           echo "✓ env_name    = $ENV"
-          echo "✓ db_port     = $DB_PORT"
 
   deploy:
     runs-on: ubuntu-latest
@@ -73,9 +72,19 @@ jobs:
       KUBECONFIG: ${{ github.workspace }}/.kube/config
       PATH: ${{ github.workspace }}/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
       KUBECTL_PATH: ${{ github.workspace }}/.local/bin/kubectl
+      # Default value ensures env.HELMSMAN_MODE is always defined for if-conditions;
+      # the "Set Default Mode" step overrides it via GITHUB_ENV.
+      HELMSMAN_MODE: dry-run
       domain_name: ${{ github.event.inputs.domain_name || vars.DOMAIN_NAME }}
-      db_port:     ${{ github.event.inputs.db_port     || vars.DB_PORT }}
-      env_name: ${{ github.event.inputs.env_name || vars.ENV_NAME }}
+      env_name:    ${{ github.event.inputs.env_name    || vars.ENV_NAME }}
+      # Signup captcha secrets — configure as ENVIRONMENT secrets:
+      #   Repository → Settings → Environments → <branch-name> → Secrets
+      MOSIP_SIGNUP_CAPTCHA_SITE_KEY:   ${{ secrets.MOSIP_SIGNUP_CAPTCHA_SITE_KEY }}
+      MOSIP_SIGNUP_CAPTCHA_SECRET_KEY: ${{ secrets.MOSIP_SIGNUP_CAPTCHA_SECRET_KEY }}
+      # Cluster access secrets
+      KUBECONFIG_SECRET:     ${{ secrets.KUBECONFIG }}
+      CLUSTER_WIREGUARD_WG0: ${{ secrets.CLUSTER_WIREGUARD_WG0 }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -89,19 +98,20 @@ jobs:
         run: |
           REPO="${{ github.repository }}"
           ENVIRONMENT="${{ github.ref_name }}"
+          ENCODED_ENVIRONMENT=$(python3 -c "import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=''))" "$ENVIRONMENT")
           save_var() {
             local name=$1 value=$2
             if [ -z "$value" ]; then echo "⏭  Skipping $name — no input provided, existing value preserved"; return; fi
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
               -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/repos/$REPO/environments/$ENVIRONMENT/variables/$name" \
+              "https://api.github.com/repos/$REPO/environments/$ENCODED_ENVIRONMENT/variables/$name" \
               -d "{\"name\":\"$name\",\"value\":\"$value\"}")
             if [ "$STATUS" = "404" ]; then
               STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
                 -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
-                "https://api.github.com/repos/$REPO/environments/$ENVIRONMENT/variables" \
+                "https://api.github.com/repos/$REPO/environments/$ENCODED_ENVIRONMENT/variables" \
                 -d "{\"name\":\"$name\",\"value\":\"$value\"}")
-              if [ "$STATUS" = "201" ] || [ "$STATUS" = "200" ]; then
+              if [ "$STATUS" = "201" ]; then
                 echo "✓ Created $name"
               else
                 echo "✗ Failed to create $name (HTTP $STATUS)"; exit 1
@@ -113,33 +123,32 @@ jobs:
             fi
           }
           save_var "DOMAIN_NAME" "${{ github.event.inputs.domain_name }}"
-          save_var "DB_PORT"     "${{ github.event.inputs.db_port }}"
           save_var "ENV_NAME"    "${{ github.event.inputs.env_name }}"
+
+      - name: Mask sensitive data
+        run: |
+          echo "::add-mask::${{ secrets.MOSIP_SIGNUP_CAPTCHA_SITE_KEY }}"
+          echo "::add-mask::${{ secrets.MOSIP_SIGNUP_CAPTCHA_SECRET_KEY }}"
+          echo "::add-mask::${{ secrets.KUBECONFIG }}"
+          echo "::add-mask::${{ secrets.CLUSTER_WIREGUARD_WG0 }}"
 
       - name: Setup kubectl and kubeconfig
         env:
           KUBECONFIG_CONTENT: ${{ secrets.KUBECONFIG }}
         run: |
-          # Create directories
           mkdir -p ${{ github.workspace }}/.local/bin
           mkdir -p ${{ github.workspace }}/.kube
-          
-          # Install kubectl
+
           curl -LO https://dl.k8s.io/release/v1.31.3/bin/linux/amd64/kubectl
           chmod +x kubectl
           mv ./kubectl ${{ github.workspace }}/.local/bin/kubectl
-          
-          # Setup kubeconfig
+
           echo "$KUBECONFIG_CONTENT" > ${{ github.workspace }}/.kube/config
           chmod 400 ${{ github.workspace }}/.kube/config
-          
-          # Add kubectl to GitHub PATH for subsequent steps
+
           echo "${{ github.workspace }}/.local/bin" >> $GITHUB_PATH
-          
-          # Export environment variables for immediate use
           echo "KUBECTL_PATH=${{ github.workspace }}/.local/bin/kubectl" >> $GITHUB_ENV
-          
-          # Verify installation
+
           ${{ github.workspace }}/.local/bin/kubectl version --client
           ${{ github.workspace }}/.local/bin/kubectl config view
 
@@ -149,22 +158,22 @@ jobs:
             echo "HELMSMAN_MODE=apply" >> $GITHUB_ENV
           else
             echo "HELMSMAN_MODE=${{ github.event.inputs.mode }}" >> $GITHUB_ENV
-          fi        
+          fi
 
       - name: Set Profile
         run: |
           if [ -n "${{ github.event.inputs.profile }}" ]; then
             PROFILE="${{ github.event.inputs.profile }}"
           else
-            # Auto-detect profile from push trigger — extract profile dir name from changed files
+            # push trigger — detect profile dir from changed signup-dsf.yaml path
             BEFORE="${{ github.event.before }}"
             SHA="${{ github.sha }}"
             if [[ -z "$BEFORE" || "$BEFORE" == "0000000000000000000000000000000000000000" ]]; then
               BEFORE="HEAD~1"
             fi
-            CHANGED_FILES=$(git diff --name-only "$BEFORE" "$SHA" -- 'Helmsman/dsf/' 2>/dev/null || \
-                            git diff --name-only HEAD~1 HEAD -- 'Helmsman/dsf/' 2>/dev/null || echo "")
-            PROFILE=$(echo "$CHANGED_FILES" | grep 'mosip-dsf\.yaml' | head -1 | sed 's|Helmsman/dsf/\([^/]*\)/.*|\1|')
+            CHANGED=$(git diff --name-only "$BEFORE" "$SHA" -- 'Helmsman/dsf/' 2>/dev/null || \
+                      git diff --name-only HEAD~1 HEAD -- 'Helmsman/dsf/' 2>/dev/null || echo "")
+            PROFILE=$(echo "$CHANGED" | grep 'signup-dsf.yaml' | head -1 | sed 's|Helmsman/dsf/\([^/]*\)/.*|\1|')
             if [[ -z "$PROFILE" ]]; then
               echo "Error: could not detect profile from changed DSF files."
               exit 1
@@ -178,14 +187,13 @@ jobs:
           sudo ufw enable
           sudo ufw allow ssh
           sudo ufw allow 51820/udp
-          sudo ufw status  
+          sudo ufw status
 
       - name: Install WireGuard
         run: sudo apt-get install -y wireguard
 
       - name: Configure WireGuard
-        run: |
-          echo "${{ secrets.CLUSTER_WIREGUARD_WG0 }}" | sudo tee /etc/wireguard/wg0.conf
+        run: echo "${{ secrets.CLUSTER_WIREGUARD_WG0 }}" | sudo tee /etc/wireguard/wg0.conf > /dev/null
 
       - name: Start WireGuard
         run: |
@@ -208,96 +216,103 @@ jobs:
           curl -L https://github.com/Praqma/helmsman/releases/download/v3.17.1/helmsman_3.17.1_linux_amd64.tar.gz -o helmsman.tar.gz
           tar xzf helmsman.tar.gz
           sudo mv helmsman /usr/local/bin
-          
-          # Verify tools are available
-          echo "Tools verification:"
-          echo "kubectl: $(which kubectl)"
-          echo "helmsman: $(which helmsman)"
-          
           kubectl version --client
-          helmsman -v        
+          helmsman -v
 
       - name: Verify cluster access
         run: |
-          # Verify tools are accessible
-          echo "Verifying tool availability:"
-          echo "kubectl path: $(which kubectl)"
-          echo "KUBECONFIG: $KUBECONFIG"
-          
-          # Test kubectl functionality
           kubectl version --client
           kubectl get nodes
           kubectl cluster-info
-      - name: Check if external-dsf label is completed
+
+      - name: Check eSignet DSF is completed
         run: |
-          STATUS=$(kubectl get namespace default -o jsonpath='{.metadata.labels.external-dsf}')
+          STATUS=$(kubectl get namespace default -o jsonpath='{.metadata.labels.esignet-dsf}' 2>/dev/null || echo "")
           if [[ "$STATUS" != "completed" ]]; then
-            echo "❌ External DSF not completed."
+            echo "❌ eSignet DSF not completed. Run the eSignet workflow first."
             exit 1
           fi
+          echo "✅ eSignet DSF is completed. Proceeding with signup deployment."
+
+      - name: Validate required secrets
+        run: |
+          MISSING=0
+          if [ -z "$MOSIP_SIGNUP_CAPTCHA_SITE_KEY" ]; then
+            echo "❌ MOSIP_SIGNUP_CAPTCHA_SITE_KEY secret is not configured"
+            MISSING=1
+          else
+            echo "✅ MOSIP_SIGNUP_CAPTCHA_SITE_KEY is configured"
+          fi
+          if [ -z "$MOSIP_SIGNUP_CAPTCHA_SECRET_KEY" ]; then
+            echo "❌ MOSIP_SIGNUP_CAPTCHA_SECRET_KEY secret is not configured"
+            MISSING=1
+          else
+            echo "✅ MOSIP_SIGNUP_CAPTCHA_SECRET_KEY is configured"
+          fi
+          if [ "$MISSING" -eq 1 ]; then
+            echo ""
+            echo "Configure missing secrets as ENVIRONMENT secrets:"
+            echo "  Repository → Settings → Environments → ${{ github.ref_name }} → Add secret"
+            echo "Required: MOSIP_SIGNUP_CAPTCHA_SITE_KEY, MOSIP_SIGNUP_CAPTCHA_SECRET_KEY"
+            exit 1
+          fi
+          echo "All required secrets are configured"
+
+      - name: Set domain-derived environment variables for hooks
+        run: |
+          # Used by kernel-preinstall.sh (domain-config configmap) and
+          # signup-service-preinstall.sh (keycloak-host configmap)
+          echo "MOSIP_API_HOST=api.${domain_name}" >> $GITHUB_ENV
+          echo "MOSIP_API_INTERNAL_HOST=api-internal.${domain_name}" >> $GITHUB_ENV
+          echo "MOSIP_IAM_EXTERNAL_HOST=iam.${domain_name}" >> $GITHUB_ENV
+          echo "✓ MOSIP_API_HOST           = api.${domain_name}"
+          echo "✓ MOSIP_API_INTERNAL_HOST  = api-internal.${domain_name}"
+          echo "✓ MOSIP_IAM_EXTERNAL_HOST  = iam.${domain_name}"
+
       - name: Show deployment variables
         run: |
-          echo "domain_name=$domain_name"
-          echo "env_name=$env_name"
+          echo "profile                  = $PROFILE"
+          echo "domain_name              = $domain_name"
+          echo "env_name                 = $env_name"
+          echo "MOSIP_API_HOST           = $MOSIP_API_HOST"
+          echo "MOSIP_API_INTERNAL_HOST  = $MOSIP_API_INTERNAL_HOST"
+          echo "MOSIP_IAM_EXTERNAL_HOST  = $MOSIP_IAM_EXTERNAL_HOST"
 
-      - name: Initiate helmsman to apply the DSF configurations.
+      - name: Delete existing signup and kernel jobs (if requested)
+        if: ${{ github.event.inputs.delete_existing_jobs == 'true' }}
+        run: |
+          echo "Deleting existing jobs in signup and kernel namespaces..."
+          kubectl -n signup delete jobs --all --ignore-not-found=true || true
+          kubectl -n kernel delete jobs --all --ignore-not-found=true || true
+          echo "Cleanup completed."
+
+      - name: Deploy signup services using Helmsman
         run: |
           export HOME="${{ github.workspace }}"
           export WORKDIR="$HOME/Helmsman"
 
-          # Verify tools are available
-          echo "Using kubectl: $(which kubectl)"
-          echo "Using kubeconfig: $KUBECONFIG"
+          echo "Using DSF: $WORKDIR/dsf/$PROFILE/signup-dsf.yaml"
+          helmsman --${HELMSMAN_MODE} --keep-untracked-releases -f $WORKDIR/dsf/$PROFILE/signup-dsf.yaml
 
-          # Run helmsman with the determined mode and profile
-          echo "Using profile: $PROFILE"
-          helmsman --${HELMSMAN_MODE} -f $WORKDIR/dsf/${PROFILE}/mosip-dsf.yaml
-
-      - name: Health Check MOSIP Pods
+      - name: Label namespace on successful deployment
+        if: success() && env.HELMSMAN_MODE == 'apply'
         run: |
-          set -e
-          NAMESPACES=(ida idrepo pms prereg kernel resident)
-          for NS in "${NAMESPACES[@]}"; do
-            echo "Checking health for namespace: $NS"
-            for i in {1..30}; do
-              UNREADY=$(kubectl get pods -n "$NS" --no-headers | grep -vE 'Running|Completed' | wc -l)
-              if [ "$UNREADY" -eq 0 ]; then
-                break
-              fi
-              sleep 10
-            done
-            UNREADY_FINAL=$(kubectl get pods -n "$NS" --no-headers | grep -vE 'Running|Completed' | wc -l)
-            if [ "$UNREADY_FINAL" -ne 0 ]; then
-              echo "Pods in $NS not healthy"
-              exit 1
-            fi
-          done
+          kubectl label namespace default signup-dsf=completed --overwrite
+          echo "✅ Signup DSF deployment completed successfully"
 
-      - name: Mark MOSIP DSF Completed
+      - name: Deployment Summary
+        if: always()
         run: |
-          kubectl label namespace default mosip-dsf=completed --overwrite
-
-  #commenting out below until partner-onboarding  stabilizes.       
-
-  # workflow-caller:
-  #   runs-on: ubuntu-latest
-  #   needs: deploy
-  #   if: ${{ github.event_name == 'workflow_dispatch' }}
-  #   steps:
-  #     - name: Trigger helmsman testrigs workflow via API
-  #       env:
-  #         GITHUB_REPO: ${{ github.repository }}
-  #         GITHUB_TOKEN: ${{ secrets.GH_INFRA_PAT }}
-  #         BRANCH: ${{ github.ref_name }}
-  #       run: |
-  #         curl -X PATCH \
-  #           -H "Accept: application/vnd.github+json" \
-  #           -H "Authorization: Bearer $GITHUB_TOKEN" \
-  #           https://api.github.com/repos/$GITHUB_REPO \
-  #           -d '{"default_branch":"'"$BRANCH"'"}'
-  #         curl -X POST \
-  #           -H "Accept: application/vnd.github+json" \
-  #           -H "Authorization: Bearer $GITHUB_TOKEN" \
-  #           -H "X-GitHub-Api-Version: 2022-11-28" \
-  #           https://api.github.com/repos/$GITHUB_REPO/actions/workflows/helmsman_testrigs.yml/dispatches \
-  #           -d '{"ref":"'"$BRANCH"'","inputs":{"mode":"apply"}}'
+          echo "=================================="
+          echo "Signup Deployment Summary"
+          echo "=================================="
+          echo "Profile: $PROFILE"
+          echo "Mode: $HELMSMAN_MODE"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
+          echo ""
+          echo "Signup pods status:"
+          kubectl get pods -n signup 2>/dev/null || echo "signup namespace not ready"
+          echo ""
+          echo "Kernel pods status:"
+          kubectl get pods -n kernel 2>/dev/null || echo "kernel namespace not ready"

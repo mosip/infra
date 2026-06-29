@@ -1,14 +1,15 @@
 # ============================================================
-# MOSIP Platform Infrastructure Profile
+# eSignet Standalone Infrastructure Profile
 # ============================================================
-# Full MOSIP platform deployment with all services
-# Includes: IDA, IDRepo, PMS, PreReg, Kernel, Resident, eSignet
+# Lightweight deployment for standalone eSignet
+# Includes: eSignet, OIDC UI, Postgres, Redis, Kafka, Keycloak
+# Does NOT include full MOSIP platform services
 # ============================================================
 
 # Environment name (infra component)
 cluster_name = "<cluster-name>"
 
-# MOSIP's domain (ex: sandbox.xyz.net)
+# eSignet's domain (ex: esignet.xyz.net)
 cluster_env_domain = "<cluster-env-domain>"
 
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
@@ -21,12 +22,10 @@ ssh_key_name = "<ssh-key-name>"
 aws_provider_region = "ap-south-1"
 
 # Specific availability zones for VM deployment (optional)
-# If empty, uses all available AZs in the region
-# Example: ["ap-south-1a", "ap-south-1b"] for specific AZs
-# Example: [] for all available AZs in the region
 specific_availability_zones = []
 
 # The instance type for Kubernetes nodes (control plane, worker, etcd)
+# Smaller instance type since eSignet standalone needs fewer resources
 k8s_instance_type = "t3a.2xlarge"
 
 # The instance type for Nginx server (load balancer)
@@ -49,22 +48,22 @@ k8s_infra_branch = "release-1.2.1.x"
 nginx_node_root_volume_size = 24
 
 # NGINX node's EBS volume size
-nginx_node_ebs_volume_size = 300
+nginx_node_ebs_volume_size = 200
 
-# NGINX node's second EBS volume size (optional - set to 0 to disable)
-nginx_node_ebs_volume_size_2 = 200 # Enable second EBS volume for PostgreSQL testing
+# NGINX node's second EBS volume size (set to 0 - not needed for standalone eSignet)
+nginx_node_ebs_volume_size_2 = 0
 
 # Kubernetes nodes Root volume size
 k8s_instance_root_volume_size = 64
 
-# Control-plane, ETCD, Worker
-k8s_control_plane_node_count = 3
+# Control-plane, ETCD, Worker — smaller cluster for standalone eSignet
+k8s_control_plane_node_count = 1
 
 # ETCD, Worker
-k8s_etcd_node_count = 3
+k8s_etcd_node_count = 1
 
 # Worker
-k8s_worker_node_count = 1
+k8s_worker_node_count = 2
 
 # RKE2 Version Configuration
 rke2_version = "v1.28.9+rke2r1"
@@ -73,18 +72,17 @@ rke2_version = "v1.28.9+rke2r1"
 network_cidr   = "172.0.0.0/8" # Use your actual VPC CIDR
 WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 
-
-# Rancher Import URL
 # Rancher Import Configuration
 enable_rancher_import = true
 rancher_import_url    = "\"<rancher-import-url>\""
 
-# DNS Records to map
-subdomain_public   = ["resident", "prereg", "esignet", "healthservices", "signup"]
-subdomain_internal = ["admin", "iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio", "regclient", "compliance"]
+# DNS Records to map — only eSignet-relevant subdomains
 
-# PostgreSQL Configuration (used when second EBS volume is enabled)
-enable_postgresql_setup = true # Enable PostgreSQL setup for main infra
+subdomain_public   = ["esignet", "healthservices", "signup", "esignet-sunbird", "healthservices-sunbird", "healthservices-mosipid1", "esignet-mosipid1", "pms-mosipid1", "signup-mosipid1", "healthservices-mosipid2", "esignet-mosipid2", "pms-mosipid2", "signup-mosipid2"]
+subdomain_internal = ["iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio"]
+
+# PostgreSQL Configuration
+enable_postgresql_setup = false
 postgresql_version      = "15"
 storage_device          = "/dev/nvme2n1"
 mount_point             = "/srv/postgres"
@@ -103,8 +101,8 @@ vpc_name = "<vpc-name>"
 # create a dedicated EBS volume, format it as XFS, and mount it on the NGINX node.
 # ActiveMQ itself runs inside Kubernetes via Helm (no software installed here).
 # Both conditions must be true — set either to false/0 to skip entirely.
-enable_activemq_setup        = true # Toggle: true = create & mount, false = skip
-nginx_node_ebs_volume_size_3 = 30   # Volume size in GB (e.g. 100); 0 = disabled
+enable_activemq_setup        = false # Toggle: true = create & mount, false = skip
+nginx_node_ebs_volume_size_3 = 0     # Volume size in GB (e.g. 100); 0 = disabled
 
 activemq_storage_device    = "/dev/nvme3n1"
 activemq_mount_point       = "/srv/activemq"
