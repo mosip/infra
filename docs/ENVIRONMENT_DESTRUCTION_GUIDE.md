@@ -45,7 +45,6 @@ Parameters:
 ├─ Branch: release-0.1.0 (or your deployment branch)
 ├─ Cloud Provider: aws
 ├─ Component: infra
-├─ Profile: mosip/esignet
 └─ Backend: local (or s3, match your deployment configuration)
 ```
 
@@ -172,8 +171,7 @@ kubectl exec -n keycloak keycloak-0 -- /opt/jboss/keycloak/bin/standalone.sh \
 ```bash
 # Export Terraform state (if using local backend)
 cd terraform/implementations/aws/infra/
-# For profile-isolated deployments, check the profiles/ directory:
-tar -czf terraform-state-backup-$(date +%Y%m%d).tar.gz profiles/<profile>/terraform.tfstate*
+tar -czf terraform-state-backup-$(date +%Y%m%d).tar.gz terraform.tfstate*
 
 # Export Kubernetes configurations
 kubectl get all --all-namespaces -o yaml > k8s-resources-backup.yaml
@@ -408,7 +406,6 @@ kubectl get namespaces | grep -E "cattle|istio"
  - Branch: release-0.1.0 (your deployment branch)
  - Cloud Provider: aws
  - Component: infra
- - Profile: mosip/esignet
  - Backend: local (or s3, match your deployment)
  ```
 
@@ -667,7 +664,6 @@ aws ec2 describe-volumes \
 ```bash
 # Remove local Terraform state (if using local backend and no longer needed)
 rm -rf terraform/implementations/aws/*/terraform.tfstate*
-rm -rf terraform/implementations/aws/*/profiles/*/terraform.tfstate*
 rm -rf terraform/implementations/aws/*/.terraform/
 
 # Remove backed-up kubeconfig

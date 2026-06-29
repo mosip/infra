@@ -7,11 +7,10 @@ This guide provides step-by-step instructions for generating all required secret
 1. [SSH Keys](#1-ssh-keys)
 2. [GPG Passphrase](#2-gpg-passphrase)
 3. [AWS Credentials](#3-aws-credentials)
-4. [GitHub Personal Access Token (GH_INFRA_PAT)](#4-github-personal-access-token-gh_infra_pat) — required for signup workflow auto-trigger and repository operations
-5. [WireGuard VPN Configuration](#5-wireguard-vpn-configuration)
-6. [Kubernetes Config (KUBECONFIG)](#6-kubernetes-config-kubeconfig)
-7. [reCAPTCHA Keys](#7-recaptcha-keys)
-8. [How to Add Secrets to GitHub](#8-how-to-add-secrets-to-github)
+4. [WireGuard VPN Configuration](#4-wireguard-vpn-configuration)
+5. [Kubernetes Config (KUBECONFIG)](#5-kubernetes-config-kubeconfig)
+6. [reCAPTCHA Keys](#6-recaptcha-keys)
+7. [How to Add Secrets to GitHub](#how-to-add-secrets-to-github)
 
 ---
 
@@ -278,66 +277,7 @@ Add as **Repository Secrets** in GitHub:
 
 ---
 
-## 4. GitHub Personal Access Token (GH_INFRA_PAT)
-
-### What is it?
-A Fine-grained Personal Access Token (PAT) that allows GitHub Actions workflows to interact with your repository and dispatch other workflows via the GitHub API.
-
-### Why do you need it?
-
-`GH_INFRA_PAT` is used in two places inside `helmsman_esignet.yml`:
-
-1. **Auto-trigger `helmsman_signup.yml`** — after a successful eSignet standalone deployment (`profile=esignet`), the `workflow-caller` job calls the GitHub Actions API to dispatch the signup workflow automatically. This requires `Actions: Read and write` on the PAT. Without it, the signup workflow will never be triggered even if eSignet deploys successfully.
-2. **Repository operations during deploy** — used as `GH_TOKEN` override for authenticated GitHub API calls within the deploy job.
-
-### How to Generate GH_INFRA_PAT
-
-1. **Go to GitHub Settings**
-   - Click your profile picture (top right) → **Settings**
-   - Scroll down and click **Developer settings** (bottom of left sidebar)
-   - Click **Personal access tokens** → **Fine-grained tokens**
-   - Click **Generate new token**
-
-2. **Configure Token Settings**
-   - **Token name**: `GH_INFRA_PAT`
-   - **Expiration**: Set as needed (e.g., 90 days)
-   - **Resource owner**: Select your organization or user account (e.g., `mosip`)
-   - **Repository access**: Select **Only select repositories** → choose your infra repository (e.g., `mosip/infra`)
-
-3. **Set Permissions**
-
-   Under **Repository permissions**, set exactly these:
-
-   | Permission | Level | Why |
-   |---|---|---|
-   | **Contents** | Read and write | Push/pull operations — Read-only causes 403 on push |
-   | **Metadata** | Read-only | Required by GitHub (auto-selected) |
-   | **Actions** | Read and write | **Critical** — dispatches `helmsman_signup.yml` via GitHub API after eSignet deploy |
-   | **Environments** | Read and write | Read/write environment configuration |
-   | **Variables** | Read and write | Read/write environment variables |
-
-   > **No Secrets permission needed** — intentionally excluded to follow least-privilege principle.
-
-4. **Generate and Save**
-   - Click **Generate token**
-   - **Copy the token immediately** — it is only shown once
-   - Save it securely in a password manager
-
-### Where to Use It
-Add as **Repository Secret** in GitHub:
-- **Name**: `GH_INFRA_PAT`
-- **Value**: `github_pat_...` (your generated token)
-
-### Common Pitfalls
-- ❌ **`Actions: Read-only`** — workflow dispatch requires write; signup auto-trigger will silently fail even though eSignet deployed successfully
-- ❌ **`Contents: Read-only`** — causes 403 error on push operations during deploy
-- ❌ Adding **Secrets** permission — not needed, violates least-privilege
-- ❌ Selecting **All repositories** instead of only the infra repository
-- ❌ Not saving the token immediately after generation — shown only once
-
----
-
-## 5. WireGuard VPN Configuration
+## 4. WireGuard VPN Configuration
 
 ### What is it?
 WireGuard is a modern VPN that creates secure connections to your private infrastructure.
@@ -427,7 +367,7 @@ Add as **Environment Secrets** in GitHub (not repository secrets):
 
 ---
 
-## 6. Kubernetes Config (KUBECONFIG)
+## 5. Kubernetes Config (KUBECONFIG)
 
 ### What is it?
 KUBECONFIG is a configuration file that contains credentials and connection details for your Kubernetes cluster.
@@ -531,7 +471,7 @@ users:
 
 ---
 
-## 7. reCAPTCHA Keys
+## 6. reCAPTCHA Keys
 
 ### What is it?
 reCAPTCHA is Google's service that protects websites from bots and spam by verifying users are human.
@@ -617,7 +557,7 @@ hooks:
 
 ---
 
-## 8. How to Add Secrets to GitHub
+## 7. How to Add Secrets to GitHub
 
 ### Understanding Secret Types
 
@@ -651,7 +591,6 @@ hooks:
  - `GPG_PASSPHRASE`
  - `AWS_ACCESS_KEY_ID`
  - `AWS_SECRET_ACCESS_KEY`
- - `GH_INFRA_PAT`
  - `mosip-aws` (or your SSH key name)
 
 ### Step-by-Step: Adding Environment Secrets
@@ -687,7 +626,6 @@ Repository Structure:
 │ ├── GPG_PASSPHRASE
 │ ├── AWS_ACCESS_KEY_ID
 │ ├── AWS_SECRET_ACCESS_KEY
-│ ├── GH_INFRA_PAT
 │ └── mosip-aws (SSH private key)
 │
 └── Environments
@@ -724,7 +662,6 @@ Use this checklist to ensure you've generated and configured all required secret
 - [ ] GPG Passphrase generated and added
 - [ ] AWS Access Key ID obtained and added
 - [ ] AWS Secret Access Key obtained and added
-- [ ] GitHub PAT (GH_INFRA_PAT) generated with correct permissions and added
 
 ### Infrastructure Deployment
 - [ ] Terraform base-infra deployed successfully
