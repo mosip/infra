@@ -92,8 +92,8 @@ jobs:
 
       - name: Write SSH private key
         env:
-          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          SSH_KEY_NAME: SSH_PRIVATE_KEY
+          SSH_KEY: ${{ secrets.MOSIP_AWS_PEM }}
+          SSH_KEY_NAME: MOSIP_AWS_PEM
         run: |
           SSH_KEY_PATH="${RUNNER_TEMP}/jumpserver_key"
           printf '%s\n' "$SSH_KEY" | tr -d '\r' > "$SSH_KEY_PATH"
