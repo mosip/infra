@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 #
-# wg-onboard.sh - Self-service WireGuard onboarding for a new environment.
+# wg-env.sh - WireGuard environment onboard/offboard for self-service QA/dev.
 #
-# Automates the manual jumpserver process:
+# Subcommands:
+#   onboard  - Automates the manual jumpserver onboarding process:
 #   1. SSH into the WireGuard VM.
 #   2. cd into the WireGuard env dir (default /home/ubuntu/wireguard_env_2026).
 #   3. Allocate the next 3 free peers in the pool (peer1..peerN, filling gaps
@@ -19,13 +20,26 @@
 #      (TF_WG_CONFIG, CLUSTER_WIREGUARD_WG0, CLUSTER_WIREGUARD_WG1) on the
 #      environment whose name == the branch/env name.
 #
-# Three distinct peers are used because the Helmsman wg0/wg1 matrix jobs run
-# concurrently and Terraform uses its own peer too.
+#   offboard - Reverse of onboard: delete GitHub env secrets, free assigned.txt
+#              lines on the jumpserver, remove the tracker row (peers are reused).
+#
+# Three distinct peers are used on onboard because the Helmsman wg0/wg1 matrix
+# jobs run concurrently and Terraform uses its own peer too.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ALLOCATION_FILE="${ALLOCATION_FILE:-$SCRIPT_DIR/wg-peer-allocation.tsv}"
+if [[ -z "${ALLOCATION_FILE:-}" ]]; then
+  for _tracker in \
+    "$SCRIPT_DIR/wg-peer-allocation.tsv" \
+    "$SCRIPT_DIR/../scripts/wg-peer-allocation.tsv"; do
+    if [[ -f "$_tracker" ]]; then
+      ALLOCATION_FILE="$_tracker"
+      break
+    fi
+  done
+  ALLOCATION_FILE="${ALLOCATION_FILE:-$SCRIPT_DIR/wg-peer-allocation.tsv}"
+fi
 
 # Defaults (override via flags or env vars)
 SSH_USER="${SSH_USER:-ubuntu}"
@@ -41,13 +55,19 @@ WG0_PEER=""
 WG1_PEER=""
 MAX_PEERS=""
 DRY_RUN="false"
+DELETE_ENVIRONMENT="true"
+ACTION=""
 
 # Secret name -> peer variable mapping is fixed in this order.
 SECRET_NAMES=(TF_WG_CONFIG CLUSTER_WIREGUARD_WG0 CLUSTER_WIREGUARD_WG1)
 
 usage() {
   cat <<'EOF'
-Usage: wg-onboard.sh --env <name> --host <jumpserver_ip> --ssh-key <path> [options]
+Usage: wg-env.sh <onboard|offboard> --env <name> --host <jumpserver_ip> --ssh-key <path> [options]
+
+Subcommands:
+  onboard               Allocate peers and publish GitHub environment secrets
+  offboard              Release peers and delete GitHub environment secrets
 
 Required:
   --env <name>          Environment / branch name (also the label in assigned.txt
@@ -55,24 +75,29 @@ Required:
   --host <ip|dns>       Jumpserver public IP or DNS (SSH reachable)
   --ssh-key <path>      Path to the private key for ubuntu@jumpserver
 
-Optional:
+Optional (both):
   --repo <owner/repo>   GitHub repo (default: inferred from `gh repo view`)
-  --ticket <id>         Ticket id to record in assigned.txt, e.g. DSD-10264
   --wg-dir <path>       WireGuard env dir on the VM (default: /home/ubuntu/wireguard_env_2026)
+  --dry-run             Print actions without writing anything
+  -h, --help            Show this help
+
+Onboard only:
+  --ticket <id>         Ticket id to record in assigned.txt, e.g. DSD-10264
   --allowed-ips <cidr>  AllowedIPs to set in each conf (default: 172.31.0.0/16)
   --tf-peer  <peerN>    Force the TF_WG_CONFIG peer          (default: next free)
   --wg0-peer <peerN>    Force the CLUSTER_WIREGUARD_WG0 peer (default: next free)
   --wg1-peer <peerN>    Force the CLUSTER_WIREGUARD_WG1 peer (default: next free)
   --max-peers <n>       Peer pool size peer1..peerN (default: max(100, highest seen))
-  --dry-run             Resolve + transform + print actions without writing anything
-  -h, --help            Show this help
+
+Offboard only:
+  --keep-environment    Delete secrets only; leave the GitHub environment object
 
 Requires: gh (authenticated with a token that can write environment secrets), ssh.
 EOF
 }
 
-log()  { echo "[wg-onboard] $*" >&2; }
-err()  { echo "[wg-onboard][ERROR] $*" >&2; }
+log()  { echo "[wg-env] $*" >&2; }
+err()  { echo "[wg-env][ERROR] $*" >&2; }
 die()  { err "$*"; exit 1; }
 
 require_arg() {
@@ -98,22 +123,34 @@ remote_quote() {
   printf "'%s'" "$s"
 }
 
+if [[ $# -eq 0 ]]; then
+  usage
+  exit 1
+fi
+case "$1" in
+  onboard|offboard) ACTION="$1"; shift ;;
+  -h|--help)        usage; exit 0 ;;
+  --*)              ACTION="onboard" ;;
+  *)                die "First argument must be 'onboard' or 'offboard' (use --help)" ;;
+esac
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --env)         require_arg --env "${2-}";         ENV_NAME="$2"; shift 2 ;;
-    --host)        require_arg --host "${2-}";        JUMPSERVER_HOST="$2"; shift 2 ;;
-    --ssh-key)     require_arg --ssh-key "${2-}";     SSH_KEY="$2"; shift 2 ;;
-    --repo)        require_arg --repo "${2-}";        REPO="$2"; shift 2 ;;
-    --ticket)      require_arg --ticket "${2-}";      TICKET="$2"; shift 2 ;;
-    --wg-dir)      require_arg --wg-dir "${2-}";      WG_DIR="$2"; shift 2 ;;
-    --allowed-ips) require_arg --allowed-ips "${2-}"; ALLOWED_IPS="$2"; shift 2 ;;
-    --tf-peer)     require_arg --tf-peer "${2-}";     TF_PEER="$2"; shift 2 ;;
-    --wg0-peer)    require_arg --wg0-peer "${2-}";    WG0_PEER="$2"; shift 2 ;;
-    --wg1-peer)    require_arg --wg1-peer "${2-}";    WG1_PEER="$2"; shift 2 ;;
-    --max-peers)   require_arg --max-peers "${2-}";   MAX_PEERS="$2"; shift 2 ;;
-    --dry-run)     DRY_RUN="true"; shift ;;
-    -h|--help)     usage; exit 0 ;;
-    *)             die "Unknown argument: $1 (use --help)" ;;
+    --env)               require_arg --env "${2-}";         ENV_NAME="$2"; shift 2 ;;
+    --host)              require_arg --host "${2-}";        JUMPSERVER_HOST="$2"; shift 2 ;;
+    --ssh-key)           require_arg --ssh-key "${2-}";     SSH_KEY="$2"; shift 2 ;;
+    --repo)              require_arg --repo "${2-}";        REPO="$2"; shift 2 ;;
+    --ticket)            require_arg --ticket "${2-}";      TICKET="$2"; shift 2 ;;
+    --wg-dir)            require_arg --wg-dir "${2-}";      WG_DIR="$2"; shift 2 ;;
+    --allowed-ips)       require_arg --allowed-ips "${2-}"; ALLOWED_IPS="$2"; shift 2 ;;
+    --tf-peer)           require_arg --tf-peer "${2-}";     TF_PEER="$2"; shift 2 ;;
+    --wg0-peer)          require_arg --wg0-peer "${2-}";    WG0_PEER="$2"; shift 2 ;;
+    --wg1-peer)          require_arg --wg1-peer "${2-}";    WG1_PEER="$2"; shift 2 ;;
+    --max-peers)         require_arg --max-peers "${2-}";   MAX_PEERS="$2"; shift 2 ;;
+    --dry-run)           DRY_RUN="true"; shift ;;
+    --keep-environment)  DELETE_ENVIRONMENT="false"; shift ;;
+    -h|--help)           usage; exit 0 ;;
+    *)                   die "Unknown argument: $1 (use --help)" ;;
   esac
 done
 
@@ -121,8 +158,6 @@ done
 [[ -n "$JUMPSERVER_HOST" ]] || die "--host is required"
 [[ -n "$SSH_KEY" ]]         || die "--ssh-key is required"
 [[ -f "$SSH_KEY" ]]         || die "ssh key not found: $SSH_KEY"
-[[ "$ALLOWED_IPS" =~ ^[0-9]+(\.[0-9]+){3}/[0-9]+$ ]] \
-  || die "--allowed-ips must be an IPv4 CIDR (e.g. 172.31.0.0/16), got: $ALLOWED_IPS"
 command -v gh  >/dev/null 2>&1 || die "gh CLI is required"
 command -v ssh >/dev/null 2>&1 || die "ssh is required"
 
@@ -133,26 +168,32 @@ fi
 
 CONFIG_DIR="$WG_DIR/config"
 ASSIGNED_FILE="$WG_DIR/assigned.txt"
-ASSIGN_LOCK_FILE="/tmp/wg-onboard-$(printf '%s' "$ASSIGNED_FILE" | cksum | awk '{print $1}').lock"
+ASSIGN_LOCK_FILE="/tmp/wg-env-$(printf '%s' "$ASSIGNED_FILE" | cksum | awk '{print $1}').lock"
 LABEL="$ENV_NAME"
 [[ -n "$TICKET" ]] && LABEL="${ENV_NAME}(${TICKET})"
 
+log "Action: $ACTION"
 log "Target repo: $REPO"
-log "Target environment: $ENV_NAME (label: $LABEL)"
-log "WireGuard dir: $WG_DIR | AllowedIPs: $ALLOWED_IPS"
+log "Target environment: $ENV_NAME"
+log "WireGuard dir: $WG_DIR"
+if [[ "$ACTION" == "onboard" ]]; then
+  [[ "$ALLOWED_IPS" =~ ^[0-9]+(\.[0-9]+){3}/[0-9]+$ ]] \
+    || die "--allowed-ips must be an IPv4 CIDR (e.g. 172.31.0.0/16), got: $ALLOWED_IPS"
+  log "Onboard label: $LABEL | AllowedIPs: $ALLOWED_IPS"
+fi
 
 SSH_KNOWN_HOSTS_IS_TEMP="false"
 TRACKER_TMP=""
-wg_onboard_exit_cleanup() {
+wg_env_exit_cleanup() {
   [[ -n "$TRACKER_TMP" && -f "$TRACKER_TMP" ]] && rm -f "$TRACKER_TMP"
   [[ "$SSH_KNOWN_HOSTS_IS_TEMP" == "true" ]] && rm -f "$SSH_KNOWN_HOSTS"
 }
-trap wg_onboard_exit_cleanup EXIT
+trap wg_env_exit_cleanup EXIT
 
 if [[ -n "${SSH_KNOWN_HOSTS:-}" ]]; then
   [[ -f "$SSH_KNOWN_HOSTS" ]] || die "SSH_KNOWN_HOSTS file not found: $SSH_KNOWN_HOSTS"
 else
-  SSH_KNOWN_HOSTS="$(mktemp /tmp/wg_onboard_known_hosts.XXXXXX)"
+  SSH_KNOWN_HOSTS="$(mktemp /tmp/wg_env_known_hosts.XXXXXX)"
   SSH_KNOWN_HOSTS_IS_TEMP="true"
 fi
 
@@ -175,6 +216,220 @@ ssh_cmd() {
 ssh_bash_stdin() {
   ssh_cmd bash -s -- "$@"
 }
+
+run_offboard() {
+  resolve_peers_from_assigned() {
+    local content="$1"
+    local format="mosip" line peer tf wg0 wg1
+    local -A seen=()
+    local -a peers=()
+
+    content="${content//$'\r'/}"
+    [[ -n "${content//[[:space:]]/}" ]] || return 0
+
+    if grep -qE '^peer[0-9]+[[:space:]]*:' <<<"$content"; then
+      format="colon"
+      while IFS= read -r line; do
+        [[ "$line" =~ ^peer([0-9]+)[[:space:]]*:[[:space:]]*(.*)$ ]] || continue
+        peer="peer${BASH_REMATCH[1]}"
+        [[ "${BASH_REMATCH[2]}" == "$ENV_NAME" ]] || continue
+        [[ -n "${seen[$peer]:-}" ]] && continue
+        seen["$peer"]=1
+        peers+=("$peer")
+      done <<<"$content"
+    else
+      tf="$(awk -v env="$ENV_NAME" -v secret="TF_WG_CONFIG" '
+        $1 ~ /^peer[0-9]+:?$/ {
+          peer=$1; sub(/:$/, "", peer)
+          desc=$0; sub(/^[[:space:]]*peer[0-9]+[[:space:]]*:?[[:space:]]*/, "", desc)
+          suffix="(" secret ")"
+          if (length(desc) < length(suffix)) next
+          if (substr(desc, length(desc) - length(suffix) + 1) != suffix) next
+          label=substr(desc, 1, length(desc) - length(suffix))
+          if (label == env || index(label, env "(") == 1) { print peer; exit }
+        }' <<<"$content")"
+      wg0="$(awk -v env="$ENV_NAME" -v secret="CLUSTER_WIREGUARD_WG0" '
+        $1 ~ /^peer[0-9]+:?$/ {
+          peer=$1; sub(/:$/, "", peer)
+          desc=$0; sub(/^[[:space:]]*peer[0-9]+[[:space:]]*:?[[:space:]]*/, "", desc)
+          suffix="(" secret ")"
+          if (length(desc) < length(suffix)) next
+          if (substr(desc, length(desc) - length(suffix) + 1) != suffix) next
+          label=substr(desc, 1, length(desc) - length(suffix))
+          if (label == env || index(label, env "(") == 1) { print peer; exit }
+        }' <<<"$content")"
+      wg1="$(awk -v env="$ENV_NAME" -v secret="CLUSTER_WIREGUARD_WG1" '
+        $1 ~ /^peer[0-9]+:?$/ {
+          peer=$1; sub(/:$/, "", peer)
+          desc=$0; sub(/^[[:space:]]*peer[0-9]+[[:space:]]*:?[[:space:]]*/, "", desc)
+          suffix="(" secret ")"
+          if (length(desc) < length(suffix)) next
+          if (substr(desc, length(desc) - length(suffix) + 1) != suffix) next
+          label=substr(desc, 1, length(desc) - length(suffix))
+          if (label == env || index(label, env "(") == 1) { print peer; exit }
+        }' <<<"$content")"
+      for peer in "$tf" "$wg0" "$wg1"; do
+        [[ -n "$peer" ]] || continue
+        [[ -n "${seen[$peer]:-}" ]] && continue
+        seen["$peer"]=1
+        peers+=("$peer")
+      done
+    fi
+
+    printf '%s\n' "${peers[@]}"
+  }
+
+  delete_github_secrets() {
+    local name
+    for name in "${SECRET_NAMES[@]}"; do
+      if gh secret delete "$name" --env "$ENV_NAME" --repo "$REPO" 2>/dev/null; then
+        log "Deleted secret $name from environment $ENV_NAME"
+      else
+        log "Secret $name not present (or could not delete) in environment $ENV_NAME"
+      fi
+    done
+    if [[ "$DELETE_ENVIRONMENT" == "true" ]]; then
+      ENV_NAME_ENC="$(urlencode "$ENV_NAME")"
+      if gh api --method DELETE -H "Accept: application/vnd.github+json" \
+        "repos/${REPO}/environments/${ENV_NAME_ENC}" >/dev/null 2>&1; then
+        log "Deleted GitHub environment '$ENV_NAME'"
+      else
+        log "GitHub environment '$ENV_NAME' not present (or could not delete)"
+      fi
+    fi
+  }
+
+  atomic_free_assignments() {
+    [[ -n "${ASSIGNED_CONTENT//[[:space:]]/}" ]] || return 0
+
+    ssh_bash_stdin \
+      "$ASSIGNED_FILE" \
+      "$ASSIGN_LOCK_FILE" \
+      "$ENV_NAME" \
+      <<'REMOTE_FREE_ASSIGNMENTS'
+set -euo pipefail
+
+ASSIGNED_FILE="$1"
+LOCK_FILE="$2"
+ENV_NAME="$3"
+
+[[ -f "$ASSIGNED_FILE" ]] || exit 0
+
+exec 9>"$LOCK_FILE" || { echo "ERROR: cannot create allocation lock ($LOCK_FILE)" >&2; exit 1; }
+if ! flock -w 120 9; then
+  echo "ERROR: timed out waiting for allocation lock ($LOCK_FILE)" >&2
+  exit 1
+fi
+
+[[ -w "$ASSIGNED_FILE" ]] || { echo "ERROR: $ASSIGNED_FILE is not writable" >&2; exit 1; }
+
+atomic_replace_file() {
+  local src="$1" dest="$2"
+  if ! mv -f "$src" "$dest"; then
+    rm -f "$src"
+    echo "ERROR: cannot update $dest (check ownership/permissions)" >&2
+    return 1
+  fi
+}
+
+line_matches_env() {
+  local line="${1//$'\r'/}" peer rest
+  [[ -z "${line//[[:space:]]/}" ]] && return 1
+  peer="$(awk '{print $1}' <<<"$line")"
+  peer="${peer%%:*}"
+  [[ "$peer" =~ ^peer[0-9]+$ ]] || return 1
+  if [[ "$line" =~ ^peer[0-9]+[[:space:]]*:[[:space:]]*(.*)$ ]]; then
+    rest="${BASH_REMATCH[1]}"
+    rest="$(awk '{$1=$1; print}' <<<"${rest}")"
+    [[ "$rest" == "$ENV_NAME" ]]
+    return
+  fi
+  rest="$(awk '{$1=""; sub(/^ +/,""); print}' <<<"$line")"
+  case "$rest" in
+    "$ENV_NAME"|"$ENV_NAME"\(*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+dir="$(dirname "$ASSIGNED_FILE")"
+tmp="$(mktemp "$dir/.assigned.XXXXXX")" || exit 1
+removed=0
+while IFS= read -r line || [[ -n "$line" ]]; do
+  if line_matches_env "$line"; then
+    removed=$((removed + 1))
+    continue
+  fi
+  printf '%s\n' "$line"
+done < "$ASSIGNED_FILE" > "$tmp"
+
+if (( removed == 0 )); then
+  rm -f "$tmp"
+  echo "WARN: no assigned.txt lines matched $ENV_NAME" >&2
+  exit 0
+fi
+
+atomic_replace_file "$tmp" "$ASSIGNED_FILE"
+echo "Removed $removed assigned.txt line(s) for $ENV_NAME"
+REMOTE_FREE_ASSIGNMENTS
+  }
+
+  update_repo_tracker_offboard() {
+    [[ -f "$ALLOCATION_FILE" ]] || return 0
+    exec 8>"${ALLOCATION_FILE}.lock"
+    if ! flock -w 30 8; then
+      die "Timed out waiting to update repo tracker lock ${ALLOCATION_FILE}.lock"
+    fi
+    TRACKER_TMP="$(mktemp "$(dirname "$ALLOCATION_FILE")/.wg-peer-allocation.XXXXXX")"
+    awk -F '\t' -v env="$ENV_NAME" 'NR == 1 || $1 != env' "$ALLOCATION_FILE" > "$TRACKER_TMP"
+    chmod --reference="$ALLOCATION_FILE" "$TRACKER_TMP" 2>/dev/null || true
+    mv "$TRACKER_TMP" "$ALLOCATION_FILE"
+    TRACKER_TMP=""
+  }
+
+  log "Reading assigned.txt from ${JUMPSERVER_HOST} ..."
+  read_status=0
+  ASSIGNED_CONTENT="$(
+    ssh_cmd "if [[ -f $(remote_quote "$ASSIGNED_FILE") ]]; then cat $(remote_quote "$ASSIGNED_FILE"); else exit 42; fi" 2>/dev/null
+  )" || read_status=$?
+  case "$read_status" in
+    0) ;;
+    42) ASSIGNED_CONTENT="" ;;
+    *) die "Failed reading assigned.txt from ${JUMPSERVER_HOST}" ;;
+  esac
+  mapfile -t PEERS_TO_FREE < <(resolve_peers_from_assigned "$ASSIGNED_CONTENT")
+
+  if ((${#PEERS_TO_FREE[@]})); then
+    log "Peers to free for $ENV_NAME: ${PEERS_TO_FREE[*]}"
+  else
+    log "No assigned.txt entries found for $ENV_NAME (will still remove GitHub secrets if present)"
+  fi
+
+  if [[ "$DRY_RUN" == "true" ]]; then
+    log "DRY RUN - would delete GitHub secrets: ${SECRET_NAMES[*]} (env: $ENV_NAME)"
+    [[ "$DELETE_ENVIRONMENT" == "true" ]] \
+      && log "DRY RUN - would delete GitHub environment '$ENV_NAME'" \
+      || log "DRY RUN - would keep GitHub environment object (--keep-environment)"
+    if ((${#PEERS_TO_FREE[@]})); then
+      log "DRY RUN - would remove assigned.txt lines for peers: ${PEERS_TO_FREE[*]}"
+    fi
+    [[ -f "$ALLOCATION_FILE" ]] && grep -q "^${ENV_NAME}"$'\t' "$ALLOCATION_FILE" 2>/dev/null \
+      && log "DRY RUN - would remove row for $ENV_NAME from $ALLOCATION_FILE" \
+      || log "DRY RUN - no tracker row for $ENV_NAME in $ALLOCATION_FILE"
+    exit 0
+  fi
+
+  delete_github_secrets
+  atomic_free_assignments || die "Failed freeing peers in assigned.txt on jumpserver"
+  update_repo_tracker_offboard
+
+  log "Done. Environment '$ENV_NAME' offboarded; peers freed: ${PEERS_TO_FREE[*]:-(none found in assigned.txt)}"
+  log "Repo tracker: $ALLOCATION_FILE (commit it if changed)."
+}
+
+if [[ "$ACTION" == "offboard" ]]; then
+  run_offboard
+  exit 0
+fi
 
 # ---- Preflight: jumpserver connectivity + peer pool sizing -------------------
 log "Checking jumpserver connectivity and peer inventory on ${JUMPSERVER_HOST} ..."
