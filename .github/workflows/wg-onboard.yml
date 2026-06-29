@@ -1,17 +1,24 @@
-name: WireGuard onboard environment
+name: WireGuard environment onboard/offboard
 
-# Self-service WireGuard onboarding for a new environment.
-# Allocates free WireGuard peers from the jumpserver and publishes them as
-# GitHub *environment* secrets (TF_WG_CONFIG, CLUSTER_WIREGUARD_WG0/WG1) so a
-# QA/dev team can run the Terraform + Helmsman workflows without DevOps.
+# Self-service WireGuard onboarding and offboarding for an environment.
+# Onboard: allocates free WireGuard peers from the jumpserver and publishes them
+# as GitHub *environment* secrets (TF_WG_CONFIG, CLUSTER_WIREGUARD_WG0/WG1).
+# Offboard: deletes those secrets, frees assigned.txt lines, updates the tracker.
 #
-# Requires .github/scripts/wg-onboard.sh (mosip/infra PR #253).
+# Requires .github/scripts/wg-env.sh.
 
 on:
   workflow_dispatch:
     inputs:
+      ACTION:
+        description: 'Onboard (allocate peers + secrets) or offboard (release peers + delete secrets)'
+        required: true
+        type: choice
+        options:
+          - onboard
+          - offboard
       ENV_NAME:
-        description: 'Environment / branch name to onboard (becomes the GitHub environment name)'
+        description: 'Environment / branch name (GitHub environment name)'
         required: true
         type: string
       JUMPSERVER_HOST:
@@ -19,7 +26,7 @@ on:
         required: true
         type: string
       TICKET:
-        description: 'Optional ticket id to record in assigned.txt (e.g. DSD-10264)'
+        description: 'Onboard only: ticket id to record in assigned.txt (e.g. DSD-10264)'
         required: false
         type: string
       WG_DIR:
@@ -28,12 +35,17 @@ on:
         type: string
         default: /home/ubuntu/wireguard_env_2026
       ALLOWED_IPS:
-        description: 'AllowedIPs to set in each conf'
+        description: 'Onboard only: AllowedIPs to set in each conf'
         required: false
         type: string
         default: 172.31.0.0/16
+      KEEP_ENVIRONMENT:
+        description: 'Offboard only: delete secrets but keep the GitHub environment object'
+        required: false
+        type: boolean
+        default: false
       DRY_RUN:
-        description: 'Resolve and print actions without creating env/secrets'
+        description: 'Print actions without writing secrets or assigned.txt'
         required: false
         type: boolean
         default: true
@@ -42,7 +54,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: wg-onboard-${{ inputs.ENV_NAME }}
+  group: wg-env-${{ inputs.ACTION }}-${{ inputs.ENV_NAME }}
   cancel-in-progress: false
 
 jobs:
@@ -66,10 +78,22 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Ensure GitHub CLI
+        run: |
+          if command -v gh >/dev/null 2>&1; then
+            gh --version
+            exit 0
+          fi
+          GH_VERSION=2.63.2
+          curl -fsSL "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_amd64.tar.gz" \
+            | tar -xz -C "${RUNNER_TEMP}"
+          echo "${RUNNER_TEMP}/gh_${GH_VERSION}_linux_amd64/bin" >> "$GITHUB_PATH"
+          gh --version
+
       - name: Write SSH private key
         env:
-          SSH_KEY: ${{ secrets.MOSIP_AWS_PEM }}
-          SSH_KEY_NAME: MOSIP_AWS_PEM
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KEY_NAME: SSH_PRIVATE_KEY
         run: |
           SSH_KEY_PATH="${RUNNER_TEMP}/jumpserver_key"
           printf '%s\n' "$SSH_KEY" | tr -d '\r' > "$SSH_KEY_PATH"
@@ -80,30 +104,38 @@ jobs:
           fi
           echo "SSH_KEY_PATH=$SSH_KEY_PATH" >> "$GITHUB_ENV"
 
-      - name: Run WireGuard onboarding
+      - name: Run WireGuard onboard/offboard
         env:
-          GH_TOKEN: ${{ secrets.ACTION_PAT }}
-          GITHUB_TOKEN: ${{ secrets.ACTION_PAT }}
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+          INPUT_ACTION: ${{ inputs.ACTION }}
           INPUT_ENV_NAME: ${{ inputs.ENV_NAME }}
           INPUT_JUMPSERVER_HOST: ${{ inputs.JUMPSERVER_HOST }}
           INPUT_WG_DIR: ${{ inputs.WG_DIR }}
           INPUT_ALLOWED_IPS: ${{ inputs.ALLOWED_IPS }}
           INPUT_TICKET: ${{ inputs.TICKET }}
+          INPUT_KEEP_ENVIRONMENT: ${{ inputs.KEEP_ENVIRONMENT }}
           INPUT_DRY_RUN: ${{ inputs.DRY_RUN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
-          chmod +x .github/scripts/wg-onboard.sh
+          chmod +x .github/workflows/scripts/wg-env.sh
           args=(
+            "$INPUT_ACTION"
             --env "$INPUT_ENV_NAME"
             --host "$INPUT_JUMPSERVER_HOST"
             --ssh-key "$SSH_KEY_PATH"
             --repo "$GITHUB_REPOSITORY"
             --wg-dir "$INPUT_WG_DIR"
-            --allowed-ips "$INPUT_ALLOWED_IPS"
           )
-          [[ -n "$INPUT_TICKET" ]] && args+=(--ticket "$INPUT_TICKET")
+          if [[ "$INPUT_ACTION" == "onboard" ]]; then
+            args+=(--allowed-ips "$INPUT_ALLOWED_IPS")
+            [[ -n "$INPUT_TICKET" ]] && args+=(--ticket "$INPUT_TICKET")
+          fi
+          if [[ "$INPUT_ACTION" == "offboard" && "$INPUT_KEEP_ENVIRONMENT" == "true" ]]; then
+            args+=(--keep-environment)
+          fi
           [[ "$INPUT_DRY_RUN" == "true" ]] && args+=(--dry-run)
-          .github/scripts/wg-onboard.sh "${args[@]}"
+          .github/workflows/scripts/wg-env.sh "${args[@]}"
 
       - name: Cleanup SSH private key
         if: always()
@@ -112,7 +144,8 @@ jobs:
       - name: Commit updated peer allocation
         if: ${{ inputs.DRY_RUN == false }}
         env:
-          GH_TOKEN: ${{ secrets.ACTION_PAT }}
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+          INPUT_ACTION: ${{ inputs.ACTION }}
           INPUT_ENV_NAME: ${{ inputs.ENV_NAME }}
           GIT_AUTHOR_NAME: ${{ github.actor }}
           GIT_AUTHOR_EMAIL: ${{ github.actor }}@users.noreply.github.com
@@ -129,6 +162,11 @@ jobs:
               exit 1
             fi
             git add "$tracker"
-            git commit -s -m "wg: allocate peers for environment $INPUT_ENV_NAME"
+            if [[ "$INPUT_ACTION" == "onboard" ]]; then
+              msg="wg: allocate peers for environment $INPUT_ENV_NAME"
+            else
+              msg="wg: offboard environment $INPUT_ENV_NAME"
+            fi
+            git commit -s -m "$msg"
             git push "$remote_url" "HEAD:${GITHUB_REF_NAME}"
           fi
