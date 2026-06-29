@@ -11,7 +11,7 @@ on:
         options:
           - mosip-platform-1.2.0.x
           - mosip-platform-1.2.1.x
-          - esignet
+          - esignet-standalone
       mode:
         description: "Choose Helmsman mode: dry-run or apply"
         required: true
@@ -340,7 +340,7 @@ jobs:
           # Test istioctl functionality  
           istioctl version --remote=false
       - name: Export keycloak client secrets for esignet-keycloak-init
-        if: contains(matrix.dsf_files, 'esignet/external-dsf.yaml')
+        if: contains(matrix.dsf_files, 'esignet-standalone/external-dsf.yaml')
         run: |
           # Read existing client secrets from keycloak ns — empty on fresh install,
           # real values on re-run. Helmsman resolves ${VAR} at parse time so these

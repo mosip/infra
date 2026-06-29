@@ -47,7 +47,7 @@ on:
         type: choice
         options:
           - mosip
-          - esignet
+          - esignet-standalone
         default: mosip
       BACKEND_TYPE:
         description: 'Choose Terraform backend type'

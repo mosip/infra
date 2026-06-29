@@ -11,7 +11,7 @@ on:
         options:
           - mosip-platform-1.2.0.x
           - mosip-platform-1.2.1.x
-          - esignet
+          - esignet-standalone
       mode:
         description: "Choose Helmsman mode: dry-run or apply"
         required: true
@@ -80,7 +80,7 @@ jobs:
           [ -z "$SLACK_CH" ]        && errors+=("slack_channel_name is empty — set vars.SLACK_CHANNEL_NAME under Environment '${{ github.ref_name }}'")
           [ -z "$DB_PORT" ]         && errors+=("db_port is empty — set vars.DB_PORT under Environment '${{ github.ref_name }}'")
           [ -z "$ESIGNET_DB_PORT" ] && errors+=("esignet_db_port is empty — set vars.ESIGNET_DB_PORT under Environment '${{ github.ref_name }}'")
-          if [ -z "$PROFILE" ] || [ "$PROFILE" = "esignet" ]; then
+          if [ -z "$PROFILE" ] || [ "$PROFILE" = "esignet-standalone" ]; then
             MOSIPID1_DOMAIN="${{ github.event.inputs.mosipid1_domain_name || vars.MOSIPID1_DOMAIN_NAME }}"
             MOSIPID2_DOMAIN="${{ github.event.inputs.mosipid2_domain_name || vars.MOSIPID2_DOMAIN_NAME }}"
             [ -z "$MOSIPID1_DOMAIN" ]    && errors+=("mosipid1_domain_name is empty — set vars.MOSIPID1_DOMAIN_NAME under Environment '${{ github.ref_name }}'")
@@ -97,7 +97,7 @@ jobs:
           echo "✓ slack_channel_name = $SLACK_CH"
           echo "✓ db_port            = $DB_PORT"
           echo "✓ esignet_db_port    = $ESIGNET_DB_PORT"
-          if [ -z "$PROFILE" ] || [ "$PROFILE" = "esignet" ]; then
+          if [ -z "$PROFILE" ] || [ "$PROFILE" = "esignet-standalone" ]; then
             echo "✓ mosipid1_domain_name    = $MOSIPID1_DOMAIN (esignet profile)"
             echo "✓ mosipid2_domain_name = $MOSIPID2_DOMAIN (esignet profile)"
           fi
@@ -276,7 +276,7 @@ jobs:
           kubectl get nodes
           kubectl cluster-info
       - name: Get MinIO root password (esignet profile)
-        if: env.PROFILE == 'esignet'
+        if: env.PROFILE == 'esignet-standalone'
         run: |
           if kubectl -n minio get secret minio &>/dev/null; then
             MINIO_ROOT_PASSWORD=$(kubectl -n minio get secret minio -o jsonpath='{.data.root-password}' | base64 -d)
@@ -292,7 +292,7 @@ jobs:
           fi
 
       - name: Check if mosip-dsf label is completed
-        if: env.PROFILE != 'esignet'
+        if: env.PROFILE != 'esignet-standalone'
         run: |
           STATUS=$(kubectl get namespace default -o jsonpath='{.metadata.labels.mosip-dsf}')
           if [[ "$STATUS" != "completed" ]]; then
@@ -301,7 +301,7 @@ jobs:
           fi
 
       - name: Check if esignet-dsf label is completed
-        if: env.PROFILE == 'esignet'
+        if: env.PROFILE == 'esignet-standalone'
         run: |
           STATUS=$(kubectl get namespace default -o jsonpath='{.metadata.labels.esignet-dsf}' 2>/dev/null || echo "")
           if [[ "$STATUS" != "completed" ]]; then
