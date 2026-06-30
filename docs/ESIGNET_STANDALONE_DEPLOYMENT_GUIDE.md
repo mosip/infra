@@ -29,6 +29,7 @@ You do **not** need to run any commands on your local machine — everything run
    - [Step 4 — Deploy Testrigs (optional)](#step-4--deploy-testrigs-optional)
 5. [Re-deploying or Re-running](#4-re-deploying-or-re-running)
 6. [Verifying Deployment](#5-verifying-deployment)
+7. [MOSIP ID Plugin Onboarding (mosipid1 / mosipid2)](#6-mosip-id-plugin-onboarding-mosipid1--mosipid2)
 
 ---
 
@@ -459,3 +460,62 @@ kubectl get pods --all-namespaces | grep -v Running | grep -v Completed | grep -
 | MOSIP-ID1 eSignet | `https://esignet-mosipid1.sandbox.xyz.net` |
 | MOSIP-ID2 eSignet | `https://esignet-mosipid2.sandbox.xyz.net` |
 | Sunbird eSignet | `https://esignet-sunbird.sandbox.xyz.net` |
+
+---
+
+## 6. MOSIP ID Plugin Onboarding (mosipid1 / mosipid2)
+
+> **This section applies only if you are deploying `esignet-mosipid1` or `esignet-mosipid2`** — instances that authenticate citizens against a real MOSIP platform. If you are using only the mock identity system (`esignet-mock`) or Sunbird, skip this section.
+
+Onboarding eSignet to a MOSIP identity system involves two phases: **prerequisites** (config changes on the MOSIP platform side) and **manual onboarding** (Postman collection run against the deployed eSignet instance).
+
+---
+
+### Prerequisites — Changes on the MOSIP platform's mosip-config branch
+
+The following changes must be made on **each MOSIP platform's `mosip-config` repository branch** that the esignet-mosipid instance points to (the branch set via `ESIGNET_MOSIPID1_SPRING_CONFIG_LABEL` / `ESIGNET_MOSIPID2_SPRING_CONFIG_LABEL`).
+
+#### 1. Add eSignet property files
+
+The MOSIP platform's `mosip-config` branch must contain eSignet-specific property files for the `mosipid` Spring profile. Add the following files if they are not already present:
+
+- `application-mosipid.properties` — application-level config for the mosipid profile
+- `esignet-mosipid.properties` — eSignet service config for the mosipid profile
+
+Reference commit: [mosip/mosip-config@e8961a2](https://github.com/mosip/mosip-config/commit/e8961a289d9acffc581df20875ffaabc2f2d3534)
+
+> Copy these files from the reference commit into your MOSIP platform's `mosip-config` branch.
+
+#### 2. Allow eSignet domains in IDA configuration
+
+The MOSIP Identity Authentication service restricts which domains can call its APIs. Edit `id-authentication-default.properties` in the MOSIP platform's `mosip-config` branch and add your eSignet standalone hostnames to `mosip.ida.allowed.domain.uris`:
+
+**For mosipid1 only:**
+```properties
+mosip.ida.allowed.domain.uris=${mosip.api.internal.url},https://${mosip.esignet.host},https://esignet-mosipid1.<your-domain>
+```
+
+**For both mosipid1 and mosipid2:**
+```properties
+mosip.ida.allowed.domain.uris=${mosip.api.internal.url},https://${mosip.esignet.host},https://esignet-mosipid1.<your-domain>,https://esignet-mosipid2.<your-domain>
+```
+
+Replace `<your-domain>` with your eSignet standalone base domain (e.g. `sandbox.xyz.net`).
+
+Reference commit: [mosip/mosip-config@27276cb](https://github.com/mosip/mosip-config/commit/27276cbb7fa01015492855baa3e00fe0a4db421c)
+
+After committing these changes, restart the `id-authentication` pods on the MOSIP platform so the config server picks up the new values:
+
+```bash
+kubectl rollout restart deployment -n ida
+```
+
+---
+
+### Manual Onboarding — eSignet Postman Collection
+
+Once the prerequisites above are complete, follow the manual onboarding steps using the eSignet Postman collection:
+
+**[eSignet Postman Collection — MOSIP ID Plugin Onboarding](https://github.com/mosip/esignet/tree/master/postman-collection#esignet-collection)**
+
+This collection covers partner onboarding, OIDC client registration, and end-to-end flow verification for the MOSIP ID plugin against your deployed `esignet-mosipid1` or `esignet-mosipid2` instance.
