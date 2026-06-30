@@ -346,12 +346,21 @@ apps:
     version: 0.0.1-develop
     chart: mosip/mock-identity-system
     set:
+      image.repository: "mosipqa/mock-identity-system"
+      image.tag: "develop"
       valuesFile: "$WORKDIR/utils/mock-identity-values.yaml"
       enable_insecure: "false"
       extraEnvVarsCM[0]: "esignet-softhsm-share"
       extraEnvVarsCM[1]: "softhsm-mock-identity-system-share"
-      domainConfig.MOSIP_ESIGNET_HOST: "esignet.${domain_name}"
+      domainConfig.MOSIP_ESIGNET_HOST: "esignet-sunbird.${domain_name}"
+      domainConfig.MOSIP_SIGNUP_HOST: "signup-sunbird.${domain_name}"
+      domainConfig.MOSIP_API_HOST: "api.${domain_name}"
+      domainConfig.MOSIP_IAM_EXTERNAL_HOST: "iam.${domain_name}"
       domainConfig.MOSIP_API_INTERNAL_HOST: "api-internal.${domain_name}"
+      domainConfig.MOSIP_KAFKA_HOST: "kafka.${domain_name}"
+      domainConfig.MOSIP_POSTGRES_HOST: "postgres.${domain_name}"
+      domainConfig.MOSIP_SMTP_HOST: "smtp.${domain_name}"
+      domainConfig.installation-domain: "${domain_name}"
       domainConfig.MOSIP_MOCK_IDA_IDENTITY_SCHEMA_URL: "https://raw.githubusercontent.com/prathmeshj12/addidentityschema_testing/refs/heads/main/email-signup-schema-testing.json"
       domainConfig.MOSIP_MOCK_UI_SPEC_SCHEMA_URL: "https://raw.githubusercontent.com/prathmeshj12/addidentityschema_testing/refs/heads/main/ui_spec_reset_password_phone.json"
     timeout: 480
