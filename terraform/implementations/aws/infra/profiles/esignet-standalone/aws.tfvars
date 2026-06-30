@@ -7,22 +7,22 @@
 # ============================================================
 
 # Environment name (infra component)
-cluster_name = "<cluster-name>"
+cluster_name = "esdevtest"
 
 # eSignet's domain (ex: esignet.xyz.net)
-cluster_env_domain = "<cluster-env-domain>"
+cluster_env_domain = "esdevtest.mosip.net"
 
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
-mosip_email_id = "<email-id>"
+mosip_email_id = "thisisbn46@gmail.com"
 
 # SSH login key name for AWS node instances (ex: my-ssh-key)
-ssh_key_name = "<ssh-key-name>"
+ssh_key_name = "mosip-aws"
 
 # The AWS region for resource creation
 aws_provider_region = "ap-south-1"
 
 # Specific availability zones for VM deployment (optional)
-specific_availability_zones = []
+specific_availability_zones = ["ap-south-1b"]
 
 # The instance type for Kubernetes nodes (control plane, worker, etcd)
 # Smaller instance type since eSignet standalone needs fewer resources
@@ -32,7 +32,7 @@ k8s_instance_type = "t3a.2xlarge"
 nginx_instance_type = "t3a.2xlarge"
 
 # The Route 53 hosted zone ID
-zone_id = "<route53_zone_id>"
+zone_id = "Z090954828SJIEL6P5406"
 
 ## UBUNTU 24.04
 # The Amazon Machine Image ID for the instances
@@ -74,7 +74,7 @@ WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 
 # Rancher Import Configuration
 enable_rancher_import = true
-rancher_import_url    = "\"<rancher-import-url>\""
+rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/42kkltsmx8nh9m2jnlrjsmw7bvddbm6l92fkxfwh2ndhwhfv5n4b45_c-m-xr6f8n4s.yaml\""
 
 # DNS Records to map — only eSignet-relevant subdomains
 
@@ -94,7 +94,7 @@ mosip_infra_repo_url = "https://github.com/mosip/infra.git"
 mosip_infra_branch = "develop"
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
-vpc_name = "<vpc-name>"
+vpc_name = "default"
 
 # ── ActiveMQ Configuration ─────────────────────────────────────────────────────
 # Set enable_activemq_setup = true AND nginx_node_ebs_volume_size_3 > 0 to
