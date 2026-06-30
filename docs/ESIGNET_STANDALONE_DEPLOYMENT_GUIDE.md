@@ -129,7 +129,8 @@ Path to create `GH_INFRA_PAT`: `Your profile → Settings → Developer settings
 | Secret Name | What it is | Notes |
 |---|---|---|
 | `KUBECONFIG` | Raw kubeconfig YAML for your cluster | Paste the raw YAML — **do not** base64 encode it. Generated after Terraform apply completes. |
-| `CLUSTER_WIREGUARD_WG0` | WireGuard VPN client config for Helmsman runner | Different from `TF_WG_CONFIG` — this is the Helmsman runner's peer config. See [Secret Generation Guide](SECRET_GENERATION_GUIDE.md). |
+| `CLUSTER_WIREGUARD_WG0` | WireGuard VPN client config for Helmsman runner (interface 0) | Different from `TF_WG_CONFIG` — this is the Helmsman runner's peer config. See [Secret Generation Guide](SECRET_GENERATION_GUIDE.md). |
+| `CLUSTER_WIREGUARD_WG1` | WireGuard VPN client config for Helmsman runner (interface 1) | Second WireGuard interface — required alongside `WG0`. See [Secret Generation Guide](SECRET_GENERATION_GUIDE.md). |
 
 **For `helmsman_external.yml` (profile = `esignet-standalone`):**
 
@@ -281,7 +282,7 @@ Follow the full instructions in the root README: [Step 3ca: Observation Infrastr
 
 2. **After apply completes (~20 min):** Retrieve the kubeconfig from the cluster and add it as the `KUBECONFIG` environment secret (Section 2B) before proceeding to Step 1.
 
-> **Note on WireGuard:** The Terraform runner connects to the nginx node via `TF_WG_CONFIG` (repository secret) to run post-provisioning scripts. `CLUSTER_WIREGUARD_WG0` (environment secret) is separate — it is used by Helmsman workflows to reach the cluster API. Both must be configured before their respective workflows run.
+> **Note on WireGuard:** The Terraform runner connects to the nginx node via `TF_WG_CONFIG` (repository secret) to run post-provisioning scripts. `CLUSTER_WIREGUARD_WG0` and `CLUSTER_WIREGUARD_WG1` (environment secrets) are separate — they are used by Helmsman workflows to reach the cluster API. All three must be configured before their respective workflows run.
 
 ---
 
