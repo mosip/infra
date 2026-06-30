@@ -192,7 +192,10 @@ Navigate to: `Repository → Settings → Environments → <your-branch-name> �
 There are **5 steps** in total. Run them in the order shown below. **Do not start the next step until the current one shows a green tick (✅) in GitHub Actions.**
 
 ```
-Step 0 → Provision Infrastructure   (terraform.yml)           ~30 min  ← skip if cluster already exists
+Step 0 → Provision Infrastructure   (terraform plan / apply)
+  ├── 0b  base-infra      ~10 min   ← once per AWS account; skip if already done
+  ├── 0c  observ-infra    ~15 min   ← optional monitoring cluster
+  └── 0d  infra           ~20 min   profile: esignet-standalone  ← the main cluster
 Step 1 → Deploy External Services   (helmsman_external.yml)   ~20 min
 Step 2 → Deploy eSignet             (helmsman_esignet.yml)    ~25 min
 Step 3 → Deploy Signup              (helmsman_signup.yml)     ⚠️  IN PROGRESS — not ready yet
@@ -206,11 +209,23 @@ Step 4 → Deploy Testrigs (optional) (helmsman_testrigs.yml)   ~10 min
 > **What this does:** Creates the AWS infrastructure your cluster will run on — VPC, networking, EC2 nodes, WireGuard jump server, and the RKE2 Kubernetes cluster itself.
 > **Skip this step** if your cluster already exists. Jump straight to Step 1.
 
+The Terraform workflow has three separate components. Run them in this order:
+
+```
+0a → base-infra     (once per AWS account — shared networking layer)
+0b → observ-infra   (optional — separate monitoring cluster)
+0c → infra          (profile: esignet-standalone — the main eSignet cluster)
+```
+
+> **Already have `base-infra` deployed?** Skip `0a` and go straight to `0b` or `0c`.
+
 **Terraform workflow name:** `terraform plan / apply`
+
+---
 
 #### 0a — Update the tfvars file
 
-Before running the workflow, fill in the placeholders in the tfvars file for the `esignet-standalone` profile:
+Before running the workflow, fill in the placeholders in the `esignet-standalone` tfvars file:
 
 **File:** `terraform/implementations/aws/infra/profiles/esignet-standalone/aws.tfvars`
 
@@ -229,31 +244,31 @@ All other fields (node counts, instance types, volume sizes) are already set to 
 
 Commit the updated file on your branch before triggering the workflow.
 
+---
+
 #### 0b — Run: Base Infrastructure (first time only)
 
-> Run this once per AWS account/VPC. It creates the shared base networking layer.
+> **One-time per AWS account.** Creates the shared base networking layer — VPC, subnets, WireGuard jump server. If `base-infra` has already been deployed for this AWS account, skip to `0c`.
 
-**GitHub Actions workflow name:** `terraform plan / apply`
+Follow the full instructions in the root README: [Step 3a: Base Infrastructure](../README.md#step-3a-base-infrastructure)
 
-1. Go to **Actions** → click **`terraform plan / apply`**
-2. Click **`Run workflow`** and fill in:
+After `base-infra` completes, configure `TF_WG_CONFIG` (repository secret) with your WireGuard client config before proceeding — see [WireGuard VPN Setup](../README.md#step-3b-wireguard-vpn-setup-required-for-private-network-access).
 
-| Field | Value |
-|---|---|
-| `cloud_provider` | `aws` |
-| `component` | `base-infra` |
-| `profile` | *(leave as default — `mosip`, ignored for `base-infra`)* |
-| `backend` | `local` *(or `s3` if you have a remote backend bucket)* |
-| `SSH_PRIVATE_KEY` | The **name** of the GitHub secret that holds your SSH private key (e.g. `SSH_PRIVATE_KEY`) |
-| `terraform_apply` | Leave **unticked** for plan-only first; tick to apply |
+---
 
-3. Review the plan output in the workflow log, then re-run with `terraform_apply` ticked.
+#### 0c — Run: Observability Infrastructure (optional)
 
-#### 0c — Run: Main Infrastructure
+> **Optional.** Creates a separate lightweight Kubernetes cluster for monitoring and observability tooling (Rancher, Keycloak, logging). eSignet standalone works without it — skip if you don't need a dedicated monitoring cluster.
 
-> This creates the Kubernetes nodes and the cluster itself.
+Follow the full instructions in the root README: [Step 3ca: Observation Infrastructure](../README.md#step-3ca-observation-infrastructure-observ-infra--optional)
 
-1. Trigger **`terraform plan / apply`** again with:
+---
+
+#### 0d — Run: Main Infrastructure
+
+> Creates the Kubernetes nodes and cluster for eSignet standalone. Run this after `base-infra` (and optionally `observ-infra`) are complete.
+
+1. Trigger **`terraform plan / apply`** with:
 
 | Field | Value |
 |---|---|
@@ -261,10 +276,10 @@ Commit the updated file on your branch before triggering the workflow.
 | `component` | `infra` |
 | `profile` | `esignet-standalone` |
 | `backend` | `local` *(or `s3`)* |
-| `SSH_PRIVATE_KEY` | Name of your SSH private key secret (e.g. `SSH_PRIVATE_KEY`) |
+| `SSH_PRIVATE_KEY` | Name of your SSH private key secret |
 | `terraform_apply` | Tick to apply |
 
-2. **After apply completes (~20 min):** Terraform will have created the cluster. Retrieve the kubeconfig from the cluster and add it as the `KUBECONFIG` environment secret (Section 2B) before proceeding.
+2. **After apply completes (~20 min):** Retrieve the kubeconfig from the cluster and add it as the `KUBECONFIG` environment secret (Section 2B) before proceeding to Step 1.
 
 > **Note on WireGuard:** The Terraform runner connects to the nginx node via `TF_WG_CONFIG` (repository secret) to run post-provisioning scripts. `CLUSTER_WIREGUARD_WG0` (environment secret) is separate — it is used by Helmsman workflows to reach the cluster API. Both must be configured before their respective workflows run.
 
