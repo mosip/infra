@@ -31,7 +31,7 @@ DSF files are organized by **deployment profile** — not a single flat folder. 
 
 | Profile | Use Case |
 |---------|----------|
-| `esignet` | eSignet standalone (authentication only, no full MOSIP core services) |
+| `esignet-standalone` | eSignet standalone (authentication only, no full MOSIP core services) |
 | `mosip-platform-1.2.0.x` | Full MOSIP platform with Java 11 |
 | `mosip-platform-1.2.1.x` | Full MOSIP platform with Java 21 |
 
@@ -64,8 +64,8 @@ Helmsman/dsf/
 | `prereq-dsf.yaml` | Monitoring, Istio, logging | 1st |
 | `external-dsf.yaml` | Databases, queues, storage, Keycloak | 2nd |
 | `mosip-dsf.yaml` | MOSIP core services (MOSIP platform profiles only) | 3rd |
-| `esignet-dsf.yaml` | eSignet stack + OIDC UI + Mock RP | 4th (or 3rd for esignet profile) |
-| `signup-dsf.yaml` | Signup stack (esignet profile only) | 5th (auto-triggered) |
+| `esignet-dsf.yaml` | eSignet stack + OIDC UI + Mock RP | 4th (or 3rd for esignet-standalone profile) |
+| `signup-dsf.yaml` | Signup stack (esignet-standalone profile only) | 5th (auto-triggered) |
 | `testrigs-dsf.yaml` | Testing infrastructure | Last (optional) |
 
 ### Environment Variable Substitution
@@ -719,7 +719,7 @@ apps:
 
 - [ ] All MOSIP/eSignet services running
 - [ ] Test data branch matches MOSIP version
-- [ ] `vars.MOSIPID1_DOMAIN_NAME` and `vars.MOSIPID2_DOMAIN_NAME` set (esignet profile)
+- [ ] `vars.MOSIPID1_DOMAIN_NAME` and `vars.MOSIPID2_DOMAIN_NAME` set (esignet-standalone profile)
 
 ---
 
@@ -795,8 +795,8 @@ apps:
 | Slack channel | `vars.SLACK_CHANNEL_NAME` | GitHub Environment Variables | Alerting in prereq-dsf |
 | MOSIP postgres port | `vars.DB_PORT` | GitHub Environment Variables | MOSIP platform external postgres (5433) |
 | eSignet postgres port | `vars.ESIGNET_DB_PORT` | GitHub Environment Variables | eSignet container postgres (5432) |
-| MOSIP-ID1 domain | `vars.MOSIPID1_DOMAIN_NAME` | GitHub Environment Variables | esignet profile — MOSIP-ID1 testrig hosts |
-| MOSIP-ID2 domain | `vars.MOSIPID2_DOMAIN_NAME` | GitHub Environment Variables | esignet profile — MOSIP-ID2 testrig hosts |
+| MOSIP-ID1 domain | `vars.MOSIPID1_DOMAIN_NAME` | GitHub Environment Variables | esignet-standalone profile — MOSIP-ID1 testrig hosts |
+| MOSIP-ID2 domain | `vars.MOSIPID2_DOMAIN_NAME` | GitHub Environment Variables | esignet-standalone profile — MOSIP-ID2 testrig hosts |
 
 **DSF file manual edits (one-time per environment):**
 

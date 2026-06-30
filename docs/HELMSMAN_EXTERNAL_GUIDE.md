@@ -13,7 +13,7 @@ The `helmsman_external.yml` workflow runs **two DSFs in parallel**:
 
 **Time required:** 20–40 minutes
 
-**Auto-trigger:** On successful completion, this workflow automatically triggers `helmsman_mosip.yml` — but only for MOSIP platform profiles. For the `esignet` profile, MOSIP is not triggered.
+**Auto-trigger:** On successful completion, this workflow automatically triggers `helmsman_mosip.yml` — but only for MOSIP platform profiles. For the `esignet-standalone` profile, MOSIP is not triggered.
 
 ---
 
@@ -23,7 +23,7 @@ Choose the profile that matches your deployment target:
 
 | Profile | Use when |
 |---------|----------|
-| `esignet` | eSignet standalone — 4 parallel instances (esignet, esignet-mosipid1, esignet-mosipid2, esignet-sunbird). No full MOSIP stack. |
+| `esignet-standalone` | eSignet standalone — up to 4 parallel instances (esignet-mock, esignet-mosipid1, esignet-mosipid2, esignet-sunbird). mosipid2 is optional via `enable_mosipid2` toggle. No full MOSIP stack. |
 | `mosip-platform-1.2.0.x` | Full MOSIP platform with Java 11 |
 | `mosip-platform-1.2.1.x` | Full MOSIP platform with Java 21 |
 
@@ -43,7 +43,7 @@ All secrets are **Environment Secrets** — configure at **Repository → Settin
 | `CLUSTER_WIREGUARD_WG0` | WireGuard VPN config for cluster access |
 | `SLACK_WEBHOOK_URL` | Slack incoming webhook URL (optional — for alerting) |
 
-### eSignet profile only
+### eSignet standalone profile only
 
 | Secret | Description |
 |--------|-------------|
@@ -70,7 +70,7 @@ reCAPTCHA v2 keys for each MOSIP service domain — add as **Environment Secrets
 
 | Input | Description | Example |
 |-------|-------------|---------|
-| `profile` | Deployment profile | `esignet` / `mosip-platform-1.2.0.x` / `mosip-platform-1.2.1.x` |
+| `profile` | Deployment profile | `esignet-standalone` / `mosip-platform-1.2.0.x` / `mosip-platform-1.2.1.x` |
 | `mode` | Helmsman mode | Always `apply` — dry-run will fail |
 | `domain_name` | Base domain for this environment | `soil38.mosip.net` |
 | `env_name` | Environment name | `soil38` |
@@ -91,11 +91,11 @@ reCAPTCHA v2 keys for each MOSIP service domain — add as **Environment Secrets
   > Can't find it? Search for "External" in the workflows list.
 - **(2)** Click the **Run workflow** dropdown button (top right) — this opens the form shown above.
 - **(3)** **Branch** — pick the branch you're deploying from (e.g., `MOSIP-44613`).
-- **(4)** **Deployment profile to use** — pick the profile you want (e.g., `mosip-platform-1.2.0.x` for full MOSIP, or `esignet` for eSignet standalone).
+- **(4)** **Deployment profile to use** — pick the profile you want (e.g., `mosip-platform-1.2.0.x` for full MOSIP, or `esignet-standalone` for eSignet standalone).
 - **(5)** **Choose Helmsman mode: dry-run or apply** — always pick **`apply`**. (`dry-run` is not a safe preview here — it will fail because required resources don't exist yet.)
 - **(6)** **Domain name for this environment** — type the web domain this environment should use (e.g., `example.xyz.net`).
 - **(7)** **PostgreSQL port for MOSIP platform external postgres** — only fill this in if you picked a `mosip-platform-*` profile in step 4. Type `5433` (or whatever port your external PostgreSQL uses).
-- **(8)** **PostgreSQL port for esignet standalone container postgres** — only fill this in if you picked the `esignet` profile in step 4. Type `5432`.
+- **(8)** **PostgreSQL port for esignet standalone container postgres** — only fill this in if you picked the `esignet-standalone` profile in step 4. Type `5432`.
 - **(9)** **Environment name** — a short nickname for this environment (e.g., `sandbox`, `dev`, `staging`).
 - **(10)** **Slack channel name for alerting** (optional) — the Slack channel that should receive alerts (e.g., `#mosip-alerts`). Leave blank if you don't want Slack alerts.
 - **(11)** **Slack webhook URL for alerting** (optional) — leave this blank; it's normally already saved as the `SLACK_WEBHOOK_URL` secret in your GitHub environment.
