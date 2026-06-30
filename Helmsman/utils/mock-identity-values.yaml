@@ -1,0 +1,50 @@
+extraEnvVars:
+  - name: DATABASE_HOST
+    valueFrom:
+      configMapKeyRef:
+        name: mockid-postgres-config
+        key: database-host
+  - name: DATABASE_PORT
+    valueFrom:
+      configMapKeyRef:
+        name: mockid-postgres-config
+        key: database-port
+  - name: DATABASE_NAME
+    valueFrom:
+      configMapKeyRef:
+        name: mockid-postgres-config
+        key: database-name
+  - name: DATABASE_USERNAME
+    valueFrom:
+      configMapKeyRef:
+        name: mockid-postgres-config
+        key: database-username
+  - name: DB_DBUSER_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: db-common-secrets
+        key: db-dbuser-password
+  - name: SOFTHSM_MOCK_IDENTITY_SYSTEM_SECURITY_PIN
+    valueFrom:
+      secretKeyRef:
+        name: softhsm-mock-identity-system
+        key: security-pin
+  - name: hsm_local_dir_name
+    value: hsm-client
+  - name: MOSIP_ESIGNET_MOCK_SUPPORTED_FIELDS
+    value: individualId,password
+  - name: REDIS_HOST
+    valueFrom:
+      configMapKeyRef:
+        name: redis-config
+        key: redis-host
+  - name: REDIS_PORT
+    valueFrom:
+      configMapKeyRef:
+        name: redis-config
+        key: redis-port
+  - name: REDIS_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: redis
+        key: redis-password

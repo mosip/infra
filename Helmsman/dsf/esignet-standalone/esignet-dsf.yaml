@@ -346,6 +346,7 @@ apps:
     version: 0.0.1-develop
     chart: mosip/mock-identity-system
     set:
+      valuesFile: "$WORKDIR/utils/mock-identity-values.yaml"
       enable_insecure: "false"
       extraEnvVarsCM[0]: "esignet-softhsm-share"
       extraEnvVarsCM[1]: "softhsm-mock-identity-system-share"
