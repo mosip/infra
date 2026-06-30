@@ -177,7 +177,7 @@ Navigate to: `Repository → Settings → Environments → <your-branch-name> �
 | `DOMAIN_NAME` | `sandbox.xyz.net` | **Yes** | Base domain — all service hostnames are built from this |
 | `ESIGNET_DB_PORT` | `5432` | **Yes** | Postgres port — always `5432` for standalone |
 | `ENV_NAME` | `sandbox` | **Yes** | Short environment label shown on the landing page |
-| `CLUSTER_ID` | `c-xxxxx` | **Yes** | Rancher cluster ID used by monitoring setup |
+| `CLUSTER_ID` | `c-xxxxx` | **Yes** | Rancher cluster ID used by monitoring setup — see [Finding your clusterid](../README.md#step-4a-configure-github-environment-variables) in the root README |
 | `SLACK_CHANNEL_NAME` | `#mosip-alerts` | **Yes** | Slack channel name for alert notifications |
 | `MOSIPID1_DOMAIN_NAME` | `mosipid1.xyz.net` | Optional | Base domain of the MOSIP environment that `esignet-mosipid1` connects to (required if mosipid1 is enabled) |
 | `MOSIPID2_DOMAIN_NAME` | `mosipid2.xyz.net` | Optional | Base domain of the second MOSIP environment — only set this if you have enabled mosipid2 (see [Section 0](#0-understanding-the-esignet-instances)) |
@@ -237,7 +237,7 @@ Before running the workflow, fill in the placeholders in the `esignet-standalone
 | `ssh_key_name` | Name of the AWS key pair to use for SSH access to nodes |
 | `zone_id` | Your Route 53 hosted zone ID for this domain |
 | `vpc_name` | Name of your existing VPC (looked up by `Name` tag) |
-| `rancher_import_url` | Rancher import URL for this cluster (from Rancher UI → Cluster → Registration) |
+| `rancher_import_url` | Rancher import URL for this cluster — see [Rancher Import Configuration](../README.md#rancher-import-configuration-optional) in the root README for where to find this URL and how to escape it correctly |
 | `aws_provider_region` | AWS region to deploy into (default: `ap-south-1`) |
 
 All other fields (node counts, instance types, volume sizes) are already set to sensible defaults for eSignet standalone. Review and adjust if needed.
