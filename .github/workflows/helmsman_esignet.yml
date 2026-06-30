@@ -42,6 +42,11 @@ on:
         description: "MOSIP-ID1 domain name for this environment (e.g. mosipenv1.xyz.net)"
         required: false
         type: string
+      enable_mosipid2:
+        description: "Enable MOSIP-ID2 eSignet instance (deploys softhsm, esignet, oidc-ui, mock-rp for mosipid2)"
+        required: false
+        default: false
+        type: boolean
       mosipid2_domain_name:
         description: "MOSIP-ID2 domain name for this environment (e.g. qabase.xyz.net)"
         required: false
@@ -50,11 +55,6 @@ on:
         description: "Environment name (e.g. sandbox, dev, staging)"
         required: false
         type: string
-      enable_mosipid2:
-        description: "Enable MOSIP-ID2 eSignet instance (deploys softhsm, esignet, oidc-ui, mock-rp for mosipid2)"
-        required: false
-        default: false
-        type: boolean
   push:
     paths:
       - Helmsman/dsf/**/esignet-dsf.yaml
