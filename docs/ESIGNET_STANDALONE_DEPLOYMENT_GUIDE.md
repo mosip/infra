@@ -213,12 +213,13 @@ Step 4 → Deploy Testrigs (optional) (helmsman_testrigs.yml)   ~10 min
 The Terraform workflow has three separate components. Run them in this order:
 
 ```
-0a → base-infra     (once per AWS account — shared networking layer)
-0b → observ-infra   (optional — separate monitoring cluster)
-0c → infra          (profile: esignet-standalone — the main eSignet cluster)
+0b → base-infra     (once per AWS account — skip if already done)
+0c → observ-infra   (optional — skip if not needed or already done)
+0d → infra          (profile: esignet-standalone — always required)
 ```
 
-> **Already have `base-infra` deployed?** Skip `0a` and go straight to `0b` or `0c`.
+> **Already have `base-infra` deployed?** Skip `0b` entirely — go straight to `0c` or `0d`.
+> **Already have `observ-infra` deployed (or don't need it)?** Skip `0c` — go straight to `0d`.
 
 **Terraform workflow name:** `terraform plan / apply`
 
