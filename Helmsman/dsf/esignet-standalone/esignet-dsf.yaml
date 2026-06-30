@@ -345,15 +345,14 @@ apps:
     enabled: true
     version: 0.0.1-develop
     chart: mosip/mock-identity-system
+    valuesFile: "$WORKDIR/utils/mock-identity-values.yaml"
     set:
       image.repository: "mosipqa/mock-identity-system"
       image.tag: "develop"
-      valuesFile: "$WORKDIR/utils/mock-identity-values.yaml"
       enable_insecure: "false"
-      extraEnvVarsCM[0]: "esignet-softhsm-share"
-      extraEnvVarsCM[1]: "softhsm-mock-identity-system-share"
-      domainConfig.MOSIP_ESIGNET_HOST: "esignet-sunbird.${domain_name}"
-      domainConfig.MOSIP_SIGNUP_HOST: "signup-sunbird.${domain_name}"
+      extraEnvVarsCM[0]: "softhsm-mock-identity-system-share"
+      domainConfig.MOSIP_ESIGNET_HOST: "esignet.${domain_name}"
+      domainConfig.MOSIP_SIGNUP_HOST: "signup.${domain_name}"
       domainConfig.MOSIP_API_HOST: "api.${domain_name}"
       domainConfig.MOSIP_IAM_EXTERNAL_HOST: "iam.${domain_name}"
       domainConfig.MOSIP_API_INTERNAL_HOST: "api-internal.${domain_name}"
