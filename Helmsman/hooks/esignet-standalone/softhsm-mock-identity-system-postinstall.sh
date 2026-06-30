@@ -2,28 +2,26 @@
 # =============================================================================
 # eSignet 1.7.1 - SoftHSM Mock Identity System Post-install
 # =============================================================================
-# Shares SoftHSM mock identity system configmap with esignet namespace.
+# Copies chart-generated softhsm-mock-identity-system-share configmap
+# (PKCS11 slot/token config) from softhsm namespace to esignet-mock namespace.
+# The security PIN is handled separately via secret copy in preinstall.
 # =============================================================================
 set -euo pipefail
+
+SOFTHSM_NS="${SOFTHSM_NS:-softhsm}"
+ESIGNET_NS="${ESIGNET_NS:-esignet-mock}"
+COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
 
 echo "================================================"
 echo "eSignet 1.7.1 - SoftHSM Mock Identity System Post-install"
 echo "================================================"
 
 # Wait for SoftHSM mock identity pod to be ready
-kubectl -n softhsm wait --for=condition=ready pod -l app.kubernetes.io/instance=softhsm-mock-identity-system --timeout=480s || \
+kubectl -n "$SOFTHSM_NS" wait --for=condition=ready pod -l app.kubernetes.io/instance=softhsm-mock-identity-system --timeout=480s || \
   { echo "ERROR: SoftHSM mock identity system pod not ready after timeout" >&2; exit 1; }
 
-# Share SoftHSM mock identity configmap with esignet-mock namespace
-MOCK_HSM_PIN=$(kubectl -n softhsm get secret softhsm-mock-identity-system -o jsonpath='{.data.security-pin}' 2>/dev/null || echo "")
-
-if [ -n "$MOCK_HSM_PIN" ]; then
-  kubectl -n esignet-mock create configmap softhsm-mock-identity-system-share \
-    --from-literal=softhsm-pin="$(echo -n "$MOCK_HSM_PIN" | base64 -d)" \
-    --dry-run=client -o yaml | kubectl apply -f -
-  echo "SoftHSM mock identity system credentials shared with esignet-mock namespace."
-else
-  echo "WARNING: SoftHSM mock identity system secret not found."
-fi
+# Copy chart-generated PKCS11 configmap to esignet-mock namespace
+echo "Copying softhsm-mock-identity-system-share configmap to $ESIGNET_NS"
+$COPY_UTIL configmap softhsm-mock-identity-system-share "$SOFTHSM_NS" "$ESIGNET_NS"
 
 echo "SoftHSM mock identity system post-install completed."
