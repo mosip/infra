@@ -999,6 +999,32 @@ transform_conf() {
   '
 }
 
+validate_wireguard_conf() {
+  local label="$1" content="$2"
+  [[ ${#content} -ge 80 ]] \
+    || die "$label WireGuard config too short (${#content} bytes); expected a full peer conf"
+  grep -q '^\[Interface\]' <<<"$content" \
+    || die "$label WireGuard config missing [Interface] section"
+  grep -q '^\[Peer\]' <<<"$content" \
+    || die "$label WireGuard config missing [Peer] section"
+  grep -q '^[[:space:]]*PrivateKey[[:space:]]*=' <<<"$content" \
+    || die "$label WireGuard config missing PrivateKey"
+}
+
+# gh secret set --body - stores the literal character "-" (1 byte), not stdin.
+# Pass the conf via a temp file / stdin redirect instead.
+publish_env_secret() {
+  local name="$1" content="$2" tmp rc
+  validate_wireguard_conf "$name" "$content" || return 1
+  tmp="$(mktemp)"
+  chmod 600 "$tmp"
+  printf '%s\n' "$content" > "$tmp"
+  gh secret set "$name" --env "$ENV_NAME" --repo "$REPO" --app actions < "$tmp"
+  rc=$?
+  rm -f "$tmp"
+  return $rc
+}
+
 fetch_and_transform() {
   local peer="$1" raw
   local conf="$CONFIG_DIR/$peer/$peer.conf"
@@ -1055,8 +1081,8 @@ log "Publishing environment secrets ..."
 PEER_CONFS=("$TF_CONF" "$WG0_CONF" "$WG1_CONF")
 PUBLISHED_SECRETS=0
 for i in "${!SECRET_NAMES[@]}"; do
-  if printf '%s' "${PEER_CONFS[$i]}" \
-    | gh secret set "${SECRET_NAMES[$i]}" --env "$ENV_NAME" --repo "$REPO" --body -; then
+  log "Publishing ${SECRET_NAMES[$i]} (${#PEER_CONFS[$i]} bytes) ..."
+  if publish_env_secret "${SECRET_NAMES[$i]}" "${PEER_CONFS[$i]}"; then
     PUBLISHED_SECRETS=$((PUBLISHED_SECRETS + 1))
     log "Published ${SECRET_NAMES[$i]}"
   else
