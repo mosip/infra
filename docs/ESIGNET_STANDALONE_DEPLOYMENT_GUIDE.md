@@ -9,7 +9,7 @@ You do **not** need to run any commands on your local machine — everything run
 - Mock Relying Party service and UI
 - Supporting infrastructure: Postgres, Redis, Kafka, Keycloak, SoftHSM, Captcha, MinIO
 
-**Estimated time:** ~45–60 minutes end to end (external services ~20 min, eSignet ~25 min).
+**Estimated time:** ~90–120 minutes end to end (Terraform ~30 min, external services ~20 min, eSignet ~25 min).
 
 ---
 
@@ -17,10 +17,12 @@ You do **not** need to run any commands on your local machine — everything run
 
 1. [Understanding the eSignet Instances](#0-understanding-the-esignet-instances)
 2. [Before You Start](#1-before-you-start)
-3. [One-time GitHub Environment Setup](#2-one-time-github-environment-setup)
-   - [Secrets](#a-secrets)
-   - [Environment Variables](#b-environment-variables)
+3. [One-time GitHub Setup](#2-one-time-github-setup)
+   - [Repository Secrets](#a-repository-secrets--required-by-all-workflows)
+   - [Environment Secrets](#b-environment-secrets--configured-per-branch)
+   - [Environment Variables](#c-environment-variables)
 4. [Deployment Steps](#3-deployment-steps)
+   - [Step 0 — Provision Infrastructure (Terraform)](#step-0--provision-infrastructure-terraform)
    - [Step 1 — Deploy External Services](#step-1--deploy-external-services)
    - [Step 2 — Deploy eSignet](#step-2--deploy-esignet)
    - [Step 3 — Deploy Signup (in progress)](#step-3--deploy-signup)
@@ -85,7 +87,7 @@ Complete this checklist before triggering any workflow:
 
 ---
 
-## 2. One-time GitHub Environment Setup
+## 2. One-time GitHub Setup
 
 GitHub has two places to store secrets. It is important to put each secret in the **right place** — putting a secret in the wrong place will cause the workflow to fail.
 
@@ -96,39 +98,40 @@ GitHub has two places to store secrets. It is important to put each secret in th
 
 ---
 
-### A. Secrets
+### A. Repository Secrets — required by all workflows
 
-> Secrets are sensitive values (passwords, keys, tokens). They are masked in logs.
+> Configure these once under `Settings → Secrets and variables → Actions → Repository secrets`.
 
-#### Repository Secret — one secret, configured once for the whole repo
+| Secret Name | What it is | Notes |
+|---|---|---|
+| `GH_INFRA_PAT` | GitHub Fine-grained Personal Access Token | **Contents**: R/W · **Actions**: R/W · **Environments**: R/W · **Variables**: R/W · **Metadata**: R/O. Used by Helmsman workflows to update env vars and dispatch signup. See [Secret Generation Guide](SECRET_GENERATION_GUIDE.md). |
+| `AWS_ACCESS_KEY_ID` | AWS IAM access key ID | Used by the Terraform workflow to create/manage AWS resources |
+| `AWS_SECRET_ACCESS_KEY` | AWS IAM secret access key | Paired with `AWS_ACCESS_KEY_ID` |
+| `GPG_PASSPHRASE` | Passphrase for encrypting Terraform state | Terraform state files are GPG-encrypted before being committed to the repo when using local backend |
+| `TF_WG_CONFIG` | WireGuard client config for Terraform runner | Terraform connects to the nginx node via WireGuard VPN to run post-provisioning scripts. Paste the raw `wg0.conf` content — **not** base64 encoded. See [Secret Generation Guide](SECRET_GENERATION_GUIDE.md). |
+| `SLACK_WEBHOOK_URL` | Slack incoming webhook URL | Used by Terraform and Helmsman for failure/success notifications |
 
-| Secret Name | What it is | Required scopes | How to create |
-|---|---|---|---|
-| `GH_INFRA_PAT` | GitHub Fine-grained Personal Access Token | **Contents**: Read and write<br>**Actions**: Read and write<br>**Environments**: Read and write<br>**Variables**: Read and write<br>**Metadata**: Read-only | GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens |
+> ⚠️ **Common `GH_INFRA_PAT` mistake:** Using a Classic token, or setting `Contents` to Read-only — both cause a `403` when the workflow tries to push commits or update environment variables. Always use Fine-grained tokens.
 
-**Why `GH_INFRA_PAT` is a repository secret (not environment secret):**
-It is used to save workflow inputs back to environment variables via the GitHub API, and to dispatch the signup workflow. It needs to work across environments so it lives at the repo level.
-
-> ⚠️ **Common mistake:** Using a Classic token instead of a Fine-grained token, or setting `Contents` to Read-only — both cause a `403` error when the workflow tries to push commits or update environment variables.
-
-Path to create: `Your profile → Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token`
+Path to create `GH_INFRA_PAT`: `Your profile → Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token`
 - **Resource owner**: your organisation (e.g. `mosip`)
 - **Repository access**: Only select repositories → choose this infra repo
 - Set the permissions listed above, then generate and copy the token
 
 ---
 
-#### Environment Secrets — configured per branch under `Settings → Environments → <branch-name> → Secrets`
+### B. Environment Secrets — configured per branch
+
+> Configure these under `Settings → Environments → <your-branch-name> → Secrets`.
 
 **Cluster access — required by all Helmsman workflows:**
 
 | Secret Name | What it is | Notes |
 |---|---|---|
-| `KUBECONFIG` | Raw kubeconfig YAML | Paste the raw YAML — **do not** base64 encode it |
-| `CLUSTER_WIREGUARD_WG0` | WireGuard VPN client config | See [Secret Generation Guide](SECRET_GENERATION_GUIDE.md) |
-| `SLACK_WEBHOOK_URL` | Slack incoming webhook URL | From your Slack app's Incoming Webhooks settings |
+| `KUBECONFIG` | Raw kubeconfig YAML for your cluster | Paste the raw YAML — **do not** base64 encode it. Generated after Terraform apply completes. |
+| `CLUSTER_WIREGUARD_WG0` | WireGuard VPN client config for Helmsman runner | Different from `TF_WG_CONFIG` — this is the Helmsman runner's peer config. See [Secret Generation Guide](SECRET_GENERATION_GUIDE.md). |
 
-**For `helmsman_external.yml` (profile = `esignet`):**
+**For `helmsman_external.yml` (profile = `esignet-standalone`):**
 
 | Secret Name | What it is |
 |---|---|
@@ -163,7 +166,7 @@ Path to create: `Your profile → Settings → Developer settings → Personal a
 
 ---
 
-### B. Environment Variables
+### C. Environment Variables
 
 > Variables are non-sensitive configuration values visible in workflow logs.
 
@@ -186,14 +189,84 @@ Navigate to: `Repository → Settings → Environments → <your-branch-name> �
 
 ## 3. Deployment Steps
 
-There are **4 steps** in total. Run them in the order shown below. **Do not start the next step until the current one shows a green tick (✅) in GitHub Actions.**
+There are **5 steps** in total. Run them in the order shown below. **Do not start the next step until the current one shows a green tick (✅) in GitHub Actions.**
 
 ```
+Step 0 → Provision Infrastructure   (terraform.yml)           ~30 min  ← skip if cluster already exists
 Step 1 → Deploy External Services   (helmsman_external.yml)   ~20 min
 Step 2 → Deploy eSignet             (helmsman_esignet.yml)    ~25 min
 Step 3 → Deploy Signup              (helmsman_signup.yml)     ⚠️  IN PROGRESS — not ready yet
 Step 4 → Deploy Testrigs (optional) (helmsman_testrigs.yml)   ~10 min
 ```
+
+---
+
+### Step 0 — Provision Infrastructure (Terraform)
+
+> **What this does:** Creates the AWS infrastructure your cluster will run on — VPC, networking, EC2 nodes, WireGuard jump server, and the RKE2 Kubernetes cluster itself.
+> **Skip this step** if your cluster already exists. Jump straight to Step 1.
+
+**Terraform workflow name:** `terraform plan / apply`
+
+#### 0a — Update the tfvars file
+
+Before running the workflow, fill in the placeholders in the tfvars file for the `esignet-standalone` profile:
+
+**File:** `terraform/implementations/aws/infra/profiles/esignet-standalone/aws.tfvars`
+
+| Field | What to set |
+|---|---|
+| `cluster_name` | A short name for your cluster (e.g. `esignet-sandbox`) |
+| `cluster_env_domain` | Your base domain (e.g. `sandbox.xyz.net`) |
+| `mosip_email_id` | Email address for SSL certificate expiry alerts from Certbot |
+| `ssh_key_name` | Name of the AWS key pair to use for SSH access to nodes |
+| `zone_id` | Your Route 53 hosted zone ID for this domain |
+| `vpc_name` | Name of your existing VPC (looked up by `Name` tag) |
+| `rancher_import_url` | Rancher import URL for this cluster (from Rancher UI → Cluster → Registration) |
+| `aws_provider_region` | AWS region to deploy into (default: `ap-south-1`) |
+
+All other fields (node counts, instance types, volume sizes) are already set to sensible defaults for eSignet standalone. Review and adjust if needed.
+
+Commit the updated file on your branch before triggering the workflow.
+
+#### 0b — Run: Base Infrastructure (first time only)
+
+> Run this once per AWS account/VPC. It creates the shared base networking layer.
+
+**GitHub Actions workflow name:** `terraform plan / apply`
+
+1. Go to **Actions** → click **`terraform plan / apply`**
+2. Click **`Run workflow`** and fill in:
+
+| Field | Value |
+|---|---|
+| `cloud_provider` | `aws` |
+| `component` | `base-infra` |
+| `profile` | *(leave as default — `mosip`, ignored for `base-infra`)* |
+| `backend` | `local` *(or `s3` if you have a remote backend bucket)* |
+| `SSH_PRIVATE_KEY` | The **name** of the GitHub secret that holds your SSH private key (e.g. `SSH_PRIVATE_KEY`) |
+| `terraform_apply` | Leave **unticked** for plan-only first; tick to apply |
+
+3. Review the plan output in the workflow log, then re-run with `terraform_apply` ticked.
+
+#### 0c — Run: Main Infrastructure
+
+> This creates the Kubernetes nodes and the cluster itself.
+
+1. Trigger **`terraform plan / apply`** again with:
+
+| Field | Value |
+|---|---|
+| `cloud_provider` | `aws` |
+| `component` | `infra` |
+| `profile` | `esignet-standalone` |
+| `backend` | `local` *(or `s3`)* |
+| `SSH_PRIVATE_KEY` | Name of your SSH private key secret (e.g. `SSH_PRIVATE_KEY`) |
+| `terraform_apply` | Tick to apply |
+
+2. **After apply completes (~20 min):** Terraform will have created the cluster. Retrieve the kubeconfig from the cluster and add it as the `KUBECONFIG` environment secret (Section 2B) before proceeding.
+
+> **Note on WireGuard:** The Terraform runner connects to the nginx node via `TF_WG_CONFIG` (repository secret) to run post-provisioning scripts. `CLUSTER_WIREGUARD_WG0` (environment secret) is separate — it is used by Helmsman workflows to reach the cluster API. Both must be configured before their respective workflows run.
 
 ---
 
@@ -303,12 +376,12 @@ All pods should show `Running`.
 
 | Field | Value to enter |
 |---|---|
-| `profile` | `esignet` |
+| `profile` | `esignet-standalone` |
 | `mode` | `apply` |
 | `domain_name` | your base domain — e.g. `sandbox.xyz.net` |
 | `mosipid1_domain_name` | MOSIP-ID1 base domain *(if MOSIP-ID1 was deployed in Step 2)* |
-| `mosipid2_domain_name` | MOSIP-ID2 base domain *(if MOSIP-ID2 was deployed in Step 2)* |
-| `db_port` *(MOSIP platform external postgres)* | leave blank — not used by the `esignet` profile |
+| `mosipid2_domain_name` | MOSIP-ID2 base domain *(if `enable_mosipid2` was `true` in Step 2)* |
+| `db_port` *(MOSIP platform external postgres)* | leave blank — not used by the `esignet-standalone` profile |
 | `esignet_db_port` *(esignet container postgres)* | `5432` |
 | `env_name` | your environment name |
 | `slack_channel_name` | your Slack channel |
