@@ -1001,14 +1001,22 @@ transform_conf() {
 
 validate_wireguard_conf() {
   local label="$1" content="$2"
-  [[ ${#content} -ge 80 ]] \
-    || die "$label WireGuard config too short (${#content} bytes); expected a full peer conf"
-  grep -q '^\[Interface\]' <<<"$content" \
-    || die "$label WireGuard config missing [Interface] section"
-  grep -q '^\[Peer\]' <<<"$content" \
-    || die "$label WireGuard config missing [Peer] section"
-  grep -q '^[[:space:]]*PrivateKey[[:space:]]*=' <<<"$content" \
-    || die "$label WireGuard config missing PrivateKey"
+  if [[ ${#content} -lt 80 ]]; then
+    err "$label WireGuard config too short (${#content} bytes); expected a full peer conf"
+    return 1
+  fi
+  if ! grep -q '^\[Interface\]' <<<"$content"; then
+    err "$label WireGuard config missing [Interface] section"
+    return 1
+  fi
+  if ! grep -q '^\[Peer\]' <<<"$content"; then
+    err "$label WireGuard config missing [Peer] section"
+    return 1
+  fi
+  if ! grep -q '^[[:space:]]*PrivateKey[[:space:]]*=' <<<"$content"; then
+    err "$label WireGuard config missing PrivateKey"
+    return 1
+  fi
 }
 
 # gh secret set --body - stores the literal character "-" (1 byte), not stdin.
@@ -1016,9 +1024,12 @@ validate_wireguard_conf() {
 publish_env_secret() {
   local name="$1" content="$2" tmp rc
   validate_wireguard_conf "$name" "$content" || return 1
-  tmp="$(mktemp)"
-  chmod 600 "$tmp"
-  printf '%s\n' "$content" > "$tmp"
+  tmp="$(mktemp)" || return 1
+  chmod 600 "$tmp" || { rm -f "$tmp"; return 1; }
+  if ! printf '%s\n' "$content" > "$tmp"; then
+    rm -f "$tmp"
+    return 1
+  fi
   gh secret set "$name" --env "$ENV_NAME" --repo "$REPO" --app actions < "$tmp"
   rc=$?
   rm -f "$tmp"
