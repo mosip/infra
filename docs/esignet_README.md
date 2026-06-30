@@ -227,16 +227,17 @@ Custom Helm values are stored in:
 - **(1)** Go to **Actions** (top of the repository page) → click **"Deploy eSignet using Helmsman"** in the list on the left.
 - **(2)** Click the **Run workflow** dropdown button (top right) — this opens the form shown above.
 - **(3)** **Branch** — pick the branch you're deploying from (e.g., `MOSIP-44613`).
-- **(4)** **Deployment profile to use** — pick the profile you want (e.g., `mosip-platform-1.2.0.x`, or `esignet` for standalone).
+- **(4)** **Deployment profile to use** — pick the profile you want (e.g., `mosip-platform-1.2.0.x`, or `esignet-standalone` for standalone).
 - **(5)** **Choose Helmsman mode: dry-run or apply** — always pick **`apply`**.
 - **(6)** **Skip MOSIP DSF completion check** (checkbox) — for eSignet standalone deployments, tick this. For MOSIP platform profiles, leave it unticked (default) so the workflow waits for MOSIP to finish first.
 - **(7)** **Delete existing onboarder jobs before deploy** (checkbox) — only tick this when re-running after a failure. Leave unticked on a first-time deploy.
 - **(8)** **Domain name for this environment** — type the web domain this environment should use (e.g., `example.xyz.net`).
 - **(9)** **PostgreSQL port for esignet databases** — type `5432` for eSignet standalone, or `5433` if this is part of a MOSIP platform profile.
 - **(10)** **MOSIP-ID1 domain name** *(eSignet standalone only)* — base domain for the MOSIP-ID1 eSignet instance (e.g., `mosipid1.xyz.net`). Leave blank if you're not deploying MOSIP-ID1.
-- **(11)** **MOSIP-ID2 domain name** *(eSignet standalone only)* — base domain for the MOSIP-ID2 eSignet instance (e.g., `mosipid2.xyz.net`). Leave blank if you're not deploying MOSIP-ID2.
-- **(12)** **Environment name** — a short nickname for this environment (e.g., `sandbox`, `dev`, `staging`).
-- **(13)** Click the green **Run workflow** button to start the deployment.
+- **(11)** **Enable MOSIP-ID2 eSignet instance** *(eSignet standalone only)* — toggle to `true` to deploy the MOSIP-ID2 instance (softhsm, esignet, oidc-ui, mock-rp). Leave `false` to skip it entirely.
+- **(12)** **MOSIP-ID2 domain name** *(eSignet standalone only, required if enable_mosipid2 is true)* — base domain for the MOSIP-ID2 eSignet instance (e.g., `mosipid2.xyz.net`).
+- **(13)** **Environment name** — a short nickname for this environment (e.g., `sandbox`, `dev`, `staging`).
+- **(14)** Click the green **Run workflow** button to start the deployment.
 
 ---
 
@@ -253,13 +254,14 @@ Custom Helm values are stored in:
 
 | Input | Description | Required | Notes |
 |-------|-------------|----------|-------|
-| `profile` | Deployment profile | Yes | `mosip-platform-1.2.0.x`, `mosip-platform-1.2.1.x`, or `esignet` (standalone) |
+| `profile` | Deployment profile | Yes | `mosip-platform-1.2.0.x`, `mosip-platform-1.2.1.x`, or `esignet-standalone` |
 | `mode` | `dry-run` or `apply` | Yes | Always use `apply` — dry-run will fail |
 | `domain_name` | Your base domain | Yes | Or set `vars.DOMAIN_NAME` in GitHub Environment |
 | `esignet_db_port` | PostgreSQL port for esignet databases | Yes | `5433` for MOSIP platform external postgres, `5432` for eSignet standalone (or `vars.ESIGNET_DB_PORT`) |
-| `env_name` | Environment name shown on the landing page | Yes | Or set `vars.ENV_NAME` in GitHub Environment |
 | `mosipid1_domain_name` | Base domain for the MOSIP-ID1 eSignet instance | No | eSignet standalone only — leave blank otherwise (or `vars.MOSIPID1_DOMAIN_NAME`) |
-| `mosipid2_domain_name` | Base domain for the MOSIP-ID2 eSignet instance | No | eSignet standalone only — leave blank otherwise (or `vars.MOSIPID2_DOMAIN_NAME`) |
+| `enable_mosipid2` | Deploy MOSIP-ID2 eSignet instance | No | Toggle `true` to deploy softhsm, esignet, oidc-ui, mock-rp for mosipid2; default `false` |
+| `mosipid2_domain_name` | Base domain for the MOSIP-ID2 eSignet instance | No | Required only if `enable_mosipid2` is `true` (or `vars.MOSIPID2_DOMAIN_NAME`) |
+| `env_name` | Environment name shown on the landing page | Yes | Or set `vars.ENV_NAME` in GitHub Environment |
 | `skip_mosip_dsf_check` | Skip MOSIP DSF completion check | No | Tick for eSignet standalone deploys; default `false` otherwise |
 | `delete_existing_jobs` | Delete stale onboarder jobs before deploy | No | Set `true` when re-running after a failure |
 

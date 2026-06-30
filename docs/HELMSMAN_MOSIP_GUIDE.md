@@ -8,7 +8,7 @@ Deploy the full MOSIP core services stack (22 namespaces, 50+ microservices) aft
 **DSF:** `Helmsman/dsf/<profile>/mosip-dsf.yaml`  
 **Profiles:** `mosip-platform-1.2.0.x` (Java 11) and `mosip-platform-1.2.1.x` (Java 21)
 
-> This workflow is **not used** for the `esignet` standalone profile — eSignet standalone does not deploy the full MOSIP stack.
+> This workflow is **not used** for the `esignet-standalone` profile — eSignet standalone does not deploy the full MOSIP stack.
 
 **Time required:** 30–60 minutes
 

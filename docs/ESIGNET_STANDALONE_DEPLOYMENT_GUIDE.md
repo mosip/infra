@@ -55,12 +55,13 @@ If you only have one MOSIP system to connect to, leave mosipid2 disabled. You do
 
 **To enable mosipid2:**
 
-1. In `Helmsman/dsf/esignet/esignet-dsf.yaml`, find the mosipid2 app blocks and change `enabled: false` → `enabled: true` for each
-2. Add the `MOSIPID2_DOMAIN_NAME` environment variable in your GitHub Environment (Section 2B)
-3. Add these secrets in your GitHub Environment (Section 2A):
+1. Add the `MOSIPID2_DOMAIN_NAME` environment variable in your GitHub Environment (Section 2B)
+2. Add these secrets in your GitHub Environment (Section 2A):
    - `ESIGNET_MOSIPID2_CAPTCHA_SITE_KEY` and `ESIGNET_MOSIPID2_CAPTCHA_SECRET_KEY`
    - `MOSIPID2_POSTGRES_PASSWORD` and `MOSIPID2_KEYCLOAK_ADMIN_PASSWORD`
-4. Provide the `mosipid2_domain_name` input when running the eSignet workflow (Step 2)
+3. When running the eSignet workflow (Step 2), toggle **`enable_mosipid2`** to `true` and fill in the `mosipid2_domain_name` field
+
+> No DSF file edits needed — `enable_mosipid2` is a workflow input toggle that controls deployment at runtime.
 
 ---
 
@@ -212,16 +213,16 @@ Step 4 → Deploy Testrigs (optional) (helmsman_testrigs.yml)   ~10 min
 
 | Field | Value to enter |
 |---|---|
-| `profile` | `esignet` |
+| `profile` | `esignet-standalone` |
 | `mode` | `apply` |
 | `domain_name` | your base domain — e.g. `sandbox.xyz.net` |
-| `db_port` *(MOSIP platform external postgres)* | leave blank — not used by the `esignet` profile |
+| `db_port` *(MOSIP platform external postgres)* | leave blank — not used by the `esignet-standalone` profile |
 | `esignet_db_port` *(esignet container postgres)* | `5432` |
 | `clusterid` | your Rancher cluster ID — e.g. `c-xxxxx` |
 | `env_name` | a short label for your environment — e.g. `sandbox` |
 | `slack_channel_name` | your Slack channel — e.g. `#mosip-alerts` |
 
-> **Note:** The form always shows both `db_port` and `esignet_db_port` fields regardless of profile — for `esignet`, fill in only `esignet_db_port` and leave `db_port` blank.
+> **Note:** The form always shows both `db_port` and `esignet_db_port` fields regardless of profile — for `esignet-standalone`, fill in only `esignet_db_port` and leave `db_port` blank.
 
 6. Click the green **`Run workflow`** button
 
@@ -249,14 +250,15 @@ All pods should show `Running` or `Completed`.
 
 | Field | Value to enter |
 |---|---|
-| `profile` | `esignet` |
+| `profile` | `esignet-standalone` |
 | `mode` | `apply` |
 | `skip_mosip_dsf_check` | **tick this** — standalone has no MOSIP deployment to wait for |
 | `delete_existing_jobs` | tick only if re-running after a failure; leave unticked on first deploy |
 | `domain_name` | your base domain — e.g. `sandbox.xyz.net` |
 | `esignet_db_port` | `5432` |
 | `mosipid1_domain_name` | MOSIP-ID1 base domain — e.g. `mosipid1.xyz.net` *(leave blank if not using MOSIP-ID1)* |
-| `mosipid2_domain_name` | MOSIP-ID2 base domain — e.g. `mosipid2.xyz.net` *(leave blank if not using MOSIP-ID2)* |
+| `enable_mosipid2` | toggle `true` to deploy the MOSIP-ID2 eSignet instance; leave `false` to skip it |
+| `mosipid2_domain_name` | MOSIP-ID2 base domain — e.g. `mosipid2.xyz.net` *(only required if `enable_mosipid2` is true)* |
 | `env_name` | your environment name — e.g. `sandbox` |
 
 > **Important:** Always tick `skip_mosip_dsf_check` for standalone eSignet — without it, the workflow waits for a `mosip-dsf=completed` namespace label that will never appear (there is no full MOSIP deployment in this mode), and the workflow will fail.
@@ -267,7 +269,9 @@ All pods should show `Running` or `Completed`.
 
 **How to know it succeeded:**
 ```bash
-kubectl get pods -n esignet-mock && kubectl get pods -n esignet-mosipid1 && kubectl get pods -n esignet-mosipid2 && kubectl get pods -n esignet-sunbird
+kubectl get pods -n esignet-mock && kubectl get pods -n esignet-mosipid1 && kubectl get pods -n esignet-sunbird
+# If enable_mosipid2 was set to true:
+kubectl get pods -n esignet-mosipid2
 ```
 All pods should show `Running`.
 

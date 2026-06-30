@@ -162,7 +162,7 @@ If Terraform Apply = ☐ (unchecked)
  | **Use workflow from** | `Branch: release-0.1.0` | Your branch | Dropdown at top |
  | **Cloud Provider** | `aws` | `aws` | Where to deploy |
  | **Component** | `infra` | `infra` | Main MOSIP infrastructure |
- | **Profile** | `esignet` or `mosip` | `esignet` | Selects tfvars and cluster size — see below |
+ | **Profile** | `esignet-standalone` or `mosip` | `esignet` | Selects tfvars and cluster size — see below |
  | **Backend** | `local` or `s3` | `local` | State storage location |
  | **Terraform apply** | ✅ | ✅ | Check to deploy, uncheck for dry run |
 
@@ -246,7 +246,7 @@ If Terraform Apply = ☐ (unchecked)
 
 ### Deployment Flow
 
-**eSignet standalone profile** (`profile=esignet`):
+**eSignet standalone profile** (`profile=esignet-standalone`):
 ```
 External (prereq + external-dsf, parallel) → eSignet (4 parallel instances) → Testrigs
 ```
@@ -310,7 +310,7 @@ Mode: apply ✅
  | Parameter | What to Select | Notes |
  |-----------|---------------|-------|
  | **Branch** | Your deployment branch | Selects the GitHub Environment for secrets/vars |
- | **profile** | `esignet` / `mosip-platform-1.2.0.x` / `mosip-platform-1.2.1.x` | Selects DSF subdirectory |
+ | **profile** | `esignet-standalone` / `mosip-platform-1.2.0.x` / `mosip-platform-1.2.1.x` | Selects DSF subdirectory |
  | **mode** | `apply` | MUST be apply, not dry-run! |
  | **domain_name** | `sandbox.example.net` | Your deployment domain (or set `vars.DOMAIN_NAME`) |
  | **db_port** | `5433` | MOSIP platform external postgres port (or `vars.DB_PORT`) |
@@ -332,7 +332,7 @@ Mode: apply ✅
  ```
  ✅ On success → Automatically triggers MOSIP Services deployment (for MOSIP platform profiles)
  ```
- > For `profile=esignet`, the MOSIP auto-trigger is skipped — run the eSignet workflow directly next.
+ > For `profile=esignet-standalone`, the MOSIP auto-trigger is skipped — run the eSignet workflow directly next.
 
 ---
 
@@ -342,7 +342,7 @@ Mode: apply ✅
 
 **Workflow Name**: `Deploy MOSIP services using Helmsman`
 
-**Trigger**: Automatically runs after Workflow 1 succeeds (MOSIP platform profiles only — NOT triggered for `profile=esignet`)
+**Trigger**: Automatically runs after Workflow 1 succeeds (MOSIP platform profiles only — NOT triggered for `profile=esignet-standalone`)
 
 **Manual Run** (if needed):
 
@@ -383,16 +383,17 @@ Mode: apply ✅
  | Parameter | What to Select | Notes |
  |-----------|---------------|-------|
  | **Branch** | Your deployment branch | |
- | **profile** | `esignet` / `mosip-platform-1.2.0.x` / `mosip-platform-1.2.1.x` | Must match what you used for external-dsf |
+ | **profile** | `esignet-standalone` / `mosip-platform-1.2.0.x` / `mosip-platform-1.2.1.x` | Must match what you used for external-dsf |
  | **mode** | `apply` | MUST be apply! |
  | **domain_name** | `sandbox.example.net` | Or set `vars.DOMAIN_NAME` |
  | **esignet_db_port** | `5432` (esignet) / `5433` (MOSIP platform) | Or set `vars.ESIGNET_DB_PORT` |
- | **mosipid1_domain_name** | `mosipid1.example.net` | esignet profile only — MOSIP-ID1 environment domain |
- | **mosipid2_domain_name** | `mosipid2.example.net` | esignet profile only — MOSIP-ID2 environment domain |
+ | **mosipid1_domain_name** | `mosipid1.example.net` | esignet-standalone profile only — MOSIP-ID1 environment domain |
+ | **enable_mosipid2** | `false` (default) / `true` | Toggle to deploy MOSIP-ID2 instance; leave `false` to skip |
+ | **mosipid2_domain_name** | `mosipid2.example.net` | Required only if `enable_mosipid2` is `true` |
  | **skip_mosip_dsf_check** | `true` for standalone, `false` when MOSIP is deployed | |
  | **delete_existing_jobs** | `true` when re-running after a failed attempt | Cleans up stale onboarder jobs |
 
-3. **Monitor Progress** (25-35 minutes for esignet profile with 4 instances)
+3. **Monitor Progress** (25-35 minutes for esignet-standalone profile with up to 4 instances)
  ```
  → SoftHSM (all 4 namespaces)
  → Config server
@@ -444,8 +445,8 @@ kubectl get pods -n esignet-sunbird # esignet profile only
  | **profile** | Same as your deployment profile | |
  | **mode** | `apply` | |
  | **domain_name** | `sandbox.example.net` | Or `vars.DOMAIN_NAME` |
- | **mosipid1_domain_name** | `mosipid1.example.net` | esignet profile only |
- | **mosipid2_domain_name** | `mosipid2.example.net` | esignet profile only |
+ | **mosipid1_domain_name** | `mosipid1.example.net` | esignet-standalone profile only |
+ | **mosipid2_domain_name** | `mosipid2.example.net` | esignet-standalone only — required if mosipid2 was enabled |
  | **db_port** | `5433` | MOSIP platform only |
  | **esignet_db_port** | `5432` | eSignet profile |
 
@@ -523,10 +524,10 @@ Profile: [esignet | mosip]
 
 | Profile | tfvars file | Cluster size | Use for |
 |---------|------------|--------------|---------|
-| `esignet` | `profiles/esignet/aws.tfvars` | 4-node K8s cluster | eSignet standalone deployment |
-| `mosip` | `profiles/mosip/aws.tfvars` | 7-node K8s cluster | Full MOSIP platform deployment |
+| `esignet-standalone` | `profiles/esignet-standalone/aws.tfvars` | eSignet standalone deployment |
+| `mosip` | `profiles/mosip/aws.tfvars` | Full MOSIP platform deployment |
 
-**Important**: The Terraform profile (`esignet` / `mosip`) and the Helmsman profile (`esignet` / `mosip-platform-1.2.0.x` / `mosip-platform-1.2.1.x`) are separate inputs. After running `infra` with `profile=mosip`, you choose the specific MOSIP platform version when running the Helmsman workflows.
+**Important**: The Terraform profile (`esignet-standalone` / `mosip`) and the Helmsman profile (`esignet-standalone` / `mosip-platform-1.2.0.x` / `mosip-platform-1.2.1.x`) are separate inputs. After running `infra` with `profile=mosip`, you choose the specific MOSIP platform version when running the Helmsman workflows.
 
 ---
 
@@ -754,7 +755,7 @@ Updating existing deployment → ☐ Uncheck first to see changes
 
 ## Visual Workflow Summary
 
-### eSignet Standalone (`profile=esignet`)
+### eSignet Standalone (`profile=esignet-standalone`)
 
 ```
 DEPLOYMENT FLOW:
@@ -766,14 +767,14 @@ DEPLOYMENT FLOW:
  └── RKE2 Kubernetes cluster
  └── PAUSE: Add KUBECONFIG secret
 
-3. Helmsman: External Dependencies  [helmsman_external.yml, profile=esignet]
+3. Helmsman: External Dependencies  [helmsman_external.yml, profile=esignet-standalone]
  └── prereq-dsf + external-dsf (parallel)
  └── PostgreSQL, Redis, Kafka, SoftHSM, Keycloak, Captcha, MinIO
 
-4. Helmsman: eSignet  [helmsman_esignet.yml, profile=esignet]
- └── 4 parallel instances (esignet / esignet-mosipid1 / esignet-mosipid2 / esignet-sunbird)
+4. Helmsman: eSignet  [helmsman_esignet.yml, profile=esignet-standalone]
+ └── 3 instances always (esignet-mock / esignet-mosipid1 / esignet-sunbird) + esignet-mosipid2 if enable_mosipid2=true
 
-5. Helmsman: Test Rigs  [helmsman_testrigs.yml, profile=esignet, manual]
+5. Helmsman: Test Rigs  [helmsman_testrigs.yml, profile=esignet-standalone, manual]
  └── API testrigs for all 4 esignet namespaces
  └── ✅ Deployment Complete!
 ```
