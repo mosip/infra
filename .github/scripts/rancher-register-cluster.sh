@@ -89,7 +89,7 @@ api() {
   local method="$1" path="$2" body="${3:-}"
   local tmp status curl_args=()
   tmp="$(mktemp "${TMPDIR:-/tmp}/rancher-api.XXXXXX")"
-  trap 'rm -f "$tmp"' RETURN
+  trap "rm -f $(printf %q "$tmp")" RETURN
 
   curl_args=(
     -sS
