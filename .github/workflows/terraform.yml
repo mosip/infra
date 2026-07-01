@@ -361,22 +361,23 @@ jobs:
         env:
           RANCHER_URL: ${{ secrets.RANCHER_API_URL }}
           RANCHER_TOKEN: ${{ secrets.RANCHER_API_TOKEN }}
+          RANCHER_CLUSTER_NAME_INPUT: ${{ inputs.RANCHER_CLUSTER_NAME }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
           if [ -z "$RANCHER_URL" ] || [ -z "$RANCHER_TOKEN" ]; then
-            echo "ERROR: RANCHER_API_URL and RANCHER_API_TOKEN must be set for environment '${{ github.ref_name }}'"
+            echo "ERROR: RANCHER_API_URL and RANCHER_API_TOKEN must be set for environment '$REF_NAME'"
             exit 1
           fi
-          CLUSTER_NAME="${{ inputs.RANCHER_CLUSTER_NAME != '' && inputs.RANCHER_CLUSTER_NAME || github.ref_name }}"
+          CLUSTER_NAME="${RANCHER_CLUSTER_NAME_INPUT:-$REF_NAME}"
           echo "Registering cluster '$CLUSTER_NAME' in Rancher..."
-          chmod +x "${{ github.workspace }}/.github/scripts/rancher-register-cluster.sh"
-          IMPORT_CMD="$("${{ github.workspace }}/.github/scripts/rancher-register-cluster.sh" \
+          chmod +x "$GITHUB_WORKSPACE/.github/scripts/rancher-register-cluster.sh"
+          IMPORT_CMD="$("$GITHUB_WORKSPACE/.github/scripts/rancher-register-cluster.sh" \
             --rancher-url "$RANCHER_URL" \
             --token "$RANCHER_TOKEN" \
             --cluster-name "$CLUSTER_NAME" | tail -n1)"
           echo "TF_VAR_rancher_import_url=$IMPORT_CMD" >> "$GITHUB_ENV"
           echo "TF_VAR_enable_rancher_import=true" >> "$GITHUB_ENV"
           echo "Rancher import URL minted for: $CLUSTER_NAME"
-        
       - name: Terraform Plan
         id: plan
         run: |
