@@ -31,7 +31,7 @@ Required (flags or env vars RANCHER_URL / RANCHER_TOKEN / CLUSTER_NAME):
   --cluster-name <name>  Cluster name to register/import in Rancher
 
 Optional:
-  --insecure             Emit the insecure import command (self-signed Rancher TLS)
+  --insecure             Skip TLS verification for Rancher API calls (self-signed cert)
   -h, --help             Show help
 
 Output (stdout, last line): "kubectl apply -f https://<host>/v3/import/<id>.yaml"
@@ -42,11 +42,16 @@ err() { echo "[rancher-register][ERROR] $*" >&2; }
 die() { err "$*"; exit 1; }
 log() { echo "[rancher-register] $*" >&2; }
 
+require_arg() {
+  local flag="$1"
+  [[ $# -ge 2 && -n "${2:-}" && "$2" != --* ]] || die "$flag requires a value"
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --rancher-url)   RANCHER_URL="$2"; shift 2 ;;
-    --token)         RANCHER_TOKEN="$2"; shift 2 ;;
-    --cluster-name)  CLUSTER_NAME="$2"; shift 2 ;;
+    --rancher-url)   require_arg --rancher-url "${2-}"; RANCHER_URL="$2"; shift 2 ;;
+    --token)         require_arg --token "${2-}";       RANCHER_TOKEN="$2"; shift 2 ;;
+    --cluster-name)  require_arg --cluster-name "${2-}"; CLUSTER_NAME="$2"; shift 2 ;;
     --insecure)      INSECURE="true"; shift ;;
     -h|--help)       usage; exit 0 ;;
     *)               die "Unknown argument: $1 (use --help)" ;;
@@ -140,7 +145,7 @@ IMPORT_TOKEN=""
 
 try_create_registration_token() {
   log "Attempting to create a registration token (optional) ..."
-  if api POST "/v3/clusterregistrationtoken" \
+  if api POST "/v3/clusterregistrationtokens" \
     "{\"type\":\"clusterRegistrationToken\",\"clusterId\":\"${CLUSTER_ID}\"}" >/dev/null 2>&1; then
     log "Registration token create request accepted"
   else
@@ -152,8 +157,8 @@ log "Resolving cluster registration token ..."
 POST_TRIED="false"
 
 for attempt in $(seq 1 45); do
-  TOKEN_LIST="$(fetch_registration_token_list)"
-  TOKEN_COUNT="$(echo "$TOKEN_LIST" | jq -r '(.data // []) | length')"
+  TOKEN_LIST="$(fetch_registration_token_list || true)"
+  TOKEN_COUNT="$(echo "$TOKEN_LIST" | jq -r '(.data // []) | length' 2>/dev/null || echo 0)"
   read_token_fields_from_list "$TOKEN_LIST" || true
   if token_fields_ready; then
     break
@@ -172,24 +177,51 @@ for attempt in $(seq 1 45); do
   sleep 2
 done
 
-IMPORT_CMD=""
-if [[ "$INSECURE" == "true" && -n "$INSECURE_CMD" ]]; then
-  IMPORT_CMD="$INSECURE_CMD"
-elif [[ -n "$COMMAND" ]]; then
-  IMPORT_CMD="$COMMAND"
-elif [[ -n "$MANIFEST_URL" ]]; then
-  IMPORT_CMD="kubectl apply -f ${MANIFEST_URL}"
-elif [[ -n "$IMPORT_TOKEN" ]]; then
-  IMPORT_CMD="kubectl apply -f ${RANCHER_URL}/v3/import/${IMPORT_TOKEN}.yaml"
-fi
+extract_manifest_url() {
+  local raw="$1"
+  [[ -n "$raw" ]] || return 1
+  if [[ "$raw" =~ (https://[^[:space:]]+/v3/import/[^[:space:]]+\.yaml) ]]; then
+    echo "${BASH_REMATCH[1]}"
+    return 0
+  fi
+  return 1
+}
 
-if [[ -z "$IMPORT_CMD" ]]; then
+build_terraform_import_cmd() {
+  local url=""
+
+  url="$(extract_manifest_url "$MANIFEST_URL" || true)"
+  if [[ -n "$url" ]]; then
+    echo "kubectl apply -f ${url}"
+    return 0
+  fi
+
+  if [[ -n "$IMPORT_TOKEN" ]]; then
+    echo "kubectl apply -f ${RANCHER_URL}/v3/import/${IMPORT_TOKEN}.yaml"
+    return 0
+  fi
+
+  for candidate in "$COMMAND" "$INSECURE_CMD"; do
+    url="$(extract_manifest_url "$candidate" || true)"
+    if [[ -n "$url" ]]; then
+      echo "kubectl apply -f ${url}"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+IMPORT_CMD=""
+if ! IMPORT_CMD="$(build_terraform_import_cmd)"; then
   err "Could not determine import command. Token summary:"
   echo "$TOKEN_LIST" | jq '{count: (.data|length), tokens: [.data[] | {name, command: .status.command, manifestUrl: .status.manifestUrl, token: (if .status.token then "set" else "empty" end)}]}' >&2 || true
   die "Registration token status never became ready"
 fi
 
-IMPORT_CMD="$(echo "$IMPORT_CMD" | sed -E 's/.*(kubectl apply -f https:\/\/[^ ]+\.yaml).*/\1/')"
+if [[ ! "$IMPORT_CMD" =~ ^kubectl[[:space:]]+apply[[:space:]]+-f[[:space:]]+https://[^[:space:]]+/v3/import/[^[:space:]]+\.yaml$ ]]; then
+  die "Import command is not in Terraform-compatible form: $IMPORT_CMD"
+fi
 
 log "Import command resolved."
 printf '"%s"\n' "$IMPORT_CMD"

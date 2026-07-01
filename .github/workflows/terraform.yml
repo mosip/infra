@@ -368,7 +368,8 @@ jobs:
           fi
           CLUSTER_NAME="${{ inputs.RANCHER_CLUSTER_NAME != '' && inputs.RANCHER_CLUSTER_NAME || github.ref_name }}"
           echo "Registering cluster '$CLUSTER_NAME' in Rancher..."
-          IMPORT_CMD="$("${{ github.workspace }}/scripts/rancher-register-cluster.sh" \
+          chmod +x "${{ github.workspace }}/.github/scripts/rancher-register-cluster.sh"
+          IMPORT_CMD="$("${{ github.workspace }}/.github/scripts/rancher-register-cluster.sh" \
             --rancher-url "$RANCHER_URL" \
             --token "$RANCHER_TOKEN" \
             --cluster-name "$CLUSTER_NAME" | tail -n1)"
