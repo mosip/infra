@@ -75,7 +75,16 @@ on:
         required: false
         type: boolean
         default: false
-
+      ENABLE_RANCHER_IMPORT:
+        description: 'Auto-register cluster in Rancher via API (needs RANCHER_API_URL + RANCHER_API_TOKEN secrets)'
+        required: false
+        type: boolean
+        default: false
+      RANCHER_CLUSTER_NAME:
+        description: 'Rancher cluster name (defaults to branch/env name)'
+        required: false
+        type: string
+        
 env:
   # TF_LOG_PATH: ./temp/terraform.log
   ## TRACE, DEBUG, INFO, WARN or ERROR
@@ -347,6 +356,26 @@ jobs:
           echo "✅ Ansible installed successfully for GitHub Actions runner"
         if: "${{ inputs.TERRAFORM_COMPONENT == 'infra' }}"
 
+      - name: Generate Rancher import URL via API
+        if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.ENABLE_RANCHER_IMPORT == true }}
+        env:
+          RANCHER_URL: ${{ secrets.RANCHER_API_URL }}
+          RANCHER_TOKEN: ${{ secrets.RANCHER_API_TOKEN }}
+        run: |
+          if [ -z "$RANCHER_URL" ] || [ -z "$RANCHER_TOKEN" ]; then
+            echo "ERROR: RANCHER_API_URL and RANCHER_API_TOKEN must be set for environment '${{ github.ref_name }}'"
+            exit 1
+          fi
+          CLUSTER_NAME="${{ inputs.RANCHER_CLUSTER_NAME != '' && inputs.RANCHER_CLUSTER_NAME || github.ref_name }}"
+          echo "Registering cluster '$CLUSTER_NAME' in Rancher..."
+          IMPORT_CMD="$("${{ github.workspace }}/scripts/rancher-register-cluster.sh" \
+            --rancher-url "$RANCHER_URL" \
+            --token "$RANCHER_TOKEN" \
+            --cluster-name "$CLUSTER_NAME" | tail -n1)"
+          echo "TF_VAR_rancher_import_url=$IMPORT_CMD" >> "$GITHUB_ENV"
+          echo "TF_VAR_enable_rancher_import=true" >> "$GITHUB_ENV"
+          echo "Rancher import URL minted for: $CLUSTER_NAME"
+        
       - name: Terraform Plan
         id: plan
         run: |
