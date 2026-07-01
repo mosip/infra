@@ -19,7 +19,9 @@ set -euo pipefail
 RANCHER_URL="${RANCHER_URL:-}"        # e.g. https://rancher.mosip.net  (NO /v3)
 RANCHER_TOKEN="${RANCHER_TOKEN:-}"    # token-xxxxx:yyyyy (Bearer)
 CLUSTER_NAME="${CLUSTER_NAME:-}"
-INSECURE="${INSECURE:-false}"         # skip TLS verify for Rancher API (self-signed)
+INSECURE="${INSECURE:-false}"         # skip TLS verify for Rancher API calls only
+MAX_ATTEMPTS="${MAX_ATTEMPTS:-30}"
+SLEEP_SECONDS="${SLEEP_SECONDS:-2}"
 
 usage() {
   cat <<'EOF'
@@ -31,8 +33,12 @@ Required (flags or env vars RANCHER_URL / RANCHER_TOKEN / CLUSTER_NAME):
   --cluster-name <name>  Cluster name ([a-zA-Z0-9._-]+ only)
 
 Optional:
-  --insecure             Skip TLS verification for Rancher API calls (self-signed cert)
+  --insecure             Skip TLS verification for Rancher API calls only (not the import URL)
   -h, --help             Show help
+
+Environment (optional):
+  MAX_ATTEMPTS           Poll attempts for registration token (default: 30)
+  SLEEP_SECONDS          Seconds between poll attempts (default: 2)
 
 Output (stdout, last line): "kubectl apply -f https://<host>/v3/import/<id>.yaml"
 EOF
@@ -74,11 +80,16 @@ RANCHER_URL="${RANCHER_URL%/}"
   || die "RANCHER_URL must begin with https:// (got: $RANCHER_URL)"
 [[ "$CLUSTER_NAME" =~ ^[a-zA-Z0-9._-]+$ ]] \
   || die "CLUSTER_NAME must contain only [a-zA-Z0-9._-] (got: $CLUSTER_NAME)"
+[[ "$MAX_ATTEMPTS" =~ ^[0-9]+$ && "$MAX_ATTEMPTS" -gt 0 ]] \
+  || die "MAX_ATTEMPTS must be a positive integer (got: $MAX_ATTEMPTS)"
+[[ "$SLEEP_SECONDS" =~ ^[0-9]+$ && "$SLEEP_SECONDS" -gt 0 ]] \
+  || die "SLEEP_SECONDS must be a positive integer (got: $SLEEP_SECONDS)"
 
 api() {
   local method="$1" path="$2" body="${3:-}"
   local tmp status curl_args=()
   tmp="$(mktemp "${TMPDIR:-/tmp}/rancher-api.XXXXXX")"
+  trap 'rm -f "$tmp"' RETURN
 
   curl_args=(
     -sS
@@ -97,19 +108,16 @@ api() {
   if ! status="$(curl "${curl_args[@]}" "${RANCHER_URL}${path}")"; then
     err "Rancher API ${method} ${path}: curl failed"
     [[ -s "$tmp" ]] && cat "$tmp" >&2
-    rm -f "$tmp"
     return 1
   fi
 
   if [[ ! "$status" =~ ^[0-9]+$ ]] || (( status >= 400 )); then
     err "Rancher API ${method} ${path} failed with HTTP ${status:-unknown}"
     [[ -s "$tmp" ]] && cat "$tmp" >&2
-    rm -f "$tmp"
     return 1
   fi
 
   cat "$tmp"
-  rm -f "$tmp"
 }
 
 json_cluster_create_body() {
@@ -156,17 +164,25 @@ build_terraform_import_cmd() {
 }
 
 token_fields_ready() {
-  build_terraform_import_cmd >/dev/null 2>&1
+  [[ -n "$IMPORT_TOKEN" ]] && return 0
+  extract_manifest_url "$MANIFEST_URL" >/dev/null 2>&1 && return 0
+  local candidate
+  for candidate in "$COMMAND" "$INSECURE_CMD"; do
+    extract_manifest_url "$candidate" >/dev/null 2>&1 && return 0
+  done
+  return 1
 }
 
-lookup_cluster_id() {
+fetch_cluster_id_by_name() {
   local json count id
-  json="$(api GET "/v3/clusters?name=$(urlencode "$CLUSTER_NAME")")"
+  json="$(api GET "/v3/clusters?name=$(urlencode "$CLUSTER_NAME")" || true)"
+  [[ -n "$json" ]] || return 1
   count="$(jq -r --arg name "$CLUSTER_NAME" '[.data[]? | select(.name == $name)] | length' <<<"$json")"
   if (( count > 1 )); then
     die "Multiple Rancher clusters named '$CLUSTER_NAME'; resolve duplicates manually"
   fi
   id="$(jq -r --arg name "$CLUSTER_NAME" '[.data[]? | select(.name == $name)][0].id // empty' <<<"$json")"
+  [[ -n "$id" ]] || return 1
   printf '%s' "$id"
 }
 
@@ -191,10 +207,10 @@ read_token_fields_from_list() {
     def pick($k): (.status[$k] // .[$k] // "");
     pick("manifestUrl"), pick("command"), pick("insecureCommand"), pick("token")
   ' <<<"$token_obj")
-  MANIFEST_URL="${_token_fields[0]}"
-  COMMAND="${_token_fields[1]}"
-  INSECURE_CMD="${_token_fields[2]}"
-  IMPORT_TOKEN="${_token_fields[3]}"
+  MANIFEST_URL="${_token_fields[0]:-}"
+  COMMAND="${_token_fields[1]:-}"
+  INSECURE_CMD="${_token_fields[2]:-}"
+  IMPORT_TOKEN="${_token_fields[3]:-}"
 }
 
 fetch_registration_token_list() {
@@ -217,14 +233,23 @@ INSECURE_CMD=""
 IMPORT_TOKEN=""
 
 log "Looking up cluster '${CLUSTER_NAME}' in Rancher ..."
-CLUSTER_ID="$(lookup_cluster_id)"
+CLUSTER_ID="$(fetch_cluster_id_by_name || true)"
 
 if [[ -z "$CLUSTER_ID" ]]; then
   log "Cluster not found; creating imported cluster '${CLUSTER_NAME}' ..."
-  CLUSTER_ID="$(api POST "/v3/clusters" "$(json_cluster_create_body)" | jq -r '.id // empty')"
-  [[ -n "$CLUSTER_ID" ]] || die "Failed to create cluster in Rancher"
-  CLUSTER_JUST_CREATED="true"
-  log "Created cluster id=${CLUSTER_ID} (Rancher will auto-create a default registration token)"
+  create_response=""
+  if create_response="$(api POST "/v3/clusters" "$(json_cluster_create_body)")"; then
+    CLUSTER_ID="$(jq -r '.id // empty' <<<"$create_response")"
+  fi
+  if [[ -z "$CLUSTER_ID" ]]; then
+    log "Create failed or conflict; re-checking if cluster already exists..."
+    CLUSTER_ID="$(fetch_cluster_id_by_name || true)"
+    CLUSTER_JUST_CREATED="false"
+  else
+    CLUSTER_JUST_CREATED="true"
+    log "Created cluster id=${CLUSTER_ID} (Rancher will auto-create a default registration token)"
+  fi
+  [[ -n "$CLUSTER_ID" ]] || die "Failed to create or find cluster '$CLUSTER_NAME' in Rancher"
 else
   log "Found existing cluster id=${CLUSTER_ID}"
 fi
@@ -233,9 +258,12 @@ log "Resolving cluster registration token ..."
 POST_TRIED="false"
 TOKEN_LIST=""
 
-for ((attempt = 1; attempt <= 45; attempt++)); do
+for ((attempt = 1; attempt <= MAX_ATTEMPTS; attempt++)); do
   TOKEN_LIST="$(fetch_registration_token_list || true)"
-  TOKEN_COUNT="$(jq -r '(.data // []) | length' <<<"${TOKEN_LIST:-{}}" 2>/dev/null || echo 0)"
+  TOKEN_COUNT=0
+  if [[ -n "$TOKEN_LIST" ]]; then
+    TOKEN_COUNT="$(jq -r '(.data // []) | length' <<<"$TOKEN_LIST" 2>/dev/null || echo 0)"
+  fi
   read_token_fields_from_list "$TOKEN_LIST" || true
   if token_fields_ready; then
     break
@@ -250,21 +278,29 @@ for ((attempt = 1; attempt <= 45; attempt++)); do
     fi
   fi
 
-  log "Waiting for registration token status (attempt ${attempt}/45) ..."
-  sleep 2
+  log "Waiting for registration token status (attempt ${attempt}/${MAX_ATTEMPTS}) ..."
+  sleep "$SLEEP_SECONDS"
 done
 
 IMPORT_CMD=""
 if ! IMPORT_CMD="$(build_terraform_import_cmd)"; then
   err "Could not determine import command. Token summary:"
-  jq '{count: (.data|length), tokens: [.data[]? | {name, command: .status.command, manifestUrl: .status.manifestUrl, token: (if .status.token then "set" else "empty" end)}]}' \
-    <<<"${TOKEN_LIST:-{}}" >&2 || true
+  if [[ -n "$TOKEN_LIST" ]]; then
+    jq '{count: (.data|length), tokens: [.data[]? | {name, command: .status.command, manifestUrl: .status.manifestUrl, token: (if .status.token then "set" else "empty" end)}]}' \
+      <<<"$TOKEN_LIST" >&2 || true
+  fi
   die "Registration token status never became ready"
 fi
 
 if [[ ! "$IMPORT_CMD" =~ ^kubectl[[:space:]]+apply[[:space:]]+-f[[:space:]]+https://[^[:space:]]+/v3/import/[^[:space:]]+\.yaml$ ]]; then
   die "Import command is not in Terraform-compatible form: $IMPORT_CMD"
 fi
+
+manifest_url="$(extract_manifest_url "$IMPORT_CMD" || true)"
+[[ -n "$manifest_url" ]] \
+  || die "Could not extract import manifest URL from: $IMPORT_CMD"
+[[ "$manifest_url" == "${RANCHER_URL}/v3/import/"* ]] \
+  || die "Import URL host does not match RANCHER_URL (got: $manifest_url)"
 
 log "Import command resolved."
 printf '"%s"\n' "$IMPORT_CMD"
