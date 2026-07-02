@@ -329,7 +329,7 @@ apps:
     enabled: true
     version: 18.3.1
     chart: bitnami/kafka
-    valuesFile: "$WORKDIR/utils/kafka-values.yaml/"
+    valuesFile: "$WORKDIR/utils/kafka-values.yaml"
     set:
       # Add these for image overrides
       image.repository: "mosipid/kafka"
