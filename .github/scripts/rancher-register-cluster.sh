@@ -189,11 +189,17 @@ fetch_cluster_id_by_name() {
 pick_best_token_json() {
   local list="$1"
   jq -c '
+    def usable:
+      ((.status.manifestUrl // .manifestUrl //
+        .status.command // .command //
+        .status.insecureCommand // .insecureCommand //
+        .status.token // .token // "") != "");
     (.data // []) as $d |
     if ($d | length) == 0 then empty
     else
+      ([$d[] | select((.name == "default-token") and usable)] | .[0]) //
+      ([$d[] | select(usable)] | .[-1]) //
       ([$d[] | select(.name == "default-token")] | .[0]) //
-      ([$d[] | select((.status.manifestUrl // .status.command // .status.token // "") != "")] | .[-1]) //
       $d[-1]
     end
   ' <<<"$list"
@@ -219,7 +225,7 @@ fetch_registration_token_list() {
 
 try_create_registration_token() {
   log "Attempting to create a registration token (optional) ..."
-  if api POST "/v3/clusterregistrationtokens" "$(json_registration_token_body)"; then
+  if api POST "/v3/clusterregistrationtokens" "$(json_registration_token_body)" >/dev/null; then
     log "Registration token create request accepted"
   else
     log "Registration token create skipped or denied (default-token may already exist)"
@@ -286,7 +292,18 @@ IMPORT_CMD=""
 if ! IMPORT_CMD="$(build_terraform_import_cmd)"; then
   err "Could not determine import command. Token summary:"
   if [[ -n "$TOKEN_LIST" ]]; then
-    jq '{count: (.data|length), tokens: [.data[]? | {name, command: .status.command, manifestUrl: .status.manifestUrl, token: (if .status.token then "set" else "empty" end)}]}' \
+    jq '
+      def redact:
+        if type == "string" then
+          gsub("/v3/import/[^/[:space:]]+\\.yaml"; "/v3/import/<redacted>.yaml")
+        else . end;
+      {count: (.data|length), tokens: [.data[]? | {
+        name,
+        command: (.status.command | redact),
+        manifestUrl: (.status.manifestUrl | redact),
+        token: (if .status.token then "set" else "empty" end)
+      }]}
+    ' \
       <<<"$TOKEN_LIST" >&2 || true
   fi
   die "Registration token status never became ready"
