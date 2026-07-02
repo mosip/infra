@@ -156,8 +156,8 @@ apps:
       postgresql.image.tag: "14.2.0-debian-10-r70"
       # postgresql.primary.limits.requests.cpu: 250m
       # postgresql.primary.limits.requests.memory: 256Mi      
-      postgresql.primary.resources.requests.cpu: 250m
-      postgresql.primary.resources.requests.memory: 256Mi
+      postgresql.primary.resources.requests.cpu: 512m
+      postgresql.primary.resources.requests.memory: 512Mi
       # postgresql.architecture: replication
       # postgresql.primary.replicaCount: 1
       # postgresql.primary.persistence.enabled: true
@@ -329,6 +329,7 @@ apps:
     enabled: true
     version: 18.3.1
     chart: bitnami/kafka
+    valuesFile: "$WORKDIR/utils/kafka-values.yaml//"
     set:
       # Add these for image overrides
       image.repository: "mosipid/kafka"
