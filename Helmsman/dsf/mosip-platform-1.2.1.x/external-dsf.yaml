@@ -64,27 +64,27 @@ apps:
     set:
       dbUserPasswords.dbuserPassword: ""
       databases.mosip_master.enabled: "true"
-      databases.mosip_master.branch: "v1.3.0"
+      databases.mosip_master.branch: "v1.3.1"
       databases.mosip_master.host: "postgres.${domain_name}"
       databases.mosip_master.port: ${db_port}
 
       databases.mosip_audit.enabled: "true"
-      databases.mosip_audit.branch: "v1.3.0"
+      databases.mosip_audit.branch: "v1.3.2-rc.1"
       databases.mosip_audit.host: "postgres.${domain_name}"
       databases.mosip_audit.port: ${db_port}
 
       databases.mosip_keymgr.enabled: "true"
-      databases.mosip_keymgr.branch: "v1.3.0"
+      databases.mosip_keymgr.branch: "v1.4.1-rc.1"
       databases.mosip_keymgr.host: "postgres.${domain_name}"
       databases.mosip_keymgr.port: ${db_port}
 
       databases.mosip_kernel.enabled: "true"
-      databases.mosip_kernel.branch: "v1.3.0"
+      databases.mosip_kernel.branch: "v1.3.1-rc.1"
       databases.mosip_kernel.host: "postgres.${domain_name}"
       databases.mosip_kernel.port: ${db_port}
 
       databases.mosip_idmap.enabled: "true"
-      databases.mosip_idmap.branch: "v1.3.0"
+      databases.mosip_idmap.branch: "v1.3.1-rc.1"
       databases.mosip_idmap.host: "postgres.${domain_name}"
       databases.mosip_idmap.port: ${db_port}
 
@@ -94,22 +94,22 @@ apps:
       databases.mosip_prereg.port: ${db_port}
 
       databases.mosip_idrepo.enabled: "true"
-      databases.mosip_idrepo.branch: "v1.3.0"
+      databases.mosip_idrepo.branch: "v1.3.1-rc.1"
       databases.mosip_idrepo.host: "postgres.${domain_name}"
       databases.mosip_idrepo.port: ${db_port}
 
       databases.mosip_ida.enabled: "true"
-      databases.mosip_ida.branch: "v1.3.0"
+      databases.mosip_ida.branch: "v1.3.1-rc.1"
       databases.mosip_ida.host: "postgres.${domain_name}"
       databases.mosip_ida.port: ${db_port}
 
       databases.mosip_credential.enabled: "true"
-      databases.mosip_credential.branch: "v1.3.0"
+      databases.mosip_credential.branch: "v1.3.1-rc.1"
       databases.mosip_credential.host: "postgres.${domain_name}"
       databases.mosip_credential.port: ${db_port}
 
       databases.mosip_regprc.enabled: "true"
-      databases.mosip_regprc.branch: "v1.3.0"
+      databases.mosip_regprc.branch: "v1.3.1-rc.1"
       databases.mosip_regprc.host: "postgres.${domain_name}"
       databases.mosip_regprc.port: ${db_port}
 
@@ -119,7 +119,7 @@ apps:
       databases.mosip_pms.port: ${db_port}
 
       databases.mosip_hotlist.enabled: "true"
-      databases.mosip_hotlist.branch: "v1.3.0"
+      databases.mosip_hotlist.branch: "v1.3.1"
       databases.mosip_hotlist.host: "postgres.${domain_name}"
       databases.mosip_hotlist.port: ${db_port}
 
@@ -226,7 +226,7 @@ apps:
   softhsm-kernel:
     namespace: softhsm
     enabled: true
-    version: 1.3.0
+    version: 1.4.1-rc.1
     chart: mosip/softhsm
     set:
       # resources.limits.cpu: "250m"
@@ -242,7 +242,7 @@ apps:
   softhsm-ida:
     namespace: softhsm
     enabled: true
-    version: 1.3.0
+    version: 1.4.1-rc.1
     chart: mosip/softhsm
     set:
       # resources.limits.cpu: "250m"
@@ -304,7 +304,7 @@ apps:
   activemq:
     namespace: activemq
     enabled: true
-    version: 0.0.3
+    version: 0.0.4
     chart: mosip/activemq-artemis
     set:
       # image.repository: "mosipqa/activemq-artemis"
