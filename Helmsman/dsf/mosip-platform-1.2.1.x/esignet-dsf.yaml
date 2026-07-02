@@ -208,6 +208,10 @@ apps:
       # image.repository: "mosipid/esignet"
       # image.tag: "1.4.1"
       # Set to true if you don't have public domain & valid SSL (development only)
+      # resources.limits.cpu: "600m"
+      # resources.limits.memory: "4000Mi"
+      # resources.requests.cpu: "200m"
+      # resources.requests.memory: "2000Mi"    
       enable_insecure: "false"
       extraEnvVarsCM[0]: "global"
       extraEnvVarsCM[1]: "config-server-share"
