@@ -1,6 +1,6 @@
 # DSF Configuration Guide
 
-This guide explains how to configure Helmsman Desired State Files (DSF) for MOSIP deployment, including the critical `clusterid` configuration and other essential settings.
+This guide explains how to configure Helmsman Desired State Files (DSF) for MOSIP and eSignet deployment, including the profile-based DSF structure, `clusterid` configuration, and domain/environment variable setup.
 
 ## Table of Contents
 
@@ -23,26 +23,67 @@ DSF (Desired State File) tells Helmsman:
 - **How** to configure them
 - **Where** to deploy them
 
-Think of it as a recipe that Helmsman follows to deploy your MOSIP platform.
+Think of it as a recipe that Helmsman follows to deploy your MOSIP or eSignet platform.
 
-### DSF File Types
+### Profile-Based DSF Structure
+
+DSF files are organized by **deployment profile** — not a single flat folder. Each workflow takes a `profile` input that selects the correct subdirectory automatically.
+
+| Profile | Use Case |
+|---------|----------|
+| `esignet-standalone` | eSignet standalone (authentication only, no full MOSIP core services) |
+| `mosip-platform-1.2.0.x` | Full MOSIP platform with Java 11 |
+| `mosip-platform-1.2.1.x` | Full MOSIP platform with Java 21 |
+
+```
+Helmsman/dsf/
+├── esignet/                      # eSignet standalone profile
+│   ├── prereq-dsf.yaml
+│   ├── external-dsf.yaml
+│   ├── esignet-dsf.yaml
+│   ├── signup-dsf.yaml
+│   └── testrigs-dsf.yaml
+├── mosip-platform-1.2.0.x/       # Full MOSIP (Java 11) profile
+│   ├── prereq-dsf.yaml
+│   ├── external-dsf.yaml
+│   ├── mosip-dsf.yaml
+│   ├── esignet-dsf.yaml
+│   └── testrigs-dsf.yaml
+└── mosip-platform-1.2.1.x/       # Full MOSIP (Java 21) profile
+    ├── prereq-dsf.yaml
+    ├── external-dsf.yaml
+    ├── mosip-dsf.yaml
+    ├── esignet-dsf.yaml
+    └── testrigs-dsf.yaml
+```
+
+### DSF File Types (per profile)
 
 | File | Purpose | Deploy Order |
 |------|---------|--------------|
 | `prereq-dsf.yaml` | Monitoring, Istio, logging | 1st |
-| `external-dsf.yaml` | Databases, queues, storage | 2nd |
-| `mosip-dsf.yaml` | MOSIP core services | 3rd |
-| `testrigs-dsf.yaml` | Testing infrastructure | 4th (optional) |
+| `external-dsf.yaml` | Databases, queues, storage, Keycloak | 2nd |
+| `mosip-dsf.yaml` | MOSIP core services (MOSIP platform profiles only) | 3rd |
+| `esignet-dsf.yaml` | eSignet stack + OIDC UI + Mock RP | 4th (or 3rd for esignet-standalone profile) |
+| `signup-dsf.yaml` | Signup stack (esignet-standalone profile only) | 5th (auto-triggered) |
+| `testrigs-dsf.yaml` | Testing infrastructure | Last (optional) |
 
-### File Location
+### Environment Variable Substitution
 
-```
-Helmsman/dsf/
-├── prereq-dsf.yaml
-├── external-dsf.yaml
-├── mosip-dsf.yaml
-└── testrigs-dsf.yaml
-```
+**No manual editing of DSF files is needed per environment.** All domain, port, and cluster values are resolved at deploy time via Helmsman's built-in `${VAR}` expansion.
+
+| Variable | Resolved from | Example |
+|----------|--------------|---------|
+| `${domain_name}` | Workflow input or `vars.DOMAIN_NAME` | `sandbox.example.net` |
+| `${env_name}` | Workflow input or `vars.ENV_NAME` | `sandbox` |
+| `${clusterid}` | Workflow input or `vars.CLUSTER_ID` | `c-m-abc12xyz` |
+| `${slack_channel_name}` | Workflow input or `vars.SLACK_CHANNEL_NAME` | `#mosip-alerts` |
+| `${db_port}` | Workflow input or `vars.DB_PORT` | `5433` |
+| `${esignet_db_port}` | Workflow input or `vars.ESIGNET_DB_PORT` | `5432` |
+
+Configure these under: **Repository → Settings → Environments → `<branch-name>` → Variables**
+
+For push-triggered runs (no `workflow_dispatch` inputs), the workflow reads these variables automatically. For manual runs, you can override them via workflow inputs.
 
 ---
 
@@ -114,11 +155,19 @@ cd terraform/implementations/aws/infra/
 terraform output rancher_cluster_id
 ```
 
-#### Where to Add clusterid in prereq-dsf.yaml
+#### How to Set clusterid for Deployment
 
-**Location**: Around line 40-45 in `prereq-dsf.yaml`
+**Previously**, `clusterid` had to be manually hardcoded in `prereq-dsf.yaml`. Now it is passed via GitHub Environment Variables — no DSF edits needed.
 
-**Before (Default/Placeholder)**:
+**Set it as a GitHub Environment Variable:**
+
+1. Go to **Repository → Settings → Environments → `<branch-name>` → Variables**
+2. Add variable: `CLUSTER_ID` = your clusterid (e.g. `c-m-abc12xyz`)
+
+The DSF file reads it automatically via `${clusterid}` substitution at deploy time. For manual `workflow_dispatch` runs, you can also pass it directly as the `clusterid` workflow input.
+
+**How the DSF uses it (no changes needed):**
+
 ```yaml
 apps:
  rancher-monitoring:
@@ -127,74 +176,35 @@ apps:
  version: 103.1.0+up45.31.1
  chart: mosip/rancher-monitoring
  set:
- grafana.global.cattle.clusterId: "c-m-pbrcfglw" # ← CHANGE THIS
- global.cattle.clusterId: "c-m-pbrcfglw" # ← CHANGE THIS
+ grafana.global.cattle.clusterId: "${clusterid}"  # resolved from vars.CLUSTER_ID
+ global.cattle.clusterId: "${clusterid}"          # resolved from vars.CLUSTER_ID
  wait: true
- valuesFile: "$WORKDIR/utils/monitoring_values.yaml" 
+ valuesFile: "$WORKDIR/utils/monitoring_values.yaml"
  priority: -5
  timeout: 600
-```
-
-**After (Your Actual clusterid)**:
-```yaml
-apps:
- rancher-monitoring:
- namespace: cattle-monitoring-system
- enabled: true
- version: 103.1.0+up45.31.1
- chart: mosip/rancher-monitoring
- set:
- grafana.global.cattle.clusterId: "c-m-5x9k7w3d" # ← YOUR clusterid
- global.cattle.clusterId: "c-m-5x9k7w3d" # ← YOUR clusterid
- wait: true
- valuesFile: "$WORKDIR/utils/monitoring_values.yaml" 
- priority: -5
- timeout: 600
-```
-
-#### Configuration Snippet with Detailed Comments
-
-```yaml
-apps:
- rancher-monitoring:
- namespace: cattle-monitoring-system # Namespace for monitoring
- enabled: true # Set to false to skip monitoring
- version: 103.1.0+up45.31.1 # Chart version
- chart: mosip/rancher-monitoring # Helm chart location
- set:
- # CRITICAL: Replace with your actual Rancher clusterid
- # Find it in Rancher UI URL or using kubectl
- grafana.global.cattle.clusterId: "c-m-5x9k7w3d" # For Grafana
- global.cattle.clusterId: "c-m-5x9k7w3d" # For Prometheus
- wait: true # Wait for deployment to complete
- valuesFile: "$WORKDIR/utils/monitoring_values.yaml" # Additional config
- priority: -5 # Deploy order (lower = earlier)
- timeout: 600 # Max wait time in seconds
 ```
 
 ### Complete prereq-dsf.yaml Configuration
 
-#### Domain Replacement
+#### Domain Configuration
 
-**Find and replace** these placeholders throughout the file:
+**Previously**, domain placeholders like `<sandbox>` and `sandbox.xyz.net` had to be manually replaced throughout each DSF file. This is no longer needed.
 
-| Placeholder | Replace With | Example |
-|-------------|--------------|---------|
-| `<sandbox>` | Your cluster name | `soil38` |
-| `sandbox.xyz.net` | Your domain | `soil38.mosip.net` |
+All domain values are now resolved via `${domain_name}` substitution at deploy time.
 
-**Example:**
+**Set your domain as a GitHub Environment Variable:**
 
-**Before**:
+1. Go to **Repository → Settings → Environments → `<branch-name>` → Variables**
+2. Add variable: `DOMAIN_NAME` = your domain (e.g. `soil38.mosip.net`)
+
+The DSF files reference `${domain_name}` and `${env_name}` everywhere a domain or environment name is needed — no file edits required.
+
+**Example — how it works (no changes needed to the DSF):**
+
 ```yaml
 hooks:
- postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh <sandbox> helmsman"
-```
-
-**After**:
-```yaml
-hooks:
- postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh soil38 helmsman"
+ postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh ${env_name} helmsman"
+ # env_name is resolved from vars.ENV_NAME (e.g. "soil38")
 ```
 
 #### Monitoring Configuration Options
@@ -247,18 +257,11 @@ apps:
 
 ### Critical Configurations
 
-#### 1. Domain Replacement
+#### 1. Domain Configuration
 
-**Same as prereq-dsf.yaml**: Replace `<sandbox>` and `sandbox.xyz.net`
+**No manual domain edits needed.** All hostnames and domain references in `external-dsf.yaml` use `${domain_name}` substitution, resolved from `vars.DOMAIN_NAME` in the GitHub Environment.
 
-```yaml
-# Example locations in external-dsf.yaml:
-apps:
- postgres-init:
- set:
- dbUserPasswords:
- postgres-postgresql\.sandbox\.svc\.cluster\.local: # ← Replace sandbox
-```
+For the eSignet standalone profile, make sure `vars.ESIGNET_DB_PORT=5432` (container postgres, default port). For MOSIP platform profiles, set `vars.DB_PORT=5433` (external postgres, custom port).
 
 #### 2. PostgreSQL Configuration
 
@@ -414,11 +417,9 @@ apps:
 
 ### Critical Configurations
 
-#### 1. Domain Replacement
+#### 1. Domain Configuration
 
-**Replace throughout file**:
-- `<sandbox>` → Your cluster name
-- `sandbox.xyz.net` → Your domain
+**No manual domain edits needed.** All service hostnames in `mosip-dsf.yaml` use `${domain_name}` substitution resolved from `vars.DOMAIN_NAME`. The `${env_name}` variable (from `vars.ENV_NAME`) is used for the landing page name and other environment-specific labels.
 
 #### 2. Database Branch Configuration
 
@@ -538,18 +539,9 @@ apps:
 
 #### 1. Test Endpoints
 
-**Location**: Throughout file, in API endpoint configurations
-
-```yaml
-apps:
- apitestrig:
- set:
- # API endpoints for testing
- apiEndpoint: "https://api.sandbox.xyz.net" # ← Replace domain
- 
- # Authentication endpoint
- authEndpoint: "https://iam.sandbox.xyz.net" # ← Replace domain
-```
+All API endpoints in `testrigs-dsf.yaml` use `${domain_name}` substitution — no manual edits needed. For the eSignet profile, `${mosipid1_domain_name}` and `${mosipid2_domain_name}` are also used for the MOSIP-ID1 and MOSIP-ID2 testrig database hosts. Set these as GitHub Environment Variables:
+- `vars.MOSIPID1_DOMAIN_NAME` (e.g. `mosipid1.example.net`)
+- `vars.MOSIPID2_DOMAIN_NAME` (e.g. `mosipid2.example.net`)
 
 #### 2. Test Data Configuration
 
@@ -557,8 +549,8 @@ apps:
 apps:
  apitestrig:
  set:
- # Test data branch
- testDataBranch: "v1.2.0.2" # ← Match MOSIP version
+ # Test data branch — match your MOSIP version
+ testDataBranch: "v1.2.0.2"
 ```
 
 #### 3. Test Rig Resources
@@ -605,29 +597,36 @@ apps:
 
 ### Pattern 2: Domain Configuration
 
-**All DSF files** need consistent domain configuration:
+**All DSF files** use `${domain_name}` substitution — a single environment variable drives all domain references consistently across every DSF.
+
+**Set once, used everywhere:**
+
+```
+vars.DOMAIN_NAME = soil38.mosip.net
+```
+
+This resolves in all DSFs at deploy time:
 
 ```yaml
-# prereq-dsf.yaml
-postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh soil38 helmsman"
+# prereq-dsf.yaml (resolved at runtime)
+postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh ${env_name} helmsman"
 
 # external-dsf.yaml
 istio.hosts:
- - "postgres.soil38.mosip.net"
+ - "postgres.${domain_name}"
 
 # mosip-dsf.yaml
 istio.hosts:
- - "prereg.soil38.mosip.net"
+ - "prereg.${domain_name}"
 
 # testrigs-dsf.yaml
-apiEndpoint: "https://api.soil38.mosip.net"
+apiEndpoint: "https://api.${domain_name}"
 ```
 
 **Consistency checklist:**
-- [ ] Cluster name matches Terraform `cluster_name`
-- [ ] Domain matches Terraform `cluster_env_domain`
-- [ ] All internal references use same values
-- [ ] DNS records exist for all subdomains
+- [ ] `vars.DOMAIN_NAME` matches Terraform `cluster_env_domain`
+- [ ] `vars.ENV_NAME` matches Terraform `cluster_name`
+- [ ] DNS records exist for all subdomains in Route 53
 
 ---
 
@@ -689,26 +688,28 @@ apps:
 
 ## Configuration Validation Checklist
 
+### Before Deploying any DSF
+
+- [ ] GitHub Environment Variables set for your branch (`vars.DOMAIN_NAME`, `vars.ENV_NAME`, `vars.CLUSTER_ID`, `vars.SLACK_CHANNEL_NAME`)
+- [ ] Port variables set: `vars.DB_PORT` (MOSIP platform profiles), `vars.ESIGNET_DB_PORT` (eSignet profile)
+- [ ] For eSignet profile: `vars.MOSIPID1_DOMAIN_NAME` and `vars.MOSIPID2_DOMAIN_NAME` also set
+- [ ] No manual `<sandbox>` or domain placeholder edits needed in DSF files
+
 ### Before Deploying prereq-dsf.yaml
 
-- [ ] `clusterid` updated with actual value from Rancher
-- [ ] `<sandbox>` replaced with cluster name
-- [ ] `sandbox.xyz.net` replaced with actual domain
-- [ ] Chart versions are latest stable
+- [ ] `vars.CLUSTER_ID` set with your Rancher clusterid (e.g. `c-m-abc12xyz`)
 - [ ] Monitoring enabled/disabled as needed
+- [ ] Chart versions are latest stable
 
 ### Before Deploying external-dsf.yaml
 
-- [ ] Domain placeholders replaced
 - [ ] PostgreSQL `enabled` matches Terraform setting
-- [ ] reCAPTCHA keys configured
+- [ ] reCAPTCHA keys configured as GitHub Environment Secrets
 - [ ] MinIO storage size appropriate
 - [ ] Kafka cluster size appropriate
-- [ ] Chart versions updated
 
 ### Before Deploying mosip-dsf.yaml
 
-- [ ] Domain placeholders replaced
 - [ ] Database branch matches MOSIP version
 - [ ] Chart versions compatible
 - [ ] Resource limits appropriate for environment
@@ -716,10 +717,9 @@ apps:
 
 ### Before Deploying testrigs-dsf.yaml
 
-- [ ] All MOSIP services running
-- [ ] Domain placeholders replaced
+- [ ] All MOSIP/eSignet services running
 - [ ] Test data branch matches MOSIP version
-- [ ] Test endpoints correctly configured
+- [ ] `vars.MOSIPID1_DOMAIN_NAME` and `vars.MOSIPID2_DOMAIN_NAME` set (esignet-standalone profile)
 
 ---
 
@@ -730,13 +730,9 @@ apps:
 **Symptom**: Monitoring dashboards show wrong cluster or no data
 
 **Solution**:
-1. Verify clusterid in Rancher UI
-2. Update both locations in prereq-dsf.yaml:
- ```yaml
- grafana.global.cattle.clusterId: "correct-id"
- global.cattle.clusterId: "correct-id"
- ```
-3. Redeploy prereq-dsf.yaml
+1. Verify clusterid in Rancher UI (URL path `c-m-xxxxx`) or via `kubectl get setting cluster-id -n cattle-system -o jsonpath='{.value}'`
+2. Update the GitHub Environment Variable: **Repository → Settings → Environments → `<branch-name>` → Variables → `CLUSTER_ID`**
+3. Re-run the prereq workflow — the DSF picks up `${clusterid}` from the updated variable automatically
 
 ---
 
@@ -746,7 +742,7 @@ apps:
 
 **Solution**:
 1. Check DNS records in Route 53
-2. Verify domain in all DSF files matches Terraform
+2. Verify `vars.DOMAIN_NAME` in the GitHub Environment matches Terraform `cluster_env_domain` — no manual DSF edits needed
 3. Check subdomain configuration in Terraform:
  ```hcl
  subdomain_public = ["resident", "prereg", ...]
@@ -789,16 +785,26 @@ apps:
 
 ## Quick Reference
 
-### Essential DSF Settings
+### Essential Settings (GitHub Environment Variables)
 
-| Setting | File | Location | Purpose |
-|---------|------|----------|---------|
-| `clusterid` | prereq-dsf.yaml | Line ~40 | Rancher monitoring |
-| `<sandbox>` | All DSF files | Throughout | Cluster name |
-| `sandbox.xyz.net` | All DSF files | Throughout | Domain name |
-| `postgres.enabled` | external-dsf.yaml | Line ~50 | PostgreSQL mode |
-| `reCAPTCHA keys` | external-dsf.yaml | Line ~315 | Bot protection |
-| `dbBranch` | mosip-dsf.yaml | Multiple | DB scripts version |
+| Setting | Variable | Where to set | Purpose |
+|---------|----------|-------------|---------|
+| Domain name | `vars.DOMAIN_NAME` | GitHub Environment Variables | All DSFs — hostnames, Istio VS, DB hosts |
+| Environment name | `vars.ENV_NAME` | GitHub Environment Variables | Landing page name, testrig user |
+| Rancher cluster ID | `vars.CLUSTER_ID` | GitHub Environment Variables | rancher-monitoring in prereq-dsf |
+| Slack channel | `vars.SLACK_CHANNEL_NAME` | GitHub Environment Variables | Alerting in prereq-dsf |
+| MOSIP postgres port | `vars.DB_PORT` | GitHub Environment Variables | MOSIP platform external postgres (5433) |
+| eSignet postgres port | `vars.ESIGNET_DB_PORT` | GitHub Environment Variables | eSignet container postgres (5432) |
+| MOSIP-ID1 domain | `vars.MOSIPID1_DOMAIN_NAME` | GitHub Environment Variables | esignet-standalone profile — MOSIP-ID1 testrig hosts |
+| MOSIP-ID2 domain | `vars.MOSIPID2_DOMAIN_NAME` | GitHub Environment Variables | esignet-standalone profile — MOSIP-ID2 testrig hosts |
+
+**DSF file manual edits (one-time per environment):**
+
+| Setting | File | Purpose |
+|---------|------|---------|
+| `postgres.enabled` | `external-dsf.yaml` | `true` = container PostgreSQL, `false` = external (Terraform-managed) |
+| `dbBranch` | `mosip-dsf.yaml` | DB scripts version — must match MOSIP version |
+| Domain values | `Helmsman/utils/global_configmap.yaml` | Shared ConfigMap consumed by all services |
 
 ---
 

@@ -51,9 +51,10 @@ The destroy workflows follow a **reusable workflow pattern**:
 
 | Workflow                            | File                                       | Purpose                       | Namespaces Affected                                                                                                                                                                                                              |
 | ----------------------------------- | ------------------------------------------ | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Destroy Testrigs**          | `helmsman_testrigs_destroy.yml`          | Removes test rig services     | `apitestrig`, `dslrig`, `uitestrig`                                                                                                                                                                                        |
+| **Destroy Testrigs**          | `helmsman_testrigs_destroy.yml`          | Removes test rig services     | `apitestrig`, `dslrig`, `uitestrig` (MOSIP platform); `esignet`, `esignet-mosipid1`, `esignet-mosipid2`, `esignet-sunbird`, `signup` (esignet profile apitestrigs) |
 | **Destroy MOSIP Services**    | `helmsman_mosip_destroy.yml`             | Removes core MOSIP services   | `admin`, `apitestrig`, `artifactory`, `config-server`, `dslrig`, `esignet`, `idrepo`, `kernel`, `masterdata`, `packet-manager`, `pmp`, `postgresdb`, `print`, `regproc`, `resident`, `uitestrig` |
-| **Destroy External Services** | `helmsman_external_destroy_external.yml` | Removes external dependencies | `keycloak`, `kafka`, `minio`, `softhsm`, `clamav`, `activemq`, `landing-page`                                                                                                                                      |
+| **Destroy eSignet Services**  | (use `helmsman_esignet.yml` with `--destroy`) | Removes eSignet stack (esignet profile) | `esignet`, `esignet-mosipid1`, `esignet-mosipid2`, `esignet-sunbird`, `signup`, `kernel` |
+| **Destroy External Services** | `helmsman_external_destroy_external.yml` | Removes external dependencies | `keycloak`, `kafka`, `minio`, `softhsm`, `clamav`, `activemq`, `captcha`, `redis`, `postgres`, `landing-page`                                                                                                       |
 | **Destroy Prerequisites**     | `helmsman_external_destroy_prereq.yml`   | Removes monitoring and Istio  | `cattle-logging-system`, `istio-system`, `monitoring`                                                                                                                                                                      |
 
 ### Reusable Workflow: `destroy-resources.yml`
@@ -118,6 +119,10 @@ Choose the workflow based on what you want to destroy:
 1. Click **Run workflow** button (right side)
 2. Select the target branch (e.g., `release-0.2.0`)
 3. Fill in the required inputs:
+
+   **Branch** (Required):
+
+   Select your deployment branch (e.g. `MOSIP-44613`). This determines which GitHub Environment (secrets and vars) is used.
 
    **Confirmation** (Required):
 
@@ -219,7 +224,7 @@ Deployment Order:              Destruction Order (Use Workflows):
 1. Go to **Actions** → **Destroy Testrigs using Helmsman**
 2. Click **Run workflow**
 3. Enter:
-   - **Branch**: `release-0.2.0`
+   - **Branch**: Your deployment branch
    - **Confirmation**: `destroy`
    - **Namespace selection**: `specific`
    - **Specific namespaces**: `apitestrig,dslrig`
