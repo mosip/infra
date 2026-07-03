@@ -76,8 +76,8 @@ WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 
 # Rancher Import URL
 # Rancher Import Configuration
-enable_rancher_import = true
-rancher_import_url    = "\"
+enable_rancher_import = false
+rancher_import_url    = ""
 # DNS Records to map
 subdomain_public   = ["resident", "prereg", "esignet", "healthservices", "signup"]
 subdomain_internal = ["admin", "iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio", "regclient", "compliance"]
