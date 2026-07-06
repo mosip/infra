@@ -70,7 +70,7 @@ apps:
       databases.mosip_master.dbUser: "masteruser"
       databases.mosip_master.branch: "develop"
       databases.mosip_master.host: "postgres.${domain_name}"
-      databases.mosip_master.port: 5433
+      databases.mosip_master.port: ${db_port}
       databases.mosip_master.dml: 1
       databases.mosip_master.repoUrl: "https://github.com/mosip/admin-services.git"
       databases.mosip_master.defaultDb: "postgres"
@@ -84,7 +84,7 @@ apps:
       databases.mosip_audit.dbUser: "audituser"
       databases.mosip_audit.branch: "develop"
       databases.mosip_audit.host: "postgres.${domain_name}"
-      databases.mosip_audit.port: 5433
+      databases.mosip_audit.port: ${db_port}
       databases.mosip_audit.dml: 0
       databases.mosip_audit.repoUrl: "https://github.com/mosip/audit-manager.git"
       databases.mosip_audit.defaultDb: "postgres"
@@ -98,7 +98,7 @@ apps:
       databases.mosip_keymgr.dbUser: "keymgruser"
       databases.mosip_keymgr.branch: "develop"
       databases.mosip_keymgr.host: "postgres.${domain_name}"
-      databases.mosip_keymgr.port: 5433
+      databases.mosip_keymgr.port: ${db_port}
       databases.mosip_keymgr.dml: 1
       databases.mosip_keymgr.repoUrl: "https://github.com/mosip/keymanager.git"
       databases.mosip_keymgr.defaultDb: "postgres"
@@ -112,7 +112,7 @@ apps:
       databases.mosip_kernel.dbUser: "kerneluser"
       databases.mosip_kernel.branch: "develop"
       databases.mosip_kernel.host: "postgres.${domain_name}"
-      databases.mosip_kernel.port: 5433
+      databases.mosip_kernel.port: ${db_port}
       databases.mosip_kernel.dml: 0
       databases.mosip_kernel.repoUrl: "https://github.com/mosip/commons.git"
       databases.mosip_kernel.defaultDb: "postgres"
@@ -126,7 +126,7 @@ apps:
       databases.mosip_idmap.dbUser: "idmapuser"
       databases.mosip_idmap.branch: "develop"
       databases.mosip_idmap.host: "postgres.${domain_name}"
-      databases.mosip_idmap.port: 5433
+      databases.mosip_idmap.port: ${db_port}
       databases.mosip_idmap.dml: 0
       databases.mosip_idmap.repoUrl: "https://github.com/mosip/id-repository.git"
       databases.mosip_idmap.defaultDb: "postgres"
@@ -140,7 +140,7 @@ apps:
       databases.mosip_prereg.dbUser: "prereguser"
       databases.mosip_prereg.branch: "develop"
       databases.mosip_prereg.host: "postgres.${domain_name}"
-      databases.mosip_prereg.port: 5433
+      databases.mosip_prereg.port: ${db_port}
       databases.mosip_prereg.dml: 0
       databases.mosip_prereg.repoUrl: "https://github.com/mosip/pre-registration.git"
       databases.mosip_prereg.defaultDb: "postgres"
@@ -154,7 +154,7 @@ apps:
       databases.mosip_idrepo.dbUser: "idrepouser"
       databases.mosip_idrepo.branch: "develop"
       databases.mosip_idrepo.host: "postgres.${domain_name}"
-      databases.mosip_idrepo.port: 5433
+      databases.mosip_idrepo.port: ${db_port}
       databases.mosip_idrepo.dml: 0
       databases.mosip_idrepo.repoUrl: "https://github.com/mosip/id-repository.git"
       databases.mosip_idrepo.defaultDb: "postgres"
@@ -168,7 +168,7 @@ apps:
       databases.mosip_ida.dbUser: "idauser"
       databases.mosip_ida.branch: "develop"
       databases.mosip_ida.host: "postgres.${domain_name}"
-      databases.mosip_ida.port: 5433
+      databases.mosip_ida.port: ${db_port}
       databases.mosip_ida.dml: 1
       databases.mosip_ida.repoUrl: "https://github.com/mosip/id-authentication.git"
       databases.mosip_ida.defaultDb: "postgres"
@@ -182,7 +182,7 @@ apps:
       databases.mosip_credential.dbUser: "credentialuser"
       databases.mosip_credential.branch: "develop"
       databases.mosip_credential.host: "postgres.${domain_name}"
-      databases.mosip_credential.port: 5433
+      databases.mosip_credential.port: ${db_port}
       databases.mosip_credential.dml: 0
       databases.mosip_credential.repoUrl: "https://github.com/mosip/id-repository.git"
       databases.mosip_credential.defaultDb: "postgres"
@@ -196,7 +196,7 @@ apps:
       databases.mosip_regprc.dbUser: "regprcuser"
       databases.mosip_regprc.branch: "develop"
       databases.mosip_regprc.host: "postgres.${domain_name}"
-      databases.mosip_regprc.port: 5433
+      databases.mosip_regprc.port: ${db_port}
       databases.mosip_regprc.dml: 1
       databases.mosip_regprc.repoUrl: "https://github.com/mosip/registration.git"
       databases.mosip_regprc.defaultDb: "postgres"
@@ -210,7 +210,7 @@ apps:
       databases.mosip_pms.dbUser: "pmsuser"
       databases.mosip_pms.branch: "develop"
       databases.mosip_pms.host: "postgres.${domain_name}"
-      databases.mosip_pms.port: 5433
+      databases.mosip_pms.port: ${db_port}
       databases.mosip_pms.dml: 1
       databases.mosip_pms.repoUrl: "https://github.com/mosip/partner-management-services.git"
       databases.mosip_pms.defaultDb: "postgres"
@@ -224,7 +224,7 @@ apps:
       databases.mosip_hotlist.dbUser: "hotlistuser"
       databases.mosip_hotlist.branch: "develop"
       databases.mosip_hotlist.host: "postgres.${domain_name}"
-      databases.mosip_hotlist.port: 5433
+      databases.mosip_hotlist.port: ${db_port}
       databases.mosip_hotlist.dml: 0
       databases.mosip_hotlist.repoUrl: "https://github.com/mosip/admin-services.git"
       databases.mosip_hotlist.defaultDb: "postgres"
@@ -238,7 +238,7 @@ apps:
       databases.mosip_resident.dbUser: "residentuser"
       databases.mosip_resident.branch: "develop"
       databases.mosip_resident.host: "postgres.${domain_name}"
-      databases.mosip_resident.port: 5433
+      databases.mosip_resident.port: ${db_port}
       databases.mosip_resident.dml: 0
       databases.mosip_resident.repoUrl: "https://github.com/mosip/resident-services.git"
       databases.mosip_resident.defaultDb: "postgres"
@@ -252,7 +252,7 @@ apps:
       databases.mosip_otp.dbUser: "otpuser"
       databases.mosip_otp.branch: "develop"
       databases.mosip_otp.host: "postgres.${domain_name}"
-      databases.mosip_otp.port: 5433
+      databases.mosip_otp.port: ${db_port}
       databases.mosip_otp.dml: 0
       databases.mosip_otp.repoUrl: "https://github.com/mosip/otp-manager.git"
       databases.mosip_otp.defaultDb: "postgres"
@@ -266,7 +266,7 @@ apps:
       databases.mosip_digitalcard.dbUser: "digitalcarduser"
       databases.mosip_digitalcard.branch: "develop"
       databases.mosip_digitalcard.host: "postgres.${domain_name}"
-      databases.mosip_digitalcard.port: 5433
+      databases.mosip_digitalcard.port: ${db_port}
       databases.mosip_digitalcard.dml: 0
       databases.mosip_digitalcard.repoUrl: "https://github.com/mosip/digital-card-service.git"
       databases.mosip_digitalcard.defaultDb: "postgres"
@@ -292,8 +292,8 @@ apps:
       postgresql.image.tag: "14.2.0-debian-10-r70"
       # postgresql.primary.limits.requests.cpu: 250m
       # postgresql.primary.limits.requests.memory: 256Mi      
-      postgresql.primary.resources.requests.cpu: 250m
-      postgresql.primary.resources.requests.memory: 256Mi
+      postgresql.primary.resources.requests.cpu: 512m
+      postgresql.primary.resources.requests.memory: 512Mi
       # postgresql.architecture: replication
       # postgresql.primary.replicaCount: 1
       # postgresql.primary.persistence.enabled: true
@@ -559,7 +559,7 @@ apps:
       landing.keycloak: "iam.${domain_name}"
       landing.regclient: "regclient.${domain_name}"
       landing.postgres.host: "postgres.${domain_name}"
-      landing.postgres.port: "5433"
+      landing.postgres.port: "${db_port}"
       landing.compliance: "compliance.${domain_name}"
       landing.pmp: "pmp.${domain_name}"
       landing.resident: "resident.${domain_name}"
