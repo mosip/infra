@@ -84,6 +84,11 @@ on:
         description: 'Rancher cluster name (defaults to branch/env name)'
         required: false
         type: string
+      PUBLISH_KUBECONFIG:
+        description: 'After infra apply, fetch kubeconfig from Rancher and set KUBECONFIG env secret (needs RANCHER_API_* secrets + import complete)'
+        required: false
+        type: boolean
+        default: true
         
 env:
   # TF_LOG_PATH: ./temp/terraform.log
@@ -389,6 +394,41 @@ jobs:
         run: terraform apply -input=false -var-file="$TFVARS_FILE" -no-color -auto-approve
         if: "${{ inputs.TERRAFORM_APPLY  == true }}"
         continue-on-error: true
+
+      - name: Publish KUBECONFIG from Rancher
+        if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.TERRAFORM_APPLY == true && inputs.PUBLISH_KUBECONFIG == true && steps.apply.outcome == 'success' }}
+        env:
+          RANCHER_URL: ${{ secrets.RANCHER_API_URL }}
+          RANCHER_TOKEN: ${{ secrets.RANCHER_API_TOKEN }}
+          RANCHER_CLUSTER_NAME_INPUT: ${{ inputs.RANCHER_CLUSTER_NAME }}
+          REF_NAME: ${{ github.ref_name }}
+          GH_TOKEN: ${{ secrets.GH_INFRA_PAT }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          if [ -z "$RANCHER_URL" ] || [ -z "$RANCHER_TOKEN" ]; then
+            echo "Skipping KUBECONFIG publish: RANCHER_API_URL / RANCHER_API_TOKEN not set for environment '$REF_NAME'"
+            exit 0
+          fi
+          if [ -z "$GH_TOKEN" ]; then
+            echo "ERROR: GH_INFRA_PAT is required to publish KUBECONFIG environment secret"
+            exit 1
+          fi
+          command -v gh >/dev/null 2>&1 || { echo "ERROR: gh CLI is required"; exit 1; }
+
+          CLUSTER_NAME="${RANCHER_CLUSTER_NAME_INPUT:-$REF_NAME}"
+          echo "Fetching kubeconfig for Rancher cluster '$CLUSTER_NAME' ..."
+          chmod +x "$GITHUB_WORKSPACE/.github/scripts/rancher-fetch-kubeconfig.sh"
+
+          KUBECONFIG_CONTENT="$("$GITHUB_WORKSPACE/.github/scripts/rancher-fetch-kubeconfig.sh" \
+            --rancher-url "$RANCHER_URL" \
+            --token "$RANCHER_TOKEN" \
+            --cluster-name "$CLUSTER_NAME")"
+
+          printf '%s' "$KUBECONFIG_CONTENT" | gh secret set KUBECONFIG \
+            --env "$REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --body -
+          echo "Published KUBECONFIG environment secret for: $REF_NAME"
 
       - name: Add the Terraform plan file / *.tfstate files / terraform format changes
         run: |
