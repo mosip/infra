@@ -426,8 +426,7 @@ jobs:
 
           printf '%s' "$KUBECONFIG_CONTENT" | gh secret set KUBECONFIG \
             --env "$REF_NAME" \
-            --repo "$GITHUB_REPOSITORY" \
-            --body -
+            --repo "$GITHUB_REPOSITORY"
           echo "Published KUBECONFIG environment secret for: $REF_NAME"
 
       - name: Add the Terraform plan file / *.tfstate files / terraform format changes

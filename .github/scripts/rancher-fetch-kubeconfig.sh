@@ -79,8 +79,10 @@ command -v jq   >/dev/null 2>&1 || die "jq is required"
 RANCHER_URL="${RANCHER_URL%/}"
 [[ "$RANCHER_URL" =~ ^https:// ]] \
   || die "RANCHER_URL must begin with https:// (got: $RANCHER_URL)"
-[[ -n "$CLUSTER_NAME" ]] && [[ "$CLUSTER_NAME" =~ ^[a-zA-Z0-9._-]+$ ]] \
-  || die "CLUSTER_NAME must contain only [a-zA-Z0-9._-] (got: $CLUSTER_NAME)"
+if [[ -n "$CLUSTER_NAME" ]]; then
+  [[ "$CLUSTER_NAME" =~ ^[a-zA-Z0-9._-]+$ ]] \
+    || die "CLUSTER_NAME must contain only [a-zA-Z0-9._-] (got: $CLUSTER_NAME)"
+fi
 [[ "$MAX_ATTEMPTS" =~ ^[0-9]+$ && "$MAX_ATTEMPTS" -gt 0 ]] \
   || die "MAX_ATTEMPTS must be a positive integer (got: $MAX_ATTEMPTS)"
 [[ "$SLEEP_SECONDS" =~ ^[0-9]+$ && "$SLEEP_SECONDS" -gt 0 ]] \
@@ -123,8 +125,9 @@ api() {
 
 fetch_cluster_id_by_name() {
   local json count id
-  json="$(api GET "/v3/clusters?name=$(urlencode "$CLUSTER_NAME")" || true)"
-  [[ -n "$json" ]] || return 1
+  if ! json="$(api GET "/v3/clusters?name=$(urlencode "$CLUSTER_NAME")")"; then
+    die "Failed to query Rancher clusters by name"
+  fi
   count="$(jq -r --arg name "$CLUSTER_NAME" '[.data[]? | select(.name == $name)] | length' <<<"$json")"
   if (( count > 1 )); then
     die "Multiple Rancher clusters named '$CLUSTER_NAME'; resolve duplicates manually"
@@ -136,8 +139,9 @@ fetch_cluster_id_by_name() {
 
 cluster_is_active() {
   local json state
-  json="$(api GET "/v3/clusters/$(urlencode "$CLUSTER_ID")" || true)"
-  [[ -n "$json" ]] || return 1
+  if ! json="$(api GET "/v3/clusters/$(urlencode "$CLUSTER_ID")")"; then
+    die "Failed to query Rancher cluster '$CLUSTER_ID'"
+  fi
   state="$(jq -r '.state // empty' <<<"$json")"
   [[ "$state" == "active" ]]
 }
@@ -173,8 +177,9 @@ validate_kubeconfig_yaml() {
 
 if [[ -z "$CLUSTER_ID" ]]; then
   log "Looking up cluster '${CLUSTER_NAME}' in Rancher ..."
-  CLUSTER_ID="$(fetch_cluster_id_by_name || true)"
-  [[ -n "$CLUSTER_ID" ]] || die "Cluster '$CLUSTER_NAME' not found in Rancher"
+  if ! CLUSTER_ID="$(fetch_cluster_id_by_name)"; then
+    die "Cluster '$CLUSTER_NAME' not found in Rancher"
+  fi
 fi
 log "Using Rancher cluster id=${CLUSTER_ID}"
 
