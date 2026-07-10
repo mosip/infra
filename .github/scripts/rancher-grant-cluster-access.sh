@@ -22,6 +22,8 @@ GROUP_AUTH_PREFIX="${GROUP_AUTH_PREFIX:-}"
 ROLE_TEMPLATE_ID="${ROLE_TEMPLATE_ID:-cluster-owner}"
 BINDING_NAME="${BINDING_NAME:-}"
 INSECURE="${INSECURE:-false}"
+LIST_BINDINGS="${LIST_BINDINGS:-false}"
+FIX_MISBOUND_USER="${FIX_MISBOUND_USER:-false}"
 
 usage() {
   cat <<'EOF'
@@ -39,7 +41,9 @@ Cluster selector (one required):
 
 Group selector (one required unless GROUP_NAME / GROUP_PRINCIPAL_ID set):
   --group <name>                IdP group name as shown in Rancher (e.g. DEVOPS)
-  --group-principal-id <id>     Full principal id (e.g. keycloakoidc_group://DEVOPS)
+  --group-principal-id <id>     Full principal id (e.g. keycloak_group://DEVOPS)
+  --list-bindings               Print cluster role bindings and exit
+  --fix-misbound-user           Remove wrong DEVOPS bindings (user principal, triple-slash group id, etc.)
 
 Optional:
   --role-template <id>          Rancher role template (default: cluster-owner)
@@ -57,13 +61,23 @@ Example:
     --token "$RANCHER_TOKEN" \
     --cluster-name dev1 \
     --group DEVOPS \
-    --role-template cluster-owner
+    --role-template cluster-owner \
+    --group-principal-id keycloak_group://DEVOPS \
+    --fix-misbound-user
 EOF
 }
+
+LAST_HTTP_STATUS=""
 
 err() { echo "[rancher-grant][ERROR] $*" >&2; }
 die() { err "$*"; exit 1; }
 log() { echo "[rancher-grant] $*" >&2; }
+
+forbidden_hint() {
+  err "API token lacks permission to manage cluster members (clusterRoleTemplateBindings)."
+  err "Use a Rancher admin or service-account API token with cluster membership rights."
+  err "Store it as RANCHER_API_TOKEN in the GitHub environment secret (not a personal restricted token)."
+}
 
 require_arg() {
   local flag="$1"
@@ -89,6 +103,8 @@ while [[ $# -gt 0 ]]; do
     --role-template)       require_arg --role-template "${2-}";       ROLE_TEMPLATE_ID="$2"; shift 2 ;;
     --group-auth-prefix)   require_arg --group-auth-prefix "${2-}";   GROUP_AUTH_PREFIX="$2"; shift 2 ;;
     --binding-name)        require_arg --binding-name "${2-}";        BINDING_NAME="$2"; shift 2 ;;
+    --list-bindings)       LIST_BINDINGS="true"; shift ;;
+    --fix-misbound-user)   FIX_MISBOUND_USER="true"; shift ;;
     --insecure)            INSECURE="true"; shift ;;
     -h|--help)             usage; exit 0 ;;
     *)                     die "Unknown argument: $1 (use --help)" ;;
@@ -99,9 +115,15 @@ done
 [[ -n "$RANCHER_URL" ]]          || die "--rancher-url is required"
 [[ -n "$RANCHER_TOKEN" ]]         || die "--token is required"
 [[ -n "$CLUSTER_NAME" || -n "$CLUSTER_ID" ]] || die "--cluster-name or --cluster-id is required"
-[[ -n "$GROUP_NAME" || -n "$GROUP_PRINCIPAL_ID" ]] || die "--group or --group-principal-id is required"
+if [[ "$LIST_BINDINGS" != "true" ]]; then
+  [[ -n "$GROUP_NAME" || -n "$GROUP_PRINCIPAL_ID" ]] || die "--group or --group-principal-id is required"
+fi
 command -v curl >/dev/null 2>&1 || die "curl is required"
 command -v jq   >/dev/null 2>&1 || die "jq is required"
+
+if [[ -z "$GROUP_NAME" && -n "$GROUP_PRINCIPAL_ID" ]]; then
+  GROUP_NAME="${GROUP_PRINCIPAL_ID##*/}"
+fi
 
 RANCHER_URL="${RANCHER_URL%/}"
 [[ "$RANCHER_URL" =~ ^https:// ]] \
@@ -128,14 +150,17 @@ api() {
   [[ -n "$body" ]] && curl_args+=(-d "$body")
 
   if ! status="$(curl "${curl_args[@]}" "${RANCHER_URL}${path}")"; then
+    LAST_HTTP_STATUS=""
     err "Rancher API ${method} ${path}: curl failed"
     [[ -s "$tmp" ]] && cat "$tmp" >&2
     return 1
   fi
 
+  LAST_HTTP_STATUS="$status"
   if [[ ! "$status" =~ ^[0-9]+$ ]] || (( status >= 400 )); then
     err "Rancher API ${method} ${path} failed with HTTP ${status:-unknown}"
     [[ -s "$tmp" ]] && cat "$tmp" >&2
+    [[ "$status" == "403" ]] && forbidden_hint
     return 1
   fi
 
@@ -159,12 +184,15 @@ fetch_cluster_id_by_name() {
 detect_group_auth_prefix() {
   local json provider
   if ! json="$(api GET "/v3/authconfigs")"; then
-    log "Could not list auth configs; using default keycloakoidc_group prefix"
-    printf '%s' "keycloakoidc_group"
+    log "Could not list auth configs; defaulting to keycloak_group (MOSIP Keycloak SAML)"
+    printf '%s' "keycloak_group"
     return 0
   fi
   provider="$(jq -r '
-    [.data[]? | select((.enabled // false) == true) | .type] |
+    [.data[]? |
+      select((.enabled // false) == true) |
+      (.type // "") | sub("Config$"; "")
+    ] |
     map(select(test("^(keycloakoidc|keycloak|openldap|azuread|activedirectory|okta|github|google)$"))) |
     .[0] // empty
   ' <<<"$json")"
@@ -178,10 +206,24 @@ detect_group_auth_prefix() {
     github)            printf '%s' "github_group" ;;
     google)            printf '%s' "google_group" ;;
     *)
-      log "No known external auth provider detected (enabled=$provider); defaulting to keycloakoidc_group"
-      printf '%s' "keycloakoidc_group"
+      log "No known external auth provider detected (enabled=$provider); defaulting to keycloak_group"
+      printf '%s' "keycloak_group"
       ;;
   esac
+}
+
+is_group_principal() {
+  local principal="$1"
+  [[ "$principal" == *"_group://"* ]]
+}
+
+validate_group_principal() {
+  local principal="$1"
+  if is_group_principal "$principal"; then
+    return 0
+  fi
+  err "Principal is not a group (expected id containing '_group://'): ${principal}"
+  return 1
 }
 
 search_group_principal_id() {
@@ -190,24 +232,38 @@ search_group_principal_id() {
     return 1
   fi
   principal="$(jq -r --arg name "$name" '
-    [.data[]? | select((.principalType // "") == "grp" or (.principalType // "") == "group")
-      | select((.name // "") == $name or (.loginName // "") == $name or (.displayName // "") == $name)
+    [.data[]? |
+      select((.id // "") | test("_group://")) |
+      select((.id // "") | test("_user://") | not) |
+      select((.principalType // "") == "grp" or (.principalType // "") == "group") |
+      select((.name // "") == $name or (.loginName // "") == $name or (.displayName // "") == $name)
     ][0].id // empty
   ' <<<"$json")"
   [[ -n "$principal" ]] || return 1
+  validate_group_principal "$principal"
   printf '%s' "$principal"
+}
+
+constructed_group_principal_ids() {
+  local prefix="$1" name="$2"
+  # MOSIP Keycloak SAML uses keycloak_group://DEVOPS (two slashes), not ///DEVOPS.
+  if [[ "$prefix" == "keycloak_group" ]]; then
+    printf '%s\n' \
+      "${prefix}://${name}" \
+      "${prefix}:///${name}"
+    return 0
+  fi
+  printf '%s\n' \
+    "${prefix}://${name}" \
+    "${prefix}:///${name}"
 }
 
 resolve_group_principal_id() {
   local prefix candidate
   if [[ -n "$GROUP_PRINCIPAL_ID" ]]; then
+    validate_group_principal "$GROUP_PRINCIPAL_ID" \
+      || die "GROUP_PRINCIPAL_ID must be a group principal (e.g. keycloak_group://DEVOPS)"
     printf '%s' "$GROUP_PRINCIPAL_ID"
-    return 0
-  fi
-
-  if candidate="$(search_group_principal_id "$GROUP_NAME" || true)" && [[ -n "$candidate" ]]; then
-    log "Resolved group principal via Rancher search: ${candidate}"
-    printf '%s' "$candidate"
     return 0
   fi
 
@@ -216,20 +272,106 @@ resolve_group_principal_id() {
     log "Using group auth prefix: ${GROUP_AUTH_PREFIX}"
   fi
 
-  candidate="${GROUP_AUTH_PREFIX}://${GROUP_NAME}"
-  log "Using constructed group principal: ${candidate}"
-  printf '%s' "$candidate"
+  while IFS= read -r candidate; do
+    log "Trying constructed group principal: ${candidate}"
+    printf '%s' "$candidate"
+    return 0
+  done < <(constructed_group_principal_ids "$GROUP_AUTH_PREFIX" "$GROUP_NAME")
+
+  if candidate="$(search_group_principal_id "$GROUP_NAME" || true)" && [[ -n "$candidate" ]]; then
+    log "Resolved group principal via Rancher search: ${candidate}"
+    printf '%s' "$candidate"
+    return 0
+  fi
+
+  die "Could not resolve a group principal for '${GROUP_NAME}'"
 }
 
 alternate_group_principal_ids() {
   local prefix="$1" name="$2"
+  constructed_group_principal_ids "$prefix" "$name"
   printf '%s\n' \
-    "${prefix}://${name}" \
-    "${prefix}:///${name}" \
     "keycloakoidc_group://${name}" \
     "keycloakoidc_group:///${name}" \
     "keycloak_group://${name}" \
     "keycloak_group:///${name}"
+}
+
+delete_binding_by_id() {
+  local id="$1"
+  api DELETE "/v3/clusterroletemplatebindings/$(urlencode "$id")" >/dev/null
+}
+
+remove_misbound_user_bindings() {
+  local json ids id principal
+  if ! json="$(api GET "/v3/clusterroletemplatebindings?clusterId=$(urlencode "$CLUSTER_ID")")"; then
+    err "Could not list bindings while checking for misbound user entries"
+    return 1
+  fi
+  mapfile -t ids < <(jq -r --arg name "$GROUP_NAME" '
+    [.data[]? |
+      select((.userPrincipalId // "") != "") |
+      select((.groupPrincipalId // "") == "") |
+      select(
+        (.userPrincipalId // "") | endswith("/" + $name) or endswith("://" + $name) or endswith($name)
+      ) |
+      .id
+    ] | .[]
+  ' <<<"$json")
+  for id in "${ids[@]}"; do
+    [[ -n "$id" ]] || continue
+    principal="$(jq -r --arg id "$id" '[.data[]? | select(.id == $id)][0].userPrincipalId // empty' <<<"$json")"
+    log "Removing misbound user clusterRoleTemplateBinding id=${id} userPrincipalId=${principal}"
+    delete_binding_by_id "$id" || err "Failed to delete binding ${id}"
+  done
+}
+
+remove_stale_group_bindings() {
+  local target="$1" json ids id principal role
+  [[ -n "$GROUP_NAME" ]] || return 0
+  if ! json="$(api GET "/v3/clusterroletemplatebindings?clusterId=$(urlencode "$CLUSTER_ID")")"; then
+    err "Could not list bindings while checking for stale group entries"
+    return 1
+  fi
+  mapfile -t ids < <(jq -r --arg target "$target" --arg name "$GROUP_NAME" '
+    [.data[]? |
+      select((.groupPrincipalId // "") != "") |
+      select((.groupPrincipalId // "") != $target) |
+      select(
+        (.groupPrincipalId // "") |
+        test("keycloak_(group|user):///?" + $name + "$")
+      ) |
+      .id
+    ] | .[]
+  ' <<<"$json")
+  for id in "${ids[@]}"; do
+    [[ -n "$id" ]] || continue
+    principal="$(jq -r --arg id "$id" '[.data[]? | select(.id == $id)][0].groupPrincipalId // empty' <<<"$json")"
+    role="$(jq -r --arg id "$id" '[.data[]? | select(.id == $id)][0].roleTemplateId // empty' <<<"$json")"
+    log "Removing stale group clusterRoleTemplateBinding id=${id} groupPrincipalId=${principal} role=${role}"
+    delete_binding_by_id "$id" || err "Failed to delete binding ${id}"
+  done
+}
+
+remove_stale_role_bindings() {
+  local target="$1" json ids id role
+  if ! json="$(api GET "/v3/clusterroletemplatebindings?clusterId=$(urlencode "$CLUSTER_ID")")"; then
+    err "Could not list bindings while checking for stale role entries"
+    return 1
+  fi
+  mapfile -t ids < <(jq -r --arg target "$target" --arg role "$ROLE_TEMPLATE_ID" '
+    [.data[]? |
+      select((.groupPrincipalId // "") == $target) |
+      select((.roleTemplateId // "") != $role) |
+      .id
+    ] | .[]
+  ' <<<"$json")
+  for id in "${ids[@]}"; do
+    [[ -n "$id" ]] || continue
+    role="$(jq -r --arg id "$id" '[.data[]? | select(.id == $id)][0].roleTemplateId // empty' <<<"$json")"
+    log "Removing stale role clusterRoleTemplateBinding id=${id} groupPrincipalId=${target} role=${role}"
+    delete_binding_by_id "$id" || err "Failed to delete binding ${id}"
+  done
 }
 
 binding_exists() {
@@ -243,8 +385,29 @@ binding_exists() {
   ' <<<"$json" >/dev/null
 }
 
+list_cluster_bindings() {
+  local json
+  if ! json="$(api GET "/v3/clusterroletemplatebindings?clusterId=$(urlencode "$CLUSTER_ID")")"; then
+    die "Failed to list cluster role template bindings"
+  fi
+  jq '[.data[]? | {
+    id,
+    name,
+    roleTemplateId,
+    groupPrincipalId,
+    userPrincipalId,
+    userId
+  }]' <<<"$json"
+}
+
+log_cluster_bindings() {
+  log "Current clusterRoleTemplateBindings on ${CLUSTER_ID}:"
+  list_cluster_bindings | jq -c '.[]' >&2 || true
+}
+
 create_binding() {
   local principal="$1" body response binding_label
+  validate_group_principal "$principal" || return 1
   binding_label="${GROUP_NAME:-${principal##*/}}"
   if [[ -z "$BINDING_NAME" ]]; then
     BINDING_NAME="crtb-$(slugify "$binding_label")-$(slugify "$ROLE_TEMPLATE_ID")"
@@ -267,6 +430,7 @@ create_binding() {
     jq -r '{id, name, clusterId, groupPrincipalId, roleTemplateId}' <<<"$response" >&2
     return 0
   fi
+  [[ "${LAST_HTTP_STATUS:-}" == "403" ]] && return 2
   return 1
 }
 
@@ -278,18 +442,39 @@ if [[ -z "$CLUSTER_ID" ]]; then
 fi
 log "Target cluster id=${CLUSTER_ID}"
 
+if [[ "$LIST_BINDINGS" == "true" ]]; then
+  list_cluster_bindings
+  exit 0
+fi
+
 GROUP_PRINCIPAL_ID="$(resolve_group_principal_id)"
+validate_group_principal "$GROUP_PRINCIPAL_ID" \
+  || die "Refusing to bind a non-group principal: ${GROUP_PRINCIPAL_ID}"
+
+if [[ "$FIX_MISBOUND_USER" == "true" && -n "$GROUP_NAME" ]]; then
+  remove_misbound_user_bindings || true
+  remove_stale_group_bindings "$GROUP_PRINCIPAL_ID" || true
+  remove_stale_role_bindings "$GROUP_PRINCIPAL_ID" || true
+fi
+
 log "Granting role '${ROLE_TEMPLATE_ID}' to group '${GROUP_NAME:-$GROUP_PRINCIPAL_ID}' on cluster '${CLUSTER_ID}' ..."
 
 if binding_exists "$GROUP_PRINCIPAL_ID"; then
   log "Binding already exists for group='${GROUP_PRINCIPAL_ID}' role='${ROLE_TEMPLATE_ID}' (skipping)"
+  log_cluster_bindings
   exit 0
 fi
 
 BINDING_NAME=""
-if create_binding "$GROUP_PRINCIPAL_ID"; then
+create_status=0
+create_binding "$GROUP_PRINCIPAL_ID" || create_status=$?
+if (( create_status == 0 )); then
   log "Cluster access granted successfully"
+  log_cluster_bindings
   exit 0
+fi
+if (( create_status == 2 )); then
+  die "Cannot grant cluster access: Rancher API token is forbidden from managing cluster members."
 fi
 
 if [[ -n "$GROUP_NAME" ]]; then
@@ -303,11 +488,17 @@ if [[ -n "$GROUP_NAME" ]]; then
       exit 0
     fi
     BINDING_NAME=""
-    if create_binding "$candidate"; then
+    create_status=0
+    create_binding "$candidate" || create_status=$?
+    if (( create_status == 0 )); then
       log "Cluster access granted successfully with principal '${candidate}'"
+      log_cluster_bindings
       exit 0
+    fi
+    if (( create_status == 2 )); then
+      die "Cannot grant cluster access: Rancher API token is forbidden from managing cluster members."
     fi
   done < <(alternate_group_principal_ids "$prefix" "$GROUP_NAME")
 fi
 
-die "Failed to create clusterRoleTemplateBinding. Pass --group-principal-id explicitly (copy from an existing cluster member in Rancher UI)."
+die "Failed to create clusterRoleTemplateBinding. Set RANCHER_GROUP_PRINCIPAL_ID=keycloak_group://DEVOPS (or pass --group-principal-id) and ensure RANCHER_API_TOKEN can manage cluster members."
