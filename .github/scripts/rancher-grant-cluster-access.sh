@@ -69,6 +69,7 @@ EOF
 
 LAST_HTTP_STATUS=""
 DELETIONS_PERFORMED="false"
+REPAIRS_PERFORMED="false"
 
 err() { echo "[rancher-grant][ERROR] $*" >&2; }
 die() { err "$*"; exit 1; }
@@ -307,10 +308,21 @@ delete_binding_by_id() {
   return 1
 }
 
+unique_binding_suffix() {
+  printf '%04x' "$((RANDOM % 65536))"
+}
+
 planned_binding_name() {
   local binding_label="${GROUP_NAME:-${GROUP_PRINCIPAL_ID##*/}}"
   if [[ -n "$BINDING_NAME" ]]; then
     printf '%s' "$BINDING_NAME"
+    return 0
+  fi
+  if [[ "$DELETIONS_PERFORMED" == "true" ]]; then
+    printf 'crtb-%s-%s-%s' \
+      "$(slugify "$binding_label")" \
+      "$(slugify "$ROLE_TEMPLATE_ID")" \
+      "$(unique_binding_suffix)"
     return 0
   fi
   printf 'crtb-%s-%s' "$(slugify "$binding_label")" "$(slugify "$ROLE_TEMPLATE_ID")"
@@ -324,19 +336,24 @@ binding_name_exists() {
   jq -e --arg name "$name" '.data[]? | select(.name == $name)' <<<"$json" >/dev/null
 }
 
-wait_for_binding_name_available() {
-  local name="$1" timeout="${2:-120}" elapsed=0 interval=3
-  while (( elapsed < timeout )); do
-    if ! binding_name_exists "$name"; then
-      log "Binding name '${name}' is available"
-      return 0
-    fi
-    log "Waiting for binding '${name}' to finish deleting (${elapsed}s / ${timeout}s) ..."
-    sleep "$interval"
-    elapsed=$((elapsed + interval))
-  done
-  err "Timed out waiting for binding '${name}' to be removed"
-  return 1
+update_group_binding() {
+  local id="$1" name="$2" principal="$3" body
+  body="$(jq -nc \
+    --arg type "clusterRoleTemplateBinding" \
+    --arg id "$id" \
+    --arg name "$name" \
+    --arg clusterId "$CLUSTER_ID" \
+    --arg groupPrincipalId "$principal" \
+    --arg roleTemplateId "$ROLE_TEMPLATE_ID" \
+    '{
+      type: $type,
+      id: $id,
+      name: $name,
+      clusterId: $clusterId,
+      groupPrincipalId: $groupPrincipalId,
+      roleTemplateId: $roleTemplateId
+    }')"
+  api PUT "/v3/clusterroletemplatebindings/$(urlencode "$id")" "$body" >/dev/null
 }
 
 remove_misbound_user_bindings() {
@@ -363,14 +380,28 @@ remove_misbound_user_bindings() {
   done
 }
 
-remove_stale_group_bindings() {
-  local target="$1" json ids id principal role
+reconcile_stale_group_bindings() {
+  local target="$1" json rows id name principal role
   [[ -n "$GROUP_NAME" ]] || return 0
   if ! json="$(api GET "/v3/clusterroletemplatebindings?clusterId=$(urlencode "$CLUSTER_ID")")"; then
-    err "Could not list bindings while checking for stale group entries"
+    err "Could not list bindings while reconciling stale group entries"
     return 1
   fi
-  mapfile -t ids < <(jq -r --arg target "$target" --arg name "$GROUP_NAME" '
+  while IFS=$'\t' read -r id name principal role; do
+    [[ -n "$id" ]] || continue
+    if [[ "$role" == "$ROLE_TEMPLATE_ID" ]]; then
+      log "Repairing group clusterRoleTemplateBinding id=${id} groupPrincipalId=${principal} -> ${target}"
+      if update_group_binding "$id" "$name" "$target"; then
+        REPAIRS_PERFORMED="true"
+      else
+        log "Repair failed; deleting binding id=${id}"
+        delete_binding_by_id "$id" || err "Failed to delete binding ${id}"
+      fi
+      continue
+    fi
+    log "Removing stale group clusterRoleTemplateBinding id=${id} groupPrincipalId=${principal} role=${role}"
+    delete_binding_by_id "$id" || err "Failed to delete binding ${id}"
+  done < <(jq -r --arg target "$target" --arg name "$GROUP_NAME" --arg role "$ROLE_TEMPLATE_ID" '
     [.data[]? |
       select((.groupPrincipalId // "") != "") |
       select((.groupPrincipalId // "") != $target) |
@@ -378,16 +409,10 @@ remove_stale_group_bindings() {
         (.groupPrincipalId // "") |
         test("keycloak_(group|user):///?" + $name + "$")
       ) |
-      .id
+      [.id, .name, .groupPrincipalId, .roleTemplateId] |
+      @tsv
     ] | .[]
   ' <<<"$json")
-  for id in "${ids[@]}"; do
-    [[ -n "$id" ]] || continue
-    principal="$(jq -r --arg id "$id" '[.data[]? | select(.id == $id)][0].groupPrincipalId // empty' <<<"$json")"
-    role="$(jq -r --arg id "$id" '[.data[]? | select(.id == $id)][0].roleTemplateId // empty' <<<"$json")"
-    log "Removing stale group clusterRoleTemplateBinding id=${id} groupPrincipalId=${principal} role=${role}"
-    delete_binding_by_id "$id" || err "Failed to delete binding ${id}"
-  done
 }
 
 remove_stale_role_bindings() {
@@ -443,27 +468,28 @@ log_cluster_bindings() {
 }
 
 create_binding() {
-  local principal="$1" body response binding_label attempt max_attempts=20 wait_secs=3
+  local principal="$1" body response binding_label attempt max_attempts=10
   validate_group_principal "$principal" || return 1
   binding_label="${GROUP_NAME:-${principal##*/}}"
   if [[ -z "$BINDING_NAME" ]]; then
     BINDING_NAME="$(planned_binding_name)"
   fi
-  body="$(jq -nc \
-    --arg type "clusterRoleTemplateBinding" \
-    --arg name "$BINDING_NAME" \
-    --arg clusterId "$CLUSTER_ID" \
-    --arg groupPrincipalId "$principal" \
-    --arg roleTemplateId "$ROLE_TEMPLATE_ID" \
-    '{
-      type: $type,
-      name: $name,
-      clusterId: $clusterId,
-      groupPrincipalId: $groupPrincipalId,
-      roleTemplateId: $roleTemplateId
-    }')"
 
   for (( attempt=1; attempt<=max_attempts; attempt++ )); do
+    body="$(jq -nc \
+      --arg type "clusterRoleTemplateBinding" \
+      --arg name "$BINDING_NAME" \
+      --arg clusterId "$CLUSTER_ID" \
+      --arg groupPrincipalId "$principal" \
+      --arg roleTemplateId "$ROLE_TEMPLATE_ID" \
+      '{
+        type: $type,
+        name: $name,
+        clusterId: $clusterId,
+        groupPrincipalId: $groupPrincipalId,
+        roleTemplateId: $roleTemplateId
+      }')"
+
     if response="$(api POST "/v3/clusterroletemplatebindings" "$body")"; then
       jq -r '{id, name, clusterId, groupPrincipalId, roleTemplateId}' <<<"$response" >&2
       return 0
@@ -472,8 +498,8 @@ create_binding() {
       return 2
     fi
     if [[ "${LAST_HTTP_STATUS:-}" == "409" ]]; then
-      log "Binding '${BINDING_NAME}' still terminating (attempt ${attempt}/${max_attempts}); waiting ${wait_secs}s ..."
-      sleep "$wait_secs"
+      BINDING_NAME="crtb-$(slugify "$binding_label")-$(slugify "$ROLE_TEMPLATE_ID")-$(unique_binding_suffix)"
+      log "Binding name conflict (attempt ${attempt}/${max_attempts}); retrying as '${BINDING_NAME}' ..."
       continue
     fi
     return 1
@@ -501,11 +527,8 @@ validate_group_principal "$GROUP_PRINCIPAL_ID" \
 
 if [[ "$FIX_MISBOUND_USER" == "true" && -n "$GROUP_NAME" ]]; then
   remove_misbound_user_bindings || true
-  remove_stale_group_bindings "$GROUP_PRINCIPAL_ID" || true
+  reconcile_stale_group_bindings "$GROUP_PRINCIPAL_ID" || true
   remove_stale_role_bindings "$GROUP_PRINCIPAL_ID" || true
-  if [[ "$DELETIONS_PERFORMED" == "true" ]]; then
-    wait_for_binding_name_available "$(planned_binding_name)" || true
-  fi
 fi
 
 log "Granting role '${ROLE_TEMPLATE_ID}' to group '${GROUP_NAME:-$GROUP_PRINCIPAL_ID}' on cluster '${CLUSTER_ID}' ..."
@@ -528,10 +551,10 @@ if (( create_status == 2 )); then
   die "Cannot grant cluster access: Rancher API token is forbidden from managing cluster members."
 fi
 if (( create_status == 3 )); then
-  die "Cannot grant cluster access: binding name '$(planned_binding_name)' is still being deleted in Rancher; re-run the workflow in a few minutes."
+  die "Cannot grant cluster access: Rancher rejected all generated binding names; re-run the workflow in a few minutes."
 fi
 
-if [[ -n "$GROUP_NAME" ]]; then
+if (( create_status == 1 )) && [[ "${LAST_HTTP_STATUS:-}" != "409" ]] && [[ -n "$GROUP_NAME" ]]; then
   prefix="${GROUP_AUTH_PREFIX:-}"
   [[ -z "$prefix" ]] && prefix="$(detect_group_auth_prefix)"
   while IFS= read -r candidate; do
@@ -553,7 +576,7 @@ if [[ -n "$GROUP_NAME" ]]; then
       die "Cannot grant cluster access: Rancher API token is forbidden from managing cluster members."
     fi
     if (( create_status == 3 )); then
-      die "Cannot grant cluster access: binding name '$(planned_binding_name)' is still being deleted in Rancher; re-run the workflow in a few minutes."
+      die "Cannot grant cluster access: Rancher rejected all generated binding names; re-run the workflow in a few minutes."
     fi
   done < <(alternate_group_principal_ids "$prefix" "$GROUP_NAME")
 fi
