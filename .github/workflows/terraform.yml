@@ -394,10 +394,19 @@ jobs:
           # Ansible inventory gets enable_rancher_import=true and the minted import URL.
           IMPORT_INNER="${IMPORT_CMD#\"}"
           IMPORT_INNER="${IMPORT_INNER%\"}"
-          {
-            echo 'enable_rancher_import = true'
-            printf 'rancher_import_url    = "\"%s\""\n' "$IMPORT_INNER"
-          } > rancher-override.tfvars
+          export IMPORT_INNER
+          # Use Python so YAML/runner quoting does not strip HCL escapes from printf.
+          python3 <<'PY' > rancher-override.tfvars
+          import os
+          
+          inner = os.environ["IMPORT_INNER"]
+          quoted = '"' + inner + '"'
+          hcl = '"' + quoted.replace('"', '\\"') + '"'
+          print("enable_rancher_import = true")
+          print(f"rancher_import_url    = {hcl}")
+          PY
+          echo "Generated rancher-override.tfvars:"
+          cat rancher-override.tfvars
           echo "RANCHER_TFVARS_FILE=rancher-override.tfvars" >> "$GITHUB_ENV"
           echo "Rancher import URL minted for: $CLUSTER_NAME"
 
