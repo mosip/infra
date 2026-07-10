@@ -95,43 +95,7 @@ on:
         type: string
         default: 'DEVOPS'
       GRANT_RANCHER_DEVOPS_ACCESS:
-        description:# MOSIP Infrastructure Deployment Workflow
-# 
-# This workflow supports both remote (S3/Azure Storage/GCS) and local backend configurations
-# 
-# GPG Encryption for Local Backend:
-# - When BACKEND_TYPE is 'local', Terraform state files are automatically encrypted using GPG
-# - Required GitHub Secret: GPG_PASSPHRASE (used for encrypting/decrypting state files)
-# - Encrypted files: terraform.tfstate.gpg, terraform.tfstate.backup.gpg, tf-plan.gpg
-# - On subsequent runs, encrypted files are automatically decrypted before Terraform operations
-# - Only encrypted files are committed to repository for security
-#
-# Security Features:
-# - State files never stored unencrypted in repository when using local backend
-# - AES256 encryption with compression
-# - Automatic cleanup of unencrypted files after encryption
-#
-name: terraform plan / apply
-
-# Prevent concurrent runs for same component to avoid state conflicts
-concurrency:
-  group: terraform-${{ github.event.inputs.CLOUD_PROVIDER }}-${{ github.event.inputs.TERRAFORM_COMPONENT }}-${{ github.event.inputs.INFRA_PROFILE }}-${{ github.ref_name }}
-  cancel-in-progress: false
-
-on:
-  workflow_dispatch:
-    inputs:
-      CLOUD_PROVIDER:
-        description: 'Choose the cloud provider (aws, azure, gcp)'
-        required: true
-        type: choice
-        options:
-          - aws
-          - azure
-          - gcp
-      TERRAFORM_COMPONENT:
-        description: 'Choose component to deploy (base-infra is one-time, infra/observ-infra can be destroyed/recreated multiple times)'
- 'Grant RANCHER_DEVOPS_GROUP cluster-owner via Rancher API after registration'
+        description: 'Grant RANCHER_DEVOPS_GROUP cluster-owner via Rancher API after registration'
         required: false
         type: boolean
         default: true
