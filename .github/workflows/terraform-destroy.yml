@@ -359,6 +359,18 @@ jobs:
             echo "TERRAFORM_DESTROY confirmed - proceeding with destruction"
           fi
 
+      - name: Prepare Terraform vars for destroy
+        if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' }}
+        run: |
+          # Destroy does not mint a Rancher import URL. Disable import so refresh/destroy
+          # does not fail the ansible_inventory precondition when tfvars has enable=true + empty URL.
+          {
+            echo 'enable_rancher_import = false'
+            echo 'rancher_import_url    = ""'
+          } > rancher-destroy-override.tfvars
+          echo "RANCHER_TFVARS_FILE=rancher-destroy-override.tfvars" >> "$GITHUB_ENV"
+          echo "Rancher import disabled for destroy via rancher-destroy-override.tfvars"
+
       - name: Terraform Init
         run: |
           # First try normal init
@@ -368,20 +380,34 @@ jobs:
           fi
 
       - name: Terraform refresh
-        run: terraform refresh -input=false -var-file="$TFVARS_FILE" -no-color
+        run: |
+          TF_ARGS=(-input=false -var-file="$TFVARS_FILE")
+          if [ -n "${RANCHER_TFVARS_FILE:-}" ] && [ -f "$RANCHER_TFVARS_FILE" ]; then
+            TF_ARGS+=(-var-file="$RANCHER_TFVARS_FILE")
+          fi
+          terraform refresh "${TF_ARGS[@]}" -no-color
         if: "${{ inputs.TERRAFORM_DESTROY  == true }}"
 
       - name: Terraform Destroy Plan
         id: destroy-plan
         run: |
           echo "Showing what will be destroyed..."
-          terraform plan -destroy -input=false -var-file="$TFVARS_FILE" -no-color
+          TF_ARGS=(-destroy -input=false -var-file="$TFVARS_FILE")
+          if [ -n "${RANCHER_TFVARS_FILE:-}" ] && [ -f "$RANCHER_TFVARS_FILE" ]; then
+            TF_ARGS+=(-var-file="$RANCHER_TFVARS_FILE")
+          fi
+          terraform plan "${TF_ARGS[@]}" -no-color
         if: "${{ inputs.TERRAFORM_DESTROY  == true }}"
         continue-on-error: true
 
       - name: Terraform Destroy
         id: destroy
-        run: terraform destroy -input=false -var-file="$TFVARS_FILE" -no-color -auto-approve
+        run: |
+          TF_ARGS=(-input=false -var-file="$TFVARS_FILE")
+          if [ -n "${RANCHER_TFVARS_FILE:-}" ] && [ -f "$RANCHER_TFVARS_FILE" ]; then
+            TF_ARGS+=(-var-file="$RANCHER_TFVARS_FILE")
+          fi
+          terraform destroy "${TF_ARGS[@]}" -no-color -auto-approve
         if: "${{ inputs.TERRAFORM_DESTROY  == true }}"
         continue-on-error: true
 
@@ -519,6 +545,7 @@ jobs:
           echo "All ${{ inputs.CLOUD_PROVIDER }}-${{ inputs.TERRAFORM_COMPONENT }} resources have been destroyed"
 
       - uses: 8398a7/action-slack@v3
+        continue-on-error: true
         with:
           status: ${{ job.status }}
           fields: repo,message,author,commit,workflow,job # selectable (default: repo,message)
