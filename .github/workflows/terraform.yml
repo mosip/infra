@@ -90,15 +90,23 @@ on:
         type: boolean
         default: true
       RANCHER_DEVOPS_GROUP:
-        description: 'IdP group name granted cluster-owner on imported clusters (e.g. DEVOPS)'
+        description: 'IdP group name granted cluster access on imported clusters (e.g. DEVOPS)'
         required: false
         type: string
         default: 'DEVOPS'
       GRANT_RANCHER_DEVOPS_ACCESS:
-        description: 'Grant RANCHER_DEVOPS_GROUP cluster-owner via Rancher API after registration'
+        description: 'Grant RANCHER_DEVOPS_GROUP cluster access via Rancher API after registration'
         required: false
         type: boolean
         default: true
+      RANCHER_DEVOPS_ROLE:
+        description: 'Rancher role for DEVOPS group (cluster-member = UI visibility; cluster-owner = full cluster admin)'
+        required: false
+        type: choice
+        options:
+          - cluster-member
+          - cluster-owner
+        default: cluster-owner
         
 env:
   # TF_LOG_PATH: ./temp/terraform.log
@@ -418,7 +426,9 @@ jobs:
           RANCHER_CLUSTER_NAME_INPUT: ${{ inputs.RANCHER_CLUSTER_NAME }}
           REF_NAME: ${{ github.ref_name }}
           RANCHER_DEVOPS_GROUP: ${{ inputs.RANCHER_DEVOPS_GROUP }}
+          RANCHER_DEVOPS_ROLE: ${{ inputs.RANCHER_DEVOPS_ROLE }}
           RANCHER_GROUP_AUTH_PREFIX: ${{ vars.RANCHER_GROUP_AUTH_PREFIX }}
+          RANCHER_GROUP_PRINCIPAL_ID: ${{ vars.RANCHER_GROUP_PRINCIPAL_ID }}
         run: |
           if [ -z "$RANCHER_URL" ] || [ -z "$RANCHER_TOKEN" ]; then
             echo "ERROR: RANCHER_API_URL and RANCHER_API_TOKEN must be set for environment '$REF_NAME'"
@@ -429,15 +439,21 @@ jobs:
             exit 0
           fi
           CLUSTER_NAME="${RANCHER_CLUSTER_NAME_INPUT:-$REF_NAME}"
-          echo "Granting cluster-owner to group '$RANCHER_DEVOPS_GROUP' on Rancher cluster '$CLUSTER_NAME' ..."
+          echo "Granting ${RANCHER_DEVOPS_ROLE:-cluster-owner} to group '$RANCHER_DEVOPS_GROUP' on Rancher cluster '$CLUSTER_NAME' ..."
           chmod +x "$GITHUB_WORKSPACE/.github/scripts/rancher-grant-cluster-access.sh"
           ARGS=(
             --rancher-url "$RANCHER_URL"
             --token "$RANCHER_TOKEN"
             --cluster-name "$CLUSTER_NAME"
             --group "$RANCHER_DEVOPS_GROUP"
-            --role-template cluster-owner
+            --role-template "${RANCHER_DEVOPS_ROLE:-cluster-owner}"
+            --fix-misbound-user
           )
+          if [ -n "$RANCHER_GROUP_PRINCIPAL_ID" ]; then
+            ARGS+=(--group-principal-id "$RANCHER_GROUP_PRINCIPAL_ID")
+          else
+            ARGS+=(--group-auth-prefix keycloak_group)
+          fi
           if [ -n "$RANCHER_GROUP_AUTH_PREFIX" ]; then
             ARGS+=(--group-auth-prefix "$RANCHER_GROUP_AUTH_PREFIX")
           fi
@@ -593,6 +609,7 @@ jobs:
         run: exit 1
 
       - uses: 8398a7/action-slack@v3
+        continue-on-error: true
         with:
           status: ${{ job.status }}
           fields: repo,message,author,commit,workflow,job # selectable (default: repo,message)
