@@ -137,6 +137,23 @@ fetch_cluster_id_by_name() {
   printf '%s' "$id"
 }
 
+cluster_status_summary() {
+  local json
+  if ! json="$(api GET "/v3/clusters/$(urlencode "$CLUSTER_ID")")"; then
+    err "Could not fetch cluster status for ${CLUSTER_ID}"
+    return 1
+  fi
+  jq '{
+    id,
+    name,
+    state,
+    transitioning,
+    transition: (.transitioningMessage // .transition // empty),
+    agentImage: (.agentImage // empty),
+    driver: (.driver // empty)
+  }' <<<"$json" >&2
+}
+
 cluster_is_active() {
   local json state
   if ! json="$(api GET "/v3/clusters/$(urlencode "$CLUSTER_ID")")"; then
@@ -146,17 +163,30 @@ cluster_is_active() {
   [[ "$state" == "active" ]]
 }
 
+cluster_current_state() {
+  local json
+  if ! json="$(api GET "/v3/clusters/$(urlencode "$CLUSTER_ID")")"; then
+    printf 'unknown'
+    return 1
+  fi
+  jq -r '.state // "unknown"' <<<"$json"
+}
+
 wait_for_cluster_active() {
-  local attempt
+  local attempt state
   for ((attempt = 1; attempt <= MAX_ATTEMPTS; attempt++)); do
     if cluster_is_active; then
       log "Cluster ${CLUSTER_ID} is active"
       return 0
     fi
-    log "Waiting for cluster ${CLUSTER_ID} to become active (attempt ${attempt}/${MAX_ATTEMPTS}) ..."
+    state="$(cluster_current_state || true)"
+    log "Waiting for cluster ${CLUSTER_ID} to become active (state=${state:-unknown}, attempt ${attempt}/${MAX_ATTEMPTS}) ..."
     sleep "$SLEEP_SECONDS"
   done
-  die "Cluster ${CLUSTER_ID} did not become active within $((MAX_ATTEMPTS * SLEEP_SECONDS)) seconds"
+  err "Cluster ${CLUSTER_ID} did not become active within $((MAX_ATTEMPTS * SLEEP_SECONDS)) seconds"
+  err "Current cluster status:"
+  cluster_status_summary || true
+  die "Import may not have completed on the downstream cluster. Check: Terraform apply logs (Ansible rancher import), cattle-system namespace on the control plane, and Rancher UI → Cluster Management (include pending clusters)."
 }
 
 generate_kubeconfig_yaml() {
