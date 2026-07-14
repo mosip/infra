@@ -84,6 +84,29 @@ on:
         description: 'Rancher cluster name (defaults to branch/env name)'
         required: false
         type: string
+      PUBLISH_KUBECONFIG:
+        description: 'After infra apply, fetch kubeconfig from Rancher and set KUBECONFIG env secret (needs RANCHER_API_* secrets + import complete)'
+        required: false
+        type: boolean
+        default: true
+      RANCHER_DEVOPS_GROUP:
+        description: 'IdP group name granted cluster access on imported clusters (e.g. DEVOPS)'
+        required: false
+        type: string
+        default: 'DEVOPS'
+      GRANT_RANCHER_DEVOPS_ACCESS:
+        description: 'Grant RANCHER_DEVOPS_GROUP cluster access via Rancher API after registration'
+        required: false
+        type: boolean
+        default: true
+      RANCHER_DEVOPS_ROLE:
+        description: 'Rancher role for DEVOPS group (cluster-member = UI visibility; cluster-owner = full cluster admin)'
+        required: false
+        type: choice
+        options:
+          - cluster-member
+          - cluster-owner
+        default: cluster-owner
         
 env:
   # TF_LOG_PATH: ./temp/terraform.log
@@ -375,20 +398,123 @@ jobs:
             --rancher-url "$RANCHER_URL" \
             --token "$RANCHER_TOKEN" \
             --cluster-name "$CLUSTER_NAME" | tail -n1)"
-          echo "TF_VAR_rancher_import_url=$IMPORT_CMD" >> "$GITHUB_ENV"
-          echo "TF_VAR_enable_rancher_import=true" >> "$GITHUB_ENV"
+          # -var-file in tfvars overrides TF_VAR_* env vars. Write an override file so
+          # Ansible inventory gets enable_rancher_import=true and the minted import URL.
+          IMPORT_INNER="${IMPORT_CMD#\"}"
+          IMPORT_INNER="${IMPORT_INNER%\"}"
+          export IMPORT_INNER
+          # Use Python so YAML/runner quoting does not strip HCL escapes from printf.
+          python3 <<'PY' > rancher-override.tfvars
+          import os
+          
+          inner = os.environ["IMPORT_INNER"]
+          quoted = '"' + inner + '"'
+          hcl = '"' + quoted.replace('"', '\\"') + '"'
+          print("enable_rancher_import = true")
+          print(f"rancher_import_url    = {hcl}")
+          PY
+          echo "Generated rancher-override.tfvars:"
+          cat rancher-override.tfvars
+          echo "RANCHER_TFVARS_FILE=rancher-override.tfvars" >> "$GITHUB_ENV"
           echo "Rancher import URL minted for: $CLUSTER_NAME"
+
+      - name: Grant DevOps group cluster access in Rancher
+        if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.ENABLE_RANCHER_IMPORT == true && inputs.GRANT_RANCHER_DEVOPS_ACCESS == true }}
+        env:
+          RANCHER_URL: ${{ secrets.RANCHER_API_URL }}
+          RANCHER_TOKEN: ${{ secrets.RANCHER_API_TOKEN }}
+          RANCHER_CLUSTER_NAME_INPUT: ${{ inputs.RANCHER_CLUSTER_NAME }}
+          REF_NAME: ${{ github.ref_name }}
+          RANCHER_DEVOPS_GROUP: ${{ inputs.RANCHER_DEVOPS_GROUP }}
+          RANCHER_DEVOPS_ROLE: ${{ inputs.RANCHER_DEVOPS_ROLE }}
+          RANCHER_GROUP_AUTH_PREFIX: ${{ vars.RANCHER_GROUP_AUTH_PREFIX }}
+          RANCHER_GROUP_PRINCIPAL_ID: ${{ vars.RANCHER_GROUP_PRINCIPAL_ID }}
+        run: |
+          if [ -z "$RANCHER_URL" ] || [ -z "$RANCHER_TOKEN" ]; then
+            echo "ERROR: RANCHER_API_URL and RANCHER_API_TOKEN must be set for environment '$REF_NAME'"
+            exit 1
+          fi
+          if [ -z "$RANCHER_DEVOPS_GROUP" ]; then
+            echo "Skipping Rancher group grant: RANCHER_DEVOPS_GROUP is empty"
+            exit 0
+          fi
+          CLUSTER_NAME="${RANCHER_CLUSTER_NAME_INPUT:-$REF_NAME}"
+          echo "Granting ${RANCHER_DEVOPS_ROLE:-cluster-owner} to group '$RANCHER_DEVOPS_GROUP' on Rancher cluster '$CLUSTER_NAME' ..."
+          chmod +x "$GITHUB_WORKSPACE/.github/scripts/rancher-grant-cluster-access.sh"
+          ARGS=(
+            --rancher-url "$RANCHER_URL"
+            --token "$RANCHER_TOKEN"
+            --cluster-name "$CLUSTER_NAME"
+            --group "$RANCHER_DEVOPS_GROUP"
+            --role-template "${RANCHER_DEVOPS_ROLE:-cluster-owner}"
+            --fix-misbound-user
+          )
+          if [ -n "$RANCHER_GROUP_PRINCIPAL_ID" ]; then
+            ARGS+=(--group-principal-id "$RANCHER_GROUP_PRINCIPAL_ID")
+          else
+            ARGS+=(--group-auth-prefix keycloak_group)
+          fi
+          if [ -n "$RANCHER_GROUP_AUTH_PREFIX" ]; then
+            ARGS+=(--group-auth-prefix "$RANCHER_GROUP_AUTH_PREFIX")
+          fi
+          "$GITHUB_WORKSPACE/.github/scripts/rancher-grant-cluster-access.sh" "${ARGS[@]}"
+
       - name: Terraform Plan
         id: plan
         run: |
-          terraform plan -input=false -var-file="$TFVARS_FILE" -out ./tf-plan -no-color
+          TF_ARGS=(-input=false -var-file="$TFVARS_FILE")
+          if [ -n "${RANCHER_TFVARS_FILE:-}" ] && [ -f "$RANCHER_TFVARS_FILE" ]; then
+            TF_ARGS+=(-var-file="$RANCHER_TFVARS_FILE")
+          fi
+          terraform plan "${TF_ARGS[@]}" -out ./tf-plan -no-color
         continue-on-error: true
 
       - name: Terraform Apply
         id: apply
-        run: terraform apply -input=false -var-file="$TFVARS_FILE" -no-color -auto-approve
+        run: |
+          TF_ARGS=(-input=false -var-file="$TFVARS_FILE")
+          if [ -n "${RANCHER_TFVARS_FILE:-}" ] && [ -f "$RANCHER_TFVARS_FILE" ]; then
+            TF_ARGS+=(-var-file="$RANCHER_TFVARS_FILE")
+          fi
+          terraform apply "${TF_ARGS[@]}" -no-color -auto-approve
         if: "${{ inputs.TERRAFORM_APPLY  == true }}"
         continue-on-error: true
+
+      - name: Publish KUBECONFIG from Rancher
+        if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.TERRAFORM_APPLY == true && inputs.PUBLISH_KUBECONFIG == true && steps.apply.outcome == 'success' }}
+        env:
+          RANCHER_URL: ${{ secrets.RANCHER_API_URL }}
+          RANCHER_TOKEN: ${{ secrets.RANCHER_API_TOKEN }}
+          RANCHER_CLUSTER_NAME_INPUT: ${{ inputs.RANCHER_CLUSTER_NAME }}
+          REF_NAME: ${{ github.ref_name }}
+          GH_TOKEN: ${{ secrets.GH_INFRA_PAT }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          MAX_ATTEMPTS: "90"
+          SLEEP_SECONDS: "10"
+        run: |
+          if [ -z "$RANCHER_URL" ] || [ -z "$RANCHER_TOKEN" ]; then
+            echo "Skipping KUBECONFIG publish: RANCHER_API_URL / RANCHER_API_TOKEN not set for environment '$REF_NAME'"
+            exit 0
+          fi
+          if [ -z "$GH_TOKEN" ]; then
+            echo "ERROR: GH_INFRA_PAT is required to publish KUBECONFIG environment secret"
+            exit 1
+          fi
+          command -v gh >/dev/null 2>&1 || { echo "ERROR: gh CLI is required"; exit 1; }
+
+          CLUSTER_NAME="${RANCHER_CLUSTER_NAME_INPUT:-$REF_NAME}"
+          echo "Fetching kubeconfig for Rancher cluster '$CLUSTER_NAME' ..."
+          chmod +x "$GITHUB_WORKSPACE/.github/scripts/rancher-fetch-kubeconfig.sh"
+
+          KUBECONFIG_CONTENT="$("$GITHUB_WORKSPACE/.github/scripts/rancher-fetch-kubeconfig.sh" \
+            --rancher-url "$RANCHER_URL" \
+            --token "$RANCHER_TOKEN" \
+            --cluster-name "$CLUSTER_NAME")"
+
+          printf '%s' "$KUBECONFIG_CONTENT" | gh secret set KUBECONFIG \
+            --env "$REF_NAME" \
+            --repo "$GITHUB_REPOSITORY"
+          echo "Published KUBECONFIG environment secret for: $REF_NAME"
 
       - name: Add the Terraform plan file / *.tfstate files / terraform format changes
         run: |
@@ -483,6 +609,7 @@ jobs:
         run: exit 1
 
       - uses: 8398a7/action-slack@v3
+        continue-on-error: true
         with:
           status: ${{ job.status }}
           fields: repo,message,author,commit,workflow,job # selectable (default: repo,message)
