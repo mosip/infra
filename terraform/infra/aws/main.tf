@@ -30,6 +30,7 @@ module "aws_infrastructure" {
   NGINX_INSTANCE_TYPE           = var.nginx_instance_type
   AMI                           = var.ami
   ZONE_ID                       = var.zone_id
+  ENABLE_ROUTE53_RECORDS        = var.enable_route53_records
   K8S_INFRA_REPO_URL            = var.k8s_infra_repo_url
   K8S_INFRA_BRANCH              = var.k8s_infra_branch
   RKE2_VERSION                  = var.rke2_version

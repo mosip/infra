@@ -112,6 +112,11 @@ variable "AMI" {
 }
 
 variable "ZONE_ID" { type = string }
+variable "ENABLE_ROUTE53_RECORDS" {
+  description = "Whether to create Route53 DNS records. Set to false when the domain's authoritative DNS is not Route53."
+  type        = bool
+  default     = true
+}
 variable "K8S_INFRA_REPO_URL" {
   description = "The URL of the Kubernetes infrastructure GitHub repository"
   type        = string

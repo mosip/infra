@@ -65,6 +65,7 @@ module "mosip_infra" {
   ami                           = var.ami
   ssh_key_name                  = var.ssh_key_name
   zone_id                       = var.zone_id
+  enable_route53_records        = var.enable_route53_records
   vpc_name                      = var.vpc_name
   nginx_node_root_volume_size   = var.nginx_node_root_volume_size
   nginx_node_ebs_volume_size    = var.nginx_node_ebs_volume_size
