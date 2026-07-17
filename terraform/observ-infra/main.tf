@@ -57,6 +57,19 @@ module "aws_observ_infra" {
   rancher_hostname                    = var.rancher_hostname
   keycloak_hostname                   = var.keycloak_hostname
   rancher_bootstrap_password          = var.rancher_bootstrap_password
+  rancher_ui_version                  = var.rancher_ui_version
+  rke2_version                        = var.rke2_version
+
+  # PostgreSQL Configuration
+  enable_postgresql_setup = var.enable_postgresql_setup
+  postgresql_version      = var.postgresql_version
+  storage_device          = var.storage_device
+  mount_point             = var.mount_point
+  postgresql_port         = var.postgresql_port
+
+  # MOSIP Infrastructure Repository Configuration
+  mosip_infra_repo_url = var.mosip_infra_repo_url
+  mosip_infra_branch   = var.mosip_infra_branch
 }
 
 # Azure Observation Infrastructure
