@@ -29,11 +29,14 @@ DEFAULT_CATALOG="${SCRIPT_DIR}/rancher-access-grants.default.json"
 
 command -v jq >/dev/null 2>&1 || { echo "jq is required" >&2; exit 1; }
 if [[ ! -f "$CATALOG_FILE" ]]; then
-  if [[ -f "$DEFAULT_CATALOG" ]]; then
-    echo "[build-rancher-workflow-patch] Catalog not found at $CATALOG_FILE — using $DEFAULT_CATALOG" >&2
+  RESOLVE_SCRIPT="${SCRIPT_DIR}/resolve-rancher-grants-catalog.sh"
+  if [[ -x "$RESOLVE_SCRIPT" ]]; then
+    CATALOG_FILE="$("$RESOLVE_SCRIPT")"
+  elif [[ -f "$DEFAULT_CATALOG" ]]; then
+    echo "[build-rancher-workflow-patch] Catalog not found — using $DEFAULT_CATALOG" >&2
     CATALOG_FILE="$DEFAULT_CATALOG"
   else
-    echo "Missing grants catalog: $CATALOG_FILE" >&2
+    echo "Missing grants catalog and no resolver/default script" >&2
     exit 1
   fi
 fi
