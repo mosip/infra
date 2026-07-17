@@ -438,12 +438,40 @@ jobs:
             exit 1
           fi
           CLUSTER_NAME="${RANCHER_CLUSTER_NAME_INPUT:-$REF_NAME}"
-          chmod +x "$GITHUB_WORKSPACE/.github/scripts/resolve-rancher-grants-catalog.sh"
-          GRANTS_FILE="$("$GITHUB_WORKSPACE/.github/scripts/resolve-rancher-grants-catalog.sh")"
+
+          # Resolve grants catalog (inline — no external script required on env branches)
+          GRANTS_FILE="$GITHUB_WORKSPACE/.github/config/rancher-access-grants.json"
+          DEFAULT_GRANTS_FILE="$GITHUB_WORKSPACE/.github/scripts/rancher-access-grants.default.json"
+          BUILTIN_GRANTS_FILE="${RUNNER_TEMP}/rancher-access-grants.${REF_NAME}.json"
+
+          echo "Resolving Rancher grants catalog for branch '$REF_NAME' ..."
+          if command -v git >/dev/null 2>&1 && [ -d "$GITHUB_WORKSPACE/.git" ]; then
+            echo "Git checkout: $(git -C "$GITHUB_WORKSPACE" rev-parse --short HEAD) ($(git -C "$GITHUB_WORKSPACE" rev-parse --abbrev-ref HEAD))"
+          fi
+          if [ -d "$GITHUB_WORKSPACE/.github/config" ]; then
+            echo "Contents of .github/config/:"
+            ls -la "$GITHUB_WORKSPACE/.github/config/" || true
+          else
+            echo "WARN: directory missing: $GITHUB_WORKSPACE/.github/config/"
+          fi
+
+          if [ -f "$GRANTS_FILE" ]; then
+            echo "Using catalog: $GRANTS_FILE"
+          elif [ -f "$DEFAULT_GRANTS_FILE" ]; then
+            echo "WARN: $GRANTS_FILE not found — using $DEFAULT_GRANTS_FILE"
+            GRANTS_FILE="$DEFAULT_GRANTS_FILE"
+          else
+            echo "WARN: no catalog file on branch — using built-in DEVOPS default"
+            jq -n '[
+              {"group":"DEVOPS","role":"cluster-owner","enabled":true,"principal_id":"keycloak_group://DEVOPS","fix_misbound_user":true},
+              {"group":"QA","role":"cluster-member","enabled":false,"principal_id":"keycloak_group://QA"},
+              {"group":"DEVELOPERS","role":"cluster-member","enabled":false,"principal_id":"keycloak_group://DEVELOPERS"}
+            ]' >"$BUILTIN_GRANTS_FILE"
+            GRANTS_FILE="$BUILTIN_GRANTS_FILE"
+          fi
           echo "Using Rancher grants catalog: $GRANTS_FILE"
 
           if [ -x "$GITHUB_WORKSPACE/.github/scripts/build-rancher-workflow-patch.sh" ]; then
-            chmod +x "$GITHUB_WORKSPACE/.github/scripts/build-rancher-workflow-patch.sh"
             export WORKFLOW_GRANTS_CATALOG="$GRANTS_FILE"
             echo "Rancher team catalog:"
             jq -r '.[] | "  - \(.group): \(.role) (catalog enabled=\(.enabled // true))"' "$GRANTS_FILE"
@@ -456,21 +484,40 @@ jobs:
           export WORKFLOW_RANCHER_PATCH
 
           echo "Applying Rancher access grants for cluster '$CLUSTER_NAME' ..."
-          if [ ! -x "$GITHUB_WORKSPACE/.github/scripts/rancher-grant-cluster-access-batch.sh" ]; then
-            echo "ERROR: Missing rancher-grant-cluster-access-batch.sh — merge Ivanmeneges-patch-kubeconfig into this branch"
+          BATCH_SCRIPT="$GITHUB_WORKSPACE/.github/scripts/rancher-grant-cluster-access-batch.sh"
+          SINGLE_SCRIPT="$GITHUB_WORKSPACE/.github/scripts/rancher-grant-cluster-access.sh"
+          if [ -x "$BATCH_SCRIPT" ]; then
+            ARGS=(
+              --rancher-url "$RANCHER_URL"
+              --token "$RANCHER_TOKEN"
+              --cluster-name "$CLUSTER_NAME"
+              --grants-file "$GRANTS_FILE"
+            )
+            if [ -n "${RANCHER_GROUP_AUTH_PREFIX:-}" ]; then
+              ARGS+=(--default-group-auth-prefix "$RANCHER_GROUP_AUTH_PREFIX")
+            fi
+            "$BATCH_SCRIPT" "${ARGS[@]}"
+          elif [ -x "$SINGLE_SCRIPT" ]; then
+            echo "WARN: batch script missing — granting DEVOPS cluster-owner only via $SINGLE_SCRIPT"
+            DEVOPS_GROUP="${RANCHER_DEVOPS_GROUP:-DEVOPS}"
+            SINGLE_ARGS=(
+              --rancher-url "$RANCHER_URL"
+              --token "$RANCHER_TOKEN"
+              --cluster-name "$CLUSTER_NAME"
+              --group "$DEVOPS_GROUP"
+              --role-template cluster-owner
+              --group-principal-id "keycloak_group://${DEVOPS_GROUP}"
+              --fix-misbound-user
+            )
+            "$SINGLE_SCRIPT" "${SINGLE_ARGS[@]}"
+          else
+            echo "ERROR: Missing Rancher grant scripts on branch '$REF_NAME'."
+            echo "  Merge Ivanmeneges-patch-kubeconfig into this branch, or copy at least:"
+            echo "    .github/scripts/rancher-grant-cluster-access.sh"
+            echo "    .github/scripts/rancher-grant-cluster-access-batch.sh"
+            echo "    .github/scripts/build-rancher-workflow-patch.sh"
             exit 1
           fi
-          chmod +x "$GITHUB_WORKSPACE/.github/scripts/rancher-grant-cluster-access-batch.sh"
-          ARGS=(
-            --rancher-url "$RANCHER_URL"
-            --token "$RANCHER_TOKEN"
-            --cluster-name "$CLUSTER_NAME"
-            --grants-file "$GRANTS_FILE"
-          )
-          if [ -n "${RANCHER_GROUP_AUTH_PREFIX:-}" ]; then
-            ARGS+=(--default-group-auth-prefix "$RANCHER_GROUP_AUTH_PREFIX")
-          fi
-          "$GITHUB_WORKSPACE/.github/scripts/rancher-grant-cluster-access-batch.sh" "${ARGS[@]}"
 
       - name: Terraform Plan
         id: plan
