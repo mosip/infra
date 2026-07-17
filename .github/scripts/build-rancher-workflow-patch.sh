@@ -25,9 +25,18 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [[ -z "$CATALOG_FILE" ]]; then
   CATALOG_FILE="${SCRIPT_DIR%/scripts}/config/rancher-access-grants.json"
 fi
+DEFAULT_CATALOG="${SCRIPT_DIR}/rancher-access-grants.default.json"
 
 command -v jq >/dev/null 2>&1 || { echo "jq is required" >&2; exit 1; }
-[[ -f "$CATALOG_FILE" ]] || { echo "Missing grants catalog: $CATALOG_FILE" >&2; exit 1; }
+if [[ ! -f "$CATALOG_FILE" ]]; then
+  if [[ -f "$DEFAULT_CATALOG" ]]; then
+    echo "[build-rancher-workflow-patch] Catalog not found at $CATALOG_FILE — using $DEFAULT_CATALOG" >&2
+    CATALOG_FILE="$DEFAULT_CATALOG"
+  else
+    echo "Missing grants catalog: $CATALOG_FILE" >&2
+    exit 1
+  fi
+fi
 
 patch='[]'
 
