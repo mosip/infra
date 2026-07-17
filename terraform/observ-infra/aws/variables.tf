@@ -125,3 +125,45 @@ variable "rancher_ui_version" {
   type        = string
   default     = "2.8.3"
 }
+
+variable "enable_postgresql_setup" {
+  description = "Enable PostgreSQL setup (disabled by default for observ-infra)"
+  type        = bool
+  default     = false
+}
+
+variable "postgresql_version" {
+  description = "PostgreSQL version to install"
+  type        = string
+  default     = "15"
+}
+
+variable "storage_device" {
+  description = "Storage device path for PostgreSQL data"
+  type        = string
+  default     = "/dev/nvme2n1"
+}
+
+variable "mount_point" {
+  description = "Mount point for PostgreSQL data directory"
+  type        = string
+  default     = "/srv/postgres"
+}
+
+variable "postgresql_port" {
+  description = "PostgreSQL port configuration"
+  type        = string
+  default     = "5433"
+}
+
+variable "mosip_infra_repo_url" {
+  description = "URL of the MOSIP infrastructure repository"
+  type        = string
+  default     = "https://github.com/mosip/infra.git"
+}
+
+variable "mosip_infra_branch" {
+  description = "Branch of the MOSIP infrastructure repository"
+  type        = string
+  default     = "develop"
+}

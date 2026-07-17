@@ -43,8 +43,14 @@ module "aws_observation_infrastructure" {
   DEPLOYMENT_TYPE               = "observ-infra"   # Set deployment type for correct kubeconfig path
   WIREGUARD_CIDR                = var.WIREGUARD_CIDR
 
-  # Disable PostgreSQL setup for observ-infra
-  enable_postgresql_setup = false
+  # PostgreSQL setup (disabled by default for observ-infra, opt in via enable_postgresql_setup)
+  enable_postgresql_setup = var.enable_postgresql_setup
+  postgresql_version      = var.postgresql_version
+  storage_device          = var.storage_device
+  mount_point             = var.mount_point
+  postgresql_port         = var.postgresql_port
+  mosip_infra_repo_url    = var.mosip_infra_repo_url
+  mosip_infra_branch      = var.mosip_infra_branch
 }
 
 # Rancher and Keycloak Integration (only for observ-infra)

@@ -190,7 +190,7 @@ variable "postgresql_port" {
 variable "mosip_infra_repo_url" {
   description = "URL of the MOSIP infrastructure repository"
   type        = string
-  default     = "https://github.com/bhumi46/mosip-infra.git"
+  default     = "https://github.com/mosip/infra.git"
 }
 
 variable "mosip_infra_branch" {
