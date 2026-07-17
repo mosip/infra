@@ -228,24 +228,6 @@ validate_group_principal() {
   return 1
 }
 
-search_group_principal_id() {
-  local name="$1" json principal
-  if ! json="$(api POST "/v3/principals?action=search" "$(jq -nc --arg name "$name" '{name: $name, principalType: "grp"}')")"; then
-    return 1
-  fi
-  principal="$(jq -r --arg name "$name" '
-    [.data[]? |
-      select((.id // "") | test("_group://")) |
-      select((.id // "") | test("_user://") | not) |
-      select((.principalType // "") == "grp" or (.principalType // "") == "group") |
-      select((.name // "") == $name or (.loginName // "") == $name or (.displayName // "") == $name)
-    ][0].id // empty
-  ' <<<"$json")"
-  [[ -n "$principal" ]] || return 1
-  validate_group_principal "$principal"
-  printf '%s' "$principal"
-}
-
 constructed_group_principal_ids() {
   local prefix="$1" name="$2"
   # MOSIP Keycloak SAML uses keycloak_group://DEVOPS (two slashes), not ///DEVOPS.
@@ -261,7 +243,7 @@ constructed_group_principal_ids() {
 }
 
 resolve_group_principal_id() {
-  local prefix candidate
+  local candidate
   if [[ -n "$GROUP_PRINCIPAL_ID" ]]; then
     validate_group_principal "$GROUP_PRINCIPAL_ID" \
       || die "GROUP_PRINCIPAL_ID must be a group principal (e.g. keycloak_group://DEVOPS)"
@@ -274,19 +256,10 @@ resolve_group_principal_id() {
     log "Using group auth prefix: ${GROUP_AUTH_PREFIX}"
   fi
 
-  while IFS= read -r candidate; do
-    log "Trying constructed group principal: ${candidate}"
-    printf '%s' "$candidate"
-    return 0
-  done < <(constructed_group_principal_ids "$GROUP_AUTH_PREFIX" "$GROUP_NAME")
-
-  if candidate="$(search_group_principal_id "$GROUP_NAME" || true)" && [[ -n "$candidate" ]]; then
-    log "Resolved group principal via Rancher search: ${candidate}"
-    printf '%s' "$candidate"
-    return 0
-  fi
-
-  die "Could not resolve a group principal for '${GROUP_NAME}'"
+  IFS= read -r candidate < <(constructed_group_principal_ids "$GROUP_AUTH_PREFIX" "$GROUP_NAME")
+  [[ -n "$candidate" ]] || die "Could not resolve a group principal for '${GROUP_NAME}'"
+  log "Using constructed group principal: ${candidate}"
+  printf '%s' "$candidate"
 }
 
 alternate_group_principal_ids() {
