@@ -131,6 +131,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.ref }}
           fetch-depth: 0  # Full history needed for rebase
           token: ${{ secrets.GH_INFRA_PAT }}
 
@@ -437,21 +438,28 @@ jobs:
             exit 1
           fi
           CLUSTER_NAME="${RANCHER_CLUSTER_NAME_INPUT:-$REF_NAME}"
-          GRANTS_FILE="$GITHUB_WORKSPACE/.github/config/rancher-access-grants.json"
-          if [ ! -f "$GRANTS_FILE" ]; then
-            echo "ERROR: Missing grants catalog: $GRANTS_FILE"
-            exit 1
-          fi
+          chmod +x "$GITHUB_WORKSPACE/.github/scripts/resolve-rancher-grants-catalog.sh"
+          GRANTS_FILE="$("$GITHUB_WORKSPACE/.github/scripts/resolve-rancher-grants-catalog.sh")"
+          echo "Using Rancher grants catalog: $GRANTS_FILE"
 
-          chmod +x "$GITHUB_WORKSPACE/.github/scripts/build-rancher-workflow-patch.sh"
-          export WORKFLOW_GRANTS_CATALOG="$GRANTS_FILE"
-          echo "Rancher team catalog:"
-          jq -r '.[] | "  - \(.group): \(.role) (catalog enabled=\(.enabled // true))"' "$GRANTS_FILE"
-          WORKFLOW_RANCHER_PATCH="$("$GITHUB_WORKSPACE/.github/scripts/build-rancher-workflow-patch.sh")"
+          if [ -x "$GITHUB_WORKSPACE/.github/scripts/build-rancher-workflow-patch.sh" ]; then
+            chmod +x "$GITHUB_WORKSPACE/.github/scripts/build-rancher-workflow-patch.sh"
+            export WORKFLOW_GRANTS_CATALOG="$GRANTS_FILE"
+            echo "Rancher team catalog:"
+            jq -r '.[] | "  - \(.group): \(.role) (catalog enabled=\(.enabled // true))"' "$GRANTS_FILE"
+            WORKFLOW_RANCHER_PATCH="$("$GITHUB_WORKSPACE/.github/scripts/build-rancher-workflow-patch.sh")"
+          else
+            echo "WARN: build-rancher-workflow-patch.sh not found — applying base catalog only (DEVOPS owner default)"
+            WORKFLOW_RANCHER_PATCH='[]'
+          fi
           echo "Workflow Rancher patch: $WORKFLOW_RANCHER_PATCH"
           export WORKFLOW_RANCHER_PATCH
 
           echo "Applying Rancher access grants for cluster '$CLUSTER_NAME' ..."
+          if [ ! -x "$GITHUB_WORKSPACE/.github/scripts/rancher-grant-cluster-access-batch.sh" ]; then
+            echo "ERROR: Missing rancher-grant-cluster-access-batch.sh — merge Ivanmeneges-patch-kubeconfig into this branch"
+            exit 1
+          fi
           chmod +x "$GITHUB_WORKSPACE/.github/scripts/rancher-grant-cluster-access-batch.sh"
           ARGS=(
             --rancher-url "$RANCHER_URL"
