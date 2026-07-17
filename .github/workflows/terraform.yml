@@ -89,11 +89,6 @@ on:
         required: false
         type: boolean
         default: true
-      GRANT_RANCHER_ACCESS:
-        description: 'Grant Rancher cluster access (DEVOPS is always cluster-owner by default for every env)'
-        required: false
-        type: boolean
-        default: true
       GRANT_GROUP_ACCESS:
         description: 'Also grant other teams from rancher-access-grants.json (roles/enabled flags per JSON + env vars). DEVOPS cluster-owner is always applied regardless.'
         required: false
@@ -421,7 +416,7 @@ jobs:
           echo "Rancher import URL minted for: $CLUSTER_NAME"
 
       - name: Grant Rancher cluster access (multi-team)
-        if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.ENABLE_RANCHER_IMPORT == true && inputs.GRANT_RANCHER_ACCESS == true }}
+        if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.ENABLE_RANCHER_IMPORT == true }}
         env:
           RANCHER_URL: ${{ secrets.RANCHER_API_URL }}
           RANCHER_TOKEN: ${{ secrets.RANCHER_API_TOKEN }}
