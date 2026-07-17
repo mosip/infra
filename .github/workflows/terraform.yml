@@ -89,24 +89,26 @@ on:
         required: false
         type: boolean
         default: true
-      RANCHER_DEVOPS_GROUP:
-        description: 'IdP group name granted cluster access on imported clusters (e.g. DEVOPS)'
-        required: false
-        type: string
-        default: 'DEVOPS'
-      GRANT_RANCHER_DEVOPS_ACCESS:
-        description: 'Grant RANCHER_DEVOPS_GROUP cluster access via Rancher API after registration'
+      GRANT_RANCHER_ACCESS:
+        description: 'Grant Rancher cluster access (DEVOPS is always cluster-owner by default for every env)'
         required: false
         type: boolean
         default: true
-      RANCHER_DEVOPS_ROLE:
-        description: 'Rancher role for DEVOPS group (cluster-member = UI visibility; cluster-owner = full cluster admin)'
+      GRANT_GROUP_ACCESS:
+        description: 'Also grant other teams from rancher-access-grants.json (roles/enabled flags per JSON + env vars). DEVOPS cluster-owner is always applied regardless.'
         required: false
-        type: choice
-        options:
-          - cluster-member
-          - cluster-owner
-        default: cluster-owner
+        type: boolean
+        default: false
+      RANCHER_CLUSTER_OWNER_GROUP_ENABLED:
+        description: 'Grant an additional group cluster-owner access (DEVOPS stays cluster-owner too)'
+        required: false
+        type: boolean
+        default: false
+      RANCHER_CLUSTER_OWNER_GROUP:
+        description: 'Group name for cluster-owner override (e.g. QA). Used when option above is enabled; overrides JSON role for that group.'
+        required: false
+        type: string
+        default: ''
         
 env:
   # TF_LOG_PATH: ./temp/terraform.log
@@ -418,46 +420,54 @@ jobs:
           echo "RANCHER_TFVARS_FILE=rancher-override.tfvars" >> "$GITHUB_ENV"
           echo "Rancher import URL minted for: $CLUSTER_NAME"
 
-      - name: Grant DevOps group cluster access in Rancher
-        if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.ENABLE_RANCHER_IMPORT == true && inputs.GRANT_RANCHER_DEVOPS_ACCESS == true }}
+      - name: Grant Rancher cluster access (multi-team)
+        if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.ENABLE_RANCHER_IMPORT == true && inputs.GRANT_RANCHER_ACCESS == true }}
         env:
           RANCHER_URL: ${{ secrets.RANCHER_API_URL }}
           RANCHER_TOKEN: ${{ secrets.RANCHER_API_TOKEN }}
           RANCHER_CLUSTER_NAME_INPUT: ${{ inputs.RANCHER_CLUSTER_NAME }}
           REF_NAME: ${{ github.ref_name }}
-          RANCHER_DEVOPS_GROUP: ${{ inputs.RANCHER_DEVOPS_GROUP }}
-          RANCHER_DEVOPS_ROLE: ${{ inputs.RANCHER_DEVOPS_ROLE }}
+          RANCHER_ACCESS_GRANTS: ${{ vars.RANCHER_ACCESS_GRANTS }}
+          RANCHER_DEVOPS_ROLE: ${{ vars.RANCHER_DEVOPS_ROLE }}
+          RANCHER_DEVOPS_ENABLED: ${{ vars.RANCHER_DEVOPS_ENABLED }}
+          RANCHER_DEVOPS_GROUP: ${{ vars.RANCHER_DEVOPS_GROUP }}
           RANCHER_GROUP_AUTH_PREFIX: ${{ vars.RANCHER_GROUP_AUTH_PREFIX }}
-          RANCHER_GROUP_PRINCIPAL_ID: ${{ vars.RANCHER_GROUP_PRINCIPAL_ID }}
+          WORKFLOW_DEVOPS_GROUP: ${{ vars.RANCHER_DEVOPS_GROUP || 'DEVOPS' }}
+          WORKFLOW_GRANT_GROUP_ACCESS: ${{ inputs.GRANT_GROUP_ACCESS }}
+          WORKFLOW_CLUSTER_OWNER_GROUP_ENABLED: ${{ inputs.RANCHER_CLUSTER_OWNER_GROUP_ENABLED }}
+          WORKFLOW_CLUSTER_OWNER_GROUP: ${{ inputs.RANCHER_CLUSTER_OWNER_GROUP }}
         run: |
           if [ -z "$RANCHER_URL" ] || [ -z "$RANCHER_TOKEN" ]; then
             echo "ERROR: RANCHER_API_URL and RANCHER_API_TOKEN must be set for environment '$REF_NAME'"
             exit 1
           fi
-          if [ -z "$RANCHER_DEVOPS_GROUP" ]; then
-            echo "Skipping Rancher group grant: RANCHER_DEVOPS_GROUP is empty"
-            exit 0
-          fi
           CLUSTER_NAME="${RANCHER_CLUSTER_NAME_INPUT:-$REF_NAME}"
-          echo "Granting ${RANCHER_DEVOPS_ROLE:-cluster-owner} to group '$RANCHER_DEVOPS_GROUP' on Rancher cluster '$CLUSTER_NAME' ..."
-          chmod +x "$GITHUB_WORKSPACE/.github/scripts/rancher-grant-cluster-access.sh"
+          GRANTS_FILE="$GITHUB_WORKSPACE/.github/config/rancher-access-grants.json"
+          if [ ! -f "$GRANTS_FILE" ]; then
+            echo "ERROR: Missing grants catalog: $GRANTS_FILE"
+            exit 1
+          fi
+
+          chmod +x "$GITHUB_WORKSPACE/.github/scripts/build-rancher-workflow-patch.sh"
+          export WORKFLOW_GRANTS_CATALOG="$GRANTS_FILE"
+          echo "Rancher team catalog:"
+          jq -r '.[] | "  - \(.group): \(.role) (catalog enabled=\(.enabled // true))"' "$GRANTS_FILE"
+          WORKFLOW_RANCHER_PATCH="$("$GITHUB_WORKSPACE/.github/scripts/build-rancher-workflow-patch.sh")"
+          echo "Workflow Rancher patch: $WORKFLOW_RANCHER_PATCH"
+          export WORKFLOW_RANCHER_PATCH
+
+          echo "Applying Rancher access grants for cluster '$CLUSTER_NAME' ..."
+          chmod +x "$GITHUB_WORKSPACE/.github/scripts/rancher-grant-cluster-access-batch.sh"
           ARGS=(
             --rancher-url "$RANCHER_URL"
             --token "$RANCHER_TOKEN"
             --cluster-name "$CLUSTER_NAME"
-            --group "$RANCHER_DEVOPS_GROUP"
-            --role-template "${RANCHER_DEVOPS_ROLE:-cluster-owner}"
-            --fix-misbound-user
+            --grants-file "$GRANTS_FILE"
           )
-          if [ -n "$RANCHER_GROUP_PRINCIPAL_ID" ]; then
-            ARGS+=(--group-principal-id "$RANCHER_GROUP_PRINCIPAL_ID")
-          else
-            ARGS+=(--group-auth-prefix keycloak_group)
+          if [ -n "${RANCHER_GROUP_AUTH_PREFIX:-}" ]; then
+            ARGS+=(--default-group-auth-prefix "$RANCHER_GROUP_AUTH_PREFIX")
           fi
-          if [ -n "$RANCHER_GROUP_AUTH_PREFIX" ]; then
-            ARGS+=(--group-auth-prefix "$RANCHER_GROUP_AUTH_PREFIX")
-          fi
-          "$GITHUB_WORKSPACE/.github/scripts/rancher-grant-cluster-access.sh" "${ARGS[@]}"
+          "$GITHUB_WORKSPACE/.github/scripts/rancher-grant-cluster-access-batch.sh" "${ARGS[@]}"
 
       - name: Terraform Plan
         id: plan
