@@ -68,17 +68,20 @@ catalog_role_for() {
   ' "$CATALOG_FILE" | head -n1
 }
 
-# When grant-group-access is off, disable every non-DEVOPS catalog group for this run.
-# DEVOPS stays cluster-owner from the base JSON layer (not patched here).
-if [[ "$(bool_enabled "$GRANT_GROUP_ACCESS")" != "true" ]]; then
-  while IFS= read -r group; do
-    [[ -n "$group" ]] || continue
-    [[ "$group" == "$DEVOPS_GROUP" ]] && continue
-    role="$(catalog_role_for "$group")"
-    [[ -n "$role" ]] || role="cluster-member"
+# When grant-group-access is checked, enable every non-DEVOPS team from the catalog
+# (roles/principal_id come from JSON — overrides enabled:false defaults in the file).
+# When unchecked, disable non-DEVOPS teams for this run (DEVOPS always from base JSON).
+while IFS= read -r group; do
+  [[ -n "$group" ]] || continue
+  [[ "$group" == "$DEVOPS_GROUP" ]] && continue
+  role="$(catalog_role_for "$group")"
+  [[ -n "$role" ]] || role="cluster-member"
+  if [[ "$(bool_enabled "$GRANT_GROUP_ACCESS")" == "true" ]]; then
+    add_entry "$group" "$role" true false
+  else
     add_entry "$group" "$role" false false
-  done < <(jq -r '.[].group' "$CATALOG_FILE")
-fi
+  fi
+done < <(jq -r '.[].group' "$CATALOG_FILE")
 
 # Optional extra cluster-owner (DEVOPS remains owner from base JSON — both can be owners).
 if [[ "$(bool_enabled "$OWNER_ENABLED")" == "true" ]]; then
