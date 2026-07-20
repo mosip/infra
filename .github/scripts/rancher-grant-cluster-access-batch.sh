@@ -73,7 +73,7 @@ validate_grants_array() {
   bad="$(printf '%s' "$json" | jq -r '
     .[] |
     select(
-      ((.group // "") | test("^[[:graph:]]+$") | not)
+      ((.group // "") | test("^[^[:space:][:cntrl:]]+$") | not)
       or ((.role // "") | test("^(cluster-[a-z0-9-]+|rt-[a-z0-9]+)$") | not)
     )
     | "  - group=\(.group // "MISSING") role=\(.role // "MISSING")"
@@ -103,6 +103,11 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+case "$GRANTS_MODE" in
+  merge|replace) ;;
+  *) die "GRANTS_MODE must be merge or replace (got: $GRANTS_MODE)" ;;
+esac
+
 [[ -f "$GRANT_SCRIPT" ]] || die "Missing grant script: $GRANT_SCRIPT"
 chmod +x "$GRANT_SCRIPT" 2>/dev/null || true
 command -v jq >/dev/null 2>&1 || die "jq is required"
@@ -110,6 +115,10 @@ command -v jq >/dev/null 2>&1 || die "jq is required"
 [[ -n "$RANCHER_TOKEN" ]] || die "--token is required"
 [[ -n "$CLUSTER_NAME" || -n "$CLUSTER_ID" ]] || die "--cluster-name or --cluster-id is required"
 
+# Merge grant arrays by .group name (shallow field merge):
+#   - Same group in a later layer overrides earlier fields for that group only.
+#   - enabled:false removes the group from the effective plan (not applied).
+#   - Omitted enabled is treated as true.
 JQ_MERGE='
   def enabled_grant:
     if has("enabled") then .enabled == true else true end;
@@ -217,12 +226,20 @@ FAILURES=0
 INDEX=0
 while IFS= read -r grant; do
   INDEX=$((INDEX + 1))
-  GROUP="$(jq -r '.group // empty' <<<"$grant")"
-  ROLE="$(jq -r '.role // empty' <<<"$grant")"
-  PRINCIPAL_ID="$(jq -r '.principal_id // empty' <<<"$grant")"
-  AUTH_PREFIX="$(jq -r '.group_auth_prefix // empty' <<<"$grant")"
-  FIX_MISBOUND="$(jq -r '.fix_misbound_user // false' <<<"$grant")"
-  ENABLED="$(jq -r '.enabled // true' <<<"$grant")"
+  mapfile -t _fields < <(jq -r '
+    .group // "",
+    .role // "",
+    .principal_id // "",
+    .group_auth_prefix // "",
+    (.fix_misbound_user // false | tostring),
+    (.enabled // true | tostring)
+  ' <<<"$grant")
+  GROUP="${_fields[0]:-}"
+  ROLE="${_fields[1]:-}"
+  PRINCIPAL_ID="${_fields[2]:-}"
+  AUTH_PREFIX="${_fields[3]:-}"
+  FIX_MISBOUND="${_fields[4]:-false}"
+  ENABLED="${_fields[5]:-true}"
 
   validate_group "$GROUP"
   validate_role "$ROLE" "$GROUP"
