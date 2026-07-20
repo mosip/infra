@@ -70,6 +70,8 @@ EOF
 LAST_HTTP_STATUS=""
 DELETIONS_PERFORMED="false"
 REPAIRS_PERFORMED="false"
+CLUSTER_BINDINGS_JSON=""
+CLUSTER_BINDINGS_CLUSTER_ID=""
 
 err() { echo "[rancher-grant][ERROR] $*" >&2; }
 die() { err "$*"; exit 1; }
@@ -135,7 +137,6 @@ api() {
   local method="$1" path="$2" body="${3:-}"
   local tmp status curl_args=()
   tmp="$(mktemp "${TMPDIR:-/tmp}/rancher-api.XXXXXX")"
-  trap "rm -f $(printf %q "$tmp")" RETURN
 
   curl_args=(
     -sS
@@ -155,6 +156,7 @@ api() {
     LAST_HTTP_STATUS=""
     err "Rancher API ${method} ${path}: curl failed"
     [[ -s "$tmp" ]] && cat "$tmp" >&2
+    rm -f "$tmp"
     return 1
   fi
 
@@ -163,10 +165,29 @@ api() {
     err "Rancher API ${method} ${path} failed with HTTP ${status:-unknown}"
     [[ -s "$tmp" ]] && cat "$tmp" >&2
     [[ "$status" == "403" ]] && forbidden_hint
+    rm -f "$tmp"
     return 1
   fi
 
   cat "$tmp"
+  rm -f "$tmp"
+}
+
+invalidate_bindings_cache() {
+  CLUSTER_BINDINGS_JSON=""
+  CLUSTER_BINDINGS_CLUSTER_ID=""
+}
+
+fetch_cluster_bindings() {
+  if [[ "$CLUSTER_BINDINGS_CLUSTER_ID" == "$CLUSTER_ID" && -n "$CLUSTER_BINDINGS_JSON" ]]; then
+    printf '%s' "$CLUSTER_BINDINGS_JSON"
+    return 0
+  fi
+  if ! CLUSTER_BINDINGS_JSON="$(api GET "/v3/clusterroletemplatebindings?clusterId=$(urlencode "$CLUSTER_ID")")"; then
+    return 1
+  fi
+  CLUSTER_BINDINGS_CLUSTER_ID="$CLUSTER_ID"
+  printf '%s' "$CLUSTER_BINDINGS_JSON"
 }
 
 fetch_cluster_id_by_name() {
@@ -230,13 +251,6 @@ validate_group_principal() {
 
 constructed_group_principal_ids() {
   local prefix="$1" name="$2"
-  # MOSIP Keycloak SAML uses keycloak_group://DEVOPS (two slashes), not ///DEVOPS.
-  if [[ "$prefix" == "keycloak_group" ]]; then
-    printf '%s\n' \
-      "${prefix}://${name}" \
-      "${prefix}:///${name}"
-    return 0
-  fi
   printf '%s\n' \
     "${prefix}://${name}" \
     "${prefix}:///${name}"
@@ -275,6 +289,7 @@ alternate_group_principal_ids() {
 delete_binding_by_id() {
   local id="$1"
   if api DELETE "/v3/clusterroletemplatebindings/$(urlencode "$id")" >/dev/null; then
+    invalidate_bindings_cache
     DELETIONS_PERFORMED="true"
     return 0
   fi
@@ -303,7 +318,7 @@ planned_binding_name() {
 
 binding_name_exists() {
   local name="$1" json
-  if ! json="$(api GET "/v3/clusterroletemplatebindings?clusterId=$(urlencode "$CLUSTER_ID")")"; then
+  if ! json="$(fetch_cluster_bindings)"; then
     return 1
   fi
   jq -e --arg name "$name" '.data[]? | select(.name == $name)' <<<"$json" >/dev/null
@@ -326,12 +341,16 @@ update_group_binding() {
       groupPrincipalId: $groupPrincipalId,
       roleTemplateId: $roleTemplateId
     }')"
-  api PUT "/v3/clusterroletemplatebindings/$(urlencode "$id")" "$body" >/dev/null
+  if api PUT "/v3/clusterroletemplatebindings/$(urlencode "$id")" "$body" >/dev/null; then
+    invalidate_bindings_cache
+    return 0
+  fi
+  return 1
 }
 
 remove_misbound_user_bindings() {
   local json ids id principal
-  if ! json="$(api GET "/v3/clusterroletemplatebindings?clusterId=$(urlencode "$CLUSTER_ID")")"; then
+  if ! json="$(fetch_cluster_bindings)"; then
     err "Could not list bindings while checking for misbound user entries"
     return 1
   fi
@@ -356,7 +375,7 @@ remove_misbound_user_bindings() {
 reconcile_stale_group_bindings() {
   local target="$1" json rows id name principal role
   [[ -n "$GROUP_NAME" ]] || return 0
-  if ! json="$(api GET "/v3/clusterroletemplatebindings?clusterId=$(urlencode "$CLUSTER_ID")")"; then
+  if ! json="$(fetch_cluster_bindings)"; then
     err "Could not list bindings while reconciling stale group entries"
     return 1
   fi
@@ -379,8 +398,11 @@ reconcile_stale_group_bindings() {
       select((.groupPrincipalId // "") != "") |
       select((.groupPrincipalId // "") != $target) |
       select(
-        (.groupPrincipalId // "") |
-        test("keycloak_(group|user):///?" + $name + "$")
+        (.groupPrincipalId // "") as $p |
+        ($p | endswith("_group://" + $name)) or
+        ($p | endswith("_group:///" + $name)) or
+        ($p | endswith("_user://" + $name)) or
+        ($p | endswith("_user:///" + $name))
       ) |
       [.id, .name, .groupPrincipalId, .roleTemplateId] |
       @tsv
@@ -390,7 +412,7 @@ reconcile_stale_group_bindings() {
 
 remove_stale_role_bindings() {
   local target="$1" json ids id role
-  if ! json="$(api GET "/v3/clusterroletemplatebindings?clusterId=$(urlencode "$CLUSTER_ID")")"; then
+  if ! json="$(fetch_cluster_bindings)"; then
     err "Could not list bindings while checking for stale role entries"
     return 1
   fi
@@ -411,7 +433,7 @@ remove_stale_role_bindings() {
 
 binding_exists() {
   local principal="$1" json
-  if ! json="$(api GET "/v3/clusterroletemplatebindings?clusterId=$(urlencode "$CLUSTER_ID")")"; then
+  if ! json="$(fetch_cluster_bindings)"; then
     die "Failed to list cluster role template bindings"
   fi
   jq -e --arg gid "$principal" --arg role "$ROLE_TEMPLATE_ID" '
@@ -422,7 +444,7 @@ binding_exists() {
 
 list_cluster_bindings() {
   local json
-  if ! json="$(api GET "/v3/clusterroletemplatebindings?clusterId=$(urlencode "$CLUSTER_ID")")"; then
+  if ! json="$(fetch_cluster_bindings)"; then
     die "Failed to list cluster role template bindings"
   fi
   jq '[.data[]? | {
@@ -464,6 +486,7 @@ create_binding() {
       }')"
 
     if response="$(api POST "/v3/clusterroletemplatebindings" "$body")"; then
+      invalidate_bindings_cache
       jq -r '{id, name, clusterId, groupPrincipalId, roleTemplateId}' <<<"$response" >&2
       return 0
     fi
@@ -473,12 +496,40 @@ create_binding() {
     if [[ "${LAST_HTTP_STATUS:-}" == "409" ]]; then
       BINDING_NAME="crtb-$(slugify "$binding_label")-$(slugify "$ROLE_TEMPLATE_ID")-$(unique_binding_suffix)"
       log "Binding name conflict (attempt ${attempt}/${max_attempts}); retrying as '${BINDING_NAME}' ..."
+      sleep 1
       continue
     fi
     return 1
   done
   [[ "${LAST_HTTP_STATUS:-}" == "409" ]] && return 3
   return 1
+}
+
+retry_alternate_principals() {
+  local auth_prefix="${GROUP_AUTH_PREFIX:-}" create_status=0 candidate
+  [[ -z "$auth_prefix" ]] && auth_prefix="$(detect_group_auth_prefix)"
+  while IFS= read -r candidate; do
+    [[ "$candidate" == "$GROUP_PRINCIPAL_ID" ]] && continue
+    log "Retrying with alternate group principal: ${candidate}"
+    if binding_exists "$candidate"; then
+      log "Binding already exists for group='${candidate}' role='${ROLE_TEMPLATE_ID}' (skipping)"
+      exit 0
+    fi
+    BINDING_NAME=""
+    create_status=0
+    create_binding "$candidate" || create_status=$?
+    if (( create_status == 0 )); then
+      log "Cluster access granted successfully with principal '${candidate}'"
+      log_cluster_bindings
+      exit 0
+    fi
+    if (( create_status == 2 )); then
+      die "Cannot grant cluster access: Rancher API token is forbidden from managing cluster members."
+    fi
+    if (( create_status == 3 )); then
+      die "Cannot grant cluster access: Rancher rejected all generated binding names; re-run the workflow in a few minutes."
+    fi
+  done < <(alternate_group_principal_ids "$auth_prefix" "$GROUP_NAME")
 }
 
 if [[ -z "$CLUSTER_ID" ]]; then
@@ -528,30 +579,7 @@ if (( create_status == 3 )); then
 fi
 
 if (( create_status == 1 )) && [[ "${LAST_HTTP_STATUS:-}" != "409" ]] && [[ -n "$GROUP_NAME" ]]; then
-  prefix="${GROUP_AUTH_PREFIX:-}"
-  [[ -z "$prefix" ]] && prefix="$(detect_group_auth_prefix)"
-  while IFS= read -r candidate; do
-    [[ "$candidate" == "$GROUP_PRINCIPAL_ID" ]] && continue
-    log "Retrying with alternate group principal: ${candidate}"
-    if binding_exists "$candidate"; then
-      log "Binding already exists for group='${candidate}' role='${ROLE_TEMPLATE_ID}' (skipping)"
-      exit 0
-    fi
-    BINDING_NAME=""
-    create_status=0
-    create_binding "$candidate" || create_status=$?
-    if (( create_status == 0 )); then
-      log "Cluster access granted successfully with principal '${candidate}'"
-      log_cluster_bindings
-      exit 0
-    fi
-    if (( create_status == 2 )); then
-      die "Cannot grant cluster access: Rancher API token is forbidden from managing cluster members."
-    fi
-    if (( create_status == 3 )); then
-      die "Cannot grant cluster access: Rancher rejected all generated binding names; re-run the workflow in a few minutes."
-    fi
-  done < <(alternate_group_principal_ids "$prefix" "$GROUP_NAME")
+  retry_alternate_principals
 fi
 
 die "Failed to create clusterRoleTemplateBinding. Set RANCHER_GROUP_PRINCIPAL_ID=keycloak_group://DEVOPS (or pass --group-principal-id) and ensure RANCHER_API_TOKEN can manage cluster members."
