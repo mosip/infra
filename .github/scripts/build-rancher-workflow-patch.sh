@@ -30,6 +30,13 @@ DEFAULT_CATALOG="${SCRIPT_DIR}/rancher-access-grants.default.json"
 log() { echo "[build-rancher-workflow-patch] $*" >&2; }
 die() { log "ERROR: $*"; exit 1; }
 
+trim_whitespace() {
+  local s="$1"
+  s="${s#"${s%%[![:space:]]*}"}"
+  s="${s%"${s##*[![:space:]]}"}"
+  printf '%s' "$s"
+}
+
 command -v jq >/dev/null 2>&1 || die "jq is required"
 if [[ ! -f "$CATALOG_FILE" ]]; then
   RESOLVE_SCRIPT="${SCRIPT_DIR}/resolve-rancher-grants-catalog.sh"
@@ -60,7 +67,15 @@ add_entry() {
   fi
   patch="$(jq -c \
     --arg g "$group" --arg r "$role" --argjson e "$enabled" --argjson x "$extra" \
-    '. + [({group:$g, role:$r, enabled:$e} + $x)]' <<<"$patch")"
+    '. + [
+      (
+        {
+          group: $g,
+          role: $r,
+          enabled: $e
+        } + $x
+      )
+    ]' <<<"$patch")"
 }
 
 bool_enabled() {
@@ -70,40 +85,29 @@ bool_enabled() {
   esac
 }
 
-catalog_role_for() {
-  local group="$1"
-  jq -r --arg g "$group" '
-    .[] | select(.group == $g) | .role // empty
-  ' "$CATALOG_FILE" | head -n1
-}
-
 GRANT_ENABLED="$(bool_enabled "$GRANT_GROUP_ACCESS")"
 OWNER_ENABLED_BOOL="$(bool_enabled "$OWNER_ENABLED")"
 
 # When grant-group-access is checked, enable every non-DEVOPS team from the catalog
 # (roles/principal_id come from JSON — overrides enabled:false defaults in the file).
 # When unchecked, disable non-DEVOPS teams for this run (DEVOPS always from base JSON).
-while IFS= read -r group; do
+while IFS=$'\t' read -r group role; do
   [[ -n "$group" ]] || continue
   [[ "$group" == "$DEVOPS_GROUP" ]] && continue
-  role="$(catalog_role_for "$group")"
   [[ -n "$role" ]] || role="cluster-member"
-  if [[ "$GRANT_ENABLED" == "true" ]]; then
-    add_entry "$group" "$role" true false
-  else
-    add_entry "$group" "$role" false false
-  fi
-done < <(jq -r '.[].group' "$CATALOG_FILE")
+  add_entry "$group" "$role" "$GRANT_ENABLED" false
+done < <(jq -r '.[] | [.group, (.role // "cluster-member")] | @tsv' "$CATALOG_FILE")
 
 # Optional extra cluster-owner (DEVOPS remains owner from base JSON — both can be owners).
 if [[ "$OWNER_ENABLED_BOOL" == "true" ]]; then
-  g="${OWNER_GROUP// /}"
+  g="$(trim_whitespace "$OWNER_GROUP")"
   if [[ -n "$g" ]]; then
     if jq -e --arg g "$g" 'map(select(.group == $g)) | length > 0' <<<"$patch" >/dev/null; then
       patch="$(jq -c --arg g "$g" \
         'map(if .group == $g then .role = "cluster-owner" | .enabled = true else . end)' <<<"$patch")"
     else
       fix="false"
+      # Repair legacy DEVOPS principal bindings when granting cluster-owner to DEVOPS again.
       [[ "$g" == "$DEVOPS_GROUP" ]] && fix="true"
       add_entry "$g" "cluster-owner" true "$fix"
     fi
