@@ -4,19 +4,10 @@
 #
 # Configuration layers (merged in order; later layers override earlier for the same group):
 #   1. Base file: .github/config/rancher-access-grants.json (repo defaults)
-#      - DEVOPS is cluster-owner by default; other groups use enabled true/false
 #   2. Environment patch: RANCHER_ACCESS_GRANTS (JSON array, merge by group name)
 #   3. DEVOPS shortcuts: RANCHER_DEVOPS_ROLE, RANCHER_DEVOPS_ENABLED (per-environment)
 #   4. Workflow patch: WORKFLOW_RANCHER_PATCH (from Actions UI inputs — highest priority)
 #   5. CLI --grants-json replaces everything (testing / ad-hoc only)
-#
-# Grant entry fields:
-#   group             (required) IdP group name, e.g. DEVOPS
-#   role              (required) Rancher role template id, e.g. cluster-owner
-#   enabled           (optional) true/false — default true; false skips the grant
-#   principal_id      (optional) Full principal id, e.g. keycloak_group://DEVOPS
-#   group_auth_prefix (optional) Prefix when building principal id
-#   fix_misbound_user (optional) true/false — repair wrong DEVOPS bindings
 
 set -euo pipefail
 
@@ -36,30 +27,6 @@ usage() {
   cat <<'EOF'
 Usage: rancher-grant-cluster-access-batch.sh --rancher-url <url> --token <token> \
   [--cluster-name <name> | --cluster-id <id>] [options]
-
-Required:
-  --rancher-url <url>     Rancher base URL
-  --token <token>         Rancher API bearer token
-
-Cluster selector (one required):
-  --cluster-name <name>
-  --cluster-id <id>
-
-Grant sources (default mode = merge):
-  --grants-file <path>    Base defaults (default: .github/config/rancher-access-grants.json)
-  --grants-json '<json>'  Full replace — skips base file and env patches
-  --grants-mode <mode>    merge (default) or replace
-
-Optional:
-  --default-group-auth-prefix <prefix>  Default principal prefix (default: keycloak_group)
-  -h, --help
-
-Environment (per GitHub environment / shell):
-  RANCHER_ACCESS_GRANTS    JSON array — merge patch by group (overrides base file fields)
-  RANCHER_DEVOPS_ROLE      Override DEVOPS role only, e.g. cluster-member
-  RANCHER_DEVOPS_ENABLED   true/false — enable or disable DEVOPS grant for this env
-  RANCHER_DEVOPS_GROUP     DEVOPS group name if not "DEVOPS" (default: DEVOPS)
-  WORKFLOW_RANCHER_PATCH   JSON array from workflow_dispatch inputs (highest priority)
 EOF
 }
 
@@ -70,6 +37,55 @@ die() { err "$*"; exit 1; }
 require_arg() {
   local flag="$1"
   [[ $# -ge 2 && -n "${2:-}" && "$2" != --* ]] || die "$flag requires a value"
+}
+
+# Valid Rancher role template ids: built-in cluster-* roles or custom rt-* templates.
+validate_role() {
+  local role="$1" group="$2"
+  [[ -n "$role" ]] || die "Grant for group '$group' has empty role"
+  if [[ "$role" =~ ^(cluster-[a-z0-9-]+|rt-[a-z0-9]+)$ ]]; then
+    return 0
+  fi
+  die "Invalid role '$role' for group '$group' (expected cluster-* or rt-* template id)"
+}
+
+# IdP group names: non-empty, no whitespace/control chars (allows TL+ARCHITECT).
+validate_group() {
+  local group="$1"
+  [[ -n "$group" ]] || die "Grant entry has empty group name"
+  if [[ "$group" =~ [[:space:]] ]] || [[ "$group" =~ [[:cntrl:]] ]]; then
+    die "Invalid group name '$group' (must not contain spaces or control characters)"
+  fi
+}
+
+validate_json_array() {
+  local label="$1" json="$2"
+  [[ -n "${json// }" ]] || return 0
+  printf '%s' "$json" | jq -e 'type == "array"' >/dev/null \
+    || die "Invalid JSON in $label (must be a JSON array)"
+}
+
+validate_grants_array() {
+  local label="$1" json="$2"
+  validate_json_array "$label" "$json"
+  [[ -n "${json// }" ]] || return 0
+  local bad
+  bad="$(printf '%s' "$json" | jq -r '
+    .[] |
+    select(
+      ((.group // "") | test("^[[:graph:]]+$") | not)
+      or ((.role // "") | test("^(cluster-[a-z0-9-]+|rt-[a-z0-9]+)$") | not)
+    )
+    | "  - group=\(.group // "MISSING") role=\(.role // "MISSING")"
+  ' 2>/dev/null || true)"
+  if [[ -n "$bad" ]]; then
+    die "$(printf 'Invalid grant entries in %s:\n%s' "$label" "$bad")"
+  fi
+  local dup
+  dup="$(printf '%s' "$json" | jq -r '[.[].group // ""] | group_by(.) | map(select(length > 1 and .[0] != "")) | .[][0]' | sort -u)"
+  if [[ -n "$dup" ]]; then
+    die "$(printf 'Duplicate group names in %s:\n%s' "$label" "$dup")"
+  fi
 }
 
 while [[ $# -gt 0 ]]; do
@@ -87,13 +103,13 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-[[ -x "$GRANT_SCRIPT" ]] || die "Missing grant script: $GRANT_SCRIPT"
+[[ -f "$GRANT_SCRIPT" ]] || die "Missing grant script: $GRANT_SCRIPT"
+chmod +x "$GRANT_SCRIPT" 2>/dev/null || true
 command -v jq >/dev/null 2>&1 || die "jq is required"
 [[ -n "$RANCHER_URL" ]] || die "--rancher-url is required"
 [[ -n "$RANCHER_TOKEN" ]] || die "--token is required"
 [[ -n "$CLUSTER_NAME" || -n "$CLUSTER_ID" ]] || die "--cluster-name or --cluster-id is required"
 
-# jq: merge grant arrays by .group; enabled defaults true; drop enabled==false
 JQ_MERGE='
   def enabled_grant:
     if has("enabled") then .enabled == true else true end;
@@ -107,20 +123,24 @@ JQ_MERGE='
 
 load_base_grants() {
   local default_file="${SCRIPT_DIR}/rancher-access-grants.default.json"
+  local base
   if [[ -f "$GRANTS_FILE" ]]; then
-    cat "$GRANTS_FILE"
+    base="$(cat "$GRANTS_FILE")"
   elif [[ -f "$default_file" ]]; then
     log "Grants catalog not found at $GRANTS_FILE — using built-in default ($default_file)"
-    cat "$default_file"
+    base="$(cat "$default_file")"
   else
     log "No grants catalog; using minimal DEVOPS cluster-owner default"
-    printf '%s' '[{"group":"DEVOPS","role":"cluster-owner","enabled":true,"principal_id":"keycloak_group://DEVOPS","fix_misbound_user":true}]'
+    base='[{"group":"DEVOPS","role":"cluster-owner","enabled":true,"principal_id":"keycloak_group://DEVOPS","fix_misbound_user":true}]'
   fi
+  validate_grants_array "base grants file ($GRANTS_FILE)" "$base"
+  printf '%s' "$base"
 }
 
 build_devops_patch() {
   local obj='{}'
   if [[ -n "${RANCHER_DEVOPS_ROLE:-}" ]]; then
+    validate_role "$RANCHER_DEVOPS_ROLE" "$DEVOPS_GROUP_NAME"
     obj="$(jq -c --arg g "$DEVOPS_GROUP_NAME" --arg r "$RANCHER_DEVOPS_ROLE" \
       '{group:$g, role:$r}')"
   fi
@@ -143,21 +163,27 @@ build_devops_patch() {
 
 resolve_grants_json() {
   if [[ -n "$GRANTS_JSON" ]]; then
+    validate_grants_array "--grants-json" "$GRANTS_JSON"
     log "Using --grants-json (full replace, ignoring base file and env patches)"
     printf '%s' "$GRANTS_JSON"
     return 0
   fi
 
   if [[ "$GRANTS_MODE" == "replace" && -n "${RANCHER_ACCESS_GRANTS:-}" ]]; then
+    validate_grants_array "RANCHER_ACCESS_GRANTS" "$RANCHER_ACCESS_GRANTS"
     log "Using RANCHER_ACCESS_GRANTS (replace mode)"
     printf '%s' "$RANCHER_ACCESS_GRANTS"
     return 0
   fi
 
-  local base env_patch devops_patch merged
+  local base env_patch devops_patch merged workflow_patch
   base="$(load_base_grants)"
   env_patch="${RANCHER_ACCESS_GRANTS:-[]}"
   devops_patch="$(build_devops_patch)"
+  workflow_patch="${WORKFLOW_RANCHER_PATCH:-[]}"
+
+  validate_json_array "RANCHER_ACCESS_GRANTS" "$env_patch"
+  validate_json_array "WORKFLOW_RANCHER_PATCH" "$workflow_patch"
 
   merged="$(jq -c -s "$JQ_MERGE" <(printf '%s' "$base") <(printf '%s' "$env_patch"))"
   if [[ "$devops_patch" != "[]" ]]; then
@@ -165,7 +191,7 @@ resolve_grants_json() {
     log "Applied DEVOPS env shortcuts (group=$DEVOPS_GROUP_NAME)"
   fi
   if [[ -n "${WORKFLOW_RANCHER_PATCH:-}" && "$WORKFLOW_RANCHER_PATCH" != "[]" ]]; then
-    merged="$(jq -c -s "$JQ_MERGE" <(printf '%s' "$merged") <(printf '%s' "$WORKFLOW_RANCHER_PATCH"))"
+    merged="$(jq -c -s "$JQ_MERGE" <(printf '%s' "$merged") <(printf '%s' "$workflow_patch"))"
     log "Applied workflow_dispatch patch (Actions UI selections)"
   fi
   if [[ -n "${RANCHER_ACCESS_GRANTS:-}" ]]; then
@@ -173,30 +199,36 @@ resolve_grants_json() {
   else
     log "Using base grants from $GRANTS_FILE"
   fi
+  validate_grants_array "merged grant plan" "$merged"
   printf '%s' "$merged"
 }
 
 GRANTS="$(resolve_grants_json)"
-echo "$GRANTS" | jq -e 'type == "array"' >/dev/null || die "Grants must be a JSON array"
-
-COUNT="$(echo "$GRANTS" | jq 'length')"
+COUNT="$(printf '%s' "$GRANTS" | jq 'length')"
 if [[ "$COUNT" -eq 0 ]]; then
   log "No enabled grants to apply (all groups disabled or empty config)"
   exit 0
 fi
 
 log "Effective grant plan ($COUNT enabled):"
-echo "$GRANTS" | jq -r '.[] | "  - \(.group): \(.role) (enabled=\(.enabled // true))"'
+printf '%s' "$GRANTS" | jq -r '.[] | "  - \(.group): \(.role) (enabled=\(.enabled // true))"'
 
 FAILURES=0
-for i in $(seq 0 $((COUNT - 1))); do
-  GROUP="$(echo "$GRANTS" | jq -r ".[$i].group // empty")"
-  ROLE="$(echo "$GRANTS" | jq -r ".[$i].role // empty")"
-  PRINCIPAL_ID="$(echo "$GRANTS" | jq -r ".[$i].principal_id // empty")"
-  AUTH_PREFIX="$(echo "$GRANTS" | jq -r ".[$i].group_auth_prefix // empty")"
-  FIX_MISBOUND="$(echo "$GRANTS" | jq -r ".[$i].fix_misbound_user // false")"
+INDEX=0
+while IFS= read -r grant; do
+  INDEX=$((INDEX + 1))
+  GROUP="$(jq -r '.group // empty' <<<"$grant")"
+  ROLE="$(jq -r '.role // empty' <<<"$grant")"
+  PRINCIPAL_ID="$(jq -r '.principal_id // empty' <<<"$grant")"
+  AUTH_PREFIX="$(jq -r '.group_auth_prefix // empty' <<<"$grant")"
+  FIX_MISBOUND="$(jq -r '.fix_misbound_user // false' <<<"$grant")"
+  ENABLED="$(jq -r '.enabled // true' <<<"$grant")"
 
-  [[ -n "$GROUP" && -n "$ROLE" ]] || die "Grant index $i must include group and role after merge"
+  validate_group "$GROUP"
+  validate_role "$ROLE" "$GROUP"
+
+  PRINCIPAL_DISPLAY="${PRINCIPAL_ID:-<built from ${AUTH_PREFIX:-$DEFAULT_GROUP_AUTH_PREFIX}>}"
+  log "[$INDEX/$COUNT] Grant: group=$GROUP role=$ROLE principal=$PRINCIPAL_DISPLAY fix_misbound=$FIX_MISBOUND enabled=$ENABLED"
 
   ARGS=(
     --rancher-url "$RANCHER_URL"
@@ -213,12 +245,11 @@ for i in $(seq 0 $((COUNT - 1))); do
   fi
   [[ "$FIX_MISBOUND" == "true" ]] && ARGS+=(--fix-misbound-user)
 
-  log "[$((i + 1))/$COUNT] Applying group=$GROUP role=$ROLE"
   if ! "$GRANT_SCRIPT" "${ARGS[@]}"; then
     err "Grant failed for group=$GROUP role=$ROLE"
     FAILURES=$((FAILURES + 1))
   fi
-done
+done < <(printf '%s' "$GRANTS" | jq -c '.[]')
 
 if [[ "$FAILURES" -gt 0 ]]; then
   die "$FAILURES grant(s) failed"
