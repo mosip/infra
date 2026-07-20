@@ -27,18 +27,27 @@ if [[ -z "$CATALOG_FILE" ]]; then
 fi
 DEFAULT_CATALOG="${SCRIPT_DIR}/rancher-access-grants.default.json"
 
-command -v jq >/dev/null 2>&1 || { echo "jq is required" >&2; exit 1; }
+log() { echo "[build-rancher-workflow-patch] $*" >&2; }
+die() { log "ERROR: $*"; exit 1; }
+
+command -v jq >/dev/null 2>&1 || die "jq is required"
 if [[ ! -f "$CATALOG_FILE" ]]; then
   RESOLVE_SCRIPT="${SCRIPT_DIR}/resolve-rancher-grants-catalog.sh"
   if [[ -x "$RESOLVE_SCRIPT" ]]; then
     CATALOG_FILE="$("$RESOLVE_SCRIPT")"
   elif [[ -f "$DEFAULT_CATALOG" ]]; then
-    echo "[build-rancher-workflow-patch] Catalog not found — using $DEFAULT_CATALOG" >&2
+    log "Catalog not found — using $DEFAULT_CATALOG"
     CATALOG_FILE="$DEFAULT_CATALOG"
   else
-    echo "Missing grants catalog and no resolver/default script" >&2
-    exit 1
+    die "Missing grants catalog and no resolver/default script"
   fi
+fi
+
+jq empty "$CATALOG_FILE" || die "Invalid JSON catalog: $CATALOG_FILE"
+
+dup="$(jq -r '.[].group' "$CATALOG_FILE" | sort | uniq -d)"
+if [[ -n "$dup" ]]; then
+  die "$(printf 'Duplicate group names in catalog:\n%s' "$dup")"
 fi
 
 patch='[]'
@@ -68,6 +77,9 @@ catalog_role_for() {
   ' "$CATALOG_FILE" | head -n1
 }
 
+GRANT_ENABLED="$(bool_enabled "$GRANT_GROUP_ACCESS")"
+OWNER_ENABLED_BOOL="$(bool_enabled "$OWNER_ENABLED")"
+
 # When grant-group-access is checked, enable every non-DEVOPS team from the catalog
 # (roles/principal_id come from JSON — overrides enabled:false defaults in the file).
 # When unchecked, disable non-DEVOPS teams for this run (DEVOPS always from base JSON).
@@ -76,7 +88,7 @@ while IFS= read -r group; do
   [[ "$group" == "$DEVOPS_GROUP" ]] && continue
   role="$(catalog_role_for "$group")"
   [[ -n "$role" ]] || role="cluster-member"
-  if [[ "$(bool_enabled "$GRANT_GROUP_ACCESS")" == "true" ]]; then
+  if [[ "$GRANT_ENABLED" == "true" ]]; then
     add_entry "$group" "$role" true false
   else
     add_entry "$group" "$role" false false
@@ -84,7 +96,7 @@ while IFS= read -r group; do
 done < <(jq -r '.[].group' "$CATALOG_FILE")
 
 # Optional extra cluster-owner (DEVOPS remains owner from base JSON — both can be owners).
-if [[ "$(bool_enabled "$OWNER_ENABLED")" == "true" ]]; then
+if [[ "$OWNER_ENABLED_BOOL" == "true" ]]; then
   g="${OWNER_GROUP// /}"
   if [[ -n "$g" ]]; then
     if jq -e --arg g "$g" 'map(select(.group == $g)) | length > 0' <<<"$patch" >/dev/null; then
