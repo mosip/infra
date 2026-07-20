@@ -297,7 +297,11 @@ delete_binding_by_id() {
 }
 
 unique_binding_suffix() {
-  printf '%04x' "$((RANDOM % 65536))"
+  if command -v openssl >/dev/null 2>&1; then
+    openssl rand -hex 2
+  else
+    printf '%04x' "$((RANDOM % 65536))"
+  fi
 }
 
 planned_binding_name() {
@@ -349,27 +353,26 @@ update_group_binding() {
 }
 
 remove_misbound_user_bindings() {
-  local json ids id principal
+  local json id principal
   if ! json="$(fetch_cluster_bindings)"; then
     err "Could not list bindings while checking for misbound user entries"
     return 1
   fi
-  mapfile -t ids < <(jq -r --arg name "$GROUP_NAME" '
+  while IFS=$'\t' read -r id principal; do
+    [[ -n "$id" ]] || continue
+    log "Removing misbound user clusterRoleTemplateBinding id=${id} userPrincipalId=${principal}"
+    delete_binding_by_id "$id" || err "Failed to delete binding ${id}"
+  done < <(jq -r --arg name "$GROUP_NAME" '
     [.data[]? |
       select((.userPrincipalId // "") != "") |
       select((.groupPrincipalId // "") == "") |
       select(
         (.userPrincipalId // "") | endswith("/" + $name) or endswith("://" + $name) or endswith($name)
       ) |
-      .id
+      [.id, .userPrincipalId] |
+      @tsv
     ] | .[]
   ' <<<"$json")
-  for id in "${ids[@]}"; do
-    [[ -n "$id" ]] || continue
-    principal="$(jq -r --arg id "$id" '[.data[]? | select(.id == $id)][0].userPrincipalId // empty' <<<"$json")"
-    log "Removing misbound user clusterRoleTemplateBinding id=${id} userPrincipalId=${principal}"
-    delete_binding_by_id "$id" || err "Failed to delete binding ${id}"
-  done
 }
 
 reconcile_stale_group_bindings() {
@@ -411,24 +414,23 @@ reconcile_stale_group_bindings() {
 }
 
 remove_stale_role_bindings() {
-  local target="$1" json ids id role
+  local target="$1" json id role
   if ! json="$(fetch_cluster_bindings)"; then
     err "Could not list bindings while checking for stale role entries"
     return 1
   fi
-  mapfile -t ids < <(jq -r --arg target "$target" --arg role "$ROLE_TEMPLATE_ID" '
+  while IFS=$'\t' read -r id role; do
+    [[ -n "$id" ]] || continue
+    log "Removing stale role clusterRoleTemplateBinding id=${id} groupPrincipalId=${target} role=${role}"
+    delete_binding_by_id "$id" || err "Failed to delete binding ${id}"
+  done < <(jq -r --arg target "$target" --arg role "$ROLE_TEMPLATE_ID" '
     [.data[]? |
       select((.groupPrincipalId // "") == $target) |
       select((.roleTemplateId // "") != $role) |
-      .id
+      [.id, .roleTemplateId] |
+      @tsv
     ] | .[]
   ' <<<"$json")
-  for id in "${ids[@]}"; do
-    [[ -n "$id" ]] || continue
-    role="$(jq -r --arg id "$id" '[.data[]? | select(.id == $id)][0].roleTemplateId // empty' <<<"$json")"
-    log "Removing stale role clusterRoleTemplateBinding id=${id} groupPrincipalId=${target} role=${role}"
-    delete_binding_by_id "$id" || err "Failed to delete binding ${id}"
-  done
 }
 
 binding_exists() {
@@ -553,6 +555,10 @@ if [[ "$FIX_MISBOUND_USER" == "true" && -n "$GROUP_NAME" ]]; then
   remove_misbound_user_bindings || true
   reconcile_stale_group_bindings "$GROUP_PRINCIPAL_ID" || true
   remove_stale_role_bindings "$GROUP_PRINCIPAL_ID" || true
+  if [[ "$DELETIONS_PERFORMED" == "true" ]]; then
+    log "Waiting for Rancher to settle after binding cleanup ..."
+    sleep 2
+  fi
 fi
 
 log "Granting role '${ROLE_TEMPLATE_ID}' to group '${GROUP_NAME:-$GROUP_PRINCIPAL_ID}' on cluster '${CLUSTER_ID}' ..."
