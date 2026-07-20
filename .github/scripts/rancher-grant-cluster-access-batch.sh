@@ -43,7 +43,7 @@ require_arg() {
 validate_role() {
   local role="$1" group="$2"
   [[ -n "$role" ]] || die "Grant for group '$group' has empty role"
-  if [[ "$role" =~ ^(cluster-[a-z0-9-]+|rt-[a-z0-9]+)$ ]]; then
+  if [[ "$role" =~ ^(cluster-[A-Za-z0-9-]+|rt-[A-Za-z0-9-]+)$ ]]; then
     return 0
   fi
   die "Invalid role '$role' for group '$group' (expected cluster-* or rt-* template id)"
@@ -74,7 +74,7 @@ validate_grants_array() {
     .[] |
     select(
       ((.group // "") | test("^[^[:space:][:cntrl:]]+$") | not)
-      or ((.role // "") | test("^(cluster-[a-z0-9-]+|rt-[a-z0-9]+)$") | not)
+      or ((.role // "") | test("^(cluster-[A-Za-z0-9-]+|rt-[A-Za-z0-9-]+)$") | not)
     )
     | "  - group=\(.group // "MISSING") role=\(.role // "MISSING")"
   ' 2>/dev/null || true)"
