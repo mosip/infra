@@ -69,7 +69,7 @@ EOF
 
 LAST_HTTP_STATUS=""
 DELETIONS_PERFORMED="false"
-REPAIRS_PERFORMED="false"
+DELETED_BINDING_IDS=()
 CLUSTER_BINDINGS_JSON=""
 CLUSTER_BINDINGS_CLUSTER_ID=""
 
@@ -216,23 +216,16 @@ detect_group_auth_prefix() {
       select((.enabled // false) == true) |
       (.type // "") | sub("Config$"; "")
     ] |
-    map(select(test("^(keycloakoidc|keycloak|openldap|azuread|activedirectory|okta|github|google)$"))) |
+    map(select(. != "" and test("^[A-Za-z][A-Za-z0-9]*$"))) |
     .[0] // empty
   ' <<<"$json")"
-  case "$provider" in
-    keycloakoidc)      printf '%s' "keycloakoidc_group" ;;
-    keycloak)          printf '%s' "keycloak_group" ;;
-    openldap)          printf '%s' "openldap_group" ;;
-    azuread)           printf '%s' "azuread_group" ;;
-    activedirectory)   printf '%s' "activedirectory_group" ;;
-    okta)              printf '%s' "okta_group" ;;
-    github)            printf '%s' "github_group" ;;
-    google)            printf '%s' "google_group" ;;
-    *)
-      log "No known external auth provider detected (enabled=$provider); defaulting to keycloak_group"
-      printf '%s' "keycloak_group"
-      ;;
-  esac
+  if [[ -n "$provider" ]]; then
+    log "Detected auth provider: ${provider}"
+    printf '%s' "${provider}_group"
+    return 0
+  fi
+  log "No enabled external auth provider detected; defaulting to keycloak_group"
+  printf '%s' "keycloak_group"
 }
 
 is_group_principal() {
@@ -291,6 +284,7 @@ delete_binding_by_id() {
   if api DELETE "/v3/clusterroletemplatebindings/$(urlencode "$id")" >/dev/null; then
     invalidate_bindings_cache
     DELETIONS_PERFORMED="true"
+    DELETED_BINDING_IDS+=("$id")
     return 0
   fi
   return 1
@@ -298,9 +292,9 @@ delete_binding_by_id() {
 
 unique_binding_suffix() {
   if command -v openssl >/dev/null 2>&1; then
-    openssl rand -hex 2
+    openssl rand -hex 4
   else
-    printf '%04x' "$((RANDOM % 65536))"
+    printf '%04x%04x' "$((RANDOM % 65536))" "$((RANDOM % 65536))"
   fi
 }
 
@@ -320,12 +314,28 @@ planned_binding_name() {
   printf 'crtb-%s-%s' "$(slugify "$binding_label")" "$(slugify "$ROLE_TEMPLATE_ID")"
 }
 
-binding_name_exists() {
-  local name="$1" json
-  if ! json="$(fetch_cluster_bindings)"; then
-    return 1
-  fi
-  jq -e --arg name "$name" '.data[]? | select(.name == $name)' <<<"$json" >/dev/null
+wait_for_deleted_bindings() {
+  local id json attempt max_attempts=15 sleep_seconds=1
+  (( ${#DELETED_BINDING_IDS[@]} == 0 )) && return 0
+  log "Waiting for Rancher to remove ${#DELETED_BINDING_IDS[@]} deleted binding(s) ..."
+  for (( attempt=1; attempt<=max_attempts; attempt++ )); do
+    if ! json="$(fetch_cluster_bindings)"; then
+      err "Could not verify binding cleanup (attempt ${attempt}/${max_attempts})"
+      sleep "$sleep_seconds"
+      continue
+    fi
+    for id in "${DELETED_BINDING_IDS[@]}"; do
+      if jq -e --arg id "$id" '.data[]? | select(.id == $id)' <<<"$json" >/dev/null; then
+        log "Binding ${id} still present (attempt ${attempt}/${max_attempts}) ..."
+        sleep "$sleep_seconds"
+        continue 2
+      fi
+    done
+    log "Deleted bindings no longer listed by Rancher"
+    return 0
+  done
+  err "Timed out waiting for Rancher to remove deleted bindings; continuing anyway"
+  return 0
 }
 
 update_group_binding() {
@@ -386,9 +396,7 @@ reconcile_stale_group_bindings() {
     [[ -n "$id" ]] || continue
     if [[ "$role" == "$ROLE_TEMPLATE_ID" ]]; then
       log "Repairing group clusterRoleTemplateBinding id=${id} groupPrincipalId=${principal} -> ${target}"
-      if update_group_binding "$id" "$name" "$target"; then
-        REPAIRS_PERFORMED="true"
-      else
+      if ! update_group_binding "$id" "$name" "$target"; then
         log "Repair failed; deleting binding id=${id}"
         delete_binding_by_id "$id" || err "Failed to delete binding ${id}"
       fi
@@ -556,8 +564,7 @@ if [[ "$FIX_MISBOUND_USER" == "true" && -n "$GROUP_NAME" ]]; then
   reconcile_stale_group_bindings "$GROUP_PRINCIPAL_ID" || true
   remove_stale_role_bindings "$GROUP_PRINCIPAL_ID" || true
   if [[ "$DELETIONS_PERFORMED" == "true" ]]; then
-    log "Waiting for Rancher to settle after binding cleanup ..."
-    sleep 2
+    wait_for_deleted_bindings
   fi
 fi
 
