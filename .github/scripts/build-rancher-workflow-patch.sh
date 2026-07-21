@@ -57,30 +57,9 @@ if [[ -n "$dup" ]]; then
   die "$(printf 'Duplicate group names in catalog:\n%s' "$dup")"
 fi
 
-patch='[]'
-
-add_entry() {
-  local group="$1" role="$2" enabled="$3" fix="${4:-false}"
-  local extra='{}'
-  if [[ "$fix" == "true" ]]; then
-    extra='{"fix_misbound_user":true}'
-  fi
-  patch="$(jq -c \
-    --arg g "$group" --arg r "$role" --argjson e "$enabled" --argjson x "$extra" \
-    '. + [
-      (
-        {
-          group: $g,
-          role: $r,
-          enabled: $e
-        } + $x
-      )
-    ]' <<<"$patch")"
-}
-
 bool_enabled() {
-  case "${1,,}" in
-    true|1|yes) echo true ;;
+  case "$1" in
+    [tT][rR][uU][eE]|1|[yY][eE][sS]) echo true ;;
     *) echo false ;;
   esac
 }
@@ -91,12 +70,16 @@ OWNER_ENABLED_BOOL="$(bool_enabled "$OWNER_ENABLED")"
 # When grant-group-access is checked, enable every non-DEVOPS team from the catalog
 # (roles/principal_id come from JSON — overrides enabled:false defaults in the file).
 # When unchecked, disable non-DEVOPS teams for this run (DEVOPS always from base JSON).
-while IFS=$'\t' read -r group role; do
-  [[ -n "$group" ]] || continue
-  [[ "$group" == "$DEVOPS_GROUP" ]] && continue
-  [[ -n "$role" ]] || role="cluster-member"
-  add_entry "$group" "$role" "$GRANT_ENABLED" false
-done < <(jq -r '.[] | [.group, (.role // "cluster-member")] | @tsv' "$CATALOG_FILE")
+patch="$(jq -c --arg devops "$DEVOPS_GROUP" --argjson enabled "$GRANT_ENABLED" '
+  map(
+    select(.group != null and .group != "" and .group != $devops) |
+    {
+      group: .group,
+      role: (if .role == null or .role == "" then "cluster-member" else .role end),
+      enabled: $enabled
+    }
+  )
+' "$CATALOG_FILE")"
 
 # Optional extra cluster-owner (DEVOPS remains owner from base JSON — both can be owners).
 if [[ "$OWNER_ENABLED_BOOL" == "true" ]]; then
@@ -106,10 +89,11 @@ if [[ "$OWNER_ENABLED_BOOL" == "true" ]]; then
       patch="$(jq -c --arg g "$g" \
         'map(if .group == $g then .role = "cluster-owner" | .enabled = true else . end)' <<<"$patch")"
     else
-      fix="false"
+      extra='{}'
       # Repair legacy DEVOPS principal bindings when granting cluster-owner to DEVOPS again.
-      [[ "$g" == "$DEVOPS_GROUP" ]] && fix="true"
-      add_entry "$g" "cluster-owner" true "$fix"
+      [[ "$g" == "$DEVOPS_GROUP" ]] && extra='{"fix_misbound_user":true}'
+      patch="$(jq -c --arg g "$g" --argjson x "$extra" \
+        '. + [{group: $g, role: "cluster-owner", enabled: true} + $x]' <<<"$patch")"
     fi
   fi
 fi
