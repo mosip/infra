@@ -319,6 +319,7 @@ wait_for_deleted_bindings() {
   (( ${#DELETED_BINDING_IDS[@]} == 0 )) && return 0
   log "Waiting for Rancher to remove ${#DELETED_BINDING_IDS[@]} deleted binding(s) ..."
   for (( attempt=1; attempt<=max_attempts; attempt++ )); do
+    invalidate_bindings_cache
     if ! json="$(fetch_cluster_bindings)"; then
       err "Could not verify binding cleanup (attempt ${attempt}/${max_attempts})"
       sleep "$sleep_seconds"
@@ -386,7 +387,7 @@ remove_misbound_user_bindings() {
 }
 
 reconcile_stale_group_bindings() {
-  local target="$1" json rows id name principal role
+  local target="$1" json id name principal role
   [[ -n "$GROUP_NAME" ]] || return 0
   if ! json="$(fetch_cluster_bindings)"; then
     err "Could not list bindings while reconciling stale group entries"
