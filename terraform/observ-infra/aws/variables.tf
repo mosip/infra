@@ -57,6 +57,11 @@ variable "zone_id" {
   type        = string
   description = "Route53 hosted zone ID"
 }
+variable "enable_route53_records" {
+  type        = bool
+  description = "Whether to create Route53 DNS records. Set to false when the domain's authoritative DNS is not Route53."
+  default     = true
+}
 variable "vpc_name" {
   type        = string
   description = "Name of the existing VPC (will be discovered by tag:Name)"

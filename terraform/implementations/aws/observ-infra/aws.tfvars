@@ -40,6 +40,10 @@ ami = "ami-0ad21ae1d0696ad58"
 # Route53 zone ID for DNS records
 zone_id = "<zone-id>"
 
+# Set to false if the domain's authoritative DNS is not Route53 (e.g. Azure DNS, Cloudflare, GoDaddy) —
+# infrastructure is still created, just without Route53 records.
+enable_route53_records = true
+
 # VPC name (should match the one created by base-infra)
 vpc_name = "<vpc-name>"
 
@@ -78,7 +82,7 @@ keycloak_hostname = "iam.<cluster-env-domain>" # example iam.sandbox.xyz.net
 enable_rancher_keycloak_integration = true
 
 # Rancher import (same as infra)
-enable_rancher_import = false #dont enable for observ infra
+enable_rancher_import = false  #dont enable for observ infra
 rancher_import_url    = "\"\"" #dont update for observ infra
 
 # Security group CIDRs

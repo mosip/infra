@@ -30,6 +30,7 @@ module "aws_observation_infrastructure" {
   NGINX_INSTANCE_TYPE           = var.nginx_instance_type
   AMI                           = var.ami
   ZONE_ID                       = var.zone_id
+  ENABLE_ROUTE53_RECORDS        = var.enable_route53_records
   K8S_INFRA_REPO_URL            = var.k8s_infra_repo_url
   K8S_INFRA_BRANCH              = var.k8s_infra_branch
   RKE2_VERSION                  = var.rke2_version
@@ -39,8 +40,8 @@ module "aws_observation_infrastructure" {
   nginx_node_ebs_volume_size_2  = var.nginx_node_ebs_volume_size_2
   K8S_INSTANCE_ROOT_VOLUME_SIZE = var.k8s_instance_root_volume_size
   network_cidr                  = var.network_cidr
-  NGINX_TYPE                    = "observability"  # Set NGINX type for observation infrastructure
-  DEPLOYMENT_TYPE               = "observ-infra"   # Set deployment type for correct kubeconfig path
+  NGINX_TYPE                    = "observability" # Set NGINX type for observation infrastructure
+  DEPLOYMENT_TYPE               = "observ-infra"  # Set deployment type for correct kubeconfig path
   WIREGUARD_CIDR                = var.WIREGUARD_CIDR
 
   # PostgreSQL setup (disabled by default for observ-infra, opt in via enable_postgresql_setup)
