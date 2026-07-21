@@ -89,21 +89,24 @@ on:
         required: false
         type: boolean
         default: true
-      GRANT_GROUP_ACCESS:
-        description: 'Also grant other teams from rancher-access-grants.json (roles/enabled flags per JSON + env vars). DEVOPS cluster-owner is always applied regardless.'
-        required: false
-        type: boolean
-        default: false
-      RANCHER_CLUSTER_OWNER_GROUP_ENABLED:
-        description: 'Grant an additional group cluster-owner access (DEVOPS stays cluster-owner too)'
-        required: false
-        type: boolean
-        default: false
-      RANCHER_CLUSTER_OWNER_GROUP:
-        description: 'Group name for cluster-owner override (e.g. QA). Used when option above is enabled; overrides JSON role for that group.'
+      RANCHER_DEVOPS_GROUP:
+        description: 'IdP group name granted cluster access on imported clusters (e.g. DEVOPS)'
         required: false
         type: string
-        default: ''
+        default: 'DEVOPS'
+      GRANT_RANCHER_DEVOPS_ACCESS:
+        description: 'Grant RANCHER_DEVOPS_GROUP cluster access via Rancher API after registration'
+        required: false
+        type: boolean
+        default: true
+      RANCHER_DEVOPS_ROLE:
+        description: 'Rancher role for DEVOPS group (cluster-member = UI visibility; cluster-owner = full cluster admin)'
+        required: false
+        type: choice
+        options:
+          - cluster-member
+          - cluster-owner
+        default: cluster-owner
         
 env:
   # TF_LOG_PATH: ./temp/terraform.log
@@ -129,11 +132,13 @@ jobs:
         # We work in the cloud-specific implementation directory
         working-directory: 'terraform/implementations/${{ inputs.CLOUD_PROVIDER }}/${{ inputs.TERRAFORM_COMPONENT }}'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          ref: ${{ github.ref }}
           fetch-depth: 0  # Full history needed for rebase
           token: ${{ secrets.GH_INFRA_PAT }}
+
+      - name: Ensure workflow scripts are executable
+        run: chmod +x .github/scripts/*.sh
 
       - name: Check for required implementation directory
         run: |
@@ -193,102 +198,38 @@ jobs:
           mkdir -p ~/.ssh
           echo -e "Host *\n     StrictHostKeyChecking no" > ~/.ssh/config
 
-      - name: Setup ufw firewall
-        run: |
-          sudo ufw enable
-          sudo ufw allow ssh
-          sudo ufw allow 443/tcp
-          sudo ufw allow 51820/udp
-          sudo ufw status
-        if: "${{ inputs.TERRAFORM_COMPONENT != 'base-infra' }}"
-
       - name: Install WireGuard
-        run: sudo apt-get install -y wireguard
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y wireguard
         if: "${{ inputs.TERRAFORM_COMPONENT != 'base-infra' }}"
 
       - name: Configure WireGuard
         run: |
-          # WG_CONFIG comes from environment-level secrets (dynamic based on branch name)
           if [ -z "${{ secrets.TF_WG_CONFIG }}" ]; then
-            echo "❌ ERROR: TF_WG_CONFIG secret is not configured for environment '${{ github.ref_name }}'"
-            echo "Please configure the WireGuard configuration secret for this branch/environment"
+            echo "ERROR: TF_WG_CONFIG secret is not configured for environment '${{ github.ref_name }}'"
             exit 1
           fi
-          
-          # Debug: Check if secret is available (without exposing content)
-          echo "🔍 Checking TF_WG_CONFIG secret..."
           if [ ${#TF_WG_CONFIG} -eq 0 ]; then
-            echo "❌ ERROR: TF_WG_CONFIG environment variable is empty"
-            echo "Secret may contain only whitespace or special characters"
+            echo "ERROR: TF_WG_CONFIG environment variable is empty"
             exit 1
           fi
-          echo "✅ Secret length: ${#TF_WG_CONFIG} characters"
-          
-          # Create config file with proper handling of multiline content
-          echo "Creating /etc/wireguard directory with proper permissions..."
+
           sudo mkdir -p /etc/wireguard
           sudo chmod 755 /etc/wireguard
-          sudo chown root:root /etc/wireguard
-          
-          echo "Directory created. Checking permissions..."
-          sudo ls -la /etc/ | grep wireguard || echo "WireGuard directory not visible"
-          
-          # Debug: Check secret format without exposing sensitive data
-          echo "Secret contains '[Interface]': $(printf '%s' "$TF_WG_CONFIG" | grep -c '\[Interface\]')"
-          echo "Secret contains '[Peer]': $(printf '%s' "$TF_WG_CONFIG" | grep -c '\[Peer\]')"
-          
-          # Write to temp file with explicit newline handling
-          printf '%s' "$TF_WG_CONFIG" > /tmp/wg0.conf.tmp
-          
-          # Check temp file was created successfully
-          if [ ! -f /tmp/wg0.conf.tmp ]; then
-            echo "❌ ERROR: Failed to create temporary config file"
-            exit 1
-          fi
-          
-          echo "Temp file size: $(wc -c < /tmp/wg0.conf.tmp) bytes"
-          echo "Temp file lines: $(wc -l < /tmp/wg0.conf.tmp)"
-          
-          # Use a more direct approach - write directly with sudo
-          echo "Writing config directly with sudo..."
-          sudo tee /etc/wireguard/wg0.conf < /tmp/wg0.conf.tmp > /dev/null
-          
-          # Clean up temp file
-          rm -f /tmp/wg0.conf.tmp
-          
-          # Verify the file was created and check its size
-          if sudo test -f /etc/wireguard/wg0.conf; then
-            echo "✅ Config file created successfully"
-            echo "Final config file size: $(sudo wc -c < /etc/wireguard/wg0.conf) bytes"
-          else
-            echo "❌ ERROR: Config file still doesn't exist"
-            sudo ls -la /etc/wireguard/ || echo "Cannot list /etc/wireguard directory"
-            exit 1
-          fi
-          
-          # Set proper permissions
+          printf '%s' "$TF_WG_CONFIG" | sudo tee /etc/wireguard/wg0.conf > /dev/null
           sudo chmod 600 /etc/wireguard/wg0.conf
           sudo chown root:root /etc/wireguard/wg0.conf
-          
-          echo "Final file permissions: $(sudo ls -la /etc/wireguard/wg0.conf)"
-          
-          # Verify config file is not empty and has expected content
+
           if ! sudo test -s /etc/wireguard/wg0.conf; then
-            echo "❌ ERROR: WireGuard config file is empty after writing!"
-            echo "File size: $(sudo wc -c < /etc/wireguard/wg0.conf) bytes"
+            echo "ERROR: WireGuard config file is empty"
             exit 1
           fi
-          
-          # Basic validation that it looks like a WireGuard config
           if ! sudo grep -q "\[Interface\]" /etc/wireguard/wg0.conf; then
-            echo "❌ ERROR: WireGuard config doesn't contain [Interface] section"
-            echo "Please check that TF_WG_CONFIG contains a valid WireGuard configuration"
-            echo "Config file size: $(sudo wc -c < /etc/wireguard/wg0.conf) bytes"
+            echo "ERROR: WireGuard config missing [Interface] section"
             exit 1
           fi
-          
-          echo "✅ WireGuard configuration applied successfully"
-          echo "Config file size: $(sudo wc -c < /etc/wireguard/wg0.conf) bytes"
+          echo "WireGuard config validated"
         env:
           TF_WG_CONFIG: ${{ secrets.TF_WG_CONFIG }}
         if: "${{ inputs.TERRAFORM_COMPONENT != 'base-infra' }}"
@@ -297,21 +238,17 @@ jobs:
         run: |
           sudo chmod 600 /etc/wireguard/wg0.conf
           sudo chmod 700 /etc/wireguard/
-          sudo chmod 644 /lib/systemd/system/wg-quick@.service
           sudo systemctl daemon-reload
-          echo "Starting WireGuard..."
           if ! sudo wg-quick up wg0; then
-            echo "❌ ERROR: Failed to start WireGuard VPN"
-            echo "Config file contents (first 5 lines):"
-            head -5 /etc/wireguard/wg0.conf
+            echo "ERROR: Failed to start WireGuard VPN"
             exit 1
           fi
-          echo "✅ WireGuard started successfully"
+          echo "WireGuard started"
           sudo wg show wg0
         if: "${{ inputs.TERRAFORM_COMPONENT != 'base-infra' }}"
 
       - name: Setup Terraform with specified version on the runner
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
         with:
           terraform_version: v1.8.5
 
@@ -366,7 +303,7 @@ jobs:
           sudo apt-get install -y ansible python3-pip
           
           # Install additional Python packages for Ansible
-          pip3 install --user paramiko
+          python3 -m pip install --user paramiko
           
           # Add local bin to PATH for current session
           export PATH="$HOME/.local/bin:$PATH"
@@ -391,7 +328,6 @@ jobs:
           fi
           CLUSTER_NAME="${RANCHER_CLUSTER_NAME_INPUT:-$REF_NAME}"
           echo "Registering cluster '$CLUSTER_NAME' in Rancher..."
-          chmod +x "$GITHUB_WORKSPACE/.github/scripts/rancher-register-cluster.sh"
           IMPORT_CMD="$("$GITHUB_WORKSPACE/.github/scripts/rancher-register-cluster.sh" \
             --rancher-url "$RANCHER_URL" \
             --token "$RANCHER_TOKEN" \
@@ -416,109 +352,6 @@ jobs:
           echo "RANCHER_TFVARS_FILE=rancher-override.tfvars" >> "$GITHUB_ENV"
           echo "Rancher import URL minted for: $CLUSTER_NAME"
 
-      - name: Grant Rancher cluster access (multi-team)
-        if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.ENABLE_RANCHER_IMPORT == true }}
-        env:
-          RANCHER_URL: ${{ secrets.RANCHER_API_URL }}
-          RANCHER_TOKEN: ${{ secrets.RANCHER_API_TOKEN }}
-          RANCHER_CLUSTER_NAME_INPUT: ${{ inputs.RANCHER_CLUSTER_NAME }}
-          REF_NAME: ${{ github.ref_name }}
-          RANCHER_ACCESS_GRANTS: ${{ vars.RANCHER_ACCESS_GRANTS }}
-          RANCHER_DEVOPS_ROLE: ${{ vars.RANCHER_DEVOPS_ROLE }}
-          RANCHER_DEVOPS_ENABLED: ${{ vars.RANCHER_DEVOPS_ENABLED }}
-          RANCHER_DEVOPS_GROUP: ${{ vars.RANCHER_DEVOPS_GROUP }}
-          RANCHER_GROUP_AUTH_PREFIX: ${{ vars.RANCHER_GROUP_AUTH_PREFIX }}
-          WORKFLOW_DEVOPS_GROUP: ${{ vars.RANCHER_DEVOPS_GROUP || 'DEVOPS' }}
-          WORKFLOW_GRANT_GROUP_ACCESS: ${{ inputs.GRANT_GROUP_ACCESS }}
-          WORKFLOW_CLUSTER_OWNER_GROUP_ENABLED: ${{ inputs.RANCHER_CLUSTER_OWNER_GROUP_ENABLED }}
-          WORKFLOW_CLUSTER_OWNER_GROUP: ${{ inputs.RANCHER_CLUSTER_OWNER_GROUP }}
-        run: |
-          if [ -z "$RANCHER_URL" ] || [ -z "$RANCHER_TOKEN" ]; then
-            echo "ERROR: RANCHER_API_URL and RANCHER_API_TOKEN must be set for environment '$REF_NAME'"
-            exit 1
-          fi
-          CLUSTER_NAME="${RANCHER_CLUSTER_NAME_INPUT:-$REF_NAME}"
-
-          # Resolve grants catalog (inline — no external script required on env branches)
-          GRANTS_FILE="$GITHUB_WORKSPACE/.github/config/rancher-access-grants.json"
-          DEFAULT_GRANTS_FILE="$GITHUB_WORKSPACE/.github/scripts/rancher-access-grants.default.json"
-          BUILTIN_GRANTS_FILE="${RUNNER_TEMP}/rancher-access-grants.${REF_NAME}.json"
-
-          echo "Resolving Rancher grants catalog for branch '$REF_NAME' ..."
-          if command -v git >/dev/null 2>&1 && [ -d "$GITHUB_WORKSPACE/.git" ]; then
-            echo "Git checkout: $(git -C "$GITHUB_WORKSPACE" rev-parse --short HEAD) ($(git -C "$GITHUB_WORKSPACE" rev-parse --abbrev-ref HEAD))"
-          fi
-          if [ -d "$GITHUB_WORKSPACE/.github/config" ]; then
-            echo "Contents of .github/config/:"
-            ls -la "$GITHUB_WORKSPACE/.github/config/" || true
-          else
-            echo "WARN: directory missing: $GITHUB_WORKSPACE/.github/config/"
-          fi
-
-          if [ -f "$GRANTS_FILE" ]; then
-            echo "Using catalog: $GRANTS_FILE"
-          elif [ -f "$DEFAULT_GRANTS_FILE" ]; then
-            echo "WARN: $GRANTS_FILE not found — using $DEFAULT_GRANTS_FILE"
-            GRANTS_FILE="$DEFAULT_GRANTS_FILE"
-          else
-            echo "WARN: no catalog file on branch — using built-in DEVOPS default"
-            jq -n '[
-              {"group":"DEVOPS","role":"cluster-owner","enabled":true,"principal_id":"keycloak_group://DEVOPS","fix_misbound_user":true},
-              {"group":"QA","role":"cluster-member","enabled":false,"principal_id":"keycloak_group://QA"},
-              {"group":"DEVELOPERS","role":"cluster-member","enabled":false,"principal_id":"keycloak_group://DEVELOPERS"}
-            ]' >"$BUILTIN_GRANTS_FILE"
-            GRANTS_FILE="$BUILTIN_GRANTS_FILE"
-          fi
-          echo "Using Rancher grants catalog: $GRANTS_FILE"
-
-          if [ -x "$GITHUB_WORKSPACE/.github/scripts/build-rancher-workflow-patch.sh" ]; then
-            export WORKFLOW_GRANTS_CATALOG="$GRANTS_FILE"
-            echo "Rancher team catalog:"
-            jq -r '.[] | "  - \(.group): \(.role) (catalog enabled=\(.enabled // true))"' "$GRANTS_FILE"
-            WORKFLOW_RANCHER_PATCH="$("$GITHUB_WORKSPACE/.github/scripts/build-rancher-workflow-patch.sh")"
-          else
-            echo "WARN: build-rancher-workflow-patch.sh not found — applying base catalog only (DEVOPS owner default)"
-            WORKFLOW_RANCHER_PATCH='[]'
-          fi
-          echo "Workflow Rancher patch: $WORKFLOW_RANCHER_PATCH"
-          export WORKFLOW_RANCHER_PATCH
-
-          echo "Applying Rancher access grants for cluster '$CLUSTER_NAME' ..."
-          BATCH_SCRIPT="$GITHUB_WORKSPACE/.github/scripts/rancher-grant-cluster-access-batch.sh"
-          SINGLE_SCRIPT="$GITHUB_WORKSPACE/.github/scripts/rancher-grant-cluster-access.sh"
-          if [ -x "$BATCH_SCRIPT" ]; then
-            ARGS=(
-              --rancher-url "$RANCHER_URL"
-              --token "$RANCHER_TOKEN"
-              --cluster-name "$CLUSTER_NAME"
-              --grants-file "$GRANTS_FILE"
-            )
-            if [ -n "${RANCHER_GROUP_AUTH_PREFIX:-}" ]; then
-              ARGS+=(--default-group-auth-prefix "$RANCHER_GROUP_AUTH_PREFIX")
-            fi
-            "$BATCH_SCRIPT" "${ARGS[@]}"
-          elif [ -x "$SINGLE_SCRIPT" ]; then
-            echo "WARN: batch script missing — granting DEVOPS cluster-owner only via $SINGLE_SCRIPT"
-            DEVOPS_GROUP="${RANCHER_DEVOPS_GROUP:-DEVOPS}"
-            SINGLE_ARGS=(
-              --rancher-url "$RANCHER_URL"
-              --token "$RANCHER_TOKEN"
-              --cluster-name "$CLUSTER_NAME"
-              --group "$DEVOPS_GROUP"
-              --role-template cluster-owner
-              --group-principal-id "keycloak_group://${DEVOPS_GROUP}"
-              --fix-misbound-user
-            )
-            "$SINGLE_SCRIPT" "${SINGLE_ARGS[@]}"
-          else
-            echo "ERROR: Missing Rancher grant scripts on branch '$REF_NAME'."
-            echo "  Merge Ivanmeneges-patch-kubeconfig into this branch, or copy at least:"
-            echo "    .github/scripts/rancher-grant-cluster-access.sh"
-            echo "    .github/scripts/rancher-grant-cluster-access-batch.sh"
-            echo "    .github/scripts/build-rancher-workflow-patch.sh"
-            exit 1
-          fi
-
       - name: Terraform Plan
         id: plan
         run: |
@@ -540,6 +373,46 @@ jobs:
         if: "${{ inputs.TERRAFORM_APPLY  == true }}"
         continue-on-error: true
 
+      - name: Grant DevOps group cluster access in Rancher
+        if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.TERRAFORM_APPLY == true && inputs.ENABLE_RANCHER_IMPORT == true && inputs.GRANT_RANCHER_DEVOPS_ACCESS == true && steps.apply.outcome == 'success' }}
+        env:
+          RANCHER_URL: ${{ secrets.RANCHER_API_URL }}
+          RANCHER_TOKEN: ${{ secrets.RANCHER_API_TOKEN }}
+          RANCHER_CLUSTER_NAME_INPUT: ${{ inputs.RANCHER_CLUSTER_NAME }}
+          REF_NAME: ${{ github.ref_name }}
+          RANCHER_DEVOPS_GROUP: ${{ inputs.RANCHER_DEVOPS_GROUP }}
+          RANCHER_DEVOPS_ROLE: ${{ inputs.RANCHER_DEVOPS_ROLE }}
+          RANCHER_GROUP_AUTH_PREFIX: ${{ vars.RANCHER_GROUP_AUTH_PREFIX }}
+          RANCHER_GROUP_PRINCIPAL_ID: ${{ vars.RANCHER_GROUP_PRINCIPAL_ID }}
+        run: |
+          if [ -z "$RANCHER_URL" ] || [ -z "$RANCHER_TOKEN" ]; then
+            echo "ERROR: RANCHER_API_URL and RANCHER_API_TOKEN must be set for environment '$REF_NAME'"
+            exit 1
+          fi
+          if [ -z "$RANCHER_DEVOPS_GROUP" ]; then
+            echo "Skipping Rancher group grant: RANCHER_DEVOPS_GROUP is empty"
+            exit 0
+          fi
+          CLUSTER_NAME="${RANCHER_CLUSTER_NAME_INPUT:-$REF_NAME}"
+          echo "Granting ${RANCHER_DEVOPS_ROLE:-cluster-owner} to group '$RANCHER_DEVOPS_GROUP' on Rancher cluster '$CLUSTER_NAME' ..."
+          ARGS=(
+            --rancher-url "$RANCHER_URL"
+            --token "$RANCHER_TOKEN"
+            --cluster-name "$CLUSTER_NAME"
+            --group "$RANCHER_DEVOPS_GROUP"
+            --role-template "${RANCHER_DEVOPS_ROLE:-cluster-owner}"
+            --fix-misbound-user
+          )
+          if [ -n "$RANCHER_GROUP_PRINCIPAL_ID" ]; then
+            ARGS+=(--group-principal-id "$RANCHER_GROUP_PRINCIPAL_ID")
+          else
+            ARGS+=(--group-auth-prefix keycloak_group)
+          fi
+          if [ -n "$RANCHER_GROUP_AUTH_PREFIX" ]; then
+            ARGS+=(--group-auth-prefix "$RANCHER_GROUP_AUTH_PREFIX")
+          fi
+          "$GITHUB_WORKSPACE/.github/scripts/rancher-grant-cluster-access.sh" "${ARGS[@]}"
+
       - name: Publish KUBECONFIG from Rancher
         if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.TERRAFORM_APPLY == true && inputs.PUBLISH_KUBECONFIG == true && steps.apply.outcome == 'success' }}
         env:
@@ -551,6 +424,8 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           MAX_ATTEMPTS: "90"
           SLEEP_SECONDS: "10"
+          KUBECONFIG_FETCH_ATTEMPTS: "5"
+          KUBECONFIG_FETCH_SLEEP: "30"
         run: |
           if [ -z "$RANCHER_URL" ] || [ -z "$RANCHER_TOKEN" ]; then
             echo "Skipping KUBECONFIG publish: RANCHER_API_URL / RANCHER_API_TOKEN not set for environment '$REF_NAME'"
@@ -564,12 +439,22 @@ jobs:
 
           CLUSTER_NAME="${RANCHER_CLUSTER_NAME_INPUT:-$REF_NAME}"
           echo "Fetching kubeconfig for Rancher cluster '$CLUSTER_NAME' ..."
-          chmod +x "$GITHUB_WORKSPACE/.github/scripts/rancher-fetch-kubeconfig.sh"
-
-          KUBECONFIG_CONTENT="$("$GITHUB_WORKSPACE/.github/scripts/rancher-fetch-kubeconfig.sh" \
-            --rancher-url "$RANCHER_URL" \
-            --token "$RANCHER_TOKEN" \
-            --cluster-name "$CLUSTER_NAME")"
+          # MAX_ATTEMPTS/SLEEP_SECONDS are read by rancher-fetch-kubeconfig.sh while waiting for cluster active.
+          KUBECONFIG_CONTENT=""
+          for ((i=1; i<=KUBECONFIG_FETCH_ATTEMPTS; i++)); do
+            if KUBECONFIG_CONTENT="$("$GITHUB_WORKSPACE/.github/scripts/rancher-fetch-kubeconfig.sh" \
+              --rancher-url "$RANCHER_URL" \
+              --token "$RANCHER_TOKEN" \
+              --cluster-name "$CLUSTER_NAME")"; then
+              break
+            fi
+            if (( i == KUBECONFIG_FETCH_ATTEMPTS )); then
+              echo "ERROR: Failed to fetch kubeconfig after ${KUBECONFIG_FETCH_ATTEMPTS} attempts"
+              exit 1
+            fi
+            echo "Kubeconfig fetch attempt ${i}/${KUBECONFIG_FETCH_ATTEMPTS} failed; retrying in ${KUBECONFIG_FETCH_SLEEP}s ..."
+            sleep "$KUBECONFIG_FETCH_SLEEP"
+          done
 
           printf '%s' "$KUBECONFIG_CONTENT" | gh secret set KUBECONFIG \
             --env "$REF_NAME" \
@@ -634,7 +519,7 @@ jobs:
               commit_msg="Terraform files GitHub Actions - ${{ inputs.CLOUD_PROVIDER }}-${{ inputs.TERRAFORM_COMPONENT }}"
             fi
             
-            git commit -s -am "$commit_msg"
+            git commit -s -m "$commit_msg"
             
             # Pull with rebase to avoid push rejection
             echo "Pulling latest changes with rebase..."
@@ -645,7 +530,9 @@ jobs:
               if echo "$pull_output" | grep -qE "Already up to date|Current branch .* is up to date"; then
                 echo "Already up to date, nothing to pull."
               elif echo "$pull_output" | grep -qE "CONFLICT|could not apply|Resolve all conflicts|You must edit the files"; then
-                echo "⚠️ Rebase conflict detected. Aborting rebase and merging with ours strategy to preserve Terraform state..."
+                echo "Rebase conflict detected. Aborting rebase and merging with ours strategy..."
+                # Terraform state generated in this workflow is authoritative.
+                # Preserve local state during merge conflicts.
                 git rebase --abort
                 git fetch origin ${{ github.ref_name }}
                 git merge -X ours origin/${{ github.ref_name }} --no-edit
