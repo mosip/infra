@@ -333,6 +333,7 @@ jobs:
           fi
           CLUSTER_NAME="${RANCHER_CLUSTER_NAME_INPUT:-$REF_NAME}"
           echo "Registering cluster '$CLUSTER_NAME' in Rancher..."
+          # Plan/apply still need a valid import URL shape in tfvars; Ansible refreshes it at apply time.
           IMPORT_CMD="$("$GITHUB_WORKSPACE/.github/scripts/rancher-register-cluster.sh" \
             --rancher-url "$RANCHER_URL" \
             --token "$RANCHER_TOKEN" \
@@ -369,6 +370,11 @@ jobs:
 
       - name: Terraform Apply
         id: apply
+        env:
+          # Ansible mints a fresh import URL immediately before kubectl apply (plan-time URL may be stale).
+          RANCHER_API_URL: ${{ inputs.ENABLE_RANCHER_IMPORT == true && secrets.RANCHER_API_URL || '' }}
+          RANCHER_API_TOKEN: ${{ inputs.ENABLE_RANCHER_IMPORT == true && secrets.RANCHER_API_TOKEN || '' }}
+          RANCHER_CLUSTER_NAME: ${{ inputs.RANCHER_CLUSTER_NAME || github.ref_name }}
         run: |
           TF_ARGS=(-input=false -var-file="$TFVARS_FILE")
           if [ -n "${RANCHER_TFVARS_FILE:-}" ] && [ -f "$RANCHER_TFVARS_FILE" ]; then
@@ -470,6 +476,7 @@ jobs:
 
       - name: Publish KUBECONFIG from Rancher
         if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.TERRAFORM_APPLY == true && inputs.PUBLISH_KUBECONFIG == true && steps.apply.outcome == 'success' }}
+        continue-on-error: true
         env:
           RANCHER_URL: ${{ secrets.RANCHER_API_URL }}
           RANCHER_TOKEN: ${{ secrets.RANCHER_API_TOKEN }}
@@ -477,10 +484,11 @@ jobs:
           REF_NAME: ${{ github.ref_name }}
           GH_TOKEN: ${{ secrets.GH_INFRA_PAT }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          MAX_ATTEMPTS: "90"
-          SLEEP_SECONDS: "10"
-          KUBECONFIG_FETCH_ATTEMPTS: "5"
-          KUBECONFIG_FETCH_SLEEP: "30"
+          # rancher-fetch-kubeconfig.sh waits for cluster active (RKE2 + import often needs 20-40 min)
+          MAX_ATTEMPTS: "180"
+          SLEEP_SECONDS: "15"
+          KUBECONFIG_FETCH_ATTEMPTS: "3"
+          KUBECONFIG_FETCH_SLEEP: "60"
         run: |
           if [ -z "$RANCHER_URL" ] || [ -z "$RANCHER_TOKEN" ]; then
             echo "Skipping KUBECONFIG publish: RANCHER_API_URL / RANCHER_API_TOKEN not set for environment '$REF_NAME'"
@@ -504,7 +512,8 @@ jobs:
               break
             fi
             if (( i == KUBECONFIG_FETCH_ATTEMPTS )); then
-              echo "ERROR: Failed to fetch kubeconfig after ${KUBECONFIG_FETCH_ATTEMPTS} attempts"
+              echo "ERROR: Failed to fetch kubeconfig after ${KUBECONFIG_FETCH_ATTEMPTS} attempts (~$((MAX_ATTEMPTS * SLEEP_SECONDS / 60)) min wait per attempt)"
+              echo "Cluster is likely still pending — check Terraform apply logs for 'Execute Rancher import' and cattle-system on the control plane."
               exit 1
             fi
             echo "Kubeconfig fetch attempt ${i}/${KUBECONFIG_FETCH_ATTEMPTS} failed; retrying in ${KUBECONFIG_FETCH_SLEEP}s ..."
