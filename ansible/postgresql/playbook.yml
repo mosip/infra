@@ -1,0 +1,14 @@
+---
+# Run: ansible-playbook -i <inventory> ansible/postgresql/playbook.yml
+# Inventory group "nginx" (postgres lives on the 2nd EBS volume there, #276)
+# plus "control_plane" (for the Secret/ConfigMap apply). Gated upstream by
+# nginx_node_ebs_volume_size_2 > 0, same condition the old Terraform
+# null_resource used.
+- name: Set up PostgreSQL and publish its Kubernetes Secret/ConfigMap
+  hosts: nginx
+  gather_facts: true
+  tasks:
+    - name: Run postgresql role tasks
+      ansible.builtin.include_tasks: tasks/main.yml
+  handlers:
+    - ansible.builtin.import_tasks: handlers/main.yml

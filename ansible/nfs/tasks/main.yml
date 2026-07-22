@@ -1,0 +1,128 @@
+---
+# Ported from terraform/modules/aws/nfs-setup/{nfs-setup-main.tf,nfs-csi.sh}
+# (#281) — same two external k8s-infra scripts (install-nfs-server.sh,
+# install-nfs-csi.sh), now invoked by Ansible instead of a null_resource
+# remote-exec + local-exec pair.
+#
+# Runs against the nginx host, which also serves as the NFS server (#276's
+# 1st EBS volume). Device mount is a NEW step here (not in the original —
+# see CLAUDE.md decision 3): the volume used to be mounted by nginx's
+# user_data at boot; #275 dropped that once storage (#276) became a separate,
+# later apply, so nfs (this role) now mounts it itself, mirroring
+# postgresql/activemq's existing device-mount pattern.
+#
+# install-nfs-csi.sh needs kubectl against the cluster. Rather than
+# replicating the original's "download kubeconfig to the Terraform runner"
+# plumbing, this delegates to the primary control-plane node directly, using
+# its on-node kubeconfig (from ansible/rke2/tasks/kubeconfig.yml).
+
+- name: Update apt cache
+  become: true
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install required tools
+  become: true
+  ansible.builtin.apt:
+    name: [xfsprogs, util-linux, nfs-kernel-server, git, wget]
+    state: present
+
+- name: Check if NFS device already has a filesystem
+  ansible.builtin.command: blkid -o value -s TYPE "{{ nfs_storage_device }}"
+  register: existing_fs
+  changed_when: false
+  failed_when: false
+  become: true
+
+- name: Create XFS filesystem on device (skipped if already formatted)
+  become: true
+  community.general.filesystem:
+    fstype: xfs
+    dev: "{{ nfs_storage_device }}"
+  when: existing_fs.stdout == ""
+
+- name: Resolve filesystem UUID of the device
+  ansible.builtin.command: blkid -o value -s UUID "{{ nfs_storage_device }}"
+  register: nfs_device_uuid
+  changed_when: false
+  retries: 3
+  delay: 5
+  until: nfs_device_uuid.stdout != ""
+  become: true
+
+- name: Create NFS server location directory
+  become: true
+  ansible.builtin.file:
+    path: "{{ nfs_server_location }}"
+    state: directory
+    mode: '0777'
+
+- name: Mount NFS device by UUID and add to fstab (idempotent)
+  become: true
+  ansible.posix.mount:
+    path: "{{ nfs_server_location }}"
+    src: "UUID={{ nfs_device_uuid.stdout | trim }}"
+    fstype: xfs
+    opts: defaults,nofail
+    dump: '0'
+    passno: '2'
+    state: mounted
+
+- name: Clone k8s-infra repository on the NFS server
+  ansible.builtin.git:
+    repo: "{{ k8s_infra_repo_url }}"
+    dest: "/home/ubuntu/k8s-infra"
+    version: "{{ k8s_infra_branch }}"
+    force: false
+    update: true
+  become_user: ubuntu
+
+- name: Run install-nfs-server.sh
+  become: true
+  ansible.builtin.shell: |
+    set -e
+    echo "export NFS_SERVER_LOCATION={{ nfs_server_location }}" >> /etc/environment
+    bash install-nfs-server.sh | tee -a /tmp/nfs-server-log-$(date +"%d-%h-%Y-%H-%M").log
+  args:
+    executable: /bin/bash
+    chdir: /home/ubuntu/k8s-infra/storage-class/nfs
+
+- name: Set up and run install-nfs-csi.sh on the primary control-plane node
+  delegate_to: "{{ groups['control_plane'][0] }}"
+  block:
+    - name: Clone k8s-infra repository on the primary control-plane node
+      ansible.builtin.git:
+        repo: "{{ k8s_infra_repo_url }}"
+        dest: "/home/ubuntu/k8s-infra"
+        version: "{{ k8s_infra_branch }}"
+        force: false
+        update: true
+      become_user: ubuntu
+
+    - name: Copy primary kubeconfig to expected filename for install-nfs-csi.sh
+      ansible.builtin.copy:
+        src: "/home/ubuntu/.kube/{{ groups['control_plane'][0] }}.yaml"
+        dest: "/home/ubuntu/k8s-infra/storage-class/nfs/{{ cluster_name }}-CONTROL-PLANE-NODE-1.yaml"
+        remote_src: true
+        owner: ubuntu
+        group: ubuntu
+        mode: '0444'
+
+    - name: Run install-nfs-csi.sh
+      ansible.builtin.shell: |
+        set -e
+        which wget >/dev/null 2>&1 || { echo 'wget tool not found; EXITING'; exit 1; }
+        if ! [[ -f ./helm ]]; then
+          wget https://get.helm.sh/{{ helm_version }}
+          tar -xzvf {{ helm_version }} linux-amd64/helm
+          mv linux-amd64/helm helm
+          rm -rf linux-amd64 {{ helm_version }}
+        fi
+        export PATH="$(pwd):$PATH"
+        export KUBECONFIG="{{ cluster_name }}-CONTROL-PLANE-NODE-1.yaml"
+        bash install-nfs-csi.sh {{ cluster_name }}-CONTROL-PLANE-NODE-1.yaml
+      args:
+        executable: /bin/bash
+        chdir: /home/ubuntu/k8s-infra/storage-class/nfs
+      become_user: ubuntu

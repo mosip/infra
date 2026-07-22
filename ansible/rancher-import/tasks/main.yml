@@ -1,0 +1,65 @@
+---
+# Ported from rke2-playbook.yml's "Final Cluster Setup and Rancher Import"
+# play (lines 593-649) — already idempotent (checks the cattle-system
+# namespace first), split out of rke2 (#280) so it's independently re-runnable
+# (e.g. after Rancher token rotation) without touching the RKE2 install.
+# Runs against the primary control-plane node only.
+
+- name: Compute expected total node count
+  ansible.builtin.set_fact:
+    rke2_expected_node_count: >-
+      {{
+        (groups['control_plane'] | default([]) | length)
+        + (groups['etcd'] | default([]) | length)
+        + (groups['workers'] | default([]) | length)
+      }}
+
+- name: Wait for all nodes to join the cluster
+  ansible.builtin.shell: kubectl get nodes --no-headers | wc -l
+  register: node_count
+  until: node_count.stdout | int >= (rke2_expected_node_count | int)
+  retries: 20
+  delay: 15
+  become_user: ubuntu
+  changed_when: false
+  environment:
+    KUBECONFIG: "/home/ubuntu/.kube/{{ inventory_hostname }}.yaml"
+
+- name: Display cluster status
+  ansible.builtin.shell: kubectl get nodes -o wide
+  register: cluster_status
+  become_user: ubuntu
+  changed_when: false
+  environment:
+    KUBECONFIG: "/home/ubuntu/.kube/{{ inventory_hostname }}.yaml"
+
+- name: Show cluster nodes
+  ansible.builtin.debug:
+    msg: "{{ cluster_status.stdout_lines }}"
+
+- name: Check if Rancher import already done
+  ansible.builtin.shell: kubectl get namespace cattle-system
+  become_user: ubuntu
+  environment:
+    KUBECONFIG: "/home/ubuntu/.kube/{{ inventory_hostname }}.yaml"
+  register: cattle_system_check
+  ignore_errors: true
+  when: enable_rancher_import | bool
+  changed_when: false
+
+- name: Execute Rancher import (first time only)
+  ansible.builtin.shell: "{{ rancher_import_url }}"
+  when:
+    - enable_rancher_import | bool
+    - cattle_system_check.rc != 0
+  become_user: ubuntu
+  environment:
+    KUBECONFIG: "/home/ubuntu/.kube/{{ inventory_hostname }}.yaml"
+  ignore_errors: true
+
+- name: Skip Rancher import (already imported)
+  ansible.builtin.debug:
+    msg: "Rancher already imported (cattle-system namespace exists) — skipping kubectl apply"
+  when:
+    - enable_rancher_import | bool
+    - cattle_system_check.rc == 0

@@ -133,6 +133,78 @@ graph LR
 | **observ-infra** | Rancher UI, Keycloak, RBAC management | 2nd (Optional) | base-infra | One-time setup |
 | **infra** | MOSIP Kubernetes clusters (RKE2, NGINX, NFS) | 3rd (Multiple) | base-infra | Multiple deployments |
 
+## #273 Decoupled Provisioning (New) — layered components + Ansible configuration
+
+`infra` and `observ-infra` each used to be **one** monolithic Terraform root (security groups + EC2 + EBS + DNS + nginx + RKE2, one state file, one apply). That's still fully supported — see "Legacy path" below — but each now *also* has 5 independent, decoupled Terraform roots plus a separate Ansible-driven configuration stage, selected with a second workflow input, `PROVISIONING_COMPONENT`.
+
+### Two inputs decide the path
+
+| `TERRAFORM_COMPONENT` | `PROVISIONING_COMPONENT` | Result |
+|---|---|---|
+| `base-infra` | `none` (only valid value) | Foundation network — unchanged |
+| `infra` / `observ-infra` | `none` (default) | **Legacy monolithic root** — one apply, one state file, unchanged from before #273 |
+| `infra` / `observ-infra` | `security`\|`compute`\|`storage`\|`dns`\|`iam` | Applies **just that one** decoupled Terraform root under the chosen parent |
+| `infra` / `observ-infra` | `configure` | Runs the **Ansible** job — nginx, RKE2, and the rest, against whichever of the 5 components are already applied |
+
+### Decision tree
+
+```mermaid
+graph TD
+    START[workflow_dispatch] --> TC{TERRAFORM_COMPONENT}
+    TC -->|base-infra| BI[job: terraform<br/>Foundation network]
+    TC -->|infra or observ-infra| PC{PROVISIONING_COMPONENT}
+    PC -->|none - default| LEGACY[job: terraform<br/>Legacy monolithic root<br/>security groups + EC2 + EBS + DNS + nginx + RKE2<br/>one apply, one state file]
+    PC -->|security / compute / storage / dns / iam| ONE[job: terraform<br/>Applies just that one<br/>decoupled Terraform root]
+    PC -->|configure| CFG[job: configure<br/>Ansible invocation]
+
+    style BI fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
+    style LEGACY fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000000
+    style ONE fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000000
+    style CFG fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px,color:#000000
+```
+
+### Standing up a full stack with the new components — 6 dispatches, in order
+
+```mermaid
+graph LR
+    S[① security<br/>4 security groups] --> C[② compute<br/>nginx + K8s EC2 instances<br/>tagged Role=nginx/control-plane/etcd/worker]
+    C --> ST[③ storage<br/>EBS volumes<br/>attached by tag lookup]
+    ST --> D[④ dns<br/>Route53 records<br/>by tag lookup]
+    D --> I[⑤ iam<br/>certbot IAM role<br/>attached by tag lookup]
+    I --> CF[⑥ configure<br/>Ansible job]
+
+    style S fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
+    style C fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
+    style ST fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
+    style D fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
+    style I fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
+    style CF fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px,color:#000000
+```
+
+Each of ①–⑤ is its own dispatch (`TERRAFORM_COMPONENT: infra`, `PROVISIONING_COMPONENT: <name>`, `TERRAFORM_APPLY: true`), waiting for the previous one to finish. **Order matters** — each component looks its dependency up by AWS tag (`Cluster`/`Role`), not shared state, so e.g. `compute` will fail if `security` hasn't been applied yet.
+
+### What the `configure` job (⑥) does
+
+```mermaid
+graph TD
+    A[configure job starts] --> B[Connect WireGuard<br/>SSH access to nodes]
+    B --> C[terraform output -json<br/>from all 5 components]
+    C --> D[generate-ansible-inventory.sh<br/>renders inventory: nginx / control_plane / etcd / workers groups]
+    D --> E[ansible/nginx<br/>nginx + certbot]
+    E --> F[ansible/rke2<br/>installs the K8s cluster]
+    F --> G{Which parent?}
+    G -->|infra| H["rancher-import (if enabled)<br/>nfs (always)<br/>postgresql (if storage has that volume)<br/>activemq (if storage has that volume)"]
+    G -->|observ-infra| J["nfs (always)<br/>rancher-keycloak-setup"]
+
+    style A fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px,color:#000000
+    style H fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000000
+    style J fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000000
+```
+
+### Legacy path — still the default, completely unchanged
+
+Leaving `PROVISIONING_COMPONENT` at `none` (the default) runs `terraform/implementations/aws/{infra,observ-infra}/main.tf` — the original monolithic root — exactly as it worked before this decoupling. Nothing about that path was modified; both paths coexist side by side. There is currently no single-dispatch "run all 6 steps automatically" option for the new path — that's tracked as future work (see the plan's Phase 2) since it needs a stronger dependency guarantee than a simple GitHub Actions matrix provides.
+
 ## Workflow Execution Flow
 
 ```mermaid
@@ -206,7 +278,8 @@ GPG_PRIVATE_KEY: |
 | Parameter | Description | Values | Example |
 |-----------|-------------|---------|---------|
 | `CLOUD_PROVIDER` | Target cloud platform | `aws` (fully supported) \| `azure` \| `gcp` (placeholders) | `aws` |
-| `TERRAFORM_COMPONENT` | Infrastructure component | `base-infra` \| `observ-infra` \| `infra` | `base-infra` |
+| `TERRAFORM_COMPONENT` | Parent component | `base-infra` \| `observ-infra` \| `infra` | `base-infra` |
+| `PROVISIONING_COMPONENT` | Optional — #273 decoupled root to run under `infra`/`observ-infra` instead of the legacy monolith (see [#273 Decoupled Provisioning](#273-decoupled-provisioning-new--layered-components--ansible-configuration) above) | `none` (default) \| `security` \| `compute` \| `storage` \| `dns` \| `iam` \| `configure` | `none` |
 | `BACKEND_TYPE` | State storage method | `local` (recommended) \| `remote` | `local` |
 | `SSH_PRIVATE_KEY` | GitHub secret for SSH access | Secret name | `SSH_PRIVATE_KEY` |
 | `GPG_PRIVATE_KEY` | GitHub secret for state encryption | Secret name | `GPG_PRIVATE_KEY` |
