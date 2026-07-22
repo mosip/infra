@@ -134,6 +134,7 @@ jobs:
           ref: ${{ github.ref }}
           fetch-depth: 0  # Full history needed for rebase
           token: ${{ secrets.GH_INFRA_PAT }}
+          persist-credentials: false
 
       - name: Ensure workflow scripts are executable
         run: |
@@ -211,12 +212,8 @@ jobs:
 
       - name: Configure WireGuard
         run: |
-          if [ -z "${{ secrets.TF_WG_CONFIG }}" ]; then
-            echo "ERROR: TF_WG_CONFIG secret is not configured for environment '${{ github.ref_name }}'"
-            exit 1
-          fi
-          if [ ${#TF_WG_CONFIG} -eq 0 ]; then
-            echo "ERROR: TF_WG_CONFIG environment variable is empty"
+          if [ -z "${TF_WG_CONFIG:-}" ]; then
+            echo "ERROR: TF_WG_CONFIG secret is not configured/empty for environment '${{ github.ref_name }}'"
             exit 1
           fi
 
@@ -337,12 +334,9 @@ jobs:
             --rancher-url "$RANCHER_URL" \
             --token "$RANCHER_TOKEN" \
             --cluster-name "$CLUSTER_NAME" | tail -n1)"
-          # -var-file in tfvars overrides TF_VAR_* env vars. Write an override file so
-          # Ansible inventory gets enable_rancher_import=true and the minted import URL.
           IMPORT_INNER="${IMPORT_CMD#\"}"
           IMPORT_INNER="${IMPORT_INNER%\"}"
           export IMPORT_INNER
-          # Use Python so YAML/runner quoting does not strip HCL escapes from printf.
           python3 <<'PY' > rancher-override.tfvars
           import os
           
@@ -601,6 +595,7 @@ jobs:
             echo "Terraform execution completed successfully"
           else
             echo "Committing Terraform changes..."
+            git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
             git config --global user.email ${{ github.actor }}@users.noreply.github.com
             git config --global user.name ${{ github.actor }}
             
