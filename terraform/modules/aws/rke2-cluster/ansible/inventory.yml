@@ -1,0 +1,59 @@
+---
+all:
+  vars:
+    cluster_name: "dev1"
+    cluster_env_domain: "mosip.local"
+    k8s_infra_repo_url: "https://github.com/mosip/k8s-infra.git"
+    k8s_infra_branch: "release-1.2.1.x"
+    install_rke2_version: "v1.28.9+rke2r1"
+    enable_rancher_import: true
+    rancher_import_url: "kubectl apply -f https://rancher.mosip.net/v3/import/rbt2k56d55hwxxns8qkl25sm6nbfrlf74965vshdzf2wkkqd7zdht9_c-bwtzx.yaml"
+    ansible_user: ubuntu
+    ansible_ssh_private_key_file: ./ssh_key
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+    
+  children:
+    control_plane:
+      hosts:
+        dev1-CONTROL-PLANE-NODE-1:
+          ansible_host: 172.31.75.231
+          node_role: control_plane
+          is_primary: true
+          node_index: 0
+        dev1-CONTROL-PLANE-NODE-2:
+          ansible_host: 172.31.77.246
+          node_role: control_plane
+          is_primary: false
+          node_index: 1
+        dev1-CONTROL-PLANE-NODE-3:
+          ansible_host: 172.31.68.213
+          node_role: control_plane
+          is_primary: false
+          node_index: 2
+    
+    etcd:
+      hosts:
+        dev1-ETCD-NODE-1:
+          ansible_host: 172.31.70.169
+          node_role: etcd
+        dev1-ETCD-NODE-2:
+          ansible_host: 172.31.69.49
+          node_role: etcd
+        dev1-ETCD-NODE-3:
+          ansible_host: 172.31.64.251
+          node_role: etcd
+    
+    workers:
+      hosts:
+        dev1-WORKER-NODE-1:
+          ansible_host: 172.31.79.251
+          node_role: worker
+        dev1-WORKER-NODE-2:
+          ansible_host: 172.31.72.12
+          node_role: worker
+
+    rke2_cluster:
+      children:
+        control_plane:
+        etcd:
+        workers:
