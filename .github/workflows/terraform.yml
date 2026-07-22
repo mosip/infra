@@ -213,7 +213,7 @@ jobs:
       - name: Configure WireGuard
         run: |
           if [ -z "${TF_WG_CONFIG:-}" ]; then
-            echo "ERROR: TF_WG_CONFIG secret is not configured/empty for environment '${{ github.ref_name }}'"
+            echo "ERROR: TF_WG_CONFIG secret is not configured/empty for environment '$REF_NAME'"
             exit 1
           fi
 
@@ -234,6 +234,7 @@ jobs:
           echo "WireGuard config validated"
         env:
           TF_WG_CONFIG: ${{ secrets.TF_WG_CONFIG }}
+          REF_NAME: ${{ github.ref_name }}
         if: "${{ inputs.TERRAFORM_COMPONENT != 'base-infra' }}"
 
       - name: Start WireGuard
@@ -324,6 +325,7 @@ jobs:
           RANCHER_CLUSTER_NAME_INPUT: ${{ inputs.RANCHER_CLUSTER_NAME }}
           REF_NAME: ${{ github.ref_name }}
         run: |
+          # Inline mint block — duplicated in "Refresh Rancher import URL before apply"; keep both in sync.
           if [ -z "$RANCHER_URL" ] || [ -z "$RANCHER_TOKEN" ]; then
             echo "ERROR: RANCHER_API_URL and RANCHER_API_TOKEN must be set for environment '$REF_NAME'"
             exit 1
@@ -369,6 +371,7 @@ jobs:
           RANCHER_CLUSTER_NAME_INPUT: ${{ inputs.RANCHER_CLUSTER_NAME }}
           REF_NAME: ${{ github.ref_name }}
         run: |
+          # Inline mint block — duplicated from "Generate Rancher import URL via API"; keep both in sync.
           if [ -z "$RANCHER_URL" ] || [ -z "$RANCHER_TOKEN" ]; then
             echo "ERROR: RANCHER_API_URL and RANCHER_API_TOKEN must be set for environment '$REF_NAME'"
             exit 1
