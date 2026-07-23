@@ -7,22 +7,22 @@
 # ============================================================
 
 # Environment name (infra component)
-cluster_name = "<cluster-name>"
+cluster_name = "esgotest"
 
 # eSignet's domain (ex: esignet.xyz.net)
-cluster_env_domain = "<cluster-env-domain>"
+cluster_env_domain = "esgotest.mosip.net"
 
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
-mosip_email_id = "<email-id>"
+mosip_email_id = "thisisbn46@gmail.com"
 
 # SSH login key name for AWS node instances (ex: my-ssh-key)
-ssh_key_name = "<ssh-key-name>"
+ssh_key_name = "mosip-aws"
 
 # The AWS region for resource creation
 aws_provider_region = "ap-south-1"
 
 # Specific availability zones for VM deployment (optional)
-specific_availability_zones = []
+specific_availability_zones = ["ap-south-1b"]
 
 # The instance type for Kubernetes nodes (control plane, worker, etcd)
 # Smaller instance type since eSignet standalone needs fewer resources
@@ -32,7 +32,7 @@ k8s_instance_type = "t3a.2xlarge"
 nginx_instance_type = "t3a.2xlarge"
 
 # The Route 53 hosted zone ID
-zone_id = "<route53_zone_id>"
+zone_id = "Z090954828SJIEL6P5406"
 
 ## UBUNTU 24.04
 # The Amazon Machine Image ID for the instances
@@ -63,7 +63,7 @@ k8s_control_plane_node_count = 1
 k8s_etcd_node_count = 1
 
 # Worker
-k8s_worker_node_count = 2
+k8s_worker_node_count = 4
 
 # RKE2 Version Configuration
 rke2_version = "v1.28.9+rke2r1"
@@ -74,7 +74,7 @@ WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 
 # Rancher Import Configuration
 enable_rancher_import = true
-rancher_import_url    = "\"<rancher-import-url>\""
+rancher_import_url    = ""
 
 # DNS Records to map — only eSignet-relevant subdomains
 # Includes hosts for both the esignet-standalone profile and the isolated
@@ -94,7 +94,7 @@ postgresql_port         = "5433"
 # MOSIP Infrastructure Repository Configuration
 mosip_infra_repo_url = "https://github.com/mosip/infra.git"
 
-mosip_infra_branch = "develop"
+mosip_infra_branch = "es-go-test"
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
 vpc_name = "<vpc-name>"
