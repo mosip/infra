@@ -74,7 +74,7 @@ WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 
 # Rancher Import Configuration
 enable_rancher_import = true
-rancher_import_url    = ""
+rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/f25prw8zrsc959n2bk25mn79twtwmpq6hpxphf9xt97dhbm797r99n_c-stb2m.yaml\""
 
 # DNS Records to map — only eSignet-relevant subdomains
 # Includes hosts for both the esignet-standalone profile and the isolated
@@ -97,7 +97,7 @@ mosip_infra_repo_url = "https://github.com/mosip/infra.git"
 mosip_infra_branch = "es-go-test"
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
-vpc_name = "<vpc-name>"
+vpc_name = "default"
 
 # ── ActiveMQ Configuration ─────────────────────────────────────────────────────
 # Set enable_activemq_setup = true AND nginx_node_ebs_volume_size_3 > 0 to
