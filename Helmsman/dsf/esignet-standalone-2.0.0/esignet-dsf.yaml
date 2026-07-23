@@ -94,7 +94,7 @@ apps:
     enabled: false
     version: 12.0.1
     chart: mosip/config-server
-    valuesFile: "$WORKDIR/utils/config-server-esignet-values.yaml"
+    valuesFile: "$WORKDIR/utils/esignet-standalone-2.0.0/config-server-esignet-values-2-0-0.yaml"
     wait: true
     timeout: 1200
     priority: -15
@@ -110,7 +110,7 @@ apps:
     enabled: true
     version: 0.0.1-develop
     chart: mosip/esignet
-    valuesFile: "$WORKDIR/utils/esignet-plugin-values.yaml"
+    valuesFile: "$WORKDIR/utils/esignet-standalone-2.0.0/esignet-plugin-values-2-0-0.yaml"
     set:
       image.repository: "mosipqa/esignet-with-plugins"
       image.tag: "develop"
@@ -119,7 +119,7 @@ apps:
       activeProfileEnv: ""
       pluginNameEnv: "esignet-mock-plugin.jar"
       pluginUrlEnv: ""
-      extraEnvVarsCM[0]: "esignet-softhsm-share"
+      extraEnvVarsCM[0]: "esignet-softhsm-2-0-0-share"
       #extraEnvVarsCM[1]: "kafka-config"
       metrics.serviceMonitor.enabled: "false"
       domainConfig.MOSIP_ESIGNET_HOST: "esignet-2-0-0.${domain_name}"
@@ -142,7 +142,7 @@ apps:
     enabled: true
     version: 0.1.0-develop
     chart: mosip/esignet
-    valuesFile: "$WORKDIR/utils/esignet-mosipid1-plugin-values.yaml"
+    valuesFile: "$WORKDIR/utils/esignet-standalone-2.0.0/esignet-mosipid1-plugin-values-2-0-0.yaml"
     set:
       image.repository: "mosipqa/esignet-with-plugins"
       image.tag: "develop"
@@ -151,7 +151,7 @@ apps:
       activeProfileEnv: ""
       pluginNameEnv: "mosip-identity-plugin.jar"
       pluginUrlEnv: ""
-      extraEnvVarsCM[0]: "esignet-softhsm-mosipid1-share"
+      extraEnvVarsCM[0]: "esignet-softhsm-mosipid1-2-0-0-share"
       extraEnvVarsCM[1]: "esignet-global"
       metrics.serviceMonitor.enabled: "false"
       domainConfig.MOSIP_ESIGNET_HOST: "esignet-mosipid1-2-0-0.${domain_name}"
@@ -182,7 +182,7 @@ apps:
     enabled: ${MOSIPID2_ENABLED}
     version: 0.0.1-develop
     chart: mosip/esignet
-    valuesFile: "$WORKDIR/utils/esignet-mosipid2-plugin-values.yaml"
+    valuesFile: "$WORKDIR/utils/esignet-standalone-2.0.0/esignet-mosipid2-plugin-values-2-0-0.yaml"
     set:
       image.repository: "mosipqa/esignet-with-plugins"
       image.tag: "develop"
@@ -191,7 +191,7 @@ apps:
       activeProfileEnv: ""
       pluginNameEnv: "mosip-identity-plugin.jar"
       pluginUrlEnv: ""
-      extraEnvVarsCM[0]: "esignet-softhsm-mosipid2-share"
+      extraEnvVarsCM[0]: "esignet-softhsm-mosipid2-2-0-0-share"
       extraEnvVarsCM[1]: "esignet-global"
       metrics.serviceMonitor.enabled: "false"
       domainConfig.MOSIP_ESIGNET_HOST: "esignet-mosipid2-2-0-0.${domain_name}"
@@ -222,7 +222,7 @@ apps:
     enabled: true
     version: 0.0.1-develop
     chart: mosip/esignet
-    valuesFile: "$WORKDIR/utils/esignet-sunbird-plugin-values.yaml"
+    valuesFile: "$WORKDIR/utils/esignet-standalone-2.0.0/esignet-sunbird-plugin-values-2-0-0.yaml"
     set:
       image.repository: "mosipqa/esignet-with-plugins"
       image.tag: "develop"
@@ -231,7 +231,7 @@ apps:
       activeProfileEnv: ""
       pluginNameEnv: "sunbird-rc-plugin.jar"
       pluginUrlEnv: ""
-      extraEnvVarsCM[0]: "esignet-softhsm-sunbird-share"
+      extraEnvVarsCM[0]: "esignet-softhsm-sunbird-2-0-0-share"
       #extraEnvVarsCM[1]: "kafka-config"
       metrics.serviceMonitor.enabled: "false"
       domainConfig.MOSIP_ESIGNET_HOST: "esignet-sunbird-2-0-0.${domain_name}"
@@ -346,12 +346,12 @@ apps:
     enabled: true
     version: 0.0.1-develop
     chart: mosip/mock-identity-system
-    valuesFile: "$WORKDIR/utils/mock-identity-values.yaml"
+    valuesFile: "$WORKDIR/utils/esignet-standalone-2.0.0/mock-identity-values-2-0-0.yaml"
     set:
       image.repository: "mosipqa/mock-identity-system"
       image.tag: "develop"
       enable_insecure: "false"
-      extraEnvVarsCM[0]: "softhsm-mock-identity-system-share"
+      extraEnvVarsCM[0]: "softhsm-mock-identity-system-2-0-0-share"
       domainConfig.MOSIP_ESIGNET_HOST: "esignet-2-0-0.${domain_name}"
       domainConfig.MOSIP_SIGNUP_HOST: "signup-2-0-0.${domain_name}"
       domainConfig.MOSIP_API_HOST: "api.${domain_name}"
@@ -522,7 +522,7 @@ apps:
       istio.gateways[0]: "pms-partner-mosipid1-gateway"
       istio.corsPolicy.allowOrigins[0].prefix: "https://pms-mosipid1-2-0-0.${domain_name}"
       extraEnvVarsCM[0]: "esignet-global"
-      extraEnvVarsCM[1]: "esignet-config-server-share"
+      extraEnvVarsCM[1]: "esignet-config-server-2-0-0-share"
     priority: -9
     timeout: 1200
     hooks:
@@ -539,7 +539,7 @@ apps:
       istio.gateways[0]: "pms-partner-mosipid1-gateway"
       istio.corsPolicy.allowOrigins[0].prefix: "https://pms-mosipid1-2-0-0.${domain_name}"
       extraEnvVarsCM[0]: "esignet-global"
-      extraEnvVarsCM[1]: "esignet-config-server-share"
+      extraEnvVarsCM[1]: "esignet-config-server-2-0-0-share"
     priority: -9
     timeout: 1200
 
@@ -554,7 +554,7 @@ apps:
       istio.gateways[0]: "pms-partner-mosipid2-gateway"
       istio.corsPolicy.allowOrigins[0].prefix: "https://pms-mosipid2-2-0-0.${domain_name}"
       extraEnvVarsCM[0]: "esignet-global"
-      extraEnvVarsCM[1]: "esignet-config-server-share"
+      extraEnvVarsCM[1]: "esignet-config-server-2-0-0-share"
     priority: -9
     timeout: 1200
     hooks:
@@ -570,7 +570,7 @@ apps:
       # image.tag: "1.2.2.2"
       istio.gateways[0]: "pms-partner-mosipid2-gateway"
       extraEnvVarsCM[0]: "esignet-global"
-      extraEnvVarsCM[1]: "esignet-config-server-share"
+      extraEnvVarsCM[1]: "esignet-config-server-2-0-0-share"
       istio.corsPolicy.allowOrigins[0].prefix: "https://pms-mosipid2-2-0-0.${domain_name}"
     priority: -9
     timeout: 1200     
