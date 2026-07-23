@@ -135,6 +135,7 @@ apps:
     priority: -14
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-standalone-2.0.0/esignet-preinstall.sh"
+      postInstall: "$WORKDIR/hooks/esignet-standalone-2.0.0/captcha-postinstall.sh"
 
   esignet-mosipid1-2-0-0:
     namespace: esignet-mosipid1-2-0-0

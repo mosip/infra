@@ -24,22 +24,22 @@ echo "eSignet 1.7.1 - Captcha Post-install"
 echo "================================================"
 
 # --- Step 1: Create captcha secrets for eSignet ---
-echo "Creating esignet-captcha secret in $ESIGNET_NS namespace"
-kubectl -n "$ESIGNET_NS" create secret generic esignet-captcha \
-  --from-literal=esignet-captcha-site-key="$CAPTCHA_SITE_KEY" \
-  --from-literal=esignet-captcha-secret-key="$CAPTCHA_SECRET_KEY" \
+echo "Creating esignet-captcha-2-0-0 secret in $ESIGNET_NS namespace"
+kubectl -n "$ESIGNET_NS" create secret generic esignet-captcha-2-0-0 \
+  --from-literal=esignet-captcha-2-0-0-site-key="$CAPTCHA_SITE_KEY" \
+  --from-literal=esignet-captcha-2-0-0-secret-key="$CAPTCHA_SECRET_KEY" \
   --dry-run=client -o yaml | kubectl apply -f -
 
 # --- Step 2: Copy captcha secret to captcha namespace ---
-echo "Copying esignet-captcha secret to $CAPTCHA_NS namespace"
-$COPY_UTIL secret esignet-captcha "$ESIGNET_NS" "$CAPTCHA_NS"
+echo "Copying esignet-captcha-2-0-0 secret to $CAPTCHA_NS namespace"
+$COPY_UTIL secret esignet-captcha-2-0-0 "$ESIGNET_NS" "$CAPTCHA_NS"
 
 # --- Step 3: Patch captcha deployment with secret env var ---
 echo "Patching captcha deployment with secret key environment variable"
-ENV_VAR_EXISTS=$(kubectl -n "$CAPTCHA_NS" get deployment captcha -o jsonpath="{.spec.template.spec.containers[0].env[?(@.name=='MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_ESIGNET')].name}" 2>/dev/null || echo "")
+ENV_VAR_EXISTS=$(kubectl -n "$CAPTCHA_NS" get deployment captcha -o jsonpath="{.spec.template.spec.containers[0].env[?(@.name=='MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_ESIGNET_2_0_0')].name}" 2>/dev/null || echo "")
 
 if [[ -z "$ENV_VAR_EXISTS" ]]; then
-  echo "Adding MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_ESIGNET env var..."
+  echo "Adding MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_ESIGNET_2_0_0 env var..."
   ENV_ARRAY_EXISTS=$(kubectl -n "$CAPTCHA_NS" get deployment captcha \
     -o jsonpath="{.spec.template.spec.containers[0].env}" 2>/dev/null || echo "")
   if [[ -z "$ENV_ARRAY_EXISTS" ]]; then
@@ -48,9 +48,9 @@ if [[ -z "$ENV_VAR_EXISTS" ]]; then
       -p='[{"op": "add", "path": "/spec/template/spec/containers/0/env", "value": []}]'
   fi
   kubectl patch deployment -n "$CAPTCHA_NS" captcha --type='json' \
-    -p='[{"op": "add", "path": "/spec/template/spec/containers/0/env/-", "value": {"name": "MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_ESIGNET", "valueFrom": {"secretKeyRef": {"name": "esignet-captcha", "key": "esignet-captcha-secret-key"}}}}]'
+    -p='[{"op": "add", "path": "/spec/template/spec/containers/0/env/-", "value": {"name": "MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_ESIGNET_2_0_0", "valueFrom": {"secretKeyRef": {"name": "esignet-captcha-2-0-0", "key": "esignet-captcha-2-0-0-secret-key"}}}}]'
 else
-  echo "MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_ESIGNET env var already exists."
+  echo "MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_ESIGNET_2_0_0 env var already exists."
 fi
 
 echo "Captcha post-install completed."
