@@ -17,6 +17,7 @@ set -euo pipefail
 ESIGNET_NS="${ESIGNET_NS:-esignet-mock-2-0-0}"
 POSTGRES_NS="postgres"
 REDIS_NS="redis"
+KEYCLOAK_NS="keycloak"
 COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
 
 echo "================================================"
@@ -58,5 +59,25 @@ $COPY_UTIL secret redis "$REDIS_NS" "$ESIGNET_NS"
 # so the 2.0.0 namespace is self-sufficient without touching the shared hook.
 echo "Copying db-common-secrets secret from $POSTGRES_NS"
 $COPY_UTIL secret db-common-secrets "$POSTGRES_NS" "$ESIGNET_NS"
+
+# keycloak-host/keycloak-env-vars/keycloak/keycloak-client-secrets are normally fanned
+# out by esignet-postinstall-keycloak-init.sh (postInstall hook of the shared
+# external-dsf.yaml esignet-keycloak-init release), but that hook's namespace loop only
+# covers the original esignet-standalone namespaces. Copy them directly here so the
+# 2.0.0 namespace is self-sufficient without touching the shared hook. This runs for
+# every instance that delegates to this script (esignet-mock-2-0-0 plus the
+# mosipid1/mosipid2/sunbird wrappers), matching the original profile's fan-out to all
+# four namespaces.
+echo "Copying keycloak-host configmap from $KEYCLOAK_NS"
+$COPY_UTIL configmap keycloak-host "$KEYCLOAK_NS" "$ESIGNET_NS"
+
+echo "Copying keycloak-env-vars configmap from $KEYCLOAK_NS"
+$COPY_UTIL configmap keycloak-env-vars "$KEYCLOAK_NS" "$ESIGNET_NS"
+
+echo "Copying keycloak secret from $KEYCLOAK_NS"
+$COPY_UTIL secret keycloak "$KEYCLOAK_NS" "$ESIGNET_NS"
+
+echo "Copying keycloak-client-secrets secret from $KEYCLOAK_NS"
+$COPY_UTIL secret keycloak-client-secrets "$KEYCLOAK_NS" "$ESIGNET_NS"
 
 echo "eSignet pre-install completed."
