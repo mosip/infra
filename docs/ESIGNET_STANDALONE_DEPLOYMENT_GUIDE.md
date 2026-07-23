@@ -11,6 +11,14 @@ You do **not** need to run any commands on your local machine — everything run
 
 **Estimated time:** ~90–120 minutes end to end (Terraform ~30 min, external services ~20 min, eSignet ~25 min).
 
+> **A second, isolated profile — `esignet-standalone-2.0.0`** — is also available in the `profile` dropdown of
+> `helmsman_esignet.yml`, `helmsman_testrigs.yml`, and `helmsman_signup.yml`. It deploys its own namespaces, Helm
+> releases, hostnames (suffixed `-2-0-0`), and databases, so it can run side by side with `esignet-standalone` in
+> the same cluster without colliding. It shares the same external infrastructure (Postgres server, Keycloak, Redis,
+> Kafka, Minio, Captcha instances) and Terraform profile — deploy/manage those via `helmsman_external.yml` and
+> Terraform using the `esignet-standalone` profile as usual; there is no separate `esignet-standalone-2.0.0` entry
+> for either of those.
+
 ---
 
 ## Table of Contents
