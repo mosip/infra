@@ -77,8 +77,11 @@ enable_rancher_import = true
 rancher_import_url    = "\"<rancher-import-url>\""
 
 # DNS Records to map — only eSignet-relevant subdomains
+# Includes hosts for both the esignet-standalone profile and the isolated
+# esignet-standalone-2.0.0 profile (suffixed "-2-0-0"), since both are deployed
+# side-by-side against this same cluster/domain.
 
-subdomain_public   = ["esignet", "healthservices", "signup", "esignet-sunbird", "healthservices-sunbird", "healthservices-mosipid1", "esignet-mosipid1", "pms-mosipid1", "signup-mosipid1", "healthservices-mosipid2", "esignet-mosipid2", "pms-mosipid2", "signup-mosipid2"]
+subdomain_public   = ["esignet", "healthservices", "signup", "esignet-sunbird", "healthservices-sunbird", "healthservices-mosipid1", "esignet-mosipid1", "pms-mosipid1", "signup-mosipid1", "healthservices-mosipid2", "esignet-mosipid2", "pms-mosipid2", "signup-mosipid2", "esignet-2-0-0", "healthservices-2-0-0", "signup-2-0-0", "esignet-sunbird-2-0-0", "healthservices-sunbird-2-0-0", "healthservices-mosipid1-2-0-0", "esignet-mosipid1-2-0-0", "pms-mosipid1-2-0-0", "signup-mosipid1-2-0-0", "healthservices-mosipid2-2-0-0", "esignet-mosipid2-2-0-0", "pms-mosipid2-2-0-0", "signup-mosipid2-2-0-0"]
 subdomain_internal = ["iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio"]
 
 # PostgreSQL Configuration
