@@ -13,7 +13,7 @@ set -euo pipefail
 
 SIGNUP_NS="${SIGNUP_NS:-signup-2-0-0}"
 KEYCLOAK_NS="keycloak"
-SECRET_KEY="mosip_signup-2-0-0_client_secret"
+SECRET_KEY="mosip_signup_client_secret"
 
 echo "================================================"
 echo "eSignet 1.7.1 - Signup Keycloak Init Post-install"

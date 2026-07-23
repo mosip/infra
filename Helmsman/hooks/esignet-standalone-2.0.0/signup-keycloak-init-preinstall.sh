@@ -17,7 +17,7 @@ set -euo pipefail
 
 SIGNUP_NS="${SIGNUP_NS:-signup-2-0-0}"
 KEYCLOAK_NS="keycloak"
-SECRET_KEY="mosip_signup-2-0-0_client_secret"
+SECRET_KEY="mosip_signup_client_secret"
 COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
 
 echo "================================================"
@@ -37,7 +37,7 @@ echo "Copying keycloak secret to $SIGNUP_NS namespace"
 $COPY_UTIL secret keycloak "$KEYCLOAK_NS" "$SIGNUP_NS"
 
 # --- Step 4: Ensure keycloak-client-secrets has mosip_signup_client_secret ---
-echo "Ensuring mosip_signup-2-0-0_client_secret exists in $SIGNUP_NS"
+echo "Ensuring mosip_signup_client_secret exists in $SIGNUP_NS"
 if kubectl -n "$KEYCLOAK_NS" get secret keycloak-client-secrets &>/dev/null && \
    kubectl -n "$KEYCLOAK_NS" get secret keycloak-client-secrets \
      -o jsonpath="{.data.$SECRET_KEY}" 2>/dev/null | grep -q '.'; then
