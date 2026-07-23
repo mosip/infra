@@ -5,7 +5,7 @@
 # Prepares esignet namespace for mock identity system deployment:
 #   - Copies softhsm-mock-identity-system secret from softhsm ns
 #   - Creates mockid-postgres-config with mock identity DB values
-#   - Verifies softhsm-mock-identity-system-share ConfigMap is present
+#   - Verifies softhsm-mock-identity-system-2-0-0-share ConfigMap is present
 #
 # Environment Variables:
 #   MOCKID_DB_NAME  - Mock identity DB name (default: mosip_mockidentitysystem)
@@ -50,10 +50,10 @@ kubectl -n "$ESIGNET_NS" create configmap mockid-postgres-config \
 echo "mockid-postgres-config created/updated in $ESIGNET_NS (host=$DB_HOST db=$MOCKID_DB_NAME user=$MOCKID_DB_USER)."
 
 # Verify SoftHSM mock identity configmap exists in esignet namespace
-if kubectl -n "$ESIGNET_NS" get configmap softhsm-mock-identity-system-share &>/dev/null; then
+if kubectl -n "$ESIGNET_NS" get configmap softhsm-mock-identity-system-2-0-0-share &>/dev/null; then
   echo "SoftHSM mock identity system configmap found."
 else
-  echo "ERROR: softhsm-mock-identity-system-share configmap not found in $ESIGNET_NS namespace."
+  echo "ERROR: softhsm-mock-identity-system-2-0-0-share configmap not found in $ESIGNET_NS namespace."
   echo "Deploy softhsm-mock-identity-system-2-0-0 before running mock identity system install."
   exit 1
 fi

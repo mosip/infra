@@ -2,7 +2,7 @@
 # =============================================================================
 # eSignet 1.7.1 - SoftHSM Mock Identity System Post-install
 # =============================================================================
-# Copies chart-generated softhsm-mock-identity-system-share configmap
+# Copies chart-generated softhsm-mock-identity-system-2-0-0-share configmap
 # (PKCS11 slot/token config) from softhsm namespace to esignet-mock namespace.
 # The security PIN is handled separately via secret copy in preinstall.
 # =============================================================================
@@ -21,7 +21,7 @@ kubectl -n "$SOFTHSM_NS" wait --for=condition=ready pod -l app.kubernetes.io/ins
   { echo "ERROR: SoftHSM mock identity system pod not ready after timeout" >&2; exit 1; }
 
 # Copy chart-generated PKCS11 configmap to esignet-mock namespace
-echo "Copying softhsm-mock-identity-system-share configmap to $ESIGNET_NS"
-$COPY_UTIL configmap softhsm-mock-identity-system-share "$SOFTHSM_NS" "$ESIGNET_NS"
+echo "Copying softhsm-mock-identity-system-2-0-0-share configmap to $ESIGNET_NS"
+$COPY_UTIL configmap softhsm-mock-identity-system-2-0-0-share "$SOFTHSM_NS" "$ESIGNET_NS"
 
 echo "SoftHSM mock identity system post-install completed."
