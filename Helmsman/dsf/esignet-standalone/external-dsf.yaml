@@ -109,6 +109,11 @@ apps:
       databases.mosip_esignet.host: "postgres.${domain_name}"
       databases.mosip_esignet.port: ${esignet_db_port}
       databases.mosip_esignet.dml: 1
+      databases.mosip_esignet.repoUrl: "https://github.com/mosip/esignet.git"
+      databases.mosip_esignet.defaultDb: "postgres"
+      databases.mosip_esignet.su.user: "postgres"
+      databases.mosip_esignet.su.secret.name: "postgres-postgresql"
+      databases.mosip_esignet.su.secret.key: "postgres-password"
       databases.mosip_esignet_mosipid1.repoUrl: "https://github.com/mosip/esignet.git"
       databases.mosip_esignet_mosipid1.defaultDb: "postgres"
       databases.mosip_esignet_mosipid1.su.user: "postgres"
@@ -174,6 +179,10 @@ apps:
       databases.mosip_mockidentitysystem.repoUrl: "https://github.com/mosip/esignet-mock-services.git"
       databases.mosip_mockidentitysystem.port: ${esignet_db_port}
       databases.mosip_mockidentitysystem.dml: 1
+      databases.mosip_mockidentitysystem.defaultDb: "postgres"
+      databases.mosip_mockidentitysystem.su.user: "postgres"
+      databases.mosip_mockidentitysystem.su.secret.name: "postgres-postgresql"
+      databases.mosip_mockidentitysystem.su.secret.key: "postgres-password"
       # ---------------------------------------------------------------------------
       # esignet-standalone-2.0.0 profile — isolated databases (own data, shared postgres)
       # ---------------------------------------------------------------------------
@@ -238,6 +247,10 @@ apps:
       databases.mosip_mockidentitysystem_2_0_0.repoUrl: "https://github.com/mosip/esignet-mock-services.git"
       databases.mosip_mockidentitysystem_2_0_0.port: ${esignet_db_port}
       databases.mosip_mockidentitysystem_2_0_0.dml: 1
+      databases.mosip_mockidentitysystem_2_0_0.defaultDb: "postgres"
+      databases.mosip_mockidentitysystem_2_0_0.su.user: "postgres"
+      databases.mosip_mockidentitysystem_2_0_0.su.secret.name: "postgres-postgresql"
+      databases.mosip_mockidentitysystem_2_0_0.su.secret.key: "postgres-password"
     wait: true
     timeout: 300
     priority: -16
@@ -252,7 +265,7 @@ apps:
   # Initializes mosip_audit, mosip_kernel, mosip_otp (v1.2.0.1 branch).
   postgres-init-signup:
     namespace: signup
-    enabled: true
+    enabled: false
     version: 12.0.1
     chart: mosip/postgres-init
     set:
