@@ -29,7 +29,7 @@ kubectl -n "$ESIGNET_NS" create configmap esignet-global \
   --from-literal=mosip-kafka-host="kafka.${domain_name}" \
   --from-literal=mosip-postgres-host="postgres.${domain_name}" \
   --from-literal=mosip-signup-host="signup-mosipid2-2-0-0.${domain_name}" \
-  --from-literal=mosip-smtp-host="smtp-2-0-0.${domain_name}" \
+  --from-literal=mosip-smtp-host="smtp.${domain_name}" \
   --from-literal=mosip-version="develop" \
   --dry-run=client -o yaml | kubectl apply -f -
 

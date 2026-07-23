@@ -134,7 +134,7 @@ apps:
     version: 1.0.0
     chart: mosip/mock-smtp
     set:
-      istio.hosts[0]: "smtp-2-0-0.${domain_name}"
+      istio.hosts[0]: "smtp.${domain_name}"
     wait: true
     timeout: 300
     priority: -5
