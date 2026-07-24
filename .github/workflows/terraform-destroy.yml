@@ -217,8 +217,8 @@ jobs:
       - name: Configure WireGuard
         run: |
           # WG_CONFIG comes from environment-level secrets (dynamic based on branch name)
-          if [ -z "${{ secrets.TF_WG_CONFIG }}" ]; then
-            echo "❌ ERROR: TF_WG_CONFIG secret is not configured for environment '${{ github.ref_name }}'"
+          if [ -z "${TF_WG_CONFIG:-}" ]; then
+            echo "❌ ERROR: TF_WG_CONFIG secret is not configured/empty for environment '$REF_NAME'"
             echo "Please configure the WireGuard configuration secret for this branch/environment"
             exit 1
           fi
@@ -299,6 +299,7 @@ jobs:
           echo "Config file size: $(sudo wc -c < /etc/wireguard/wg0.conf) bytes"
         env:
           TF_WG_CONFIG: ${{ secrets.TF_WG_CONFIG }}
+          REF_NAME: ${{ github.ref_name }}
         if: "${{ inputs.TERRAFORM_COMPONENT != 'base-infra' }}"
 
       - name: Start WireGuard
@@ -359,6 +360,19 @@ jobs:
             echo "TERRAFORM_DESTROY confirmed - proceeding with destruction"
           fi
 
+      - name: Prepare destroy env (disable Rancher import)
+        if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.TERRAFORM_DESTROY == true }}
+        run: |
+          # Refresh/plan/destroy re-evaluate module preconditions; Rancher import URL is
+          # only minted during apply and must not block teardown. Profile aws.tfvars still
+          # has enable_rancher_import=true, so pass a second -var-file to override it.
+          RUNTIME_VARS_FILE="${RUNNER_TEMP}/rancher-runtime.tfvars"
+          "$GITHUB_WORKSPACE/.github/scripts/write-rancher-runtime-tfvars.sh" \
+            --out "$RUNTIME_VARS_FILE" \
+            --enable false
+          echo "RANCHER_RUNTIME_VARS_FILE=$RUNTIME_VARS_FILE" >> "$GITHUB_ENV"
+          echo "Rancher import disabled for destroy (runtime -var-file override)"
+
       - name: Terraform Init
         run: |
           # First try normal init
@@ -368,20 +382,20 @@ jobs:
           fi
 
       - name: Terraform refresh
-        run: terraform refresh -input=false -var-file="$TFVARS_FILE" -no-color
+        run: terraform refresh -input=false -var-file="$TFVARS_FILE" ${RANCHER_RUNTIME_VARS_FILE:+-var-file="$RANCHER_RUNTIME_VARS_FILE"} -no-color
         if: "${{ inputs.TERRAFORM_DESTROY  == true }}"
 
       - name: Terraform Destroy Plan
         id: destroy-plan
         run: |
           echo "Showing what will be destroyed..."
-          terraform plan -destroy -input=false -var-file="$TFVARS_FILE" -no-color
+          terraform plan -destroy -input=false -var-file="$TFVARS_FILE" ${RANCHER_RUNTIME_VARS_FILE:+-var-file="$RANCHER_RUNTIME_VARS_FILE"} -no-color
         if: "${{ inputs.TERRAFORM_DESTROY  == true }}"
         continue-on-error: true
 
       - name: Terraform Destroy
         id: destroy
-        run: terraform destroy -input=false -var-file="$TFVARS_FILE" -no-color -auto-approve
+        run: terraform destroy -input=false -var-file="$TFVARS_FILE" ${RANCHER_RUNTIME_VARS_FILE:+-var-file="$RANCHER_RUNTIME_VARS_FILE"} -no-color -auto-approve
         if: "${{ inputs.TERRAFORM_DESTROY  == true }}"
         continue-on-error: true
 
@@ -462,6 +476,7 @@ jobs:
             echo "Terraform destroy completed successfully"
           else
             echo "Committing Terraform changes..."
+            git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
             git config --global user.email ${{ github.actor }}@users.noreply.github.com
             git config --global user.name ${{ github.actor }}
             
@@ -480,7 +495,7 @@ jobs:
             
             # Pull with rebase to avoid push rejection
             echo "Pulling latest changes with rebase..."
-            pull_output=$(git pull --rebase origin ${{ github.ref_name }} 2>&1)
+            pull_output=$(git pull --rebase origin "$REF_NAME" 2>&1)
             pull_exit=$?
             echo "$pull_output"
             if [ $pull_exit -ne 0 ]; then
@@ -489,8 +504,8 @@ jobs:
               elif echo "$pull_output" | grep -qE "CONFLICT|could not apply|Resolve all conflicts|You must edit the files"; then
                 echo "⚠️ Rebase conflict detected. Aborting rebase and merging with ours strategy to preserve Terraform state..."
                 git rebase --abort
-                git fetch origin ${{ github.ref_name }}
-                git merge -X ours origin/${{ github.ref_name }} --no-edit
+                git fetch origin "$REF_NAME"
+                git merge -X ours "origin/${REF_NAME}" --no-edit
                 echo "Merge complete. Terraform state preserved."
               else
                 echo "❌ git pull --rebase failed with a non-conflict error:"
@@ -504,6 +519,8 @@ jobs:
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GH_INFRA_PAT }}
+          REF_NAME: ${{ github.ref_name }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
         if: "${{ inputs.TERRAFORM_DESTROY == true }}"
       - name: Terraform destroy status
         if: ${{ steps.destroy.outcome == 'failure' }}
