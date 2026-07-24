@@ -11,10 +11,10 @@ echo "eSignet 1.7.1 - Mock Relying Party UI Pre-install"
 echo "================================================"
 
 # Ensure esignet namespace exists
-kubectl create namespace esignet-mock-2-0-0 --dry-run=client -o yaml | kubectl apply -f -
+kubectl create namespace esignet-go-mock --dry-run=client -o yaml | kubectl apply -f -
 
 # Verify mock relying party service is available
-if kubectl -n esignet-mock-2-0-0 get svc mock-relying-party-service-2-0-0 &>/dev/null; then
+if kubectl -n esignet-go-mock get svc mock-relying-party-service-2-0-0 &>/dev/null; then
   echo "Mock relying party service found."
 else
   echo "WARNING: Mock relying party service not found. UI depends on the service being deployed."

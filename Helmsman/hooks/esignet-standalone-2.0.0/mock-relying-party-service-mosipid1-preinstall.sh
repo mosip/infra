@@ -6,5 +6,5 @@
 # preinstall (creates private key secrets in the target namespace).
 # =============================================================================
 set -euo pipefail
-export ESIGNET_NS="esignet-mosipid1-2-0-0"
+export ESIGNET_NS="esignet-go-mosipid1"
 exec "$WORKDIR/hooks/esignet-standalone-2.0.0/mock-relying-party-service-preinstall.sh"

@@ -7,7 +7,7 @@
 # =============================================================================
 set -euo pipefail
 
-ESIGNET_NS="${ESIGNET_NS:-esignet-mock-2-0-0}"
+ESIGNET_NS="${ESIGNET_NS:-esignet-go-mock}"
 
 echo "================================================"
 echo "eSignet 1.7.1 - Mock RP Onboarder Post-install"

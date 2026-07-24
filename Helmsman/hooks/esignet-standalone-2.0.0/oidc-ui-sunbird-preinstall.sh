@@ -5,5 +5,5 @@
 # Wrapper: sets ESIGNET_NS=esignet-sunbird and delegates to base oidc-ui preinstall.
 # =============================================================================
 set -euo pipefail
-export ESIGNET_NS="esignet-sunbird-2-0-0"
+export ESIGNET_NS="esignet-go-sunbird"
 exec "$WORKDIR/hooks/esignet-standalone-2.0.0/oidc-ui-preinstall.sh"

@@ -3,13 +3,13 @@
 # eSignet 1.7.1 - eSignet MOSIPID2 Service Pre-install
 # =============================================================================
 # Wrapper: sets ESIGNET_NS=esignet-mosipid2, runs base esignet preinstall (copies
-# postgres + redis config/secrets), then creates esignet-captcha-mosipid2-2-0-0 secret
+# postgres + redis config/secrets), then creates esignet-captcha-go-mosipid2 secret
 # in the captcha namespace from workflow env vars, copies it to esignet-mosipid2,
 # and patches the captcha deployment with the MOSIPID2 secret key.
 # =============================================================================
 set -euo pipefail
 
-export ESIGNET_NS="esignet-mosipid2-2-0-0"
+export ESIGNET_NS="esignet-go-mosipid2"
 CAPTCHA_NS="captcha"
 COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
 CAPTCHA_SITE_KEY="${ESIGNET_MOSIPID2_CAPTCHA_SITE_KEY:?ERROR: ESIGNET_MOSIPID2_CAPTCHA_SITE_KEY must be set}"
@@ -24,11 +24,11 @@ kubectl -n "$ESIGNET_NS" create configmap esignet-global \
   --from-literal=installation-domain="${domain_name}" \
   --from-literal=mosip-api-host="api.${domain_name}" \
   --from-literal=mosip-api-internal-host="api-internal.${domain_name}" \
-  --from-literal=mosip-esignet-host="esignet-mosipid2-2-0-0.${domain_name}" \
+  --from-literal=mosip-esignet-host="esignet-go-mosipid2.${domain_name}" \
   --from-literal=mosip-iam-external-host="iam.${domain_name}" \
   --from-literal=mosip-kafka-host="kafka.${domain_name}" \
   --from-literal=mosip-postgres-host="postgres.${domain_name}" \
-  --from-literal=mosip-signup-host="signup-mosipid2-2-0-0.${domain_name}" \
+  --from-literal=mosip-signup-host="signup-go-mosipid2.${domain_name}" \
   --from-literal=mosip-smtp-host="smtp.${domain_name}" \
   --from-literal=mosip-version="develop" \
   --dry-run=client -o yaml | kubectl apply -f -
@@ -44,23 +44,23 @@ if ! kubectl -n "$ESIGNET_NS" get secret esignet-misp-onboarder-key &>/dev/null;
   echo "esignet-misp-onboarder-key placeholder created in $ESIGNET_NS"
 fi
 
-echo "Creating esignet-captcha-mosipid2-2-0-0 secret in $CAPTCHA_NS namespace"
-kubectl -n "$CAPTCHA_NS" create secret generic esignet-captcha-mosipid2-2-0-0 \
+echo "Creating esignet-captcha-go-mosipid2 secret in $CAPTCHA_NS namespace"
+kubectl -n "$CAPTCHA_NS" create secret generic esignet-captcha-go-mosipid2 \
   --from-literal=esignet-captcha-site-key="$CAPTCHA_SITE_KEY" \
   --from-literal=esignet-captcha-secret-key="$CAPTCHA_SECRET_KEY" \
   --dry-run=client -o yaml | kubectl apply -f -
 
-echo "Copying esignet-captcha-mosipid2-2-0-0 secret from $CAPTCHA_NS to $ESIGNET_NS"
-$COPY_UTIL secret esignet-captcha-mosipid2-2-0-0 "$CAPTCHA_NS" "$ESIGNET_NS"
+echo "Copying esignet-captcha-go-mosipid2 secret from $CAPTCHA_NS to $ESIGNET_NS"
+$COPY_UTIL secret esignet-captcha-go-mosipid2 "$CAPTCHA_NS" "$ESIGNET_NS"
 
 echo "Patching captcha deployment with ESIGNETMOSIPID2 secret key"
 ENV_VAR_EXISTS=$(kubectl -n "$CAPTCHA_NS" get deployment captcha \
-  -o jsonpath="{.spec.template.spec.containers[0].env[?(@.name=='MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_ESIGNETMOSIPID2_2_0_0')].name}" 2>/dev/null || echo "")
+  -o jsonpath="{.spec.template.spec.containers[0].env[?(@.name=='MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_ESIGNETGOMOSIPID2')].name}" 2>/dev/null || echo "")
 if [[ -z "$ENV_VAR_EXISTS" ]]; then
   kubectl patch deployment -n "$CAPTCHA_NS" captcha --type='json' \
-    -p='[{"op": "add", "path": "/spec/template/spec/containers/0/env/-", "value": {"name": "MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_ESIGNETMOSIPID2_2_0_0", "valueFrom": {"secretKeyRef": {"name": "esignet-captcha-mosipid2-2-0-0", "key": "esignet-captcha-secret-key"}}}}]'
+    -p='[{"op": "add", "path": "/spec/template/spec/containers/0/env/-", "value": {"name": "MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_ESIGNETGOMOSIPID2", "valueFrom": {"secretKeyRef": {"name": "esignet-captcha-go-mosipid2", "key": "esignet-captcha-secret-key"}}}}]'
 else
-  echo "MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_ESIGNETMOSIPID2_2_0_0 already exists."
+  echo "MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_ESIGNETGOMOSIPID2 already exists."
 fi
 
 # --- postgres-postgresql-mosipid2 secret (MOSIPID2 remote postgres password) ---

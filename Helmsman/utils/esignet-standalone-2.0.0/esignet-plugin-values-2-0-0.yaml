@@ -19,7 +19,7 @@ extraEnvVars:
  - name: MOSIP_ESIGNET_CAPTCHA_SITE_KEY
    valueFrom:
      secretKeyRef:
-       name: esignet-captcha-2-0-0
+       name: esignet-captcha-go
        key: esignet-captcha-site-key
  - name: MOSIP_ESIGNET_CAPTCHA_MODULE_NAME
    value: esignet
@@ -66,7 +66,7 @@ extraEnvVars:
  - name: SOFTHSM_ESIGNET_SECURITY_PIN
    valueFrom:
      secretKeyRef:
-       name: esignet-softhsm-2-0-0
+       name: esignet-softhsm-go
        key: security-pin
  - name: MOSIP_IDA_CLIENT_SECRET
    valueFrom:
@@ -96,7 +96,7 @@ extraEnvVarsAdditional:
   - name: "MOSIP_ESIGNET_CAPTCHA_SITE_KEY"
     valueFrom:
       secretKeyRef:
-        name: esignet-captcha-2-0-0
+        name: esignet-captcha-go
         key: esignet-captcha-site-key
   - name: "MOSIP_ESIGNET_CAPTCHA_REQUIRED"
     value: ""

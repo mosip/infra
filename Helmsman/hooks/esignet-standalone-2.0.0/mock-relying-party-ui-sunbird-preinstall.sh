@@ -7,7 +7,7 @@
 # =============================================================================
 set -euo pipefail
 
-ESIGNET_NS="esignet-sunbird-2-0-0"
+ESIGNET_NS="esignet-go-sunbird"
 
 echo "================================================"
 echo "eSignet 1.7.1 - Mock Relying Party UI Sunbird Pre-install"

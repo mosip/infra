@@ -14,7 +14,7 @@
 # =============================================================================
 set -euo pipefail
 
-ESIGNET_NS="${ESIGNET_NS:-esignet-mock-2-0-0}"
+ESIGNET_NS="${ESIGNET_NS:-esignet-go-mock}"
 POSTGRES_NS="postgres"
 REDIS_NS="redis"
 KEYCLOAK_NS="keycloak"
@@ -65,7 +65,7 @@ $COPY_UTIL secret db-common-secrets "$POSTGRES_NS" "$ESIGNET_NS"
 # external-dsf.yaml esignet-keycloak-init release), but that hook's namespace loop only
 # covers the original esignet-standalone namespaces. Copy them directly here so the
 # 2.0.0 namespace is self-sufficient without touching the shared hook. This runs for
-# every instance that delegates to this script (esignet-mock-2-0-0 plus the
+# every instance that delegates to this script (esignet-go-mock plus the
 # mosipid1/mosipid2/sunbird wrappers), matching the original profile's fan-out to all
 # four namespaces.
 echo "Copying keycloak-host configmap from $KEYCLOAK_NS"

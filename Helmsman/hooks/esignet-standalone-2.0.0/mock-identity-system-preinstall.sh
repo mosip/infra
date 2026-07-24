@@ -5,7 +5,7 @@
 # Prepares esignet namespace for mock identity system deployment:
 #   - Copies softhsm-mock-identity-system secret from softhsm ns
 #   - Creates mockid-postgres-config with mock identity DB values
-#   - Verifies softhsm-mock-identity-system-2-0-0-share ConfigMap is present
+#   - Verifies softhsm-mock-identity-system-go-share ConfigMap is present
 #
 # Environment Variables:
 #   MOCKID_DB_NAME  - Mock identity DB name (default: mosip_mockidentitysystem)
@@ -14,7 +14,7 @@
 # =============================================================================
 set -euo pipefail
 
-ESIGNET_NS="${ESIGNET_NS:-esignet-mock-2-0-0}"
+ESIGNET_NS="${ESIGNET_NS:-esignet-go-mock}"
 SOFTHSM_NS="softhsm-2-0-0"
 MOCKID_DB_NAME="${MOCKID_DB_NAME:-mosip_mockidentitysystem_2_0_0}"
 MOCKID_DB_USER="${MOCKID_DB_USER:-mockidentityuser_2_0_0}"
@@ -29,8 +29,8 @@ kubectl create namespace "$ESIGNET_NS" --dry-run=client -o yaml | kubectl apply 
 
 # Copy softhsm-mock-identity-system secret to esignet ns
 # The chart references it directly via secretKeyRef — pod and secret must be in same namespace
-$COPY_UTIL secret softhsm-mock-identity-system-2-0-0 "$SOFTHSM_NS" "$ESIGNET_NS"
-echo "softhsm-mock-identity-system-2-0-0 secret copied to $ESIGNET_NS."
+$COPY_UTIL secret softhsm-mock-identity-system-go "$SOFTHSM_NS" "$ESIGNET_NS"
+echo "softhsm-mock-identity-system-go secret copied to $ESIGNET_NS."
 
 # Read internal host from postgres-config (already present from esignet-preinstall.sh)
 DB_HOST=$(kubectl -n "$ESIGNET_NS" get configmap postgres-config \
@@ -50,11 +50,11 @@ kubectl -n "$ESIGNET_NS" create configmap mockid-postgres-config \
 echo "mockid-postgres-config created/updated in $ESIGNET_NS (host=$DB_HOST db=$MOCKID_DB_NAME user=$MOCKID_DB_USER)."
 
 # Verify SoftHSM mock identity configmap exists in esignet namespace
-if kubectl -n "$ESIGNET_NS" get configmap softhsm-mock-identity-system-2-0-0-share &>/dev/null; then
+if kubectl -n "$ESIGNET_NS" get configmap softhsm-mock-identity-system-go-share &>/dev/null; then
   echo "SoftHSM mock identity system configmap found."
 else
-  echo "ERROR: softhsm-mock-identity-system-2-0-0-share configmap not found in $ESIGNET_NS namespace."
-  echo "Deploy softhsm-mock-identity-system-2-0-0 before running mock identity system install."
+  echo "ERROR: softhsm-mock-identity-system-go-share configmap not found in $ESIGNET_NS namespace."
+  echo "Deploy softhsm-mock-identity-system-go before running mock identity system install."
   exit 1
 fi
 

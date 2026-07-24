@@ -7,7 +7,7 @@
 # =============================================================================
 set -euo pipefail
 
-ESIGNET_NS="esignet-mosipid1-2-0-0"
+ESIGNET_NS="esignet-go-mosipid1"
 
 echo "================================================"
 echo "eSignet 1.7.1 - Mock Relying Party UI MOSIPID1 Pre-install"
