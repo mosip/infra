@@ -6,7 +6,7 @@
 # ============================================================
 
 # Environment name (infra component)
-cluster_name = "perfm"
+cluster_name = "performance"
 
 # MOSIP's domain (ex: sandbox.xyz.net)
 cluster_env_domain = "perfm.mosip.net"
