@@ -14,14 +14,14 @@ echo "eSignet 1.7.1 - Mock RP Onboarder Post-install"
 echo "================================================"
 
 JOB_STATUS=$(kubectl -n "$ESIGNET_NS" get jobs \
-  -l app.kubernetes.io/instance=esignet-mock-rp-onboarder-2-0-0 \
+  -l app.kubernetes.io/instance=esignet-mock-rp-onboarder-go \
   -o jsonpath='{.items[0].status.succeeded}' 2>/dev/null || echo "")
 
 if [ "$JOB_STATUS" = "1" ]; then
   echo "Mock RP OIDC partner onboarding completed successfully."
 else
   echo "WARNING: onboarding job may not have completed. Check logs:"
-  kubectl -n "$ESIGNET_NS" logs -l app.kubernetes.io/instance=esignet-mock-rp-onboarder-2-0-0 --tail=30 2>/dev/null || true
+  kubectl -n "$ESIGNET_NS" logs -l app.kubernetes.io/instance=esignet-mock-rp-onboarder-go --tail=30 2>/dev/null || true
 fi
 
 # Re-enable Istio sidecar injection now that the Job has completed
@@ -29,13 +29,13 @@ kubectl label namespace "$ESIGNET_NS" istio-injection=enabled --overwrite
 echo "Istio injection re-enabled on namespace $ESIGNET_NS."
 
 # Restart mock-relying-party-service so it picks up the newly onboarded OIDC client
-if kubectl -n "$ESIGNET_NS" get deployment mock-relying-party-service-2-0-0 &>/dev/null; then
-  kubectl -n "$ESIGNET_NS" rollout restart deployment mock-relying-party-service-2-0-0
-  kubectl -n "$ESIGNET_NS" rollout status deployment mock-relying-party-service-2-0-0 --timeout=300s || \
-    echo "WARNING: mock-relying-party-service-2-0-0 rollout did not complete within timeout." >&2
-  echo "mock-relying-party-service-2-0-0 restarted."
+if kubectl -n "$ESIGNET_NS" get deployment mock-relying-party-service-go &>/dev/null; then
+  kubectl -n "$ESIGNET_NS" rollout restart deployment mock-relying-party-service-go
+  kubectl -n "$ESIGNET_NS" rollout status deployment mock-relying-party-service-go --timeout=300s || \
+    echo "WARNING: mock-relying-party-service-go rollout did not complete within timeout." >&2
+  echo "mock-relying-party-service-go restarted."
 else
-  echo "mock-relying-party-service-2-0-0 deployment not found — skipping restart."
+  echo "mock-relying-party-service-go deployment not found — skipping restart."
 fi
 
 echo "Mock RP onboarder post-install completed."

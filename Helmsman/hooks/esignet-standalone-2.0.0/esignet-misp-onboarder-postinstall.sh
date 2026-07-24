@@ -15,14 +15,14 @@ echo "eSignet 1.7.1 - MISP Onboarder Post-install"
 echo "================================================"
 
 JOB_STATUS=$(kubectl -n "$ESIGNET_NS" get jobs \
-  -l app.kubernetes.io/instance=esignet-misp-onboarder-2-0-0 \
+  -l app.kubernetes.io/instance=esignet-misp-onboarder-go \
   -o jsonpath='{.items[0].status.succeeded}' 2>/dev/null || echo "")
 
 if [ "$JOB_STATUS" = "1" ]; then
   echo "eSignet MISP partner onboarding completed successfully."
 else
   echo "WARNING: onboarding job may not have completed. Check logs:"
-  kubectl -n "$ESIGNET_NS" logs -l app.kubernetes.io/instance=esignet-misp-onboarder-2-0-0 --tail=30 2>/dev/null || true
+  kubectl -n "$ESIGNET_NS" logs -l app.kubernetes.io/instance=esignet-misp-onboarder-go --tail=30 2>/dev/null || true
 fi
 
 # Re-enable Istio sidecar injection now that the Job has completed
@@ -31,13 +31,13 @@ echo "Istio injection re-enabled on namespace $ESIGNET_NS."
 
 # Restart config-server first so it reloads the MISP key from the secret,
 # then restart esignet so it fetches the updated config from config-server.
-if kubectl -n "$ESIGNET_NS" get deployment esignet-config-server-2-0-0 &>/dev/null; then
-  kubectl -n "$ESIGNET_NS" rollout restart deployment esignet-config-server-2-0-0
-  kubectl -n "$ESIGNET_NS" rollout status deployment esignet-config-server-2-0-0 --timeout=300s || \
-    echo "WARNING: esignet-config-server-2-0-0 rollout did not complete within timeout." >&2
-  echo "esignet-config-server-2-0-0 restarted."
+if kubectl -n "$ESIGNET_NS" get deployment esignet-config-server-go &>/dev/null; then
+  kubectl -n "$ESIGNET_NS" rollout restart deployment esignet-config-server-go
+  kubectl -n "$ESIGNET_NS" rollout status deployment esignet-config-server-go --timeout=300s || \
+    echo "WARNING: esignet-config-server-go rollout did not complete within timeout." >&2
+  echo "esignet-config-server-go restarted."
 else
-  echo "esignet-config-server-2-0-0 deployment not found — skipping restart."
+  echo "esignet-config-server-go deployment not found — skipping restart."
 fi
 
 if kubectl -n "$ESIGNET_NS" get deployment esignet-go-mock &>/dev/null; then

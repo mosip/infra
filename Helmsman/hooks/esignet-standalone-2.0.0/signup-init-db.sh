@@ -12,7 +12,7 @@
 # =============================================================================
 set -euo pipefail
 
-SIGNUP_NS="${SIGNUP_NS:-signup-2-0-0}"
+SIGNUP_NS="${SIGNUP_NS:-signup-go}"
 POSTGRES_NS="postgres"
 COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
 

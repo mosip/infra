@@ -75,11 +75,11 @@ trigger_all_in_ns esignet-go-mosipid2 || OVERALL_SUCCESS=false
 echo "=== eSignet-Sunbird API Testrig (esignet-go-sunbird ns) ==="
 trigger_all_in_ns esignet-go-sunbird || OVERALL_SUCCESS=false
 
-echo "=== Signup API Testrig (signup-2-0-0 ns, if deployed) ==="
-trigger_all_in_ns signup-2-0-0 || true
+echo "=== Signup API Testrig (signup-go ns, if deployed) ==="
+trigger_all_in_ns signup-go || true
 
-echo "=== Signup UI Testrig (signup-uitestrig-2-0-0 ns, if deployed) ==="
-trigger_all_in_ns signup-uitestrig-2-0-0 || true
+echo "=== Signup UI Testrig (signup-uitestrig-go ns, if deployed) ==="
+trigger_all_in_ns signup-uitestrig-go || true
 
 echo ""
 echo "=== Testrig Execution Summary ==="

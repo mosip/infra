@@ -9,7 +9,7 @@
 # =============================================================================
 set -euo pipefail
 
-NS=signup-uitestrig-2-0-0
+NS=signup-uitestrig-go
 COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
 
 echo "================================================"

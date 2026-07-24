@@ -8,7 +8,7 @@
 # =============================================================================
 set -euo pipefail
 
-SOFTHSM_NS="${SOFTHSM_NS:-softhsm-2-0-0}"
+SOFTHSM_NS="${SOFTHSM_NS:-softhsm-go}"
 ESIGNET_NS="${ESIGNET_NS:-esignet-go-mock}"
 COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
 

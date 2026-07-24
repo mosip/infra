@@ -6,7 +6,7 @@
 # Sets up all prerequisites for signup-service:
 #   - Copies redis-config configmap and redis secret
 #   - Creates keycloak-host configmap (KEYCLOAK_EXTERNAL_URL)
-#   - Creates empty signup-captcha-2-0-0 secret (update site/secret keys for prod)
+#   - Creates empty signup-captcha-go secret (update site/secret keys for prod)
 #   - Creates empty signup-keystore and signup-keystore-password secrets
 #   - Creates msg-gateway configmap and secret (default: mock-smtp)
 #
@@ -18,7 +18,7 @@
 # =============================================================================
 set -euo pipefail
 
-SIGNUP_NS="${SIGNUP_NS:-signup-2-0-0}"
+SIGNUP_NS="${SIGNUP_NS:-signup-go}"
 REDIS_NS="redis"
 KEYCLOAK_NS="keycloak"
 IAM_EXTERNAL_HOST="${MOSIP_IAM_EXTERNAL_HOST:-}"
@@ -47,24 +47,24 @@ kubectl -n "$SIGNUP_NS" create configmap keycloak-host \
   --from-literal=keycloak-internal-url="http://keycloak.$KEYCLOAK_NS" \
   --dry-run=client -o yaml | kubectl apply -f -
 
-# --- Step 4: Create signup-captcha-2-0-0 secret ---
-echo "Creating signup-captcha-2-0-0 secret in $SIGNUP_NS"
-kubectl -n "$SIGNUP_NS" create secret generic signup-captcha-2-0-0 \
-  --from-literal=signup-captcha-2-0-0-site-key="$CAPTCHA_SITE_KEY" \
-  --from-literal=signup-captcha-2-0-0-secret-key="$CAPTCHA_SECRET_KEY" \
+# --- Step 4: Create signup-captcha-go secret ---
+echo "Creating signup-captcha-go secret in $SIGNUP_NS"
+kubectl -n "$SIGNUP_NS" create secret generic signup-captcha-go \
+  --from-literal=signup-captcha-site-key="$CAPTCHA_SITE_KEY" \
+  --from-literal=signup-captcha-secret-key="$CAPTCHA_SECRET_KEY" \
   --dry-run=client -o yaml | kubectl apply -f -
 
-echo "Copying signup-captcha-2-0-0 secret to captcha namespace"
-$COPY_UTIL secret signup-captcha-2-0-0 "$SIGNUP_NS" "captcha"
+echo "Copying signup-captcha-go secret to captcha namespace"
+$COPY_UTIL secret signup-captcha-go "$SIGNUP_NS" "captcha"
 
-echo "Patching captcha deployment with signup-2-0-0 secret key"
+echo "Patching captcha deployment with signup-go secret key"
 ENV_VAR_EXISTS=$(kubectl -n captcha get deployment captcha \
-  -o jsonpath="{.spec.template.spec.containers[0].env[?(@.name=='MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_SIGNUP_2_0_0')].name}" 2>/dev/null || echo "")
+  -o jsonpath="{.spec.template.spec.containers[0].env[?(@.name=='MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_SIGNUP_GO')].name}" 2>/dev/null || echo "")
 if [[ -z "$ENV_VAR_EXISTS" ]]; then
   kubectl patch deployment -n captcha captcha --type='json' \
-    -p='[{"op": "add", "path": "/spec/template/spec/containers/0/env/-", "value": {"name": "MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_SIGNUP_2_0_0", "valueFrom": {"secretKeyRef": {"name": "signup-captcha-2-0-0", "key": "signup-captcha-2-0-0-secret-key"}}}}]'
+    -p='[{"op": "add", "path": "/spec/template/spec/containers/0/env/-", "value": {"name": "MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_SIGNUP_GO", "valueFrom": {"secretKeyRef": {"name": "signup-captcha-go", "key": "signup-captcha-secret-key"}}}}]'
 else
-  echo "MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_SIGNUP_2_0_0 already exists."
+  echo "MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_SIGNUP_GO already exists."
 fi
 
 # --- Step 5: Create signup-keystore secrets ---
@@ -79,8 +79,8 @@ kubectl -n "$SIGNUP_NS" create secret generic signup-keystore \
 # --- Step 6: Create msg-gateway configmap and secret (pointing to mock-smtp) ---
 echo "Creating msg-gateway configmap and secret in $SIGNUP_NS"
 kubectl -n "$SIGNUP_NS" create configmap msg-gateway \
-  --from-literal=smtp-host="mock-smtp-2-0-0.mock-smtp-2-0-0" \
-  --from-literal=sms-host="mock-smtp-2-0-0.mock-smtp-2-0-0" \
+  --from-literal=smtp-host="mock-smtp-go.mock-smtp-go" \
+  --from-literal=sms-host="mock-smtp-go.mock-smtp-go" \
   --from-literal=smtp-port="8025" \
   --from-literal=sms-port="8080" \
   --from-literal=smtp-username="" \

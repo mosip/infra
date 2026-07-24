@@ -7,15 +7,15 @@
 # =============================================================================
 set -euo pipefail
 
-KERNEL_NS="kernel-2-0-0"
+KERNEL_NS="kernel-go"
 
 echo "================================================"
 echo "eSignet 1.7.1 - Notifier Post-install"
 echo "================================================"
 
 # Source: deploy/kernel/install.sh - kubectl set env deployment/notifier
-echo "Setting SMS number length env vars on notifier-2-0-0 deployment"
-kubectl -n "$KERNEL_NS" set env deployment/notifier-2-0-0 \
+echo "Setting SMS number length env vars on notifier-go deployment"
+kubectl -n "$KERNEL_NS" set env deployment/notifier-go \
   MOSIP_KERNEL_SMS_NUMBER_MIN_LENGTH=7 \
   MOSIP_KERNEL_SMS_NUMBER_MAX_LENGTH=10
 

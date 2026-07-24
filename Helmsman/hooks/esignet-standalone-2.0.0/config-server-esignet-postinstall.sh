@@ -14,7 +14,7 @@ set -euo pipefail
 
 SOURCE_NS="esignet-go-mock"
 COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
-CM_NAME="esignet-config-server-2-0-0-share"
+CM_NAME="esignet-config-server-go-share"
 
 MOSIPID1_SPRING_LABEL="${ESIGNET_MOSIPID1_SPRING_CONFIG_LABEL:-develop}"
 MOSIPID2_SPRING_LABEL="${ESIGNET_MOSIPID2_SPRING_CONFIG_LABEL:-develop}"

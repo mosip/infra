@@ -15,9 +15,9 @@
 set -euo pipefail
 
 ESIGNET_NS="${ESIGNET_NS:-esignet-go-mock}"
-SOFTHSM_NS="softhsm-2-0-0"
-MOCKID_DB_NAME="${MOCKID_DB_NAME:-mosip_mockidentitysystem_2_0_0}"
-MOCKID_DB_USER="${MOCKID_DB_USER:-mockidentityuser_2_0_0}"
+SOFTHSM_NS="softhsm-go"
+MOCKID_DB_NAME="${MOCKID_DB_NAME:-mosip_mockidentitysystem_go}"
+MOCKID_DB_USER="${MOCKID_DB_USER:-mockidentityuser_go}"
 MOCKID_DB_PORT="${MOCKID_DB_PORT:-5432}"
 COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
 

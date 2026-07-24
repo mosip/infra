@@ -15,7 +15,7 @@
 # =============================================================================
 set -euo pipefail
 
-SIGNUP_NS="${SIGNUP_NS:-signup-2-0-0}"
+SIGNUP_NS="${SIGNUP_NS:-signup-go}"
 KEYCLOAK_NS="keycloak"
 SECRET_KEY="mosip_signup_client_secret"
 COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"

@@ -35,7 +35,7 @@ kubectl -n "$ESIGNET_NS" create configmap esignet-global \
 
 # Override postgres-config with MOSIPID1-specific DB values (2.0.0: isolated database)
 kubectl -n "$ESIGNET_NS" patch configmap postgres-config --type merge \
-  -p '{"data":{"database-name":"mosip_esignet_mosipid1_2_0_0","database-username":"esignetuser_mosipid1_2_0_0"}}'
+  -p '{"data":{"database-name":"mosip_esignet_go_mosipid1","database-username":"esignetuser_go_mosipid1"}}'
 
 # Create esignet-misp-onboarder-key placeholder — real value written by MISP onboarder.
 if ! kubectl -n "$ESIGNET_NS" get secret esignet-misp-onboarder-key &>/dev/null; then
