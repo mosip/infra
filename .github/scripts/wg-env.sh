@@ -166,6 +166,9 @@ if [[ -z "$REPO" ]]; then
   [[ -n "$REPO" ]] || die "Could not infer repo; pass --repo <owner/repo>"
 fi
 
+# gh secret/variable --env does not URL-encode the name; # ( ) / etc. break API paths.
+ENV_NAME_ENC="$(urlencode "$ENV_NAME")"
+
 CONFIG_DIR="$WG_DIR/config"
 ASSIGNED_FILE="$WG_DIR/assigned.txt"
 ASSIGN_LOCK_FILE="/tmp/wg-env-$(printf '%s' "$ASSIGNED_FILE" | cksum | awk '{print $1}').lock"
@@ -209,12 +212,16 @@ ssh_cmd() {
 }
 
 # Run a remote bash script from stdin with positional args ($1, $2, ...).
-# Each "$@" element is sent as a separate SSH argv word; the remote shell does
-# not re-parse them, so values with spaces stay intact in $1..$n. Do not wrap
-# these args in remote_quote() — that is only for inline remote command strings
-# (ls, test, cat) where a single shell line is executed.
+# OpenSSH passes the remote command through the login shell (bash -c), so args
+# with metacharacters (spaces, parentheses, #, etc.) must be shell-quoted or
+# the remote -c parse fails before bash -s runs. remote_quote() is for inline
+# one-liners (ls, test, cat); use printf %q here for positional args.
 ssh_bash_stdin() {
-  ssh_cmd bash -s -- "$@"
+  local quoted=() arg
+  for arg in "$@"; do
+    quoted+=("$(printf '%q' "$arg")")
+  done
+  ssh_cmd bash -s -- "${quoted[@]}"
 }
 
 run_offboard() {
@@ -282,14 +289,13 @@ run_offboard() {
   delete_github_secrets() {
     local name
     for name in "${SECRET_NAMES[@]}"; do
-      if gh secret delete "$name" --env "$ENV_NAME" --repo "$REPO" 2>/dev/null; then
+      if gh secret delete "$name" --env "$ENV_NAME_ENC" --repo "$REPO" 2>/dev/null; then
         log "Deleted secret $name from environment $ENV_NAME"
       else
         log "Secret $name not present (or could not delete) in environment $ENV_NAME"
       fi
     done
     if [[ "$DELETE_ENVIRONMENT" == "true" ]]; then
-      ENV_NAME_ENC="$(urlencode "$ENV_NAME")"
       if gh api --method DELETE -H "Accept: application/vnd.github+json" \
         "repos/${REPO}/environments/${ENV_NAME_ENC}" >/dev/null 2>&1; then
         log "Deleted GitHub environment '$ENV_NAME'"
@@ -910,7 +916,7 @@ rollback_published_secrets() {
   local count="$1" i failed="false"
   [[ "$count" -gt 0 ]] || return 0
   for ((i = 0; i < count; i++)); do
-    if gh secret delete "${SECRET_NAMES[$i]}" --env "$ENV_NAME" --repo "$REPO" 2>/dev/null; then
+    if gh secret delete "${SECRET_NAMES[$i]}" --env "$ENV_NAME_ENC" --repo "$REPO" 2>/dev/null; then
       log "Deleted secret ${SECRET_NAMES[$i]}"
     else
       err "Failed to delete secret ${SECRET_NAMES[$i]}"
@@ -1021,6 +1027,7 @@ validate_wireguard_conf() {
 
 # gh secret set --body - stores the literal character "-" (1 byte), not stdin.
 # Pass the conf via a temp file / stdin redirect instead.
+# Use ENV_NAME_ENC for --env: gh CLI does not URL-encode env names (# truncates URLs).
 publish_env_secret() {
   local name="$1" content="$2" tmp rc
   validate_wireguard_conf "$name" "$content" || return 1
@@ -1030,7 +1037,7 @@ publish_env_secret() {
     rm -f "$tmp"
     return 1
   fi
-  gh secret set "$name" --env "$ENV_NAME" --repo "$REPO" --app actions < "$tmp"
+  gh secret set "$name" --env "$ENV_NAME_ENC" --repo "$REPO" --app actions < "$tmp"
   rc=$?
   rm -f "$tmp"
   return $rc
@@ -1077,7 +1084,6 @@ fi
 
 # ---- Create the GitHub environment + publish the three secrets -------------
 log "Ensuring GitHub environment '$ENV_NAME' exists ..."
-ENV_NAME_ENC="$(urlencode "$ENV_NAME")"
 if ! gh api --method PUT -H "Accept: application/vnd.github+json" \
   "repos/${REPO}/environments/${ENV_NAME_ENC}" >/dev/null; then
   err "Failed creating environment '$ENV_NAME' in $REPO"
