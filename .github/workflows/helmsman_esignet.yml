@@ -582,12 +582,18 @@ jobs:
           SKIP_RELEASES_ARG=""
           if [[ "$PROFILE" == esignet-standalone* ]]; then
             case "$PROFILE" in
-              esignet-standalone) NS_SUFFIX="" ;;
-              esignet-standalone-2.0.0) NS_SUFFIX="-2-0-0" ;;
-              *) NS_SUFFIX="" ;;
+              esignet-standalone)
+                SOFTHSM_PAIRS=("esignet-softhsm:esignet-mock" "esignet-softhsm-mosipid1:esignet-mosipid1" "esignet-softhsm-mosipid2:esignet-mosipid2" "esignet-softhsm-sunbird:esignet-sunbird")
+                ;;
+              esignet-standalone-2.0.0)
+                SOFTHSM_PAIRS=("esignet-softhsm-go:esignet-go-mock" "esignet-softhsm-go-mosipid1:esignet-go-mosipid1" "esignet-softhsm-go-mosipid2:esignet-go-mosipid2" "esignet-softhsm-go-sunbird:esignet-go-sunbird")
+                ;;
+              *)
+                SOFTHSM_PAIRS=()
+                ;;
             esac
             SKIP_RELEASES=""
-            for pair in "esignet-softhsm${NS_SUFFIX}:esignet-mock${NS_SUFFIX}" "esignet-softhsm-mosipid1${NS_SUFFIX}:esignet-mosipid1${NS_SUFFIX}" "esignet-softhsm-mosipid2${NS_SUFFIX}:esignet-mosipid2${NS_SUFFIX}" "esignet-softhsm-sunbird${NS_SUFFIX}:esignet-sunbird${NS_SUFFIX}"; do
+            for pair in "${SOFTHSM_PAIRS[@]}"; do
               release="${pair%%:*}"
               ns="${pair##*:}"
               if helm status "$release" -n "$ns" &>/dev/null; then

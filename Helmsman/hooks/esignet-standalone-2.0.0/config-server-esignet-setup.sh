@@ -29,7 +29,7 @@
 # =============================================================================
 set -euo pipefail
 
-ESIGNET_NS="${ESIGNET_NS:-esignet-mock-2-0-0}"
+ESIGNET_NS="${ESIGNET_NS:-esignet-go-mock}"
 POSTGRES_NS="postgres"
 COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
 
@@ -54,11 +54,11 @@ kubectl -n "$ESIGNET_NS" create configmap esignet-global \
   --from-literal=installation-domain="${domain_name}" \
   --from-literal=mosip-api-host="api.${domain_name}" \
   --from-literal=mosip-api-internal-host="api-internal.${domain_name}" \
-  --from-literal=mosip-esignet-host="esignet-2-0-0.${domain_name}" \
+  --from-literal=mosip-esignet-host="esignet-go.${domain_name}" \
   --from-literal=mosip-iam-external-host="iam.${domain_name}" \
   --from-literal=mosip-kafka-host="kafka.${domain_name}" \
   --from-literal=mosip-postgres-host="postgres.${domain_name}" \
-  --from-literal=mosip-signup-host="signup-2-0-0.${domain_name}" \
+  --from-literal=mosip-signup-host="signup-go.${domain_name}" \
   --from-literal=mosip-smtp-host="smtp.${domain_name}" \
   --from-literal=mosip-version="develop" \
   --dry-run=client -o yaml | kubectl apply -f -

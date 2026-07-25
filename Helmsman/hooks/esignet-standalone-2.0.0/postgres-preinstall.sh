@@ -12,7 +12,7 @@
 # =============================================================================
 set -euo pipefail
 
-ESIGNET_NS="${ESIGNET_NS:-esignet-mock-2-0-0}"
+ESIGNET_NS="${ESIGNET_NS:-esignet-go-mock}"
 INSTALLATION_DOMAIN="${INSTALLATION_DOMAIN:-sandbox.xyz.net}"
 
 echo "================================================"

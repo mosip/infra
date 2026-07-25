@@ -12,8 +12,8 @@
 # =============================================================================
 set -euo pipefail
 
-SOFTHSM_NS="${SOFTHSM_NS:-softhsm-2-0-0}"
-ESIGNET_NS="${ESIGNET_NS:-esignet-mock-2-0-0}"
+SOFTHSM_NS="${SOFTHSM_NS:-softhsm-go}"
+ESIGNET_NS="${ESIGNET_NS:-esignet-go-mock}"
 COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
 
 echo "================================================"
@@ -22,7 +22,7 @@ echo "================================================"
 
 # --- Step 1: Wait for SoftHSM pod to be ready ---
 echo "Waiting for SoftHSM pod to be ready..."
-kubectl -n "$SOFTHSM_NS" wait --for=condition=ready pod -l app.kubernetes.io/instance=esignet-softhsm-2-0-0 --timeout=480s || \
+kubectl -n "$SOFTHSM_NS" wait --for=condition=ready pod -l app.kubernetes.io/instance=esignet-softhsm-go --timeout=480s || \
   { echo "ERROR: SoftHSM pod not ready after timeout" >&2; exit 1; }
 
 # --- Step 2: Copy esignet-softhsm-share configmap to esignet namespace ---
@@ -31,8 +31,8 @@ $COPY_UTIL configmap esignet-softhsm-share "$SOFTHSM_NS" "$ESIGNET_NS" 2>/dev/nu
   echo "WARNING: esignet-softhsm-share configmap not found in $SOFTHSM_NS"
 
 # --- Step 3: Copy esignet-softhsm secret to esignet namespace ---
-echo "Copying esignet-softhsm-2-0-0 secret to $ESIGNET_NS namespace"
-$COPY_UTIL secret esignet-softhsm-2-0-0 "$SOFTHSM_NS" "$ESIGNET_NS" 2>/dev/null || \
-  echo "WARNING: esignet-softhsm-2-0-0 secret not found in $SOFTHSM_NS"
+echo "Copying esignet-softhsm-go secret to $ESIGNET_NS namespace"
+$COPY_UTIL secret esignet-softhsm-go "$SOFTHSM_NS" "$ESIGNET_NS" 2>/dev/null || \
+  echo "WARNING: esignet-softhsm-go secret not found in $SOFTHSM_NS"
 
 echo "SoftHSM eSignet post-install completed."

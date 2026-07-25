@@ -54,7 +54,7 @@ extraEnvVars:
   - name: SOFTHSM_ESIGNET_SECURITY_PIN
     valueFrom:
       secretKeyRef:
-        name: esignet-softhsm-mosipid1-2-0-0
+        name: esignet-softhsm-go-mosipid1
         key: security-pin
   - name: MOSIP_IDA_CLIENT_SECRET
     valueFrom:
@@ -68,7 +68,7 @@ extraEnvVarsAdditional:
   - name: "MOSIP_ESIGNET_CAPTCHA_SITE-KEY"
     valueFrom:
       secretKeyRef:
-        name: esignet-captcha-mosipid1-2-0-0
+        name: esignet-captcha-go-mosipid1
         key: esignet-captcha-site-key
 
   # ---------------------------------------------------------------------------

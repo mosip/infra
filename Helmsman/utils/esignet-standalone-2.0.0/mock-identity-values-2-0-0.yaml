@@ -27,7 +27,7 @@ extraEnvVars:
   - name: SOFTHSM_MOCK_IDENTITY_SYSTEM_SECURITY_PIN
     valueFrom:
       secretKeyRef:
-        name: softhsm-mock-identity-system-2-0-0
+        name: softhsm-mock-identity-system-go
         key: security-pin
   - name: hsm_local_dir_name
     value: hsm-client

@@ -7,7 +7,7 @@
 # =============================================================================
 set -euo pipefail
 
-ESIGNET_NS="esignet-mosipid1-2-0-0"
+ESIGNET_NS="esignet-go-mosipid1"
 
 echo "================================================"
 echo "eSignet 1.7.1 - Mock Relying Party UI MOSIPID1 Pre-install"
@@ -15,7 +15,7 @@ echo "================================================"
 
 kubectl create namespace "$ESIGNET_NS" --dry-run=client -o yaml | kubectl apply -f -
 
-if kubectl -n "$ESIGNET_NS" get svc mock-relying-party-service-2-0-0 &>/dev/null; then
+if kubectl -n "$ESIGNET_NS" get svc mock-relying-party-service-go &>/dev/null; then
   echo "Mock relying party service found in $ESIGNET_NS."
 else
   echo "WARNING: Mock relying party service not found in $ESIGNET_NS. UI depends on the service being deployed."

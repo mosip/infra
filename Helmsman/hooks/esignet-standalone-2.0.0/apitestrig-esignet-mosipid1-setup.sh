@@ -9,7 +9,7 @@
 # =============================================================================
 set -euo pipefail
 
-NS=esignet-mosipid1-2-0-0
+NS=esignet-go-mosipid1
 COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
 
 echo "================================================"

@@ -35,11 +35,11 @@ helmRepos:
   mosip: https://mosip.github.io/mosip-helm
 
 namespaces:
-  signup-2-0-0:
+  signup-go:
     protected: false
-  kernel-2-0-0:
+  kernel-go:
     protected: false
-  mock-smtp-2-0-0:
+  mock-smtp-go:
     protected: false
 
 apps:
@@ -48,8 +48,8 @@ apps:
   # ---------------------------------------------------------------------------
   # Creates mosip-signup-client with required roles in Keycloak.
   # Propagates mosip_signup_client_secret between keycloak and signup namespaces.
-  signup-keycloak-init-2-0-0:
-    namespace: signup-2-0-0
+  signup-keycloak-init-go:
+    namespace: signup-go
     enabled: false
     version: 12.0.2
     chart: mosip/keycloak-init
@@ -73,8 +73,8 @@ apps:
   # Required for audit logging (auditmanager), OTP generation (otpmanager),
   # auth token validation (authmanager), and email/SMS dispatch (notifier).
   # kernel-preinstall.sh creates kernel namespace and domain-config configmap.
-  authmanager-2-0-0:
-    namespace: kernel-2-0-0
+  authmanager-go:
+    namespace: kernel-go
     enabled: false
     version: 12.0.1
     chart: mosip/authmanager
@@ -87,8 +87,8 @@ apps:
       preInstall: "$WORKDIR/hooks/esignet-standalone-2.0.0/kernel-preinstall.sh"
       preUpgrade: "$WORKDIR/hooks/esignet-standalone-2.0.0/kernel-preinstall.sh"
 
-  auditmanager-2-0-0:
-    namespace: kernel-2-0-0
+  auditmanager-go:
+    namespace: kernel-go
     enabled: false
     version: 12.0.1
     chart: mosip/auditmanager
@@ -101,8 +101,8 @@ apps:
       preInstall: "$WORKDIR/hooks/esignet-standalone-2.0.0/kernel-preinstall.sh"
       preUpgrade: "$WORKDIR/hooks/esignet-standalone-2.0.0/kernel-preinstall.sh"
 
-  otpmanager-2-0-0:
-    namespace: kernel-2-0-0
+  otpmanager-go:
+    namespace: kernel-go
     enabled: false
     version: 12.0.1
     chart: mosip/otpmanager
@@ -113,8 +113,8 @@ apps:
       preInstall: "$WORKDIR/hooks/esignet-standalone-2.0.0/kernel-preinstall.sh"
       preUpgrade: "$WORKDIR/hooks/esignet-standalone-2.0.0/kernel-preinstall.sh"
 
-  notifier-2-0-0:
-    namespace: kernel-2-0-0
+  notifier-go:
+    namespace: kernel-go
     enabled: false
     version: 12.0.1
     chart: mosip/notifier
@@ -128,8 +128,8 @@ apps:
   # ---------------------------------------------------------------------------
   # Mock SMTP (Optional — dev/test email and SMS)
   # ---------------------------------------------------------------------------
-  mock-smtp-2-0-0:
-    namespace: mock-smtp-2-0-0
+  mock-smtp-go:
+    namespace: mock-smtp-go
     enabled: false
     version: 1.0.0
     chart: mosip/mock-smtp
@@ -145,8 +145,8 @@ apps:
   # signup-service-preinstall.sh copies redis secrets, creates keycloak-host
   # configmap, signup-captcha and signup-keystore secrets, and msg-gateway
   # configmap/secret pointing to mock-smtp.
-  signup-2-0-0:
-    namespace: signup-2-0-0
+  signup-go:
+    namespace: signup-go
     enabled: false
     version: 1.2.2
     chart: mosip/signup
@@ -155,8 +155,8 @@ apps:
       image.tag: "1.2.2"
       enable_insecure: "false"
       plugin_name_env: "esignet-mock-plugin.jar"
-      domainConfig.MOSIP_ESIGNET_HOST: "esignet-2-0-0.${domain_name}"
-      domainConfig.MOSIP_SIGNUP_HOST: "signup-2-0-0.${domain_name}"
+      domainConfig.MOSIP_ESIGNET_HOST: "esignet-go.${domain_name}"
+      domainConfig.MOSIP_SIGNUP_HOST: "signup-go.${domain_name}"
       domainConfig.MOSIP_IAM_EXTERNAL_HOST: "iam.${domain_name}"
     wait: true
     timeout: 600
@@ -168,18 +168,18 @@ apps:
   # ---------------------------------------------------------------------------
   # Signup UI
   # ---------------------------------------------------------------------------
-  signup-ui-2-0-0:
-    namespace: signup-2-0-0
+  signup-ui-go:
+    namespace: signup-go
     enabled: false
     version: 1.2.2
     chart: mosip/signup-ui
     set:
       image.repository: "mosipid/signup-ui"
       image.tag: "1.2.2"
-      istio.hosts[0]: "signup-2-0-0.${domain_name}"
-      signup_ui.signup_service_host: "signup-2-0-0.signup-2-0-0"
-      signup_ui.configmaps.signup-ui.REACT_APP_API_BASE_URL: "http://signup-2-0-0.signup-2-0-0/v1/signup"
-      signup_ui.configmaps.signup-ui.REACT_APP_SBI_DOMAIN_URI: "http://signup-2-0-0.signup-2-0-0"
+      istio.hosts[0]: "signup-go.${domain_name}"
+      signup_ui.signup_service_host: "signup-go.signup-go"
+      signup_ui.configmaps.signup-ui.REACT_APP_API_BASE_URL: "http://signup-go.signup-go/v1/signup"
+      signup_ui.configmaps.signup-ui.REACT_APP_SBI_DOMAIN_URI: "http://signup-go.signup-go"
     wait: true
     timeout: 600
     priority: -3

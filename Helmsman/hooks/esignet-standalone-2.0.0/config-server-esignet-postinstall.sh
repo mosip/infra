@@ -12,9 +12,9 @@
 # =============================================================================
 set -euo pipefail
 
-SOURCE_NS="esignet-mock-2-0-0"
+SOURCE_NS="esignet-go-mock"
 COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
-CM_NAME="esignet-config-server-2-0-0-share"
+CM_NAME="esignet-config-server-go-share"
 
 MOSIPID1_SPRING_LABEL="${ESIGNET_MOSIPID1_SPRING_CONFIG_LABEL:-develop}"
 MOSIPID2_SPRING_LABEL="${ESIGNET_MOSIPID2_SPRING_CONFIG_LABEL:-develop}"
@@ -23,17 +23,17 @@ echo "================================================"
 echo "eSignet 1.7.1 - Config-Server eSignet Post-install"
 echo "================================================"
 
-for TARGET_NS in esignet-mosipid1-2-0-0 esignet-mosipid2-2-0-0 esignet-sunbird-2-0-0; do
+for TARGET_NS in esignet-go-mosipid1 esignet-go-mosipid2 esignet-go-sunbird; do
   echo "Copying $CM_NAME from $SOURCE_NS to $TARGET_NS"
   $COPY_UTIL configmap "$CM_NAME" "$SOURCE_NS" "$TARGET_NS"
 done
 
-echo "Patching $CM_NAME in esignet-mosipid1-2-0-0 (active_profile_env=mosipid1, spring_config_label_env=$MOSIPID1_SPRING_LABEL)"
-kubectl -n esignet-mosipid1-2-0-0 patch configmap "$CM_NAME" --type merge \
+echo "Patching $CM_NAME in esignet-go-mosipid1 (active_profile_env=mosipid1, spring_config_label_env=$MOSIPID1_SPRING_LABEL)"
+kubectl -n esignet-go-mosipid1 patch configmap "$CM_NAME" --type merge \
   -p "{\"data\":{\"active_profile_env\":\"mosipid1\",\"spring_config_label_env\":\"$MOSIPID1_SPRING_LABEL\"}}"
 
-echo "Patching $CM_NAME in esignet-mosipid2-2-0-0 (active_profile_env=mosipid2, spring_config_label_env=$MOSIPID2_SPRING_LABEL)"
-kubectl -n esignet-mosipid2-2-0-0 patch configmap "$CM_NAME" --type merge \
+echo "Patching $CM_NAME in esignet-go-mosipid2 (active_profile_env=mosipid2, spring_config_label_env=$MOSIPID2_SPRING_LABEL)"
+kubectl -n esignet-go-mosipid2 patch configmap "$CM_NAME" --type merge \
   -p "{\"data\":{\"active_profile_env\":\"mosipid2\",\"spring_config_label_env\":\"$MOSIPID2_SPRING_LABEL\"}}"
 
 echo "Config-server share configmap propagation and patching completed."

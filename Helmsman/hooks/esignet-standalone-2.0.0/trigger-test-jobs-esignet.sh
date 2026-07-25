@@ -63,23 +63,23 @@ echo "================================================"
 echo "eSignet 1.7.1 - Trigger Testrig CronJobs"
 echo "================================================"
 
-echo "=== eSignet API Testrig (esignet-mock-2-0-0 ns) ==="
-trigger_all_in_ns esignet-mock-2-0-0 || OVERALL_SUCCESS=false
+echo "=== eSignet API Testrig (esignet-go-mock ns) ==="
+trigger_all_in_ns esignet-go-mock || OVERALL_SUCCESS=false
 
-echo "=== eSignet-MOSIPID1 API Testrig (esignet-mosipid1-2-0-0 ns) ==="
-trigger_all_in_ns esignet-mosipid1-2-0-0 || OVERALL_SUCCESS=false
+echo "=== eSignet-MOSIPID1 API Testrig (esignet-go-mosipid1 ns) ==="
+trigger_all_in_ns esignet-go-mosipid1 || OVERALL_SUCCESS=false
 
-echo "=== eSignet-MOSIPID2 API Testrig (esignet-mosipid2-2-0-0 ns) ==="
-trigger_all_in_ns esignet-mosipid2-2-0-0 || OVERALL_SUCCESS=false
+echo "=== eSignet-MOSIPID2 API Testrig (esignet-go-mosipid2 ns) ==="
+trigger_all_in_ns esignet-go-mosipid2 || OVERALL_SUCCESS=false
 
-echo "=== eSignet-Sunbird API Testrig (esignet-sunbird-2-0-0 ns) ==="
-trigger_all_in_ns esignet-sunbird-2-0-0 || OVERALL_SUCCESS=false
+echo "=== eSignet-Sunbird API Testrig (esignet-go-sunbird ns) ==="
+trigger_all_in_ns esignet-go-sunbird || OVERALL_SUCCESS=false
 
-echo "=== Signup API Testrig (signup-2-0-0 ns, if deployed) ==="
-trigger_all_in_ns signup-2-0-0 || true
+echo "=== Signup API Testrig (signup-go ns, if deployed) ==="
+trigger_all_in_ns signup-go || true
 
-echo "=== Signup UI Testrig (signup-uitestrig-2-0-0 ns, if deployed) ==="
-trigger_all_in_ns signup-uitestrig-2-0-0 || true
+echo "=== Signup UI Testrig (signup-uitestrig-go ns, if deployed) ==="
+trigger_all_in_ns signup-uitestrig-go || true
 
 echo ""
 echo "=== Testrig Execution Summary ==="

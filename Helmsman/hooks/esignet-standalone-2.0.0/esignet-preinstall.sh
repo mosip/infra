@@ -14,7 +14,7 @@
 # =============================================================================
 set -euo pipefail
 
-ESIGNET_NS="${ESIGNET_NS:-esignet-mock-2-0-0}"
+ESIGNET_NS="${ESIGNET_NS:-esignet-go-mock}"
 POSTGRES_NS="postgres"
 REDIS_NS="redis"
 KEYCLOAK_NS="keycloak"
@@ -41,7 +41,7 @@ $COPY_UTIL configmap postgres-config "$POSTGRES_NS" "$ESIGNET_NS"
 
 # Override postgres-config with 2.0.0-specific DB values (isolated database)
 kubectl -n "$ESIGNET_NS" patch configmap postgres-config --type merge \
-  -p '{"data":{"database-name":"mosip_esignet_2_0_0","database-username":"esignetuser_2_0_0"}}'
+  -p '{"data":{"database-name":"mosip_esignet_go","database-username":"esignetuser_go"}}'
 
 echo "Copying redis-config configmap from $REDIS_NS"
 $COPY_UTIL configmap redis-config "$REDIS_NS" "$ESIGNET_NS"
@@ -65,7 +65,7 @@ $COPY_UTIL secret db-common-secrets "$POSTGRES_NS" "$ESIGNET_NS"
 # external-dsf.yaml esignet-keycloak-init release), but that hook's namespace loop only
 # covers the original esignet-standalone namespaces. Copy them directly here so the
 # 2.0.0 namespace is self-sufficient without touching the shared hook. This runs for
-# every instance that delegates to this script (esignet-mock-2-0-0 plus the
+# every instance that delegates to this script (esignet-go-mock plus the
 # mosipid1/mosipid2/sunbird wrappers), matching the original profile's fan-out to all
 # four namespaces.
 echo "Copying keycloak-host configmap from $KEYCLOAK_NS"

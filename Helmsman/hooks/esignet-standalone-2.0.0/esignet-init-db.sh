@@ -15,7 +15,7 @@ echo "================================================"
 echo "eSignet 1.7.1 - Database Init Pre-install"
 echo "================================================"
 
-for NS in esignet-mock-2-0-0 esignet-mosipid1-2-0-0 esignet-mosipid2-2-0-0 esignet-sunbird-2-0-0; do
+for NS in esignet-go-mock esignet-go-mosipid1 esignet-go-mosipid2 esignet-go-sunbird; do
   kubectl create namespace "$NS" --dry-run=client -o yaml | kubectl apply -f -
   kubectl label namespace "$NS" istio-injection=enabled --overwrite
   echo "Namespace $NS ready."

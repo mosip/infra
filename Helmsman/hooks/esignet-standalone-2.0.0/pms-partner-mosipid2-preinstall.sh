@@ -6,7 +6,7 @@
 # =============================================================================
 set -euo pipefail
 
-ESIGNET_NS="esignet-mosipid2-2-0-0"
+ESIGNET_NS="esignet-go-mosipid2"
 
 echo "================================================"
 echo "eSignet 1.7.1 - PMS Partner MOSIPID2 Pre-install"
@@ -19,14 +19,14 @@ metadata:
   name: pms-partner-mosipid2-gateway
   namespace: ${ESIGNET_NS}
   labels:
-    app.kubernetes.io/instance: pms-partner-mosipid2-2-0-0
+    app.kubernetes.io/instance: pms-partner-go-mosipid2
     app.kubernetes.io/name: pms-partner
 spec:
   selector:
     istio: ingressgateway
   servers:
     - hosts:
-        - pms-mosipid2-2-0-0.${domain_name}
+        - pms-go-mosipid2.${domain_name}
       port:
         name: https
         number: 443
@@ -35,7 +35,7 @@ spec:
         credentialName: pms-partner-mosipid2-tls
         mode: SIMPLE
     - hosts:
-        - pms-mosipid2-2-0-0.${domain_name}
+        - pms-go-mosipid2.${domain_name}
       port:
         name: http
         number: 80

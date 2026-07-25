@@ -9,7 +9,7 @@
 # =============================================================================
 set -euo pipefail
 
-NS=esignet-mock-2-0-0
+NS=esignet-go-mock
 COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
 
 echo "================================================"
