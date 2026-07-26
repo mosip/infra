@@ -1,0 +1,46 @@
+---
+all:
+  vars:
+    cluster_name: "esqa"
+    cluster_env_domain: "mosip.local"
+    k8s_infra_repo_url: "https://github.com/mosip/k8s-infra.git"
+    k8s_infra_branch: "release-1.2.1.x"
+    install_rke2_version: "v1.28.9+rke2r1"
+    enable_rancher_import: true
+    rancher_import_url: "kubectl apply -f https://rancher.mosip.net/v3/import/rmqc6znrt9q9wd8j7zdtkslk4fcrxlxh72wpk9jl5z2vpgkkm7tlkj_c-m-rrm8fbn6.yaml"
+    ansible_user: ubuntu
+    ansible_ssh_private_key_file: ./ssh_key
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+    
+  children:
+    control_plane:
+      hosts:
+        esqa-CONTROL-PLANE-NODE-1:
+          ansible_host: 172.31.64.165
+          node_role: control_plane
+          is_primary: true
+          node_index: 0
+    
+    etcd:
+      hosts:
+        esqa-ETCD-NODE-1:
+          ansible_host: 172.31.73.182
+          node_role: etcd
+    
+    workers:
+      hosts:
+        esqa-WORKER-NODE-1:
+          ansible_host: 172.31.75.46
+          node_role: worker
+        esqa-WORKER-NODE-2:
+          ansible_host: 172.31.72.215
+          node_role: worker
+        esqa-WORKER-NODE-3:
+          ansible_host: 172.31.77.135
+          node_role: worker
+
+    rke2_cluster:
+      children:
+        control_plane:
+        etcd:
+        workers:
