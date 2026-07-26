@@ -81,7 +81,7 @@ rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/
 # esignet-standalone-2.0.0 profile (suffixed "-go"), since both are deployed
 # side-by-side against this same cluster/domain.
 
-subdomain_public   = ["esignet", "healthservices", "signup", "esignet-sunbird", "healthservices-sunbird", "healthservices-mosipid1", "esignet-mosipid1", "pms-mosipid1", "signup-mosipid1", "healthservices-mosipid2", "esignet-mosipid2", "pms-mosipid2", "signup-mosipid2", "esignet-go", "healthservices-go", "signup-go", "esignet-sunbird-go", "healthservices-sunbird-go", "healthservices-mosipid1-go", "esignet-mosipid1-go", "pms-mosipid1-go", "signup-mosipid1-go", "healthservices-mosipid2-go", "esignet-mosipid2-go", "pms-mosipid2-go", "signup-mosipid2-go"]
+subdomain_public   = ["esignet", "healthservices", "signup", "esignet-sunbird", "healthservices-sunbird", "healthservices-mosipid1", "esignet-mosipid1", "pms-mosipid1", "signup-mosipid1", "healthservices-mosipid2", "esignet-mosipid2", "pms-mosipid2", "signup-mosipid2", "esignet-go", "healthservices-go", "signup-go", "esignet-go-sunbird", "healthservices-go-sunbird", "healthservices-go-mosipid1", "esignet-go-mosipid1", "pms-go-mosipid1", "signup-go-mosipid1", "healthservices-go-mosipid2", "esignet-go-mosipid2", "pms-go-mosipid2", "signup-go-mosipid2"]
 subdomain_internal = ["iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio"]
 
 # PostgreSQL Configuration
