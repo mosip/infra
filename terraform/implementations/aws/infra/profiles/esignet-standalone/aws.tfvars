@@ -7,10 +7,10 @@
 # ============================================================
 
 # Environment name (infra component)
-cluster_name = "esgotest"
+cluster_name = "esqa"
 
 # eSignet's domain (ex: esignet.xyz.net)
-cluster_env_domain = "esgotest.mosip.net"
+cluster_env_domain = "esqa.mosip.net"
 
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
 mosip_email_id = "thisisbn46@gmail.com"
@@ -63,7 +63,7 @@ k8s_control_plane_node_count = 1
 k8s_etcd_node_count = 1
 
 # Worker
-k8s_worker_node_count = 4
+k8s_worker_node_count = 3
 
 # RKE2 Version Configuration
 rke2_version = "v1.28.9+rke2r1"
@@ -74,14 +74,14 @@ WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 
 # Rancher Import Configuration
 enable_rancher_import = true
-rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/f25prw8zrsc959n2bk25mn79twtwmpq6hpxphf9xt97dhbm797r99n_c-stb2m.yaml\""
+rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/rmqc6znrt9q9wd8j7zdtkslk4fcrxlxh72wpk9jl5z2vpgkkm7tlkj_c-m-rrm8fbn6.yaml\""
 
 # DNS Records to map — only eSignet-relevant subdomains
 # Includes hosts for both the esignet-standalone profile and the isolated
-# esignet-standalone-2.0.0 profile (suffixed "-2-0-0"), since both are deployed
+# esignet-standalone-2.0.0 profile (suffixed "-go"), since both are deployed
 # side-by-side against this same cluster/domain.
 
-subdomain_public   = ["esignet", "healthservices", "signup", "esignet-sunbird", "healthservices-sunbird", "healthservices-mosipid1", "esignet-mosipid1", "pms-mosipid1", "signup-mosipid1", "healthservices-mosipid2", "esignet-mosipid2", "pms-mosipid2", "signup-mosipid2", "esignet-2-0-0", "healthservices-2-0-0", "signup-2-0-0", "esignet-sunbird-2-0-0", "healthservices-sunbird-2-0-0", "healthservices-mosipid1-2-0-0", "esignet-mosipid1-2-0-0", "pms-mosipid1-2-0-0", "signup-mosipid1-2-0-0", "healthservices-mosipid2-2-0-0", "esignet-mosipid2-2-0-0", "pms-mosipid2-2-0-0", "signup-mosipid2-2-0-0"]
+subdomain_public   = ["esignet", "healthservices", "signup", "esignet-sunbird", "healthservices-sunbird", "healthservices-mosipid1", "esignet-mosipid1", "pms-mosipid1", "signup-mosipid1", "healthservices-mosipid2", "esignet-mosipid2", "pms-mosipid2", "signup-mosipid2", "esignet-go", "healthservices-go", "signup-go", "esignet-sunbird-go", "healthservices-sunbird-go", "healthservices-mosipid1-go", "esignet-mosipid1-go", "pms-mosipid1-go", "signup-mosipid1-go", "healthservices-mosipid2-go", "esignet-mosipid2-go", "pms-mosipid2-go", "signup-mosipid2-go"]
 subdomain_internal = ["iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio"]
 
 # PostgreSQL Configuration
