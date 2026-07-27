@@ -125,7 +125,7 @@ apps:
   # ---------------------------------------------------------------------------
   esignet-go-mosipid2-apitestrig:
     namespace: esignet-go-mosipid2
-    enabled: true
+    enabled: ${MOSIPID2_ENABLED}
     version: 0.0.1-develop
     chart: mosip/apitestrig
     valuesFile: "$WORKDIR/utils/esignet-apitestrig-values.yaml"
