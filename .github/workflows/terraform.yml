@@ -134,7 +134,6 @@ jobs:
           ref: ${{ github.ref }}
           fetch-depth: 0  # Full history needed for rebase
           token: ${{ secrets.GH_INFRA_PAT }}
-          persist-credentials: false
 
       - name: Ensure workflow scripts are executable
         run: |
@@ -212,8 +211,12 @@ jobs:
 
       - name: Configure WireGuard
         run: |
-          if [ -z "${TF_WG_CONFIG:-}" ]; then
-            echo "ERROR: TF_WG_CONFIG secret is not configured/empty for environment '$REF_NAME'"
+          if [ -z "${{ secrets.TF_WG_CONFIG }}" ]; then
+            echo "ERROR: TF_WG_CONFIG secret is not configured for environment '${{ github.ref_name }}'"
+            exit 1
+          fi
+          if [ ${#TF_WG_CONFIG} -eq 0 ]; then
+            echo "ERROR: TF_WG_CONFIG environment variable is empty"
             exit 1
           fi
 
@@ -234,7 +237,6 @@ jobs:
           echo "WireGuard config validated"
         env:
           TF_WG_CONFIG: ${{ secrets.TF_WG_CONFIG }}
-          REF_NAME: ${{ github.ref_name }}
         if: "${{ inputs.TERRAFORM_COMPONENT != 'base-infra' }}"
 
       - name: Start WireGuard
@@ -379,7 +381,7 @@ jobs:
       - name: Terraform Apply
         id: apply
         run: terraform apply -input=false -var-file="$TFVARS_FILE" ${RANCHER_RUNTIME_VARS_FILE:+-var-file="$RANCHER_RUNTIME_VARS_FILE"} -no-color -auto-approve
-        if: "${{ inputs.TERRAFORM_APPLY  == true }}"
+        if: ${{ inputs.TERRAFORM_APPLY == true && steps.plan.outcome == 'success' }}
         continue-on-error: true
 
       - name: Grant Rancher cluster access (multi-team)
@@ -407,7 +409,7 @@ jobs:
 
           GRANTS_FILE="$GITHUB_WORKSPACE/.github/config/rancher-access-grants.json"
           DEFAULT_GRANTS_FILE="$GITHUB_WORKSPACE/.github/scripts/rancher-access-grants.default.json"
-          BUILTIN_GRANTS_FILE="${RUNNER_TEMP}/rancher-access-grants.json"
+          BUILTIN_GRANTS_FILE="${RUNNER_TEMP}/rancher-access-grants.${REF_NAME}.json"
           SCRIPTS_DIR="$GITHUB_WORKSPACE/.github/scripts"
 
           echo "Resolving Rancher grants catalog for branch '$REF_NAME' ..."
@@ -518,9 +520,8 @@ jobs:
             sleep "$KUBECONFIG_FETCH_SLEEP"
           done
 
-          REF_NAME_ENC=$(python3 -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["REF_NAME"], safe=""))')
           printf '%s' "$KUBECONFIG_CONTENT" | gh secret set KUBECONFIG \
-            --env "$REF_NAME_ENC" \
+            --env "$REF_NAME" \
             --repo "$GITHUB_REPOSITORY"
           echo "Published KUBECONFIG environment secret for: $REF_NAME"
 
@@ -572,7 +573,6 @@ jobs:
             echo "Terraform execution completed successfully"
           else
             echo "Committing Terraform changes..."
-            git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
             git config --global user.email ${{ github.actor }}@users.noreply.github.com
             git config --global user.name ${{ github.actor }}
             
