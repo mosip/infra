@@ -10,6 +10,36 @@ Automated setup for Keycloak and Rancher SAML authentication using GitHub Action
 - Keycloak admin credentials
 - Rancher API token
 
+## 🔧 How to Get Required Credentials
+
+### Rancher API Token
+
+1. Login to Rancher UI
+2. Click on your user profile (top right)
+3. Select **API & Keys**
+4. Click **Add Key**
+5. Provide a description and set expiration
+6. Click **Create**
+7. Copy the generated token (format: `token-xxxxx:xxxxxxxxxxxxxxxx`)
+
+### WireGuard Configuration
+
+The `TF_WG_CONFIG` secret should contain a valid WireGuard configuration:
+
+```ini
+[Interface]
+PrivateKey = <your-private-key>
+Address = <your-vpn-ip>/32
+
+[Peer]
+PublicKey = <server-public-key>
+AllowedIPs = <allowed-ip-range>
+Endpoint = <vpn-endpoint>:51820
+PersistentKeepalive = 25
+```
+
+---
+
 ## 🚀 Quick Start (Using GitHub Actions Workflow)
 
 The recommended approach is to use the **Keycloak-Rancher SAML Integration** workflow.
@@ -65,36 +95,6 @@ After successful workflow completion:
 2. Go to **Users & Authentication** → **Auth Provider**
 3. Verify Keycloak SAML is configured and enabled
 4. Test login using Keycloak credentials
-
-## 🔧 How to Get Required Credentials
-
-### Rancher API Token
-
-1. Login to Rancher UI
-2. Click on your user profile (top right)
-3. Select **API & Keys**
-4. Click **Add Key**
-5. Provide a description and set expiration
-6. Click **Create**
-7. Copy the generated token (format: `token-xxxxx:xxxxxxxxxxxxxxxx`)
-
-### WireGuard Configuration
-
-The `TF_WG_CONFIG` secret should contain a valid WireGuard configuration:
-
-```ini
-[Interface]
-PrivateKey = <your-private-key>
-Address = <your-vpn-ip>/32
-
-[Peer]
-PublicKey = <server-public-key>
-AllowedIPs = <allowed-ip-range>
-Endpoint = <vpn-endpoint>:51820
-PersistentKeepalive = 25
-```
-
----
 
 ## 📦 What the Workflow Does
 
