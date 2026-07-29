@@ -104,6 +104,16 @@ jobs:
           fetch-depth: 0  # Full history needed for rebase
           token: ${{ secrets.GH_INFRA_PAT }}
 
+      - name: Ensure workflow scripts are executable
+        run: |
+          shopt -s nullglob
+          scripts=("$GITHUB_WORKSPACE/.github/scripts/"*.sh)
+          if ((${#scripts[@]} == 0)); then
+            echo "ERROR: No scripts found under $GITHUB_WORKSPACE/.github/scripts/"
+            exit 1
+          fi
+          chmod +x "${scripts[@]}"
+
       - name: Check for required implementation directory
         run: |
           if [ ! -d "." ]; then
@@ -217,8 +227,8 @@ jobs:
       - name: Configure WireGuard
         run: |
           # WG_CONFIG comes from environment-level secrets (dynamic based on branch name)
-          if [ -z "${TF_WG_CONFIG:-}" ]; then
-            echo "❌ ERROR: TF_WG_CONFIG secret is not configured/empty for environment '$REF_NAME'"
+          if [ -z "${{ secrets.TF_WG_CONFIG }}" ]; then
+            echo "❌ ERROR: TF_WG_CONFIG secret is not configured for environment '${{ github.ref_name }}'"
             echo "Please configure the WireGuard configuration secret for this branch/environment"
             exit 1
           fi
@@ -299,7 +309,6 @@ jobs:
           echo "Config file size: $(sudo wc -c < /etc/wireguard/wg0.conf) bytes"
         env:
           TF_WG_CONFIG: ${{ secrets.TF_WG_CONFIG }}
-          REF_NAME: ${{ github.ref_name }}
         if: "${{ inputs.TERRAFORM_COMPONENT != 'base-infra' }}"
 
       - name: Start WireGuard
@@ -476,7 +485,6 @@ jobs:
             echo "Terraform destroy completed successfully"
           else
             echo "Committing Terraform changes..."
-            git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
             git config --global user.email ${{ github.actor }}@users.noreply.github.com
             git config --global user.name ${{ github.actor }}
             
@@ -520,7 +528,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GH_INFRA_PAT }}
           REF_NAME: ${{ github.ref_name }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
         if: "${{ inputs.TERRAFORM_DESTROY == true }}"
       - name: Terraform destroy status
         if: ${{ steps.destroy.outcome == 'failure' }}
