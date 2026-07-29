@@ -28,17 +28,45 @@ EOF
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --out)        OUT="$2"; shift 2 ;;
-    --enable)     ENABLE="$2"; shift 2 ;;
-    --import-cmd) IMPORT_CMD="$2"; shift 2 ;;
-    -h|--help)    usage; exit 0 ;;
-    *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
+    --out)
+      [[ $# -ge 2 ]] || { echo "--out requires a value" >&2; usage; exit 1; }
+      OUT="$2"
+      shift 2
+      ;;
+    --enable)
+      [[ $# -ge 2 ]] || { echo "--enable requires a value" >&2; usage; exit 1; }
+      ENABLE="$2"
+      shift 2
+      ;;
+    --import-cmd)
+      [[ $# -ge 2 ]] || { echo "--import-cmd requires a value" >&2; usage; exit 1; }
+      IMPORT_CMD="$2"
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown argument: $1" >&2
+      usage
+      exit 1
+      ;;
   esac
 done
 
 [[ -n "$OUT" && -n "$ENABLE" ]] || { usage; exit 1; }
+case "$ENABLE" in
+  true|false) ;;
+  *)
+    echo "--enable must be true or false (got: $ENABLE)" >&2
+    exit 1
+    ;;
+esac
 command -v jq >/dev/null 2>&1 || { echo "jq is required" >&2; exit 1; }
 
+umask 077
+TMP="${OUT}.tmp.$$"
 {
   echo "enable_rancher_import = $ENABLE"
   if [[ "$ENABLE" == "true" ]]; then
@@ -47,6 +75,7 @@ command -v jq >/dev/null 2>&1 || { echo "jq is required" >&2; exit 1; }
   else
     echo 'rancher_import_url    = ""'
   fi
-} > "$OUT"
+} > "$TMP"
+mv -f "$TMP" "$OUT"
 
 echo "Wrote Rancher runtime tfvars: $OUT"
