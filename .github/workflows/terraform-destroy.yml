@@ -226,21 +226,11 @@ jobs:
 
       - name: Configure WireGuard
         run: |
-          # WG_CONFIG comes from environment-level secrets (dynamic based on branch name)
-          if [ -z "${{ secrets.TF_WG_CONFIG }}" ]; then
-            echo "❌ ERROR: TF_WG_CONFIG secret is not configured for environment '${{ github.ref_name }}'"
-            echo "Please configure the WireGuard configuration secret for this branch/environment"
-            exit 1
-          fi
-          
-          # Debug: Check if secret is available (without exposing content)
-          echo "🔍 Checking TF_WG_CONFIG secret..."
           if [ ${#TF_WG_CONFIG} -eq 0 ]; then
-            echo "❌ ERROR: TF_WG_CONFIG environment variable is empty"
-            echo "Secret may contain only whitespace or special characters"
+            echo "ERROR: TF_WG_CONFIG secret is not configured for environment '$REF_NAME'"
             exit 1
           fi
-          echo "✅ Secret length: ${#TF_WG_CONFIG} characters"
+          echo "TF_WG_CONFIG secret length: ${#TF_WG_CONFIG} characters"
           
           # Create config file with proper handling of multiline content
           echo "Creating /etc/wireguard directory with proper permissions..."
@@ -309,6 +299,7 @@ jobs:
           echo "Config file size: $(sudo wc -c < /etc/wireguard/wg0.conf) bytes"
         env:
           TF_WG_CONFIG: ${{ secrets.TF_WG_CONFIG }}
+          REF_NAME: ${{ github.ref_name }}
         if: "${{ inputs.TERRAFORM_COMPONENT != 'base-infra' }}"
 
       - name: Start WireGuard
