@@ -211,12 +211,8 @@ jobs:
 
       - name: Configure WireGuard
         run: |
-          if [ -z "${{ secrets.TF_WG_CONFIG }}" ]; then
-            echo "ERROR: TF_WG_CONFIG secret is not configured for environment '${{ github.ref_name }}'"
-            exit 1
-          fi
           if [ ${#TF_WG_CONFIG} -eq 0 ]; then
-            echo "ERROR: TF_WG_CONFIG environment variable is empty"
+            echo "ERROR: TF_WG_CONFIG secret is not configured for environment '$REF_NAME'"
             exit 1
           fi
 
@@ -237,6 +233,7 @@ jobs:
           echo "WireGuard config validated"
         env:
           TF_WG_CONFIG: ${{ secrets.TF_WG_CONFIG }}
+          REF_NAME: ${{ github.ref_name }}
         if: "${{ inputs.TERRAFORM_COMPONENT != 'base-infra' }}"
 
       - name: Start WireGuard
@@ -409,7 +406,7 @@ jobs:
 
           GRANTS_FILE="$GITHUB_WORKSPACE/.github/config/rancher-access-grants.json"
           DEFAULT_GRANTS_FILE="$GITHUB_WORKSPACE/.github/scripts/rancher-access-grants.default.json"
-          BUILTIN_GRANTS_FILE="${RUNNER_TEMP}/rancher-access-grants.${REF_NAME}.json"
+          BUILTIN_GRANTS_FILE="${RUNNER_TEMP}/rancher-access-grants.${REF_NAME//\//-}.json"
           SCRIPTS_DIR="$GITHUB_WORKSPACE/.github/scripts"
 
           echo "Resolving Rancher grants catalog for branch '$REF_NAME' ..."
