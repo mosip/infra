@@ -217,10 +217,9 @@ jobs:
           fi
 
           sudo mkdir -p /etc/wireguard
-          sudo chmod 755 /etc/wireguard
+          sudo chmod 700 /etc/wireguard
+          sudo install -m 600 -o root -g root /dev/null /etc/wireguard/wg0.conf
           printf '%s' "$TF_WG_CONFIG" | sudo tee /etc/wireguard/wg0.conf > /dev/null
-          sudo chmod 600 /etc/wireguard/wg0.conf
-          sudo chown root:root /etc/wireguard/wg0.conf
 
           if ! sudo test -s /etc/wireguard/wg0.conf; then
             echo "ERROR: WireGuard config file is empty"
@@ -331,10 +330,12 @@ jobs:
           fi
           CLUSTER_NAME="${RANCHER_CLUSTER_NAME_INPUT:-$REF_NAME}"
           echo "Registering cluster '$CLUSTER_NAME' in Rancher (plan-time placeholder)..."
+          set -o pipefail
           IMPORT_CMD="$("$GITHUB_WORKSPACE/.github/scripts/rancher-register-cluster.sh" \
             --rancher-url "$RANCHER_URL" \
             --token "$RANCHER_TOKEN" \
             --cluster-name "$CLUSTER_NAME" | tail -n1)"
+          [[ -n "$IMPORT_CMD" ]] || { echo "ERROR: Rancher registration returned empty import command"; exit 1; }
           RUNTIME_VARS_FILE="${RUNNER_TEMP}/rancher-runtime.tfvars"
           "$GITHUB_WORKSPACE/.github/scripts/write-rancher-runtime-tfvars.sh" \
             --out "$RUNTIME_VARS_FILE" \
@@ -349,7 +350,7 @@ jobs:
         continue-on-error: true
 
       - name: Refresh Rancher import URL before apply
-        if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.TERRAFORM_APPLY == true && inputs.ENABLE_RANCHER_IMPORT == true }}
+        if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.TERRAFORM_APPLY == true && inputs.ENABLE_RANCHER_IMPORT == true && steps.plan.outcome == 'success' }}
         env:
           RANCHER_URL: ${{ secrets.RANCHER_API_URL }}
           RANCHER_TOKEN: ${{ secrets.RANCHER_API_TOKEN }}
@@ -363,10 +364,12 @@ jobs:
           fi
           CLUSTER_NAME="${RANCHER_CLUSTER_NAME_INPUT:-$REF_NAME}"
           echo "Refreshing Rancher import URL for cluster '$CLUSTER_NAME' immediately before apply..."
+          set -o pipefail
           IMPORT_CMD="$("$GITHUB_WORKSPACE/.github/scripts/rancher-register-cluster.sh" \
             --rancher-url "$RANCHER_URL" \
             --token "$RANCHER_TOKEN" \
             --cluster-name "$CLUSTER_NAME" | tail -n1)"
+          [[ -n "$IMPORT_CMD" ]] || { echo "ERROR: Rancher registration returned empty import command"; exit 1; }
           RUNTIME_VARS_FILE="${RUNNER_TEMP}/rancher-runtime.tfvars"
           "$GITHUB_WORKSPACE/.github/scripts/write-rancher-runtime-tfvars.sh" \
             --out "$RUNTIME_VARS_FILE" \
@@ -584,8 +587,8 @@ jobs:
             
             # Pull with rebase to avoid push rejection
             echo "Pulling latest changes with rebase..."
-            pull_output=$(git pull --rebase origin "$REF_NAME" 2>&1)
-            pull_exit=$?
+            pull_exit=0
+            pull_output=$(git pull --rebase origin "$REF_NAME" 2>&1) || pull_exit=$?
             echo "$pull_output"
             if [ $pull_exit -ne 0 ]; then
               if echo "$pull_output" | grep -qE "Already up to date|Current branch .* is up to date"; then
