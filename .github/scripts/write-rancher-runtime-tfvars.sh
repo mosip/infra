@@ -66,7 +66,8 @@ esac
 command -v jq >/dev/null 2>&1 || { echo "jq is required" >&2; exit 1; }
 
 umask 077
-TMP="${OUT}.tmp.$$"
+TMP="$(mktemp "${OUT}.tmp.XXXXXX")" || exit 1
+trap 'rm -f -- "$TMP"' EXIT
 {
   echo "enable_rancher_import = $ENABLE"
   if [[ "$ENABLE" == "true" ]]; then
@@ -76,6 +77,7 @@ TMP="${OUT}.tmp.$$"
     echo 'rancher_import_url    = ""'
   fi
 } > "$TMP"
-mv -f "$TMP" "$OUT"
+mv -f -- "$TMP" "$OUT"
+trap - EXIT
 
 echo "Wrote Rancher runtime tfvars: $OUT"
