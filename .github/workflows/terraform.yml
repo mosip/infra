@@ -384,6 +384,42 @@ jobs:
         if: ${{ inputs.TERRAFORM_APPLY == true && steps.plan.outcome == 'success' }}
         continue-on-error: true
 
+      - name: Apply Rancher import on cluster (fresh token)
+        if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.TERRAFORM_APPLY == true && inputs.ENABLE_RANCHER_IMPORT == true && steps.apply.outcome == 'success' }}
+        env:
+          RANCHER_URL: ${{ secrets.RANCHER_API_URL }}
+          RANCHER_TOKEN: ${{ secrets.RANCHER_API_TOKEN }}
+          RANCHER_CLUSTER_NAME_INPUT: ${{ inputs.RANCHER_CLUSTER_NAME }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [ -z "$RANCHER_URL" ] || [ -z "$RANCHER_TOKEN" ]; then
+            echo "ERROR: RANCHER_API_URL and RANCHER_API_TOKEN must be set for environment '$REF_NAME'"
+            exit 1
+          fi
+          CLUSTER_NAME="${RANCHER_CLUSTER_NAME_INPUT:-$REF_NAME}"
+          CONTROL_PLANE_IP="$(terraform output -raw control_plane_node_1 2>/dev/null || true)"
+          if [ -z "$CONTROL_PLANE_IP" ]; then
+            echo "ERROR: control_plane_node_1 output is empty — cannot apply Rancher import on cluster"
+            exit 1
+          fi
+          CLUSTER_TF_NAME="$(terraform output -json cluster_info 2>/dev/null | jq -r '.cluster_name // empty')"
+          if [ -z "$CLUSTER_TF_NAME" ]; then
+            echo "WARN: cluster_info.cluster_name unavailable; deriving node name from Rancher cluster name"
+            CLUSTER_TF_NAME="$CLUSTER_NAME"
+          fi
+          SSH_KEY_FILE="${RUNNER_TEMP}/tf-ssh-key.pem"
+          printf '%s' "$TF_VAR_ssh_private_key" > "$SSH_KEY_FILE"
+          chmod 600 "$SSH_KEY_FILE"
+          KUBECONFIG_REMOTE="/home/ubuntu/.kube/${CLUSTER_TF_NAME}-CONTROL-PLANE-NODE-1.yaml"
+          echo "Applying fresh Rancher import on ${CONTROL_PLANE_IP} (Rancher cluster: ${CLUSTER_NAME}) ..."
+          "$GITHUB_WORKSPACE/.github/scripts/rancher-apply-cluster-import.sh" \
+            --rancher-url "$RANCHER_URL" \
+            --token "$RANCHER_TOKEN" \
+            --cluster-name "$CLUSTER_NAME" \
+            --ssh-key "$SSH_KEY_FILE" \
+            --ssh-host "$CONTROL_PLANE_IP" \
+            --kubeconfig-remote "$KUBECONFIG_REMOTE"
+
       - name: Grant Rancher cluster access (multi-team)
         if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.TERRAFORM_APPLY == true && inputs.ENABLE_RANCHER_IMPORT == true && steps.apply.outcome == 'success' }}
         env:
@@ -479,11 +515,9 @@ jobs:
           REF_NAME: ${{ github.ref_name }}
           GH_TOKEN: ${{ secrets.GH_INFRA_PAT }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          # rancher-fetch-kubeconfig.sh waits for cluster active (RKE2 + import often needs 20-40 min)
-          MAX_ATTEMPTS: "180"
+          # Post-apply import step waits for cattle-cluster-agent; allow ~6 min for Rancher state=active
+          MAX_ATTEMPTS: "24"
           SLEEP_SECONDS: "15"
-          KUBECONFIG_FETCH_ATTEMPTS: "3"
-          KUBECONFIG_FETCH_SLEEP: "60"
         run: |
           if [ -z "$RANCHER_URL" ] || [ -z "$RANCHER_TOKEN" ]; then
             echo "Skipping KUBECONFIG publish: RANCHER_API_URL / RANCHER_API_TOKEN not set for environment '$REF_NAME'"
@@ -496,24 +530,25 @@ jobs:
           command -v gh >/dev/null 2>&1 || { echo "ERROR: gh CLI is required"; exit 1; }
 
           CLUSTER_NAME="${RANCHER_CLUSTER_NAME_INPUT:-$REF_NAME}"
-          echo "Fetching kubeconfig for Rancher cluster '$CLUSTER_NAME' ..."
-          # MAX_ATTEMPTS/SLEEP_SECONDS are read by rancher-fetch-kubeconfig.sh while waiting for cluster active.
-          KUBECONFIG_CONTENT=""
-          for ((i=1; i<=KUBECONFIG_FETCH_ATTEMPTS; i++)); do
-            if KUBECONFIG_CONTENT="$("$GITHUB_WORKSPACE/.github/scripts/rancher-fetch-kubeconfig.sh" \
-              --rancher-url "$RANCHER_URL" \
-              --token "$RANCHER_TOKEN" \
-              --cluster-name "$CLUSTER_NAME")"; then
-              break
-            fi
-            if (( i == KUBECONFIG_FETCH_ATTEMPTS )); then
-              echo "ERROR: Failed to fetch kubeconfig after ${KUBECONFIG_FETCH_ATTEMPTS} attempts (~$((MAX_ATTEMPTS * SLEEP_SECONDS / 60)) min wait per attempt)"
-              echo "Cluster is likely still pending — check Terraform apply logs for 'Execute Rancher import' and cattle-system on the control plane."
-              exit 1
-            fi
-            echo "Kubeconfig fetch attempt ${i}/${KUBECONFIG_FETCH_ATTEMPTS} failed; retrying in ${KUBECONFIG_FETCH_SLEEP}s ..."
-            sleep "$KUBECONFIG_FETCH_SLEEP"
-          done
+          WAIT_MIN=$((MAX_ATTEMPTS * SLEEP_SECONDS / 60))
+          echo "Fetching kubeconfig for Rancher cluster '$CLUSTER_NAME' (wait up to ${WAIT_MIN} min for state=active) ..."
+
+          if ! KUBECONFIG_CONTENT="$("$GITHUB_WORKSPACE/.github/scripts/rancher-fetch-kubeconfig.sh" \
+            --rancher-url "$RANCHER_URL" \
+            --token "$RANCHER_TOKEN" \
+            --cluster-name "$CLUSTER_NAME")"; then
+            echo ""
+            echo "ERROR: Failed to publish KUBECONFIG — Rancher cluster '$CLUSTER_NAME' did not become active within ~${WAIT_MIN} minutes."
+            echo ""
+            echo "What to check:"
+            echo "  1. Step 'Apply Rancher import on cluster (fresh token)' — did cattle-cluster-agent reach Running?"
+            echo "  2. Terraform apply logs — Ansible Play 3 'Execute Rancher import' (manual URL path) or errors above"
+            echo "  3. Control plane: kubectl get pods -n cattle-system"
+            echo "  4. Rancher UI → Cluster Management → '$CLUSTER_NAME' (state, transitioning message)"
+            echo ""
+            echo "The wait is not retried — fix the import/connectivity issue and re-run publish or the full apply."
+            exit 1
+          fi
 
           printf '%s' "$KUBECONFIG_CONTENT" | gh secret set KUBECONFIG \
             --env "$REF_NAME" \
