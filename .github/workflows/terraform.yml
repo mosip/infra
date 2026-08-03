@@ -409,7 +409,6 @@ jobs:
 
           GRANTS_FILE="$GITHUB_WORKSPACE/.github/config/rancher-access-grants.json"
           DEFAULT_GRANTS_FILE="$GITHUB_WORKSPACE/.github/scripts/rancher-access-grants.default.json"
-          BUILTIN_GRANTS_FILE="${RUNNER_TEMP}/rancher-access-grants.${REF_NAME//\//-}.json"
           SCRIPTS_DIR="$GITHUB_WORKSPACE/.github/scripts"
 
           echo "Resolving Rancher grants catalog for branch '$REF_NAME' ..."
@@ -428,13 +427,9 @@ jobs:
             echo "WARN: $GRANTS_FILE not found — using $DEFAULT_GRANTS_FILE"
             GRANTS_FILE="$DEFAULT_GRANTS_FILE"
           else
-            echo "WARN: no catalog file on branch — using built-in DEVOPS default"
-            jq -n '[
-              {"group":"DEVOPS","role":"cluster-owner","enabled":true,"principal_id":"keycloak_group://DEVOPS","fix_misbound_user":true},
-              {"group":"QA","role":"cluster-member","enabled":false,"principal_id":"keycloak_group://QA"},
-              {"group":"DEVELOPERS","role":"cluster-member","enabled":false,"principal_id":"keycloak_group://DEVELOPERS"}
-            ]' >"$BUILTIN_GRANTS_FILE"
-            GRANTS_FILE="$BUILTIN_GRANTS_FILE"
+            echo "ERROR: no Rancher grants catalog found on branch '$REF_NAME'"
+            echo "Expected $GRANTS_FILE or $DEFAULT_GRANTS_FILE"
+            exit 1
           fi
           echo "Using Rancher grants catalog: $GRANTS_FILE"
 
