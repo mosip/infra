@@ -1,660 +1,402 @@
-# MOSIP Infrastructure Deployment Workflow
-# 
-# This workflow supports both remote (S3/Azure Storage/GCS) and local backend configurations
-# 
-# GPG Encryption for Local Backend:
-# - When BACKEND_TYPE is 'local', Terraform state files are automatically encrypted using GPG
-# - Required GitHub Secret: GPG_PASSPHRASE (used for encrypting/decrypting state files)
-# - Encrypted files: terraform.tfstate.gpg, terraform.tfstate.backup.gpg, tf-plan.gpg
-# - On subsequent runs, encrypted files are automatically decrypted before Terraform operations
-# - Only encrypted files are committed to repository for security
+#!/usr/bin/env bash
 #
-# Security Features:
-# - State files never stored unencrypted in repository when using local backend
-# - AES256 encryption with compression
-# - Automatic cleanup of unencrypted files after encryption
+# rancher-register-cluster.sh - Mint a Rancher cluster import URL via the API.
 #
-name: terraform plan / apply
+# Lets the infra pipeline register/import a downstream cluster WITHOUT any human
+# logging into Rancher as admin. A scoped Rancher API token (created once by
+# DevOps) is used to:
+#   1. Find or create an "imported" cluster by name in Rancher.
+#   2. Find or create its cluster registration token.
+#   3. Print the import command in the exact quoted form Terraform expects:
+#        "kubectl apply -f https://<rancher-host>/v3/import/<id>.yaml"
+#
+# Optional (CI post-apply): pass --apply-on-host with SSH flags to kubectl apply
+# the fresh manifest on the primary control plane after RKE2 install completes.
+#
+# The printed value can be fed straight into TF_VAR_rancher_import_url.
+#
+# Requires: bash 4+, curl, jq.
 
-# Prevent concurrent runs for same component to avoid state conflicts
-concurrency:
-  group: terraform-${{ github.event.inputs.CLOUD_PROVIDER }}-${{ github.event.inputs.TERRAFORM_COMPONENT }}-${{ github.event.inputs.INFRA_PROFILE }}-${{ github.ref_name }}
-  cancel-in-progress: false
+set -euo pipefail
 
-on:
-  workflow_dispatch:
-    inputs:
-      CLOUD_PROVIDER:
-        description: 'Choose the cloud provider (aws, azure, gcp)'
-        required: true
-        type: choice
-        options:
-          - aws
-          - azure
-          - gcp
-      TERRAFORM_COMPONENT:
-        description: 'Choose component to deploy (base-infra is one-time, infra/observ-infra can be destroyed/recreated multiple times)'
-        required: true
-        type: choice
-        options:
-          - base-infra
-          - infra
-          - observ-infra
-        default: infra
-      INFRA_PROFILE:
-        description: 'Infrastructure profile (only for infra component — ignored for base-infra/observ-infra)'
-        required: false
-        type: choice
-        options:
-          - mosip
-          - esignet-standalone
-        default: mosip
-      BACKEND_TYPE:
-        description: 'Choose Terraform backend type'
-        required: true
-        type: choice
-        options:
-          - local
-          - remote
-        default: local
-      REMOTE_BACKEND_CONFIG:
-        description: 'Remote backend config (format: aws:bucket_base_name:region OR azure:rg_name:storage_account:container OR gcp:bucket_name). SECURITY: Use separate buckets per component for production (e.g., mybucket-base-infra, mybucket-infra, mybucket-observ)'
-        required: false
-        type: string
-      ENABLE_STATE_LOCKING:
-        description: 'Enable Terraform state locking with DynamoDB (recommended for production)'
-        required: false
-        type: boolean
-        default: false
-      SSH_PRIVATE_KEY:
-        description: 'The GitHub secret containing the private key of the SSH key named in the preceding input variable `SSH_PRIVATE_KEY` is used for SSH login purposes on nginx node.'
-        required: true
-        type: string
-      TERRAFORM_APPLY:
-        description: 'Terraform apply'
-        required: false
-        type: boolean
-        default: false
-      ENABLE_RANCHER_IMPORT:
-        description: 'Auto-register cluster in Rancher via API (needs RANCHER_API_URL + RANCHER_API_TOKEN secrets)'
-        required: false
-        type: boolean
-        default: false
-      RANCHER_CLUSTER_NAME:
-        description: 'Rancher cluster name (defaults to branch/env name)'
-        required: false
-        type: string
-      PUBLISH_KUBECONFIG:
-        description: 'After infra apply, fetch kubeconfig from Rancher and set KUBECONFIG env secret (needs RANCHER_API_* secrets + import complete)'
-        required: false
-        type: boolean
-        default: true
-      GRANT_GROUP_ACCESS:
-        description: 'Also grant other teams from rancher-access-grants.json (roles/enabled flags per JSON + env vars). DEVOPS cluster-owner is always applied regardless.'
-        required: false
-        type: boolean
-        default: false
-      RANCHER_CLUSTER_OWNER_GROUP_ENABLED:
-        description: 'Grant an additional group cluster-owner access (DEVOPS stays cluster-owner too)'
-        required: false
-        type: boolean
-        default: false
-      RANCHER_CLUSTER_OWNER_GROUP:
-        description: 'Group name for cluster-owner override (e.g. QA). Used when option above is enabled; overrides JSON role for that group.'
-        required: false
-        type: string
-        default: ''
-        
-env:
-  # TF_LOG_PATH: ./temp/terraform.log
-  ## TRACE, DEBUG, INFO, WARN or ERROR
-  # TF_LOG: TRACE
-  # Repository-level secrets for cloud credentials
-  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  # Fix: Use lowercase variable name to match Terraform variable
-  TF_VAR_ssh_private_key: ${{ secrets[inputs.SSH_PRIVATE_KEY] }}
-  GITHUB_TOKEN: ${{ secrets.GH_INFRA_PAT }}
+RANCHER_URL="${RANCHER_URL:-}"        # e.g. https://rancher.mosip.net  (NO /v3)
+RANCHER_TOKEN="${RANCHER_TOKEN:-}"    # token-xxxxx:yyyyy (Bearer)
+CLUSTER_NAME="${CLUSTER_NAME:-}"
+INSECURE="${INSECURE:-false}"         # skip TLS verify for Rancher API calls only
+MAX_ATTEMPTS="${MAX_ATTEMPTS:-30}"
+SLEEP_SECONDS="${SLEEP_SECONDS:-2}"
+APPLY_ON_HOST="false"
+SSH_KEY=""
+SSH_HOST=""
+SSH_USER="${SSH_USER:-ubuntu}"
+KUBECONFIG_REMOTE=""
+MAX_AGENT_WAIT="${MAX_AGENT_WAIT:-30}"
+AGENT_SLEEP="${AGENT_SLEEP:-10}"
 
-jobs:
-  terraform:
-    runs-on: ubuntu-latest  # 16 vCPU, 64GB RAM for maximum performance
-    # Use dynamic environment based on current branch name
-    environment: ${{ github.ref_name }}
-    permissions:
-      contents: write    
-    defaults:
-      run:
-        shell: bash
-        # We work in the cloud-specific implementation directory
-        working-directory: 'terraform/implementations/${{ inputs.CLOUD_PROVIDER }}/${{ inputs.TERRAFORM_COMPONENT }}'
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          ref: ${{ github.ref }}
-          fetch-depth: 0  # Full history needed for rebase
-          token: ${{ secrets.GH_INFRA_PAT }}
+usage() {
+  cat <<'EOF'
+Usage: rancher-register-cluster.sh --rancher-url <url> --token <token> --cluster-name <name> [options]
 
-      - name: Ensure workflow scripts are executable
-        run: |
-          shopt -s nullglob
-          scripts=("$GITHUB_WORKSPACE/.github/scripts/"*.sh)
-          if ((${#scripts[@]} == 0)); then
-            echo "ERROR: No scripts found under $GITHUB_WORKSPACE/.github/scripts/"
-            exit 1
-          fi
-          chmod +x "${scripts[@]}"
+Required (flags or env vars RANCHER_URL / RANCHER_TOKEN / CLUSTER_NAME):
+  --rancher-url <url>     Rancher base URL (https://rancher.<env>.mosip.net)
+  --token <token>        Rancher API bearer token (scoped, created once by DevOps)
+  --cluster-name <name>  Cluster name ([a-zA-Z0-9._-]+ only)
 
-      - name: Check for required implementation directory
-        run: |
-          if [ ! -d "." ]; then
-            echo "Directory 'terraform/implementations/${{ inputs.CLOUD_PROVIDER }}/${{ inputs.TERRAFORM_COMPONENT }}' does not exist."
-            echo "Available providers: aws, azure, gcp"
-            echo "Available components: base-infra, infra"
-            exit 1
-          fi
-          
-          # Check if tfvars file exists (profile-aware for infra component)
-          TFVARS_FILE="${{ inputs.CLOUD_PROVIDER }}.tfvars"
-          if [ "${{ inputs.TERRAFORM_COMPONENT }}" = "infra" ] && [ -n "${{ inputs.INFRA_PROFILE }}" ]; then
-            TFVARS_FILE="profiles/${{ inputs.INFRA_PROFILE }}/${{ inputs.CLOUD_PROVIDER }}.tfvars"
-          fi
-          if [ ! -f "$TFVARS_FILE" ]; then
-            echo "Configuration file '$TFVARS_FILE' not found in current directory."
-            exit 1
-          fi
-          echo "TFVARS_FILE=$TFVARS_FILE" >> $GITHUB_ENV
-          echo "Using tfvars: $TFVARS_FILE"
+Optional:
+  --insecure             Skip TLS verification for Rancher API calls only (not the import URL)
+  --apply-on-host        After minting URL, kubectl apply on cluster via SSH (requires --ssh-key, --ssh-host)
+  --ssh-key <path>       SSH private key for control plane (with --apply-on-host)
+  --ssh-host <ip>        Control plane IP (with --apply-on-host)
+  --ssh-user <user>      SSH user (default: ubuntu)
+  --kubeconfig-remote <path>  KUBECONFIG path on control plane (optional)
+  -h, --help             Show help
 
-      - name: Setup Cloud Storage for Remote State (All Providers)
-        run: |
-          if [ "${{ inputs.BACKEND_TYPE }}" = "remote" ]; then
-            echo "Setting up cloud storage for remote Terraform state..."
-            
-            # Use the cloud-agnostic storage setup script
-            ../../../../.github/scripts/setup-cloud-storage.sh \
-              --provider "${{ inputs.CLOUD_PROVIDER }}" \
-              --config "${{ inputs.REMOTE_BACKEND_CONFIG }}" \
-              --branch "${{ github.ref_name }}" \
-              --component "${{ inputs.TERRAFORM_COMPONENT }}" \
-              ${{ inputs.ENABLE_STATE_LOCKING == true && '--enable-locking' || '' }}
-          else
-            echo "Skipping cloud storage setup (using local backend)"
-          fi
+Environment (optional):
+  MAX_ATTEMPTS           Poll attempts for registration token (default: 30)
+  SLEEP_SECONDS          Seconds between poll attempts (default: 2)
+  MAX_AGENT_WAIT         Poll attempts for cattle-cluster-agent Running (default: 30, apply-on-host only)
+  AGENT_SLEEP            Seconds between agent poll attempts (default: 10)
 
-      - name: Configure Terraform Backend for State Management
-        run: |
-          # Use backend configuration script for cleaner code
-          PROFILE_ARG=""
-          if [ "${{ inputs.TERRAFORM_COMPONENT }}" = "infra" ] && [ -n "${{ inputs.INFRA_PROFILE }}" ]; then
-            PROFILE_ARG="--profile ${{ inputs.INFRA_PROFILE }}"
-          fi
-          ../../../../.github/scripts/configure-backend.sh \
-            --type "${{ inputs.BACKEND_TYPE }}" \
-            --provider "${{ inputs.CLOUD_PROVIDER }}" \
-            --component "${{ inputs.TERRAFORM_COMPONENT }}" \
-            --branch "${{ github.ref_name }}" \
-            --remote-config "${{ inputs.REMOTE_BACKEND_CONFIG }}" \
-            ${{ inputs.ENABLE_STATE_LOCKING == true && '--enable-locking' || '' }} \
-            $PROFILE_ARG
+Output (stdout, last line): "kubectl apply -f https://<host>/v3/import/<id>.yaml"
+  (--apply-on-host writes diagnostics to stderr only; stdout stays empty)
+EOF
+}
 
-      - name: Skip SSH Host key verification
-        run: |
-          mkdir -p ~/.ssh
-          echo -e "Host *\n     StrictHostKeyChecking no" > ~/.ssh/config
+err() { echo "[rancher-register][ERROR] $*" >&2; }
+die() { err "$*"; exit 1; }
+log() { echo "[rancher-register] $*" >&2; }
 
-      - name: Install WireGuard
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y wireguard
-        if: "${{ inputs.TERRAFORM_COMPONENT != 'base-infra' }}"
+require_arg() {
+  local flag="$1"
+  [[ $# -ge 2 && -n "${2:-}" && "$2" != --* ]] || die "$flag requires a value"
+}
 
-      - name: Configure WireGuard
-        run: |
-          if [ ${#TF_WG_CONFIG} -eq 0 ]; then
-            echo "ERROR: TF_WG_CONFIG secret is not configured for environment '$REF_NAME'"
-            exit 1
-          fi
+urlencode() {
+  jq -rn --arg v "$1" '$v|@uri'
+}
 
-          sudo mkdir -p /etc/wireguard
-          sudo chmod 700 /etc/wireguard
-          sudo install -m 600 -o root -g root /dev/null /etc/wireguard/wg0.conf
-          printf '%s' "$TF_WG_CONFIG" | sudo tee /etc/wireguard/wg0.conf > /dev/null
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --rancher-url)   require_arg --rancher-url "${2-}"; RANCHER_URL="$2"; shift 2 ;;
+    --token)         require_arg --token "${2-}";       RANCHER_TOKEN="$2"; shift 2 ;;
+    --cluster-name)  require_arg --cluster-name "${2-}"; CLUSTER_NAME="$2"; shift 2 ;;
+    --insecure)      INSECURE="true"; shift ;;
+    --apply-on-host) APPLY_ON_HOST="true"; shift ;;
+    --ssh-key)       require_arg --ssh-key "${2-}";       SSH_KEY="$2"; shift 2 ;;
+    --ssh-host)      require_arg --ssh-host "${2-}";      SSH_HOST="$2"; shift 2 ;;
+    --ssh-user)      require_arg --ssh-user "${2-}";      SSH_USER="$2"; shift 2 ;;
+    --kubeconfig-remote) require_arg --kubeconfig-remote "${2-}"; KUBECONFIG_REMOTE="$2"; shift 2 ;;
+    -h|--help)       usage; exit 0 ;;
+    *)               die "Unknown argument: $1 (use --help)" ;;
+  esac
+done
 
-          if ! sudo test -s /etc/wireguard/wg0.conf; then
-            echo "ERROR: WireGuard config file is empty"
-            exit 1
-          fi
-          if ! sudo grep -q "\[Interface\]" /etc/wireguard/wg0.conf; then
-            echo "ERROR: WireGuard config missing [Interface] section"
-            exit 1
-          fi
-          echo "WireGuard config validated"
-        env:
-          TF_WG_CONFIG: ${{ secrets.TF_WG_CONFIG }}
-          REF_NAME: ${{ github.ref_name }}
-        if: "${{ inputs.TERRAFORM_COMPONENT != 'base-infra' }}"
+[[ ${BASH_VERSINFO[0]} -ge 4 ]] || die "bash 4+ is required"
+[[ -n "$RANCHER_URL" ]]        || die "--rancher-url is required"
+[[ -n "$RANCHER_TOKEN" ]]       || die "--token is required"
+[[ -n "$CLUSTER_NAME" ]]         || die "--cluster-name is required"
+command -v curl >/dev/null 2>&1 || die "curl is required"
+command -v jq   >/dev/null 2>&1 || die "jq is required"
 
-      - name: Start WireGuard
-        run: |
-          sudo chmod 600 /etc/wireguard/wg0.conf
-          sudo chmod 700 /etc/wireguard/
-          sudo systemctl daemon-reload
-          if ! sudo wg-quick up wg0; then
-            echo "ERROR: Failed to start WireGuard VPN"
-            exit 1
-          fi
-          echo "WireGuard started"
-          sudo wg show wg0
-        if: "${{ inputs.TERRAFORM_COMPONENT != 'base-infra' }}"
+RANCHER_URL="${RANCHER_URL%/}"
+[[ "$RANCHER_URL" =~ ^https:// ]] \
+  || die "RANCHER_URL must begin with https:// (got: $RANCHER_URL)"
+[[ "$CLUSTER_NAME" =~ ^[a-zA-Z0-9._-]+$ ]] \
+  || die "CLUSTER_NAME must contain only [a-zA-Z0-9._-] (got: $CLUSTER_NAME)"
+[[ "$MAX_ATTEMPTS" =~ ^[0-9]+$ && "$MAX_ATTEMPTS" -gt 0 ]] \
+  || die "MAX_ATTEMPTS must be a positive integer (got: $MAX_ATTEMPTS)"
+[[ "$SLEEP_SECONDS" =~ ^[0-9]+$ && "$SLEEP_SECONDS" -gt 0 ]] \
+  || die "SLEEP_SECONDS must be a positive integer (got: $SLEEP_SECONDS)"
+if [[ "$APPLY_ON_HOST" == "true" ]]; then
+  [[ -n "$SSH_KEY" && -n "$SSH_HOST" ]] || die "--apply-on-host requires --ssh-key and --ssh-host"
+  [[ -f "$SSH_KEY" ]] || die "SSH key not found: $SSH_KEY"
+  command -v ssh >/dev/null 2>&1 || die "ssh is required for --apply-on-host"
+fi
 
-      - name: Setup Terraform with specified version on the runner
-        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
-        with:
-          terraform_version: v1.8.5
+apply_import_on_host() {
+  local import_cmd="$1" phase attempt remote_cmd
+  ssh_cmd() {
+    ssh -i "$SSH_KEY" \
+      -o StrictHostKeyChecking=accept-new \
+      -o ConnectTimeout=15 \
+      "${SSH_USER}@${SSH_HOST}" "$@"
+  }
+  remote_kubectl() {
+    remote_cmd="kubectl $*"
+    [[ -n "$KUBECONFIG_REMOTE" ]] && remote_cmd="KUBECONFIG=$KUBECONFIG_REMOTE $remote_cmd"
+    ssh_cmd "bash -lc $(printf '%q' "$remote_cmd")"
+  }
+  cattle_agent_phase() {
+    remote_kubectl get pods -n cattle-system -l app=cattle-cluster-agent \
+      -o jsonpath='{.items[0].status.phase}' 2>/dev/null || true
+  }
 
-      - name: Setup GPG for State File Encryption
-        run: |
-          ../../../../.github/scripts/setup-gpg.sh \
-            --backend-type "${{ inputs.BACKEND_TYPE }}" \
-            --passphrase "${{ secrets.GPG_PASSPHRASE }}"
+  log "Applying Rancher import on ${SSH_HOST} ..."
+  if remote_kubectl get namespace cattle-system >/dev/null 2>&1; then
+    phase="$(cattle_agent_phase)"
+    if [[ "$phase" == "Running" ]]; then
+      log "cattle-system exists and cattle-cluster-agent is Running — skipping import apply"
+      return 0
+    fi
+    log "cattle-system exists but agent is not healthy (phase=${phase:-missing}) — resetting namespace before re-import"
+    remote_kubectl delete namespace cattle-system --ignore-not-found --wait=true || true
+  fi
 
-      - name: Decrypt Existing State Files
-        run: |
-          ../../../../.github/scripts/decrypt-state.sh \
-            --backend-type "${{ inputs.BACKEND_TYPE }}" \
-            --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
-            --operation "apply"
+  ssh_cmd "bash -lc $(printf '%q' "$import_cmd")"
+  log "Rancher import manifest applied"
 
-      - name: Display Component Information
-        run: |
-          echo "Deploying to: ${{ inputs.CLOUD_PROVIDER }} (${{ inputs.TERRAFORM_COMPONENT }})"
-          echo "Working directory: $(pwd)"
-          echo "Available files:"
-          ls -la
-          
-          if [ "${{ inputs.TERRAFORM_COMPONENT }}" = "base-infra" ]; then
-            echo "WARNING: base-infra should only be deployed once per cloud provider"
-            echo "   This creates foundational resources like VPCs, subnets, etc."
-          else
-            echo "INFO: infra deployment - can be destroyed and recreated multiple times"
-            echo "   This creates MOSIP application infrastructure"
-          fi
+  for ((attempt = 1; attempt <= MAX_AGENT_WAIT; attempt++)); do
+    phase="$(cattle_agent_phase)"
+    if [[ "$phase" == "Running" ]]; then
+      log "cattle-cluster-agent is Running"
+      return 0
+    fi
+    log "Waiting for cattle-cluster-agent (phase=${phase:-missing}, attempt ${attempt}/${MAX_AGENT_WAIT}) ..."
+    sleep "$AGENT_SLEEP"
+  done
+  err "Import manifest applied but cattle-cluster-agent is not Running within $((MAX_AGENT_WAIT * AGENT_SLEEP)) seconds"
+  remote_kubectl get pods -n cattle-system -o wide 2>/dev/null || true
+  return 1
+}
 
-      - name: Terraform fmt
-        run: terraform fmt -recursive
+api() {
+  local method="$1" path="$2" body="${3:-}"
+  local tmp status curl_args=()
+  tmp="$(mktemp "${TMPDIR:-/tmp}/rancher-api.XXXXXX")"
+  trap "rm -f $(printf %q "$tmp")" RETURN
 
-      - name: Terraform Init
-        run: |
-          # First try normal init
-          if ! terraform init -input=false; then
-            echo "Normal init failed, trying with -reconfigure to handle backend configuration changes..."
-            terraform init -input=false -reconfigure
-          fi
+  curl_args=(
+    -sS
+    -o "$tmp"
+    -w "%{http_code}"
+    -X "$method"
+    -H "Authorization: Bearer ${RANCHER_TOKEN}"
+    -H "Content-Type: application/json"
+    -H "Accept: application/json"
+    --connect-timeout 10
+    --max-time 60
+  )
+  [[ "$INSECURE" == "true" ]] && curl_args+=(-k)
+  [[ -n "$body" ]] && curl_args+=(-d "$body")
 
-      - name: Terraform Validate
-        run: terraform validate -no-color
+  if ! status="$(curl "${curl_args[@]}" "${RANCHER_URL}${path}")"; then
+    err "Rancher API ${method} ${path}: curl failed"
+    [[ -s "$tmp" ]] && cat "$tmp" >&2
+    return 1
+  fi
 
-      - name: Install Ansible for RKE2 Cluster Automation
-        run: |
-          echo "🔧 Installing Ansible for RKE2 cluster deployment automation..."
-          sudo apt-get update -qq
-          sudo apt-get install -y software-properties-common
-          sudo add-apt-repository --yes --update ppa:ansible/ansible
-          sudo apt-get install -y ansible python3-pip
-          
-          # Install additional Python packages for Ansible
-          python3 -m pip install --user paramiko
-          
-          # Add local bin to PATH for current session
-          export PATH="$HOME/.local/bin:$PATH"
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-          
-          # Verify installation
-          ansible --version
-          echo "✅ Ansible installed successfully for GitHub Actions runner"
-        if: "${{ inputs.TERRAFORM_COMPONENT == 'infra' }}"
+  if [[ ! "$status" =~ ^[0-9]+$ ]] || (( status >= 400 )); then
+    err "Rancher API ${method} ${path} failed with HTTP ${status:-unknown}"
+    [[ -s "$tmp" ]] && cat "$tmp" >&2
+    return 1
+  fi
 
-      - name: Generate Rancher import URL via API
-        if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.ENABLE_RANCHER_IMPORT == true }}
-        env:
-          RANCHER_URL: ${{ secrets.RANCHER_API_URL }}
-          RANCHER_TOKEN: ${{ secrets.RANCHER_API_TOKEN }}
-          RANCHER_CLUSTER_NAME_INPUT: ${{ inputs.RANCHER_CLUSTER_NAME }}
-          REF_NAME: ${{ github.ref_name }}
-        run: |
-          # Inline mint block — duplicated in "Refresh Rancher import URL before apply"; keep both in sync.
-          if [ -z "$RANCHER_URL" ] || [ -z "$RANCHER_TOKEN" ]; then
-            echo "ERROR: RANCHER_API_URL and RANCHER_API_TOKEN must be set for environment '$REF_NAME'"
-            exit 1
-          fi
-          CLUSTER_NAME="${RANCHER_CLUSTER_NAME_INPUT:-$REF_NAME}"
-          echo "Registering cluster '$CLUSTER_NAME' in Rancher (plan-time placeholder)..."
-          set -o pipefail
-          IMPORT_CMD="$("$GITHUB_WORKSPACE/.github/scripts/rancher-register-cluster.sh" \
-            --rancher-url "$RANCHER_URL" \
-            --token "$RANCHER_TOKEN" \
-            --cluster-name "$CLUSTER_NAME" | tail -n1)"
-          [[ -n "$IMPORT_CMD" ]] || { echo "ERROR: Rancher registration returned empty import command"; exit 1; }
-          RUNTIME_VARS_FILE="${RUNNER_TEMP}/rancher-runtime.tfvars"
-          "$GITHUB_WORKSPACE/.github/scripts/write-rancher-runtime-tfvars.sh" \
-            --out "$RUNTIME_VARS_FILE" \
-            --enable true \
-            --import-cmd "$IMPORT_CMD"
-          echo "RANCHER_RUNTIME_VARS_FILE=$RUNTIME_VARS_FILE" >> "$GITHUB_ENV"
-          echo "Rancher import URL minted for: $CLUSTER_NAME (runtime -var-file; not written to profile aws.tfvars)"
+  cat "$tmp"
+}
 
-      - name: Terraform Plan
-        id: plan
-        run: terraform plan -input=false -var-file="$TFVARS_FILE" ${RANCHER_RUNTIME_VARS_FILE:+-var-file="$RANCHER_RUNTIME_VARS_FILE"} -out ./tf-plan -no-color
-        continue-on-error: true
+json_cluster_create_body() {
+  jq -nc --arg name "$CLUSTER_NAME" '{type: "cluster", name: $name, import: true}'
+}
 
-      - name: Refresh Rancher import URL before apply
-        if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.TERRAFORM_APPLY == true && inputs.ENABLE_RANCHER_IMPORT == true && steps.plan.outcome == 'success' }}
-        env:
-          RANCHER_URL: ${{ secrets.RANCHER_API_URL }}
-          RANCHER_TOKEN: ${{ secrets.RANCHER_API_TOKEN }}
-          RANCHER_CLUSTER_NAME_INPUT: ${{ inputs.RANCHER_CLUSTER_NAME }}
-          REF_NAME: ${{ github.ref_name }}
-        run: |
-          # Inline mint block — duplicated from "Generate Rancher import URL via API"; keep both in sync.
-          if [ -z "$RANCHER_URL" ] || [ -z "$RANCHER_TOKEN" ]; then
-            echo "ERROR: RANCHER_API_URL and RANCHER_API_TOKEN must be set for environment '$REF_NAME'"
-            exit 1
-          fi
-          CLUSTER_NAME="${RANCHER_CLUSTER_NAME_INPUT:-$REF_NAME}"
-          echo "Refreshing Rancher import URL for cluster '$CLUSTER_NAME' immediately before apply..."
-          set -o pipefail
-          IMPORT_CMD="$("$GITHUB_WORKSPACE/.github/scripts/rancher-register-cluster.sh" \
-            --rancher-url "$RANCHER_URL" \
-            --token "$RANCHER_TOKEN" \
-            --cluster-name "$CLUSTER_NAME" | tail -n1)"
-          [[ -n "$IMPORT_CMD" ]] || { echo "ERROR: Rancher registration returned empty import command"; exit 1; }
-          RUNTIME_VARS_FILE="${RUNNER_TEMP}/rancher-runtime.tfvars"
-          "$GITHUB_WORKSPACE/.github/scripts/write-rancher-runtime-tfvars.sh" \
-            --out "$RUNTIME_VARS_FILE" \
-            --enable true \
-            --import-cmd "$IMPORT_CMD"
-          echo "RANCHER_RUNTIME_VARS_FILE=$RUNTIME_VARS_FILE" >> "$GITHUB_ENV"
-          echo "Refreshed Rancher import URL for apply (runtime -var-file)"
+json_registration_token_body() {
+  jq -nc --arg clusterId "$CLUSTER_ID" '{type: "clusterRegistrationToken", clusterId: $clusterId}'
+}
 
-      - name: Terraform Apply
-        id: apply
-        run: terraform apply -input=false -var-file="$TFVARS_FILE" ${RANCHER_RUNTIME_VARS_FILE:+-var-file="$RANCHER_RUNTIME_VARS_FILE"} -no-color -auto-approve
-        if: ${{ inputs.TERRAFORM_APPLY == true && steps.plan.outcome == 'success' }}
-        continue-on-error: true
+extract_manifest_url() {
+  local raw="$1"
+  [[ -n "$raw" ]] || return 1
+  if [[ "$raw" =~ (https://[^[:space:]]+/v3/import/[^[:space:]]+\.yaml) ]]; then
+    echo "${BASH_REMATCH[1]}"
+    return 0
+  fi
+  return 1
+}
 
-      - name: Apply Rancher import on cluster (fresh token)
-        if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.TERRAFORM_APPLY == true && inputs.ENABLE_RANCHER_IMPORT == true && steps.apply.outcome == 'success' }}
-        env:
-          RANCHER_URL: ${{ secrets.RANCHER_API_URL }}
-          RANCHER_TOKEN: ${{ secrets.RANCHER_API_TOKEN }}
-          RANCHER_CLUSTER_NAME_INPUT: ${{ inputs.RANCHER_CLUSTER_NAME }}
-          REF_NAME: ${{ github.ref_name }}
-        run: |
-          if [ -z "$RANCHER_URL" ] || [ -z "$RANCHER_TOKEN" ]; then
-            echo "ERROR: RANCHER_API_URL and RANCHER_API_TOKEN must be set for environment '$REF_NAME'"
-            exit 1
-          fi
-          CLUSTER_NAME="${RANCHER_CLUSTER_NAME_INPUT:-$REF_NAME}"
-          CONTROL_PLANE_IP="$(terraform output -raw control_plane_node_1 2>/dev/null || true)"
-          if [ -z "$CONTROL_PLANE_IP" ]; then
-            echo "ERROR: control_plane_node_1 output is empty — cannot apply Rancher import on cluster"
-            exit 1
-          fi
-          CLUSTER_TF_NAME="$(terraform output -json cluster_info 2>/dev/null | jq -r '.cluster_name // empty')"
-          if [ -z "$CLUSTER_TF_NAME" ]; then
-            echo "WARN: cluster_info.cluster_name unavailable; deriving node name from Rancher cluster name"
-            CLUSTER_TF_NAME="$CLUSTER_NAME"
-          fi
-          SSH_KEY_FILE="${RUNNER_TEMP}/tf-ssh-key.pem"
-          printf '%s' "$TF_VAR_ssh_private_key" > "$SSH_KEY_FILE"
-          chmod 600 "$SSH_KEY_FILE"
-          KUBECONFIG_REMOTE="/home/ubuntu/.kube/${CLUSTER_TF_NAME}-CONTROL-PLANE-NODE-1.yaml"
-          echo "Applying fresh Rancher import on ${CONTROL_PLANE_IP} (Rancher cluster: ${CLUSTER_NAME}) ..."
-          "$GITHUB_WORKSPACE/.github/scripts/rancher-apply-cluster-import.sh" \
-            --rancher-url "$RANCHER_URL" \
-            --token "$RANCHER_TOKEN" \
-            --cluster-name "$CLUSTER_NAME" \
-            --ssh-key "$SSH_KEY_FILE" \
-            --ssh-host "$CONTROL_PLANE_IP" \
-            --kubeconfig-remote "$KUBECONFIG_REMOTE"
+build_terraform_import_cmd() {
+  local url=""
 
-      - name: Grant Rancher cluster access (multi-team)
-        if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.TERRAFORM_APPLY == true && inputs.ENABLE_RANCHER_IMPORT == true && steps.apply.outcome == 'success' }}
-        env:
-          RANCHER_URL: ${{ secrets.RANCHER_API_URL }}
-          RANCHER_TOKEN: ${{ secrets.RANCHER_API_TOKEN }}
-          RANCHER_CLUSTER_NAME_INPUT: ${{ inputs.RANCHER_CLUSTER_NAME }}
-          REF_NAME: ${{ github.ref_name }}
-          RANCHER_ACCESS_GRANTS: ${{ vars.RANCHER_ACCESS_GRANTS }}
-          RANCHER_DEVOPS_ROLE: ${{ vars.RANCHER_DEVOPS_ROLE }}
-          RANCHER_DEVOPS_ENABLED: ${{ vars.RANCHER_DEVOPS_ENABLED }}
-          RANCHER_DEVOPS_GROUP: ${{ vars.RANCHER_DEVOPS_GROUP }}
-          RANCHER_GROUP_AUTH_PREFIX: ${{ vars.RANCHER_GROUP_AUTH_PREFIX }}
-          WORKFLOW_DEVOPS_GROUP: ${{ vars.RANCHER_DEVOPS_GROUP || 'DEVOPS' }}
-          WORKFLOW_GRANT_GROUP_ACCESS: ${{ inputs.GRANT_GROUP_ACCESS }}
-          WORKFLOW_CLUSTER_OWNER_GROUP_ENABLED: ${{ inputs.RANCHER_CLUSTER_OWNER_GROUP_ENABLED }}
-          WORKFLOW_CLUSTER_OWNER_GROUP: ${{ inputs.RANCHER_CLUSTER_OWNER_GROUP }}
-        run: |
-          if [ -z "$RANCHER_URL" ] || [ -z "$RANCHER_TOKEN" ]; then
-            echo "ERROR: RANCHER_API_URL and RANCHER_API_TOKEN must be set for environment '$REF_NAME'"
-            exit 1
-          fi
-          CLUSTER_NAME="${RANCHER_CLUSTER_NAME_INPUT:-$REF_NAME}"
+  url="$(extract_manifest_url "$MANIFEST_URL" || true)"
+  if [[ -n "$url" ]]; then
+    echo "kubectl apply -f ${url}"
+    return 0
+  fi
 
-          GRANTS_FILE="$GITHUB_WORKSPACE/.github/config/rancher-access-grants.json"
-          DEFAULT_GRANTS_FILE="$GITHUB_WORKSPACE/.github/scripts/rancher-access-grants.default.json"
-          SCRIPTS_DIR="$GITHUB_WORKSPACE/.github/scripts"
+  if [[ -n "$IMPORT_TOKEN" ]]; then
+    echo "kubectl apply -f ${RANCHER_URL}/v3/import/${IMPORT_TOKEN}.yaml"
+    return 0
+  fi
 
-          echo "Resolving Rancher grants catalog for branch '$REF_NAME' ..."
-          if [ -d "$GITHUB_WORKSPACE/.github/config" ]; then
-            echo "Contents of .github/config/:"
-            ls -la "$GITHUB_WORKSPACE/.github/config/" || true
-          fi
-          if [ -d "$SCRIPTS_DIR" ]; then
-            echo "Contents of .github/scripts/:"
-            ls -la "$SCRIPTS_DIR" || true
-          fi
+  for candidate in "$COMMAND" "$INSECURE_CMD"; do
+    url="$(extract_manifest_url "$candidate" || true)"
+    if [[ -n "$url" ]]; then
+      echo "kubectl apply -f ${url}"
+      return 0
+    fi
+  done
 
-          if [ -f "$GRANTS_FILE" ]; then
-            echo "Using catalog: $GRANTS_FILE"
-          elif [ -f "$DEFAULT_GRANTS_FILE" ]; then
-            echo "WARN: $GRANTS_FILE not found — using $DEFAULT_GRANTS_FILE"
-            GRANTS_FILE="$DEFAULT_GRANTS_FILE"
-          else
-            echo "ERROR: no Rancher grants catalog found on branch '$REF_NAME'"
-            echo "Expected $GRANTS_FILE or $DEFAULT_GRANTS_FILE"
-            exit 1
-          fi
-          echo "Using Rancher grants catalog: $GRANTS_FILE"
+  return 1
+}
 
-          if [ -f "$SCRIPTS_DIR/build-rancher-workflow-patch.sh" ]; then
-            export WORKFLOW_GRANTS_CATALOG="$GRANTS_FILE"
-            echo "Rancher team catalog:"
-            jq -r '.[] | "  - \(.group): \(.role) (catalog enabled=\(.enabled // true))"' "$GRANTS_FILE"
-            WORKFLOW_RANCHER_PATCH="$("$SCRIPTS_DIR/build-rancher-workflow-patch.sh")"
-          else
-            echo "WARN: build-rancher-workflow-patch.sh not found — applying base catalog only (DEVOPS owner default)"
-            WORKFLOW_RANCHER_PATCH='[]'
-          fi
-          echo "Workflow Rancher patch: $WORKFLOW_RANCHER_PATCH"
-          export WORKFLOW_RANCHER_PATCH
+token_fields_ready() {
+  [[ -n "$IMPORT_TOKEN" ]] && return 0
+  extract_manifest_url "$MANIFEST_URL" >/dev/null 2>&1 && return 0
+  local candidate
+  for candidate in "$COMMAND" "$INSECURE_CMD"; do
+    extract_manifest_url "$candidate" >/dev/null 2>&1 && return 0
+  done
+  return 1
+}
 
-          echo "Applying Rancher access grants for cluster '$CLUSTER_NAME' ..."
-          BATCH_SCRIPT="$SCRIPTS_DIR/rancher-grant-cluster-access-batch.sh"
-          SINGLE_SCRIPT="$SCRIPTS_DIR/rancher-grant-cluster-access.sh"
+fetch_cluster_id_by_name() {
+  local json count id
+  json="$(api GET "/v3/clusters?name=$(urlencode "$CLUSTER_NAME")" || true)"
+  [[ -n "$json" ]] || return 1
+  count="$(jq -r --arg name "$CLUSTER_NAME" '[.data[]? | select(.name == $name)] | length' <<<"$json")"
+  if (( count > 1 )); then
+    die "Multiple Rancher clusters named '$CLUSTER_NAME'; resolve duplicates manually"
+  fi
+  id="$(jq -r --arg name "$CLUSTER_NAME" '[.data[]? | select(.name == $name)][0].id // empty' <<<"$json")"
+  [[ -n "$id" ]] || return 1
+  printf '%s' "$id"
+}
 
-          if [ ! -f "$SINGLE_SCRIPT" ]; then
-            echo "ERROR: Required script missing: $SINGLE_SCRIPT"
-            exit 1
-          fi
-          if [ ! -f "$BATCH_SCRIPT" ]; then
-            echo "ERROR: Required script missing: $BATCH_SCRIPT"
-            exit 1
-          fi
+pick_best_token_json() {
+  local list="$1"
+  jq -c '
+    def usable:
+      ((.status.manifestUrl // .manifestUrl //
+        .status.command // .command //
+        .status.insecureCommand // .insecureCommand //
+        .status.token // .token // "") != "");
+    (.data // []) as $d |
+    if ($d | length) == 0 then empty
+    else
+      ([$d[] | select((.name == "default-token") and usable)] | .[0]) //
+      ([$d[] | select(usable)] | .[-1]) //
+      ([$d[] | select(.name == "default-token")] | .[0]) //
+      $d[-1]
+    end
+  ' <<<"$list"
+}
 
-          ARGS=(
-            --rancher-url "$RANCHER_URL"
-            --token "$RANCHER_TOKEN"
-            --cluster-name "$CLUSTER_NAME"
-            --grants-file "$GRANTS_FILE"
-          )
-          if [ -n "${RANCHER_GROUP_AUTH_PREFIX:-}" ]; then
-            ARGS+=(--default-group-auth-prefix "$RANCHER_GROUP_AUTH_PREFIX")
-          fi
-          "$BATCH_SCRIPT" "${ARGS[@]}"
+read_token_fields_from_list() {
+  local list="$1" token_obj
+  token_obj="$(pick_best_token_json "$list" || true)"
+  [[ -n "$token_obj" ]] || return 1
+  mapfile -t _token_fields < <(jq -r '
+    def pick($k): (.status[$k] // .[$k] // "");
+    pick("manifestUrl"), pick("command"), pick("insecureCommand"), pick("token")
+  ' <<<"$token_obj")
+  MANIFEST_URL="${_token_fields[0]:-}"
+  COMMAND="${_token_fields[1]:-}"
+  INSECURE_CMD="${_token_fields[2]:-}"
+  IMPORT_TOKEN="${_token_fields[3]:-}"
+}
 
-      - name: Publish KUBECONFIG from Rancher
-        if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.TERRAFORM_APPLY == true && inputs.PUBLISH_KUBECONFIG == true && steps.apply.outcome == 'success' }}
-        continue-on-error: true
-        env:
-          RANCHER_URL: ${{ secrets.RANCHER_API_URL }}
-          RANCHER_TOKEN: ${{ secrets.RANCHER_API_TOKEN }}
-          RANCHER_CLUSTER_NAME_INPUT: ${{ inputs.RANCHER_CLUSTER_NAME }}
-          REF_NAME: ${{ github.ref_name }}
-          GH_TOKEN: ${{ secrets.GH_INFRA_PAT }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          # Post-apply import step waits for cattle-cluster-agent; allow ~6 min for Rancher state=active
-          MAX_ATTEMPTS: "24"
-          SLEEP_SECONDS: "15"
-        run: |
-          if [ -z "$RANCHER_URL" ] || [ -z "$RANCHER_TOKEN" ]; then
-            echo "Skipping KUBECONFIG publish: RANCHER_API_URL / RANCHER_API_TOKEN not set for environment '$REF_NAME'"
-            exit 0
-          fi
-          if [ -z "$GH_TOKEN" ]; then
-            echo "ERROR: GH_INFRA_PAT is required to publish KUBECONFIG environment secret"
-            exit 1
-          fi
-          command -v gh >/dev/null 2>&1 || { echo "ERROR: gh CLI is required"; exit 1; }
+fetch_registration_token_list() {
+  api GET "/v3/clusterregistrationtokens?clusterId=$(urlencode "$CLUSTER_ID")"
+}
 
-          CLUSTER_NAME="${RANCHER_CLUSTER_NAME_INPUT:-$REF_NAME}"
-          WAIT_MIN=$((MAX_ATTEMPTS * SLEEP_SECONDS / 60))
-          echo "Fetching kubeconfig for Rancher cluster '$CLUSTER_NAME' (wait up to ${WAIT_MIN} min for state=active) ..."
+try_create_registration_token() {
+  log "Attempting to create a registration token (optional) ..."
+  if api POST "/v3/clusterregistrationtokens" "$(json_registration_token_body)" >/dev/null; then
+    log "Registration token create request accepted"
+  else
+    log "Registration token create skipped or denied (default-token may already exist)"
+  fi
+}
 
-          if ! KUBECONFIG_CONTENT="$("$GITHUB_WORKSPACE/.github/scripts/rancher-fetch-kubeconfig.sh" \
-            --rancher-url "$RANCHER_URL" \
-            --token "$RANCHER_TOKEN" \
-            --cluster-name "$CLUSTER_NAME")"; then
-            echo ""
-            echo "ERROR: Failed to publish KUBECONFIG — Rancher cluster '$CLUSTER_NAME' did not become active within ~${WAIT_MIN} minutes."
-            echo ""
-            echo "What to check:"
-            echo "  1. Step 'Apply Rancher import on cluster (fresh token)' — did cattle-cluster-agent reach Running?"
-            echo "  2. Terraform apply logs — Ansible Play 3 'Execute Rancher import' (manual URL path) or errors above"
-            echo "  3. Control plane: kubectl get pods -n cattle-system"
-            echo "  4. Rancher UI → Cluster Management → '$CLUSTER_NAME' (state, transitioning message)"
-            echo ""
-            echo "The wait is not retried — fix the import/connectivity issue and re-run publish or the full apply."
-            exit 1
-          fi
+CLUSTER_JUST_CREATED="false"
+MANIFEST_URL=""
+COMMAND=""
+INSECURE_CMD=""
+IMPORT_TOKEN=""
 
-          printf '%s' "$KUBECONFIG_CONTENT" | gh secret set KUBECONFIG \
-            --env "$REF_NAME" \
-            --repo "$GITHUB_REPOSITORY"
-          echo "Published KUBECONFIG environment secret for: $REF_NAME"
+log "Looking up cluster '${CLUSTER_NAME}' in Rancher ..."
+CLUSTER_ID="$(fetch_cluster_id_by_name || true)"
 
-      - name: Add the Terraform plan file / *.tfstate files / terraform format changes
-        run: |
-          echo "Current working directory: $(pwd)"
-          echo "Files in current directory:"
-          ls -la
-          
-          echo "Checking for Terraform files to commit..."
-          
-          # Encrypt state files if using local backend
-          ../../../../.github/scripts/encrypt-state.sh \
-            --backend-type "${{ inputs.BACKEND_TYPE }}" \
-            --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
-            --operation "apply"
-          
-          # Extract dynamic path from backend.tf to commit targeted profile states
-          if [ -f "backend.tf" ]; then
-            BACKEND_PATH=$(grep -A 5 'backend "local"' backend.tf | grep 'path' | sed 's/.*path = "\([^"]*\)".*/\1/' | head -1)
-            if [ -n "$BACKEND_PATH" ]; then
-              git add -f "${BACKEND_PATH}*" 2>/dev/null || echo "No isolated state files to add for $BACKEND_PATH"
-            fi
-          fi
+if [[ -z "$CLUSTER_ID" ]]; then
+  log "Cluster not found; creating imported cluster '${CLUSTER_NAME}' ..."
+  create_response=""
+  if create_response="$(api POST "/v3/clusters" "$(json_cluster_create_body)")"; then
+    CLUSTER_ID="$(jq -r '.id // empty' <<<"$create_response")"
+  fi
+  if [[ -z "$CLUSTER_ID" ]]; then
+    log "Create failed or conflict; re-checking if cluster already exists..."
+    CLUSTER_ID="$(fetch_cluster_id_by_name || true)"
+    CLUSTER_JUST_CREATED="false"
+  else
+    CLUSTER_JUST_CREATED="true"
+    log "Created cluster id=${CLUSTER_ID} (Rancher will auto-create a default registration token)"
+  fi
+  [[ -n "$CLUSTER_ID" ]] || die "Failed to create or find cluster '$CLUSTER_NAME' in Rancher"
+else
+  log "Found existing cluster id=${CLUSTER_ID}"
+fi
 
-          # Force add base Terraform files even if they're in .gitignore
-          git add -f *.tfstate* 2>/dev/null || echo "No base .tfstate files found"
-          git add -f *.gpg 2>/dev/null || echo "No base .gpg files found"
-          git add -f tf-plan* 2>/dev/null || echo "No tf-plan files found"
-          git add -f backend.tf 2>/dev/null || echo "No backend.tf file found"
-          git add -f *.tf 2>/dev/null || echo "No .tf file found"
-          
-          # Remove problematic files that shouldn't be committed before git add -A
-          rm -rf .terraform/ 2>/dev/null || echo "No .terraform directory to remove"
-          rm -f .terraform.lock.hcl 2>/dev/null || echo "No .terraform.lock.hcl to remove"
-          
-          # Remove embedded git repositories to avoid submodule issues
-          find . -name ".git" -type d -not -path "./.git" -exec rm -rf {} + 2>/dev/null || true
-          
-          # Also add any other Terraform-related files that might have been created
-          git add -A
-          
-          echo "Git status after adding files:"
-          git status
-          
-          # Check if there are any changes to commit
-          if git diff --cached --quiet; then
-            echo "No changes to commit - this is normal for remote backends or when state is managed remotely"
-            echo "Terraform execution completed successfully"
-          else
-            echo "Committing Terraform changes..."
-            git config --global user.email ${{ github.actor }}@users.noreply.github.com
-            git config --global user.name ${{ github.actor }}
-            
-            # Customize commit message based on backend type
-            if [ "${{ inputs.BACKEND_TYPE }}" = "local" ]; then
-              commit_msg="Terraform files (encrypted state) GitHub Actions - ${{ inputs.CLOUD_PROVIDER }}-${{ inputs.TERRAFORM_COMPONENT }}"
-            else
-              commit_msg="Terraform files GitHub Actions - ${{ inputs.CLOUD_PROVIDER }}-${{ inputs.TERRAFORM_COMPONENT }}"
-            fi
-            
-            git commit -s -m "$commit_msg"
-            
-            # Pull with rebase to avoid push rejection
-            echo "Pulling latest changes with rebase..."
-            pull_exit=0
-            pull_output=$(git pull --rebase origin "$REF_NAME" 2>&1) || pull_exit=$?
-            echo "$pull_output"
-            if [ $pull_exit -ne 0 ]; then
-              if echo "$pull_output" | grep -qE "Already up to date|Current branch .* is up to date"; then
-                echo "Already up to date, nothing to pull."
-              elif echo "$pull_output" | grep -qE "CONFLICT|could not apply|Resolve all conflicts|You must edit the files"; then
-                echo "Rebase conflict detected. Aborting rebase and merging with ours strategy..."
-                # Terraform state generated in this workflow is authoritative.
-                # Preserve local state during merge conflicts.
-                git rebase --abort
-                git fetch origin "$REF_NAME"
-                git merge -X ours "origin/${REF_NAME}" --no-edit
-                echo "Merge complete. Terraform state preserved."
-              else
-                echo "❌ git pull --rebase failed with a non-conflict error:"
-                echo "$pull_output"
-                exit 1
-              fi
-            fi
-            
-            git push
-            echo "Changes committed and pushed successfully"
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_INFRA_PAT }}
-          REF_NAME: ${{ github.ref_name }}
-        if: always()
+log "Resolving cluster registration token ..."
+POST_TRIED="false"
+TOKEN_LIST=""
 
-      - name: Terraform plan / apply status
-        if: ${{ steps.plan.outcome == 'failure' || steps.apply.outcome == 'failure' }}
-        run: exit 1
+for ((attempt = 1; attempt <= MAX_ATTEMPTS; attempt++)); do
+  TOKEN_LIST="$(fetch_registration_token_list || true)"
+  TOKEN_COUNT=0
+  if [[ -n "$TOKEN_LIST" ]]; then
+    TOKEN_COUNT="$(jq -r '(.data // []) | length' <<<"$TOKEN_LIST" 2>/dev/null || echo 0)"
+  fi
+  read_token_fields_from_list "$TOKEN_LIST" || true
+  if token_fields_ready; then
+    break
+  fi
 
-      - uses: 8398a7/action-slack@v3
-        continue-on-error: true
-        with:
-          status: ${{ job.status }}
-          fields: repo,message,author,commit,workflow,job # selectable (default: repo,message)
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} # required
-        if: "${{ github.event_name != 'pull_request' && failure() }}" # Pick up events even if the job fails or is canceled.
+  if [[ "$POST_TRIED" != "true" && "$TOKEN_COUNT" -eq 0 ]]; then
+    if [[ "$CLUSTER_JUST_CREATED" == "true" && "$attempt" -lt 8 ]]; then
+      :
+    else
+      POST_TRIED="true"
+      try_create_registration_token
+    fi
+  fi
+
+  log "Waiting for registration token status (attempt ${attempt}/${MAX_ATTEMPTS}) ..."
+  sleep "$SLEEP_SECONDS"
+done
+
+IMPORT_CMD=""
+if ! IMPORT_CMD="$(build_terraform_import_cmd)"; then
+  err "Could not determine import command. Token summary:"
+  if [[ -n "$TOKEN_LIST" ]]; then
+    jq '
+      def redact:
+        if type == "string" then
+          gsub("/v3/import/[^/[:space:]]+\\.yaml"; "/v3/import/<redacted>.yaml")
+        else . end;
+      {count: (.data|length), tokens: [.data[]? | {
+        name,
+        command: (.status.command | redact),
+        manifestUrl: (.status.manifestUrl | redact),
+        token: (if .status.token then "set" else "empty" end)
+      }]}
+    ' \
+      <<<"$TOKEN_LIST" >&2 || true
+  fi
+  die "Registration token status never became ready"
+fi
+
+if [[ ! "$IMPORT_CMD" =~ ^kubectl[[:space:]]+apply[[:space:]]+-f[[:space:]]+https://[^[:space:]]+/v3/import/[^[:space:]]+\.yaml$ ]]; then
+  die "Import command is not in Terraform-compatible form: $IMPORT_CMD"
+fi
+
+manifest_url="$(extract_manifest_url "$IMPORT_CMD" || true)"
+[[ -n "$manifest_url" ]] \
+  || die "Could not extract import manifest URL from: $IMPORT_CMD"
+[[ "$manifest_url" == "${RANCHER_URL}/v3/import/"* ]] \
+  || die "Import URL host does not match RANCHER_URL (got: $manifest_url)"
+
+log "Import command resolved."
+if [[ "$APPLY_ON_HOST" == "true" ]]; then
+  apply_import_on_host "$IMPORT_CMD" || die "Failed to apply Rancher import on ${SSH_HOST}"
+  log "Rancher cluster import completed on ${SSH_HOST}"
+else
+  printf '"%s"\n' "$IMPORT_CMD"
+fi
