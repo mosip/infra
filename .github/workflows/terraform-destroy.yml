@@ -104,6 +104,16 @@ jobs:
           fetch-depth: 0  # Full history needed for rebase
           token: ${{ secrets.GH_INFRA_PAT }}
 
+      - name: Ensure workflow scripts are executable
+        run: |
+          shopt -s nullglob
+          scripts=("$GITHUB_WORKSPACE/.github/scripts/"*.sh)
+          if ((${#scripts[@]} == 0)); then
+            echo "ERROR: No scripts found under $GITHUB_WORKSPACE/.github/scripts/"
+            exit 1
+          fi
+          chmod +x "${scripts[@]}"
+
       - name: Check for required implementation directory
         run: |
           if [ ! -d "." ]; then
@@ -216,26 +226,16 @@ jobs:
 
       - name: Configure WireGuard
         run: |
-          # WG_CONFIG comes from environment-level secrets (dynamic based on branch name)
-          if [ -z "${TF_WG_CONFIG:-}" ]; then
-            echo "❌ ERROR: TF_WG_CONFIG secret is not configured/empty for environment '$REF_NAME'"
-            echo "Please configure the WireGuard configuration secret for this branch/environment"
-            exit 1
-          fi
-          
-          # Debug: Check if secret is available (without exposing content)
-          echo "🔍 Checking TF_WG_CONFIG secret..."
           if [ ${#TF_WG_CONFIG} -eq 0 ]; then
-            echo "❌ ERROR: TF_WG_CONFIG environment variable is empty"
-            echo "Secret may contain only whitespace or special characters"
+            echo "ERROR: TF_WG_CONFIG secret is not configured for environment '$REF_NAME'"
             exit 1
           fi
-          echo "✅ Secret length: ${#TF_WG_CONFIG} characters"
+          echo "TF_WG_CONFIG secret length: ${#TF_WG_CONFIG} characters"
           
           # Create config file with proper handling of multiline content
           echo "Creating /etc/wireguard directory with proper permissions..."
           sudo mkdir -p /etc/wireguard
-          sudo chmod 755 /etc/wireguard
+          sudo chmod 700 /etc/wireguard
           sudo chown root:root /etc/wireguard
           
           echo "Directory created. Checking permissions..."
@@ -245,38 +245,25 @@ jobs:
           echo "Secret contains '[Interface]': $(printf '%s' "$TF_WG_CONFIG" | grep -c '\[Interface\]')"
           echo "Secret contains '[Peer]': $(printf '%s' "$TF_WG_CONFIG" | grep -c '\[Peer\]')"
           
-          # Write to temp file with explicit newline handling
-          printf '%s' "$TF_WG_CONFIG" > /tmp/wg0.conf.tmp
-          
-          # Check temp file was created successfully
-          if [ ! -f /tmp/wg0.conf.tmp ]; then
-            echo "❌ ERROR: Failed to create temporary config file"
-            exit 1
-          fi
-          
-          echo "Temp file size: $(wc -c < /tmp/wg0.conf.tmp) bytes"
-          echo "Temp file lines: $(wc -l < /tmp/wg0.conf.tmp)"
-          
-          # Use a more direct approach - write directly with sudo
-          echo "Writing config directly with sudo..."
-          sudo tee /etc/wireguard/wg0.conf < /tmp/wg0.conf.tmp > /dev/null
-          
-          # Clean up temp file
-          rm -f /tmp/wg0.conf.tmp
+          # Write config via a restrictive temp file, then install as root-owned wg0.conf
+          umask 077
+          tmp_config="$(mktemp "${RUNNER_TEMP}/wg0.conf.XXXXXX")"
+          trap 'rm -f -- "$tmp_config"' EXIT
+          printf '%s' "$TF_WG_CONFIG" > "$tmp_config"
+          echo "Writing WireGuard config with sudo install..."
+          sudo install -m 600 -o root -g root "$tmp_config" /etc/wireguard/wg0.conf
+          rm -f -- "$tmp_config"
+          trap - EXIT
           
           # Verify the file was created and check its size
           if sudo test -f /etc/wireguard/wg0.conf; then
-            echo "✅ Config file created successfully"
+            echo "Config file created successfully"
             echo "Final config file size: $(sudo wc -c < /etc/wireguard/wg0.conf) bytes"
           else
-            echo "❌ ERROR: Config file still doesn't exist"
+            echo "ERROR: Config file still doesn't exist"
             sudo ls -la /etc/wireguard/ || echo "Cannot list /etc/wireguard directory"
             exit 1
           fi
-          
-          # Set proper permissions
-          sudo chmod 600 /etc/wireguard/wg0.conf
-          sudo chown root:root /etc/wireguard/wg0.conf
           
           echo "Final file permissions: $(sudo ls -la /etc/wireguard/wg0.conf)"
           
@@ -476,7 +463,6 @@ jobs:
             echo "Terraform destroy completed successfully"
           else
             echo "Committing Terraform changes..."
-            git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
             git config --global user.email ${{ github.actor }}@users.noreply.github.com
             git config --global user.name ${{ github.actor }}
             
@@ -495,8 +481,8 @@ jobs:
             
             # Pull with rebase to avoid push rejection
             echo "Pulling latest changes with rebase..."
-            pull_output=$(git pull --rebase origin "$REF_NAME" 2>&1)
-            pull_exit=$?
+            pull_exit=0
+            pull_output=$(git pull --rebase origin "$REF_NAME" 2>&1) || pull_exit=$?
             echo "$pull_output"
             if [ $pull_exit -ne 0 ]; then
               if echo "$pull_output" | grep -qE "Already up to date|Current branch .* is up to date"; then
@@ -520,7 +506,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GH_INFRA_PAT }}
           REF_NAME: ${{ github.ref_name }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
         if: "${{ inputs.TERRAFORM_DESTROY == true }}"
       - name: Terraform destroy status
         if: ${{ steps.destroy.outcome == 'failure' }}
