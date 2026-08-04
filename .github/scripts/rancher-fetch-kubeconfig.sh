@@ -170,30 +170,8 @@ print_failure_diagnostics() {
   die "Kubeconfig cannot be published until the cluster is active in Rancher."
 }
 
-cluster_is_active() {
-  local json state
-  if ! json="$(api GET "/v3/clusters/$(urlencode "$CLUSTER_ID")")"; then
-    die "Failed to query Rancher cluster '$CLUSTER_ID'"
-  fi
-  state="$(jq -r '.state // empty' <<<"$json")"
-  [[ "$state" == "active" ]]
-}
-
-cluster_current_state() {
-  local json
-  if ! json="$(api GET "/v3/clusters/$(urlencode "$CLUSTER_ID")")"; then
-    printf 'unknown'
-    return 1
-  fi
-  jq -r '.state // "unknown"' <<<"$json"
-}
-
-cluster_wait_status_line() {
-  local json state transition agent
-  if ! json="$(api GET "/v3/clusters/$(urlencode "$CLUSTER_ID")")"; then
-    printf 'state=unknown'
-    return 1
-  fi
+cluster_status_line_from_json() {
+  local json="$1" state transition agent
   state="$(jq -r '.state // "unknown"' <<<"$json")"
   transition="$(jq -r '.transitioningMessage // .transition // empty' <<<"$json")"
   agent="$(jq -r '.agentImage // empty' <<<"$json")"
@@ -202,13 +180,17 @@ cluster_wait_status_line() {
 }
 
 wait_for_cluster_active() {
-  local attempt status_line
+  local attempt status_line json state
   for ((attempt = 1; attempt <= MAX_ATTEMPTS; attempt++)); do
-    if cluster_is_active; then
+    if ! json="$(api GET "/v3/clusters/$(urlencode "$CLUSTER_ID")")"; then
+      die "Failed to query Rancher cluster '$CLUSTER_ID'"
+    fi
+    state="$(jq -r '.state // empty' <<<"$json")"
+    if [[ "$state" == "active" ]]; then
       log "Cluster ${CLUSTER_ID} is active"
       return 0
     fi
-    status_line="$(cluster_wait_status_line || true)"
+    status_line="$(cluster_status_line_from_json "$json")"
     log "Waiting for cluster ${CLUSTER_ID} to become active (${status_line}, attempt ${attempt}/${MAX_ATTEMPTS}) ..."
     sleep "$SLEEP_SECONDS"
   done
