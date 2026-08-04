@@ -127,31 +127,53 @@ apply_import_on_host() {
     ssh_cmd "bash -lc $(printf '%q' "$remote_cmd")"
   }
   cattle_agent_phase() {
-    remote_kubectl get pods -n cattle-system -l app=cattle-cluster-agent \
-      -o jsonpath='{.items[0].status.phase}' 2>/dev/null || true
+    local out
+    if ! out="$(remote_kubectl get pods -n cattle-system -l app=cattle-cluster-agent \
+      -o jsonpath='{.items[0].status.phase}' 2>/dev/null)"; then
+      printf 'query-failed'
+      return 1
+    fi
+    printf '%s' "$out"
   }
 
   log "Applying Rancher import on ${SSH_HOST} ..."
   if remote_kubectl get namespace cattle-system >/dev/null 2>&1; then
-    phase="$(cattle_agent_phase)"
+    if phase="$(cattle_agent_phase)"; then
+      :
+    else
+      phase="query-failed"
+    fi
     if [[ "$phase" == "Running" ]]; then
       log "cattle-system exists and cattle-cluster-agent is Running — skipping import apply"
       return 0
     fi
+    if [[ "$phase" == "query-failed" ]]; then
+      err "Could not query cattle-cluster-agent status; refusing to reset cattle-system"
+      return 1
+    fi
     log "cattle-system exists but agent is not healthy (phase=${phase:-missing}) — resetting namespace before re-import"
-    remote_kubectl delete namespace cattle-system --ignore-not-found --wait=true || true
+    if ! remote_kubectl delete namespace cattle-system --ignore-not-found --wait=true --timeout=120s; then
+      err "Failed to delete stale cattle-system namespace on ${SSH_HOST} within 120s"
+      return 1
+    fi
   fi
 
-  ssh_cmd "bash -lc $(printf '%q' "$import_cmd")"
+  if ! ssh_cmd "bash -lc $(printf '%q' "$import_cmd")"; then
+    err "Failed to apply Rancher import manifest on ${SSH_HOST}"
+    return 1
+  fi
   log "Rancher import manifest applied"
 
   for ((attempt = 1; attempt <= MAX_AGENT_WAIT; attempt++)); do
-    phase="$(cattle_agent_phase)"
-    if [[ "$phase" == "Running" ]]; then
-      log "cattle-cluster-agent is Running"
-      return 0
+    if phase="$(cattle_agent_phase)"; then
+      if [[ "$phase" == "Running" ]]; then
+        log "cattle-cluster-agent is Running"
+        return 0
+      fi
+      log "Waiting for cattle-cluster-agent (phase=${phase}, attempt ${attempt}/${MAX_AGENT_WAIT}) ..."
+    else
+      log "Waiting for cattle-cluster-agent (phase=query-failed, attempt ${attempt}/${MAX_AGENT_WAIT}) ..."
     fi
-    log "Waiting for cattle-cluster-agent (phase=${phase:-missing}, attempt ${attempt}/${MAX_AGENT_WAIT}) ..."
     sleep "$AGENT_SLEEP"
   done
   err "Import manifest applied but cattle-cluster-agent is not Running within $((MAX_AGENT_WAIT * AGENT_SLEEP)) seconds"
