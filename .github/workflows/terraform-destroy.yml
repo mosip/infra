@@ -437,8 +437,8 @@ jobs:
             
             # Pull with rebase to avoid push rejection
             echo "Pulling latest changes with rebase..."
-            pull_output=$(git pull --rebase origin ${{ github.ref_name }} 2>&1)
-            pull_exit=$?
+            pull_exit=0
+            pull_output=$(git pull --rebase origin "$REF_NAME" 2>&1) || pull_exit=$?
             echo "$pull_output"
             if [ $pull_exit -ne 0 ]; then
               if echo "$pull_output" | grep -qE "Already up to date|Current branch .* is up to date"; then
@@ -446,8 +446,8 @@ jobs:
               elif echo "$pull_output" | grep -qE "CONFLICT|could not apply|Resolve all conflicts|You must edit the files"; then
                 echo "⚠️ Rebase conflict detected. Aborting rebase and merging with ours strategy to preserve Terraform state..."
                 git rebase --abort
-                git fetch origin ${{ github.ref_name }}
-                git merge -X ours origin/${{ github.ref_name }} --no-edit
+                git fetch origin "$REF_NAME"
+                git merge -X ours "origin/${REF_NAME}" --no-edit
                 echo "Merge complete. Terraform state preserved."
               else
                 echo "❌ git pull --rebase failed with a non-conflict error:"
@@ -461,6 +461,7 @@ jobs:
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GH_INFRA_PAT }}
+          REF_NAME: ${{ github.ref_name }}
         if: "${{ inputs.TERRAFORM_DESTROY == true }}"
       - name: Terraform destroy status
         if: ${{ steps.destroy.outcome == 'failure' }}
