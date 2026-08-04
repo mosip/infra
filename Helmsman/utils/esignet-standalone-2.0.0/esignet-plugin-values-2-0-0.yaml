@@ -22,7 +22,7 @@ extraEnvVars:
        name: esignet-captcha-go
        key: esignet-captcha-site-key
  - name: MOSIP_ESIGNET_CAPTCHA_MODULE_NAME
-   value: esignet
+   value: esignetgo
  - name: REDIS_HOST
    valueFrom:
      configMapKeyRef:
@@ -76,7 +76,7 @@ extraEnvVars:
  - name: AUTHN_PROVIDER
    value: mosip
  - name: MOSIP_P12_PATH
-   value: /home/mosip/keys/secret/esignet.pfx
+   value: /home/mosip/keys/secret/mock.pfx
  - name: MOSIP_P12_PASSWORD
    value: localtest
  - name: OIDC_UI_SCHEME

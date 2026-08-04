@@ -9,8 +9,6 @@ extraEnvVars:
       configMapKeyRef:
         name: keycloak-host
         key: keycloak-external-url
-  - name: MOSIP_ESIGNET_CAPTCHA_MODULE_NAME
-    value: esignet
   - name: REDIS_HOST
     valueFrom:
       configMapKeyRef:
@@ -64,7 +62,7 @@ extraEnvVars:
   - name: AUTHN_PROVIDER
     value: mosip
   - name: MOSIP_P12_PATH
-    value: /home/mosip/keys/secret/esignet.pfx
+    value: /home/mosip/keys/secret/mosipid1.pfx
   - name: MOSIP_P12_PASSWORD
     value: localtest
   - name: OIDC_UI_SCHEME
@@ -85,7 +83,7 @@ extraEnvVars:
     value: decl-mosip-otp-flow-1
 extraEnvVarsAdditional:
   - name: "MOSIP_ESIGNET_CAPTCHA_MODULE_NAME"
-    value: "esignetmosipid1"
+    value: "esignetgomosipid1"
   - name: "MOSIP_ESIGNET_CAPTCHA_SITE-KEY"
     valueFrom:
       secretKeyRef:

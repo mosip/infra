@@ -512,7 +512,7 @@ apps:
   captcha:
     namespace: captcha
     enabled: true
-    version: 0.1.0-beta.1
+    version: 0.1.1
     chart: mosip/captcha
     set:
       metrics.serviceMonitor.enabled: "false"

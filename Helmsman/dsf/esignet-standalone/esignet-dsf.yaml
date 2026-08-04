@@ -443,6 +443,20 @@ apps:
       mock_relying_party_ui.REDIRECT_URI: "https://healthservices.${domain_name}/userprofile"
       mock_relying_party_ui.REDIRECT_URI_REGISTRATION: "https://healthservices.${domain_name}/registration"
       mock_relying_party_ui.SIGN_IN_BUTTON_PLUGIN_URL: "https://esignet.${domain_name}/plugins/sign-in-button-plugin.js"
+      mock_relying_party_ui.mock_relying_party_ui_port: '5000'
+      mock_relying_party_ui.CLIENT_ID: 88Vjt34c5Twz1oJ
+      mock_relying_party_ui.ACRS: mosip:idp:acr:generated-code%20mosip:idp:acr:biometrics%20mosip:idp:acr:linked-wallet
+      mock_relying_party_ui.DISPLAY: page
+      mock_relying_party_ui.PROMPT: consent
+      mock_relying_party_ui.GRANT_TYPE: authorization_code
+      mock_relying_party_ui.CLAIMS_LOCALES: en
+      mock_relying_party_ui.SCOPE_USER_PROFILE: openid profile
+      mock_relying_party_ui.CLAIMS_USER_PROFILE: '%7B%22userinfo%22:%7B%22given_name%22:%7B%22essential%22:true%7D,%22phone_number%22:%7B%22essential%22:false%7D,%22email%22:%7B%22essential%22:true%7D,%22picture%22:%7B%22essential%22:false%7D,%22gender%22:%7B%22essential%22:false%7D,%22birthdate%22:%7B%22essential%22:false%7D,%22address%22:%7B%22essential%22:false%7D%7D,%22id_token%22:%7B%7D%7D'
+      mock_relying_party_ui.CLAIMS_REGISTRATION: '%7B%22userinfo%22:%7B%22given_name%22:%7B%22essential%22:true%7D,%22phone_number%22:%7B%22essential%22:false%7D,%22email%22:%7B%22essential%22:true%7D,%22picture%22:%7B%22essential%22:false%7D,%22gender%22:%7B%22essential%22:false%7D,%22birthdate%22:%7B%22essential%22:false%7D,%22address%22:%7B%22essential%22:false%7D%7D,%22id_token%22:%7B%7D%7D'
+      mock_relying_party_ui.DEFAULT_LANG: en
+      mock_relying_party_ui.FALLBACK_LANG: '%7B%22label%22%3A%22English%22%2C%22value%22%3A%22en%22%7D'
+      mock_relying_party_ui.AUTHORIZE_ENDPOINT: /v1/esignet/oauth2/authorize
+      mock_relying_party_ui.CODE_CHALLENGE: get_code_challenge     
       istio.hosts[0]: "healthservices.${domain_name}"
     wait: true
     timeout: 480
@@ -463,6 +477,20 @@ apps:
       mock_relying_party_ui.REDIRECT_URI: "https://healthservices-mosipid1.${domain_name}/userprofile"
       mock_relying_party_ui.REDIRECT_URI_REGISTRATION: "https://healthservices-mosipid1.${domain_name}/registration"
       mock_relying_party_ui.SIGN_IN_BUTTON_PLUGIN_URL: "https://esignet-mosipid1.${domain_name}/plugins/sign-in-button-plugin.js"
+      mock_relying_party_ui.mock_relying_party_ui_port: '5000'
+      mock_relying_party_ui.CLIENT_ID: 88Vjt34c5Twz1oJ
+      mock_relying_party_ui.ACRS: mosip:idp:acr:generated-code%20mosip:idp:acr:biometrics%20mosip:idp:acr:linked-wallet
+      mock_relying_party_ui.DISPLAY: page
+      mock_relying_party_ui.PROMPT: consent
+      mock_relying_party_ui.GRANT_TYPE: authorization_code
+      mock_relying_party_ui.CLAIMS_LOCALES: en
+      mock_relying_party_ui.SCOPE_USER_PROFILE: openid profile
+      mock_relying_party_ui.CLAIMS_USER_PROFILE: '%7B%22userinfo%22:%7B%22given_name%22:%7B%22essential%22:true%7D,%22phone_number%22:%7B%22essential%22:false%7D,%22email%22:%7B%22essential%22:true%7D,%22picture%22:%7B%22essential%22:false%7D,%22gender%22:%7B%22essential%22:false%7D,%22birthdate%22:%7B%22essential%22:false%7D,%22address%22:%7B%22essential%22:false%7D%7D,%22id_token%22:%7B%7D%7D'
+      mock_relying_party_ui.CLAIMS_REGISTRATION: '%7B%22userinfo%22:%7B%22given_name%22:%7B%22essential%22:true%7D,%22phone_number%22:%7B%22essential%22:false%7D,%22email%22:%7B%22essential%22:true%7D,%22picture%22:%7B%22essential%22:false%7D,%22gender%22:%7B%22essential%22:false%7D,%22birthdate%22:%7B%22essential%22:false%7D,%22address%22:%7B%22essential%22:false%7D%7D,%22id_token%22:%7B%7D%7D'
+      mock_relying_party_ui.DEFAULT_LANG: en
+      mock_relying_party_ui.FALLBACK_LANG: '%7B%22label%22%3A%22English%22%2C%22value%22%3A%22en%22%7D'
+      mock_relying_party_ui.AUTHORIZE_ENDPOINT: /v1/esignet/oauth2/authorize
+      mock_relying_party_ui.CODE_CHALLENGE: get_code_challenge      
       istio.hosts[0]: "healthservices-mosipid1.${domain_name}"
     wait: true
     timeout: 480
@@ -483,6 +511,20 @@ apps:
       mock_relying_party_ui.REDIRECT_URI: "https://healthservices-mosipid2.${domain_name}/userprofile"
       mock_relying_party_ui.REDIRECT_URI_REGISTRATION: "https://healthservices-mosipid2.${domain_name}/registration"
       mock_relying_party_ui.SIGN_IN_BUTTON_PLUGIN_URL: "https://esignet-mosipid2.${domain_name}/plugins/sign-in-button-plugin.js"
+      mock_relying_party_ui.mock_relying_party_ui_port: '5000'
+      mock_relying_party_ui.CLIENT_ID: 88Vjt34c5Twz1oJ
+      mock_relying_party_ui.ACRS: mosip:idp:acr:generated-code%20mosip:idp:acr:biometrics%20mosip:idp:acr:linked-wallet
+      mock_relying_party_ui.DISPLAY: page
+      mock_relying_party_ui.PROMPT: consent
+      mock_relying_party_ui.GRANT_TYPE: authorization_code
+      mock_relying_party_ui.CLAIMS_LOCALES: en
+      mock_relying_party_ui.SCOPE_USER_PROFILE: openid profile
+      mock_relying_party_ui.CLAIMS_USER_PROFILE: '%7B%22userinfo%22:%7B%22given_name%22:%7B%22essential%22:true%7D,%22phone_number%22:%7B%22essential%22:false%7D,%22email%22:%7B%22essential%22:true%7D,%22picture%22:%7B%22essential%22:false%7D,%22gender%22:%7B%22essential%22:false%7D,%22birthdate%22:%7B%22essential%22:false%7D,%22address%22:%7B%22essential%22:false%7D%7D,%22id_token%22:%7B%7D%7D'
+      mock_relying_party_ui.CLAIMS_REGISTRATION: '%7B%22userinfo%22:%7B%22given_name%22:%7B%22essential%22:true%7D,%22phone_number%22:%7B%22essential%22:false%7D,%22email%22:%7B%22essential%22:true%7D,%22picture%22:%7B%22essential%22:false%7D,%22gender%22:%7B%22essential%22:false%7D,%22birthdate%22:%7B%22essential%22:false%7D,%22address%22:%7B%22essential%22:false%7D%7D,%22id_token%22:%7B%7D%7D'
+      mock_relying_party_ui.DEFAULT_LANG: en
+      mock_relying_party_ui.FALLBACK_LANG: '%7B%22label%22%3A%22English%22%2C%22value%22%3A%22en%22%7D'
+      mock_relying_party_ui.AUTHORIZE_ENDPOINT: /v1/esignet/oauth2/authorize
+      mock_relying_party_ui.CODE_CHALLENGE: get_code_challenge      
       istio.hosts[0]: "healthservices-mosipid2.${domain_name}"
     wait: true
     timeout: 480
@@ -503,6 +545,20 @@ apps:
       mock_relying_party_ui.REDIRECT_URI: "https://healthservices-sunbird.${domain_name}/userprofile"
       mock_relying_party_ui.REDIRECT_URI_REGISTRATION: "https://healthservices-sunbird.${domain_name}/registration"
       mock_relying_party_ui.SIGN_IN_BUTTON_PLUGIN_URL: "https://esignet-sunbird.${domain_name}/plugins/sign-in-button-plugin.js"
+      mock_relying_party_ui.mock_relying_party_ui_port: '5000'
+      mock_relying_party_ui.CLIENT_ID: 88Vjt34c5Twz1oJ
+      mock_relying_party_ui.ACRS: mosip:idp:acr:generated-code%20mosip:idp:acr:biometrics%20mosip:idp:acr:linked-wallet
+      mock_relying_party_ui.DISPLAY: page
+      mock_relying_party_ui.PROMPT: consent
+      mock_relying_party_ui.GRANT_TYPE: authorization_code
+      mock_relying_party_ui.CLAIMS_LOCALES: en
+      mock_relying_party_ui.SCOPE_USER_PROFILE: openid profile
+      mock_relying_party_ui.CLAIMS_USER_PROFILE: '%7B%22userinfo%22:%7B%22given_name%22:%7B%22essential%22:true%7D,%22phone_number%22:%7B%22essential%22:false%7D,%22email%22:%7B%22essential%22:true%7D,%22picture%22:%7B%22essential%22:false%7D,%22gender%22:%7B%22essential%22:false%7D,%22birthdate%22:%7B%22essential%22:false%7D,%22address%22:%7B%22essential%22:false%7D%7D,%22id_token%22:%7B%7D%7D'
+      mock_relying_party_ui.CLAIMS_REGISTRATION: '%7B%22userinfo%22:%7B%22given_name%22:%7B%22essential%22:true%7D,%22phone_number%22:%7B%22essential%22:false%7D,%22email%22:%7B%22essential%22:true%7D,%22picture%22:%7B%22essential%22:false%7D,%22gender%22:%7B%22essential%22:false%7D,%22birthdate%22:%7B%22essential%22:false%7D,%22address%22:%7B%22essential%22:false%7D%7D,%22id_token%22:%7B%7D%7D'
+      mock_relying_party_ui.DEFAULT_LANG: en
+      mock_relying_party_ui.FALLBACK_LANG: '%7B%22label%22%3A%22English%22%2C%22value%22%3A%22en%22%7D'
+      mock_relying_party_ui.AUTHORIZE_ENDPOINT: /v1/esignet/oauth2/authorize
+      mock_relying_party_ui.CODE_CHALLENGE: get_code_challenge      
       istio.hosts[0]: "healthservices-sunbird.${domain_name}"
     wait: true
     timeout: 480
