@@ -104,16 +104,6 @@ jobs:
           fetch-depth: 0  # Full history needed for rebase
           token: ${{ secrets.GH_INFRA_PAT }}
 
-      - name: Ensure workflow scripts are executable
-        run: |
-          shopt -s nullglob
-          scripts=("$GITHUB_WORKSPACE/.github/scripts/"*.sh)
-          if ((${#scripts[@]} == 0)); then
-            echo "ERROR: No scripts found under $GITHUB_WORKSPACE/.github/scripts/"
-            exit 1
-          fi
-          chmod +x "${scripts[@]}"
-
       - name: Check for required implementation directory
         run: |
           if [ ! -d "." ]; then
@@ -230,60 +220,26 @@ jobs:
             echo "ERROR: TF_WG_CONFIG secret is not configured for environment '$REF_NAME'"
             exit 1
           fi
-          echo "TF_WG_CONFIG secret length: ${#TF_WG_CONFIG} characters"
-          
-          # Create config file with proper handling of multiline content
-          echo "Creating /etc/wireguard directory with proper permissions..."
+
           sudo mkdir -p /etc/wireguard
           sudo chmod 700 /etc/wireguard
-          sudo chown root:root /etc/wireguard
-          
-          echo "Directory created. Checking permissions..."
-          sudo ls -la /etc/ | grep wireguard || echo "WireGuard directory not visible"
-          
-          # Debug: Check secret format without exposing sensitive data
-          echo "Secret contains '[Interface]': $(printf '%s' "$TF_WG_CONFIG" | grep -c '\[Interface\]')"
-          echo "Secret contains '[Peer]': $(printf '%s' "$TF_WG_CONFIG" | grep -c '\[Peer\]')"
-          
-          # Write config via a restrictive temp file, then install as root-owned wg0.conf
+          sudo install -m 600 -o root -g root /dev/null /etc/wireguard/wg0.conf
+
           umask 077
           tmp_config="$(mktemp "${RUNNER_TEMP}/wg0.conf.XXXXXX")"
           trap 'rm -f -- "$tmp_config"' EXIT
           printf '%s' "$TF_WG_CONFIG" > "$tmp_config"
-          echo "Writing WireGuard config with sudo install..."
-          sudo install -m 600 -o root -g root "$tmp_config" /etc/wireguard/wg0.conf
-          rm -f -- "$tmp_config"
-          trap - EXIT
-          
-          # Verify the file was created and check its size
-          if sudo test -f /etc/wireguard/wg0.conf; then
-            echo "Config file created successfully"
-            echo "Final config file size: $(sudo wc -c < /etc/wireguard/wg0.conf) bytes"
-          else
-            echo "ERROR: Config file still doesn't exist"
-            sudo ls -la /etc/wireguard/ || echo "Cannot list /etc/wireguard directory"
-            exit 1
-          fi
-          
-          echo "Final file permissions: $(sudo ls -la /etc/wireguard/wg0.conf)"
-          
-          # Verify config file is not empty and has expected content
+          sudo tee /etc/wireguard/wg0.conf < "$tmp_config" > /dev/null
+
           if ! sudo test -s /etc/wireguard/wg0.conf; then
-            echo "❌ ERROR: WireGuard config file is empty after writing!"
-            echo "File size: $(sudo wc -c < /etc/wireguard/wg0.conf) bytes"
+            echo "ERROR: WireGuard config file is empty"
             exit 1
           fi
-          
-          # Basic validation that it looks like a WireGuard config
           if ! sudo grep -q "\[Interface\]" /etc/wireguard/wg0.conf; then
-            echo "❌ ERROR: WireGuard config doesn't contain [Interface] section"
-            echo "Please check that TF_WG_CONFIG contains a valid WireGuard configuration"
-            echo "Config file size: $(sudo wc -c < /etc/wireguard/wg0.conf) bytes"
+            echo "ERROR: WireGuard config missing [Interface] section"
             exit 1
           fi
-          
-          echo "✅ WireGuard configuration applied successfully"
-          echo "Config file size: $(sudo wc -c < /etc/wireguard/wg0.conf) bytes"
+          echo "WireGuard config validated"
         env:
           TF_WG_CONFIG: ${{ secrets.TF_WG_CONFIG }}
           REF_NAME: ${{ github.ref_name }}
@@ -351,8 +307,8 @@ jobs:
         if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.TERRAFORM_DESTROY == true }}
         run: |
           # Refresh/plan/destroy re-evaluate module preconditions; Rancher import URL is
-          # only minted during apply and must not block teardown. Profile aws.tfvars still
-          # has enable_rancher_import=true, so pass a second -var-file to override it.
+          # only minted during apply and must not block teardown. Profile aws.tfvars may
+          # have enable_rancher_import=true (automatic or manual URL), so override it off.
           RUNTIME_VARS_FILE="${RUNNER_TEMP}/rancher-runtime.tfvars"
           "$GITHUB_WORKSPACE/.github/scripts/write-rancher-runtime-tfvars.sh" \
             --out "$RUNTIME_VARS_FILE" \
@@ -481,8 +437,8 @@ jobs:
             
             # Pull with rebase to avoid push rejection
             echo "Pulling latest changes with rebase..."
-            pull_exit=0
-            pull_output=$(git pull --rebase origin "$REF_NAME" 2>&1) || pull_exit=$?
+            pull_output=$(git pull --rebase origin ${{ github.ref_name }} 2>&1)
+            pull_exit=$?
             echo "$pull_output"
             if [ $pull_exit -ne 0 ]; then
               if echo "$pull_output" | grep -qE "Already up to date|Current branch .* is up to date"; then
@@ -490,8 +446,8 @@ jobs:
               elif echo "$pull_output" | grep -qE "CONFLICT|could not apply|Resolve all conflicts|You must edit the files"; then
                 echo "⚠️ Rebase conflict detected. Aborting rebase and merging with ours strategy to preserve Terraform state..."
                 git rebase --abort
-                git fetch origin "$REF_NAME"
-                git merge -X ours "origin/${REF_NAME}" --no-edit
+                git fetch origin ${{ github.ref_name }}
+                git merge -X ours origin/${{ github.ref_name }} --no-edit
                 echo "Merge complete. Terraform state preserved."
               else
                 echo "❌ git pull --rebase failed with a non-conflict error:"
@@ -505,7 +461,6 @@ jobs:
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GH_INFRA_PAT }}
-          REF_NAME: ${{ github.ref_name }}
         if: "${{ inputs.TERRAFORM_DESTROY == true }}"
       - name: Terraform destroy status
         if: ${{ steps.destroy.outcome == 'failure' }}
