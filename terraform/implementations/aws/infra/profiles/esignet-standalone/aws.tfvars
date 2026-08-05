@@ -7,16 +7,16 @@
 # ============================================================
 
 # Environment name (infra component)
-cluster_name = "esqa"
+cluster_name = "<name>"
 
 # eSignet's domain (ex: esignet.xyz.net)
-cluster_env_domain = "esqa.mosip.net"
+cluster_env_domain = "<sanbox.xyz.net>"
 
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
-mosip_email_id = "thisisbn46@gmail.com"
+mosip_email_id = "<mail>6@gmail.com"
 
 # SSH login key name for AWS node instances (ex: my-ssh-key)
-ssh_key_name = "mosip-aws"
+ssh_key_name = "<my-ssh-key>"
 
 # The AWS region for resource creation
 aws_provider_region = "ap-south-1"
@@ -74,7 +74,7 @@ WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 
 # Rancher Import Configuration
 enable_rancher_import = true
-rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/rmqc6znrt9q9wd8j7zdtkslk4fcrxlxh72wpk9jl5z2vpgkkm7tlkj_c-m-rrm8fbn6.yaml\""
+rancher_import_url    = "\"<rancher import url>\""
 
 # DNS Records to map — only eSignet-relevant subdomains
 # Includes hosts for both the esignet-standalone profile and the isolated
@@ -94,7 +94,7 @@ postgresql_port         = "5433"
 # MOSIP Infrastructure Repository Configuration
 mosip_infra_repo_url = "https://github.com/mosip/infra.git"
 
-mosip_infra_branch = "es-go-test"
+mosip_infra_branch = "develop"
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
 vpc_name = "default"
