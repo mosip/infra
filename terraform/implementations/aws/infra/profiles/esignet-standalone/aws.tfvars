@@ -10,19 +10,19 @@
 cluster_name = "<name>"
 
 # eSignet's domain (ex: esignet.xyz.net)
-cluster_env_domain = "<sanbox.xyz.net>"
+cluster_env_domain = "<sandbox.xyz.net>"
 
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
-mosip_email_id = "<mail>6@gmail.com"
+mosip_email_id = "<mail-id"
 
 # SSH login key name for AWS node instances (ex: my-ssh-key)
-ssh_key_name = "<my-ssh-key>"
+ssh_key_name = "<ssh-key-name>"
 
 # The AWS region for resource creation
 aws_provider_region = "ap-south-1"
 
 # Specific availability zones for VM deployment (optional)
-specific_availability_zones = ["ap-south-1b"]
+specific_availability_zones = []
 
 # The instance type for Kubernetes nodes (control plane, worker, etcd)
 # Smaller instance type since eSignet standalone needs fewer resources
@@ -32,7 +32,7 @@ k8s_instance_type = "t3a.2xlarge"
 nginx_instance_type = "t3a.2xlarge"
 
 # The Route 53 hosted zone ID
-zone_id = "Z090954828SJIEL6P5406"
+zone_id = "<route53_zone_id>"
 
 ## UBUNTU 24.04
 # The Amazon Machine Image ID for the instances
@@ -63,7 +63,7 @@ k8s_control_plane_node_count = 1
 k8s_etcd_node_count = 1
 
 # Worker
-k8s_worker_node_count = 3
+k8s_worker_node_count = 2
 
 # RKE2 Version Configuration
 rke2_version = "v1.28.9+rke2r1"
@@ -97,7 +97,7 @@ mosip_infra_repo_url = "https://github.com/mosip/infra.git"
 mosip_infra_branch = "develop"
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
-vpc_name = "default"
+vpc_name = "<vpc name>"
 
 # ── ActiveMQ Configuration ─────────────────────────────────────────────────────
 # Set enable_activemq_setup = true AND nginx_node_ebs_volume_size_3 > 0 to
