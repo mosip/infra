@@ -143,6 +143,10 @@ jobs:
       MOSIPID2_POSTGRES_PASSWORD:       ${{ secrets.MOSIPID2_POSTGRES_PASSWORD }}
       ESIGNET_SUNBIRD_CAPTCHA_SITE_KEY:   ${{ secrets.ESIGNET_SUNBIRD_CAPTCHA_SITE_KEY }}
       ESIGNET_SUNBIRD_CAPTCHA_SECRET_KEY: ${{ secrets.ESIGNET_SUNBIRD_CAPTCHA_SECRET_KEY }}
+      # eSignet-Go (esignet-standalone-2.0.0 profile only) P12 keystore password +
+      # crypto encryption key — shared across all 4 esignet-go-* instances
+      ESIGNET_P12_PASSWORD:          ${{ secrets.ESIGNET_P12_PASSWORD }}
+      ESIGNET_CRYPTO_ENCRYPTION_KEY: ${{ secrets.ESIGNET_CRYPTO_ENCRYPTION_KEY }}
       # Spring config label per namespace — controls which Git branch/tag the config-server uses
       # Set as Environment Variables in Repository → Settings → Environments → <branch> → Variables
       # If unset, hooks default to 'develop'
@@ -209,6 +213,8 @@ jobs:
           echo "::add-mask::${{ secrets.ESIGNET_MOSIPID2_CAPTCHA_SECRET_KEY }}"
           echo "::add-mask::${{ secrets.ESIGNET_SUNBIRD_CAPTCHA_SITE_KEY }}"
           echo "::add-mask::${{ secrets.ESIGNET_SUNBIRD_CAPTCHA_SECRET_KEY }}"
+          echo "::add-mask::${{ secrets.ESIGNET_P12_PASSWORD }}"
+          echo "::add-mask::${{ secrets.ESIGNET_CRYPTO_ENCRYPTION_KEY }}"
 
       - name: Setup kubectl and kubeconfig
         env:
@@ -418,6 +424,19 @@ jobs:
             else
               echo "ℹ mosipid2 disabled — skipping mosipid2 secret validation"
             fi
+
+            if [ "$PROFILE" == "esignet-standalone-2.0.0" ]; then
+              echo "--- Validating esignet-standalone-2.0.0 P12/crypto secrets ---"
+              for var in ESIGNET_P12_PASSWORD ESIGNET_CRYPTO_ENCRYPTION_KEY; do
+                val="${!var:-}"
+                if [ -z "$val" ]; then
+                  echo "❌ $var secret is not configured (required for esignet-standalone-2.0.0)"
+                  MISSING_SECRETS=1
+                else
+                  echo "✅ $var is configured"
+                fi
+              done
+            fi
           fi
 
           if [ "$MISSING_SECRETS" -eq 1 ]; then
@@ -439,6 +458,9 @@ jobs:
               if [ "$MOSIPID2_ENABLED" = "true" ]; then
                 echo "  - ESIGNET_MOSIPID2_CAPTCHA_SITE_KEY / ESIGNET_MOSIPID2_CAPTCHA_SECRET_KEY"
                 echo "  - MOSIPID2_POSTGRES_PASSWORD / MOSIPID2_KEYCLOAK_ADMIN_PASSWORD"
+              fi
+              if [ "$PROFILE" == "esignet-standalone-2.0.0" ]; then
+                echo "  - ESIGNET_P12_PASSWORD / ESIGNET_CRYPTO_ENCRYPTION_KEY"
               fi
             fi
             exit 1

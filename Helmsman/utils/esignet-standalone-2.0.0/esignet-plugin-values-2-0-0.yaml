@@ -78,11 +78,17 @@ extraEnvVars:
  - name: MOSIP_P12_PATH
    value: /home/mosip/keys/secret/mock.pfx
  - name: MOSIP_P12_PASSWORD
-   value: localtest
+   valueFrom:
+     secretKeyRef:
+       name: esignet-go-crypto
+       key: p12-password
  - name: OIDC_UI_SCHEME
    value: https
  - name: CRYPTO_ENCRYPTION_KEY
-   value: 0579f866ac7c9273580d0ff163fa01a7b2401a7ff3ddc3e3b14ae3136fa6025e
+   valueFrom:
+     secretKeyRef:
+       name: esignet-go-crypto
+       key: crypto-encryption-key
  - name: OIDC_UI_PORT
    value: '443'
  - name: OIDC_UI_LOGIN_PATH
