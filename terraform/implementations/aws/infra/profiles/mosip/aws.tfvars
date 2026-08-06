@@ -6,10 +6,10 @@
 # ============================================================
 
 # Environment name (infra component)
-cluster_name = "dev"
+cluster_name = "nexus"
 
 # MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "dev.mosip.net"
+cluster_env_domain = "nexus.mosip.net"
 
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
 mosip_email_id = "swapnil.mohanty@technoforte.co.in"
@@ -27,10 +27,10 @@ aws_provider_region = "ap-south-1"
 specific_availability_zones = ["ap-south-1b"]
 
 # The instance type for Kubernetes nodes (control plane, worker, etcd)
-k8s_instance_type = "m6a.2xlarge"
+k8s_instance_type = "t3a.2xlarge"
 
 # The instance type for Nginx server (load balancer)
-nginx_instance_type = "m6a.2xlarge"
+nginx_instance_type = "t3a.2xlarge"
 
 # The Route 53 hosted zone ID
 zone_id = "Z090954828SJIEL6P5406"
@@ -58,13 +58,13 @@ nginx_node_ebs_volume_size_2 = 200 # Enable second EBS volume for PostgreSQL tes
 k8s_instance_root_volume_size = 64
 
 # Control-plane, ETCD, Worker
-k8s_control_plane_node_count = 3
+k8s_control_plane_node_count = 1
 
 # ETCD, Worker
-k8s_etcd_node_count = 3
+k8s_etcd_node_count = 1
 
 # Worker
-k8s_worker_node_count = 2
+k8s_worker_node_count = 0
 
 # RKE2 Version Configuration
 rke2_version = "v1.28.9+rke2r1"
@@ -77,7 +77,7 @@ WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 # Rancher Import URL
 # Rancher Import Configuration
 enable_rancher_import = true
-rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/f6b9fvpzqkbfvczbk22phcck2c6tcljlfd28blgz82d7d9bn6mvxwq_c-m-b6spjn5z.yaml\""
+rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/s5ht2v7rx9bh99tz2nppgprmfc9tmql746s9h94kmqf42s6p9g5qqd_c-m-n8hlkhb5.yaml\""
 
 # DNS Records to map
 subdomain_public   = ["resident", "prereg", "esignet", "healthservices", "signup"]
@@ -93,7 +93,7 @@ postgresql_port         = "5433"
 # MOSIP Infrastructure Repository Configuration
 mosip_infra_repo_url = "https://github.com/mosip/infra.git"
 
-mosip_infra_branch = "dev-DSD-10557"
+mosip_infra_branch = "nexus"
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
 vpc_name = "default"
