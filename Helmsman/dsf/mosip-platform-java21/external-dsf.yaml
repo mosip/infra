@@ -47,7 +47,7 @@ apps:
 
   istio-addons-psql:
     namespace: postgres
-    enabled: true
+    enabled: false
     version: 0.1.0
     chart: $WORKDIR/utils/istio-addons/postgres-istio-addons-0.1.0.tgz
     set:
@@ -58,7 +58,7 @@ apps:
 
   postgres-init:
     namespace: postgres
-    enabled: true
+    enabled: false
     version: 1.3.0
     chart: mosip/postgres-init
     set:
@@ -143,7 +143,7 @@ apps:
 
   keycloak:
     namespace: keycloak
-    enabled: true
+    enabled: false
     version: 7.1.18
     chart: mosip/keycloak
     set:
@@ -191,7 +191,7 @@ apps:
 
   istio-addons-iam:
     namespace: keycloak
-    enabled: true
+    enabled: false
     version: 0.1.0
     chart: $WORKDIR/utils/istio-addons/iam-istio-addons-0.1.0.tgz
     set:
@@ -204,7 +204,7 @@ apps:
 
   keycloak-init:
     namespace: keycloak
-    enabled: true
+    enabled: false
     version: 1.3.0
     chart: mosip/keycloak-init
     set:
@@ -225,7 +225,7 @@ apps:
 
   softhsm-kernel:
     namespace: softhsm
-    enabled: true
+    enabled: false
     version: 1.4.1-rc.1
     chart: mosip/softhsm
     set:
@@ -241,7 +241,7 @@ apps:
 
   softhsm-ida:
     namespace: softhsm
-    enabled: true
+    enabled: false
     version: 1.4.1-rc.1
     chart: mosip/softhsm
     set:
@@ -255,7 +255,7 @@ apps:
 
   minio:
     namespace: minio
-    enabled: true
+    enabled: false
     version: 15.0.6
     chart: mosip/minio
     set:
@@ -274,7 +274,7 @@ apps:
 
   istio-addons-minio:
     namespace: minio
-    enabled: true
+    enabled: false
     version: 1.2.0
     chart: $WORKDIR/utils/istio-addons/minio-istio-addons-1.2.0.tgz
     set:
@@ -287,7 +287,7 @@ apps:
 
   clamav:
     namespace: clamav
-    enabled: true
+    enabled: false
     version: 3.1.0
     chart: wiremind/clamav
     set:
@@ -303,7 +303,7 @@ apps:
 
   activemq:
     namespace: activemq
-    enabled: true
+    enabled: false
     version: 0.0.4
     chart: mosip/activemq-artemis
     set:
@@ -326,7 +326,7 @@ apps:
 
   kafka:
     namespace: kafka
-    enabled: true
+    enabled: false
     version: 18.3.1
     chart: bitnami/kafka
     set:
@@ -371,7 +371,7 @@ apps:
 
   kafka-ui:
     namespace: kafka
-    enabled: true
+    enabled: false
     version: 0.4.2
     chart: kafka-ui/kafka-ui
     set:
@@ -392,7 +392,7 @@ apps:
 
   istio-addons-kafka:
     namespace: kafka
-    enabled: true
+    enabled: false
     version: 1.2.0
     chart: $WORKDIR/utils/istio-addons/kafka-istio-addons-1.2.0.tgz
     set:
@@ -406,7 +406,7 @@ apps:
 
   landing-page:
     namespace: landing-page
-    enabled: true
+    enabled: false
     version: 1.3.0
     chart: mosip/landing-page
     set:
