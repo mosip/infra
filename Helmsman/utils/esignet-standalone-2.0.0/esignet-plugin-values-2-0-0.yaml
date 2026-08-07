@@ -117,7 +117,6 @@ extraEnvVars:
 #  prefix: /v1/esignet/
 
 
-
 # extraEnvVarsAdditional is a Helm list — this file REPLACES the base list on merge.
 # All required entries (captcha + plugin-specific) must be present together.
 

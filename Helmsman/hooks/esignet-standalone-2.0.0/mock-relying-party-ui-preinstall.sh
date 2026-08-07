@@ -1,13 +1,13 @@
 #!/bin/bash
 # =============================================================================
-# eSignet 1.7.1 - Mock Relying Party UI Pre-install
+# eSignet Standalone 2.0.0 - Mock Relying Party UI Pre-install
 # =============================================================================
 # Prepares for mock relying party UI deployment.
 # =============================================================================
 set -euo pipefail
 
 echo "================================================"
-echo "eSignet 1.7.1 - Mock Relying Party UI Pre-install"
+echo "eSignet Standalone 2.0.0 - Mock Relying Party UI Pre-install"
 echo "================================================"
 
 # Ensure esignet namespace exists

@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# eSignet 1.7.1 - Mock Identity System Pre-install
+# eSignet Standalone 2.0.0 - Mock Identity System Pre-install
 # =============================================================================
 # Prepares esignet namespace for mock identity system deployment:
 #   - Copies softhsm-mock-identity-system secret from softhsm ns
@@ -8,8 +8,8 @@
 #   - Verifies softhsm-mock-identity-system-go-share ConfigMap is present
 #
 # Environment Variables:
-#   MOCKID_DB_NAME  - Mock identity DB name (default: mosip_mockidentitysystem)
-#   MOCKID_DB_USER  - Mock identity DB user (default: mockidentityuser)
+#   MOCKID_DB_NAME  - Mock identity DB name (default: mosip_mockidentitysystem_go)
+#   MOCKID_DB_USER  - Mock identity DB user (default: mockidentityuser_go)
 #   MOCKID_DB_PORT  - Postgres port (default: 5432)
 # =============================================================================
 set -euo pipefail
@@ -22,7 +22,7 @@ MOCKID_DB_PORT="${MOCKID_DB_PORT:-5432}"
 COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
 
 echo "================================================"
-echo "eSignet 1.7.1 - Mock Identity System Pre-install"
+echo "eSignet Standalone 2.0.0 - Mock Identity System Pre-install"
 echo "================================================"
 
 kubectl create namespace "$ESIGNET_NS" --dry-run=client -o yaml | kubectl apply -f -

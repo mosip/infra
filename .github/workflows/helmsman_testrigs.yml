@@ -73,6 +73,12 @@ jobs:
       name: ${{ github.ref_name }}
     steps:
       - name: Validate required variables
+        env:
+          IN_MOSIPID1_DOMAIN: ${{ github.event.inputs.mosipid1_domain_name }}
+          IN_MOSIPID2_DOMAIN: ${{ github.event.inputs.mosipid2_domain_name }}
+          VAR_MOSIPID1_DOMAIN: ${{ vars.MOSIPID1_DOMAIN_NAME }}
+          VAR_MOSIPID2_DOMAIN: ${{ vars.MOSIPID2_DOMAIN_NAME }}
+          IN_ENABLE_MOSIPID2: ${{ github.event.inputs.enable_mosipid2 }}
         run: |
           errors=()
           PROFILE="${{ github.event.inputs.profile }}"
@@ -100,13 +106,22 @@ jobs:
           # mosipid1_domain_name and mosipid2_domain_name are esignet standalone only.
           # Push events always target the esignet profile (path filter); dispatch uses explicit profile input.
           if [ -z "$PROFILE" ] || [[ "$PROFILE" == esignet-standalone* ]]; then
-            MOSIPID1_DOMAIN="${{ github.event.inputs.mosipid1_domain_name || vars.MOSIPID1_DOMAIN_NAME }}"
-            MOSIPID2_DOMAIN="${{ github.event.inputs.mosipid2_domain_name || vars.MOSIPID2_DOMAIN_NAME }}"
+            MOSIPID1_DOMAIN="${IN_MOSIPID1_DOMAIN:-$VAR_MOSIPID1_DOMAIN}"
+            MOSIPID2_DOMAIN="${IN_MOSIPID2_DOMAIN:-$VAR_MOSIPID2_DOMAIN}"
+            if [ -z "$MOSIPID1_DOMAIN" ]; then
+              echo "❌ mosipid1_domain_name is required for standalone profiles"
+              exit 1
+            fi
+            if [ "$IN_ENABLE_MOSIPID2" = "true" ] &&
+               [ -z "$MOSIPID2_DOMAIN" ]; then
+              echo "❌ mosipid2_domain_name is required when enable_mosipid2 is true"
+              exit 1
+            fi
             echo "✓ mosipid1_domain_name = $MOSIPID1_DOMAIN (esignet standalone)"
             echo "✓ mosipid2_domain_name = $MOSIPID2_DOMAIN (esignet standalone)"
           else
-            MOSIPID1_PROVIDED="${{ github.event.inputs.mosipid1_domain_name }}"
-            MOSIPID2_PROVIDED="${{ github.event.inputs.mosipid2_domain_name }}"
+            MOSIPID1_PROVIDED="$IN_MOSIPID1_DOMAIN"
+            MOSIPID2_PROVIDED="$IN_MOSIPID2_DOMAIN"
             if [ -n "$MOSIPID1_PROVIDED" ] || [ -n "$MOSIPID2_PROVIDED" ]; then
               echo "⚠ mosipid1_domain_name / mosipid2_domain_name are only used for esignet standalone profile — ignoring for profile=$PROFILE"
             fi

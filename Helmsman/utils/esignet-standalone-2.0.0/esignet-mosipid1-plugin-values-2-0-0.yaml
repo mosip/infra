@@ -135,7 +135,7 @@ extraEnvVarsAdditional:
       'email', 'svg': 'email_icon', 'prefixes': '', 'postfix':
       '@email', 'maxLength': '', 'regex': '' {{ "}}" }}
   - name: LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB_CLIENT
-    value: DEBUG
+    value: INFO
   - name: MOSIP_ESIGNET_CAPTCHA_REQUIRED
     value: "false"
   - name: MOSIP_ESIGNET_CAPTCHA_URL

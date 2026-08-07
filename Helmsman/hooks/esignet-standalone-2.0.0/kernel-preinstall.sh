@@ -20,6 +20,15 @@ API_HOST="${MOSIP_API_HOST:-}"
 API_INTERNAL_HOST="${MOSIP_API_INTERNAL_HOST:-}"
 COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
 
+if [ -z "$API_HOST" ]; then
+  echo "ERROR: MOSIP_API_HOST must be set" >&2
+  exit 1
+fi
+if [ -z "$API_INTERNAL_HOST" ]; then
+  echo "ERROR: MOSIP_API_INTERNAL_HOST must be set" >&2
+  exit 1
+fi
+
 echo "================================================"
 echo "eSignet 1.7.1 - Kernel Pre-install"
 echo "================================================"

@@ -8,12 +8,12 @@ helmRepos:
   mosip: https://mosip.github.io/mosip-helm
 
 # Apitestrigs deploy into service namespaces (no dedicated testrig namespaces):
-#   esignet-apitestrig            → esignet ns
-#   esignet-mosipid1-apitestrig   → esignet-mosipid1 ns
-#   esignet-mosipid2-apitestrig   → esignet-mosipid2 ns
-#   esignet-sunbird-apitestrig    → esignet-sunbird ns
-#   esignet-signup-apitestrig     → signup ns        (disabled — enable if signup deployed)
-#   signup-uitestrig              → signup-uitestrig  (disabled — enable if signup deployed)
+#   esignet-apitestrig-go            → esignet-go-mock ns
+#   esignet-go-mosipid1-apitestrig   → esignet-go-mosipid1 ns
+#   esignet-go-mosipid2-apitestrig   → esignet-go-mosipid2 ns
+#   esignet-go-sunbird-apitestrig    → esignet-go-sunbird ns
+#   esignet-signup-apitestrig-go     → signup-go ns          (disabled — enable if signup deployed)
+#   signup-uitestrig-go              → signup-uitestrig-go   (disabled — enable if signup deployed)
 namespaces:
   esignet-go-mosipid1:
     protected: false
@@ -212,7 +212,7 @@ apps:
     priority: -2
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-standalone-2.0.0/apitestrig-esignet-sunbird-setup.sh"
-      # postInstall: "$WORKDIR/hooks/esignet-standalone/trigger-test-jobs-esignet.sh"
+      # postInstall: "$WORKDIR/hooks/esignet-standalone-2.0.0/trigger-test-jobs-esignet.sh"
 
   # ---------------------------------------------------------------------------
   # Signup API Test Rig — disabled by default

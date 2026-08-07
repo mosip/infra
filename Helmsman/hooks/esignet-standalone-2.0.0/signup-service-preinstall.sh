@@ -64,7 +64,9 @@ if [[ -z "$ENV_VAR_EXISTS" ]]; then
   kubectl patch deployment -n captcha captcha --type='json' \
     -p='[{"op": "add", "path": "/spec/template/spec/containers/0/env/-", "value": {"name": "MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_SIGNUP_GO", "valueFrom": {"secretKeyRef": {"name": "signup-captcha-go", "key": "signup-captcha-secret-key"}}}}]'
 else
-  echo "MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_SIGNUP_GO already exists."
+  echo "Restarting captcha to load the updated signup-go secret."
+  kubectl -n captcha rollout restart deployment/captcha
+  kubectl -n captcha rollout status deployment/captcha --timeout=480s
 fi
 
 # --- Step 5: Create signup-keystore secrets ---

@@ -13,7 +13,7 @@ cluster_name = "<name>"
 cluster_env_domain = "<sandbox.xyz.net>"
 
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
-mosip_email_id = "<mail-id"
+mosip_email_id = "<mail-id>"
 
 # SSH login key name for AWS node instances (ex: my-ssh-key)
 ssh_key_name = "<ssh-key-name>"

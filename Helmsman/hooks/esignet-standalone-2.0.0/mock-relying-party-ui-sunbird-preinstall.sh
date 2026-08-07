@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# eSignet 1.7.1 - Mock Relying Party UI Sunbird Pre-install
+# eSignet Standalone 2.0.0 - Mock Relying Party UI Sunbird Pre-install
 # =============================================================================
 # Ensures esignet-sunbird namespace exists and verifies mock-relying-party-service
 # is available in the esignet-sunbird namespace before UI deployment.
@@ -10,7 +10,7 @@ set -euo pipefail
 ESIGNET_NS="esignet-go-sunbird"
 
 echo "================================================"
-echo "eSignet 1.7.1 - Mock Relying Party UI Sunbird Pre-install"
+echo "eSignet Standalone 2.0.0 - Mock Relying Party UI Sunbird Pre-install"
 echo "================================================"
 
 kubectl create namespace "$ESIGNET_NS" --dry-run=client -o yaml | kubectl apply -f -

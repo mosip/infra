@@ -26,6 +26,14 @@ kubectl create namespace "$ESIGNET_NS" --dry-run=client -o yaml | kubectl apply 
 kubectl label namespace "$ESIGNET_NS" istio-injection=disabled --overwrite
 echo "Istio injection disabled on namespace $ESIGNET_NS."
 
+restore_istio_injection_on_failure() {
+  local status=$?
+  if [ "$status" -ne 0 ]; then
+    kubectl label namespace "$ESIGNET_NS" istio-injection=enabled --overwrite || true
+  fi
+}
+trap restore_istio_injection_on_failure EXIT
+
 # Delete stale MISP onboarder artifacts from any previous run
 kubectl -n "$ESIGNET_NS" delete configmap esignet-onboarder-config --ignore-not-found=true
 kubectl -n "$ESIGNET_NS" delete secret esignet-onboarder-secrets --ignore-not-found=true

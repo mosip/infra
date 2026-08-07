@@ -1,19 +1,19 @@
 # =============================================================================
 # eSignet Profile - eSignet Services DSF (Desired State File)
 # =============================================================================
-# This DSF deploys eSignet v1.7.1 services for the standalone eSignet profile.
+# This DSF deploys eSignet 2.0.0 (Go) services for the standalone eSignet profile.
 #
 # Components (in priority order):
 #   1. Keycloak Init (eSignet-specific clients and roles)
-#   2. eSignet service v1.7.1
-#   3. OIDC UI v1.7.1
+#   2. eSignet service 2.0.0-develop (Go)
+#   3. OIDC UI 2.0.0-develop (Go)
 #   4. Mock Identity System (optional, disabled by default)
 #   5. Mock Relying Party Service (optional)
 #   6. Mock Relying Party UI (optional)
 #   7. Partner Onboarder (eSignet + Resident OIDC)
 #   8. Demo OIDC Partner Onboarder
 #
-# Based on eSignet v1.7.1 deploy scripts:
+# Based on eSignet 2.0.0 deploy scripts:
 #   - install-esignet.sh
 #   - initialise-prereq.sh (keycloak-init)
 # =============================================================================
