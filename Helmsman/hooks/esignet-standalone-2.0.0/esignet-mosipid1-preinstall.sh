@@ -50,7 +50,7 @@ fi
 # encrypted with the old keystore becomes unreadable.
 if ! kubectl -n "$ESIGNET_NS" get secret esignet-keystore-go-mosipid1 &>/dev/null; then
   echo "Generating dummy PKCS12 keystore for mosipid1"
-  DUMMY_P12_PASSWORD="$(openssl rand -hex 16)"
+  DUMMY_P12_PASSWORD="localtest"
   TMP_KEY="$(mktemp)"
   TMP_CERT="$(mktemp)"
   TMP_P12="$(mktemp)"
