@@ -71,6 +71,8 @@ jobs:
       name: ${{ github.ref_name }}
     steps:
       - name: Validate required variables
+        env:
+          IN_ENABLE_MOSIPID2: ${{ github.event.inputs.enable_mosipid2 }}
         run: |
           errors=()
           PROFILE="${{ github.event.inputs.profile }}"
@@ -98,7 +100,7 @@ jobs:
               echo "❌ mosipid1_domain_name is required for standalone profiles"
               exit 1
             fi
-            if [ "${{ github.event.inputs.enable_mosipid2 }}" = "true" ] &&
+            if [ "$IN_ENABLE_MOSIPID2" = "true" ] &&
                [ -z "$MOSIPID2_DOMAIN" ]; then
               echo "❌ mosipid2_domain_name is required when enable_mosipid2 is true"
               exit 1

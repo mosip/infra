@@ -478,8 +478,9 @@ For `esignet-standalone`:
 ```bash
 kubectl get cronjobs -n esignet-mock
 kubectl get cronjobs -n esignet-mosipid1
-kubectl get cronjobs -n esignet-mosipid2
 kubectl get cronjobs -n esignet-sunbird
+# If enable_mosipid2 was set to true:
+kubectl get cronjobs -n esignet-mosipid2
 ```
 
 For `esignet-standalone-2.0.0`:
@@ -487,8 +488,9 @@ For `esignet-standalone-2.0.0`:
 ```bash
 kubectl get cronjobs -n esignet-go-mock
 kubectl get cronjobs -n esignet-go-mosipid1
-kubectl get cronjobs -n esignet-go-mosipid2
 kubectl get cronjobs -n esignet-go-sunbird
+# If enable_mosipid2 was set to true:
+kubectl get cronjobs -n esignet-go-mosipid2
 ```
 
 ---
