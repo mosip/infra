@@ -174,8 +174,6 @@ Path to create `GH_INFRA_PAT`: `Your profile → Settings → Developer settings
 | `ESIGNET_MOSIPID2_CAPTCHA_SECRET_KEY` | reCAPTCHA **secret** key for `esignet-mosipid2` namespace *(only needed if mosipid2 is enabled)* |
 | `ESIGNET_SUNBIRD_CAPTCHA_SITE_KEY` | reCAPTCHA **site** key for `esignet-sunbird` namespace |
 | `ESIGNET_SUNBIRD_CAPTCHA_SECRET_KEY` | reCAPTCHA **secret** key for `esignet-sunbird` namespace |
-| `ESIGNET_P12_PASSWORD` | P12 keystore password, shared across all 4 `esignet-go-*` instances *(only needed for `esignet-standalone-2.0.0`)* |
-| `ESIGNET_CRYPTO_ENCRYPTION_KEY` | Crypto encryption key, shared across all 4 `esignet-go-*` instances *(only needed for `esignet-standalone-2.0.0`)* |
 | `MOSIPID1_POSTGRES_PASSWORD` | Postgres superuser password for the MOSIP-ID1 remote MOSIP environment |
 | `MOSIPID2_POSTGRES_PASSWORD` | Postgres superuser password for the MOSIP-ID2 remote MOSIP environment *(only needed if mosipid2 is enabled)* |
 | `MOSIPID1_KEYCLOAK_ADMIN_PASSWORD` | Keycloak admin password for the MOSIP-ID1 remote MOSIP environment |

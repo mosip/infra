@@ -80,18 +80,4 @@ $COPY_UTIL secret keycloak "$KEYCLOAK_NS" "$ESIGNET_NS"
 echo "Copying keycloak-client-secrets secret from $KEYCLOAK_NS"
 $COPY_UTIL secret keycloak-client-secrets "$KEYCLOAK_NS" "$ESIGNET_NS"
 
-# --- Step 5: Shared eSignet P12 password + crypto encryption key ---
-ESIGNET_P12_PASSWORD_VAL="${ESIGNET_P12_PASSWORD:?ERROR: ESIGNET_P12_PASSWORD must be set}"
-ESIGNET_CRYPTO_KEY_VAL="${ESIGNET_CRYPTO_ENCRYPTION_KEY:?ERROR: ESIGNET_CRYPTO_ENCRYPTION_KEY must be set}"
-CRYPTO_HUB_NS="captcha"
-
-echo "Creating esignet-go-crypto secret in $CRYPTO_HUB_NS namespace"
-kubectl -n "$CRYPTO_HUB_NS" create secret generic esignet-go-crypto \
-  --from-literal=p12-password="$ESIGNET_P12_PASSWORD_VAL" \
-  --from-literal=crypto-encryption-key="$ESIGNET_CRYPTO_KEY_VAL" \
-  --dry-run=client -o yaml | kubectl apply -f -
-
-echo "Copying esignet-go-crypto secret from $CRYPTO_HUB_NS to $ESIGNET_NS"
-$COPY_UTIL secret esignet-go-crypto "$CRYPTO_HUB_NS" "$ESIGNET_NS"
-
 echo "eSignet pre-install completed."

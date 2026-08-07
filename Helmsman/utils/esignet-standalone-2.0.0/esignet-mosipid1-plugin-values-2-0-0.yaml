@@ -61,20 +61,14 @@ extraEnvVars:
         key: mosip_ida_client_secret
   - name: AUTHN_PROVIDER
     value: mosip
-  - name: MOSIP_P12_PATH
+  - name: KEYMANAGER_DB_SCHEMA
+    value: esignet
+  - name: KEYMANAGER_KEYSTORE_TYPE
+    value: PKCS12
+  - name: KEYMANAGER_PKCS12_FILE_PATH
     value: /home/mosip/keys/secret/mosipid1.pfx
-  - name: MOSIP_P12_PASSWORD
-    valueFrom:
-      secretKeyRef:
-        name: esignet-go-crypto
-        key: p12-password
   - name: OIDC_UI_SCHEME
     value: https
-  - name: CRYPTO_ENCRYPTION_KEY
-    valueFrom:
-      secretKeyRef:
-        name: esignet-go-crypto
-        key: crypto-encryption-key
   - name: OIDC_UI_PORT
     value: '443'
   - name: OIDC_UI_LOGIN_PATH
@@ -87,6 +81,15 @@ extraEnvVars:
     value: decl-layout-1
   - name: DEFAULT_AUTH_FLOW_ID
     value: decl-mosip-otp-flow-1
+extraEnvVarsSecret:
+  - esignet-keystore-go-mosipid1
+extraVolumes:
+  - name: esignet-keystore-go-mosipid1
+    secret:
+      secretName: esignet-keystore-go-mosipid1
+extraVolumeMounts:
+  - name: esignet-keystore-go-mosipid1
+    mountPath: /home/mosip/keys/secret
 extraEnvVarsAdditional:
   - name: "MOSIP_ESIGNET_CAPTCHA_MODULE_NAME"
     value: "esignetgomosipid1"

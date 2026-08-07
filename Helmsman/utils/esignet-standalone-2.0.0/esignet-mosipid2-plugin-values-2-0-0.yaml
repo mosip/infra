@@ -61,20 +61,23 @@ extraEnvVars:
         key: mosip_ida_client_secret
   - name: AUTHN_PROVIDER
     value: mosip
-  - name: MOSIP_P12_PATH
-    value: /home/mosip/keys/secret/mosipid2.pfx
-  - name: MOSIP_P12_PASSWORD
+  - name: KEYMANAGER_DB_SCHEMA
+    value: esignet
+  - name: KEYMANAGER_KEYSTORE_TYPE
+    value: PKCS11
+  - name: KEYMANAGER_PKCS11_MODULE_PATH
+    value: /usr/lib/softhsm/libsofthsm2.so
+  - name: KEYMANAGER_PKCS11_TOKEN_LABEL
+    value: esignet
+  - name: KEYMANAGER_PKCS11_SLOT_ID
+    value: "0"
+  - name: KEYMANAGER_PKCS11_PIN
     valueFrom:
       secretKeyRef:
-        name: esignet-go-crypto
-        key: p12-password
+        name: esignet-softhsm-go-mosipid2
+        key: security-pin
   - name: OIDC_UI_SCHEME
     value: https
-  - name: CRYPTO_ENCRYPTION_KEY
-    valueFrom:
-      secretKeyRef:
-        name: esignet-go-crypto
-        key: crypto-encryption-key
   - name: OIDC_UI_PORT
     value: '443'
   - name: OIDC_UI_LOGIN_PATH

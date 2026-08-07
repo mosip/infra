@@ -44,6 +44,29 @@ if ! kubectl -n "$ESIGNET_NS" get secret esignet-misp-onboarder-key &>/dev/null;
   echo "esignet-misp-onboarder-key placeholder created in $ESIGNET_NS"
 fi
 
+# Create esignet-keystore-go-mosipid1 (PKCS12 keystore for KEYMANAGER_KEYSTORE_TYPE: PKCS12) —
+# a throwaway self-signed cert generated once and reused across redeploys. Never regenerate an
+# existing keystore: KEYMANAGER_PKCS12_PASSWORD/mosipid1.pfx must stay stable, or anything
+# encrypted with the old keystore becomes unreadable.
+if ! kubectl -n "$ESIGNET_NS" get secret esignet-keystore-go-mosipid1 &>/dev/null; then
+  echo "Generating dummy PKCS12 keystore for mosipid1"
+  DUMMY_P12_PASSWORD="$(openssl rand -hex 16)"
+  TMP_KEY="$(mktemp)"
+  TMP_CERT="$(mktemp)"
+  TMP_P12="$(mktemp)"
+  openssl req -x509 -newkey rsa:2048 -keyout "$TMP_KEY" -out "$TMP_CERT" \
+    -days 3650 -nodes -subj "/CN=esignet-go-mosipid1-dummy" 2>/dev/null
+  openssl pkcs12 -export -out "$TMP_P12" -inkey "$TMP_KEY" -in "$TMP_CERT" \
+    -passout "pass:${DUMMY_P12_PASSWORD}"
+  kubectl -n "$ESIGNET_NS" create secret generic esignet-keystore-go-mosipid1 \
+    --from-literal=KEYMANAGER_PKCS12_PASSWORD="$DUMMY_P12_PASSWORD" \
+    --from-file=mosipid1.pfx="$TMP_P12"
+  rm -f "$TMP_KEY" "$TMP_CERT" "$TMP_P12"
+  echo "esignet-keystore-go-mosipid1 secret created in $ESIGNET_NS"
+else
+  echo "esignet-keystore-go-mosipid1 already exists — reusing existing keystore"
+fi
+
 echo "Creating esignet-captcha-go-mosipid1 secret in $CAPTCHA_NS namespace"
 kubectl -n "$CAPTCHA_NS" create secret generic esignet-captcha-go-mosipid1 \
   --from-literal=esignet-captcha-site-key="$CAPTCHA_SITE_KEY" \
