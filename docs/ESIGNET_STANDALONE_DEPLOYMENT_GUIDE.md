@@ -11,6 +11,14 @@ You do **not** need to run any commands on your local machine — everything run
 
 **Estimated time:** ~90–120 minutes end to end (Terraform ~30 min, external services ~20 min, eSignet ~25 min).
 
+> **A second, isolated profile — `esignet-standalone-2.0.0`** — is also available in the `profile` dropdown of
+> `helmsman_esignet.yml`, `helmsman_testrigs.yml`, and `helmsman_signup.yml`. It deploys its own namespaces, Helm
+> releases, hostnames (e.g. `esignet-go-mock`, `esignet-go-mosipid1`), and databases, so it can run side by side
+> with `esignet-standalone` in the same cluster without colliding. It shares the same external infrastructure
+> (Postgres server, Keycloak, Redis, Kafka, Minio, Captcha instances) and Terraform profile — deploy/manage those via `helmsman_external.yml` and
+> Terraform using the `esignet-standalone` profile as usual; there is no separate `esignet-standalone-2.0.0` entry
+> for either of those.
+
 ---
 
 ## Table of Contents
@@ -44,6 +52,9 @@ This deployment can run up to **4 separate eSignet instances** on the same clust
 | **eSignet MOSIP-ID2** | `esignet-mosipid2` | A second real MOSIP identity system at `MOSIPID2_DOMAIN_NAME` | No |
 | **eSignet Sunbird** | `esignet-sunbird` | A Sunbird RC credential registry | Yes |
 
+> **Deploying `esignet-standalone-2.0.0` instead?** Same 4 instances, `-go`-suffixed namespaces:
+> `esignet-go-mock`, `esignet-go-mosipid1`, `esignet-go-mosipid2`, `esignet-go-sunbird`.
+
 ### When do you need mosipid1?
 
 Use `esignet-mosipid1` when you want eSignet to authenticate citizens against a **real MOSIP identity system**. You give it the domain of your MOSIP environment (e.g. `mosipenv.your-org.net`) via the `MOSIPID1_DOMAIN_NAME` variable, and the deployment automatically connects eSignet to that system's identity APIs, database, and Keycloak.
@@ -65,6 +76,11 @@ If you only have one MOSIP system to connect to, leave mosipid2 disabled. You do
 3. When running the eSignet workflow (Step 2), toggle **`enable_mosipid2`** to `true` and fill in the `mosipid2_domain_name` field
 
 > No DSF file edits needed — `enable_mosipid2` is a workflow input toggle that controls deployment at runtime.
+
+> **`esignet-standalone-2.0.0` note:** `MOSIPID1_DOMAIN_NAME` and `MOSIPID2_DOMAIN_NAME` are the same variables
+> used by both profiles — if you run `esignet-standalone` and `esignet-standalone-2.0.0` side by side, their
+> mosipid1/mosipid2 instances point at the **same** remote MOSIP environment(s). There's no separate `_GO`-suffixed
+> domain variable.
 
 ---
 
@@ -140,6 +156,12 @@ Path to create `GH_INFRA_PAT`: `Your profile → Settings → Developer settings
 | `ESIGNET_CAPTCHA_SITE_KEY` | reCAPTCHA **site** key for the main `esignet-mock` namespace |
 | `ESIGNET_CAPTCHA_SECRET_KEY` | reCAPTCHA **secret** key for the main `esignet-mock` namespace |
 
+> **`esignet-standalone-2.0.0` note:** `helmsman_external.yml` has no `esignet-standalone-2.0.0` option in its
+> `profile` dropdown — it only ever deploys as `esignet-standalone`. The 2.0.0 profile has no `external-dsf.yaml`
+> of its own; it reuses this same shared captcha/Postgres/Keycloak/Redis/Kafka/MinIO deployment (see the callout
+> at the top of this guide). Always run Step 1 with `profile: esignet-standalone`, even if you only plan to
+> deploy `esignet-standalone-2.0.0` in Step 2.
+
 **For `helmsman_esignet.yml`:**
 
 | Secret Name | What it is |
@@ -158,6 +180,13 @@ Path to create `GH_INFRA_PAT`: `Your profile → Settings → Developer settings
 | `MOSIPID2_KEYCLOAK_ADMIN_PASSWORD` | Keycloak admin password for the MOSIP-ID2 remote MOSIP environment *(only needed if mosipid2 is enabled)* |
 
 > ⚠️ `MOSIPID1_KEYCLOAK_ADMIN_PASSWORD` and `MOSIPID2_KEYCLOAK_ADMIN_PASSWORD` are the admin passwords of the **remote** MOSIP-ID1 and MOSIP-ID2 Keycloak instances (not the local one deployed by this stack). The preinstall hook calls those Keycloak REST APIs to fetch client secrets. A wrong domain or wrong password here will cause the preinstall to fail with a curl error.
+>
+> **`esignet-standalone-2.0.0` note:** All of the secrets above are **reused as-is** by `esignet-standalone-2.0.0`
+> — there are no separate `_GO`-suffixed GitHub secrets. Internally, the 2.0.0 hooks create differently-named
+> Kubernetes secrets (e.g. `esignet-captcha-go`, `esignet-captcha-go-mosipid1`) and patch differently-named env
+> vars onto the shared `captcha` deployment (e.g. `MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_ESIGNET_GO`) so both
+> profiles can coexist on the same captcha pod — but the underlying reCAPTCHA key **values** you configure here
+> are shared between `esignet-standalone` and `esignet-standalone-2.0.0`.
 
 **For `helmsman_signup.yml` (set now even though signup is not yet active):**
 
@@ -165,6 +194,9 @@ Path to create `GH_INFRA_PAT`: `Your profile → Settings → Developer settings
 |---|---|
 | `MOSIP_SIGNUP_CAPTCHA_SITE_KEY` | reCAPTCHA **site** key for the `signup` namespace |
 | `MOSIP_SIGNUP_CAPTCHA_SECRET_KEY` | reCAPTCHA **secret** key for the `signup` namespace |
+
+> **`esignet-standalone-2.0.0` note:** Same secrets reused here too — signup for the 2.0.0 profile deploys into
+> the `signup-go` namespace (vs `signup` for `esignet-standalone`) but shares these same GitHub secret values.
 
 ---
 
@@ -198,11 +230,16 @@ Step 0 → Provision Infrastructure   (terraform plan / apply)
   ├── 0b  base-infra      ~10 min   ← once per AWS account; skip if already done
   ├── 0c  observ-infra    ~15 min   ← optional monitoring cluster
   └── 0d  infra           ~20 min   profile: esignet-standalone  ← the main cluster
-Step 1 → Deploy External Services   (helmsman_external.yml)   ~20 min
-Step 2 → Deploy eSignet             (helmsman_esignet.yml)    ~25 min
+Step 1 → Deploy External Services   (helmsman_external.yml)   ~20 min   profile: esignet-standalone (always)
+Step 2 → Deploy eSignet             (helmsman_esignet.yml)    ~25 min   profile: esignet-standalone or esignet-standalone-2.0.0
 Step 3 → Deploy Signup              (helmsman_signup.yml)     ⚠️  IN PROGRESS — not ready yet
-Step 4 → Deploy Testrigs (optional) (helmsman_testrigs.yml)   ~10 min
+Step 4 → Deploy Testrigs (optional) (helmsman_testrigs.yml)   ~10 min   profile: esignet-standalone or esignet-standalone-2.0.0
 ```
+
+> Steps 2 and 4 accept either profile in their `profile` dropdown — pick `esignet-standalone-2.0.0` to deploy
+> the Go-based instances instead of (or alongside) the v1.7.1 ones. Step 1 has no 2.0.0 option since both
+> profiles share the same external infrastructure. Step 3's dropdown also lists `esignet-standalone-2.0.0`,
+> but the step itself isn't usable yet for either profile — see the note below.
 
 ---
 
@@ -320,9 +357,11 @@ Follow the full instructions in the root README: [Step 3ca: Observation Infrastr
 ![Deploy External Services - Helmsman](_images/helmsman-external-services.png)
 
 **How to know it succeeded:** Click into the running workflow. Wait for all jobs to show a green tick. Then run:
+
 ```bash
 kubectl get pods -n postgres && kubectl get pods -n keycloak && kubectl get pods -n kafka
 ```
+
 All pods should show `Running` or `Completed`.
 
 ---
@@ -341,7 +380,7 @@ All pods should show `Running` or `Completed`.
 
 | Field | Value to enter |
 |---|---|
-| `profile` | `esignet-standalone` |
+| `profile` | `esignet-standalone` **or** `esignet-standalone-2.0.0` — see note below |
 | `mode` | `apply` |
 | `skip_mosip_dsf_check` | **tick this** — standalone has no MOSIP deployment to wait for |
 | `delete_existing_jobs` | tick only if re-running after a failure; leave unticked on first deploy |
@@ -358,12 +397,32 @@ All pods should show `Running` or `Completed`.
 
 ![Deploy eSignet - Helmsman](_images/esignet.png)
 
+> **`esignet-standalone-2.0.0` note:** Selecting `esignet-standalone-2.0.0` runs `Helmsman/dsf/esignet-standalone-2.0.0/esignet-dsf.yaml`
+> instead — it deploys the same 4 instances (main/mock, mosipid1, mosipid2, sunbird) plus their OIDC UIs and mock
+> relying party service, but into `-go`-suffixed namespaces (`esignet-go-mock`, `esignet-go-mosipid1`,
+> `esignet-go-mosipid2`, `esignet-go-sunbird`) with `-go`-suffixed hostnames (e.g. `esignet-go.sandbox.xyz.net`).
+> All other fields (`domain_name`, `mosipid1_domain_name`, `enable_mosipid2`, etc.) work the same way as for
+> `esignet-standalone`. You can run both profiles side by side in the same cluster — Step 1 only needs to be run
+> once, with `profile: esignet-standalone`.
+
 **How to know it succeeded:**
+
+For `esignet-standalone`:
+
 ```bash
 kubectl get pods -n esignet-mock && kubectl get pods -n esignet-mosipid1 && kubectl get pods -n esignet-sunbird
 # If enable_mosipid2 was set to true:
 kubectl get pods -n esignet-mosipid2
 ```
+
+For `esignet-standalone-2.0.0`:
+
+```bash
+kubectl get pods -n esignet-go-mock && kubectl get pods -n esignet-go-mosipid1 && kubectl get pods -n esignet-go-sunbird
+# If enable_mosipid2 was set to true:
+kubectl get pods -n esignet-go-mosipid2
+```
+
 All pods should show `Running`.
 
 ---
@@ -377,6 +436,10 @@ All pods should show `Running`.
 > **What you need to do right now:** Nothing — skip this step for now. However, make sure the signup secrets (`MOSIP_SIGNUP_CAPTCHA_SITE_KEY` and `MOSIP_SIGNUP_CAPTCHA_SECRET_KEY`) are already added to the GitHub Environment (see Section 2) so you are ready when signup is enabled.
 >
 > This section will be updated with full instructions once signup deployment is ready.
+>
+> **`esignet-standalone-2.0.0` note:** `helmsman_signup.yml` already lists `esignet-standalone-2.0.0` in its
+> `profile` dropdown (deploys into the `signup-go` namespace instead of `signup`), but it's equally not-yet-ready
+> for either profile.
 
 ---
 
@@ -394,7 +457,7 @@ All pods should show `Running`.
 
 | Field | Value to enter |
 |---|---|
-| `profile` | `esignet-standalone` |
+| `profile` | `esignet-standalone` **or** `esignet-standalone-2.0.0` — matches whichever profile you deployed in Step 2 |
 | `mode` | `apply` |
 | `domain_name` | your base domain — e.g. `sandbox.xyz.net` |
 | `mosipid1_domain_name` | MOSIP-ID1 base domain *(if MOSIP-ID1 was deployed in Step 2)* |
@@ -409,11 +472,25 @@ All pods should show `Running`.
 ![Deploy Test Rigs - Helmsman](_images/helmsman-testrigs.png)
 
 **How to know it succeeded:** The workflow log should show all Helmsman releases applied without errors. Verify that test cronjobs were created:
+
+For `esignet-standalone`:
+
 ```bash
 kubectl get cronjobs -n esignet-mock
 kubectl get cronjobs -n esignet-mosipid1
-kubectl get cronjobs -n esignet-mosipid2
 kubectl get cronjobs -n esignet-sunbird
+# If enable_mosipid2 was set to true:
+kubectl get cronjobs -n esignet-mosipid2
+```
+
+For `esignet-standalone-2.0.0`:
+
+```bash
+kubectl get cronjobs -n esignet-go-mock
+kubectl get cronjobs -n esignet-go-mosipid1
+kubectl get cronjobs -n esignet-go-sunbird
+# If enable_mosipid2 was set to true:
+kubectl get cronjobs -n esignet-go-mosipid2
 ```
 
 ---
@@ -450,16 +527,19 @@ helm list -n keycloak
 kubectl get pods --all-namespaces | grep -v Running | grep -v Completed | grep -v Terminating
 ```
 
+> **Deployed `esignet-standalone-2.0.0`?** Swap in the `-go` namespaces: `esignet-go-mock`, `esignet-go-mosipid1`,
+> `esignet-go-mosipid2`, `esignet-go-sunbird`. `keycloak` is shared, so `helm list -n keycloak` is unchanged.
+
 **Expected URLs after deployment** (replace `sandbox.xyz.net` with your domain):
 
-| Service | URL |
-|---|---|
-| eSignet OIDC UI | `https://esignet.sandbox.xyz.net` |
-| Mock Relying Party UI | `https://healthservices.sandbox.xyz.net` |
-| Keycloak | `https://iam.sandbox.xyz.net` |
-| MOSIP-ID1 eSignet | `https://esignet-mosipid1.sandbox.xyz.net` |
-| MOSIP-ID2 eSignet | `https://esignet-mosipid2.sandbox.xyz.net` |
-| Sunbird eSignet | `https://esignet-sunbird.sandbox.xyz.net` |
+| Service | esignet-standalone URL | esignet-standalone-2.0.0 URL |
+|---|---|---|
+| eSignet OIDC UI | `https://esignet.sandbox.xyz.net` | `https://esignet-go.sandbox.xyz.net` |
+| Mock Relying Party UI | `https://healthservices.sandbox.xyz.net` | `https://healthservices-go.sandbox.xyz.net` |
+| Keycloak | `https://iam.sandbox.xyz.net` | *(shared — same URL)* |
+| MOSIP-ID1 eSignet | `https://esignet-mosipid1.sandbox.xyz.net` | `https://esignet-go-mosipid1.sandbox.xyz.net` |
+| MOSIP-ID2 eSignet | `https://esignet-mosipid2.sandbox.xyz.net` | `https://esignet-go-mosipid2.sandbox.xyz.net` |
+| Sunbird eSignet | `https://esignet-sunbird.sandbox.xyz.net` | `https://esignet-go-sunbird.sandbox.xyz.net` |
 
 ---
 
@@ -491,16 +571,29 @@ Reference commit: [mosip/mosip-config@e8961a2](https://github.com/mosip/mosip-co
 The MOSIP Identity Authentication service restricts which domains can call its APIs. Edit `id-authentication-default.properties` in the MOSIP platform's `mosip-config` branch and add your eSignet standalone hostnames to `mosip.ida.allowed.domain.uris`:
 
 **For mosipid1 only:**
+
 ```properties
 mosip.ida.allowed.domain.uris=${mosip.api.internal.url},https://${mosip.esignet.host},https://esignet-mosipid1.<your-domain>
 ```
 
 **For both mosipid1 and mosipid2:**
+
 ```properties
 mosip.ida.allowed.domain.uris=${mosip.api.internal.url},https://${mosip.esignet.host},https://esignet-mosipid1.<your-domain>,https://esignet-mosipid2.<your-domain>
 ```
 
 Replace `<your-domain>` with your eSignet standalone base domain (e.g. `sandbox.xyz.net`).
+
+> **`esignet-standalone-2.0.0` note:** Since `MOSIPID1_DOMAIN_NAME`/`MOSIPID2_DOMAIN_NAME` are shared between both
+> profiles (see [Section 0](#0-understanding-the-esignet-instances)), if you're running `esignet-mosipid1` (v1.7.1)
+> and `esignet-go-mosipid1` (2.0.0) against the **same** remote MOSIP-ID1 environment (and similarly for
+> MOSIP-ID2), add **both** hostnames for each shared environment to `mosip.ida.allowed.domain.uris`:
+>
+> ```properties
+> mosip.ida.allowed.domain.uris=${mosip.api.internal.url},https://${mosip.esignet.host},https://esignet-mosipid1.<your-domain>,https://esignet-go-mosipid1.<your-domain>,https://esignet-mosipid2.<your-domain>,https://esignet-go-mosipid2.<your-domain>
+> ```
+>
+> Otherwise, only add the hostname for whichever profile(s) you actually deployed.
 
 Reference commit: [mosip/mosip-config@27276cb](https://github.com/mosip/mosip-config/commit/27276cbb7fa01015492855baa3e00fe0a4db421c)
 

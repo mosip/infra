@@ -109,6 +109,11 @@ apps:
       databases.mosip_esignet.host: "postgres.${domain_name}"
       databases.mosip_esignet.port: ${esignet_db_port}
       databases.mosip_esignet.dml: 1
+      databases.mosip_esignet.repoUrl: "https://github.com/mosip/esignet.git"
+      databases.mosip_esignet.defaultDb: "postgres"
+      databases.mosip_esignet.su.user: "postgres"
+      databases.mosip_esignet.su.secret.name: "postgres-postgresql"
+      databases.mosip_esignet.su.secret.key: "postgres-password"
       databases.mosip_esignet_mosipid1.repoUrl: "https://github.com/mosip/esignet.git"
       databases.mosip_esignet_mosipid1.defaultDb: "postgres"
       databases.mosip_esignet_mosipid1.su.user: "postgres"
@@ -174,6 +179,78 @@ apps:
       databases.mosip_mockidentitysystem.repoUrl: "https://github.com/mosip/esignet-mock-services.git"
       databases.mosip_mockidentitysystem.port: ${esignet_db_port}
       databases.mosip_mockidentitysystem.dml: 1
+      databases.mosip_mockidentitysystem.defaultDb: "postgres"
+      databases.mosip_mockidentitysystem.su.user: "postgres"
+      databases.mosip_mockidentitysystem.su.secret.name: "postgres-postgresql"
+      databases.mosip_mockidentitysystem.su.secret.key: "postgres-password"
+      # ---------------------------------------------------------------------------
+      # esignet-standalone-2.0.0 profile — isolated databases (own data, shared postgres)
+      # ---------------------------------------------------------------------------
+      databases.mosip_esignet_go.enabled: "true"
+      databases.mosip_esignet_go.scriptsDir: "mosip_esignet"
+      databases.mosip_esignet_go.dbName: "mosip_esignet_go"
+      databases.mosip_esignet_go.dbUser: "esignetuser_go"
+      databases.mosip_esignet_go.branch: "develop"
+      databases.mosip_esignet_go.host: "postgres.${domain_name}"
+      databases.mosip_esignet_go.port: ${esignet_db_port}
+      databases.mosip_esignet_go.dml: 1
+      databases.mosip_esignet_go.repoUrl: "https://github.com/mosip/esignet.git"
+      databases.mosip_esignet_go.defaultDb: "postgres"
+      databases.mosip_esignet_go.su.user: "postgres"
+      databases.mosip_esignet_go.su.secret.name: "postgres-postgresql"
+      databases.mosip_esignet_go.su.secret.key: "postgres-password"
+      databases.mosip_esignet_go_mosipid1.enabled: "true"
+      databases.mosip_esignet_go_mosipid1.scriptsDir: "mosip_esignet"
+      databases.mosip_esignet_go_mosipid1.dbName: "mosip_esignet_go_mosipid1"
+      databases.mosip_esignet_go_mosipid1.dbUser: "esignetuser_go_mosipid1"
+      databases.mosip_esignet_go_mosipid1.branch: "develop"
+      databases.mosip_esignet_go_mosipid1.host: "postgres.${domain_name}"
+      databases.mosip_esignet_go_mosipid1.port: ${esignet_db_port}
+      databases.mosip_esignet_go_mosipid1.dml: 1
+      databases.mosip_esignet_go_mosipid1.repoUrl: "https://github.com/mosip/esignet.git"
+      databases.mosip_esignet_go_mosipid1.defaultDb: "postgres"
+      databases.mosip_esignet_go_mosipid1.su.user: "postgres"
+      databases.mosip_esignet_go_mosipid1.su.secret.name: "postgres-postgresql"
+      databases.mosip_esignet_go_mosipid1.su.secret.key: "postgres-password"
+      databases.mosip_esignet_go_mosipid2.enabled: "true"
+      databases.mosip_esignet_go_mosipid2.scriptsDir: "mosip_esignet"
+      databases.mosip_esignet_go_mosipid2.dbName: "mosip_esignet_go_mosipid2"
+      databases.mosip_esignet_go_mosipid2.dbUser: "esignetuser_go_mosipid2"
+      databases.mosip_esignet_go_mosipid2.branch: "develop"
+      databases.mosip_esignet_go_mosipid2.host: "postgres.${domain_name}"
+      databases.mosip_esignet_go_mosipid2.port: ${esignet_db_port}
+      databases.mosip_esignet_go_mosipid2.dml: 1
+      databases.mosip_esignet_go_mosipid2.repoUrl: "https://github.com/mosip/esignet.git"
+      databases.mosip_esignet_go_mosipid2.defaultDb: "postgres"
+      databases.mosip_esignet_go_mosipid2.su.user: "postgres"
+      databases.mosip_esignet_go_mosipid2.su.secret.name: "postgres-postgresql"
+      databases.mosip_esignet_go_mosipid2.su.secret.key: "postgres-password"
+      databases.mosip_esignet_go_sunbird.enabled: "true"
+      databases.mosip_esignet_go_sunbird.scriptsDir: "mosip_esignet"
+      databases.mosip_esignet_go_sunbird.dbName: "mosip_esignet_go_sunbird"
+      databases.mosip_esignet_go_sunbird.dbUser: "esignetuser_go_sunbird"
+      databases.mosip_esignet_go_sunbird.branch: "develop"
+      databases.mosip_esignet_go_sunbird.host: "postgres.${domain_name}"
+      databases.mosip_esignet_go_sunbird.port: ${esignet_db_port}
+      databases.mosip_esignet_go_sunbird.dml: 1
+      databases.mosip_esignet_go_sunbird.repoUrl: "https://github.com/mosip/esignet.git"
+      databases.mosip_esignet_go_sunbird.defaultDb: "postgres"
+      databases.mosip_esignet_go_sunbird.su.user: "postgres"
+      databases.mosip_esignet_go_sunbird.su.secret.name: "postgres-postgresql"
+      databases.mosip_esignet_go_sunbird.su.secret.key: "postgres-password"
+      databases.mosip_mockidentitysystem_go.enabled: "true"
+      databases.mosip_mockidentitysystem_go.scriptsDir: "mosip_mockidentitysystem"
+      databases.mosip_mockidentitysystem_go.dbName: "mosip_mockidentitysystem_go"
+      databases.mosip_mockidentitysystem_go.dbUser: "mockidentityuser_go"
+      databases.mosip_mockidentitysystem_go.branch: "develop"
+      databases.mosip_mockidentitysystem_go.host: "postgres.${domain_name}"
+      databases.mosip_mockidentitysystem_go.repoUrl: "https://github.com/mosip/esignet-mock-services.git"
+      databases.mosip_mockidentitysystem_go.port: ${esignet_db_port}
+      databases.mosip_mockidentitysystem_go.dml: 1
+      databases.mosip_mockidentitysystem_go.defaultDb: "postgres"
+      databases.mosip_mockidentitysystem_go.su.user: "postgres"
+      databases.mosip_mockidentitysystem_go.su.secret.name: "postgres-postgresql"
+      databases.mosip_mockidentitysystem_go.su.secret.key: "postgres-password"
     wait: true
     timeout: 300
     priority: -16
@@ -188,7 +265,7 @@ apps:
   # Initializes mosip_audit, mosip_kernel, mosip_otp (v1.2.0.1 branch).
   postgres-init-signup:
     namespace: signup
-    enabled: true
+    enabled: false
     version: 12.0.1
     chart: mosip/postgres-init
     set:
@@ -230,6 +307,27 @@ apps:
       databases.mosip_otp.host: "postgres.${domain_name}"
       databases.mosip_otp.port: ${esignet_db_port}
       databases.mosip_otp.dml: 0
+      # ---------------------------------------------------------------------------
+      # esignet-standalone-2.0.0 profile — isolated signup/kernel databases
+      # ---------------------------------------------------------------------------
+      databases.mosip_audit_go.enabled: "true"
+      databases.mosip_audit_go.branch: "v1.2.0.1"
+      databases.mosip_audit_go.repoUrl: "https://github.com/mosip/audit-manager.git"
+      databases.mosip_audit_go.host: "postgres.${domain_name}"
+      databases.mosip_audit_go.port: ${esignet_db_port}
+      databases.mosip_audit_go.dml: 0
+      databases.mosip_kernel_go.enabled: "true"
+      databases.mosip_kernel_go.branch: "v1.2.0.1"
+      databases.mosip_kernel_go.repoUrl: "https://github.com/mosip/commons.git"
+      databases.mosip_kernel_go.host: "postgres.${domain_name}"
+      databases.mosip_kernel_go.port: ${esignet_db_port}
+      databases.mosip_kernel_go.dml: 0
+      databases.mosip_otp_go.enabled: "true"
+      databases.mosip_otp_go.branch: "v1.2.0.1"
+      databases.mosip_otp_go.repoUrl: "https://github.com/mosip/otp-manager.git"
+      databases.mosip_otp_go.host: "postgres.${domain_name}"
+      databases.mosip_otp_go.port: ${esignet_db_port}
+      databases.mosip_otp_go.dml: 0
     wait: true
     timeout: 300
     priority: -16
@@ -414,7 +512,7 @@ apps:
   captcha:
     namespace: captcha
     enabled: true
-    version: 0.1.0-beta.1
+    version: 0.1.1
     chart: mosip/captcha
     set:
       metrics.serviceMonitor.enabled: "false"

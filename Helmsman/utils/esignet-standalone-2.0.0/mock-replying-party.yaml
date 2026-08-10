@@ -1,0 +1,25 @@
+extraEnvVars:
+  - name: CLIENT_ID
+    value: I6eXdnnLGGj2A2BcTL-jug_0ujpnQXlBpKAbBCkGWEM
+  - name: ACRS
+    value: >-
+     mosip:idp:acr:generated-code%20mosip:idp:acr:biometrics%20mosip:idp:acr:linked-wallet%20mosip:idp:acr:password%20mosip:idp:acr:knowledge
+  - name: DISPLAY
+    value: page
+  - name: GRANT_TYPE
+    value: authorization_code
+  - name: CLAIMS_LOCALES
+    value: en
+  - name: SCOPE_USER_PROFILE
+    value: openid profile
+  - name: CLAIMS_USER_PROFILE
+    value: >-
+       {"userinfo":{"given_name":{"essential":true},"phone_number":{"essential":true},"email":{"essential":true},"picture":{"essential":false},"gender":{"essential":false},"birthdate":{"essential":false},"address":{"essential":false}},"id_token":{}}
+mock_relying_party_service:
+  host: ''
+  mountDir: ""  # path inside docker
+  healthCheckUrl:
+  mock_relying_party_serviceMountDIr: /home/mosip/oidc/
+  puburl:
+  privurl:
+  USERINFO_RESPONSE_TYPE: jwt
