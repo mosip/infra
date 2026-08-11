@@ -10,6 +10,7 @@
 #      like peer66 before peer101). assigned.txt is the source of truth; if a
 #      peer directory or assigned.txt line is missing, create it on the VM first.
 #      Append assignments for the new environment - one peer per secret.
+#      Rewrites assigned.txt sorted by peer number so gap-filled slots stay in order.
 #      Supports two assigned.txt layouts:
 #         peerN: username          (legacy colon format on /home/ubuntu)
 #         peerN env(SECRET_NAME)   (MOSIP per-secret format)
@@ -20,8 +21,8 @@
 #      (TF_WG_CONFIG, CLUSTER_WIREGUARD_WG0, CLUSTER_WIREGUARD_WG1) on the
 #      environment whose name == the branch/env name.
 #
-#   offboard - Reverse of onboard: delete GitHub env secrets, free assigned.txt
-#              lines on the jumpserver, remove the tracker row (peers are reused).
+#   offboard - Revoke VPN on jumpserver (wg0 + keys), clear assigned.txt, delete
+#              GitHub env secrets, update repo tracker (peers reused in order).
 #
 # Three distinct peers are used on onboard because the Helmsman wg0/wg1 matrix
 # jobs run concurrently and Terraform uses its own peer too.
@@ -55,7 +56,8 @@ WG0_PEER=""
 WG1_PEER=""
 MAX_PEERS=""
 DRY_RUN="false"
-DELETE_ENVIRONMENT="true"
+DELETE_ENVIRONMENT="false"
+REGENERATE_PEERS="false"
 ACTION=""
 
 # Secret name -> peer variable mapping is fixed in this order.
@@ -90,7 +92,9 @@ Onboard only:
   --max-peers <n>       Peer pool size peer1..peerN (default: max(100, highest seen))
 
 Offboard only:
-  --keep-environment    Delete secrets only; leave the GitHub environment object
+  --delete-environment  Delete the GitHub environment after removing VPN secrets
+  --regenerate-peers    After revoke, recreate peer dirs with new keys on jumpserver
+  --keep-environment    Alias for default (secrets only; keep environment object)
 
 Requires: gh (authenticated with a token that can write environment secrets), ssh.
 EOF
@@ -147,9 +151,11 @@ while [[ $# -gt 0 ]]; do
     --wg0-peer)          require_arg --wg0-peer "${2-}";    WG0_PEER="$2"; shift 2 ;;
     --wg1-peer)          require_arg --wg1-peer "${2-}";    WG1_PEER="$2"; shift 2 ;;
     --max-peers)         require_arg --max-peers "${2-}";   MAX_PEERS="$2"; shift 2 ;;
-    --dry-run)           DRY_RUN="true"; shift ;;
-    --keep-environment)  DELETE_ENVIRONMENT="false"; shift ;;
-    -h|--help)           usage; exit 0 ;;
+    --dry-run)             DRY_RUN="true"; shift ;;
+    --delete-environment)  DELETE_ENVIRONMENT="true"; shift ;;
+    --regenerate-peers)    REGENERATE_PEERS="true"; shift ;;
+    --keep-environment)    DELETE_ENVIRONMENT="false"; shift ;;
+    -h|--help)             usage; exit 0 ;;
     *)                   die "Unknown argument: $1 (use --help)" ;;
   esac
 done
@@ -225,109 +231,39 @@ ssh_bash_stdin() {
 }
 
 run_offboard() {
-  resolve_peers_from_assigned() {
-    local content="$1"
-    local format="mosip" line peer tf wg0 wg1
-    local -A seen=()
-    local -a peers=()
+  log "Offboarding environment: $ENV_NAME"
 
-    content="${content//$'\r'/}"
-    [[ -n "${content//[[:space:]]/}" ]] || return 0
-
-    if grep -qE '^peer[0-9]+[[:space:]]*:' <<<"$content"; then
-      format="colon"
-      while IFS= read -r line; do
-        [[ "$line" =~ ^peer([0-9]+)[[:space:]]*:[[:space:]]*(.*)$ ]] || continue
-        peer="peer${BASH_REMATCH[1]}"
-        [[ "${BASH_REMATCH[2]}" == "$ENV_NAME" ]] || continue
-        [[ -n "${seen[$peer]:-}" ]] && continue
-        seen["$peer"]=1
-        peers+=("$peer")
-      done <<<"$content"
-    else
-      tf="$(awk -v env="$ENV_NAME" -v secret="TF_WG_CONFIG" '
-        $1 ~ /^peer[0-9]+:?$/ {
-          peer=$1; sub(/:$/, "", peer)
-          desc=$0; sub(/^[[:space:]]*peer[0-9]+[[:space:]]*:?[[:space:]]*/, "", desc)
-          suffix="(" secret ")"
-          if (length(desc) < length(suffix)) next
-          if (substr(desc, length(desc) - length(suffix) + 1) != suffix) next
-          label=substr(desc, 1, length(desc) - length(suffix))
-          if (label == env || index(label, env "(") == 1) { print peer; exit }
-        }' <<<"$content")"
-      wg0="$(awk -v env="$ENV_NAME" -v secret="CLUSTER_WIREGUARD_WG0" '
-        $1 ~ /^peer[0-9]+:?$/ {
-          peer=$1; sub(/:$/, "", peer)
-          desc=$0; sub(/^[[:space:]]*peer[0-9]+[[:space:]]*:?[[:space:]]*/, "", desc)
-          suffix="(" secret ")"
-          if (length(desc) < length(suffix)) next
-          if (substr(desc, length(desc) - length(suffix) + 1) != suffix) next
-          label=substr(desc, 1, length(desc) - length(suffix))
-          if (label == env || index(label, env "(") == 1) { print peer; exit }
-        }' <<<"$content")"
-      wg1="$(awk -v env="$ENV_NAME" -v secret="CLUSTER_WIREGUARD_WG1" '
-        $1 ~ /^peer[0-9]+:?$/ {
-          peer=$1; sub(/:$/, "", peer)
-          desc=$0; sub(/^[[:space:]]*peer[0-9]+[[:space:]]*:?[[:space:]]*/, "", desc)
-          suffix="(" secret ")"
-          if (length(desc) < length(suffix)) next
-          if (substr(desc, length(desc) - length(suffix) + 1) != suffix) next
-          label=substr(desc, 1, length(desc) - length(suffix))
-          if (label == env || index(label, env "(") == 1) { print peer; exit }
-        }' <<<"$content")"
-      for peer in "$tf" "$wg0" "$wg1"; do
-        [[ -n "$peer" ]] || continue
-        [[ -n "${seen[$peer]:-}" ]] && continue
-        seen["$peer"]=1
-        peers+=("$peer")
-      done
-    fi
-
-    printf '%s\n' "${peers[@]}"
-  }
-
-  delete_github_secrets() {
-    local name
-    for name in "${SECRET_NAMES[@]}"; do
-      if gh secret delete "$name" --env "$ENV_NAME_ENC" --repo "$REPO" 2>/dev/null; then
-        log "Deleted secret $name from environment $ENV_NAME"
-      else
-        log "Secret $name not present (or could not delete) in environment $ENV_NAME"
-      fi
-    done
-    if [[ "$DELETE_ENVIRONMENT" == "true" ]]; then
-      if gh api --method DELETE -H "Accept: application/vnd.github+json" \
-        "repos/${REPO}/environments/${ENV_NAME_ENC}" >/dev/null 2>&1; then
-        log "Deleted GitHub environment '$ENV_NAME'"
-      else
-        log "GitHub environment '$ENV_NAME' not present (or could not delete)"
-      fi
-    fi
-  }
-
-  atomic_free_assignments() {
-    [[ -n "${ASSIGNED_CONTENT//[[:space:]]/}" ]] || return 0
-
-    ssh_bash_stdin \
-      "$ASSIGNED_FILE" \
-      "$ASSIGN_LOCK_FILE" \
-      "$ENV_NAME" \
-      <<'REMOTE_FREE_ASSIGNMENTS'
+  REVOKE_RESULT="$(ssh_bash_stdin \
+    "$ASSIGNED_FILE" \
+    "$ASSIGN_LOCK_FILE" \
+    "$CONFIG_DIR" \
+    "$ENV_NAME" \
+    "$DRY_RUN" \
+    "$REGENERATE_PEERS" \
+    <<'REMOTE_OFFBOARD'
 set -euo pipefail
 
 ASSIGNED_FILE="$1"
 LOCK_FILE="$2"
-ENV_NAME="$3"
+CONFIG_DIR="$3"
+ENV_NAME="$4"
+DRY_RUN="${5:-false}"
+REGENERATE="${6:-false}"
 
-[[ -f "$ASSIGNED_FILE" ]] || exit 0
+PARSED_PEER=""
+PARSED_LABEL=""
 
-exec 9>"$LOCK_FILE" || { echo "ERROR: cannot create allocation lock ($LOCK_FILE)" >&2; exit 1; }
-if ! flock -w 120 9; then
-  echo "ERROR: timed out waiting for allocation lock ($LOCK_FILE)" >&2
-  exit 1
-fi
+normalize_peer_token() {
+  local token="${1//$'\r'/}"
+  token="${token%%:*}"
+  printf '%s' "$token"
+}
 
-[[ -w "$ASSIGNED_FILE" ]] || { echo "ERROR: $ASSIGNED_FILE is not writable" >&2; exit 1; }
+peer_num_from_token() {
+  local token="$1"
+  [[ "$token" =~ ^peer([0-9]+)$ ]] || { echo "999999"; return 0; }
+  echo "${BASH_REMATCH[1]}"
+}
 
 atomic_replace_file() {
   local src="$1" dest="$2"
@@ -338,97 +274,315 @@ atomic_replace_file() {
   fi
 }
 
-line_matches_env() {
-  local line="${1//$'\r'/}" peer rest
+sort_assigned_file() {
+  local file="$1" dir tmp line peer n
+  [[ -f "$file" ]] || return 0
+  dir="$(dirname "$file")"
+  tmp="$(mktemp "$dir/.assigned.XXXXXX")" || {
+    echo "ERROR: cannot create temp file in $dir" >&2
+    return 1
+  }
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ -z "${line//[[:space:]]/}" ]] && continue
+    peer="$(normalize_peer_token "$(awk '{print $1}' <<<"$line")")"
+    n="$(peer_num_from_token "$peer")"
+    printf '%05d\t%s\n' "$n" "$line"
+  done < "$file" | sort -n | cut -f2- > "$tmp"
+  atomic_replace_file "$tmp" "$file"
+}
+
+parse_assigned_line() {
+  local line="${1//$'\r'/}"
+  local peer rest
+  PARSED_PEER=""
+  PARSED_LABEL=""
   [[ -z "${line//[[:space:]]/}" ]] && return 1
-  peer="$(awk '{print $1}' <<<"$line")"
-  peer="${peer%%:*}"
+  peer="$(normalize_peer_token "$(awk '{print $1}' <<<"$line")")"
   [[ "$peer" =~ ^peer[0-9]+$ ]] || return 1
   if [[ "$line" =~ ^peer[0-9]+[[:space:]]*:[[:space:]]*(.*)$ ]]; then
     rest="${BASH_REMATCH[1]}"
-    rest="$(awk '{$1=$1; print}' <<<"${rest}")"
-    [[ "$rest" == "$ENV_NAME" ]]
-    return
+  else
+    rest="$(awk '{$1=""; sub(/^ +/,""); print}' <<<"$line")"
   fi
-  rest="$(awk '{$1=""; sub(/^ +/,""); print}' <<<"$line")"
-  case "$rest" in
-    "$ENV_NAME"|"$ENV_NAME"\(*) return 0 ;;
-    *) return 1 ;;
-  esac
+  rest="${rest//$'\r'/}"
+  rest="$(awk '{$1=$1; print}' <<<"$rest")"
+  PARSED_PEER="$peer"
+  PARSED_LABEL="$rest"
+  return 0
 }
 
-dir="$(dirname "$ASSIGNED_FILE")"
-tmp="$(mktemp "$dir/.assigned.XXXXXX")" || exit 1
-removed=0
-while IFS= read -r line || [[ -n "$line" ]]; do
-  if line_matches_env "$line"; then
-    removed=$((removed + 1))
-    continue
-  fi
-  printf '%s\n' "$line"
-done < "$ASSIGNED_FILE" > "$tmp"
+mosip_peer_for_secret() {
+  local secret="$1" content="$2"
+  awk -v env="$ENV_NAME" -v secret="$secret" '
+    $1 ~ /^peer[0-9]+:?$/ {
+      peer=$1; sub(/:$/, "", peer)
+      desc=$0; sub(/^[[:space:]]*peer[0-9]+[[:space:]]*:?[[:space:]]*/, "", desc)
+      suffix="(" secret ")"
+      if (length(desc) < length(suffix)) next
+      if (substr(desc, length(desc) - length(suffix) + 1) != suffix) next
+      label=substr(desc, 1, length(desc) - length(suffix))
+      if (label == env || index(label, env "(") == 1) { print peer; exit }
+    }' <<<"$content"
+}
 
-if (( removed == 0 )); then
-  rm -f "$tmp"
-  echo "WARN: no assigned.txt lines matched $ENV_NAME" >&2
+find_env_peers() {
+  local assigned_content="$1"
+  local -a peers=()
+  if grep -qE '^peer[0-9]+[[:space:]]*:' <<<"$assigned_content"; then
+    while IFS= read -r line; do
+      parse_assigned_line "$line" || continue
+      [[ "$PARSED_LABEL" == "$ENV_NAME" ]] && peers+=("$PARSED_PEER")
+    done <<<"$assigned_content"
+  else
+    local tf wg0 wg1
+    tf="$(mosip_peer_for_secret TF_WG_CONFIG "$assigned_content")"
+    wg0="$(mosip_peer_for_secret CLUSTER_WIREGUARD_WG0 "$assigned_content")"
+    wg1="$(mosip_peer_for_secret CLUSTER_WIREGUARD_WG1 "$assigned_content")"
+    [[ -n "$tf" ]] && peers+=("$tf")
+    [[ -n "$wg0" && "$wg0" != "$tf" ]] && peers+=("$wg0")
+    [[ -n "$wg1" && "$wg1" != "$tf" && "$wg1" != "$wg0" ]] && peers+=("$wg1")
+  fi
+  printf '%s\n' "${peers[@]}"
+}
+
+wg_container() {
+  docker ps --format '{{.Names}}' | grep -iE 'wireguard|wg' | head -1
+}
+
+wg_conf_paths() {
+  local paths=()
+  [[ -f "$CONFIG_DIR/wg_confs/wg0.conf" ]] && paths+=("$CONFIG_DIR/wg_confs/wg0.conf")
+  [[ -f "$CONFIG_DIR/wg0.conf" ]] && paths+=("$CONFIG_DIR/wg0.conf")
+  printf '%s\n' "${paths[@]}"
+}
+
+remove_peer_from_conf() {
+  local conf="$1" peer="$2" tmp
+  [[ -f "$conf" ]] || return 0
+  tmp="$(mktemp "$(dirname "$conf")/.wg0.XXXXXX")"
+  awk -v peer="$peer" '
+    BEGIN { drop=0; buf="" }
+    /^\[Peer\]/ {
+      if (buf != "" && drop == 0) printf "%s", buf
+      buf=$0 ORS
+      drop=0
+      next
+    }
+    buf != "" {
+      buf=buf $0 ORS
+      if ($0 ~ ("^# " peer "$")) drop=1
+      if ($0 ~ /^$/ || /^\[/) {
+        if (drop == 0) printf "%s", buf
+        buf=""
+        drop=0
+        if ($0 !~ /^\[Peer\]/) print $0
+      }
+      next
+    }
+    { print }
+    END { if (buf != "" && drop == 0) printf "%s", buf }
+  ' "$conf" > "$tmp"
+  if [[ "$DRY_RUN" == "true" ]]; then
+    rm -f "$tmp"
+    echo "DRY: would update $conf (remove peer $peer)"
+    return 0
+  fi
+  mv -f "$tmp" "$conf"
+}
+
+revoke_peer_runtime() {
+  local peer="$1" pubkey_file="$CONFIG_DIR/$peer/publickey-$peer" pub C
+  [[ -f "$pubkey_file" ]] || return 0
+  pub="$(cat "$pubkey_file")"
+  C="$(wg_container)"
+  [[ -n "$C" ]] || { echo "ERROR: WireGuard docker container not running" >&2; return 1; }
+  if [[ "$DRY_RUN" == "true" ]]; then
+    echo "DRY: wg set wg0 peer $pub remove"
+    return 0
+  fi
+  docker exec "$C" wg set wg0 peer "$pub" remove \
+    || echo "WARN: peer $pub not present on live wg0 (already removed?)" >&2
+}
+
+wipe_peer_dir() {
+  local peer="$1" dir="$CONFIG_DIR/$peer"
+  [[ -d "$dir" ]] || return 0
+  if [[ "$DRY_RUN" == "true" ]]; then
+    echo "DRY: wipe $dir"
+    return 0
+  fi
+  rm -f "$dir"/*.conf "$dir"/privatekey-* "$dir"/publickey-* "$dir"/presharedkey-* 2>/dev/null || true
+}
+
+regenerate_peer() {
+  local peer_num="$1"
+  local PEER_ID="peer${peer_num}"
+  local REF_CONF REF_DIRS C INTERFACE ENDPOINT SERVER_PUBKEY PEERDNS CLIENT_IP PRIV PSK PUB WG_CONF
+  [[ "$REGENERATE" == "true" ]] || return 0
+  [[ "$DRY_RUN" == "true" ]] && { echo "DRY: regenerate $PEER_ID"; return 0; }
+
+  mapfile -t REF_DIRS < <(ls -d "$CONFIG_DIR"/peer[0-9]* 2>/dev/null | sort -t r -k2 -n)
+  [[ ${#REF_DIRS[@]} -gt 0 ]] || return 1
+  REF_CONF="${REF_DIRS[0]}/$(basename "${REF_DIRS[0]}").conf"
+  [[ -f "$REF_CONF" ]] || return 1
+
+  INTERFACE="$(grep -m1 '^Address' "$REF_CONF" | awk '{print $NF}' | awk -F. '{print $1"."$2"."$3}')"
+  ENDPOINT="$(grep -m1 '^Endpoint' "$REF_CONF" | awk '{print $NF}')"
+  SERVER_PUBKEY="$(grep -m1 '^PublicKey' "$REF_CONF" | awk '{print $NF}')"
+  PEERDNS="$(grep -m1 '^DNS' "$REF_CONF" | awk '{print $NF}')"
+  [[ -n "$INTERFACE" && -n "$ENDPOINT" && -n "$SERVER_PUBKEY" ]] || return 1
+  [[ -n "$PEERDNS" ]] || PEERDNS="${INTERFACE}.1"
+
+  C="$(wg_container)"
+  [[ -n "$C" ]] || return 1
+
+  mkdir -p "$CONFIG_DIR/$PEER_ID"
+  umask 077
+  docker exec "$C" wg genkey | tee "$CONFIG_DIR/$PEER_ID/privatekey-$PEER_ID" \
+    | docker exec -i "$C" wg pubkey > "$CONFIG_DIR/$PEER_ID/publickey-$PEER_ID"
+  docker exec "$C" wg genpsk > "$CONFIG_DIR/$PEER_ID/presharedkey-$PEER_ID"
+
+  CLIENT_IP=""
+  for idx in $(seq 2 254); do
+    if ! grep -qR "${INTERFACE}.${idx}" "$CONFIG_DIR"/peer*/*.conf 2>/dev/null; then
+      CLIENT_IP="${INTERFACE}.${idx}"
+      break
+    fi
+  done
+  [[ -n "$CLIENT_IP" ]] || return 1
+
+  PRIV="$(cat "$CONFIG_DIR/$PEER_ID/privatekey-$PEER_ID")"
+  PSK="$(cat "$CONFIG_DIR/$PEER_ID/presharedkey-$PEER_ID")"
+  PUB="$(cat "$CONFIG_DIR/$PEER_ID/publickey-$PEER_ID")"
+
+  cat > "$CONFIG_DIR/$PEER_ID/$PEER_ID.conf" <<EOF
+[Interface]
+Address = ${CLIENT_IP}
+PrivateKey = ${PRIV}
+ListenPort = 51820
+DNS = ${PEERDNS}
+
+[Peer]
+PublicKey = ${SERVER_PUBKEY}
+PresharedKey = ${PSK}
+Endpoint = ${ENDPOINT}
+AllowedIPs = 0.0.0.0/0, ::/0
+EOF
+
+  if [[ -f "$CONFIG_DIR/wg_confs/wg0.conf" ]]; then
+    WG_CONF="$CONFIG_DIR/wg_confs/wg0.conf"
+  else
+    WG_CONF="$CONFIG_DIR/wg0.conf"
+  fi
+
+  cat >> "$WG_CONF" <<EOF
+
+[Peer]
+# ${PEER_ID}
+PublicKey = ${PUB}
+PresharedKey = ${PSK}
+AllowedIPs = ${CLIENT_IP}/32
+
+EOF
+
+  echo "$PSK" | docker exec -i "$C" sh -c 'cat > /tmp/psk.tmp && wg set wg0 peer "'"$PUB"'" preshared-key /tmp/psk.tmp allowed-ips "'"${CLIENT_IP}/32"'" && rm -f /tmp/psk.tmp'
+}
+
+remove_peer_line() {
+  local peer="$1" file="$2" dir tmp
+  dir="$(dirname "$file")"
+  tmp="$(mktemp "$dir/.assigned.XXXXXX")"
+  awk -v p="$peer" '$1 !~ ("^" p ":?$")' "$file" > "$tmp"
+  if [[ "$DRY_RUN" == "true" ]]; then
+    rm -f "$tmp"
+    echo "DRY: remove $peer from $file"
+    return 0
+  fi
+  mv -f "$tmp" "$file"
+}
+
+exec 9>"$LOCK_FILE"
+if ! flock -w 120 9; then
+  echo "ERROR: timed out waiting for lock ($LOCK_FILE)" >&2
+  exit 1
+fi
+
+assigned_content="$(cat "$ASSIGNED_FILE" 2>/dev/null || true)"
+assigned_content="${assigned_content//$'\r'/}"
+mapfile -t PEERS < <(find_env_peers "$assigned_content")
+
+if [[ ${#PEERS[@]} -eq 0 ]]; then
+  echo "WARN: no peers found for environment $ENV_NAME in $ASSIGNED_FILE" >&2
+  printf 'PEERS=\n'
   exit 0
 fi
 
-atomic_replace_file "$tmp" "$ASSIGNED_FILE"
-echo "Removed $removed assigned.txt line(s) for $ENV_NAME"
-REMOTE_FREE_ASSIGNMENTS
-  }
+for peer in "${PEERS[@]}"; do
+  echo "Revoking $peer for $ENV_NAME ..."
+  revoke_peer_runtime "$peer"
+  while IFS= read -r conf; do
+    [[ -n "$conf" ]] && remove_peer_from_conf "$conf" "$peer"
+  done < <(wg_conf_paths)
+  wipe_peer_dir "$peer"
+  n="${peer#peer}"
+  regenerate_peer "$n"
+  remove_peer_line "$peer" "$ASSIGNED_FILE"
+done
 
-  update_repo_tracker_offboard() {
-    [[ -f "$ALLOCATION_FILE" ]] || return 0
-    exec 8>"${ALLOCATION_FILE}.lock"
-    if ! flock -w 30 8; then
-      die "Timed out waiting to update repo tracker lock ${ALLOCATION_FILE}.lock"
-    fi
-    TRACKER_TMP="$(mktemp "$(dirname "$ALLOCATION_FILE")/.wg-peer-allocation.XXXXXX")"
-    awk -F '\t' -v env="$ENV_NAME" 'NR == 1 || $1 != env' "$ALLOCATION_FILE" > "$TRACKER_TMP"
-    chmod --reference="$ALLOCATION_FILE" "$TRACKER_TMP" 2>/dev/null || true
-    mv "$TRACKER_TMP" "$ALLOCATION_FILE"
-    TRACKER_TMP=""
-  }
+sort_assigned_file "$ASSIGNED_FILE"
 
-  log "Reading assigned.txt from ${JUMPSERVER_HOST} ..."
-  read_status=0
-  ASSIGNED_CONTENT="$(
-    ssh_cmd "if [[ -f $(remote_quote "$ASSIGNED_FILE") ]]; then cat $(remote_quote "$ASSIGNED_FILE"); else exit 42; fi" 2>/dev/null
-  )" || read_status=$?
-  case "$read_status" in
-    0) ;;
-    42) ASSIGNED_CONTENT="" ;;
-    *) die "Failed reading assigned.txt from ${JUMPSERVER_HOST}" ;;
-  esac
-  mapfile -t PEERS_TO_FREE < <(resolve_peers_from_assigned "$ASSIGNED_CONTENT")
+printf 'PEERS=%s\n' "$(IFS=,; echo "${PEERS[*]}")"
+REMOTE_OFFBOARD
+  )" || die "Remote offboard failed on jumpserver"
 
-  if ((${#PEERS_TO_FREE[@]})); then
-    log "Peers to free for $ENV_NAME: ${PEERS_TO_FREE[*]}"
+  PEERS_CSV=""
+  while IFS= read -r line; do
+    [[ "$line" == PEERS=* ]] && PEERS_CSV="${line#PEERS=}"
+  done <<<"$REVOKE_RESULT"
+
+  if [[ -z "$PEERS_CSV" ]]; then
+    log "No WireGuard peers were assigned to $ENV_NAME on jumpserver."
   else
-    log "No assigned.txt entries found for $ENV_NAME (will still remove GitHub secrets if present)"
+    log "Revoked peers on jumpserver: $PEERS_CSV"
   fi
 
   if [[ "$DRY_RUN" == "true" ]]; then
-    log "DRY RUN - would delete GitHub secrets: ${SECRET_NAMES[*]} (env: $ENV_NAME)"
-    [[ "$DELETE_ENVIRONMENT" == "true" ]] \
-      && log "DRY RUN - would delete GitHub environment '$ENV_NAME'" \
-      || log "DRY RUN - would keep GitHub environment object (--keep-environment)"
-    if ((${#PEERS_TO_FREE[@]})); then
-      log "DRY RUN - would remove assigned.txt lines for peers: ${PEERS_TO_FREE[*]}"
-    fi
-    [[ -f "$ALLOCATION_FILE" ]] && grep -q "^${ENV_NAME}"$'\t' "$ALLOCATION_FILE" 2>/dev/null \
-      && log "DRY RUN - would remove row for $ENV_NAME from $ALLOCATION_FILE" \
-      || log "DRY RUN - no tracker row for $ENV_NAME in $ALLOCATION_FILE"
+    log "DRY RUN - would delete GitHub secrets for environment $ENV_NAME"
+    [[ "$DELETE_ENVIRONMENT" == "true" ]] && log "DRY RUN - would delete GitHub environment $ENV_NAME"
     exit 0
   fi
 
-  delete_github_secrets
-  atomic_free_assignments || die "Failed freeing peers in assigned.txt on jumpserver"
-  update_repo_tracker_offboard
+  for secret in "${SECRET_NAMES[@]}"; do
+    if gh secret delete "$secret" --env "$ENV_NAME_ENC" --repo "$REPO" 2>/dev/null; then
+      log "Deleted secret $secret"
+    else
+      log "Secret $secret not present or could not be deleted (may already be removed)"
+    fi
+  done
 
-  log "Done. Environment '$ENV_NAME' offboarded; peers freed: ${PEERS_TO_FREE[*]:-(none found in assigned.txt)}"
+  if [[ "$DELETE_ENVIRONMENT" == "true" ]]; then
+    if gh api --method DELETE -H "Accept: application/vnd.github+json" \
+      "repos/${REPO}/environments/${ENV_NAME_ENC}" >/dev/null 2>&1; then
+      log "Deleted GitHub environment '$ENV_NAME'"
+    else
+      err "Could not delete GitHub environment '$ENV_NAME' (secrets were still removed)"
+    fi
+  fi
+
+  if [[ -f "$ALLOCATION_FILE" ]]; then
+    exec 8>"${ALLOCATION_FILE}.lock"
+    if flock -w 30 8; then
+      TRACKER_TMP="$(mktemp "$(dirname "$ALLOCATION_FILE")/.wg-peer-allocation.XXXXXX")"
+      awk -F '\t' -v env="$ENV_NAME" 'NR == 1 || $1 != env' "$ALLOCATION_FILE" > "$TRACKER_TMP"
+      mv "$TRACKER_TMP" "$ALLOCATION_FILE"
+      TRACKER_TMP=""
+      log "Removed $ENV_NAME from $ALLOCATION_FILE"
+    else
+      err "Could not update tracker file (lock timeout)"
+    fi
+  fi
+
+  log "Offboard complete for $ENV_NAME. Peers can be reallocated via: wg-env.sh onboard ..."
   log "Repo tracker: $ALLOCATION_FILE (commit it if changed)."
 }
 
@@ -550,9 +704,41 @@ parse_assigned_line() {
   return 0
 }
 
-peer_label_is_taken() {
+peer_num_from_token() {
+  local token="$1"
+  [[ "$token" =~ ^peer([0-9]+)$ ]] || { echo "999999"; return 0; }
+  echo "${BASH_REMATCH[1]}"
+}
+
+peer_label_is_free() {
   local label="${1//[[:space:]]/}"
-  [[ -n "$label" && "${label,,}" != "available" ]]
+  [[ -z "$label" ]] && return 0
+  case "${label,,}" in
+    available|free|unused|unassigned|none|na|n/a|-) return 0 ;;
+  esac
+  return 1
+}
+
+peer_label_is_taken() {
+  local label="$1"
+  ! peer_label_is_free "$label"
+}
+
+sort_assigned_file() {
+  local file="$1" dir tmp line peer n
+  [[ -f "$file" ]] || return 0
+  dir="$(dirname "$file")"
+  tmp="$(mktemp "$dir/.assigned.XXXXXX")" || {
+    echo "ERROR: cannot create temp file in $dir" >&2
+    return 1
+  }
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ -z "${line//[[:space:]]/}" ]] && continue
+    peer="$(normalize_peer_token "$(awk '{print $1}' <<<"$line")")"
+    n="$(peer_num_from_token "$peer")"
+    printf '%05d\t%s\n' "$n" "$line"
+  done < "$file" | sort -n | cut -f2- > "$tmp"
+  atomic_replace_file "$tmp" "$file"
 }
 
 assigned_file_writable() {
@@ -790,14 +976,17 @@ run_allocation() {
   fi
 
   next_free() {
-    local i pnum
+    local i
     for ((i = 1; i <= MAX_PEERS; i++)); do
       peer="peer${i}"
-      if [[ -z "${TAKEN[$peer]:-}" && -z "${CHOSEN[$peer]:-}" ]]; then
-        ensure_peer_conf "$i" || return 1
+      if [[ -n "${TAKEN[$peer]:-}" || -n "${CHOSEN[$peer]:-}" ]]; then
+        continue
+      fi
+      if ensure_peer_conf "$i"; then
         echo "$peer"
         return 0
       fi
+      echo "WARN: skipping $peer (could not ensure peer config; trying next slot)" >&2
     done
     return 1
   }
@@ -836,6 +1025,7 @@ run_allocation() {
       [[ "$record_wg0" == "true" ]] && record_assignment "$wg0" "${LABEL}(CLUSTER_WIREGUARD_WG0)" "$format" "$ASSIGNED_FILE"
       [[ "$record_wg1" == "true" ]] && record_assignment "$wg1" "${LABEL}(CLUSTER_WIREGUARD_WG1)" "$format" "$ASSIGNED_FILE"
     fi
+    sort_assigned_file "$ASSIGNED_FILE" || return 1
   fi
 
   printf 'ASSIGNED_FORMAT=%s\nREUSED=%s\nTF_PEER=%s\nWG0_PEER=%s\nWG1_PEER=%s\nRECORD_TF=%s\nRECORD_WG0=%s\nRECORD_WG1=%s\n' \
