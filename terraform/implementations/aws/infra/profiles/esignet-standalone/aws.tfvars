@@ -7,10 +7,10 @@
 # ============================================================
 
 # Environment name (infra component)
-cluster_name = "estest"
+cluster_name = "esdevtest"
 
 # eSignet's domain (ex: esignet.xyz.net)
-cluster_env_domain = "estest.mosip.net"
+cluster_env_domain = "esdevtest.mosip.net"
 
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
 mosip_email_id = "thisisbn46@gmail.com"
@@ -74,7 +74,7 @@ WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 
 # Rancher Import Configuration
 enable_rancher_import = true
-rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/pdng9gcdx7smr7cp4m58hsqjfqjtsfxprn7hn52bvb2zxjnm8fp9rk_c-m-xcwvwznq.yaml\""
+rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/6nf79ckz9487pngdhbrjbt5pcbd9nbl4lxmbrwg7pjxrl49tz9cbf8_c-m-xhp79hkf.yaml\""
 
 # DNS Records to map — only eSignet-relevant subdomains
 # Includes hosts for both the esignet-standalone profile and the isolated
