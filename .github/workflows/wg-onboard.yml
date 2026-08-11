@@ -3,7 +3,8 @@ name: WireGuard environment onboard/offboard
 # Self-service WireGuard onboarding and offboarding for an environment.
 # Onboard: allocates free WireGuard peers from the jumpserver and publishes them
 # as GitHub *environment* secrets (TF_WG_CONFIG, CLUSTER_WIREGUARD_WG0/WG1).
-# Offboard: deletes those secrets, frees assigned.txt lines, updates the tracker.
+# Offboard: revokes peers on jumpserver, clears assigned.txt (peer-number order),
+# deletes GitHub env secrets, updates the tracker.
 #
 # Requires .github/scripts/wg-env.sh.
 
@@ -40,10 +41,15 @@ on:
         type: string
         default: 172.31.0.0/16
       KEEP_ENVIRONMENT:
-        description: 'Offboard only: delete secrets but keep the GitHub environment object'
+        description: 'Offboard only: delete VPN secrets but keep the GitHub environment object'
         required: false
         type: boolean
         default: false
+      REGENERATE_PEERS:
+        description: 'Offboard only: recreate peer key material on jumpserver so slots are ready for reuse'
+        required: false
+        type: boolean
+        default: true
       DRY_RUN:
         description: 'Print actions without writing secrets or assigned.txt'
         required: false
@@ -61,6 +67,7 @@ jobs:
   onboard:
     runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 20
+    environment: ${{ inputs.ENV_NAME }}
     steps:
       - name: Validate required secrets
         run: |
@@ -116,6 +123,7 @@ jobs:
           INPUT_ALLOWED_IPS: ${{ inputs.ALLOWED_IPS }}
           INPUT_TICKET: ${{ inputs.TICKET }}
           INPUT_KEEP_ENVIRONMENT: ${{ inputs.KEEP_ENVIRONMENT }}
+          INPUT_REGENERATE_PEERS: ${{ inputs.REGENERATE_PEERS }}
           INPUT_DRY_RUN: ${{ inputs.DRY_RUN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
@@ -132,8 +140,13 @@ jobs:
             args+=(--allowed-ips "$INPUT_ALLOWED_IPS")
             [[ -n "$INPUT_TICKET" ]] && args+=(--ticket "$INPUT_TICKET")
           fi
-          if [[ "$INPUT_ACTION" == "offboard" && "$INPUT_KEEP_ENVIRONMENT" == "true" ]]; then
-            args+=(--keep-environment)
+          if [[ "$INPUT_ACTION" == "offboard" ]]; then
+            if [[ "$INPUT_KEEP_ENVIRONMENT" == "true" ]]; then
+              args+=(--keep-environment)
+            else
+              args+=(--delete-environment)
+            fi
+            [[ "$INPUT_REGENERATE_PEERS" == "true" ]] && args+=(--regenerate-peers)
           fi
           [[ "$INPUT_DRY_RUN" == "true" ]] && args+=(--dry-run)
           .github/scripts/wg-env.sh "${args[@]}"
