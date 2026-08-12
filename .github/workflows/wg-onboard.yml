@@ -3,8 +3,8 @@ name: WireGuard environment onboard/offboard
 # Self-service WireGuard onboarding and offboarding for an environment.
 # Onboard: allocates free WireGuard peers from the jumpserver and publishes them
 # as GitHub *environment* secrets (TF_WG_CONFIG, CLUSTER_WIREGUARD_WG0/WG1).
-# Offboard: removes assigned.txt lines for the environment, deletes GitHub secrets,
-# updates the tracker. Does not modify WireGuard keys on the jumpserver.
+# Offboard: frees assigned.txt lines, deletes TF_WG_CONFIG / WG0 / WG1 secrets,
+# keeps the GitHub environment object by default (set KEEP_ENVIRONMENT=false to delete it too).
 #
 # Requires .github/scripts/wg-env.sh.
 
@@ -40,6 +40,11 @@ on:
         required: false
         type: string
         default: 172.31.0.0/16
+      KEEP_ENVIRONMENT:
+        description: 'Offboard only: keep the GitHub environment object (WG secrets are always removed on offboard)'
+        required: false
+        type: boolean
+        default: true
       DRY_RUN:
         description: 'Print actions without writing secrets or assigned.txt'
         required: false
@@ -54,7 +59,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  onboard:
+  wg-env:
     runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 20
     environment: ${{ inputs.ENV_NAME }}
@@ -112,6 +117,7 @@ jobs:
           INPUT_WG_DIR: ${{ inputs.WG_DIR }}
           INPUT_ALLOWED_IPS: ${{ inputs.ALLOWED_IPS }}
           INPUT_TICKET: ${{ inputs.TICKET }}
+          INPUT_KEEP_ENVIRONMENT: ${{ inputs.KEEP_ENVIRONMENT }}
           INPUT_DRY_RUN: ${{ inputs.DRY_RUN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
@@ -127,6 +133,13 @@ jobs:
           if [[ "$INPUT_ACTION" == "onboard" ]]; then
             args+=(--allowed-ips "$INPUT_ALLOWED_IPS")
             [[ -n "$INPUT_TICKET" ]] && args+=(--ticket "$INPUT_TICKET")
+          fi
+          if [[ "$INPUT_ACTION" == "offboard" ]]; then
+            if [[ "$INPUT_KEEP_ENVIRONMENT" == "true" ]]; then
+              args+=(--keep-environment)
+            else
+              args+=(--delete-environment)
+            fi
           fi
           [[ "$INPUT_DRY_RUN" == "true" ]] && args+=(--dry-run)
           .github/scripts/wg-env.sh "${args[@]}"
