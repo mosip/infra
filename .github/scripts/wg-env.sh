@@ -6,10 +6,9 @@
 #   onboard  - Automates the manual jumpserver onboarding process:
 #   1. SSH into the WireGuard VM.
 #   2. cd into the WireGuard env dir (default /home/ubuntu/wireguard_env_2026).
-#   3. Allocate the next 3 free peers in the pool (peer1..peerN, filling gaps
-#      like peer66 before peer101). assigned.txt is the source of truth; if a
-#      peer directory or assigned.txt line is missing, create it on the VM first.
-#      Append assignments for the new environment - one peer per secret.
+#   3. Pick the lowest free peers in assigned.txt (peer1..peerN, filling gaps).
+#      Uses existing peerN/peerN.conf on the jumpserver — no key generation.
+#      Records assignments and rewrites assigned.txt in peer-number order.
 #      Supports two assigned.txt layouts:
 #         peerN: username          (legacy colon format on /home/ubuntu)
 #         peerN env(SECRET_NAME)   (MOSIP per-secret format)
@@ -20,8 +19,8 @@
 #      (TF_WG_CONFIG, CLUSTER_WIREGUARD_WG0, CLUSTER_WIREGUARD_WG1) on the
 #      environment whose name == the branch/env name.
 #
-#   offboard - Reverse of onboard: delete GitHub env secrets, free assigned.txt
-#              lines on the jumpserver, remove the tracker row (peers are reused).
+#   offboard - Free assigned.txt lines for the environment, delete GitHub env secrets,
+#              update repo tracker. Does not modify WireGuard keys or server config.
 #
 # Three distinct peers are used on onboard because the Helmsman wg0/wg1 matrix
 # jobs run concurrently and Terraform uses its own peer too.
@@ -55,7 +54,7 @@ WG0_PEER=""
 WG1_PEER=""
 MAX_PEERS=""
 DRY_RUN="false"
-DELETE_ENVIRONMENT="true"
+DELETE_ENVIRONMENT="false"
 ACTION=""
 
 # Secret name -> peer variable mapping is fixed in this order.
@@ -90,7 +89,8 @@ Onboard only:
   --max-peers <n>       Peer pool size peer1..peerN (default: max(100, highest seen))
 
 Offboard only:
-  --keep-environment    Delete secrets only; leave the GitHub environment object
+  --delete-environment  Also delete the GitHub environment object (default: secrets only)
+  --keep-environment    Delete VPN secrets only; keep the GitHub environment object (default)
 
 Requires: gh (authenticated with a token that can write environment secrets), ssh.
 EOF
@@ -147,9 +147,10 @@ while [[ $# -gt 0 ]]; do
     --wg0-peer)          require_arg --wg0-peer "${2-}";    WG0_PEER="$2"; shift 2 ;;
     --wg1-peer)          require_arg --wg1-peer "${2-}";    WG1_PEER="$2"; shift 2 ;;
     --max-peers)         require_arg --max-peers "${2-}";   MAX_PEERS="$2"; shift 2 ;;
-    --dry-run)           DRY_RUN="true"; shift ;;
-    --keep-environment)  DELETE_ENVIRONMENT="false"; shift ;;
-    -h|--help)           usage; exit 0 ;;
+    --dry-run)              DRY_RUN="true"; shift ;;
+    --delete-environment)   DELETE_ENVIRONMENT="true"; shift ;;
+    --keep-environment)     DELETE_ENVIRONMENT="false"; shift ;;
+    -h|--help)             usage; exit 0 ;;
     *)                   die "Unknown argument: $1 (use --help)" ;;
   esac
 done
@@ -227,7 +228,7 @@ ssh_bash_stdin() {
 run_offboard() {
   resolve_peers_from_assigned() {
     local content="$1"
-    local format="mosip" line peer tf wg0 wg1
+    local line peer tf wg0 wg1
     local -A seen=()
     local -a peers=()
 
@@ -235,7 +236,6 @@ run_offboard() {
     [[ -n "${content//[[:space:]]/}" ]] || return 0
 
     if grep -qE '^peer[0-9]+[[:space:]]*:' <<<"$content"; then
-      format="colon"
       while IFS= read -r line; do
         [[ "$line" =~ ^peer([0-9]+)[[:space:]]*:[[:space:]]*(.*)$ ]] || continue
         peer="peer${BASH_REMATCH[1]}"
@@ -338,6 +338,32 @@ atomic_replace_file() {
   fi
 }
 
+normalize_peer_token() {
+  local token="${1//$'\r'/}"
+  token="${token%%:*}"
+  printf '%s' "$token"
+}
+
+peer_num_from_token() {
+  local token="$1"
+  [[ "$token" =~ ^peer([0-9]+)$ ]] || { echo "999999"; return 0; }
+  echo "${BASH_REMATCH[1]}"
+}
+
+sort_assigned_file() {
+  local file="$1" dir tmp line peer n
+  [[ -f "$file" ]] || return 0
+  dir="$(dirname "$file")"
+  tmp="$(mktemp "$dir/.assigned.XXXXXX")" || exit 1
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ -z "${line//[[:space:]]/}" ]] && continue
+    peer="$(normalize_peer_token "$(awk '{print $1}' <<<"$line")")"
+    n="$(peer_num_from_token "$peer")"
+    printf '%05d\t%s\n' "$n" "$line"
+  done < "$file" | sort -n | cut -f2- > "$tmp"
+  atomic_replace_file "$tmp" "$file"
+}
+
 line_matches_env() {
   local line="${1//$'\r'/}" peer rest
   [[ -z "${line//[[:space:]]/}" ]] && return 1
@@ -375,6 +401,7 @@ if (( removed == 0 )); then
 fi
 
 atomic_replace_file "$tmp" "$ASSIGNED_FILE"
+sort_assigned_file "$ASSIGNED_FILE"
 echo "Removed $removed assigned.txt line(s) for $ENV_NAME"
 REMOTE_FREE_ASSIGNMENTS
   }
@@ -405,7 +432,7 @@ REMOTE_FREE_ASSIGNMENTS
   mapfile -t PEERS_TO_FREE < <(resolve_peers_from_assigned "$ASSIGNED_CONTENT")
 
   if ((${#PEERS_TO_FREE[@]})); then
-    log "Peers to free for $ENV_NAME: ${PEERS_TO_FREE[*]}"
+    log "Peers to free in assigned.txt for $ENV_NAME: ${PEERS_TO_FREE[*]}"
   else
     log "No assigned.txt entries found for $ENV_NAME (will still remove GitHub secrets if present)"
   fi
@@ -414,7 +441,7 @@ REMOTE_FREE_ASSIGNMENTS
     log "DRY RUN - would delete GitHub secrets: ${SECRET_NAMES[*]} (env: $ENV_NAME)"
     [[ "$DELETE_ENVIRONMENT" == "true" ]] \
       && log "DRY RUN - would delete GitHub environment '$ENV_NAME'" \
-      || log "DRY RUN - would keep GitHub environment object (--keep-environment)"
+      || log "DRY RUN - would keep GitHub environment object"
     if ((${#PEERS_TO_FREE[@]})); then
       log "DRY RUN - would remove assigned.txt lines for peers: ${PEERS_TO_FREE[*]}"
     fi
@@ -428,7 +455,7 @@ REMOTE_FREE_ASSIGNMENTS
   atomic_free_assignments || die "Failed freeing peers in assigned.txt on jumpserver"
   update_repo_tracker_offboard
 
-  log "Done. Environment '$ENV_NAME' offboarded; peers freed: ${PEERS_TO_FREE[*]:-(none found in assigned.txt)}"
+  log "Done. Environment '$ENV_NAME' offboarded; peers freed in assigned.txt: ${PEERS_TO_FREE[*]:-(none found)}"
   log "Repo tracker: $ALLOCATION_FILE (commit it if changed)."
 }
 
@@ -468,15 +495,9 @@ else
   [[ "$detected_max" -eq 0 || "$MAX_PEERS" -ge "$detected_max" ]] \
     || die "--max-peers ($MAX_PEERS) is less than highest peer on jumpserver (peer${detected_max})"
 fi
-log "Peer pool: peer1..peer${MAX_PEERS} (gap-fill order, create missing peers on demand)"
+log "Peer pool: peer1..peer${MAX_PEERS} (gap-fill order, use existing peer confs only)"
 
-CAN_CREATE_PEERS="false"
-if [[ ${#EXISTING_PEERS[@]} -gt 0 ]] \
-  || ssh_cmd "test -f $(remote_quote "$CONFIG_DIR/templates/peer.conf") || test -f $(remote_quote "$CONFIG_DIR/peer1/peer1.conf")" 2>/dev/null; then
-  CAN_CREATE_PEERS="true"
-else
-  die "No peer directories or templates under $CONFIG_DIR (cannot create missing peers)"
-fi
+[[ ${#EXISTING_PEERS[@]} -gt 0 ]] || die "No peer directories under $CONFIG_DIR (create peers on jumpserver first)"
 
 peer_config_exists() {
   local peer="$1"
@@ -502,7 +523,6 @@ atomic_allocate_peers() {
     "$force_wg0" \
     "$force_wg1" \
     "$DRY_RUN" \
-    "$CAN_CREATE_PEERS" \
     <<'REMOTE_ATOMIC_ALLOCATE'
 set -euo pipefail
 
@@ -519,7 +539,6 @@ FORCE_WG1="${9:-}"
 [[ "$FORCE_WG0" == "__none__" ]] && FORCE_WG0=""
 [[ "$FORCE_WG1" == "__none__" ]] && FORCE_WG1=""
 DRY_RUN="${10:-false}"
-CAN_CREATE="${11:-false}"
 
 PARSED_PEER=""
 PARSED_LABEL=""
@@ -550,9 +569,41 @@ parse_assigned_line() {
   return 0
 }
 
-peer_label_is_taken() {
+peer_num_from_token() {
+  local token="$1"
+  [[ "$token" =~ ^peer([0-9]+)$ ]] || { echo "999999"; return 0; }
+  echo "${BASH_REMATCH[1]}"
+}
+
+peer_label_is_free() {
   local label="${1//[[:space:]]/}"
-  [[ -n "$label" && "${label,,}" != "available" ]]
+  [[ -z "$label" ]] && return 0
+  case "${label,,}" in
+    available|free|unused|unassigned|none|na|n/a|-) return 0 ;;
+  esac
+  return 1
+}
+
+peer_label_is_taken() {
+  local label="$1"
+  ! peer_label_is_free "$label"
+}
+
+sort_assigned_file() {
+  local file="$1" dir tmp line peer n
+  [[ -f "$file" ]] || return 0
+  dir="$(dirname "$file")"
+  tmp="$(mktemp "$dir/.assigned.XXXXXX")" || {
+    echo "ERROR: cannot create temp file in $dir" >&2
+    return 1
+  }
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ -z "${line//[[:space:]]/}" ]] && continue
+    peer="$(normalize_peer_token "$(awk '{print $1}' <<<"$line")")"
+    n="$(peer_num_from_token "$peer")"
+    printf '%05d\t%s\n' "$n" "$line"
+  done < "$file" | sort -n | cut -f2- > "$tmp"
+  atomic_replace_file "$tmp" "$file"
 }
 
 assigned_file_writable() {
@@ -633,80 +684,14 @@ record_assignment() {
   atomic_replace_file "$tmp" "$file"
 }
 
-ensure_peer_conf() {
+require_peer_conf() {
   local peer_num="$1"
   local PEER_ID="peer${peer_num}"
-  [[ -f "$CONFIG_DIR/$PEER_ID/$PEER_ID.conf" ]] && return 0
-  [[ "$CAN_CREATE" == "true" ]] || { echo "ERROR: peer $PEER_ID missing and cannot be created" >&2; return 1; }
-  [[ "$DRY_RUN" == "true" ]] && return 0
-
-  mapfile -t REF_DIRS < <(ls -d "$CONFIG_DIR"/peer[0-9]* 2>/dev/null | sort -t r -k2 -n)
-  [[ ${#REF_DIRS[@]} -gt 0 ]] || return 1
-  local REF_CONF="${REF_DIRS[0]}/$(basename "${REF_DIRS[0]}").conf"
-  [[ -f "$REF_CONF" ]] || return 1
-
-  local INTERFACE ENDPOINT SERVER_PUBKEY PEERDNS C CLIENT_IP PRIV PSK PUB WG_CONF
-  INTERFACE="$(grep -m1 '^Address' "$REF_CONF" | awk '{print $NF}' | awk -F. '{print $1"."$2"."$3}')"
-  ENDPOINT="$(grep -m1 '^Endpoint' "$REF_CONF" | awk '{print $NF}')"
-  SERVER_PUBKEY="$(grep -m1 '^PublicKey' "$REF_CONF" | awk '{print $NF}')"
-  PEERDNS="$(grep -m1 '^DNS' "$REF_CONF" | awk '{print $NF}')"
-  [[ -n "$INTERFACE" && -n "$ENDPOINT" && -n "$SERVER_PUBKEY" ]] || return 1
-  [[ -n "$PEERDNS" ]] || PEERDNS="${INTERFACE}.1"
-
-  C="$(docker ps --format '{{.Names}}' | grep -iE 'wireguard|wg' | head -1)"
-  [[ -n "$C" ]] || { echo "ERROR: WireGuard docker container not running" >&2; return 1; }
-
-  mkdir -p "$CONFIG_DIR/$PEER_ID"
-  umask 077
-  docker exec "$C" wg genkey | tee "$CONFIG_DIR/$PEER_ID/privatekey-$PEER_ID" \
-    | docker exec -i "$C" wg pubkey > "$CONFIG_DIR/$PEER_ID/publickey-$PEER_ID"
-  docker exec "$C" wg genpsk > "$CONFIG_DIR/$PEER_ID/presharedkey-$PEER_ID"
-
-  CLIENT_IP=""
-  for idx in $(seq 2 254); do
-    if ! grep -qR "${INTERFACE}.${idx}" "$CONFIG_DIR"/peer*/*.conf 2>/dev/null; then
-      CLIENT_IP="${INTERFACE}.${idx}"
-      break
-    fi
-  done
-  [[ -n "$CLIENT_IP" ]] || return 1
-
-  PRIV="$(cat "$CONFIG_DIR/$PEER_ID/privatekey-$PEER_ID")"
-  PSK="$(cat "$CONFIG_DIR/$PEER_ID/presharedkey-$PEER_ID")"
-  PUB="$(cat "$CONFIG_DIR/$PEER_ID/publickey-$PEER_ID")"
-
-  cat > "$CONFIG_DIR/$PEER_ID/$PEER_ID.conf" <<EOF
-[Interface]
-Address = ${CLIENT_IP}
-PrivateKey = ${PRIV}
-ListenPort = 51820
-DNS = ${PEERDNS}
-
-[Peer]
-PublicKey = ${SERVER_PUBKEY}
-PresharedKey = ${PSK}
-Endpoint = ${ENDPOINT}
-AllowedIPs = 0.0.0.0/0, ::/0
-EOF
-
-  if [[ -f "$CONFIG_DIR/wg_confs/wg0.conf" ]]; then
-    WG_CONF="$CONFIG_DIR/wg_confs/wg0.conf"
-  else
-    WG_CONF="$CONFIG_DIR/wg0.conf"
+  if [[ -f "$CONFIG_DIR/$PEER_ID/$PEER_ID.conf" ]]; then
+    return 0
   fi
-
-  cat >> "$WG_CONF" <<EOF
-
-[Peer]
-# ${PEER_ID}
-PublicKey = ${PUB}
-PresharedKey = ${PSK}
-AllowedIPs = ${CLIENT_IP}/32
-
-EOF
-
-  echo "$PSK" | docker exec -i "$C" sh -c 'cat > /tmp/psk.tmp && wg set wg0 peer "'"$PUB"'" preshared-key /tmp/psk.tmp allowed-ips "'"${CLIENT_IP}/32"'" && rm -f /tmp/psk.tmp' \
-    || { echo "ERROR: failed updating WireGuard runtime for $PEER_ID" >&2; return 1; }
+  echo "ERROR: $PEER_ID.conf not found under $CONFIG_DIR/$PEER_ID (use existing jumpserver peer configs only)" >&2
+  return 1
 }
 
 mosip_peer_for_secret() {
@@ -790,14 +775,17 @@ run_allocation() {
   fi
 
   next_free() {
-    local i pnum
+    local i
     for ((i = 1; i <= MAX_PEERS; i++)); do
       peer="peer${i}"
-      if [[ -z "${TAKEN[$peer]:-}" && -z "${CHOSEN[$peer]:-}" ]]; then
-        ensure_peer_conf "$i" || return 1
+      if [[ -n "${TAKEN[$peer]:-}" || -n "${CHOSEN[$peer]:-}" ]]; then
+        continue
+      fi
+      if require_peer_conf "$i"; then
         echo "$peer"
         return 0
       fi
+      echo "WARN: skipping $peer (no existing conf; trying next free slot)" >&2
     done
     return 1
   }
@@ -815,7 +803,7 @@ run_allocation() {
     n="${peer#peer}"
     (( n >= 1 && n <= MAX_PEERS )) \
       || { echo "ERROR: $peer is outside peer1..peer${MAX_PEERS}" >&2; return 1; }
-    ensure_peer_conf "$n" || { echo "ERROR: failed creating $peer" >&2; return 1; }
+    require_peer_conf "$n" || { echo "ERROR: missing existing conf for $peer" >&2; return 1; }
   done
 
   [[ "$tf" != "$wg0" && "$tf" != "$wg1" && "$wg0" != "$wg1" ]] \
@@ -836,6 +824,7 @@ run_allocation() {
       [[ "$record_wg0" == "true" ]] && record_assignment "$wg0" "${LABEL}(CLUSTER_WIREGUARD_WG0)" "$format" "$ASSIGNED_FILE"
       [[ "$record_wg1" == "true" ]] && record_assignment "$wg1" "${LABEL}(CLUSTER_WIREGUARD_WG1)" "$format" "$ASSIGNED_FILE"
     fi
+    sort_assigned_file "$ASSIGNED_FILE" || return 1
   fi
 
   printf 'ASSIGNED_FORMAT=%s\nREUSED=%s\nTF_PEER=%s\nWG0_PEER=%s\nWG1_PEER=%s\nRECORD_TF=%s\nRECORD_WG0=%s\nRECORD_WG1=%s\n' \
