@@ -54,7 +54,7 @@ WG0_PEER=""
 WG1_PEER=""
 MAX_PEERS=""
 DRY_RUN="false"
-DELETE_ENVIRONMENT="true"
+DELETE_ENVIRONMENT="false"
 ACTION=""
 
 # Secret name -> peer variable mapping is fixed in this order.
@@ -89,7 +89,8 @@ Onboard only:
   --max-peers <n>       Peer pool size peer1..peerN (default: max(100, highest seen))
 
 Offboard only:
-  --keep-environment    Delete VPN secrets only; keep the GitHub environment object
+  --delete-environment  Also delete the GitHub environment object (default: secrets only)
+  --keep-environment    Delete VPN secrets only; keep the GitHub environment object (default)
 
 Requires: gh (authenticated with a token that can write environment secrets), ssh.
 EOF
@@ -146,8 +147,9 @@ while [[ $# -gt 0 ]]; do
     --wg0-peer)          require_arg --wg0-peer "${2-}";    WG0_PEER="$2"; shift 2 ;;
     --wg1-peer)          require_arg --wg1-peer "${2-}";    WG1_PEER="$2"; shift 2 ;;
     --max-peers)         require_arg --max-peers "${2-}";   MAX_PEERS="$2"; shift 2 ;;
-    --dry-run)             DRY_RUN="true"; shift ;;
-    --keep-environment)    DELETE_ENVIRONMENT="false"; shift ;;
+    --dry-run)              DRY_RUN="true"; shift ;;
+    --delete-environment)   DELETE_ENVIRONMENT="true"; shift ;;
+    --keep-environment)     DELETE_ENVIRONMENT="false"; shift ;;
     -h|--help)             usage; exit 0 ;;
     *)                   die "Unknown argument: $1 (use --help)" ;;
   esac
