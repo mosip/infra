@@ -4,83 +4,72 @@
 
 # Override full extraEnvVars to use namespace-specific softhsm secret name.
 extraEnvVars:
-  - name: KEYCLOAK_EXTERNAL_URL
+  KEYCLOAK_EXTERNAL_URL:
     valueFrom:
       configMapKeyRef:
         name: keycloak-host
         key: keycloak-external-url
-  - name: REDIS_HOST
+  REDIS_HOST:
     valueFrom:
       configMapKeyRef:
         name: redis-config
         key: redis-host
-  - name: REDIS_PORT
+  REDIS_PORT:
     valueFrom:
       configMapKeyRef:
         name: redis-config
         key: redis-port
-  - name: REDIS_PASSWORD
+  REDIS_PASSWORD:
     valueFrom:
       secretKeyRef:
         name: redis
         key: redis-password
-  - name: DATABASE_HOST
+  DATABASE_HOST:
     valueFrom:
       configMapKeyRef:
         name: postgres-config
         key: database-host
-  - name: DATABASE_PORT
+  DATABASE_PORT:
     valueFrom:
       configMapKeyRef:
         name: postgres-config
         key: database-port
-  - name: DATABASE_NAME
+  DATABASE_NAME:
     valueFrom:
       configMapKeyRef:
         name: postgres-config
         key: database-name
-  - name: DATABASE_USERNAME
+  DATABASE_USERNAME:
     valueFrom:
       configMapKeyRef:
         name: postgres-config
         key: database-username
-  - name: DB_DBUSER_PASSWORD
+  DB_DBUSER_PASSWORD:
     valueFrom:
       secretKeyRef:
         name: db-common-secrets
         key: db-dbuser-password
-  - name: SOFTHSM_ESIGNET_SECURITY_PIN
+  SOFTHSM_ESIGNET_SECURITY_PIN:
     valueFrom:
       secretKeyRef:
         name: esignet-softhsm-go-mosipid1
         key: security-pin
-  - name: MOSIP_IDA_CLIENT_SECRET
+  MOSIP_IDA_CLIENT_SECRET:
     valueFrom:
       secretKeyRef:
         name: keycloak-client-secrets-mosipid1
         key: mosip_ida_client_secret
-  - name: AUTHN_PROVIDER
-    value: mosip
-  - name: KEYMANAGER_DB_SCHEMA
-    value: esignet
-  - name: KEYMANAGER_KEYSTORE_TYPE
-    value: PKCS12
-  - name: KEYMANAGER_PKCS12_FILE_PATH
-    value: /home/mosip/keys/secret/mosipid1.pfx
-  - name: OIDC_UI_SCHEME
-    value: https
-  - name: OIDC_UI_PORT
-    value: '443'
-  - name: OIDC_UI_LOGIN_PATH
-    value: /signin
-  - name: OIDC_UI_ERROR_PATH
-    value: /error
-  - name: DEFAULT_THEME_ID
-    value: decl-theme-1
-  - name: DEFAULT_LAYOUT_ID
-    value: decl-layout-1
-  - name: DEFAULT_AUTH_FLOW_ID
-    value: decl-mosip-otp-flow-1
+  AUTHN_PROVIDER: mosip
+  KEYMANAGER_DB_SCHEMA: esignet
+  KEYMANAGER_KEYSTORE_TYPE: PKCS12
+  KEYMANAGER_PKCS12_FILE_PATH: /home/mosip/keys/secret/mosipid1.pfx
+  OIDC_UI_SCHEME: https
+  OIDC_UI_PORT: '443'
+  OIDC_UI_LOGIN_PATH: /signin
+  OIDC_UI_ERROR_PATH: /error
+  DEFAULT_THEME_ID: decl-theme-1
+  DEFAULT_LAYOUT_ID: decl-layout-1
+  DEFAULT_AUTH_FLOW_ID: decl-mosip-otp-flow-1
 extraEnvVarsSecret:
   - esignet-keystore-go-mosipid1
 extraVolumes:
@@ -91,9 +80,8 @@ extraVolumeMounts:
   - name: esignet-keystore-go-mosipid1
     mountPath: /home/mosip/keys/secret
 extraEnvVarsAdditional:
-  - name: "MOSIP_ESIGNET_CAPTCHA_MODULE_NAME"
-    value: "esignetgomosipid1"
-  - name: "MOSIP_ESIGNET_CAPTCHA_SITE-KEY"
+  "MOSIP_ESIGNET_CAPTCHA_MODULE_NAME": "esignetgomosipid1"
+  "MOSIP_ESIGNET_CAPTCHA_SITE-KEY":
     valueFrom:
       secretKeyRef:
         name: esignet-captcha-go-mosipid1
@@ -103,27 +91,17 @@ extraEnvVarsAdditional:
   # Plugin 2: mosip-identity-plugin
   # Update URLs to match your MOSIP IDA deployment.
   # ---------------------------------------------------------------------------
-  - name: NAMESPACE
-    value: mosipid1
-  - name: plugin_name_env
-    value: mosip-identity-plugin.jar
-  - name: SPRING_KAFKA_CONSUMER_GROUP_ID
-    value: esignet-consumer-esignet-mosipid1
-  - name: MOSIP_ESIGNET_SIGNUP_ID_TOKEN_AUDIENCE
-    value: esignet-mosipid1-signup-esqa020
-  - name: MOSIP_ESIGNET_AUTHENTICATOR_IDA_OTP_CHANNELS
-    value: email,phone
-  - name: MOSIP_ESIGNET_SEND_OTP_ATTEMPTS
-    value: '300'
-  - name: MOSIP_ESIGNET_AUTHENTICATE_ATTEMPTS
-    value: '300'
-  - name: MOSIP_ESIGNET_AUTHENTICATION_EXPIRE_IN_SECS
-    value: '600'
-  - name: MOSIP_ESIGNET_PREAUTHENTICATION_EXPIRE_IN_SECS
-    value: '600'
-  - name: MOSIP_ESIGNET_UI_CONFIG_USERNAME_POSTFIX
-    value: '@phone'
-  - name: MOSIP_ESIGNET_UI_CONFIG_LOGIN_ID_OPTIONS
+  NAMESPACE: mosipid1
+  plugin_name_env: mosip-identity-plugin.jar
+  SPRING_KAFKA_CONSUMER_GROUP_ID: esignet-consumer-esignet-mosipid1
+  MOSIP_ESIGNET_SIGNUP_ID_TOKEN_AUDIENCE: esignet-mosipid1-signup-esqa020
+  MOSIP_ESIGNET_AUTHENTICATOR_IDA_OTP_CHANNELS: email,phone
+  MOSIP_ESIGNET_SEND_OTP_ATTEMPTS: '300'
+  MOSIP_ESIGNET_AUTHENTICATE_ATTEMPTS: '300'
+  MOSIP_ESIGNET_AUTHENTICATION_EXPIRE_IN_SECS: '600'
+  MOSIP_ESIGNET_PREAUTHENTICATION_EXPIRE_IN_SECS: '600'
+  MOSIP_ESIGNET_UI_CONFIG_USERNAME_POSTFIX: '@phone'
+  MOSIP_ESIGNET_UI_CONFIG_LOGIN_ID_OPTIONS:
     value: >-
       {{ "{{" }} 'id': 'mobile', 'svg': 'mobile_icon', 'prefixes': {{ "{{" }}'label':
       'IND', 'value': '+91', 'maxLength': '', 'regex': ''},{'label':
@@ -134,13 +112,10 @@ extraEnvVarsAdditional:
       '', 'postfix': '', 'maxLength': '', 'regex': '' }, { 'id':
       'email', 'svg': 'email_icon', 'prefixes': '', 'postfix':
       '@email', 'maxLength': '', 'regex': '' {{ "}}" }}
-  - name: LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB_CLIENT
-    value: INFO
-  - name: MOSIP_ESIGNET_CAPTCHA_REQUIRED
-    value: "false"
-  - name: MOSIP_ESIGNET_CAPTCHA_URL
-    value: http://captcha.captcha    
-  - name: "MOSIP_ESIGNET_MISP_KEY"
+  LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB_CLIENT: INFO
+  MOSIP_ESIGNET_CAPTCHA_REQUIRED: "false"
+  MOSIP_ESIGNET_CAPTCHA_URL: http://captcha.captcha
+  "MOSIP_ESIGNET_MISP_KEY":
     valueFrom:
       secretKeyRef:
         name: esignet-misp-onboarder-key
