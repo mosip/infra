@@ -39,21 +39,8 @@ on:
         description: "PostgreSQL port for eSignet databases (e.g. 5433 for MOSIP platform external postgres)"
         required: true
         type: string
-      mosipid1_domain_name:
-        description: "MOSIP-ID1 domain name for this environment (e.g. mosipenv1.xyz.net)"
-        required: false
-        type: string
-      enable_mosipid2:
-        description: "Enable MOSIP-ID2 eSignet instance (deploys softhsm, esignet, oidc-ui, mock-rp for mosipid2)"
-        required: false
-        default: false
-        type: boolean
-      mosipid2_domain_name:
-        description: "MOSIP-ID2 domain name for this environment (e.g. qabase.xyz.net)"
-        required: false
-        type: string
       mosipid_domain_name:
-        description: "MOSIP-ID domain name for esignet-standalone-2.0.0 (Go) profile only (e.g. qabase.xyz.net)"
+        description: "MOSIP-ID domain name for this environment (e.g. mosipenv.xyz.net) — required for esignet standalone profiles"
         required: false
         type: string
       env_name:
@@ -75,8 +62,6 @@ jobs:
       name: ${{ github.ref_name }}
     steps:
       - name: Validate required variables
-        env:
-          IN_ENABLE_MOSIPID2: ${{ github.event.inputs.enable_mosipid2 }}
         run: |
           errors=()
           PROFILE="${{ github.event.inputs.profile }}"
@@ -95,46 +80,22 @@ jobs:
           echo "✓ domain_name     = $DOMAIN"
           echo "✓ env_name        = $ENV"
           echo "✓ esignet_db_port = $ESIGNET_DB_PORT"
-          # mosipid1/mosipid2_domain_name are esignet-standalone (v1.7.1) only — that
-          # profile still runs two separate mosipid1/mosipid2 instances.
-          # mosipid_domain_name is esignet-standalone-2.0.0 (Go) only — that profile
-          # consolidates mosipid1+mosipid2 into a single mosipid instance.
+          # mosipid_domain_name is esignet standalone only (both esignet-standalone
+          # and esignet-standalone-2.0.0 each run a single consolidated mosipid instance).
           # Push events always target esignet (path filter); dispatch uses explicit profile input.
-          if [ -z "$PROFILE" ] || [ "$PROFILE" = "esignet-standalone" ]; then
-            MOSIPID1_DOMAIN="${{ github.event.inputs.mosipid1_domain_name || vars.MOSIPID1_DOMAIN_NAME }}"
-            MOSIPID2_DOMAIN="${{ github.event.inputs.mosipid2_domain_name || vars.MOSIPID2_DOMAIN_NAME }}"
-            if [ -z "$MOSIPID1_DOMAIN" ]; then
-              echo "❌ mosipid1_domain_name is required for esignet-standalone"
-              exit 1
-            fi
-            if [ "$IN_ENABLE_MOSIPID2" = "true" ] &&
-               [ -z "$MOSIPID2_DOMAIN" ]; then
-              echo "❌ mosipid2_domain_name is required when enable_mosipid2 is true"
-              exit 1
-            fi
-            echo "✓ mosipid1_domain_name = $MOSIPID1_DOMAIN (esignet standalone)"
-            echo "✓ mosipid2_domain_name = $MOSIPID2_DOMAIN (esignet standalone)"
-            MOSIPID1_SPRING_LABEL="${{ vars.ESIGNET_MOSIPID1_SPRING_CONFIG_LABEL }}"
-            MOSIPID2_SPRING_LABEL="${{ vars.ESIGNET_MOSIPID2_SPRING_CONFIG_LABEL }}"
-            echo "✓ mosipid1_spring_config_label = ${MOSIPID1_SPRING_LABEL:-develop} (esignet standalone, default: develop)"
-            echo "✓ mosipid2_spring_config_label = ${MOSIPID2_SPRING_LABEL:-develop} (esignet standalone, default: develop)"
-          fi
-          if [ -z "$PROFILE" ] || [ "$PROFILE" = "esignet-standalone-2.0.0" ]; then
+          if [ -z "$PROFILE" ] || [[ "$PROFILE" == esignet-standalone* ]]; then
             MOSIPID_DOMAIN="${{ github.event.inputs.mosipid_domain_name || vars.MOSIPID_DOMAIN_NAME }}"
             if [ -z "$MOSIPID_DOMAIN" ]; then
-              echo "❌ mosipid_domain_name is required for esignet-standalone-2.0.0"
+              echo "❌ mosipid_domain_name is required for standalone profiles"
               exit 1
             fi
-            echo "✓ mosipid_domain_name = $MOSIPID_DOMAIN (esignet standalone 2.0.0 / Go)"
+            echo "✓ mosipid_domain_name = $MOSIPID_DOMAIN (esignet standalone)"
             MOSIPID_SPRING_LABEL="${{ vars.ESIGNET_MOSIPID_SPRING_CONFIG_LABEL }}"
-            echo "✓ mosipid_spring_config_label = ${MOSIPID_SPRING_LABEL:-develop} (esignet standalone 2.0.0, default: develop)"
-          fi
-          if [ -n "$PROFILE" ] && [ "$PROFILE" != "esignet-standalone" ] && [ "$PROFILE" != "esignet-standalone-2.0.0" ]; then
-            MOSIPID1_PROVIDED="${{ github.event.inputs.mosipid1_domain_name }}"
-            MOSIPID2_PROVIDED="${{ github.event.inputs.mosipid2_domain_name }}"
+            echo "✓ mosipid_spring_config_label = ${MOSIPID_SPRING_LABEL:-develop} (esignet standalone, default: develop)"
+          else
             MOSIPID_PROVIDED="${{ github.event.inputs.mosipid_domain_name }}"
-            if [ -n "$MOSIPID1_PROVIDED" ] || [ -n "$MOSIPID2_PROVIDED" ] || [ -n "$MOSIPID_PROVIDED" ]; then
-              echo "⚠ mosipid1_domain_name / mosipid2_domain_name / mosipid_domain_name are only used for esignet standalone profiles — ignoring for profile=$PROFILE"
+            if [ -n "$MOSIPID_PROVIDED" ]; then
+              echo "⚠ mosipid_domain_name is only used for esignet standalone profiles — ignoring for profile=$PROFILE"
             fi
           fi
 
@@ -149,11 +110,8 @@ jobs:
       KUBECTL_PATH: ${{ github.workspace }}/.local/bin/kubectl
       domain_name:           ${{ github.event.inputs.domain_name           || vars.DOMAIN_NAME }}
       esignet_db_port:       ${{ github.event.inputs.esignet_db_port       || vars.ESIGNET_DB_PORT }}
-      mosipid1_domain_name:  ${{ github.event.inputs.mosipid1_domain_name  || vars.MOSIPID1_DOMAIN_NAME }}
-      mosipid2_domain_name:  ${{ github.event.inputs.mosipid2_domain_name  || vars.MOSIPID2_DOMAIN_NAME }}
       mosipid_domain_name:   ${{ github.event.inputs.mosipid_domain_name   || vars.MOSIPID_DOMAIN_NAME }}
       env_name:              ${{ github.event.inputs.env_name              || vars.ENV_NAME }}
-      MOSIPID2_ENABLED:      ${{ github.event.inputs.enable_mosipid2 == 'true' && 'true' || 'false' }}
       # All secrets below are ENVIRONMENT secrets (not repository secrets)
       # Configure them in: Repository → Settings → Environments → <branch-name> → Secrets
       # Mock Relying Party Service secrets (base64 encoded PEM)
@@ -162,20 +120,10 @@ jobs:
       # eSignet Captcha secrets (plain text from Google reCAPTCHA)
       ESIGNET_CAPTCHA_SITE_KEY: ${{ secrets.ESIGNET_CAPTCHA_SITE_KEY }}
       ESIGNET_CAPTCHA_SECRET_KEY: ${{ secrets.ESIGNET_CAPTCHA_SECRET_KEY }}
-      # Per-namespace captcha secrets — required for esignet standalone profile only
-      ESIGNET_MOSIPID1_CAPTCHA_SITE_KEY:     ${{ secrets.ESIGNET_MOSIPID1_CAPTCHA_SITE_KEY }}
-      ESIGNET_MOSIPID1_CAPTCHA_SECRET_KEY:   ${{ secrets.ESIGNET_MOSIPID1_CAPTCHA_SECRET_KEY }}
-      ESIGNET_MOSIPID2_CAPTCHA_SITE_KEY:     ${{ secrets.ESIGNET_MOSIPID2_CAPTCHA_SITE_KEY }}
-      ESIGNET_MOSIPID2_CAPTCHA_SECRET_KEY:   ${{ secrets.ESIGNET_MOSIPID2_CAPTCHA_SECRET_KEY }}
-      # mosipid captcha secret — required for esignet-standalone-2.0.0 (Go) profile only
+      # mosipid captcha secret — required for esignet standalone profiles
       ESIGNET_MOSIPID_CAPTCHA_SITE_KEY:     ${{ secrets.ESIGNET_MOSIPID_CAPTCHA_SITE_KEY }}
       ESIGNET_MOSIPID_CAPTCHA_SECRET_KEY:   ${{ secrets.ESIGNET_MOSIPID_CAPTCHA_SECRET_KEY }}
-      # MOSIPID1 / MOSIPID2 remote Keycloak admin + Postgres passwords (esignet-standalone)
-      MOSIPID1_KEYCLOAK_ADMIN_PASSWORD: ${{ secrets.MOSIPID1_KEYCLOAK_ADMIN_PASSWORD }}
-      MOSIPID2_KEYCLOAK_ADMIN_PASSWORD: ${{ secrets.MOSIPID2_KEYCLOAK_ADMIN_PASSWORD }}
-      MOSIPID1_POSTGRES_PASSWORD:       ${{ secrets.MOSIPID1_POSTGRES_PASSWORD }}
-      MOSIPID2_POSTGRES_PASSWORD:       ${{ secrets.MOSIPID2_POSTGRES_PASSWORD }}
-      # MOSIPID remote Keycloak admin + Postgres password (esignet-standalone-2.0.0 / Go)
+      # MOSIPID remote Keycloak admin + Postgres password (esignet standalone profiles)
       MOSIPID_KEYCLOAK_ADMIN_PASSWORD:  ${{ secrets.MOSIPID_KEYCLOAK_ADMIN_PASSWORD }}
       MOSIPID_POSTGRES_PASSWORD:        ${{ secrets.MOSIPID_POSTGRES_PASSWORD }}
       ESIGNET_SUNBIRD_CAPTCHA_SITE_KEY:   ${{ secrets.ESIGNET_SUNBIRD_CAPTCHA_SITE_KEY }}
@@ -183,8 +131,6 @@ jobs:
       # Spring config label per namespace — controls which Git branch/tag the config-server uses
       # Set as Environment Variables in Repository → Settings → Environments → <branch> → Variables
       # If unset, hooks default to 'develop'
-      ESIGNET_MOSIPID1_SPRING_CONFIG_LABEL: ${{ vars.ESIGNET_MOSIPID1_SPRING_CONFIG_LABEL }}
-      ESIGNET_MOSIPID2_SPRING_CONFIG_LABEL: ${{ vars.ESIGNET_MOSIPID2_SPRING_CONFIG_LABEL }}
       ESIGNET_MOSIPID_SPRING_CONFIG_LABEL:  ${{ vars.ESIGNET_MOSIPID_SPRING_CONFIG_LABEL }}
       # Cluster access secrets
       KUBECONFIG_SECRET: ${{ secrets.KUBECONFIG }}
@@ -228,8 +174,6 @@ jobs:
           }
           save_var "DOMAIN_NAME"           "${{ github.event.inputs.domain_name }}"
           save_var "ESIGNET_DB_PORT"       "${{ github.event.inputs.esignet_db_port }}"
-          save_var "MOSIPID1_DOMAIN_NAME"  "${{ github.event.inputs.mosipid1_domain_name }}"
-          save_var "MOSIPID2_DOMAIN_NAME"  "${{ github.event.inputs.mosipid2_domain_name }}"
           save_var "MOSIPID_DOMAIN_NAME"   "${{ github.event.inputs.mosipid_domain_name }}"
           save_var "ENV_NAME"              "${{ github.event.inputs.env_name }}"
 
@@ -242,10 +186,6 @@ jobs:
           echo "::add-mask::${{ secrets.CLUSTER_WIREGUARD_WG0 }}"
           echo "::add-mask::${{ secrets.ESIGNET_CAPTCHA_SITE_KEY }}"
           echo "::add-mask::${{ secrets.ESIGNET_CAPTCHA_SECRET_KEY }}"
-          echo "::add-mask::${{ secrets.ESIGNET_MOSIPID1_CAPTCHA_SITE_KEY }}"
-          echo "::add-mask::${{ secrets.ESIGNET_MOSIPID1_CAPTCHA_SECRET_KEY }}"
-          echo "::add-mask::${{ secrets.ESIGNET_MOSIPID2_CAPTCHA_SITE_KEY }}"
-          echo "::add-mask::${{ secrets.ESIGNET_MOSIPID2_CAPTCHA_SECRET_KEY }}"
           echo "::add-mask::${{ secrets.ESIGNET_MOSIPID_CAPTCHA_SITE_KEY }}"
           echo "::add-mask::${{ secrets.ESIGNET_MOSIPID_CAPTCHA_SECRET_KEY }}"
           echo "::add-mask::${{ secrets.ESIGNET_SUNBIRD_CAPTCHA_SITE_KEY }}"
@@ -422,60 +362,23 @@ jobs:
           fi
           
           # Per-namespace captcha secrets — only required for esignet standalone profiles
-          if [ "$PROFILE" = "esignet-standalone" ]; then
-            echo "--- Validating esignet standalone mosipid1 captcha secrets ---"
-            for var in ESIGNET_MOSIPID1_CAPTCHA_SITE_KEY ESIGNET_MOSIPID1_CAPTCHA_SECRET_KEY \
-                       ESIGNET_SUNBIRD_CAPTCHA_SITE_KEY ESIGNET_SUNBIRD_CAPTCHA_SECRET_KEY; do
-              val="${!var:-}"
-              if [ -z "$val" ]; then
-                echo "❌ $var secret is not configured (required for esignet standalone)"
-                MISSING_SECRETS=1
-              else
-                echo "✅ $var is configured"
-              fi
-            done
-            echo "--- Validating esignet standalone mosipid1 postgres + keycloak secrets ---"
-            for var in MOSIPID1_POSTGRES_PASSWORD MOSIPID1_KEYCLOAK_ADMIN_PASSWORD; do
-              val="${!var:-}"
-              if [ -z "$val" ]; then
-                echo "❌ $var secret is not configured (required for esignet standalone)"
-                MISSING_SECRETS=1
-              else
-                echo "✅ $var is configured"
-              fi
-            done
-            if [ "$MOSIPID2_ENABLED" = "true" ]; then
-              echo "--- Validating mosipid2 captcha + postgres + keycloak secrets ---"
-              for var in ESIGNET_MOSIPID2_CAPTCHA_SITE_KEY ESIGNET_MOSIPID2_CAPTCHA_SECRET_KEY \
-                         MOSIPID2_POSTGRES_PASSWORD MOSIPID2_KEYCLOAK_ADMIN_PASSWORD; do
-                val="${!var:-}"
-                if [ -z "$val" ]; then
-                  echo "❌ $var secret is not configured (required when enable_mosipid2=true)"
-                  MISSING_SECRETS=1
-                else
-                  echo "✅ $var is configured"
-                fi
-              done
-            else
-              echo "ℹ mosipid2 disabled — skipping mosipid2 secret validation"
-            fi
-          elif [ "$PROFILE" = "esignet-standalone-2.0.0" ]; then
-            echo "--- Validating esignet standalone 2.0.0 (Go) mosipid captcha secrets ---"
+          if [[ "$PROFILE" == esignet-standalone* ]]; then
+            echo "--- Validating esignet standalone mosipid captcha secrets ---"
             for var in ESIGNET_MOSIPID_CAPTCHA_SITE_KEY ESIGNET_MOSIPID_CAPTCHA_SECRET_KEY \
                        ESIGNET_SUNBIRD_CAPTCHA_SITE_KEY ESIGNET_SUNBIRD_CAPTCHA_SECRET_KEY; do
               val="${!var:-}"
               if [ -z "$val" ]; then
-                echo "❌ $var secret is not configured (required for esignet standalone 2.0.0)"
+                echo "❌ $var secret is not configured (required for esignet standalone)"
                 MISSING_SECRETS=1
               else
                 echo "✅ $var is configured"
               fi
             done
-            echo "--- Validating esignet standalone 2.0.0 (Go) mosipid postgres + keycloak secrets ---"
+            echo "--- Validating esignet standalone mosipid postgres + keycloak secrets ---"
             for var in MOSIPID_POSTGRES_PASSWORD MOSIPID_KEYCLOAK_ADMIN_PASSWORD; do
               val="${!var:-}"
               if [ -z "$val" ]; then
-                echo "❌ $var secret is not configured (required for esignet standalone 2.0.0)"
+                echo "❌ $var secret is not configured (required for esignet standalone)"
                 MISSING_SECRETS=1
               else
                 echo "✅ $var is configured"
@@ -495,15 +398,7 @@ jobs:
             echo "  - MOCK_RELYING_PARTY_JWE_PRIVATE_KEY (base64 encoded PEM)"
             echo "  - ESIGNET_CAPTCHA_SITE_KEY (reCAPTCHA site key - plain text)"
             echo "  - ESIGNET_CAPTCHA_SECRET_KEY (reCAPTCHA secret key - plain text)"
-            if [ "$PROFILE" = "esignet-standalone" ]; then
-              echo "  - ESIGNET_MOSIPID1_CAPTCHA_SITE_KEY / ESIGNET_MOSIPID1_CAPTCHA_SECRET_KEY"
-              echo "  - ESIGNET_SUNBIRD_CAPTCHA_SITE_KEY / ESIGNET_SUNBIRD_CAPTCHA_SECRET_KEY"
-              echo "  - MOSIPID1_POSTGRES_PASSWORD / MOSIPID1_KEYCLOAK_ADMIN_PASSWORD"
-              if [ "$MOSIPID2_ENABLED" = "true" ]; then
-                echo "  - ESIGNET_MOSIPID2_CAPTCHA_SITE_KEY / ESIGNET_MOSIPID2_CAPTCHA_SECRET_KEY"
-                echo "  - MOSIPID2_POSTGRES_PASSWORD / MOSIPID2_KEYCLOAK_ADMIN_PASSWORD"
-              fi
-            elif [ "$PROFILE" = "esignet-standalone-2.0.0" ]; then
+            if [[ "$PROFILE" == esignet-standalone* ]]; then
               echo "  - ESIGNET_MOSIPID_CAPTCHA_SITE_KEY / ESIGNET_MOSIPID_CAPTCHA_SECRET_KEY"
               echo "  - ESIGNET_SUNBIRD_CAPTCHA_SITE_KEY / ESIGNET_SUNBIRD_CAPTCHA_SECRET_KEY"
               echo "  - MOSIPID_POSTGRES_PASSWORD / MOSIPID_KEYCLOAK_ADMIN_PASSWORD"
@@ -608,8 +503,6 @@ jobs:
       - name: Show deployment variables
         run: |
           echo "domain_name           = $domain_name"
-          echo "mosipid1_domain_name  = $mosipid1_domain_name"
-          echo "mosipid2_domain_name  = $mosipid2_domain_name"
           echo "mosipid_domain_name   = $mosipid_domain_name"
           echo "env_name              = $env_name"
 
@@ -649,17 +542,7 @@ jobs:
           # Fix: skip softhsm upgrade on re-runs so the PIN in the secret never changes.
           SKIP_RELEASES_ARG=""
           if [[ "$PROFILE" == esignet-standalone* ]]; then
-            case "$PROFILE" in
-              esignet-standalone)
-                SOFTHSM_PAIRS=("esignet-softhsm:esignet-mock" "esignet-softhsm-mosipid1:esignet-mosipid1" "esignet-softhsm-mosipid2:esignet-mosipid2" "esignet-softhsm-sunbird:esignet-sunbird")
-                ;;
-              esignet-standalone-2.0.0)
-                SOFTHSM_PAIRS=("esignet-softhsm:esignet-mock" "esignet-softhsm-mosipid:esignet-mosipid" "esignet-softhsm-sunbird:esignet-sunbird")
-                ;;
-              *)
-                SOFTHSM_PAIRS=()
-                ;;
-            esac
+            SOFTHSM_PAIRS=("esignet-softhsm:esignet-mock" "esignet-softhsm-mosipid:esignet-mosipid" "esignet-softhsm-sunbird:esignet-sunbird")
             SKIP_RELEASES=""
             for pair in "${SOFTHSM_PAIRS[@]}"; do
               release="${pair%%:*}"
@@ -700,7 +583,7 @@ jobs:
           echo "Commit: ${{ github.sha }}"
           echo ""
           echo "Namespaces created/updated:"
-          kubectl get ns esignet-mock esignet-mosipid1 esignet-mosipid2 esignet-mosipid esignet-sunbird softhsm keycloak redis postgres 2>/dev/null || echo "Some namespaces may not exist yet"
+          kubectl get ns esignet-mock esignet-mosipid esignet-sunbird softhsm keycloak redis postgres 2>/dev/null || echo "Some namespaces may not exist yet"
           echo ""
           echo "eSignet pods status:"
           kubectl get pods -n esignet-mock 2>/dev/null || echo "esignet-mock namespace not ready"

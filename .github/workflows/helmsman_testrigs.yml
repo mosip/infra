@@ -25,21 +25,8 @@ on:
         description: "Domain name for this environment (e.g. example.xyz.net)"
         required: true
         type: string
-      mosipid1_domain_name:
-        description: "MOSIP-ID1 domain name (e.g. mosipenv1.xyz.net) — required for esignet profile"
-        required: false
-        type: string
-      enable_mosipid2:
-        description: "Enable MOSIP-ID2 testrig (only needed if mosipid2 eSignet instance is enabled)"
-        required: false
-        default: false
-        type: boolean
-      mosipid2_domain_name:
-        description: "MOSIP-ID2 domain name (e.g. mosipenv2.xyz.net) — required only when enable_mosipid2 is set"
-        required: false
-        type: string
       mosipid_domain_name:
-        description: "MOSIP-ID domain name for esignet-standalone-2.0.0 (Go) profile only (e.g. mosipenv.xyz.net)"
+        description: "MOSIP-ID domain name (e.g. mosipenv.xyz.net) — required for esignet standalone profiles"
         required: false
         type: string
       db_port:
@@ -78,11 +65,6 @@ jobs:
     steps:
       - name: Validate required variables
         env:
-          IN_MOSIPID1_DOMAIN: ${{ github.event.inputs.mosipid1_domain_name }}
-          IN_MOSIPID2_DOMAIN: ${{ github.event.inputs.mosipid2_domain_name }}
-          VAR_MOSIPID1_DOMAIN: ${{ vars.MOSIPID1_DOMAIN_NAME }}
-          VAR_MOSIPID2_DOMAIN: ${{ vars.MOSIPID2_DOMAIN_NAME }}
-          IN_ENABLE_MOSIPID2: ${{ github.event.inputs.enable_mosipid2 }}
           IN_MOSIPID_DOMAIN: ${{ github.event.inputs.mosipid_domain_name }}
           VAR_MOSIPID_DOMAIN: ${{ vars.MOSIPID_DOMAIN_NAME }}
         run: |
@@ -109,40 +91,20 @@ jobs:
           echo "✓ slack_channel_name = $SLACK_CH"
           echo "✓ db_port            = $DB_PORT"
           echo "✓ esignet_db_port    = $ESIGNET_DB_PORT"
-          # mosipid1/mosipid2_domain_name are esignet-standalone (v1.7.1) only — that
-          # profile still runs two separate mosipid1/mosipid2 instances.
-          # mosipid_domain_name is esignet-standalone-2.0.0 (Go) only — that profile
-          # consolidates mosipid1+mosipid2 into a single mosipid instance.
+          # mosipid_domain_name is esignet standalone only (both esignet-standalone
+          # and esignet-standalone-2.0.0 each run a single consolidated mosipid instance).
           # Push events always target the esignet profile (path filter); dispatch uses explicit profile input.
-          if [ -z "$PROFILE" ] || [ "$PROFILE" = "esignet-standalone" ]; then
-            MOSIPID1_DOMAIN="${IN_MOSIPID1_DOMAIN:-$VAR_MOSIPID1_DOMAIN}"
-            MOSIPID2_DOMAIN="${IN_MOSIPID2_DOMAIN:-$VAR_MOSIPID2_DOMAIN}"
-            if [ -z "$MOSIPID1_DOMAIN" ]; then
-              echo "❌ mosipid1_domain_name is required for esignet-standalone"
-              exit 1
-            fi
-            if [ "$IN_ENABLE_MOSIPID2" = "true" ] &&
-               [ -z "$MOSIPID2_DOMAIN" ]; then
-              echo "❌ mosipid2_domain_name is required when enable_mosipid2 is true"
-              exit 1
-            fi
-            echo "✓ mosipid1_domain_name = $MOSIPID1_DOMAIN (esignet standalone)"
-            echo "✓ mosipid2_domain_name = $MOSIPID2_DOMAIN (esignet standalone)"
-          fi
-          if [ -z "$PROFILE" ] || [ "$PROFILE" = "esignet-standalone-2.0.0" ]; then
+          if [ -z "$PROFILE" ] || [[ "$PROFILE" == esignet-standalone* ]]; then
             MOSIPID_DOMAIN="${IN_MOSIPID_DOMAIN:-$VAR_MOSIPID_DOMAIN}"
             if [ -z "$MOSIPID_DOMAIN" ]; then
-              echo "❌ mosipid_domain_name is required for esignet-standalone-2.0.0"
+              echo "❌ mosipid_domain_name is required for standalone profiles"
               exit 1
             fi
-            echo "✓ mosipid_domain_name = $MOSIPID_DOMAIN (esignet standalone 2.0.0 / Go)"
-          fi
-          if [ -n "$PROFILE" ] && [ "$PROFILE" != "esignet-standalone" ] && [ "$PROFILE" != "esignet-standalone-2.0.0" ]; then
-            MOSIPID1_PROVIDED="$IN_MOSIPID1_DOMAIN"
-            MOSIPID2_PROVIDED="$IN_MOSIPID2_DOMAIN"
+            echo "✓ mosipid_domain_name = $MOSIPID_DOMAIN (esignet standalone)"
+          else
             MOSIPID_PROVIDED="$IN_MOSIPID_DOMAIN"
-            if [ -n "$MOSIPID1_PROVIDED" ] || [ -n "$MOSIPID2_PROVIDED" ] || [ -n "$MOSIPID_PROVIDED" ]; then
-              echo "⚠ mosipid1_domain_name / mosipid2_domain_name / mosipid_domain_name are only used for esignet standalone profiles — ignoring for profile=$PROFILE"
+            if [ -n "$MOSIPID_PROVIDED" ]; then
+              echo "⚠ mosipid_domain_name is only used for esignet standalone profiles — ignoring for profile=$PROFILE"
             fi
           fi
 
@@ -156,10 +118,7 @@ jobs:
       PATH: ${{ github.workspace }}/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
       KUBECTL_PATH: ${{ github.workspace }}/.local/bin/kubectl
       domain_name:        ${{ github.event.inputs.domain_name        || vars.DOMAIN_NAME }}
-      mosipid1_domain_name:    ${{ github.event.inputs.mosipid1_domain_name    || vars.MOSIPID1_DOMAIN_NAME }}
-      mosipid2_domain_name: ${{ github.event.inputs.mosipid2_domain_name || vars.MOSIPID2_DOMAIN_NAME }}
       mosipid_domain_name: ${{ github.event.inputs.mosipid_domain_name || vars.MOSIPID_DOMAIN_NAME }}
-      MOSIPID2_ENABLED:   ${{ github.event.inputs.enable_mosipid2 == 'true' && 'true' || 'false' }}
       db_port:            ${{ github.event.inputs.db_port            || vars.DB_PORT }}
       esignet_db_port:    ${{ github.event.inputs.esignet_db_port    || vars.ESIGNET_DB_PORT }}
       env_name:           ${{ github.event.inputs.env_name           || vars.ENV_NAME }}
@@ -202,8 +161,6 @@ jobs:
             fi
           }
           save_var "DOMAIN_NAME"        "${{ github.event.inputs.domain_name }}"
-          save_var "MOSIPID1_DOMAIN_NAME"    "${{ github.event.inputs.mosipid1_domain_name }}"
-          save_var "MOSIPID2_DOMAIN_NAME" "${{ github.event.inputs.mosipid2_domain_name }}"
           save_var "MOSIPID_DOMAIN_NAME" "${{ github.event.inputs.mosipid_domain_name }}"
           save_var "DB_PORT"            "${{ github.event.inputs.db_port }}"
           save_var "ESIGNET_DB_PORT"    "${{ github.event.inputs.esignet_db_port }}"
