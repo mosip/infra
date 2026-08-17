@@ -2,14 +2,14 @@
 # =============================================================================
 # eSignet Standalone 2.0.0 - Signup UI Testrig Pre-install Setup
 # =============================================================================
-# Prepares the signup-uitestrig-go namespace.
+# Prepares the signup-uitestrig namespace.
 # Copies keycloak resources from keycloak ns, MinIO s3 secret from minio ns,
 # and postgres-postgresql from postgres ns.
 # Stale uitestrig CMs are deleted so the chart recreates them from set: values.
 # =============================================================================
 set -euo pipefail
 
-NS=signup-uitestrig-go
+NS=signup-uitestrig
 COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
 
 echo "================================================"

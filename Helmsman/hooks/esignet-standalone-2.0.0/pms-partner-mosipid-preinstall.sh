@@ -1,45 +1,45 @@
 #!/bin/bash
 # =============================================================================
-# eSignet 1.7.1 - PMS Partner MOSIPID1 Pre-install
+# eSignet 1.7.1 - PMS Partner MOSIPID Pre-install
 # =============================================================================
-# Creates the Istio Gateway for pms-partner in esignet-mosipid1 namespace.
+# Creates the Istio Gateway for pms-partner in esignet-mosipid namespace.
 # =============================================================================
 set -euo pipefail
 
-ESIGNET_NS="esignet-go-mosipid1"
+ESIGNET_NS="esignet-mosipid"
 
 echo "================================================"
-echo "eSignet 1.7.1 - PMS Partner MOSIPID1 Pre-install"
+echo "eSignet 1.7.1 - PMS Partner MOSIPID Pre-install"
 echo "================================================"
 
 kubectl apply -f - <<EOF
 apiVersion: networking.istio.io/v1
 kind: Gateway
 metadata:
-  name: pms-partner-mosipid1-gateway
+  name: pms-partner-mosipid-gateway
   namespace: ${ESIGNET_NS}
   labels:
-    app.kubernetes.io/instance: pms-partner-go-mosipid1
+    app.kubernetes.io/instance: pms-partner-mosipid
     app.kubernetes.io/name: pms-partner
 spec:
   selector:
     istio: ingressgateway
   servers:
     - hosts:
-        - pms-go-mosipid1.${domain_name}
+        - pms-mosipid.${domain_name}
       port:
         name: https
         number: 443
         protocol: HTTPS
       tls:
-        credentialName: pms-partner-mosipid1-tls
+        credentialName: pms-partner-mosipid-tls
         mode: SIMPLE
     - hosts:
-        - pms-go-mosipid1.${domain_name}
+        - pms-mosipid.${domain_name}
       port:
         name: http
         number: 80
         protocol: HTTP
 EOF
 
-echo "pms-partner-mosipid1-gateway created/updated in $ESIGNET_NS."
+echo "pms-partner-mosipid-gateway created/updated in $ESIGNET_NS."
