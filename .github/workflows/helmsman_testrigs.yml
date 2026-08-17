@@ -38,6 +38,10 @@ on:
         description: "MOSIP-ID2 domain name (e.g. mosipenv2.xyz.net) — required only when enable_mosipid2 is set"
         required: false
         type: string
+      mosipid_domain_name:
+        description: "MOSIP-ID domain name for esignet-standalone-2.0.0 (Go) profile only (e.g. mosipenv.xyz.net)"
+        required: false
+        type: string
       db_port:
         description: "PostgreSQL port for MOSIP platform external postgres (e.g. 5433)"
         required: true
@@ -79,6 +83,8 @@ jobs:
           VAR_MOSIPID1_DOMAIN: ${{ vars.MOSIPID1_DOMAIN_NAME }}
           VAR_MOSIPID2_DOMAIN: ${{ vars.MOSIPID2_DOMAIN_NAME }}
           IN_ENABLE_MOSIPID2: ${{ github.event.inputs.enable_mosipid2 }}
+          IN_MOSIPID_DOMAIN: ${{ github.event.inputs.mosipid_domain_name }}
+          VAR_MOSIPID_DOMAIN: ${{ vars.MOSIPID_DOMAIN_NAME }}
         run: |
           errors=()
           PROFILE="${{ github.event.inputs.profile }}"
@@ -103,13 +109,16 @@ jobs:
           echo "✓ slack_channel_name = $SLACK_CH"
           echo "✓ db_port            = $DB_PORT"
           echo "✓ esignet_db_port    = $ESIGNET_DB_PORT"
-          # mosipid1_domain_name and mosipid2_domain_name are esignet standalone only.
+          # mosipid1/mosipid2_domain_name are esignet-standalone (v1.7.1) only — that
+          # profile still runs two separate mosipid1/mosipid2 instances.
+          # mosipid_domain_name is esignet-standalone-2.0.0 (Go) only — that profile
+          # consolidates mosipid1+mosipid2 into a single mosipid instance.
           # Push events always target the esignet profile (path filter); dispatch uses explicit profile input.
-          if [ -z "$PROFILE" ] || [[ "$PROFILE" == esignet-standalone* ]]; then
+          if [ -z "$PROFILE" ] || [ "$PROFILE" = "esignet-standalone" ]; then
             MOSIPID1_DOMAIN="${IN_MOSIPID1_DOMAIN:-$VAR_MOSIPID1_DOMAIN}"
             MOSIPID2_DOMAIN="${IN_MOSIPID2_DOMAIN:-$VAR_MOSIPID2_DOMAIN}"
             if [ -z "$MOSIPID1_DOMAIN" ]; then
-              echo "❌ mosipid1_domain_name is required for standalone profiles"
+              echo "❌ mosipid1_domain_name is required for esignet-standalone"
               exit 1
             fi
             if [ "$IN_ENABLE_MOSIPID2" = "true" ] &&
@@ -119,11 +128,21 @@ jobs:
             fi
             echo "✓ mosipid1_domain_name = $MOSIPID1_DOMAIN (esignet standalone)"
             echo "✓ mosipid2_domain_name = $MOSIPID2_DOMAIN (esignet standalone)"
-          else
+          fi
+          if [ -z "$PROFILE" ] || [ "$PROFILE" = "esignet-standalone-2.0.0" ]; then
+            MOSIPID_DOMAIN="${IN_MOSIPID_DOMAIN:-$VAR_MOSIPID_DOMAIN}"
+            if [ -z "$MOSIPID_DOMAIN" ]; then
+              echo "❌ mosipid_domain_name is required for esignet-standalone-2.0.0"
+              exit 1
+            fi
+            echo "✓ mosipid_domain_name = $MOSIPID_DOMAIN (esignet standalone 2.0.0 / Go)"
+          fi
+          if [ -n "$PROFILE" ] && [ "$PROFILE" != "esignet-standalone" ] && [ "$PROFILE" != "esignet-standalone-2.0.0" ]; then
             MOSIPID1_PROVIDED="$IN_MOSIPID1_DOMAIN"
             MOSIPID2_PROVIDED="$IN_MOSIPID2_DOMAIN"
-            if [ -n "$MOSIPID1_PROVIDED" ] || [ -n "$MOSIPID2_PROVIDED" ]; then
-              echo "⚠ mosipid1_domain_name / mosipid2_domain_name are only used for esignet standalone profile — ignoring for profile=$PROFILE"
+            MOSIPID_PROVIDED="$IN_MOSIPID_DOMAIN"
+            if [ -n "$MOSIPID1_PROVIDED" ] || [ -n "$MOSIPID2_PROVIDED" ] || [ -n "$MOSIPID_PROVIDED" ]; then
+              echo "⚠ mosipid1_domain_name / mosipid2_domain_name / mosipid_domain_name are only used for esignet standalone profiles — ignoring for profile=$PROFILE"
             fi
           fi
 
@@ -139,6 +158,7 @@ jobs:
       domain_name:        ${{ github.event.inputs.domain_name        || vars.DOMAIN_NAME }}
       mosipid1_domain_name:    ${{ github.event.inputs.mosipid1_domain_name    || vars.MOSIPID1_DOMAIN_NAME }}
       mosipid2_domain_name: ${{ github.event.inputs.mosipid2_domain_name || vars.MOSIPID2_DOMAIN_NAME }}
+      mosipid_domain_name: ${{ github.event.inputs.mosipid_domain_name || vars.MOSIPID_DOMAIN_NAME }}
       MOSIPID2_ENABLED:   ${{ github.event.inputs.enable_mosipid2 == 'true' && 'true' || 'false' }}
       db_port:            ${{ github.event.inputs.db_port            || vars.DB_PORT }}
       esignet_db_port:    ${{ github.event.inputs.esignet_db_port    || vars.ESIGNET_DB_PORT }}
@@ -184,6 +204,7 @@ jobs:
           save_var "DOMAIN_NAME"        "${{ github.event.inputs.domain_name }}"
           save_var "MOSIPID1_DOMAIN_NAME"    "${{ github.event.inputs.mosipid1_domain_name }}"
           save_var "MOSIPID2_DOMAIN_NAME" "${{ github.event.inputs.mosipid2_domain_name }}"
+          save_var "MOSIPID_DOMAIN_NAME" "${{ github.event.inputs.mosipid_domain_name }}"
           save_var "DB_PORT"            "${{ github.event.inputs.db_port }}"
           save_var "ESIGNET_DB_PORT"    "${{ github.event.inputs.esignet_db_port }}"
           save_var "ENV_NAME"           "${{ github.event.inputs.env_name }}"
