@@ -110,7 +110,6 @@ apps:
     enabled: true
     version: 2.0.0-develop
     chart: mosip/esignet
-    valuesFile: "$WORKDIR/utils/esignet-standalone-2.0.0/esignet-plugin-values-2-0-0.yaml"
     set:
       image.repository: "mosipqa/esignet"
       image.tag: "develop-go"
@@ -132,6 +131,49 @@ apps:
       domainConfig.MOSIP_SMTP_HOST: "smtp.${domain_name}"
       domainConfig.installation-domain: "${domain_name}"
       domainConfig.OIDC_UI_HOSTNAME: "esignet-go.${domain_name}"
+      extraEnvVars.KEYCLOAK_EXTERNAL_URL.valueFrom.configMapKeyRef.name: "keycloak-host"
+      extraEnvVars.KEYCLOAK_EXTERNAL_URL.valueFrom.configMapKeyRef.key: "keycloak-external-url"
+      extraEnvVars.MOSIP_ESIGNET_CAPTCHA_SITE_KEY.valueFrom.secretKeyRef.name: "esignet-captcha-go"
+      extraEnvVars.MOSIP_ESIGNET_CAPTCHA_SITE_KEY.valueFrom.secretKeyRef.key: "esignet-captcha-site-key"
+      extraEnvVars.MOSIP_ESIGNET_CAPTCHA_MODULE_NAME: "esignetgo"
+      extraEnvVars.REDIS_HOST.valueFrom.configMapKeyRef.name: "redis-config"
+      extraEnvVars.REDIS_HOST.valueFrom.configMapKeyRef.key: "redis-host"
+      extraEnvVars.REDIS_PORT.valueFrom.configMapKeyRef.name: "redis-config"
+      extraEnvVars.REDIS_PORT.valueFrom.configMapKeyRef.key: "redis-port"
+      extraEnvVars.REDIS_PASSWORD.valueFrom.secretKeyRef.name: "redis"
+      extraEnvVars.REDIS_PASSWORD.valueFrom.secretKeyRef.key: "redis-password"
+      extraEnvVars.DATABASE_HOST.valueFrom.configMapKeyRef.name: "postgres-config"
+      extraEnvVars.DATABASE_HOST.valueFrom.configMapKeyRef.key: "database-host"
+      extraEnvVars.DATABASE_PORT.valueFrom.configMapKeyRef.name: "postgres-config"
+      extraEnvVars.DATABASE_PORT.valueFrom.configMapKeyRef.key: "database-port"
+      extraEnvVars.DATABASE_NAME.valueFrom.configMapKeyRef.name: "postgres-config"
+      extraEnvVars.DATABASE_NAME.valueFrom.configMapKeyRef.key: "database-name"
+      extraEnvVars.DATABASE_USERNAME.valueFrom.configMapKeyRef.name: "postgres-config"
+      extraEnvVars.DATABASE_USERNAME.valueFrom.configMapKeyRef.key: "database-username"
+      extraEnvVars.DB_DBUSER_PASSWORD.valueFrom.secretKeyRef.name: "db-common-secrets"
+      extraEnvVars.DB_DBUSER_PASSWORD.valueFrom.secretKeyRef.key: "db-dbuser-password"
+      extraEnvVars.SOFTHSM_ESIGNET_SECURITY_PIN.valueFrom.secretKeyRef.name: "esignet-softhsm-go"
+      extraEnvVars.SOFTHSM_ESIGNET_SECURITY_PIN.valueFrom.secretKeyRef.key: "security-pin"
+      extraEnvVars.MOSIP_IDA_CLIENT_SECRET.valueFrom.secretKeyRef.name: "keycloak-client-secrets"
+      extraEnvVars.MOSIP_IDA_CLIENT_SECRET.valueFrom.secretKeyRef.key: "mosip_ida_client_secret"
+      extraEnvVars.AUTHN_PROVIDER: "mosip"
+      extraEnvVars.KEYMANAGER_DB_SCHEMA: "esignet"
+      extraEnvVars.KEYMANAGER_KEYSTORE_TYPE: "PKCS11"
+      extraEnvVars.KEYMANAGER_PKCS11_MODULE_PATH: "/usr/lib/softhsm/libsofthsm2.so"
+      extraEnvVars.KEYMANAGER_PKCS11_TOKEN_LABEL: "esignet"
+      extraEnvVars.KEYMANAGER_PKCS11_SLOT_ID: "0"
+      extraEnvVars.KEYMANAGER_PKCS11_PIN.valueFrom.secretKeyRef.name: "esignet-softhsm-go"
+      extraEnvVars.KEYMANAGER_PKCS11_PIN.valueFrom.secretKeyRef.key: "security-pin"
+      extraEnvVars.OIDC_UI_SCHEME: "https"
+      extraEnvVars.OIDC_UI_PORT: "443"
+      extraEnvVars.OIDC_UI_LOGIN_PATH: "/signin"
+      extraEnvVars.OIDC_UI_ERROR_PATH: "/error"
+      extraEnvVars.DEFAULT_THEME_ID: "decl-theme-1"
+      extraEnvVars.DEFAULT_LAYOUT_ID: "decl-layout-1"
+      extraEnvVars.DEFAULT_AUTH_FLOW_ID: "decl-mosip-otp-flow-1"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_CAPTCHA_SITE_KEY.valueFrom.secretKeyRef.name: "esignet-captcha-go"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_CAPTCHA_SITE_KEY.valueFrom.secretKeyRef.key: "esignet-captcha-site-key"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_CAPTCHA_REQUIRED: ""
     timeout: 600
     priority: -14
     hooks:
@@ -143,7 +185,6 @@ apps:
     enabled: true
     version: 2.0.0-develop
     chart: mosip/esignet
-    valuesFile: "$WORKDIR/utils/esignet-standalone-2.0.0/esignet-mosipid1-plugin-values-2-0-0.yaml"
     set:
       image.repository: "mosipqa/esignet"
       image.tag: "develop-go"
@@ -173,7 +214,64 @@ apps:
       domainConfig.MOSIP_ESIGNET_IDA_AUTH_DOMAIN: "https://api-internal.${mosipid1_domain_name}"
       domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_IDA_DOMAINURI: "https://esignet-go-mosipid1.${domain_name}"
       domainConfig.MOSIP_ESIGNET_DOMAIN_URL: "https://esignet-go-mosipid1.${domain_name}"
-      domainConfig.OIDC_UI_HOSTNAME: "esignet-go-mosipid1.${domain_name}"      
+      domainConfig.OIDC_UI_HOSTNAME: "esignet-go-mosipid1.${domain_name}"
+      extraEnvVars.KEYCLOAK_EXTERNAL_URL.valueFrom.configMapKeyRef.name: "keycloak-host"
+      extraEnvVars.KEYCLOAK_EXTERNAL_URL.valueFrom.configMapKeyRef.key: "keycloak-external-url"
+      extraEnvVars.REDIS_HOST.valueFrom.configMapKeyRef.name: "redis-config"
+      extraEnvVars.REDIS_HOST.valueFrom.configMapKeyRef.key: "redis-host"
+      extraEnvVars.REDIS_PORT.valueFrom.configMapKeyRef.name: "redis-config"
+      extraEnvVars.REDIS_PORT.valueFrom.configMapKeyRef.key: "redis-port"
+      extraEnvVars.REDIS_PASSWORD.valueFrom.secretKeyRef.name: "redis"
+      extraEnvVars.REDIS_PASSWORD.valueFrom.secretKeyRef.key: "redis-password"
+      extraEnvVars.DATABASE_HOST.valueFrom.configMapKeyRef.name: "postgres-config"
+      extraEnvVars.DATABASE_HOST.valueFrom.configMapKeyRef.key: "database-host"
+      extraEnvVars.DATABASE_PORT.valueFrom.configMapKeyRef.name: "postgres-config"
+      extraEnvVars.DATABASE_PORT.valueFrom.configMapKeyRef.key: "database-port"
+      extraEnvVars.DATABASE_NAME.valueFrom.configMapKeyRef.name: "postgres-config"
+      extraEnvVars.DATABASE_NAME.valueFrom.configMapKeyRef.key: "database-name"
+      extraEnvVars.DATABASE_USERNAME.valueFrom.configMapKeyRef.name: "postgres-config"
+      extraEnvVars.DATABASE_USERNAME.valueFrom.configMapKeyRef.key: "database-username"
+      extraEnvVars.DB_DBUSER_PASSWORD.valueFrom.secretKeyRef.name: "db-common-secrets"
+      extraEnvVars.DB_DBUSER_PASSWORD.valueFrom.secretKeyRef.key: "db-dbuser-password"
+      extraEnvVars.SOFTHSM_ESIGNET_SECURITY_PIN.valueFrom.secretKeyRef.name: "esignet-softhsm-go-mosipid1"
+      extraEnvVars.SOFTHSM_ESIGNET_SECURITY_PIN.valueFrom.secretKeyRef.key: "security-pin"
+      extraEnvVars.MOSIP_IDA_CLIENT_SECRET.valueFrom.secretKeyRef.name: "keycloak-client-secrets-mosipid1"
+      extraEnvVars.MOSIP_IDA_CLIENT_SECRET.valueFrom.secretKeyRef.key: "mosip_ida_client_secret"
+      extraEnvVars.AUTHN_PROVIDER: "mosip"
+      extraEnvVars.KEYMANAGER_DB_SCHEMA: "esignet"
+      extraEnvVars.KEYMANAGER_KEYSTORE_TYPE: "PKCS12"
+      extraEnvVars.KEYMANAGER_PKCS12_FILE_PATH: "/home/mosip/keys/secret/mosipid1.pfx"
+      extraEnvVars.OIDC_UI_SCHEME: "https"
+      extraEnvVars.OIDC_UI_PORT: "443"
+      extraEnvVars.OIDC_UI_LOGIN_PATH: "/signin"
+      extraEnvVars.OIDC_UI_ERROR_PATH: "/error"
+      extraEnvVars.DEFAULT_THEME_ID: "decl-theme-1"
+      extraEnvVars.DEFAULT_LAYOUT_ID: "decl-layout-1"
+      extraEnvVars.DEFAULT_AUTH_FLOW_ID: "decl-mosip-otp-flow-1"
+      extraEnvVarsSecret[0]: "esignet-keystore-go-mosipid1"
+      extraVolumes[0].name: "esignet-keystore-go-mosipid1"
+      extraVolumes[0].secret.secretName: "esignet-keystore-go-mosipid1"
+      extraVolumeMounts[0].name: "esignet-keystore-go-mosipid1"
+      extraVolumeMounts[0].mountPath: "/home/mosip/keys/secret"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_CAPTCHA_MODULE_NAME: "esignetgomosipid1"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_CAPTCHA_SITE-KEY.valueFrom.secretKeyRef.name: "esignet-captcha-go-mosipid1"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_CAPTCHA_SITE-KEY.valueFrom.secretKeyRef.key: "esignet-captcha-site-key"
+      extraEnvVarsAdditional.NAMESPACE: "mosipid1"
+      extraEnvVarsAdditional.plugin_name_env: "mosip-identity-plugin.jar"
+      extraEnvVarsAdditional.SPRING_KAFKA_CONSUMER_GROUP_ID: "esignet-consumer-esignet-mosipid1"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_SIGNUP_ID_TOKEN_AUDIENCE: "esignet-mosipid1-signup-esqa020"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_AUTHENTICATOR_IDA_OTP_CHANNELS: 'email\,phone'
+      extraEnvVarsAdditional.MOSIP_ESIGNET_SEND_OTP_ATTEMPTS: "300"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_AUTHENTICATE_ATTEMPTS: "300"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_AUTHENTICATION_EXPIRE_IN_SECS: "600"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_PREAUTHENTICATION_EXPIRE_IN_SECS: "600"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_UI_CONFIG_USERNAME_POSTFIX: "@phone"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_UI_CONFIG_LOGIN_ID_OPTIONS.value: '\{\{ "\{\{" \}\} ''id'': ''mobile''\, ''svg'': ''mobile_icon''\, ''prefixes'': \{\{ "\{\{" \}\}''label'': ''IND''\, ''value'': ''+91''\, ''maxLength'': ''''\, ''regex'': ''''\}\,\{''label'': ''KHM''\, ''value'': ''+855''\, ''regex'': ''''\{\{ "\}\}" \}\}\, ''postfix'': ''@phone''\, ''maxLength'': ''''\, ''regex'': '''' \}\, \{ ''id'': ''nrc''\, ''svg'': ''nrc_id_icon''\, ''prefixes'': ''''\, ''postfix'': ''@nrc''\, ''maxLength'': ''''\, ''regex'': '''' \}\, \{ ''id'': ''vid''\, ''svg'': ''vid_icon''\, ''prefixes'': ''''\, ''postfix'': ''''\, ''maxLength'': ''''\, ''regex'': '''' \}\, \{ ''id'': ''email''\, ''svg'': ''email_icon''\, ''prefixes'': ''''\, ''postfix'': ''@email''\, ''maxLength'': ''''\, ''regex'': '''' \{\{ "\}\}" \}\}'
+      extraEnvVarsAdditional.LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB_CLIENT: "INFO"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_CAPTCHA_REQUIRED: "false"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_CAPTCHA_URL: "http://captcha.captcha"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_MISP_KEY.valueFrom.secretKeyRef.name: "esignet-misp-onboarder-key"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_MISP_KEY.valueFrom.secretKeyRef.key: "mosip-esignet-misp-key"
     timeout: 600
     priority: -14
     hooks:
@@ -184,7 +282,6 @@ apps:
     enabled: ${MOSIPID2_ENABLED}
     version: 2.0.0-develop
     chart: mosip/esignet
-    valuesFile: "$WORKDIR/utils/esignet-standalone-2.0.0/esignet-mosipid2-plugin-values-2-0-0.yaml"
     set:
       image.repository: "mosipqa/esignet"
       image.tag: "develop-go"
@@ -214,7 +311,63 @@ apps:
       domainConfig.MOSIP_ESIGNET_IDA_AUTH_DOMAIN: "https://api-internal.${mosipid2_domain_name}"
       domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_IDA_DOMAINURI: "https://esignet-go-mosipid2.${domain_name}"
       domainConfig.MOSIP_ESIGNET_DOMAIN_URL: "https://esignet-go-mosipid2.${domain_name}"
-      domainConfig.OIDC_UI_HOSTNAME: "esignet-go-mosipid2.${domain_name}"      
+      domainConfig.OIDC_UI_HOSTNAME: "esignet-go-mosipid2.${domain_name}"
+      extraEnvVars.KEYCLOAK_EXTERNAL_URL.valueFrom.configMapKeyRef.name: "keycloak-host"
+      extraEnvVars.KEYCLOAK_EXTERNAL_URL.valueFrom.configMapKeyRef.key: "keycloak-external-url"
+      extraEnvVars.REDIS_HOST.valueFrom.configMapKeyRef.name: "redis-config"
+      extraEnvVars.REDIS_HOST.valueFrom.configMapKeyRef.key: "redis-host"
+      extraEnvVars.REDIS_PORT.valueFrom.configMapKeyRef.name: "redis-config"
+      extraEnvVars.REDIS_PORT.valueFrom.configMapKeyRef.key: "redis-port"
+      extraEnvVars.REDIS_PASSWORD.valueFrom.secretKeyRef.name: "redis"
+      extraEnvVars.REDIS_PASSWORD.valueFrom.secretKeyRef.key: "redis-password"
+      extraEnvVars.DATABASE_HOST.valueFrom.configMapKeyRef.name: "postgres-config"
+      extraEnvVars.DATABASE_HOST.valueFrom.configMapKeyRef.key: "database-host"
+      extraEnvVars.DATABASE_PORT.valueFrom.configMapKeyRef.name: "postgres-config"
+      extraEnvVars.DATABASE_PORT.valueFrom.configMapKeyRef.key: "database-port"
+      extraEnvVars.DATABASE_NAME.valueFrom.configMapKeyRef.name: "postgres-config"
+      extraEnvVars.DATABASE_NAME.valueFrom.configMapKeyRef.key: "database-name"
+      extraEnvVars.DATABASE_USERNAME.valueFrom.configMapKeyRef.name: "postgres-config"
+      extraEnvVars.DATABASE_USERNAME.valueFrom.configMapKeyRef.key: "database-username"
+      extraEnvVars.DB_DBUSER_PASSWORD.valueFrom.secretKeyRef.name: "db-common-secrets"
+      extraEnvVars.DB_DBUSER_PASSWORD.valueFrom.secretKeyRef.key: "db-dbuser-password"
+      extraEnvVars.SOFTHSM_ESIGNET_SECURITY_PIN.valueFrom.secretKeyRef.name: "esignet-softhsm-go-mosipid2"
+      extraEnvVars.SOFTHSM_ESIGNET_SECURITY_PIN.valueFrom.secretKeyRef.key: "security-pin"
+      extraEnvVars.MOSIP_IDA_CLIENT_SECRET.valueFrom.secretKeyRef.name: "keycloak-client-secrets-mosipid2"
+      extraEnvVars.MOSIP_IDA_CLIENT_SECRET.valueFrom.secretKeyRef.key: "mosip_ida_client_secret"
+      extraEnvVars.AUTHN_PROVIDER: "mosip"
+      extraEnvVars.KEYMANAGER_DB_SCHEMA: "esignet"
+      extraEnvVars.KEYMANAGER_KEYSTORE_TYPE: "PKCS11"
+      extraEnvVars.KEYMANAGER_PKCS11_MODULE_PATH: "/usr/lib/softhsm/libsofthsm2.so"
+      extraEnvVars.KEYMANAGER_PKCS11_TOKEN_LABEL: "esignet"
+      extraEnvVars.KEYMANAGER_PKCS11_SLOT_ID: "0"
+      extraEnvVars.KEYMANAGER_PKCS11_PIN.valueFrom.secretKeyRef.name: "esignet-softhsm-go-mosipid2"
+      extraEnvVars.KEYMANAGER_PKCS11_PIN.valueFrom.secretKeyRef.key: "security-pin"
+      extraEnvVars.OIDC_UI_SCHEME: "https"
+      extraEnvVars.OIDC_UI_PORT: "443"
+      extraEnvVars.OIDC_UI_LOGIN_PATH: "/signin"
+      extraEnvVars.OIDC_UI_ERROR_PATH: "/error"
+      extraEnvVars.DEFAULT_THEME_ID: "decl-theme-1"
+      extraEnvVars.DEFAULT_LAYOUT_ID: "decl-layout-1"
+      extraEnvVars.DEFAULT_AUTH_FLOW_ID: "decl-mosip-otp-flow-1"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_CAPTCHA_MODULE_NAME: "esignetgomosipid2"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_CAPTCHA_SITE-KEY.valueFrom.secretKeyRef.name: "esignet-captcha-go-mosipid2"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_CAPTCHA_SITE-KEY.valueFrom.secretKeyRef.key: "esignet-captcha-site-key"
+      extraEnvVarsAdditional.NAMESPACE: "mosipid2"
+      extraEnvVarsAdditional.plugin_name_env: "mosip-identity-plugin.jar"
+      extraEnvVarsAdditional.SPRING_KAFKA_CONSUMER_GROUP_ID: "esignet-consumer-esignet-mosipid2"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_SIGNUP_ID_TOKEN_AUDIENCE: "esignet-mosipid2-signup-esqa020"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_AUTHENTICATOR_IDA_OTP_CHANNELS: 'email\,phone'
+      extraEnvVarsAdditional.MOSIP_ESIGNET_SEND_OTP_ATTEMPTS: "300"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_AUTHENTICATE_ATTEMPTS: "300"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_AUTHENTICATION_EXPIRE_IN_SECS: "600"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_PREAUTHENTICATION_EXPIRE_IN_SECS: "600"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_UI_CONFIG_USERNAME_POSTFIX: "@phone"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_UI_CONFIG_LOGIN_ID_OPTIONS.value: '\{\{ "\{\{" \}\} ''id'': ''mobile''\, ''svg'': ''mobile_icon''\, ''prefixes'': \{\{ "\{\{" \}\}''label'': ''IND''\, ''value'': ''+91''\, ''maxLength'': ''''\, ''regex'': ''''\}\,\{''label'': ''KHM''\, ''value'': ''+855''\, ''regex'': ''''\{\{ "\}\}" \}\}\, ''postfix'': ''@phone''\, ''maxLength'': ''''\, ''regex'': '''' \}\, \{ ''id'': ''nrc''\, ''svg'': ''nrc_id_icon''\, ''prefixes'': ''''\, ''postfix'': ''@nrc''\, ''maxLength'': ''''\, ''regex'': '''' \}\, \{ ''id'': ''vid''\, ''svg'': ''vid_icon''\, ''prefixes'': ''''\, ''postfix'': ''''\, ''maxLength'': ''''\, ''regex'': '''' \}\, \{ ''id'': ''email''\, ''svg'': ''email_icon''\, ''prefixes'': ''''\, ''postfix'': ''@email''\, ''maxLength'': ''''\, ''regex'': '''' \{\{ "\}\}" \}\}'
+      extraEnvVarsAdditional.LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB_CLIENT: "INFO"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_CAPTCHA_REQUIRED: ""
+      extraEnvVarsAdditional.MOSIP_ESIGNET_CAPTCHA_URL: "http://captcha.captcha"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_MISP_KEY.valueFrom.secretKeyRef.name: "esignet-misp-onboarder-key"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_MISP_KEY.valueFrom.secretKeyRef.key: "mosip-esignet-misp-key"
     timeout: 600
     priority: -14
     hooks:
@@ -225,7 +378,6 @@ apps:
     enabled: true
     version: 2.0.0-develop
     chart: mosip/esignet
-    valuesFile: "$WORKDIR/utils/esignet-standalone-2.0.0/esignet-sunbird-plugin-values-2-0-0.yaml"
     set:
       image.repository: "mosipqa/esignet"
       image.tag: "develop-go"
@@ -249,7 +401,52 @@ apps:
       domainConfig.MOSIP_ESIGNET_SUNBIRD_RC_REGISTRY_GET_URL: "https://registry.${mosipid1_domain_name}"
       domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_SUNBIRD_RC_AUTH_FACTOR_KBI_REGISTRY_SEARCH_URL: "https://registry.${mosipid1_domain_name}/api/v1/Insurance/search"
       domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_SUNBIRD_RC_REGISTRY_GET_URL: "https://registry.${mosipid1_domain_name}/api/v1/Insurance/"
-      domainConfig.OIDC_UI_HOSTNAME: "esignet-go-sunbird.${domain_name}"      
+      domainConfig.OIDC_UI_HOSTNAME: "esignet-go-sunbird.${domain_name}"
+      extraEnvVars.KEYCLOAK_EXTERNAL_URL.valueFrom.configMapKeyRef.name: "keycloak-host"
+      extraEnvVars.KEYCLOAK_EXTERNAL_URL.valueFrom.configMapKeyRef.key: "keycloak-external-url"
+      extraEnvVars.MOSIP_ESIGNET_CAPTCHA_MODULE_NAME: "esignetgosunbird"
+      extraEnvVars.REDIS_HOST.valueFrom.configMapKeyRef.name: "redis-config"
+      extraEnvVars.REDIS_HOST.valueFrom.configMapKeyRef.key: "redis-host"
+      extraEnvVars.REDIS_PORT.valueFrom.configMapKeyRef.name: "redis-config"
+      extraEnvVars.REDIS_PORT.valueFrom.configMapKeyRef.key: "redis-port"
+      extraEnvVars.REDIS_PASSWORD.valueFrom.secretKeyRef.name: "redis"
+      extraEnvVars.REDIS_PASSWORD.valueFrom.secretKeyRef.key: "redis-password"
+      extraEnvVars.DATABASE_HOST.valueFrom.configMapKeyRef.name: "postgres-config"
+      extraEnvVars.DATABASE_HOST.valueFrom.configMapKeyRef.key: "database-host"
+      extraEnvVars.DATABASE_PORT.valueFrom.configMapKeyRef.name: "postgres-config"
+      extraEnvVars.DATABASE_PORT.valueFrom.configMapKeyRef.key: "database-port"
+      extraEnvVars.DATABASE_NAME.valueFrom.configMapKeyRef.name: "postgres-config"
+      extraEnvVars.DATABASE_NAME.valueFrom.configMapKeyRef.key: "database-name"
+      extraEnvVars.DATABASE_USERNAME.valueFrom.configMapKeyRef.name: "postgres-config"
+      extraEnvVars.DATABASE_USERNAME.valueFrom.configMapKeyRef.key: "database-username"
+      extraEnvVars.DB_DBUSER_PASSWORD.valueFrom.secretKeyRef.name: "db-common-secrets"
+      extraEnvVars.DB_DBUSER_PASSWORD.valueFrom.secretKeyRef.key: "db-dbuser-password"
+      extraEnvVars.SOFTHSM_ESIGNET_SECURITY_PIN.valueFrom.secretKeyRef.name: "esignet-softhsm-go-sunbird"
+      extraEnvVars.SOFTHSM_ESIGNET_SECURITY_PIN.valueFrom.secretKeyRef.key: "security-pin"
+      extraEnvVars.MOSIP_IDA_CLIENT_SECRET.valueFrom.secretKeyRef.name: "keycloak-client-secrets"
+      extraEnvVars.MOSIP_IDA_CLIENT_SECRET.valueFrom.secretKeyRef.key: "mosip_ida_client_secret"
+      extraEnvVars.AUTHN_PROVIDER: "mosip"
+      extraEnvVars.KEYMANAGER_DB_SCHEMA: "esignet"
+      extraEnvVars.KEYMANAGER_KEYSTORE_TYPE: "PKCS11"
+      extraEnvVars.KEYMANAGER_PKCS11_MODULE_PATH: "/usr/lib/softhsm/libsofthsm2.so"
+      extraEnvVars.KEYMANAGER_PKCS11_TOKEN_LABEL: "esignet"
+      extraEnvVars.KEYMANAGER_PKCS11_SLOT_ID: "0"
+      extraEnvVars.KEYMANAGER_PKCS11_PIN.valueFrom.secretKeyRef.name: "esignet-softhsm-go-sunbird"
+      extraEnvVars.KEYMANAGER_PKCS11_PIN.valueFrom.secretKeyRef.key: "security-pin"
+      extraEnvVars.OIDC_UI_SCHEME: "https"
+      extraEnvVars.OIDC_UI_PORT: "443"
+      extraEnvVars.OIDC_UI_LOGIN_PATH: "/signin"
+      extraEnvVars.OIDC_UI_ERROR_PATH: "/error"
+      extraEnvVars.DEFAULT_THEME_ID: "decl-theme-1"
+      extraEnvVars.DEFAULT_LAYOUT_ID: "decl-layout-1"
+      extraEnvVars.DEFAULT_AUTH_FLOW_ID: "decl-mosip-otp-flow-1"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_CAPTCHA_SITE_KEY.valueFrom.secretKeyRef.name: "esignet-captcha-go-sunbird"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_CAPTCHA_SITE_KEY.valueFrom.secretKeyRef.key: "esignet-captcha-site-key"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_CAPTCHA_REQUIRED: ""
+      extraEnvVarsAdditional.MOSIP_ESIGNET_INTEGRATION_AUDIT_PLUGIN: "LoggerAuditService"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_INTEGRATION_KEY_BINDER: "NoOpKeyBinder"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_AUTHENTICATE_ATTEMPTS: "300"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_AUTHENTICATOR_DEFAULT_AUTH_FACTOR_KBI_INDIVIDUAL_ID_FIELD: "policyNumber"
     timeout: 600
     priority: -14
     hooks:
@@ -351,7 +548,6 @@ apps:
     enabled: true
     version: 0.0.1-develop
     chart: mosip/mock-identity-system
-    valuesFile: "$WORKDIR/utils/esignet-standalone-2.0.0/mock-identity-values-2-0-0.yaml"
     set:
       image.repository: "mosipqa/mock-identity-system"
       image.tag: "develop"
@@ -368,6 +564,26 @@ apps:
       domainConfig.installation-domain: "${domain_name}"
       domainConfig.MOSIP_MOCK_IDA_IDENTITY_SCHEMA_URL: "https://raw.githubusercontent.com/prathmeshj12/addidentityschema_testing/refs/heads/main/email-signup-schema-testing.json"
       domainConfig.MOSIP_MOCK_UI_SPEC_SCHEMA_URL: "https://raw.githubusercontent.com/prathmeshj12/addidentityschema_testing/refs/heads/main/ui_spec_reset_password_phone.json"
+      extraEnvVars.DATABASE_HOST.valueFrom.configMapKeyRef.name: "mockid-postgres-config"
+      extraEnvVars.DATABASE_HOST.valueFrom.configMapKeyRef.key: "database-host"
+      extraEnvVars.DATABASE_PORT.valueFrom.configMapKeyRef.name: "mockid-postgres-config"
+      extraEnvVars.DATABASE_PORT.valueFrom.configMapKeyRef.key: "database-port"
+      extraEnvVars.DATABASE_NAME.valueFrom.configMapKeyRef.name: "mockid-postgres-config"
+      extraEnvVars.DATABASE_NAME.valueFrom.configMapKeyRef.key: "database-name"
+      extraEnvVars.DATABASE_USERNAME.valueFrom.configMapKeyRef.name: "mockid-postgres-config"
+      extraEnvVars.DATABASE_USERNAME.valueFrom.configMapKeyRef.key: "database-username"
+      extraEnvVars.DB_DBUSER_PASSWORD.valueFrom.secretKeyRef.name: "db-common-secrets"
+      extraEnvVars.DB_DBUSER_PASSWORD.valueFrom.secretKeyRef.key: "db-dbuser-password"
+      extraEnvVars.SOFTHSM_MOCK_IDENTITY_SYSTEM_SECURITY_PIN.valueFrom.secretKeyRef.name: "softhsm-mock-identity-system-go"
+      extraEnvVars.SOFTHSM_MOCK_IDENTITY_SYSTEM_SECURITY_PIN.valueFrom.secretKeyRef.key: "security-pin"
+      extraEnvVars.hsm_local_dir_name: "hsm-client"
+      extraEnvVars.MOSIP_ESIGNET_MOCK_SUPPORTED_FIELDS: 'individualId\,password'
+      extraEnvVars.REDIS_HOST.valueFrom.configMapKeyRef.name: "redis-config"
+      extraEnvVars.REDIS_HOST.valueFrom.configMapKeyRef.key: "redis-host"
+      extraEnvVars.REDIS_PORT.valueFrom.configMapKeyRef.name: "redis-config"
+      extraEnvVars.REDIS_PORT.valueFrom.configMapKeyRef.key: "redis-port"
+      extraEnvVars.REDIS_PASSWORD.valueFrom.secretKeyRef.name: "redis"
+      extraEnvVars.REDIS_PASSWORD.valueFrom.secretKeyRef.key: "redis-password"
     timeout: 480
     priority: -11
     hooks:
@@ -381,7 +597,6 @@ apps:
     enabled: true
     version: 0.0.1-develop
     chart: mosip/mock-relying-party-service
-    valuesFile: "$WORKDIR/utils/esignet-standalone-2.0.0/mock-replying-party.yaml"
     set:
       image.repository: "mosipqa/mock-relying-party-service"
       image.tag: "develop-go"
@@ -392,6 +607,20 @@ apps:
       mock_relying_party_service.ESIGNET_PAR_AUD_URL: "https://esignet-go.${domain_name}"
       enable_insecure: "false"
       domainConfig.MOSIP_API_INTERNAL_HOST: "api-internal.${domain_name}"
+      extraEnvVars.CLIENT_ID: "I6eXdnnLGGj2A2BcTL-jug_0ujpnQXlBpKAbBCkGWEM"
+      extraEnvVars.ACRS.value: "mosip:idp:acr:generated-code%20mosip:idp:acr:biometrics%20mosip:idp:acr:linked-wallet%20mosip:idp:acr:password%20mosip:idp:acr:knowledge"
+      extraEnvVars.DISPLAY: "page"
+      extraEnvVars.GRANT_TYPE: "authorization_code"
+      extraEnvVars.CLAIMS_LOCALES: "en"
+      extraEnvVars.SCOPE_USER_PROFILE: "openid profile"
+      extraEnvVars.CLAIMS_USER_PROFILE.value: '\{"userinfo":\{"given_name":\{"essential":true\}\,"phone_number":\{"essential":true\}\,"email":\{"essential":true\}\,"picture":\{"essential":false\}\,"gender":\{"essential":false\}\,"birthdate":\{"essential":false\}\,"address":\{"essential":false\}\}\,"id_token":\{\}\}'
+      mock_relying_party_service.host: ""
+      mock_relying_party_service.mountDir: ""
+      mock_relying_party_service.healthCheckUrl: null
+      mock_relying_party_service.mock_relying_party_serviceMountDIr: "/home/mosip/oidc/"
+      mock_relying_party_service.puburl: null
+      mock_relying_party_service.privurl: null
+      mock_relying_party_service.USERINFO_RESPONSE_TYPE: "jwt"
     timeout: 480
     priority: -10
     hooks:
@@ -402,7 +631,6 @@ apps:
     enabled: true
     version: 0.0.1-develop
     chart: mosip/mock-relying-party-service
-    valuesFile: "$WORKDIR/utils/esignet-standalone-2.0.0/mock-replying-party.yaml"
     set:
       image.repository: "mosipqa/mock-relying-party-service"
       image.tag: "develop-go"    
@@ -413,6 +641,20 @@ apps:
       mock_relying_party_service.ESIGNET_PAR_AUD_URL: "https://esignet-go-mosipid1.${domain_name}"
       enable_insecure: "false"
       domainConfig.MOSIP_API_INTERNAL_HOST: "api-internal.${domain_name}"
+      extraEnvVars.CLIENT_ID: "I6eXdnnLGGj2A2BcTL-jug_0ujpnQXlBpKAbBCkGWEM"
+      extraEnvVars.ACRS.value: "mosip:idp:acr:generated-code%20mosip:idp:acr:biometrics%20mosip:idp:acr:linked-wallet%20mosip:idp:acr:password%20mosip:idp:acr:knowledge"
+      extraEnvVars.DISPLAY: "page"
+      extraEnvVars.GRANT_TYPE: "authorization_code"
+      extraEnvVars.CLAIMS_LOCALES: "en"
+      extraEnvVars.SCOPE_USER_PROFILE: "openid profile"
+      extraEnvVars.CLAIMS_USER_PROFILE.value: '\{"userinfo":\{"given_name":\{"essential":true\}\,"phone_number":\{"essential":true\}\,"email":\{"essential":true\}\,"picture":\{"essential":false\}\,"gender":\{"essential":false\}\,"birthdate":\{"essential":false\}\,"address":\{"essential":false\}\}\,"id_token":\{\}\}'
+      mock_relying_party_service.host: ""
+      mock_relying_party_service.mountDir: ""
+      mock_relying_party_service.healthCheckUrl: null
+      mock_relying_party_service.mock_relying_party_serviceMountDIr: "/home/mosip/oidc/"
+      mock_relying_party_service.puburl: null
+      mock_relying_party_service.privurl: null
+      mock_relying_party_service.USERINFO_RESPONSE_TYPE: "jwt"
     timeout: 480
     priority: -10
     hooks:
@@ -423,7 +665,6 @@ apps:
     enabled: ${MOSIPID2_ENABLED}
     version: 0.0.1-develop
     chart: mosip/mock-relying-party-service
-    valuesFile: "$WORKDIR/utils/esignet-standalone-2.0.0/mock-replying-party.yaml"
     set:
       image.repository: "mosipqa/mock-relying-party-service"
       image.tag: "develop-go"
@@ -434,6 +675,20 @@ apps:
       mock_relying_party_service.ESIGNET_PAR_AUD_URL: "https://esignet-go-mosipid2.${domain_name}"
       enable_insecure: "false"
       domainConfig.MOSIP_API_INTERNAL_HOST: "api-internal.${domain_name}"
+      extraEnvVars.CLIENT_ID: "I6eXdnnLGGj2A2BcTL-jug_0ujpnQXlBpKAbBCkGWEM"
+      extraEnvVars.ACRS.value: "mosip:idp:acr:generated-code%20mosip:idp:acr:biometrics%20mosip:idp:acr:linked-wallet%20mosip:idp:acr:password%20mosip:idp:acr:knowledge"
+      extraEnvVars.DISPLAY: "page"
+      extraEnvVars.GRANT_TYPE: "authorization_code"
+      extraEnvVars.CLAIMS_LOCALES: "en"
+      extraEnvVars.SCOPE_USER_PROFILE: "openid profile"
+      extraEnvVars.CLAIMS_USER_PROFILE.value: '\{"userinfo":\{"given_name":\{"essential":true\}\,"phone_number":\{"essential":true\}\,"email":\{"essential":true\}\,"picture":\{"essential":false\}\,"gender":\{"essential":false\}\,"birthdate":\{"essential":false\}\,"address":\{"essential":false\}\}\,"id_token":\{\}\}'
+      mock_relying_party_service.host: ""
+      mock_relying_party_service.mountDir: ""
+      mock_relying_party_service.healthCheckUrl: null
+      mock_relying_party_service.mock_relying_party_serviceMountDIr: "/home/mosip/oidc/"
+      mock_relying_party_service.puburl: null
+      mock_relying_party_service.privurl: null
+      mock_relying_party_service.USERINFO_RESPONSE_TYPE: "jwt"
     timeout: 480
     priority: -10
     hooks:
@@ -444,7 +699,6 @@ apps:
     enabled: true
     version: 0.0.1-develop
     chart: mosip/mock-relying-party-service
-    valuesFile: "$WORKDIR/utils/esignet-standalone-2.0.0/mock-replying-party.yaml"
     set:
       image.repository: "mosipqa/mock-relying-party-service"
       image.tag: "develop-go"    
@@ -455,6 +709,20 @@ apps:
       mock_relying_party_service.ESIGNET_PAR_AUD_URL: "https://esignet-go-sunbird.${domain_name}"
       enable_insecure: "false"
       domainConfig.MOSIP_API_INTERNAL_HOST: "api-internal.${domain_name}"
+      extraEnvVars.CLIENT_ID: "I6eXdnnLGGj2A2BcTL-jug_0ujpnQXlBpKAbBCkGWEM"
+      extraEnvVars.ACRS.value: "mosip:idp:acr:generated-code%20mosip:idp:acr:biometrics%20mosip:idp:acr:linked-wallet%20mosip:idp:acr:password%20mosip:idp:acr:knowledge"
+      extraEnvVars.DISPLAY: "page"
+      extraEnvVars.GRANT_TYPE: "authorization_code"
+      extraEnvVars.CLAIMS_LOCALES: "en"
+      extraEnvVars.SCOPE_USER_PROFILE: "openid profile"
+      extraEnvVars.CLAIMS_USER_PROFILE.value: '\{"userinfo":\{"given_name":\{"essential":true\}\,"phone_number":\{"essential":true\}\,"email":\{"essential":true\}\,"picture":\{"essential":false\}\,"gender":\{"essential":false\}\,"birthdate":\{"essential":false\}\,"address":\{"essential":false\}\}\,"id_token":\{\}\}'
+      mock_relying_party_service.host: ""
+      mock_relying_party_service.mountDir: ""
+      mock_relying_party_service.healthCheckUrl: null
+      mock_relying_party_service.mock_relying_party_serviceMountDIr: "/home/mosip/oidc/"
+      mock_relying_party_service.puburl: null
+      mock_relying_party_service.privurl: null
+      mock_relying_party_service.USERINFO_RESPONSE_TYPE: "jwt"
     timeout: 480
     priority: -10
     hooks:
