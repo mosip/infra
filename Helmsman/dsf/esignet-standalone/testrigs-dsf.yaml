@@ -110,7 +110,7 @@ apps:
       apitestrig.configmaps.apitestrig.uinGenMaxLoopCount: "20"
       apitestrig.configmaps.apitestrig.eSignetbaseurl: "https://esignet-mosipid.${domain_name}"
       apitestrig.configmaps.apitestrig.esignetActuatorPropertySection: "classpath:/application-default.properties"
-      apitestrig.configmaps.apitestrig.mosip_components_base_urls: "auditmanager=api-internal.${mosipid_domain_name};idrepository=api-internal.${mosipid_domain_name};authmanager=api-internal.${mosipid_domain_name};resident=api-internal.${mosipid_domain_name};partnermanager=pms-mosipid.${mosipid_domain_name};idauthentication=api-internal.${mosipid_domain_name};masterdata=api-internal.${mosipid_domain_name};idgenerator=api-internal.${mosipid_domain_name};policymanager=pms-mosipid.${mosipid_domain_name};preregistration=api-internal.${mosipid_domain_name};keymanager=api-internal.${mosipid_domain_name};"
+      apitestrig.configmaps.apitestrig.mosip_components_base_urls: "auditmanager=api-internal.${mosipid_domain_name};idrepository=api-internal.${mosipid_domain_name};authmanager=api-internal.${mosipid_domain_name};resident=api-internal.${mosipid_domain_name};idauthentication=api-internal.${mosipid_domain_name};masterdata=api-internal.${mosipid_domain_name};idgenerator=api-internal.${mosipid_domain_name};preregistration=api-internal.${mosipid_domain_name};keymanager=api-internal.${mosipid_domain_name};"
       secrets.s3.s3-user-secret: "${MINIO_ROOT_PASSWORD}"
       apitestrig.variables.push_reports_to_s3: "yes"
     priority: -4

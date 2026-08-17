@@ -76,19 +76,6 @@ apps:
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-standalone-2.0.0/softhsm-esignet-sunbird-setup.sh"
 
-  esignet-config-server:
-    namespace: esignet-mock
-    enabled: false
-    version: 12.0.1
-    chart: mosip/config-server
-    valuesFile: "$WORKDIR/utils/esignet-standalone-2.0.0/config-server-esignet-values-2-0-0.yaml"
-    wait: true
-    timeout: 1200
-    priority: -15
-    hooks:
-      preInstall: "$WORKDIR/hooks/esignet-standalone-2.0.0/config-server-esignet-setup.sh"
-      postInstall: "$WORKDIR/hooks/esignet-standalone-2.0.0/config-server-esignet-postinstall.sh"
-
   # ---------------------------------------------------------------------------
   # eSignet 
   # ---------------------------------------------------------------------------
@@ -674,38 +661,6 @@ apps:
     priority: -9
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-standalone-2.0.0/mock-relying-party-ui-sunbird-preinstall.sh"
-
-  pms-partner-mosipid:
-    namespace: esignet-mosipid
-    enabled: false
-    version: 12.2.3
-    chart: mosip/pms-partner
-    set:
-      # image.repository: "mosipid/partner-management-service"
-      # image.tag: "1.2.2.3"
-      istio.gateways[0]: "pms-partner-mosipid-gateway"
-      istio.corsPolicy.allowOrigins[0].prefix: "https://pms-mosipid.${domain_name}"
-      extraEnvVarsCM[0]: "esignet-global"
-      extraEnvVarsCM[1]: "esignet-config-server-share"
-    priority: -9
-    timeout: 1200
-    hooks:
-      preInstall: "$WORKDIR/hooks/esignet-standalone-2.0.0/pms-partner-mosipid-preinstall.sh"
-
-  pms-policy-mosipid:
-    namespace: esignet-mosipid
-    enabled: false
-    version: 12.2.3
-    chart: mosip/pms-policy
-    set:
-      # image.repository: "mosipid/policy-management-service"
-      # image.tag: "1.2.2.2"
-      istio.gateways[0]: "pms-partner-mosipid-gateway"
-      extraEnvVarsCM[0]: "esignet-global"
-      extraEnvVarsCM[1]: "esignet-config-server-share"
-      istio.corsPolicy.allowOrigins[0].prefix: "https://pms-mosipid.${domain_name}"
-    priority: -9
-    timeout: 1200     
 
   # ---------------------------------------------------------------------------
   # Partner Onboarders
