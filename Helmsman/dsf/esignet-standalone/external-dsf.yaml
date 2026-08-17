@@ -114,43 +114,27 @@ apps:
       databases.mosip_esignet.su.user: "postgres"
       databases.mosip_esignet.su.secret.name: "postgres-postgresql"
       databases.mosip_esignet.su.secret.key: "postgres-password"
-      databases.mosip_esignet_mosipid1.repoUrl: "https://github.com/mosip/esignet.git"
-      databases.mosip_esignet_mosipid1.defaultDb: "postgres"
-      databases.mosip_esignet_mosipid1.su.user: "postgres"
-      databases.mosip_esignet_mosipid1.su.secret.name: "postgres-postgresql"
-      databases.mosip_esignet_mosipid1.su.secret.key: "postgres-password"
+      databases.mosip_esignet_mosipid.repoUrl: "https://github.com/mosip/esignet.git"
+      databases.mosip_esignet_mosipid.defaultDb: "postgres"
+      databases.mosip_esignet_mosipid.su.user: "postgres"
+      databases.mosip_esignet_mosipid.su.secret.name: "postgres-postgresql"
+      databases.mosip_esignet_mosipid.su.secret.key: "postgres-password"
       # ---------------------------------------------------------------------------
-      # esignet-mosipid1 namespace (plugin 2 - mosip-identity)
+      # esignet-mosipid namespace (plugin 2 - mosip-identity)
       # ---------------------------------------------------------------------------
-      databases.mosip_esignet_mosipid1.enabled: "true"
-      databases.mosip_esignet_mosipid1.scriptsDir: "mosip_esignet"
-      databases.mosip_esignet_mosipid1.dbName: "mosip_esignet_mosipid1"
-      databases.mosip_esignet_mosipid1.dbUser: "esignetuser_mosipid1"
-      databases.mosip_esignet_mosipid1.branch: "develop"
-      databases.mosip_esignet_mosipid1.host: "postgres.${domain_name}"
-      databases.mosip_esignet_mosipid1.port: ${esignet_db_port}
-      databases.mosip_esignet_mosipid1.dml: 1
-      databases.mosip_esignet_mosipid1.repoUrl: "https://github.com/mosip/esignet.git"
-      databases.mosip_esignet_mosipid1.defaultDb: "postgres"
-      databases.mosip_esignet_mosipid1.su.user: "postgres"
-      databases.mosip_esignet_mosipid1.su.secret.name: "postgres-postgresql"
-      databases.mosip_esignet_mosipid1.su.secret.key: "postgres-password"
-      # ---------------------------------------------------------------------------
-      # esignet-mosipid2 namespace (plugin 2 - mosip-identity)
-      # ---------------------------------------------------------------------------
-      databases.mosip_esignet_mosipid2.enabled: "true"
-      databases.mosip_esignet_mosipid2.scriptsDir: "mosip_esignet"
-      databases.mosip_esignet_mosipid2.dbName: "mosip_esignet_mosipid2"
-      databases.mosip_esignet_mosipid2.dbUser: "esignetuser_mosipid2"
-      databases.mosip_esignet_mosipid2.branch: "develop"
-      databases.mosip_esignet_mosipid2.host: "postgres.${domain_name}"
-      databases.mosip_esignet_mosipid2.port: ${esignet_db_port}
-      databases.mosip_esignet_mosipid2.dml: 1
-      databases.mosip_esignet_mosipid2.repoUrl: "https://github.com/mosip/esignet.git"
-      databases.mosip_esignet_mosipid2.defaultDb: "postgres"
-      databases.mosip_esignet_mosipid2.su.user: "postgres"
-      databases.mosip_esignet_mosipid2.su.secret.name: "postgres-postgresql"
-      databases.mosip_esignet_mosipid2.su.secret.key: "postgres-password"
+      databases.mosip_esignet_mosipid.enabled: "true"
+      databases.mosip_esignet_mosipid.scriptsDir: "mosip_esignet"
+      databases.mosip_esignet_mosipid.dbName: "mosip_esignet_mosipid"
+      databases.mosip_esignet_mosipid.dbUser: "esignetuser_mosipid"
+      databases.mosip_esignet_mosipid.branch: "develop"
+      databases.mosip_esignet_mosipid.host: "postgres.${domain_name}"
+      databases.mosip_esignet_mosipid.port: ${esignet_db_port}
+      databases.mosip_esignet_mosipid.dml: 1
+      databases.mosip_esignet_mosipid.repoUrl: "https://github.com/mosip/esignet.git"
+      databases.mosip_esignet_mosipid.defaultDb: "postgres"
+      databases.mosip_esignet_mosipid.su.user: "postgres"
+      databases.mosip_esignet_mosipid.su.secret.name: "postgres-postgresql"
+      databases.mosip_esignet_mosipid.su.secret.key: "postgres-password"
       # ---------------------------------------------------------------------------
       # esignet-sunbird namespace (plugin 3 - sunbird-rc)
       # ---------------------------------------------------------------------------
