@@ -32,9 +32,7 @@ namespaces:
     protected: false
   softhsm:
     protected: false
-  esignet-mosipid1:
-    protected: false
-  esignet-mosipid2:
+  esignet-mosipid:
     protected: false
   esignet-sunbird:
     protected: false           
@@ -56,27 +54,16 @@ apps:
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-standalone/softhsm-esignet-setup.sh"
 
-  esignet-softhsm-mosipid1:
-    namespace: esignet-mosipid1
+  esignet-softhsm-mosipid:
+    namespace: esignet-mosipid
     enabled: true
     version: 12.0.1
     chart: mosip/softhsm
-    valuesFile: "$WORKDIR/utils/softhsm-esignet-mosipid1-values.yaml"
+    valuesFile: "$WORKDIR/utils/softhsm-esignet-mosipid-values.yaml"
     timeout: 480
     priority: -16
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-standalone/softhsm-esignet-mosipid1-setup.sh"
-
-  esignet-softhsm-mosipid2:
-    namespace: esignet-mosipid2
-    enabled: ${MOSIPID2_ENABLED}
-    version: 12.0.1
-    chart: mosip/softhsm
-    valuesFile: "$WORKDIR/utils/softhsm-esignet-mosipid2-values.yaml"
-    timeout: 480
-    priority: -16
-    hooks:
-      preInstall: "$WORKDIR/hooks/esignet-standalone/softhsm-esignet-mosipid2-setup.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/softhsm-esignet-mosipid-setup.sh"
 
   esignet-softhsm-sunbird:
     namespace: esignet-sunbird
@@ -136,12 +123,12 @@ apps:
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-standalone/esignet-preinstall.sh"
 
-  esignet-mosipid1:
-    namespace: esignet-mosipid1
+  esignet-mosipid:
+    namespace: esignet-mosipid
     enabled: true
     version: 0.1.0-develop
     chart: mosip/esignet
-    valuesFile: "$WORKDIR/utils/esignet-mosipid1-plugin-values.yaml"
+    valuesFile: "$WORKDIR/utils/esignet-mosipid-plugin-values.yaml"
     set:
       image.repository: "mosipqa/esignet-with-plugins"
       image.tag: "develop"
@@ -150,71 +137,31 @@ apps:
       activeProfileEnv: ""
       pluginNameEnv: "mosip-identity-plugin.jar"
       pluginUrlEnv: ""
-      extraEnvVarsCM[0]: "esignet-softhsm-mosipid1-share"
+      extraEnvVarsCM[0]: "esignet-softhsm-mosipid-share"
       extraEnvVarsCM[1]: "esignet-global"
       metrics.serviceMonitor.enabled: "false"
-      domainConfig.MOSIP_ESIGNET_HOST: "esignet-mosipid1.${domain_name}"
-      domainConfig.MOSIP_SIGNUP_HOST: "signup-mosipid1.${domain_name}"
+      domainConfig.MOSIP_ESIGNET_HOST: "esignet-mosipid.${domain_name}"
+      domainConfig.MOSIP_SIGNUP_HOST: "signup-mosipid.${domain_name}"
       domainConfig.MOSIP_API_HOST: "api.${domain_name}"
       domainConfig.MOSIP_IAM_EXTERNAL_HOST: "iam.${domain_name}"
-      domainConfig.MOSIP_API_INTERNAL_HOST: "api-internal.${mosipid1_domain_name}"
+      domainConfig.MOSIP_API_INTERNAL_HOST: "api-internal.${mosipid_domain_name}"
       domainConfig.MOSIP_KAFKA_HOST: "kafka.${domain_name}"
       domainConfig.MOSIP_POSTGRES_HOST: "postgres.${domain_name}"
       domainConfig.MOSIP_SMTP_HOST: "smtp.${domain_name}"
       domainConfig.installation-domain: "${domain_name}"
-      domainConfig.IDA_AUTH_URL: "https://api-internal.${mosipid1_domain_name}"
-      domainConfig.IDA_OTP_URL: "https://api-internal.${mosipid1_domain_name}"
-      domainConfig.IDA_INTERNAL_URL: "https://api-internal.${mosipid1_domain_name}"
-      domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_IDA_CERT_URL: "https://api-internal.${mosipid1_domain_name}/mosip-certs/ida-partner.cer"
-      domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_IDA_AUTH_TOKEN_URL: "https://api-internal.${mosipid1_domain_name}/v1/authmanager/authenticate/clientidsecretkey"
-      domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_IDA_AUDIT_MANAGER_URL: "https://api-internal.${mosipid1_domain_name}/v1/auditmanager/audits"
-      domainConfig.MOSIP_ESIGNET_IDA_AUTH_DOMAIN: "https://api-internal.${mosipid1_domain_name}"
-      domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_IDA_DOMAINURI: "https://esignet-mosipid1.${domain_name}"
-      domainConfig.MOSIP_ESIGNET_DOMAIN_URL: "https://esignet-mosipid1.${domain_name}"
+      domainConfig.IDA_AUTH_URL: "https://api-internal.${mosipid_domain_name}"
+      domainConfig.IDA_OTP_URL: "https://api-internal.${mosipid_domain_name}"
+      domainConfig.IDA_INTERNAL_URL: "https://api-internal.${mosipid_domain_name}"
+      domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_IDA_CERT_URL: "https://api-internal.${mosipid_domain_name}/mosip-certs/ida-partner.cer"
+      domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_IDA_AUTH_TOKEN_URL: "https://api-internal.${mosipid_domain_name}/v1/authmanager/authenticate/clientidsecretkey"
+      domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_IDA_AUDIT_MANAGER_URL: "https://api-internal.${mosipid_domain_name}/v1/auditmanager/audits"
+      domainConfig.MOSIP_ESIGNET_IDA_AUTH_DOMAIN: "https://api-internal.${mosipid_domain_name}"
+      domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_IDA_DOMAINURI: "https://esignet-mosipid.${domain_name}"
+      domainConfig.MOSIP_ESIGNET_DOMAIN_URL: "https://esignet-mosipid.${domain_name}"
     timeout: 600
     priority: -14
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-standalone/esignet-mosipid1-preinstall.sh"
-
-  esignet-mosipid2:
-    namespace: esignet-mosipid2
-    enabled: ${MOSIPID2_ENABLED}
-    version: 0.0.1-develop
-    chart: mosip/esignet
-    valuesFile: "$WORKDIR/utils/esignet-mosipid2-plugin-values.yaml"
-    set:
-      image.repository: "mosipqa/esignet-with-plugins"
-      image.tag: "develop"
-      enable_insecure: "false"
-      springConfigNameEnv: ""
-      activeProfileEnv: ""
-      pluginNameEnv: "mosip-identity-plugin.jar"
-      pluginUrlEnv: ""
-      extraEnvVarsCM[0]: "esignet-softhsm-mosipid2-share"
-      extraEnvVarsCM[1]: "esignet-global"
-      metrics.serviceMonitor.enabled: "false"
-      domainConfig.MOSIP_ESIGNET_HOST: "esignet-mosipid2.${domain_name}"
-      domainConfig.MOSIP_SIGNUP_HOST: "signup-mosipid2.${domain_name}"
-      domainConfig.MOSIP_API_HOST: "api.${domain_name}"
-      domainConfig.MOSIP_IAM_EXTERNAL_HOST: "iam.${domain_name}"
-      domainConfig.MOSIP_API_INTERNAL_HOST: "api-internal.${mosipid2_domain_name}"
-      domainConfig.MOSIP_KAFKA_HOST: "kafka.${domain_name}"
-      domainConfig.MOSIP_POSTGRES_HOST: "postgres.${domain_name}"
-      domainConfig.MOSIP_SMTP_HOST: "smtp.${domain_name}"
-      domainConfig.installation-domain: "${domain_name}"
-      domainConfig.IDA_AUTH_URL: "https://api-internal.${mosipid2_domain_name}"
-      domainConfig.IDA_OTP_URL: "https://api-internal.${mosipid2_domain_name}"
-      domainConfig.IDA_INTERNAL_URL: "https://api-internal.${mosipid2_domain_name}"
-      domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_IDA_CERT_URL: "https://api-internal.${mosipid2_domain_name}/mosip-certs/ida-partner.cer"
-      domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_IDA_AUTH_TOKEN_URL: "https://api-internal.${mosipid2_domain_name}/v1/authmanager/authenticate/clientidsecretkey"
-      domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_IDA_AUDIT_MANAGER_URL: "https://api-internal.${mosipid2_domain_name}/v1/auditmanager/audits"
-      domainConfig.MOSIP_ESIGNET_IDA_AUTH_DOMAIN: "https://api-internal.${mosipid2_domain_name}"
-      domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_IDA_DOMAINURI: "https://esignet-mosipid2.${domain_name}"
-      domainConfig.MOSIP_ESIGNET_DOMAIN_URL: "https://esignet-mosipid2.${domain_name}"
-    timeout: 600
-    priority: -14
-    hooks:
-      preInstall: "$WORKDIR/hooks/esignet-standalone/esignet-mosipid2-preinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/esignet-mosipid-preinstall.sh"
 
   esignet-sunbird:
     namespace: esignet-sunbird
@@ -242,9 +189,9 @@ apps:
       domainConfig.MOSIP_POSTGRES_HOST: "postgres.${domain_name}"
       domainConfig.MOSIP_SMTP_HOST: "smtp.${domain_name}"
       domainConfig.installation-domain: "${domain_name}"
-      domainConfig.MOSIP_ESIGNET_SUNBIRD_RC_REGISTRY_GET_URL: "https://registry.${mosipid1_domain_name}"
-      domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_SUNBIRD_RC_AUTH_FACTOR_KBI_REGISTRY_SEARCH_URL: "https://registry.${mosipid1_domain_name}/api/v1/Insurance/search"
-      domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_SUNBIRD_RC_REGISTRY_GET_URL: "https://registry.${mosipid1_domain_name}/api/v1/Insurance/"
+      domainConfig.MOSIP_ESIGNET_SUNBIRD_RC_REGISTRY_GET_URL: "https://registry.${mosipid_domain_name}"
+      domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_SUNBIRD_RC_AUTH_FACTOR_KBI_REGISTRY_SEARCH_URL: "https://registry.${mosipid_domain_name}/api/v1/Insurance/search"
+      domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_SUNBIRD_RC_REGISTRY_GET_URL: "https://registry.${mosipid_domain_name}/api/v1/Insurance/"
     timeout: 600
     priority: -14
     hooks:
@@ -270,39 +217,22 @@ apps:
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-standalone/oidc-ui-preinstall.sh"
 
-  oidc-ui-mosipid1:
-    namespace: esignet-mosipid1
+  oidc-ui-mosipid:
+    namespace: esignet-mosipid
     enabled: true
     version: 0.1.0-develop
     chart: mosip/oidc-ui
     set:
       image.repository: "mosipqa/oidc-ui"
       image.tag: "develop"
-      istio.hosts[0]: "esignet-mosipid1.${domain_name}"
-      oidc_ui.oidc_service_host: "esignet-mosipid1.esignet-mosipid1"
-      oidc_ui.configmaps.oidc-ui.REACT_APP_API_BASE_URL: "http://esignet-mosipid1.esignet-mosipid1/v1/esignet"
-      oidc_ui.configmaps.oidc-ui.REACT_APP_SBI_DOMAIN_URI: "http://esignet-mosipid1.esignet-mosipid1"
+      istio.hosts[0]: "esignet-mosipid.${domain_name}"
+      oidc_ui.oidc_service_host: "esignet-mosipid.esignet-mosipid"
+      oidc_ui.configmaps.oidc-ui.REACT_APP_API_BASE_URL: "http://esignet-mosipid.esignet-mosipid/v1/esignet"
+      oidc_ui.configmaps.oidc-ui.REACT_APP_SBI_DOMAIN_URI: "http://esignet-mosipid.esignet-mosipid"
     timeout: 1200
     priority: -13
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-standalone/oidc-ui-mosipid1-preinstall.sh"
-
-  oidc-ui-mosipid2:
-    namespace: esignet-mosipid2
-    enabled: ${MOSIPID2_ENABLED}
-    version: 0.0.1-develop
-    chart: mosip/oidc-ui
-    set:
-      image.repository: "mosipqa/oidc-ui"
-      image.tag: "develop"
-      istio.hosts[0]: "esignet-mosipid2.${domain_name}"
-      oidc_ui.oidc_service_host: "esignet-mosipid2.esignet-mosipid2"
-      oidc_ui.configmaps.oidc-ui.REACT_APP_API_BASE_URL: "http://esignet-mosipid2.esignet-mosipid2/v1/esignet"
-      oidc_ui.configmaps.oidc-ui.REACT_APP_SBI_DOMAIN_URI: "http://esignet-mosipid2.esignet-mosipid2"
-    timeout: 1200
-    priority: -13
-    hooks:
-      preInstall: "$WORKDIR/hooks/esignet-standalone/oidc-ui-mosipid2-preinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/oidc-ui-mosipid-preinstall.sh"
 
   oidc-ui-sunbird:
     namespace: esignet-sunbird
@@ -385,35 +315,20 @@ apps:
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-standalone/mock-relying-party-service-preinstall.sh"
 
-  mock-relying-party-service-mosipid1:
-    namespace: esignet-mosipid1
+  mock-relying-party-service-mosipid:
+    namespace: esignet-mosipid
     enabled: true
     version: 0.0.1-develop
     chart: mosip/mock-relying-party-service
     set:
-      mock_relying_party_service.ESIGNET_SERVICE_URL: "http://esignet-mosipid1.esignet-mosipid1/v1/esignet"
-      mock_relying_party_service.ESIGNET_AUD_URL: "https://esignet-mosipid1.${domain_name}/v1/esignet/oauth/v2/token"
+      mock_relying_party_service.ESIGNET_SERVICE_URL: "http://esignet-mosipid.esignet-mosipid/v1/esignet"
+      mock_relying_party_service.ESIGNET_AUD_URL: "https://esignet-mosipid.${domain_name}/v1/esignet/oauth/v2/token"
       enable_insecure: "false"
       domainConfig.MOSIP_API_INTERNAL_HOST: "api-internal.${domain_name}"
     timeout: 480
     priority: -10
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-standalone/mock-relying-party-service-mosipid1-preinstall.sh"
-
-  mock-relying-party-service-mosipid2:
-    namespace: esignet-mosipid2
-    enabled: ${MOSIPID2_ENABLED}
-    version: 0.0.1-develop
-    chart: mosip/mock-relying-party-service
-    set:
-      mock_relying_party_service.ESIGNET_SERVICE_URL: "http://esignet-mosipid2.esignet-mosipid2/v1/esignet"
-      mock_relying_party_service.ESIGNET_AUD_URL: "https://esignet-mosipid2.${domain_name}/v1/esignet/oauth/v2/token"
-      enable_insecure: "false"
-      domainConfig.MOSIP_API_INTERNAL_HOST: "api-internal.${domain_name}"
-    timeout: 480
-    priority: -10
-    hooks:
-      preInstall: "$WORKDIR/hooks/esignet-standalone/mock-relying-party-service-mosipid2-preinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/mock-relying-party-service-mosipid-preinstall.sh"
 
   mock-relying-party-service-sunbird:
     namespace: esignet-sunbird
@@ -464,19 +379,19 @@ apps:
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-standalone/mock-relying-party-ui-preinstall.sh"
 
-  mock-relying-party-ui-mosipid1:
-    namespace: esignet-mosipid1
+  mock-relying-party-ui-mosipid:
+    namespace: esignet-mosipid
     enabled: true
     version: 0.0.1-develop
     chart: mosip/mock-relying-party-ui
     set:
-      mock_relying_party_ui.mock_relying_party_ui_service_host: "healthservices-mosipid1.${domain_name}"
-      mock_relying_party_ui.MOCK_RELYING_PARTY_SERVICE_INTERNAL_URL: "http://mock-relying-party-service-mosipid1.esignet-mosipid1"
-      mock_relying_party_ui.ESIGNET_UI_BASE_URL: "https://esignet-mosipid1.${domain_name}"
-      mock_relying_party_ui.MOCK_RELYING_PARTY_SERVER_URL: "https://healthservices-mosipid1.${domain_name}/mock-relying-party-service"
-      mock_relying_party_ui.REDIRECT_URI: "https://healthservices-mosipid1.${domain_name}/userprofile"
-      mock_relying_party_ui.REDIRECT_URI_REGISTRATION: "https://healthservices-mosipid1.${domain_name}/registration"
-      mock_relying_party_ui.SIGN_IN_BUTTON_PLUGIN_URL: "https://esignet-mosipid1.${domain_name}/plugins/sign-in-button-plugin.js"
+      mock_relying_party_ui.mock_relying_party_ui_service_host: "healthservices-mosipid.${domain_name}"
+      mock_relying_party_ui.MOCK_RELYING_PARTY_SERVICE_INTERNAL_URL: "http://mock-relying-party-service-mosipid.esignet-mosipid"
+      mock_relying_party_ui.ESIGNET_UI_BASE_URL: "https://esignet-mosipid.${domain_name}"
+      mock_relying_party_ui.MOCK_RELYING_PARTY_SERVER_URL: "https://healthservices-mosipid.${domain_name}/mock-relying-party-service"
+      mock_relying_party_ui.REDIRECT_URI: "https://healthservices-mosipid.${domain_name}/userprofile"
+      mock_relying_party_ui.REDIRECT_URI_REGISTRATION: "https://healthservices-mosipid.${domain_name}/registration"
+      mock_relying_party_ui.SIGN_IN_BUTTON_PLUGIN_URL: "https://esignet-mosipid.${domain_name}/plugins/sign-in-button-plugin.js"
       mock_relying_party_ui.mock_relying_party_ui_port: '5000'
       mock_relying_party_ui.CLIENT_ID: 88Vjt34c5Twz1oJ
       mock_relying_party_ui.ACRS: mosip:idp:acr:generated-code%20mosip:idp:acr:biometrics%20mosip:idp:acr:linked-wallet
@@ -491,46 +406,12 @@ apps:
       mock_relying_party_ui.FALLBACK_LANG: '%7B%22label%22%3A%22English%22%2C%22value%22%3A%22en%22%7D'
       mock_relying_party_ui.AUTHORIZE_ENDPOINT: /v1/esignet/oauth2/authorize
       mock_relying_party_ui.CODE_CHALLENGE: get_code_challenge      
-      istio.hosts[0]: "healthservices-mosipid1.${domain_name}"
+      istio.hosts[0]: "healthservices-mosipid.${domain_name}"
     wait: true
     timeout: 480
     priority: -9
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-standalone/mock-relying-party-ui-mosipid1-preinstall.sh"
-
-  mock-relying-party-ui-mosipid2:
-    namespace: esignet-mosipid2
-    enabled: ${MOSIPID2_ENABLED}
-    version: 0.0.1-develop
-    chart: mosip/mock-relying-party-ui
-    set:
-      mock_relying_party_ui.mock_relying_party_ui_service_host: "healthservices-mosipid2.${domain_name}"
-      mock_relying_party_ui.MOCK_RELYING_PARTY_SERVICE_INTERNAL_URL: "http://mock-relying-party-service-mosipid2.esignet-mosipid2"
-      mock_relying_party_ui.ESIGNET_UI_BASE_URL: "https://esignet-mosipid2.${domain_name}"
-      mock_relying_party_ui.MOCK_RELYING_PARTY_SERVER_URL: "https://healthservices-mosipid2.${domain_name}/mock-relying-party-service"
-      mock_relying_party_ui.REDIRECT_URI: "https://healthservices-mosipid2.${domain_name}/userprofile"
-      mock_relying_party_ui.REDIRECT_URI_REGISTRATION: "https://healthservices-mosipid2.${domain_name}/registration"
-      mock_relying_party_ui.SIGN_IN_BUTTON_PLUGIN_URL: "https://esignet-mosipid2.${domain_name}/plugins/sign-in-button-plugin.js"
-      mock_relying_party_ui.mock_relying_party_ui_port: '5000'
-      mock_relying_party_ui.CLIENT_ID: 88Vjt34c5Twz1oJ
-      mock_relying_party_ui.ACRS: mosip:idp:acr:generated-code%20mosip:idp:acr:biometrics%20mosip:idp:acr:linked-wallet
-      mock_relying_party_ui.DISPLAY: page
-      mock_relying_party_ui.PROMPT: consent
-      mock_relying_party_ui.GRANT_TYPE: authorization_code
-      mock_relying_party_ui.CLAIMS_LOCALES: en
-      mock_relying_party_ui.SCOPE_USER_PROFILE: openid profile
-      mock_relying_party_ui.CLAIMS_USER_PROFILE: '%7B%22userinfo%22:%7B%22given_name%22:%7B%22essential%22:true%7D,%22phone_number%22:%7B%22essential%22:false%7D,%22email%22:%7B%22essential%22:true%7D,%22picture%22:%7B%22essential%22:false%7D,%22gender%22:%7B%22essential%22:false%7D,%22birthdate%22:%7B%22essential%22:false%7D,%22address%22:%7B%22essential%22:false%7D%7D,%22id_token%22:%7B%7D%7D'
-      mock_relying_party_ui.CLAIMS_REGISTRATION: '%7B%22userinfo%22:%7B%22given_name%22:%7B%22essential%22:true%7D,%22phone_number%22:%7B%22essential%22:false%7D,%22email%22:%7B%22essential%22:true%7D,%22picture%22:%7B%22essential%22:false%7D,%22gender%22:%7B%22essential%22:false%7D,%22birthdate%22:%7B%22essential%22:false%7D,%22address%22:%7B%22essential%22:false%7D%7D,%22id_token%22:%7B%7D%7D'
-      mock_relying_party_ui.DEFAULT_LANG: en
-      mock_relying_party_ui.FALLBACK_LANG: '%7B%22label%22%3A%22English%22%2C%22value%22%3A%22en%22%7D'
-      mock_relying_party_ui.AUTHORIZE_ENDPOINT: /v1/esignet/oauth2/authorize
-      mock_relying_party_ui.CODE_CHALLENGE: get_code_challenge      
-      istio.hosts[0]: "healthservices-mosipid2.${domain_name}"
-    wait: true
-    timeout: 480
-    priority: -9
-    hooks:
-      preInstall: "$WORKDIR/hooks/esignet-standalone/mock-relying-party-ui-mosipid2-preinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/mock-relying-party-ui-mosipid-preinstall.sh"
 
   mock-relying-party-ui-sunbird:
     namespace: esignet-sunbird
@@ -566,81 +447,38 @@ apps:
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-standalone/mock-relying-party-ui-sunbird-preinstall.sh"
 
-  pms-partner-mosipid1:
-    namespace: esignet-mosipid1
+  pms-partner-mosipid:
+    namespace: esignet-mosipid
     enabled: false
     version: 12.2.3
     chart: mosip/pms-partner
     set:
       # image.repository: "mosipid/partner-management-service"
       # image.tag: "1.2.2.3"
-      istio.gateways[0]: "pms-partner-mosipid1-gateway"
-      istio.corsPolicy.allowOrigins[0].prefix: "https://pms-mosipid1.${domain_name}"
+      istio.gateways[0]: "pms-partner-mosipid-gateway"
+      istio.corsPolicy.allowOrigins[0].prefix: "https://pms-mosipid.${domain_name}"
       extraEnvVarsCM[0]: "esignet-global"
       extraEnvVarsCM[1]: "esignet-config-server-share"
     priority: -9
     timeout: 1200
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-standalone/pms-partner-mosipid1-preinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone/pms-partner-mosipid-preinstall.sh"
 
-  pms-policy-mosipid1:
-    namespace: esignet-mosipid1
+  pms-policy-mosipid:
+    namespace: esignet-mosipid
     enabled: false
     version: 12.2.3
     chart: mosip/pms-policy
     set:
       # image.repository: "mosipid/policy-management-service"
       # image.tag: "1.2.2.2"
-      istio.gateways[0]: "pms-partner-mosipid1-gateway"
-      istio.corsPolicy.allowOrigins[0].prefix: "https://pms-mosipid1.${domain_name}"
+      istio.gateways[0]: "pms-partner-mosipid-gateway"
+      istio.corsPolicy.allowOrigins[0].prefix: "https://pms-mosipid.${domain_name}"
       extraEnvVarsCM[0]: "esignet-global"
       extraEnvVarsCM[1]: "esignet-config-server-share"
     priority: -9
     timeout: 1200
 
-  pms-partner-mosipid2:
-    namespace: esignet-mosipid2
-    enabled: false
-    version: 12.2.3
-    chart: mosip/pms-partner
-    set:
-      # image.repository: "mosipid/partner-management-service"
-      # image.tag: "1.2.2.3"
-      istio.gateways[0]: "pms-partner-mosipid2-gateway"
-      istio.corsPolicy.allowOrigins[0].prefix: "https://pms-mosipid2.${domain_name}"
-      extraEnvVarsCM[0]: "esignet-global"
-      extraEnvVarsCM[1]: "esignet-config-server-share"
-    priority: -9
-    timeout: 1200
-    hooks:
-      preInstall: "$WORKDIR/hooks/esignet-standalone/pms-partner-mosipid2-preinstall.sh"
-
-  pms-policy-mosipid2:
-    namespace: esignet-mosipid2
-    enabled: false
-    version: 12.2.3
-    chart: mosip/pms-policy
-    set:
-      # image.repository: "mosipid/policy-management-service"
-      # image.tag: "1.2.2.2"
-      istio.gateways[0]: "pms-partner-mosipid2-gateway"
-      extraEnvVarsCM[0]: "esignet-global"
-      extraEnvVarsCM[1]: "esignet-config-server-share"
-      istio.corsPolicy.allowOrigins[0].prefix: "https://pms-mosipid2.${domain_name}"
-    priority: -9
-    timeout: 1200     
-
-  # ---------------------------------------------------------------------------
-  # Partner Onboarders
-  # ---------------------------------------------------------------------------
-  # Two onboarders for eSignet standalone — enable the one matching your plugin:
-  #   esignet-mock-rp-onboarder: for mock plugin (plugin 1) and sunbird-rc (plugin 3)
-  #   esignet-misp-onboarder:    for mosip-identity-plugin (plugin 2) only
-
-  # eSignet MISP Partner Onboarder
-  # Onboards the eSignet MISP client — only needed with mosip-identity-plugin (plugin 2).
-  # Runs FIRST so the MISP license key is written before mock-rp-onboarder starts.
-  # After completion, restarts the esignet deployment to pick up the new MISP license key.
   esignet-misp-onboarder:
     namespace: esignet-mock
     enabled: false
