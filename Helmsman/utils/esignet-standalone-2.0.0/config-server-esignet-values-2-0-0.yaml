@@ -96,21 +96,21 @@ envVariables:
   - name: SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_SOFTHSM_ESIGNET_SECURITY_PIN
     valueFrom:
       secretKeyRef:
-        name: esignet-softhsm-go
+        name: esignet-softhsm
         key: security-pin
     enabled: true
 
   - name: SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_ESIGNET_CAPTCHA_SECRET_KEY
     valueFrom:
       secretKeyRef:
-        name: esignet-captcha-go
+        name: esignet-captcha
         key: esignet-captcha-secret-key
     enabled: true
 
   - name: SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_ESIGNET_CAPTCHA_SITE_KEY
     valueFrom:
       secretKeyRef:
-        name: esignet-captcha-go
+        name: esignet-captcha
         key: esignet-captcha-site-key
     enabled: true
 
