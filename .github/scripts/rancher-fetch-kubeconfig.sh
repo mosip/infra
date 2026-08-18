@@ -183,7 +183,9 @@ wait_for_cluster_active() {
   local attempt status_line json state
   for ((attempt = 1; attempt <= MAX_ATTEMPTS; attempt++)); do
     if ! json="$(api GET "/v3/clusters/$(urlencode "$CLUSTER_ID")")"; then
-      die "Failed to query Rancher cluster '$CLUSTER_ID'"
+      err "Transient Rancher API error querying cluster '$CLUSTER_ID' (attempt ${attempt}/${MAX_ATTEMPTS}); retrying ..."
+      sleep "$SLEEP_SECONDS"
+      continue
     fi
     state="$(jq -r '.state // empty' <<<"$json")"
     if [[ "$state" == "active" ]]; then
