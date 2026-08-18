@@ -2,7 +2,7 @@
 # =============================================================================
 # eSignet Standalone 2.0.0 - eSignet-Sunbird API Testrig Pre-install Setup
 # =============================================================================
-# Prepares the esignet-sunbird namespace for the esignet-go-sunbird-apitestrig release.
+# Prepares the esignet-sunbird namespace for the esignet-sunbird-apitestrig release.
 # keycloak-host and keycloak-client-secrets are already present in esignet-sunbird
 # (copied by esignet-postinstall-keycloak-init.sh). postgres-postgresql is copied,
 # and the s3-esignet-sunbird-apitestrig / apitestrig-esignet-sunbird-apitestrig
@@ -11,7 +11,7 @@
 # =============================================================================
 set -euo pipefail
 
-NS=esignet-go-sunbird
+NS=esignet-sunbird
 COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
 MINIO_ROOT_PASSWORD_VAL="${MINIO_ROOT_PASSWORD:?ERROR: MINIO_ROOT_PASSWORD must be set}"
 

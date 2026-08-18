@@ -15,7 +15,7 @@
 # =============================================================================
 set -euo pipefail
 
-KERNEL_NS="kernel-go"
+KERNEL_NS="kernel"
 API_HOST="${MOSIP_API_HOST:-}"
 API_INTERNAL_HOST="${MOSIP_API_INTERNAL_HOST:-}"
 COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"

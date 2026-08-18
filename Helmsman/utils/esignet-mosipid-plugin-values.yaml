@@ -1,4 +1,4 @@
-# eSignet MOSIPID1 — plugin 2 (mosip-identity-plugin) runtime configuration.
+# eSignet MOSIPID — plugin 2 (mosip-identity-plugin) runtime configuration.
 # pluginNameEnv=mosip-identity-plugin.jar set in DSF set: block.
 # Update IDA service URLs below to match your MOSIP IDA deployment.
 
@@ -9,6 +9,8 @@ extraEnvVars:
       configMapKeyRef:
         name: keycloak-host
         key: keycloak-external-url
+  - name: MOSIP_ESIGNET_CAPTCHA_MODULE_NAME
+    value: esignet
   - name: REDIS_HOST
     valueFrom:
       configMapKeyRef:
@@ -52,51 +54,21 @@ extraEnvVars:
   - name: SOFTHSM_ESIGNET_SECURITY_PIN
     valueFrom:
       secretKeyRef:
-        name: esignet-softhsm-go-mosipid1
+        name: esignet-softhsm-mosipid
         key: security-pin
   - name: MOSIP_IDA_CLIENT_SECRET
     valueFrom:
       secretKeyRef:
-        name: keycloak-client-secrets-mosipid1
+        name: keycloak-client-secrets-mosipid
         key: mosip_ida_client_secret
-  - name: AUTHN_PROVIDER
-    value: mosip
-  - name: KEYMANAGER_DB_SCHEMA
-    value: esignet
-  - name: KEYMANAGER_KEYSTORE_TYPE
-    value: PKCS12
-  - name: KEYMANAGER_PKCS12_FILE_PATH
-    value: /home/mosip/keys/secret/mosipid1.pfx
-  - name: OIDC_UI_SCHEME
-    value: https
-  - name: OIDC_UI_PORT
-    value: '443'
-  - name: OIDC_UI_LOGIN_PATH
-    value: /signin
-  - name: OIDC_UI_ERROR_PATH
-    value: /error
-  - name: DEFAULT_THEME_ID
-    value: decl-theme-1
-  - name: DEFAULT_LAYOUT_ID
-    value: decl-layout-1
-  - name: DEFAULT_AUTH_FLOW_ID
-    value: decl-mosip-otp-flow-1
-extraEnvVarsSecret:
-  - esignet-keystore-go-mosipid1
-extraVolumes:
-  - name: esignet-keystore-go-mosipid1
-    secret:
-      secretName: esignet-keystore-go-mosipid1
-extraVolumeMounts:
-  - name: esignet-keystore-go-mosipid1
-    mountPath: /home/mosip/keys/secret
+
 extraEnvVarsAdditional:
   - name: "MOSIP_ESIGNET_CAPTCHA_MODULE_NAME"
-    value: "esignetgomosipid1"
+    value: "esignetmosipid"
   - name: "MOSIP_ESIGNET_CAPTCHA_SITE-KEY"
     valueFrom:
       secretKeyRef:
-        name: esignet-captcha-go-mosipid1
+        name: esignet-captcha-mosipid
         key: esignet-captcha-site-key
 
   # ---------------------------------------------------------------------------
@@ -104,13 +76,13 @@ extraEnvVarsAdditional:
   # Update URLs to match your MOSIP IDA deployment.
   # ---------------------------------------------------------------------------
   - name: NAMESPACE
-    value: mosipid1
+    value: mosipid
   - name: plugin_name_env
     value: mosip-identity-plugin.jar
   - name: SPRING_KAFKA_CONSUMER_GROUP_ID
-    value: esignet-consumer-esignet-mosipid1
+    value: esignet-consumer-esignet-mosipid
   - name: MOSIP_ESIGNET_SIGNUP_ID_TOKEN_AUDIENCE
-    value: esignet-mosipid1-signup-esqa020
+    value: esignet-mosipid-signup-esqa020
   - name: MOSIP_ESIGNET_AUTHENTICATOR_IDA_OTP_CHANNELS
     value: email,phone
   - name: MOSIP_ESIGNET_SEND_OTP_ATTEMPTS
@@ -135,7 +107,7 @@ extraEnvVarsAdditional:
       'email', 'svg': 'email_icon', 'prefixes': '', 'postfix':
       '@email', 'maxLength': '', 'regex': '' {{ "}}" }}
   - name: LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB_CLIENT
-    value: INFO
+    value: DEBUG
   - name: MOSIP_ESIGNET_CAPTCHA_REQUIRED
     value: "false"
   - name: MOSIP_ESIGNET_CAPTCHA_URL

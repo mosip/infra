@@ -77,11 +77,12 @@ enable_rancher_import = true
 rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/6nf79ckz9487pngdhbrjbt5pcbd9nbl4lxmbrwg7pjxrl49tz9cbf8_c-m-xhp79hkf.yaml\""
 
 # DNS Records to map — only eSignet-relevant subdomains
-# Includes hosts for both the esignet-standalone profile and the isolated
-# esignet-standalone-2.0.0 profile (suffixed "-go"), since both are deployed
-# side-by-side against this same cluster/domain.
+# Shared by both the esignet-standalone profile and the esignet-standalone-2.0.0
+# profile — both use identical hostnames (no "-go" suffix, single consolidated
+# mosipid instance instead of separate mosipid1/mosipid2), since only one of
+# the two profiles is ever live on a given cluster/domain at a time.
 
-subdomain_public   = ["esignet", "healthservices", "signup", "esignet-sunbird", "healthservices-sunbird", "healthservices-mosipid1", "esignet-mosipid1", "pms-mosipid1", "signup-mosipid1", "healthservices-mosipid2", "esignet-mosipid2", "pms-mosipid2", "signup-mosipid2", "esignet-go", "healthservices-go", "signup-go", "esignet-go-sunbird", "healthservices-go-sunbird", "healthservices-go-mosipid1", "esignet-go-mosipid1", "pms-go-mosipid1", "signup-go-mosipid1", "healthservices-go-mosipid2", "esignet-go-mosipid2", "pms-go-mosipid2", "signup-go-mosipid2"]
+subdomain_public   = ["esignet", "healthservices", "signup", "esignet-sunbird", "healthservices-sunbird", "healthservices-mosipid", "esignet-mosipid", "pms-mosipid", "signup-mosipid"]
 subdomain_internal = ["iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio"]
 
 # PostgreSQL Configuration

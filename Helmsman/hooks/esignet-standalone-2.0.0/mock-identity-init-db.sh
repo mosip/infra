@@ -7,11 +7,11 @@
 # before postgres-init-mock-identity helm chart runs DB initialization.
 #
 # Environment Variables:
-#   ESIGNET_NS - eSignet namespace (default: esignet-go-mock)
+#   ESIGNET_NS - eSignet namespace (default: esignet-mock)
 # =============================================================================
 set -euo pipefail
 
-ESIGNET_NS="${ESIGNET_NS:-esignet-go-mock}"
+ESIGNET_NS="${ESIGNET_NS:-esignet-mock}"
 POSTGRES_NS="postgres"
 COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
 

@@ -3,9 +3,9 @@
 # eSignet Standalone 2.0.0 - Trigger Testrig CronJobs
 # =============================================================================
 # Immediately triggers testrig CronJobs after deployment:
-#   apitestrig  → esignet-go-mock ns
-#   signup-apitestrig → signup-go ns  (if deployed)
-#   signup-uitestrig  → signup-uitestrig-go ns (if deployed)
+#   apitestrig  → esignet-mock ns
+#   signup-apitestrig → signup ns  (if deployed)
+#   signup-uitestrig  → signup-uitestrig ns (if deployed)
 # =============================================================================
 set -euo pipefail
 
@@ -111,23 +111,20 @@ echo "================================================"
 echo "eSignet Standalone 2.0.0 - Trigger Testrig CronJobs"
 echo "================================================"
 
-echo "=== eSignet API Testrig (esignet-go-mock ns) ==="
-trigger_all_in_ns esignet-go-mock || OVERALL_SUCCESS=false
+echo "=== eSignet API Testrig (esignet-mock ns) ==="
+trigger_all_in_ns esignet-mock || OVERALL_SUCCESS=false
 
-echo "=== eSignet-MOSIPID1 API Testrig (esignet-go-mosipid1 ns) ==="
-trigger_all_in_ns esignet-go-mosipid1 || OVERALL_SUCCESS=false
+echo "=== eSignet-MOSIPID API Testrig (esignet-mosipid ns) ==="
+trigger_all_in_ns esignet-mosipid || OVERALL_SUCCESS=false
 
-echo "=== eSignet-MOSIPID2 API Testrig (esignet-go-mosipid2 ns) ==="
-trigger_all_in_ns esignet-go-mosipid2 || OVERALL_SUCCESS=false
+echo "=== eSignet-Sunbird API Testrig (esignet-sunbird ns) ==="
+trigger_all_in_ns esignet-sunbird || OVERALL_SUCCESS=false
 
-echo "=== eSignet-Sunbird API Testrig (esignet-go-sunbird ns) ==="
-trigger_all_in_ns esignet-go-sunbird || OVERALL_SUCCESS=false
+echo "=== Signup API Testrig (signup ns, if deployed) ==="
+trigger_all_in_ns signup || OVERALL_SUCCESS=false
 
-echo "=== Signup API Testrig (signup-go ns, if deployed) ==="
-trigger_all_in_ns signup-go || OVERALL_SUCCESS=false
-
-echo "=== Signup UI Testrig (signup-uitestrig-go ns, if deployed) ==="
-trigger_all_in_ns signup-uitestrig-go || OVERALL_SUCCESS=false
+echo "=== Signup UI Testrig (signup-uitestrig ns, if deployed) ==="
+trigger_all_in_ns signup-uitestrig || OVERALL_SUCCESS=false
 
 echo ""
 echo "=== Testrig Execution Summary ==="
