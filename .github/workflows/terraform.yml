@@ -323,31 +323,22 @@ jobs:
           RANCHER_CLUSTER_NAME_INPUT: ${{ inputs.RANCHER_CLUSTER_NAME }}
           REF_NAME: ${{ github.ref_name }}
         run: |
-          # Inline mint block — duplicated in "Refresh Rancher import URL before apply"; keep both in sync.
           if [ -z "$RANCHER_URL" ] || [ -z "$RANCHER_TOKEN" ]; then
             echo "ERROR: RANCHER_API_URL and RANCHER_API_TOKEN must be set for environment '$REF_NAME'"
             exit 1
           fi
           CLUSTER_NAME="${RANCHER_CLUSTER_NAME_INPUT:-$REF_NAME}"
-          echo "Registering cluster '$CLUSTER_NAME' in Rancher (plan-time placeholder)..."
-          set -o pipefail
-          IMPORT_CMD="$("$GITHUB_WORKSPACE/.github/scripts/rancher-register-cluster.sh" \
+          "$GITHUB_WORKSPACE/.github/scripts/write-rancher-runtime-tfvars.sh" \
             --rancher-url "$RANCHER_URL" \
             --token "$RANCHER_TOKEN" \
-            --cluster-name "$CLUSTER_NAME" | tail -n1)"
-          [[ -n "$IMPORT_CMD" ]] || { echo "ERROR: Rancher registration returned empty import command"; exit 1; }
-          RUNTIME_VARS_FILE="${RUNNER_TEMP}/rancher-runtime.tfvars"
-          "$GITHUB_WORKSPACE/.github/scripts/write-rancher-runtime-tfvars.sh" \
-            --out "$RUNTIME_VARS_FILE" \
+            --cluster-name "$CLUSTER_NAME" \
+            --out "${RUNNER_TEMP}/rancher-runtime.tfvars" \
             --enable true \
-            --import-cmd "$IMPORT_CMD"
-          echo "RANCHER_RUNTIME_VARS_FILE=$RUNTIME_VARS_FILE" >> "$GITHUB_ENV"
-          echo "Rancher import URL minted for: $CLUSTER_NAME (runtime -var-file; not written to profile aws.tfvars)"
+            --phase plan
 
       - name: Terraform Plan
         id: plan
         run: terraform plan -input=false -var-file="$TFVARS_FILE" ${RANCHER_RUNTIME_VARS_FILE:+-var-file="$RANCHER_RUNTIME_VARS_FILE"} -out ./tf-plan -no-color
-        continue-on-error: true
 
       - name: Refresh Rancher import URL before apply
         if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.TERRAFORM_APPLY == true && inputs.ENABLE_RANCHER_IMPORT == true && steps.plan.outcome == 'success' }}
@@ -357,32 +348,23 @@ jobs:
           RANCHER_CLUSTER_NAME_INPUT: ${{ inputs.RANCHER_CLUSTER_NAME }}
           REF_NAME: ${{ github.ref_name }}
         run: |
-          # Inline mint block — duplicated from "Generate Rancher import URL via API"; keep both in sync.
           if [ -z "$RANCHER_URL" ] || [ -z "$RANCHER_TOKEN" ]; then
             echo "ERROR: RANCHER_API_URL and RANCHER_API_TOKEN must be set for environment '$REF_NAME'"
             exit 1
           fi
           CLUSTER_NAME="${RANCHER_CLUSTER_NAME_INPUT:-$REF_NAME}"
-          echo "Refreshing Rancher import URL for cluster '$CLUSTER_NAME' immediately before apply..."
-          set -o pipefail
-          IMPORT_CMD="$("$GITHUB_WORKSPACE/.github/scripts/rancher-register-cluster.sh" \
+          "$GITHUB_WORKSPACE/.github/scripts/write-rancher-runtime-tfvars.sh" \
             --rancher-url "$RANCHER_URL" \
             --token "$RANCHER_TOKEN" \
-            --cluster-name "$CLUSTER_NAME" | tail -n1)"
-          [[ -n "$IMPORT_CMD" ]] || { echo "ERROR: Rancher registration returned empty import command"; exit 1; }
-          RUNTIME_VARS_FILE="${RUNNER_TEMP}/rancher-runtime.tfvars"
-          "$GITHUB_WORKSPACE/.github/scripts/write-rancher-runtime-tfvars.sh" \
-            --out "$RUNTIME_VARS_FILE" \
+            --cluster-name "$CLUSTER_NAME" \
+            --out "${RUNNER_TEMP}/rancher-runtime.tfvars" \
             --enable true \
-            --import-cmd "$IMPORT_CMD"
-          echo "RANCHER_RUNTIME_VARS_FILE=$RUNTIME_VARS_FILE" >> "$GITHUB_ENV"
-          echo "Refreshed Rancher import URL for apply (runtime -var-file)"
+            --phase apply
 
       - name: Terraform Apply
         id: apply
         run: terraform apply -input=false -var-file="$TFVARS_FILE" ${RANCHER_RUNTIME_VARS_FILE:+-var-file="$RANCHER_RUNTIME_VARS_FILE"} -no-color -auto-approve
         if: ${{ inputs.TERRAFORM_APPLY == true && steps.plan.outcome == 'success' }}
-        continue-on-error: true
 
       - name: Apply Rancher import on cluster (fresh token)
         if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.TERRAFORM_APPLY == true && inputs.ENABLE_RANCHER_IMPORT == true && steps.apply.outcome == 'success' }}
@@ -443,59 +425,26 @@ jobs:
             exit 1
           fi
           CLUSTER_NAME="${RANCHER_CLUSTER_NAME_INPUT:-$REF_NAME}"
-
           GRANTS_FILE="$GITHUB_WORKSPACE/.github/config/rancher-access-grants.json"
-          DEFAULT_GRANTS_FILE="$GITHUB_WORKSPACE/.github/scripts/rancher-access-grants.default.json"
-          SCRIPTS_DIR="$GITHUB_WORKSPACE/.github/scripts"
+          GRANT_SCRIPT="$GITHUB_WORKSPACE/.github/scripts/rancher-grant-cluster-access.sh"
 
-          echo "Resolving Rancher grants catalog for branch '$REF_NAME' ..."
-          if [ -d "$GITHUB_WORKSPACE/.github/config" ]; then
-            echo "Contents of .github/config/:"
-            ls -la "$GITHUB_WORKSPACE/.github/config/" || true
-          fi
-          if [ -d "$SCRIPTS_DIR" ]; then
-            echo "Contents of .github/scripts/:"
-            ls -la "$SCRIPTS_DIR" || true
-          fi
-
-          if [ -f "$GRANTS_FILE" ]; then
-            echo "Using catalog: $GRANTS_FILE"
-          elif [ -f "$DEFAULT_GRANTS_FILE" ]; then
-            echo "WARN: $GRANTS_FILE not found — using $DEFAULT_GRANTS_FILE"
-            GRANTS_FILE="$DEFAULT_GRANTS_FILE"
-          else
-            echo "ERROR: no Rancher grants catalog found on branch '$REF_NAME'"
-            echo "Expected $GRANTS_FILE or $DEFAULT_GRANTS_FILE"
+          if [ ! -f "$GRANTS_FILE" ]; then
+            echo "ERROR: Rancher grants catalog not found: $GRANTS_FILE"
             exit 1
           fi
+          if [ ! -f "$GRANT_SCRIPT" ]; then
+            echo "ERROR: Required script missing: $GRANT_SCRIPT"
+            exit 1
+          fi
+
           echo "Using Rancher grants catalog: $GRANTS_FILE"
-
-          if [ -f "$SCRIPTS_DIR/build-rancher-workflow-patch.sh" ]; then
-            export WORKFLOW_GRANTS_CATALOG="$GRANTS_FILE"
-            echo "Rancher team catalog:"
-            jq -r '.[] | "  - \(.group): \(.role) (catalog enabled=\(.enabled // true))"' "$GRANTS_FILE"
-            WORKFLOW_RANCHER_PATCH="$("$SCRIPTS_DIR/build-rancher-workflow-patch.sh")"
-          else
-            echo "WARN: build-rancher-workflow-patch.sh not found — applying base catalog only (DEVOPS owner default)"
-            WORKFLOW_RANCHER_PATCH='[]'
-          fi
-          echo "Workflow Rancher patch: $WORKFLOW_RANCHER_PATCH"
-          export WORKFLOW_RANCHER_PATCH
-
+          echo "Building effective grant plan (catalog + env vars + workflow inputs) ..."
+          export WORKFLOW_RANCHER_PATCH="$("$GRANT_SCRIPT" build-patch --grants-file "$GRANTS_FILE")"
+          echo "Workflow patch: $WORKFLOW_RANCHER_PATCH"
           echo "Applying Rancher access grants for cluster '$CLUSTER_NAME' ..."
-          BATCH_SCRIPT="$SCRIPTS_DIR/rancher-grant-cluster-access-batch.sh"
-          SINGLE_SCRIPT="$SCRIPTS_DIR/rancher-grant-cluster-access.sh"
-
-          if [ ! -f "$SINGLE_SCRIPT" ]; then
-            echo "ERROR: Required script missing: $SINGLE_SCRIPT"
-            exit 1
-          fi
-          if [ ! -f "$BATCH_SCRIPT" ]; then
-            echo "ERROR: Required script missing: $BATCH_SCRIPT"
-            exit 1
-          fi
 
           ARGS=(
+            apply
             --rancher-url "$RANCHER_URL"
             --token "$RANCHER_TOKEN"
             --cluster-name "$CLUSTER_NAME"
@@ -504,11 +453,11 @@ jobs:
           if [ -n "${RANCHER_GROUP_AUTH_PREFIX:-}" ]; then
             ARGS+=(--default-group-auth-prefix "$RANCHER_GROUP_AUTH_PREFIX")
           fi
-          "$BATCH_SCRIPT" "${ARGS[@]}"
+          "$GRANT_SCRIPT" "${ARGS[@]}"
 
       - name: Publish KUBECONFIG from Rancher
+        id: publish-kubeconfig
         if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.TERRAFORM_APPLY == true && inputs.PUBLISH_KUBECONFIG == true && steps.apply.outcome == 'success' }}
-        continue-on-error: true
         env:
           RANCHER_URL: ${{ secrets.RANCHER_API_URL }}
           RANCHER_TOKEN: ${{ secrets.RANCHER_API_TOKEN }}
@@ -516,9 +465,7 @@ jobs:
           REF_NAME: ${{ github.ref_name }}
           GH_TOKEN: ${{ secrets.GH_INFRA_PAT }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          # Post-apply import step waits for cattle-cluster-agent; allow ~6 min for Rancher state=active
-          MAX_ATTEMPTS: "24"
-          SLEEP_SECONDS: "15"
+          # Defaults in rancher-fetch-kubeconfig.sh: 90 attempts × 10s ≈ 15 min for state=active
         run: |
           if [ -z "$RANCHER_URL" ] || [ -z "$RANCHER_TOKEN" ]; then
             echo "Skipping KUBECONFIG publish: RANCHER_API_URL / RANCHER_API_TOKEN not set for environment '$REF_NAME'"
@@ -531,6 +478,8 @@ jobs:
           command -v gh >/dev/null 2>&1 || { echo "ERROR: gh CLI is required"; exit 1; }
 
           CLUSTER_NAME="${RANCHER_CLUSTER_NAME_INPUT:-$REF_NAME}"
+          MAX_ATTEMPTS="${MAX_ATTEMPTS:-90}"
+          SLEEP_SECONDS="${SLEEP_SECONDS:-10}"
           WAIT_MIN=$((MAX_ATTEMPTS * SLEEP_SECONDS / 60))
           echo "Fetching kubeconfig for Rancher cluster '$CLUSTER_NAME' (wait up to ${WAIT_MIN} min for state=active) ..."
 
@@ -645,10 +594,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GH_INFRA_PAT }}
           REF_NAME: ${{ github.ref_name }}
-        if: always()
+        if: steps.plan.outcome == 'success'
 
       - name: Terraform plan / apply status
-        if: ${{ steps.plan.outcome == 'failure' || steps.apply.outcome == 'failure' }}
+        if: ${{ steps.plan.outcome == 'failure' || steps.apply.outcome == 'failure' || steps.publish-kubeconfig.outcome == 'failure' }}
         run: exit 1
 
       - uses: 8398a7/action-slack@v3
