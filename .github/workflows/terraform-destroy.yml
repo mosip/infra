@@ -252,6 +252,14 @@ jobs:
             echo "ERROR: WireGuard config missing [Interface] section"
             exit 1
           fi
+          if ! sudo grep -q "^\[Peer\]" /etc/wireguard/wg0.conf; then
+            echo "ERROR: WireGuard config missing [Peer] section"
+            exit 1
+          fi
+          if ! sudo grep -qE '^[[:space:]]*PrivateKey[[:space:]]*=' /etc/wireguard/wg0.conf; then
+            echo "ERROR: WireGuard config missing PrivateKey"
+            exit 1
+          fi
           echo "WireGuard config validated"
         env:
           TF_WG_CONFIG: ${{ secrets.TF_WG_CONFIG }}
