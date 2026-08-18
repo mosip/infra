@@ -99,10 +99,21 @@ jobs:
         # We work in the cloud-specific implementation directory
         working-directory: 'terraform/implementations/${{ inputs.CLOUD_PROVIDER }}/${{ inputs.TERRAFORM_COMPONENT }}'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
+          ref: ${{ github.ref }}
           fetch-depth: 0  # Full history needed for rebase
           token: ${{ secrets.GH_INFRA_PAT }}
+
+      - name: Ensure workflow scripts are executable
+        run: |
+          shopt -s nullglob
+          scripts=("$GITHUB_WORKSPACE/.github/scripts/"*.sh)
+          if ((${#scripts[@]} == 0)); then
+            echo "ERROR: No scripts found under $GITHUB_WORKSPACE/.github/scripts/"
+            exit 1
+          fi
+          chmod +x "${scripts[@]}"
 
       - name: Check for required implementation directory
         run: |
@@ -211,7 +222,9 @@ jobs:
         if: "${{ inputs.TERRAFORM_COMPONENT != 'base-infra' }}"
 
       - name: Install WireGuard
-        run: sudo apt-get install -y wireguard
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y wireguard
         if: "${{ inputs.TERRAFORM_COMPONENT != 'base-infra' }}"
 
       - name: Configure WireGuard
@@ -334,13 +347,11 @@ jobs:
           echo "Showing what will be destroyed..."
           terraform plan -destroy -input=false -var-file="$TFVARS_FILE" ${RANCHER_RUNTIME_VARS_FILE:+-var-file="$RANCHER_RUNTIME_VARS_FILE"} -no-color
         if: "${{ inputs.TERRAFORM_DESTROY  == true }}"
-        continue-on-error: true
 
       - name: Terraform Destroy
         id: destroy
         run: terraform destroy -input=false -var-file="$TFVARS_FILE" ${RANCHER_RUNTIME_VARS_FILE:+-var-file="$RANCHER_RUNTIME_VARS_FILE"} -no-color -auto-approve
         if: "${{ inputs.TERRAFORM_DESTROY  == true }}"
-        continue-on-error: true
 
       - name: Clean up state files and artifacts
         run: |
@@ -464,7 +475,7 @@ jobs:
           REF_NAME: ${{ github.ref_name }}
         if: "${{ inputs.TERRAFORM_DESTROY == true }}"
       - name: Terraform destroy status
-        if: ${{ steps.destroy.outcome == 'failure' }}
+        if: ${{ steps.destroy-plan.outcome == 'failure' || steps.destroy.outcome == 'failure' }}
         run: |
           echo "ERROR: Terraform destroy failed"
           echo "Check the logs above for detailed error information"
@@ -477,6 +488,7 @@ jobs:
           echo "All ${{ inputs.CLOUD_PROVIDER }}-${{ inputs.TERRAFORM_COMPONENT }} resources have been destroyed"
 
       - uses: 8398a7/action-slack@v3
+        continue-on-error: true
         with:
           status: ${{ job.status }}
           fields: repo,message,author,commit,workflow,job # selectable (default: repo,message)
