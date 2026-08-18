@@ -497,6 +497,13 @@ apps:
     chart: mosip/captcha
     set:
       metrics.serviceMonitor.enabled: "false"
+      # Chart default extraEnvVars only contains MOSIP_CAPTCHA_GOOGLERECAPTCHAV2_SECRET_PREREGISTRATION,
+      # sourced from a mosip-captcha/prereg-captcha-secret-key secret that doesn't exist in this
+      # deployment (no preregistration module here) — empty it out so the chart doesn't try to
+      # wire up a nonexistent secret. esignet/mosipid/sunbird/signup captcha env vars are added
+      # separately via kubectl patch in the *-preinstall.sh / captcha-postinstall.sh hooks, not
+      # through this chart value.
+      extraEnvVars: ""
     wait: true
     timeout: 480
     priority: -10
