@@ -14,8 +14,8 @@ RANCHER_TOKEN="${RANCHER_TOKEN:-}"
 CLUSTER_NAME="${CLUSTER_NAME:-}"
 CLUSTER_ID="${CLUSTER_ID:-}"
 INSECURE="${INSECURE:-false}"
-MAX_ATTEMPTS="${MAX_ATTEMPTS:-60}"
-SLEEP_SECONDS="${SLEEP_SECONDS:-5}"
+MAX_ATTEMPTS="${MAX_ATTEMPTS:-90}"
+SLEEP_SECONDS="${SLEEP_SECONDS:-10}"
 
 usage() {
   cat <<'EOF'
@@ -34,8 +34,8 @@ Optional:
   -h, --help              Show help
 
 Environment (optional):
-  MAX_ATTEMPTS            Wait attempts for cluster to become active (default: 60)
-  SLEEP_SECONDS           Seconds between wait attempts (default: 5)
+  MAX_ATTEMPTS            Wait attempts for cluster to become active (default: 90 ≈ 15 min)
+  SLEEP_SECONDS           Seconds between wait attempts (default: 10)
 
 Output (stdout): raw kubeconfig YAML (for GitHub KUBECONFIG environment secret).
 Logs go to stderr.
