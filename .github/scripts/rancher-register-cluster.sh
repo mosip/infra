@@ -133,6 +133,11 @@ apply_import_on_host() {
       printf 'query-failed'
       return 1
     fi
+    # kubectl exits 0 with empty output when no pods match — not the same as unhealthy.
+    if [[ -z "${out//[[:space:]]/}" ]]; then
+      printf 'missing'
+      return 0
+    fi
     printf '%s' "$out"
   }
 
@@ -151,11 +156,15 @@ apply_import_on_host() {
       err "Could not query cattle-cluster-agent status; refusing to reset cattle-system"
       return 1
     fi
-    log "cattle-system exists but agent is not healthy (phase=${phase:-missing}) — resetting namespace before re-import"
-    log "WARN: this deletes all resources in cattle-system (destructive; required for stale Rancher registration recovery)"
-    if ! remote_kubectl delete namespace cattle-system --ignore-not-found --wait=true --timeout=120s; then
-      err "Failed to delete stale cattle-system namespace on ${SSH_HOST} within 120s"
-      return 1
+    if [[ "$phase" == "missing" ]]; then
+      log "cattle-system exists but no cattle-cluster-agent pod yet — proceeding with import apply"
+    else
+      log "cattle-system exists but agent is not healthy (phase=${phase}) — resetting namespace before re-import"
+      log "WARN: this deletes all resources in cattle-system (destructive; required for stale Rancher registration recovery)"
+      if ! remote_kubectl delete namespace cattle-system --ignore-not-found --wait=true --timeout=120s; then
+        err "Failed to delete stale cattle-system namespace on ${SSH_HOST} within 120s"
+        return 1
+      fi
     fi
   fi
 
