@@ -54,7 +54,7 @@ Optional:
 Environment (optional):
   MAX_ATTEMPTS           Poll attempts for registration token (default: 30)
   SLEEP_SECONDS          Seconds between poll attempts (default: 2)
-  MAX_AGENT_WAIT         Poll attempts for cattle-cluster-agent Running (default: 90 ≈ 15 min, apply-on-host only)
+  MAX_AGENT_WAIT         Poll attempts for cattle-cluster-agent Running and Rancher active (default: 90 ≈ 15 min, apply-on-host only)
   AGENT_SLEEP            Seconds between agent poll attempts (default: 10)
 
 Output (stdout, last line only — logs go to stderr): "kubectl apply -f https://<host>/v3/import/<id>.yaml"
@@ -149,14 +149,21 @@ apply_import_on_host() {
       phase="query-failed"
     fi
     if [[ "$phase" == "Running" ]]; then
-      log "cattle-system exists and cattle-cluster-agent is Running — skipping import apply"
-      return 0
-    fi
-    if [[ "$phase" == "query-failed" ]]; then
+      rancher_state="$(rancher_cluster_state 2>/dev/null || echo query-failed)"
+      if [[ "$rancher_state" == "active" ]]; then
+        log "cattle-cluster-agent is Running and Rancher reports state=active — skipping import apply"
+        return 0
+      fi
+      log "cattle-cluster-agent is Running but Rancher state=${rancher_state} — applying fresh import token"
+      log "WARN: this deletes all resources in cattle-system (agent pod healthy locally but not connected in Rancher)"
+      if ! remote_kubectl delete namespace cattle-system --ignore-not-found --wait=true --timeout=120s; then
+        err "Failed to delete stale cattle-system namespace on ${SSH_HOST} within 120s"
+        return 1
+      fi
+    elif [[ "$phase" == "query-failed" ]]; then
       err "Could not query cattle-cluster-agent status; refusing to reset cattle-system"
       return 1
-    fi
-    if [[ "$phase" == "missing" ]]; then
+    elif [[ "$phase" == "missing" ]]; then
       log "cattle-system exists but no cattle-cluster-agent pod yet — proceeding with import apply"
     else
       log "cattle-system exists but agent is not healthy (phase=${phase}) — resetting namespace before re-import"
@@ -177,8 +184,12 @@ apply_import_on_host() {
   for ((attempt = 1; attempt <= MAX_AGENT_WAIT; attempt++)); do
     if phase="$(cattle_agent_phase)"; then
       if [[ "$phase" == "Running" ]]; then
-        log "cattle-cluster-agent is Running"
-        return 0
+        log "cattle-cluster-agent is Running; waiting for Rancher cluster to become active ..."
+        wait_for_rancher_cluster_active && return 0
+        err "cattle-cluster-agent is Running but Rancher cluster did not become active"
+        rancher_cluster_status_summary || true
+        remote_kubectl get pods -n cattle-system -o wide 2>/dev/null || true
+        return 1
       fi
       log "Waiting for cattle-cluster-agent (phase=${phase}, attempt ${attempt}/${MAX_AGENT_WAIT}) ..."
     else
@@ -224,6 +235,55 @@ api() {
   fi
 
   cat "$tmp"
+}
+
+rancher_cluster_state() {
+  local json state
+  [[ -n "$CLUSTER_ID" ]] || return 1
+  if ! json="$(api GET "/v3/clusters/$(urlencode "$CLUSTER_ID")")"; then
+    return 1
+  fi
+  state="$(jq -r '.state // empty' <<<"$json")"
+  [[ -n "$state" ]] || return 1
+  printf '%s' "$state"
+}
+
+rancher_cluster_status_summary() {
+  local json
+  [[ -n "$CLUSTER_ID" ]] || return 1
+  if ! json="$(api GET "/v3/clusters/$(urlencode "$CLUSTER_ID")")"; then
+    err "Could not fetch Rancher cluster status for ${CLUSTER_ID}"
+    return 1
+  fi
+  jq '{
+    id,
+    name,
+    state,
+    transitioning,
+    transition: (.transitioningMessage // .transition // empty),
+    agentImage: (.agentImage // empty)
+  }' <<<"$json" >&2
+}
+
+wait_for_rancher_cluster_active() {
+  local attempt state status_line json
+  for ((attempt = 1; attempt <= MAX_AGENT_WAIT; attempt++)); do
+    state="$(rancher_cluster_state 2>/dev/null || echo query-failed)"
+    if [[ "$state" == "active" ]]; then
+      log "Rancher cluster ${CLUSTER_ID} is active"
+      return 0
+    fi
+    if [[ "$state" != "query-failed" ]] \
+      && json="$(api GET "/v3/clusters/$(urlencode "$CLUSTER_ID")" 2>/dev/null || true)" \
+      && [[ -n "$json" ]]; then
+      status_line="$(jq -r '"state=\(.state // "unknown") transition=\(.transitioningMessage // .transition // "none")"' <<<"$json")"
+    else
+      status_line="state=${state} transition=unknown"
+    fi
+    log "Waiting for Rancher cluster ${CLUSTER_ID} to become active (${status_line}, attempt ${attempt}/${MAX_AGENT_WAIT}) ..."
+    sleep "$AGENT_SLEEP"
+  done
+  return 1
 }
 
 json_cluster_create_body() {
