@@ -132,9 +132,6 @@ apps:
       extraEnvVars.MOSIP_IDA_CLIENT_SECRET.valueFrom.secretKeyRef.key: "mosip_ida_client_secret"
       extraEnvVars.AUTHN_PROVIDER: "mosip"
       extraEnvVars.KEYMANAGER_DB_SCHEMA: "esignet"
-      extraEnvVars.KEYMANAGER_KEYSTORE_TYPE: "PKCS12"
-      extraEnvVars.KEYMANAGER_PKCS12_FILE_PATH: "/home/mosip/config/esignet.pfx"
-      extraEnvVars.KEYMANAGER_PKCS12_PASSWORD: "localtest"
       persistence.enabled: "true"
       persistence.pvc_claim_name: "esignet-mock-pkcs12-keystore"
       extraEnvVars.OIDC_UI_SCHEME: "https"
@@ -147,6 +144,12 @@ apps:
       extraEnvVarsAdditional.MOSIP_ESIGNET_CAPTCHA_SITE_KEY.valueFrom.secretKeyRef.name: "esignet-captcha"
       extraEnvVarsAdditional.MOSIP_ESIGNET_CAPTCHA_SITE_KEY.valueFrom.secretKeyRef.key: "esignet-captcha-site-key"
       extraEnvVarsAdditional.MOSIP_ESIGNET_CAPTCHA_REQUIRED: ""
+      # Overrides via extraEnvVarsAdditional (rendered after extraEnvVars in the
+      # container's env: list, so last-wins semantics correctly override the
+      # chart's own PKCS11 extraEnvVars defaults for this same instance).
+      extraEnvVarsAdditional.KEYMANAGER_KEYSTORE_TYPE: "PKCS12"
+      extraEnvVarsAdditional.KEYMANAGER_PKCS12_FILE_PATH: "/home/mosip/config/esignet.pfx"
+      extraEnvVarsAdditional.KEYMANAGER_PKCS12_PASSWORD: "localtest"
     timeout: 600
     priority: -14
     hooks:
