@@ -24,6 +24,10 @@
 #
 # Three distinct peers are used on onboard because the Helmsman wg0/wg1 matrix
 # jobs run concurrently and Terraform uses its own peer too.
+#
+# Repo tracker: wg-peer-allocation.tsv (header + rows; committed by wg-onboard.yml).
+# If two onboard runs update the tracker concurrently, the workflow rebase may fail —
+# resolve the TSV conflict manually and re-run offboard/onboard for the affected env.
 
 set -euo pipefail
 
