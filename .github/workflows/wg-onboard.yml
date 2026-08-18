@@ -3,7 +3,8 @@ name: WireGuard environment onboard/offboard
 # Self-service WireGuard onboarding and offboarding for an environment.
 # Onboard: allocates free WireGuard peers from the jumpserver and publishes them
 # as GitHub *environment* secrets (TF_WG_CONFIG, CLUSTER_WIREGUARD_WG0/WG1).
-# Offboard: deletes those secrets, frees assigned.txt lines, updates the tracker.
+# Offboard: frees assigned.txt lines, deletes TF_WG_CONFIG / WG0 / WG1 secrets,
+# keeps the GitHub environment object by default (set KEEP_ENVIRONMENT=false to delete it too).
 #
 # Requires .github/scripts/wg-env.sh.
 
@@ -40,10 +41,10 @@ on:
         type: string
         default: 172.31.0.0/16
       KEEP_ENVIRONMENT:
-        description: 'Offboard only: delete secrets but keep the GitHub environment object'
+        description: 'Offboard only: keep the GitHub environment object (WG secrets are always removed on offboard)'
         required: false
         type: boolean
-        default: false
+        default: true
       DRY_RUN:
         description: 'Print actions without writing secrets or assigned.txt'
         required: false
@@ -61,6 +62,7 @@ jobs:
   onboard:
     runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 20
+    environment: ${{ inputs.ENV_NAME }}
     steps:
       - name: Validate required secrets
         run: |
@@ -132,8 +134,12 @@ jobs:
             args+=(--allowed-ips "$INPUT_ALLOWED_IPS")
             [[ -n "$INPUT_TICKET" ]] && args+=(--ticket "$INPUT_TICKET")
           fi
-          if [[ "$INPUT_ACTION" == "offboard" && "$INPUT_KEEP_ENVIRONMENT" == "true" ]]; then
-            args+=(--keep-environment)
+          if [[ "$INPUT_ACTION" == "offboard" ]]; then
+            if [[ "$INPUT_KEEP_ENVIRONMENT" == "true" ]]; then
+              args+=(--keep-environment)
+            else
+              args+=(--delete-environment)
+            fi
           fi
           [[ "$INPUT_DRY_RUN" == "true" ]] && args+=(--dry-run)
           .github/scripts/wg-env.sh "${args[@]}"
