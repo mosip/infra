@@ -480,6 +480,7 @@ jobs:
           CLUSTER_NAME="${RANCHER_CLUSTER_NAME_INPUT:-$REF_NAME}"
           MAX_ATTEMPTS="${MAX_ATTEMPTS:-90}"
           SLEEP_SECONDS="${SLEEP_SECONDS:-10}"
+          export MAX_ATTEMPTS SLEEP_SECONDS
           WAIT_MIN=$((MAX_ATTEMPTS * SLEEP_SECONDS / 60))
           echo "Fetching kubeconfig for Rancher cluster '$CLUSTER_NAME' (wait up to ${WAIT_MIN} min for state=active) ..."
 
