@@ -30,7 +30,7 @@ SSH_KEY=""
 SSH_HOST=""
 SSH_USER="${SSH_USER:-ubuntu}"
 KUBECONFIG_REMOTE=""
-MAX_AGENT_WAIT="${MAX_AGENT_WAIT:-30}"
+MAX_AGENT_WAIT="${MAX_AGENT_WAIT:-90}"
 AGENT_SLEEP="${AGENT_SLEEP:-10}"
 
 usage() {
@@ -54,10 +54,10 @@ Optional:
 Environment (optional):
   MAX_ATTEMPTS           Poll attempts for registration token (default: 30)
   SLEEP_SECONDS          Seconds between poll attempts (default: 2)
-  MAX_AGENT_WAIT         Poll attempts for cattle-cluster-agent Running (default: 30, apply-on-host only)
+  MAX_AGENT_WAIT         Poll attempts for cattle-cluster-agent Running (default: 90 ≈ 15 min, apply-on-host only)
   AGENT_SLEEP            Seconds between agent poll attempts (default: 10)
 
-Output (stdout, last line): "kubectl apply -f https://<host>/v3/import/<id>.yaml"
+Output (stdout, last line only — logs go to stderr): "kubectl apply -f https://<host>/v3/import/<id>.yaml"
   (--apply-on-host writes diagnostics to stderr only; stdout stays empty)
 EOF
 }
@@ -152,6 +152,7 @@ apply_import_on_host() {
       return 1
     fi
     log "cattle-system exists but agent is not healthy (phase=${phase:-missing}) — resetting namespace before re-import"
+    log "WARN: this deletes all resources in cattle-system (destructive; required for stale Rancher registration recovery)"
     if ! remote_kubectl delete namespace cattle-system --ignore-not-found --wait=true --timeout=120s; then
       err "Failed to delete stale cattle-system namespace on ${SSH_HOST} within 120s"
       return 1
