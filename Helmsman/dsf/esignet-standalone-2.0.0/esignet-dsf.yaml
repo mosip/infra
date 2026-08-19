@@ -170,7 +170,6 @@ apps:
       pluginNameEnv: "mosip-identity-plugin.jar"
       pluginUrlEnv: ""
       extraEnvVarsCM[0]: "esignet-softhsm-mosipid-share"
-      extraEnvVarsCM[1]: "esignet-global"
       metrics.serviceMonitor.enabled: "false"
       domainConfig.MOSIP_ESIGNET_HOST: "https://esignet-mosipid.${domain_name}"
       domainConfig.MOSIP_SIGNUP_HOST: "https://signup-mosipid.${domain_name}"
