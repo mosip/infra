@@ -156,7 +156,7 @@ apps:
       # container's env: list, so last-wins semantics correctly override the
       # chart's own PKCS11 extraEnvVars defaults for this same instance).
       extraEnvVarsAdditional.KEYMANAGER_KEYSTORE_TYPE: "PKCS12"
-      extraEnvVarsAdditional.KEYMANAGER_PKCS12_FILE_PATH: "/home/mosip/config/esignet.pfx"
+      extraEnvVarsAdditional.KEYMANAGER_PKCS12_FILE_PATH: "/home/mosip/config/keystore.p12"
       extraEnvVarsAdditional.KEYMANAGER_PKCS12_PASSWORD: "localtest"
       extraEnvVarsAdditional.KEYMANAGER_PKCS12_ALLOW_INSECURE_SOFTWARE_KEYSTORE: "true"
     timeout: 600
