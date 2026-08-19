@@ -105,6 +105,14 @@ apps:
       domainConfig.MOSIP_SMTP_HOST: "smtp.${domain_name}"
       domainConfig.installation-domain: "${domain_name}"
       domainConfig.OIDC_UI_HOSTNAME: "esignet.${domain_name}"
+      # esignet-mock has no esignet-global configmap (only the mosipid/sunbird preinstall
+      # hooks create their own per-namespace esignet-global) - override these chart-default
+      # extraEnvVars entries that otherwise reference it, or the pod fails to start with
+      # CreateContainerConfigError (configmap "esignet-global" not found).
+      extraEnvVars.MOSIP_API_INTERNAL_HOST: "https://api-internal.${domain_name}"
+      extraEnvVars.MOSIP_ESIGNET_OIDC_UI_HOSTNAME: "esignet.${domain_name}"
+      extraEnvVars.MOSIP_ESIGNET_HOST: "https://esignet.${domain_name}"
+      extraEnvVars.MOSIP_SIGNUP_HOST: "https://signup.${domain_name}"
       extraEnvVars.KEYCLOAK_EXTERNAL_URL.valueFrom.configMapKeyRef.name: "keycloak-host"
       extraEnvVars.KEYCLOAK_EXTERNAL_URL.valueFrom.configMapKeyRef.key: "keycloak-external-url"
       extraEnvVars.MOSIP_ESIGNET_CAPTCHA_SITE_KEY.valueFrom.secretKeyRef.name: "esignet-captcha"
@@ -210,6 +218,13 @@ apps:
       extraEnvVars.DB_DBUSER_PASSWORD.valueFrom.secretKeyRef.key: "db-dbuser-password"
       extraEnvVars.SOFTHSM_ESIGNET_SECURITY_PIN.valueFrom.secretKeyRef.name: "esignet-softhsm-mosipid"
       extraEnvVars.SOFTHSM_ESIGNET_SECURITY_PIN.valueFrom.secretKeyRef.key: "security-pin"
+      # Chart-default extraEnvVars.KEYMANAGER_PKCS11_PIN points at a plain "esignet-softhsm"
+      # secret that doesn't exist in this namespace (only esignet-softhsm-mosipid does) -
+      # the extraEnvVarsAdditional override below doesn't remove this broken chart-default
+      # entry, and Kubernetes fails the whole pod if any single env entry references a
+      # missing secret, even with a working duplicate elsewhere in the list.
+      extraEnvVars.KEYMANAGER_PKCS11_PIN.valueFrom.secretKeyRef.name: "esignet-softhsm-mosipid"
+      extraEnvVars.KEYMANAGER_PKCS11_PIN.valueFrom.secretKeyRef.key: "security-pin"
       extraEnvVars.MOSIP_IDA_CLIENT_SECRET.valueFrom.secretKeyRef.name: "keycloak-client-secrets-mosipid"
       extraEnvVars.MOSIP_IDA_CLIENT_SECRET.valueFrom.secretKeyRef.key: "mosip_ida_client_secret"
       extraEnvVars.AUTHN_PROVIDER: "mosip"
@@ -235,13 +250,13 @@ apps:
       extraEnvVarsAdditional.plugin_name_env: "mosip-identity-plugin.jar"
       extraEnvVarsAdditional.SPRING_KAFKA_CONSUMER_GROUP_ID: "esignet-consumer-esignet-mosipid"
       extraEnvVarsAdditional.MOSIP_ESIGNET_SIGNUP_ID_TOKEN_AUDIENCE: "esignet-mosipid-signup-esqa020"
-      extraEnvVarsAdditional.MOSIP_ESIGNET_AUTHENTICATOR_IDA_OTP_CHANNELS: 'email\,phone'
+      extraEnvVarsAdditional.MOSIP_ESIGNET_AUTHENTICATOR_IDA_OTP_CHANNELS: 'email,phone'
       extraEnvVarsAdditional.MOSIP_ESIGNET_SEND_OTP_ATTEMPTS: "300"
       extraEnvVarsAdditional.MOSIP_ESIGNET_AUTHENTICATE_ATTEMPTS: "300"
       extraEnvVarsAdditional.MOSIP_ESIGNET_AUTHENTICATION_EXPIRE_IN_SECS: "600"
       extraEnvVarsAdditional.MOSIP_ESIGNET_PREAUTHENTICATION_EXPIRE_IN_SECS: "600"
       extraEnvVarsAdditional.MOSIP_ESIGNET_UI_CONFIG_USERNAME_POSTFIX: "@phone"
-      extraEnvVarsAdditional.MOSIP_ESIGNET_UI_CONFIG_LOGIN_ID_OPTIONS.value: '\{\{ "\{\{" \}\} ''id'': ''mobile''\, ''svg'': ''mobile_icon''\, ''prefixes'': \{\{ "\{\{" \}\}''label'': ''IND''\, ''value'': ''+91''\, ''maxLength'': ''''\, ''regex'': ''''\}\,\{''label'': ''KHM''\, ''value'': ''+855''\, ''regex'': ''''\{\{ "\}\}" \}\}\, ''postfix'': ''@phone''\, ''maxLength'': ''''\, ''regex'': '''' \}\, \{ ''id'': ''nrc''\, ''svg'': ''nrc_id_icon''\, ''prefixes'': ''''\, ''postfix'': ''@nrc''\, ''maxLength'': ''''\, ''regex'': '''' \}\, \{ ''id'': ''vid''\, ''svg'': ''vid_icon''\, ''prefixes'': ''''\, ''postfix'': ''''\, ''maxLength'': ''''\, ''regex'': '''' \}\, \{ ''id'': ''email''\, ''svg'': ''email_icon''\, ''prefixes'': ''''\, ''postfix'': ''@email''\, ''maxLength'': ''''\, ''regex'': '''' \{\{ "\}\}" \}\}'
+      extraEnvVarsAdditional.MOSIP_ESIGNET_UI_CONFIG_LOGIN_ID_OPTIONS.value: '\{\{ "\{\{" \}\} ''id'': ''mobile'', ''svg'': ''mobile_icon'', ''prefixes'': \{\{ "\{\{" \}\}''label'': ''IND'', ''value'': ''+91'', ''maxLength'': '''', ''regex'': ''''\},\{''label'': ''KHM'', ''value'': ''+855'', ''regex'': ''''\{\{ "\}\}" \}\}, ''postfix'': ''@phone'', ''maxLength'': '''', ''regex'': '''' \}, \{ ''id'': ''nrc'', ''svg'': ''nrc_id_icon'', ''prefixes'': '''', ''postfix'': ''@nrc'', ''maxLength'': '''', ''regex'': '''' \}, \{ ''id'': ''vid'', ''svg'': ''vid_icon'', ''prefixes'': '''', ''postfix'': '''', ''maxLength'': '''', ''regex'': '''' \}, \{ ''id'': ''email'', ''svg'': ''email_icon'', ''prefixes'': '''', ''postfix'': ''@email'', ''maxLength'': '''', ''regex'': '''' \{\{ "\}\}" \}\}'
       extraEnvVarsAdditional.LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB_CLIENT: "INFO"
       extraEnvVarsAdditional.MOSIP_ESIGNET_CAPTCHA_REQUIRED: ""
       extraEnvVarsAdditional.MOSIP_ESIGNET_CAPTCHA_URL: "http://captcha.captcha"
@@ -302,6 +317,13 @@ apps:
       extraEnvVars.DB_DBUSER_PASSWORD.valueFrom.secretKeyRef.key: "db-dbuser-password"
       extraEnvVars.SOFTHSM_ESIGNET_SECURITY_PIN.valueFrom.secretKeyRef.name: "esignet-softhsm-sunbird"
       extraEnvVars.SOFTHSM_ESIGNET_SECURITY_PIN.valueFrom.secretKeyRef.key: "security-pin"
+      # Chart-default extraEnvVars.KEYMANAGER_PKCS11_PIN points at a plain "esignet-softhsm"
+      # secret that doesn't exist in this namespace (only esignet-softhsm-sunbird does) -
+      # the extraEnvVarsAdditional override below doesn't remove this broken chart-default
+      # entry, and Kubernetes fails the whole pod if any single env entry references a
+      # missing secret, even with a working duplicate elsewhere in the list.
+      extraEnvVars.KEYMANAGER_PKCS11_PIN.valueFrom.secretKeyRef.name: "esignet-softhsm-sunbird"
+      extraEnvVars.KEYMANAGER_PKCS11_PIN.valueFrom.secretKeyRef.key: "security-pin"
       extraEnvVars.MOSIP_IDA_CLIENT_SECRET.valueFrom.secretKeyRef.name: "keycloak-client-secrets"
       extraEnvVars.MOSIP_IDA_CLIENT_SECRET.valueFrom.secretKeyRef.key: "mosip_ida_client_secret"
       extraEnvVars.AUTHN_PROVIDER: "mosip"
@@ -440,7 +462,7 @@ apps:
       extraEnvVars.SOFTHSM_MOCK_IDENTITY_SYSTEM_SECURITY_PIN.valueFrom.secretKeyRef.name: "softhsm-mock-identity-system"
       extraEnvVars.SOFTHSM_MOCK_IDENTITY_SYSTEM_SECURITY_PIN.valueFrom.secretKeyRef.key: "security-pin"
       extraEnvVars.hsm_local_dir_name: "hsm-client"
-      extraEnvVars.MOSIP_ESIGNET_MOCK_SUPPORTED_FIELDS: 'individualId\,password'
+      extraEnvVars.MOSIP_ESIGNET_MOCK_SUPPORTED_FIELDS: 'individualId,password'
       extraEnvVars.REDIS_HOST.valueFrom.configMapKeyRef.name: "redis-config"
       extraEnvVars.REDIS_HOST.valueFrom.configMapKeyRef.key: "redis-host"
       extraEnvVars.REDIS_PORT.valueFrom.configMapKeyRef.name: "redis-config"
@@ -476,7 +498,7 @@ apps:
       extraEnvVars.GRANT_TYPE: "authorization_code"
       extraEnvVars.CLAIMS_LOCALES: "en"
       extraEnvVars.SCOPE_USER_PROFILE: "openid profile"
-      extraEnvVars.CLAIMS_USER_PROFILE.value: '\{"userinfo":\{"given_name":\{"essential":true\}\,"phone_number":\{"essential":true\}\,"email":\{"essential":true\}\,"picture":\{"essential":false\}\,"gender":\{"essential":false\}\,"birthdate":\{"essential":false\}\,"address":\{"essential":false\}\}\,"id_token":\{\}\}'
+      extraEnvVars.CLAIMS_USER_PROFILE.value: '\{"userinfo":\{"given_name":\{"essential":true\},"phone_number":\{"essential":true\},"email":\{"essential":true\},"picture":\{"essential":false\},"gender":\{"essential":false\},"birthdate":\{"essential":false\},"address":\{"essential":false\}\},"id_token":\{\}\}'
       mock_relying_party_service.host: ""
       mock_relying_party_service.mountDir: ""
       mock_relying_party_service.healthCheckUrl: null
@@ -510,7 +532,7 @@ apps:
       extraEnvVars.GRANT_TYPE: "authorization_code"
       extraEnvVars.CLAIMS_LOCALES: "en"
       extraEnvVars.SCOPE_USER_PROFILE: "openid profile"
-      extraEnvVars.CLAIMS_USER_PROFILE.value: '\{"userinfo":\{"given_name":\{"essential":true\}\,"phone_number":\{"essential":true\}\,"email":\{"essential":true\}\,"picture":\{"essential":false\}\,"gender":\{"essential":false\}\,"birthdate":\{"essential":false\}\,"address":\{"essential":false\}\}\,"id_token":\{\}\}'
+      extraEnvVars.CLAIMS_USER_PROFILE.value: '\{"userinfo":\{"given_name":\{"essential":true\},"phone_number":\{"essential":true\},"email":\{"essential":true\},"picture":\{"essential":false\},"gender":\{"essential":false\},"birthdate":\{"essential":false\},"address":\{"essential":false\}\},"id_token":\{\}\}'
       mock_relying_party_service.host: ""
       mock_relying_party_service.mountDir: ""
       mock_relying_party_service.healthCheckUrl: null
@@ -544,7 +566,7 @@ apps:
       extraEnvVars.GRANT_TYPE: "authorization_code"
       extraEnvVars.CLAIMS_LOCALES: "en"
       extraEnvVars.SCOPE_USER_PROFILE: "openid profile"
-      extraEnvVars.CLAIMS_USER_PROFILE.value: '\{"userinfo":\{"given_name":\{"essential":true\}\,"phone_number":\{"essential":true\}\,"email":\{"essential":true\}\,"picture":\{"essential":false\}\,"gender":\{"essential":false\}\,"birthdate":\{"essential":false\}\,"address":\{"essential":false\}\}\,"id_token":\{\}\}'
+      extraEnvVars.CLAIMS_USER_PROFILE.value: '\{"userinfo":\{"given_name":\{"essential":true\},"phone_number":\{"essential":true\},"email":\{"essential":true\},"picture":\{"essential":false\},"gender":\{"essential":false\},"birthdate":\{"essential":false\},"address":\{"essential":false\}\},"id_token":\{\}\}'
       mock_relying_party_service.host: ""
       mock_relying_party_service.mountDir: ""
       mock_relying_party_service.healthCheckUrl: null
