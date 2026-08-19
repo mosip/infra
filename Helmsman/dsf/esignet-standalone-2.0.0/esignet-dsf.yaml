@@ -105,6 +105,14 @@ apps:
       domainConfig.MOSIP_SMTP_HOST: "smtp.${domain_name}"
       domainConfig.installation-domain: "${domain_name}"
       domainConfig.OIDC_UI_HOSTNAME: "esignet.${domain_name}"
+      # esignet-mock has no esignet-global configmap (only the mosipid/sunbird preinstall
+      # hooks create their own per-namespace esignet-global) - override these chart-default
+      # extraEnvVars entries that otherwise reference it, or the pod fails to start with
+      # CreateContainerConfigError (configmap "esignet-global" not found).
+      extraEnvVars.MOSIP_API_INTERNAL_HOST: "https://api-internal.${domain_name}"
+      extraEnvVars.MOSIP_ESIGNET_OIDC_UI_HOSTNAME: "esignet.${domain_name}"
+      extraEnvVars.MOSIP_ESIGNET_HOST: "https://esignet.${domain_name}"
+      extraEnvVars.MOSIP_SIGNUP_HOST: "https://signup.${domain_name}"
       extraEnvVars.KEYCLOAK_EXTERNAL_URL.valueFrom.configMapKeyRef.name: "keycloak-host"
       extraEnvVars.KEYCLOAK_EXTERNAL_URL.valueFrom.configMapKeyRef.key: "keycloak-external-url"
       extraEnvVars.MOSIP_ESIGNET_CAPTCHA_SITE_KEY.valueFrom.secretKeyRef.name: "esignet-captcha"
@@ -210,6 +218,13 @@ apps:
       extraEnvVars.DB_DBUSER_PASSWORD.valueFrom.secretKeyRef.key: "db-dbuser-password"
       extraEnvVars.SOFTHSM_ESIGNET_SECURITY_PIN.valueFrom.secretKeyRef.name: "esignet-softhsm-mosipid"
       extraEnvVars.SOFTHSM_ESIGNET_SECURITY_PIN.valueFrom.secretKeyRef.key: "security-pin"
+      # Chart-default extraEnvVars.KEYMANAGER_PKCS11_PIN points at a plain "esignet-softhsm"
+      # secret that doesn't exist in this namespace (only esignet-softhsm-mosipid does) -
+      # the extraEnvVarsAdditional override below doesn't remove this broken chart-default
+      # entry, and Kubernetes fails the whole pod if any single env entry references a
+      # missing secret, even with a working duplicate elsewhere in the list.
+      extraEnvVars.KEYMANAGER_PKCS11_PIN.valueFrom.secretKeyRef.name: "esignet-softhsm-mosipid"
+      extraEnvVars.KEYMANAGER_PKCS11_PIN.valueFrom.secretKeyRef.key: "security-pin"
       extraEnvVars.MOSIP_IDA_CLIENT_SECRET.valueFrom.secretKeyRef.name: "keycloak-client-secrets-mosipid"
       extraEnvVars.MOSIP_IDA_CLIENT_SECRET.valueFrom.secretKeyRef.key: "mosip_ida_client_secret"
       extraEnvVars.AUTHN_PROVIDER: "mosip"
@@ -302,6 +317,13 @@ apps:
       extraEnvVars.DB_DBUSER_PASSWORD.valueFrom.secretKeyRef.key: "db-dbuser-password"
       extraEnvVars.SOFTHSM_ESIGNET_SECURITY_PIN.valueFrom.secretKeyRef.name: "esignet-softhsm-sunbird"
       extraEnvVars.SOFTHSM_ESIGNET_SECURITY_PIN.valueFrom.secretKeyRef.key: "security-pin"
+      # Chart-default extraEnvVars.KEYMANAGER_PKCS11_PIN points at a plain "esignet-softhsm"
+      # secret that doesn't exist in this namespace (only esignet-softhsm-sunbird does) -
+      # the extraEnvVarsAdditional override below doesn't remove this broken chart-default
+      # entry, and Kubernetes fails the whole pod if any single env entry references a
+      # missing secret, even with a working duplicate elsewhere in the list.
+      extraEnvVars.KEYMANAGER_PKCS11_PIN.valueFrom.secretKeyRef.name: "esignet-softhsm-sunbird"
+      extraEnvVars.KEYMANAGER_PKCS11_PIN.valueFrom.secretKeyRef.key: "security-pin"
       extraEnvVars.MOSIP_IDA_CLIENT_SECRET.valueFrom.secretKeyRef.name: "keycloak-client-secrets"
       extraEnvVars.MOSIP_IDA_CLIENT_SECRET.valueFrom.secretKeyRef.key: "mosip_ida_client_secret"
       extraEnvVars.AUTHN_PROVIDER: "mosip"
