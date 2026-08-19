@@ -158,6 +158,7 @@ apps:
       extraEnvVarsAdditional.KEYMANAGER_KEYSTORE_TYPE: "PKCS12"
       extraEnvVarsAdditional.KEYMANAGER_PKCS12_FILE_PATH: "/home/mosip/config/esignet.pfx"
       extraEnvVarsAdditional.KEYMANAGER_PKCS12_PASSWORD: "localtest"
+      extraEnvVarsAdditional.KEYMANAGER_PKCS12_ALLOW_INSECURE_SOFTWARE_KEYSTORE: "true"
     timeout: 600
     priority: -14
     hooks:
