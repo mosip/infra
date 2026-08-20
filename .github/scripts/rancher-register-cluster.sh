@@ -121,10 +121,13 @@ apply_import_on_host() {
       -o ConnectTimeout=15 \
       "${SSH_USER}@${SSH_HOST}" "$@"
   }
+  remote_shell() {
+    local cmd="$1"
+    [[ -n "$KUBECONFIG_REMOTE" ]] && cmd="KUBECONFIG=$KUBECONFIG_REMOTE $cmd"
+    ssh_cmd "bash -lc $(printf '%q' "$cmd")"
+  }
   remote_kubectl() {
-    remote_cmd="kubectl $*"
-    [[ -n "$KUBECONFIG_REMOTE" ]] && remote_cmd="KUBECONFIG=$KUBECONFIG_REMOTE $remote_cmd"
-    ssh_cmd "bash -lc $(printf '%q' "$remote_cmd")"
+    remote_shell "kubectl $*"
   }
   cattle_agent_phase() {
     local out
@@ -175,7 +178,7 @@ apply_import_on_host() {
     fi
   fi
 
-  if ! ssh_cmd "bash -lc $(printf '%q' "$import_cmd")"; then
+  if ! remote_shell "$import_cmd"; then
     err "Failed to apply Rancher import manifest on ${SSH_HOST}"
     return 1
   fi
