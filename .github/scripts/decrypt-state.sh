@@ -154,9 +154,43 @@ for encrypted_file in "${ALL_ENCRYPTED_FILES[@]}"; do
     fi
 done
 
+resolve_primary_state_path() {
+    if [ -f "backend.tf" ]; then
+        grep -A 5 'backend "local"' backend.tf | grep 'path' | sed 's/.*path = "\([^"]*\)".*/\1/' | head -1
+        return
+    fi
+    echo "terraform.tfstate"
+}
+
+promote_backup_to_primary_if_needed() {
+    local primary="$1"
+    local backup="${primary}.backup"
+
+    [ -n "$primary" ] || return 0
+    [ -f "$primary" ] && return 0
+    [ -f "$backup" ] || return 0
+    [ -s "$backup" ] || return 0
+
+    echo "Primary state file missing; promoting backup to primary:"
+    echo "   $backup -> $primary"
+    cp "$backup" "$primary"
+    echo "   Primary state restored from backup (Terraform reads path in backend.tf, not .backup)"
+}
+
+PRIMARY_STATE_PATH="$(resolve_primary_state_path)"
+
 if [ $DECRYPTED_COUNT -eq 0 ]; then
     echo "No encrypted state files found - this may be the first run"
     echo "No decryption needed"
 else
     echo "[$SCRIPT_NAME] Successfully decrypted $DECRYPTED_COUNT state file(s)"
+    promote_backup_to_primary_if_needed "$PRIMARY_STATE_PATH"
+fi
+
+if [ "$OPERATION" = "destroy" ]; then
+    if [ ! -f "$PRIMARY_STATE_PATH" ] || [ ! -s "$PRIMARY_STATE_PATH" ]; then
+        echo "ERROR: No primary Terraform state available for destroy (expected: $PRIMARY_STATE_PATH)"
+        echo "Restore ...terraform.tfstate.gpg on this branch, or ensure ...terraform.tfstate.backup.gpg decrypts and promotes."
+        exit 1
+    fi
 fi
