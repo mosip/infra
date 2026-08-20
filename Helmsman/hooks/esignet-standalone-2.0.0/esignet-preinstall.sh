@@ -41,7 +41,7 @@ $COPY_UTIL configmap postgres-config "$POSTGRES_NS" "$ESIGNET_NS"
 
 # Override postgres-config with 2.0.0-specific DB values (isolated database)
 kubectl -n "$ESIGNET_NS" patch configmap postgres-config --type merge \
-  -p '{"data":{"database-name":"mosip_esignet","database-username":"esignetuser"}}'
+  -p '{"data":{"database-name":"mosip_esignet_go","database-username":"esignetuser_go"}}'
 
 echo "Copying redis-config configmap from $REDIS_NS"
 $COPY_UTIL configmap redis-config "$REDIS_NS" "$ESIGNET_NS"
