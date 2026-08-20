@@ -149,8 +149,6 @@ apps:
       extraEnvVars.DEFAULT_THEME_ID: "decl-theme-1"
       extraEnvVars.DEFAULT_LAYOUT_ID: "decl-layout-1"
       extraEnvVars.DEFAULT_AUTH_FLOW_ID: "decl-mosip-otp-flow-1"
-      extraEnvVarsAdditional.MOSIP_ESIGNET_CAPTCHA_SITE_KEY.valueFrom.secretKeyRef.name: "esignet-captcha"
-      extraEnvVarsAdditional.MOSIP_ESIGNET_CAPTCHA_SITE_KEY.valueFrom.secretKeyRef.key: "esignet-captcha-site-key"
       extraEnvVarsAdditional.MOSIP_ESIGNET_CAPTCHA_REQUIRED: ""
       # Overridden directly under extraEnvVars (not extraEnvVarsAdditional) so the
       # chart's own PKCS11 defaults for these same keys don't also render into the
@@ -166,7 +164,6 @@ apps:
       extraEnvVars.KEYMANAGER_PKCS11_TOKEN_LABEL: ""
       extraEnvVars.KEYMANAGER_PKCS11_SLOT_ID: ""
       extraEnvVars.KEYMANAGER_PKCS11_PIN: ""
-      extraEnvVarsAdditional.KEYMANAGER_PKCS12_ALLOW_INSECURE_SOFTWARE_KEYSTORE: "true"
     timeout: 600
     priority: -14
     hooks:
