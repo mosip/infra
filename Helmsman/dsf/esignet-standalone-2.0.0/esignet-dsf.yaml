@@ -201,13 +201,21 @@ apps:
       domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_IDA_DOMAINURI: "https://esignet-mosipid.${domain_name}"
       domainConfig.MOSIP_ESIGNET_DOMAIN_URL: "https://esignet-mosipid.${domain_name}"
       domainConfig.OIDC_UI_HOSTNAME: "esignet-mosipid.${domain_name}"
-      # Moved from domainConfig to extraEnvVars (same key names as the chart's own
-      # extraEnvVars defaults) to avoid two same-named entries in the rendered env: list,
-      # which breaks Kubernetes' strategic-merge-patch $setElementOrder computation on
-      # upgrade. Values unchanged.
-      extraEnvVars.MOSIP_ESIGNET_HOST: "https://esignet-mosipid.${domain_name}"
-      extraEnvVars.MOSIP_SIGNUP_HOST: "https://signup-mosipid.${domain_name}"
-      extraEnvVars.MOSIP_API_INTERNAL_HOST: "https://api-internal.${mosipid_domain_name}"
+      domainConfig.MOSIP_ESIGNET_HOST: "https://esignet-mosipid.${domain_name}"
+      domainConfig.MOSIP_SIGNUP_HOST: "https://signup-mosipid.${domain_name}"
+      domainConfig.MOSIP_API_INTERNAL_HOST: "https://api-internal.${mosipid_domain_name}"
+      # Chart-default extraEnvVars.MOSIP_ESIGNET_HOST/MOSIP_SIGNUP_HOST/MOSIP_API_INTERNAL_HOST
+      # are tables (valueFrom.configMapKeyRef against esignet-global). A plain string override
+      # at the same key produces a "cannot overwrite table with non table" coalesce warning
+      # (harmless on its own, but noisy) and still leaves domainConfig's own same-named entry
+      # as a genuinely separate list item - so null the chart-default keys out entirely
+      # instead, letting domainConfig (above) be the sole source, matching the pattern used
+      # for KEYMANAGER_PKCS11_* elsewhere in this file. "null" (quoted) is required: Helmsman's
+      # YAML parsing turns a bare `null` into an empty string, not the literal text Helm needs
+      # to delete a key.
+      extraEnvVars.MOSIP_ESIGNET_HOST: "null"
+      extraEnvVars.MOSIP_SIGNUP_HOST: "null"
+      extraEnvVars.MOSIP_API_INTERNAL_HOST: "null"
       extraEnvVars.KEYCLOAK_EXTERNAL_URL.valueFrom.configMapKeyRef.name: "keycloak-host"
       extraEnvVars.KEYCLOAK_EXTERNAL_URL.valueFrom.configMapKeyRef.key: "keycloak-external-url"
       extraEnvVars.REDIS_HOST.valueFrom.configMapKeyRef.name: "redis-config"
@@ -301,13 +309,21 @@ apps:
       domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_SUNBIRD_RC_AUTH_FACTOR_KBI_REGISTRY_SEARCH_URL: "https://registry.${mosipid_domain_name}/api/v1/Insurance/search"
       domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_SUNBIRD_RC_REGISTRY_GET_URL: "https://registry.${mosipid_domain_name}/api/v1/Insurance/"
       domainConfig.OIDC_UI_HOSTNAME: "esignet-sunbird.${domain_name}"
-      # Moved from domainConfig to extraEnvVars (same key names as the chart's own
-      # extraEnvVars defaults) to avoid two same-named entries in the rendered env: list,
-      # which breaks Kubernetes' strategic-merge-patch $setElementOrder computation on
-      # upgrade. Values unchanged.
-      extraEnvVars.MOSIP_ESIGNET_HOST: "https://esignet-sunbird.${domain_name}"
-      extraEnvVars.MOSIP_SIGNUP_HOST: "https://signup-sunbird.${domain_name}"
-      extraEnvVars.MOSIP_API_INTERNAL_HOST: "https://api-internal.${domain_name}"
+      domainConfig.MOSIP_ESIGNET_HOST: "https://esignet-sunbird.${domain_name}"
+      domainConfig.MOSIP_SIGNUP_HOST: "https://signup-sunbird.${domain_name}"
+      domainConfig.MOSIP_API_INTERNAL_HOST: "https://api-internal.${domain_name}"
+      # Chart-default extraEnvVars.MOSIP_ESIGNET_HOST/MOSIP_SIGNUP_HOST/MOSIP_API_INTERNAL_HOST
+      # are tables (valueFrom.configMapKeyRef against esignet-global). A plain string override
+      # at the same key produces a "cannot overwrite table with non table" coalesce warning
+      # (harmless on its own, but noisy) and still leaves domainConfig's own same-named entry
+      # as a genuinely separate list item - so null the chart-default keys out entirely
+      # instead, letting domainConfig (above) be the sole source, matching the pattern used
+      # for KEYMANAGER_PKCS11_* elsewhere in this file. "null" (quoted) is required: Helmsman's
+      # YAML parsing turns a bare `null` into an empty string, not the literal text Helm needs
+      # to delete a key.
+      extraEnvVars.MOSIP_ESIGNET_HOST: "null"
+      extraEnvVars.MOSIP_SIGNUP_HOST: "null"
+      extraEnvVars.MOSIP_API_INTERNAL_HOST: "null"
       extraEnvVars.KEYCLOAK_EXTERNAL_URL.valueFrom.configMapKeyRef.name: "keycloak-host"
       extraEnvVars.KEYCLOAK_EXTERNAL_URL.valueFrom.configMapKeyRef.key: "keycloak-external-url"
       extraEnvVars.MOSIP_ESIGNET_CAPTCHA_MODULE_NAME: "esignetsunbird"
