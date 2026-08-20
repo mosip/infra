@@ -95,11 +95,8 @@ apps:
       extraEnvVarsCM[0]: "esignet-softhsm-share"
       #extraEnvVarsCM[1]: "kafka-config"
       metrics.serviceMonitor.enabled: "false"
-      domainConfig.MOSIP_ESIGNET_HOST: "https://esignet.${domain_name}"
-      domainConfig.MOSIP_SIGNUP_HOST: "https://signup.${domain_name}"
       domainConfig.MOSIP_API_HOST: "https://api.${domain_name}"
       domainConfig.MOSIP_IAM_EXTERNAL_HOST: "https://iam.${domain_name}"
-      domainConfig.MOSIP_API_INTERNAL_HOST: "https://api-internal.${domain_name}"
       domainConfig.MOSIP_KAFKA_HOST: "kafka.${domain_name}"
       domainConfig.MOSIP_POSTGRES_HOST: "postgres.${domain_name}"
       domainConfig.MOSIP_SMTP_HOST: "smtp.${domain_name}"
@@ -191,11 +188,8 @@ apps:
       pluginUrlEnv: ""
       extraEnvVarsCM[0]: "esignet-softhsm-mosipid-share"
       metrics.serviceMonitor.enabled: "false"
-      domainConfig.MOSIP_ESIGNET_HOST: "https://esignet-mosipid.${domain_name}"
-      domainConfig.MOSIP_SIGNUP_HOST: "https://signup-mosipid.${domain_name}"
       domainConfig.MOSIP_API_HOST: "https://api.${domain_name}"
       domainConfig.MOSIP_IAM_EXTERNAL_HOST: "https://iam.${domain_name}"
-      domainConfig.MOSIP_API_INTERNAL_HOST: "https://api-internal.${mosipid_domain_name}"
       domainConfig.MOSIP_KAFKA_HOST: "kafka.${domain_name}"
       domainConfig.MOSIP_POSTGRES_HOST: "postgres.${domain_name}"
       domainConfig.MOSIP_SMTP_HOST: "smtp.${domain_name}"
@@ -210,6 +204,13 @@ apps:
       domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_IDA_DOMAINURI: "https://esignet-mosipid.${domain_name}"
       domainConfig.MOSIP_ESIGNET_DOMAIN_URL: "https://esignet-mosipid.${domain_name}"
       domainConfig.OIDC_UI_HOSTNAME: "esignet-mosipid.${domain_name}"
+      # Moved from domainConfig to extraEnvVars (same key names as the chart's own
+      # extraEnvVars defaults) to avoid two same-named entries in the rendered env: list,
+      # which breaks Kubernetes' strategic-merge-patch $setElementOrder computation on
+      # upgrade. Values unchanged.
+      extraEnvVars.MOSIP_ESIGNET_HOST: "https://esignet-mosipid.${domain_name}"
+      extraEnvVars.MOSIP_SIGNUP_HOST: "https://signup-mosipid.${domain_name}"
+      extraEnvVars.MOSIP_API_INTERNAL_HOST: "https://api-internal.${mosipid_domain_name}"
       extraEnvVars.KEYCLOAK_EXTERNAL_URL.valueFrom.configMapKeyRef.name: "keycloak-host"
       extraEnvVars.KEYCLOAK_EXTERNAL_URL.valueFrom.configMapKeyRef.key: "keycloak-external-url"
       extraEnvVars.REDIS_HOST.valueFrom.configMapKeyRef.name: "redis-config"
@@ -293,11 +294,8 @@ apps:
       extraEnvVarsCM[0]: "esignet-softhsm-sunbird-share"
       #extraEnvVarsCM[1]: "kafka-config"
       metrics.serviceMonitor.enabled: "false"
-      domainConfig.MOSIP_ESIGNET_HOST: "https://esignet-sunbird.${domain_name}"
-      domainConfig.MOSIP_SIGNUP_HOST: "https://signup-sunbird.${domain_name}"
       domainConfig.MOSIP_API_HOST: "https://api.${domain_name}"
       domainConfig.MOSIP_IAM_EXTERNAL_HOST: "https://iam.${domain_name}"
-      domainConfig.MOSIP_API_INTERNAL_HOST: "https://api-internal.${domain_name}"
       domainConfig.MOSIP_KAFKA_HOST: "kafka.${domain_name}"
       domainConfig.MOSIP_POSTGRES_HOST: "postgres.${domain_name}"
       domainConfig.MOSIP_SMTP_HOST: "smtp.${domain_name}"
@@ -306,6 +304,13 @@ apps:
       domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_SUNBIRD_RC_AUTH_FACTOR_KBI_REGISTRY_SEARCH_URL: "https://registry.${mosipid_domain_name}/api/v1/Insurance/search"
       domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_SUNBIRD_RC_REGISTRY_GET_URL: "https://registry.${mosipid_domain_name}/api/v1/Insurance/"
       domainConfig.OIDC_UI_HOSTNAME: "esignet-sunbird.${domain_name}"
+      # Moved from domainConfig to extraEnvVars (same key names as the chart's own
+      # extraEnvVars defaults) to avoid two same-named entries in the rendered env: list,
+      # which breaks Kubernetes' strategic-merge-patch $setElementOrder computation on
+      # upgrade. Values unchanged.
+      extraEnvVars.MOSIP_ESIGNET_HOST: "https://esignet-sunbird.${domain_name}"
+      extraEnvVars.MOSIP_SIGNUP_HOST: "https://signup-sunbird.${domain_name}"
+      extraEnvVars.MOSIP_API_INTERNAL_HOST: "https://api-internal.${domain_name}"
       extraEnvVars.KEYCLOAK_EXTERNAL_URL.valueFrom.configMapKeyRef.name: "keycloak-host"
       extraEnvVars.KEYCLOAK_EXTERNAL_URL.valueFrom.configMapKeyRef.key: "keycloak-external-url"
       extraEnvVars.MOSIP_ESIGNET_CAPTCHA_MODULE_NAME: "esignetsunbird"
