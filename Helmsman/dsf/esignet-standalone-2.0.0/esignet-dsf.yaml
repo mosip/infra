@@ -102,14 +102,26 @@ apps:
       domainConfig.MOSIP_SMTP_HOST: "smtp.${domain_name}"
       domainConfig.installation-domain: "${domain_name}"
       domainConfig.OIDC_UI_HOSTNAME: "esignet.${domain_name}"
+      domainConfig.MOSIP_API_INTERNAL_HOST: "https://api-internal.${domain_name}"
+      domainConfig.MOSIP_ESIGNET_HOST: "https://esignet.${domain_name}"
+      domainConfig.MOSIP_SIGNUP_HOST: "https://signup.${domain_name}"
       # esignet-mock has no esignet-global configmap (only the mosipid/sunbird preinstall
-      # hooks create their own per-namespace esignet-global) - override these chart-default
-      # extraEnvVars entries that otherwise reference it, or the pod fails to start with
-      # CreateContainerConfigError (configmap "esignet-global" not found).
-      extraEnvVars.MOSIP_API_INTERNAL_HOST: "https://api-internal.${domain_name}"
-      extraEnvVars.MOSIP_ESIGNET_OIDC_UI_HOSTNAME: "esignet.${domain_name}"
-      extraEnvVars.MOSIP_ESIGNET_HOST: "https://esignet.${domain_name}"
-      extraEnvVars.MOSIP_SIGNUP_HOST: "https://signup.${domain_name}"
+      # hooks create their own per-namespace esignet-global) - these chart-default extraEnvVars
+      # entries are tables (valueFrom.configMapKeyRef against esignet-global), so a plain
+      # string override at the same key produces a "cannot overwrite table with non table"
+      # coalesce warning (harmless on its own, but risks masking real errors in Helmsman's
+      # truncated output) and would still fail with CreateContainerConfigError if left as the
+      # chart default. Null them out entirely instead - MOSIP_API_INTERNAL_HOST/MOSIP_ESIGNET_HOST/
+      # MOSIP_SIGNUP_HOST now come from domainConfig (above); MOSIP_ESIGNET_OIDC_UI_HOSTNAME has
+      # no domainConfig equivalent key so it's set via extraEnvVarsAdditional instead (renders
+      # after extraEnvVars, no chart-default table to conflict with). "null" (quoted) is
+      # required: Helmsman's YAML parsing turns a bare `null` into an empty string, not the
+      # literal text Helm needs to delete a key.
+      extraEnvVars.MOSIP_API_INTERNAL_HOST: "null"
+      extraEnvVars.MOSIP_ESIGNET_OIDC_UI_HOSTNAME: "null"
+      extraEnvVars.MOSIP_ESIGNET_HOST: "null"
+      extraEnvVars.MOSIP_SIGNUP_HOST: "null"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_OIDC_UI_HOSTNAME: "esignet.${domain_name}"
       extraEnvVars.KEYCLOAK_EXTERNAL_URL.valueFrom.configMapKeyRef.name: "keycloak-host"
       extraEnvVars.KEYCLOAK_EXTERNAL_URL.valueFrom.configMapKeyRef.key: "keycloak-external-url"
       extraEnvVars.MOSIP_ESIGNET_CAPTCHA_SITE_KEY.valueFrom.secretKeyRef.name: "esignet-captcha"
@@ -163,7 +175,10 @@ apps:
       extraEnvVars.KEYMANAGER_PKCS11_MODULE_PATH: ""
       extraEnvVars.KEYMANAGER_PKCS11_TOKEN_LABEL: ""
       extraEnvVars.KEYMANAGER_PKCS11_SLOT_ID: ""
-      extraEnvVars.KEYMANAGER_PKCS11_PIN: ""
+      # KEYMANAGER_PKCS11_PIN's chart default is a table (valueFrom.secretKeyRef), unlike the
+      # three plain-string defaults above - an empty-string override here still triggers the
+      # coalesce "cannot overwrite table with non table" warning, so null it out instead.
+      extraEnvVars.KEYMANAGER_PKCS11_PIN: "null"
     timeout: 600
     priority: -14
     hooks:
