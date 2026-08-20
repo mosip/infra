@@ -292,8 +292,12 @@ apps:
       extraEnvVarsAdditional.LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB_CLIENT: "INFO"
       extraEnvVarsAdditional.MOSIP_ESIGNET_CAPTCHA_REQUIRED: ""
       extraEnvVarsAdditional.MOSIP_ESIGNET_CAPTCHA_URL: "http://captcha.captcha"
-      extraEnvVarsAdditional.MOSIP_ESIGNET_MISP_KEY.valueFrom.secretKeyRef.name: "esignet-misp-onboarder-key"
-      extraEnvVarsAdditional.MOSIP_ESIGNET_MISP_KEY.valueFrom.secretKeyRef.key: "mosip-esignet-misp-key"
+      # Placeholder - esignet-misp-onboarder-key only ever holds an empty value (the
+      # onboarder app that would populate it with a real MISP license key is disabled),
+      # and an empty MISP key makes the Go esignet service Fatal on startup during plugin
+      # provider init. Direct value until a real MISP license key is available; replace
+      # with the actual key.
+      extraEnvVarsAdditional.MOSIP_ESIGNET_MISP_KEY: "placeholder-misp-key"
     timeout: 600
     priority: -14
     hooks:
