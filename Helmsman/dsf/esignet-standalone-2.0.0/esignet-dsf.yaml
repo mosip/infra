@@ -85,7 +85,7 @@ apps:
     version: 2.0.0-develop
     chart: mosip/esignet
     set:
-      image.repository: "mosipqa/esignet"
+      image.repository: "mosipdev/esignet"
       image.tag: "develop-go"
       enable_insecure: "false"
       springConfigNameEnv: ""
@@ -179,7 +179,7 @@ apps:
     version: 2.0.0-develop
     chart: mosip/esignet
     set:
-      image.repository: "mosipqa/esignet"
+      image.repository: "mosipdev/esignet"
       image.tag: "develop-go"
       enable_insecure: "false"
       springConfigNameEnv: ""
@@ -235,7 +235,6 @@ apps:
       extraEnvVars.KEYMANAGER_KEYSTORE_TYPE: "PKCS11"
       extraEnvVars.KEYMANAGER_PKCS11_MODULE_PATH: "/usr/local/lib/softhsm/libpkcs11-proxy.so"
       extraEnvVars.KEYMANAGER_PKCS11_TOKEN_LABEL: "mosip-token"
-      extraEnvVars.KEYMANAGER_PKCS11_SLOT_ID: "0"
       extraEnvVars.KEYMANAGER_PKCS11_PIN.valueFrom.secretKeyRef.name: "esignet-softhsm-mosipid"
       extraEnvVars.KEYMANAGER_PKCS11_PIN.valueFrom.secretKeyRef.key: "security-pin"
       extraEnvVars.MOSIP_IDA_CLIENT_SECRET.valueFrom.secretKeyRef.name: "keycloak-client-secrets-mosipid"
@@ -279,7 +278,7 @@ apps:
     version: 2.0.0-develop
     chart: mosip/esignet
     set:
-      image.repository: "mosipqa/esignet"
+      image.repository: "mosipdev/esignet"
       image.tag: "develop-go"
       enable_insecure: "false"
       springConfigNameEnv: ""
@@ -331,7 +330,6 @@ apps:
       extraEnvVars.KEYMANAGER_KEYSTORE_TYPE: "PKCS11"
       extraEnvVars.KEYMANAGER_PKCS11_MODULE_PATH: "/usr/local/lib/softhsm/libpkcs11-proxy.so"
       extraEnvVars.KEYMANAGER_PKCS11_TOKEN_LABEL: "mosip-token"
-      extraEnvVars.KEYMANAGER_PKCS11_SLOT_ID: "0"
       extraEnvVars.KEYMANAGER_PKCS11_PIN.valueFrom.secretKeyRef.name: "esignet-softhsm-sunbird"
       extraEnvVars.KEYMANAGER_PKCS11_PIN.valueFrom.secretKeyRef.key: "security-pin"
       extraEnvVars.MOSIP_IDA_CLIENT_SECRET.valueFrom.secretKeyRef.name: "keycloak-client-secrets"
