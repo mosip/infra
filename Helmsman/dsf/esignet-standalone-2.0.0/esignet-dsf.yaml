@@ -152,12 +152,20 @@ apps:
       extraEnvVarsAdditional.MOSIP_ESIGNET_CAPTCHA_SITE_KEY.valueFrom.secretKeyRef.name: "esignet-captcha"
       extraEnvVarsAdditional.MOSIP_ESIGNET_CAPTCHA_SITE_KEY.valueFrom.secretKeyRef.key: "esignet-captcha-site-key"
       extraEnvVarsAdditional.MOSIP_ESIGNET_CAPTCHA_REQUIRED: ""
-      # Overrides via extraEnvVarsAdditional (rendered after extraEnvVars in the
-      # container's env: list, so last-wins semantics correctly override the
-      # chart's own PKCS11 extraEnvVars defaults for this same instance).
-      extraEnvVarsAdditional.KEYMANAGER_KEYSTORE_TYPE: "PKCS12"
-      extraEnvVarsAdditional.KEYMANAGER_PKCS12_FILE_PATH: "/home/mosip/config/keystore.p12"
-      extraEnvVarsAdditional.KEYMANAGER_PKCS12_PASSWORD: "localtest"
+      # Overridden directly under extraEnvVars (not extraEnvVarsAdditional) so the
+      # chart's own PKCS11 defaults for these same keys don't also render into the
+      # env: list - relying on extraEnvVarsAdditional's last-wins ordering left the
+      # redundant PKCS11 entries (module path, token label, slot id, PIN secretKeyRef)
+      # coexisting alongside these, which happened to still work here (esignet-softhsm
+      # secret exists in this namespace) but is fragile and confusing.
+      extraEnvVars.KEYMANAGER_KEYSTORE_TYPE: "PKCS12"
+      extraEnvVars.KEYMANAGER_PKCS12_FILE_PATH: "/home/mosip/config/keystore.p12"
+      extraEnvVars.KEYMANAGER_PKCS12_PASSWORD: "localtest"
+      extraEnvVars.KEYMANAGER_PKCS12_ALLOW_INSECURE_SOFTWARE_KEYSTORE: "true"
+      extraEnvVars.KEYMANAGER_PKCS11_MODULE_PATH: ""
+      extraEnvVars.KEYMANAGER_PKCS11_TOKEN_LABEL: ""
+      extraEnvVars.KEYMANAGER_PKCS11_SLOT_ID: ""
+      extraEnvVars.KEYMANAGER_PKCS11_PIN: ""
       extraEnvVarsAdditional.KEYMANAGER_PKCS12_ALLOW_INSECURE_SOFTWARE_KEYSTORE: "true"
     timeout: 600
     priority: -14
@@ -221,21 +229,18 @@ apps:
       extraEnvVars.SOFTHSM_ESIGNET_SECURITY_PIN.valueFrom.secretKeyRef.key: "security-pin"
       # Chart-default extraEnvVars.KEYMANAGER_PKCS11_PIN points at a plain "esignet-softhsm"
       # secret that doesn't exist in this namespace (only esignet-softhsm-mosipid does) -
-      # the extraEnvVarsAdditional override below doesn't remove this broken chart-default
-      # entry, and Kubernetes fails the whole pod if any single env entry references a
-      # missing secret, even with a working duplicate elsewhere in the list.
+      # override directly under extraEnvVars (not extraEnvVarsAdditional) so the chart's
+      # own defaults for these same keys don't also coexist redundantly in the rendered env.
+      extraEnvVars.KEYMANAGER_DB_SCHEMA: "esignet"
+      extraEnvVars.KEYMANAGER_KEYSTORE_TYPE: "PKCS11"
+      extraEnvVars.KEYMANAGER_PKCS11_MODULE_PATH: "/usr/local/lib/softhsm/libpkcs11-proxy.so"
+      extraEnvVars.KEYMANAGER_PKCS11_TOKEN_LABEL: "mosip-token"
+      extraEnvVars.KEYMANAGER_PKCS11_SLOT_ID: "0"
       extraEnvVars.KEYMANAGER_PKCS11_PIN.valueFrom.secretKeyRef.name: "esignet-softhsm-mosipid"
       extraEnvVars.KEYMANAGER_PKCS11_PIN.valueFrom.secretKeyRef.key: "security-pin"
       extraEnvVars.MOSIP_IDA_CLIENT_SECRET.valueFrom.secretKeyRef.name: "keycloak-client-secrets-mosipid"
       extraEnvVars.MOSIP_IDA_CLIENT_SECRET.valueFrom.secretKeyRef.key: "mosip_ida_client_secret"
       extraEnvVars.AUTHN_PROVIDER: "mosip"
-      extraEnvVarsAdditional.KEYMANAGER_DB_SCHEMA: "esignet"
-      extraEnvVarsAdditional.KEYMANAGER_KEYSTORE_TYPE: "PKCS11"
-      extraEnvVarsAdditional.KEYMANAGER_PKCS11_MODULE_PATH: "/usr/local/lib/softhsm/libpkcs11-proxy.so"
-      extraEnvVarsAdditional.KEYMANAGER_PKCS11_TOKEN_LABEL: "mosip-token"
-      extraEnvVarsAdditional.KEYMANAGER_PKCS11_SLOT_ID: "0"
-      extraEnvVarsAdditional.KEYMANAGER_PKCS11_PIN.valueFrom.secretKeyRef.name: "esignet-softhsm-mosipid"
-      extraEnvVarsAdditional.KEYMANAGER_PKCS11_PIN.valueFrom.secretKeyRef.key: "security-pin"
       extraEnvVarsAdditional.hsm_client_zip_url_env: "https://raw.githubusercontent.com/mosip/artifactory-ref-impl/master/artifacts/src/hsm/client.zip"
       extraEnvVars.OIDC_UI_SCHEME: "https"
       extraEnvVars.OIDC_UI_PORT: "443"
@@ -245,8 +250,8 @@ apps:
       extraEnvVars.DEFAULT_LAYOUT_ID: "decl-layout-1"
       extraEnvVars.DEFAULT_AUTH_FLOW_ID: "decl-mosip-otp-flow-1"
       extraEnvVarsAdditional.MOSIP_ESIGNET_CAPTCHA_MODULE_NAME: "esignetmosipid"
-      extraEnvVarsAdditional.MOSIP_ESIGNET_CAPTCHA_SITE-KEY.valueFrom.secretKeyRef.name: "esignet-captcha-mosipid"
-      extraEnvVarsAdditional.MOSIP_ESIGNET_CAPTCHA_SITE-KEY.valueFrom.secretKeyRef.key: "esignet-captcha-site-key"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_CAPTCHA_SITE_KEY.valueFrom.secretKeyRef.name: "esignet-captcha-mosipid"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_CAPTCHA_SITE_KEY.valueFrom.secretKeyRef.key: "esignet-captcha-site-key"
       extraEnvVarsAdditional.NAMESPACE: "mosipid"
       extraEnvVarsAdditional.plugin_name_env: "mosip-identity-plugin.jar"
       extraEnvVarsAdditional.SPRING_KAFKA_CONSUMER_GROUP_ID: "esignet-consumer-esignet-mosipid"
@@ -320,21 +325,18 @@ apps:
       extraEnvVars.SOFTHSM_ESIGNET_SECURITY_PIN.valueFrom.secretKeyRef.key: "security-pin"
       # Chart-default extraEnvVars.KEYMANAGER_PKCS11_PIN points at a plain "esignet-softhsm"
       # secret that doesn't exist in this namespace (only esignet-softhsm-sunbird does) -
-      # the extraEnvVarsAdditional override below doesn't remove this broken chart-default
-      # entry, and Kubernetes fails the whole pod if any single env entry references a
-      # missing secret, even with a working duplicate elsewhere in the list.
+      # override directly under extraEnvVars (not extraEnvVarsAdditional) so the chart's
+      # own defaults for these same keys don't also coexist redundantly in the rendered env.
+      extraEnvVars.KEYMANAGER_DB_SCHEMA: "esignet"
+      extraEnvVars.KEYMANAGER_KEYSTORE_TYPE: "PKCS11"
+      extraEnvVars.KEYMANAGER_PKCS11_MODULE_PATH: "/usr/local/lib/softhsm/libpkcs11-proxy.so"
+      extraEnvVars.KEYMANAGER_PKCS11_TOKEN_LABEL: "mosip-token"
+      extraEnvVars.KEYMANAGER_PKCS11_SLOT_ID: "0"
       extraEnvVars.KEYMANAGER_PKCS11_PIN.valueFrom.secretKeyRef.name: "esignet-softhsm-sunbird"
       extraEnvVars.KEYMANAGER_PKCS11_PIN.valueFrom.secretKeyRef.key: "security-pin"
       extraEnvVars.MOSIP_IDA_CLIENT_SECRET.valueFrom.secretKeyRef.name: "keycloak-client-secrets"
       extraEnvVars.MOSIP_IDA_CLIENT_SECRET.valueFrom.secretKeyRef.key: "mosip_ida_client_secret"
       extraEnvVars.AUTHN_PROVIDER: "mosip"
-      extraEnvVarsAdditional.KEYMANAGER_DB_SCHEMA: "esignet"
-      extraEnvVarsAdditional.KEYMANAGER_KEYSTORE_TYPE: "PKCS11"
-      extraEnvVarsAdditional.KEYMANAGER_PKCS11_MODULE_PATH: "/usr/local/lib/softhsm/libpkcs11-proxy.so"
-      extraEnvVarsAdditional.KEYMANAGER_PKCS11_TOKEN_LABEL: "mosip-token"
-      extraEnvVarsAdditional.KEYMANAGER_PKCS11_SLOT_ID: "0"
-      extraEnvVarsAdditional.KEYMANAGER_PKCS11_PIN.valueFrom.secretKeyRef.name: "esignet-softhsm-sunbird"
-      extraEnvVarsAdditional.KEYMANAGER_PKCS11_PIN.valueFrom.secretKeyRef.key: "security-pin"
       extraEnvVarsAdditional.hsm_client_zip_url_env: "https://raw.githubusercontent.com/mosip/artifactory-ref-impl/master/artifacts/src/hsm/client.zip"
       extraEnvVars.OIDC_UI_SCHEME: "https"
       extraEnvVars.OIDC_UI_PORT: "443"
