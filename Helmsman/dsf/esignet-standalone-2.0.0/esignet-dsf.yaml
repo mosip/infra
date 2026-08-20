@@ -164,7 +164,6 @@ apps:
       extraEnvVars.KEYMANAGER_PKCS11_TOKEN_LABEL: ""
       extraEnvVars.KEYMANAGER_PKCS11_SLOT_ID: ""
       extraEnvVars.KEYMANAGER_PKCS11_PIN: ""
-      extraEnvVarsAdditional.KEYMANAGER_PKCS12_ALLOW_INSECURE_SOFTWARE_KEYSTORE: "true"
     timeout: 600
     priority: -14
     hooks:
