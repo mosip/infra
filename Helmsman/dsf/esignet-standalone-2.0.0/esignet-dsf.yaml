@@ -491,6 +491,12 @@ apps:
       domainConfig.installation-domain: "${domain_name}"
       domainConfig.MOSIP_MOCK_IDA_IDENTITY_SCHEMA_URL: "https://raw.githubusercontent.com/prathmeshj12/addidentityschema_testing/refs/heads/main/email-signup-schema-testing.json"
       domainConfig.MOSIP_MOCK_UI_SPEC_SCHEMA_URL: "https://raw.githubusercontent.com/prathmeshj12/addidentityschema_testing/refs/heads/main/ui_spec_reset_password_phone.json"
+      # Chart-default extraEnvVars.MOSIP_ESIGNET_HOST is a table (valueFrom.configMapKeyRef
+      # against esignet-global), which doesn't exist in the esignet-mock namespace - left
+      # unset it would both crash with CreateContainerConfigError and duplicate the
+      # domainConfig.MOSIP_ESIGNET_HOST entry above in the rendered env: list. Null it out
+      # so domainConfig is the sole source, same pattern as the esignet chart apps.
+      extraEnvVars.MOSIP_ESIGNET_HOST: "null"
       extraEnvVars.DATABASE_HOST.valueFrom.configMapKeyRef.name: "mockid-postgres-config"
       extraEnvVars.DATABASE_HOST.valueFrom.configMapKeyRef.key: "database-host"
       extraEnvVars.DATABASE_PORT.valueFrom.configMapKeyRef.name: "mockid-postgres-config"
