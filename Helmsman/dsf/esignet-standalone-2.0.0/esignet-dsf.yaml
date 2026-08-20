@@ -102,14 +102,26 @@ apps:
       domainConfig.MOSIP_SMTP_HOST: "smtp.${domain_name}"
       domainConfig.installation-domain: "${domain_name}"
       domainConfig.OIDC_UI_HOSTNAME: "esignet.${domain_name}"
+      domainConfig.MOSIP_API_INTERNAL_HOST: "https://api-internal.${domain_name}"
+      domainConfig.MOSIP_ESIGNET_HOST: "https://esignet.${domain_name}"
+      domainConfig.MOSIP_SIGNUP_HOST: "https://signup.${domain_name}"
       # esignet-mock has no esignet-global configmap (only the mosipid/sunbird preinstall
-      # hooks create their own per-namespace esignet-global) - override these chart-default
-      # extraEnvVars entries that otherwise reference it, or the pod fails to start with
-      # CreateContainerConfigError (configmap "esignet-global" not found).
-      extraEnvVars.MOSIP_API_INTERNAL_HOST: "https://api-internal.${domain_name}"
-      extraEnvVars.MOSIP_ESIGNET_OIDC_UI_HOSTNAME: "esignet.${domain_name}"
-      extraEnvVars.MOSIP_ESIGNET_HOST: "https://esignet.${domain_name}"
-      extraEnvVars.MOSIP_SIGNUP_HOST: "https://signup.${domain_name}"
+      # hooks create their own per-namespace esignet-global) - these chart-default extraEnvVars
+      # entries are tables (valueFrom.configMapKeyRef against esignet-global), so a plain
+      # string override at the same key produces a "cannot overwrite table with non table"
+      # coalesce warning (harmless on its own, but risks masking real errors in Helmsman's
+      # truncated output) and would still fail with CreateContainerConfigError if left as the
+      # chart default. Null them out entirely instead - MOSIP_API_INTERNAL_HOST/MOSIP_ESIGNET_HOST/
+      # MOSIP_SIGNUP_HOST now come from domainConfig (above); MOSIP_ESIGNET_OIDC_UI_HOSTNAME has
+      # no domainConfig equivalent key so it's set via extraEnvVarsAdditional instead (renders
+      # after extraEnvVars, no chart-default table to conflict with). "null" (quoted) is
+      # required: Helmsman's YAML parsing turns a bare `null` into an empty string, not the
+      # literal text Helm needs to delete a key.
+      extraEnvVars.MOSIP_API_INTERNAL_HOST: "null"
+      extraEnvVars.MOSIP_ESIGNET_OIDC_UI_HOSTNAME: "null"
+      extraEnvVars.MOSIP_ESIGNET_HOST: "null"
+      extraEnvVars.MOSIP_SIGNUP_HOST: "null"
+      extraEnvVarsAdditional.MOSIP_ESIGNET_OIDC_UI_HOSTNAME: "esignet.${domain_name}"
       extraEnvVars.KEYCLOAK_EXTERNAL_URL.valueFrom.configMapKeyRef.name: "keycloak-host"
       extraEnvVars.KEYCLOAK_EXTERNAL_URL.valueFrom.configMapKeyRef.key: "keycloak-external-url"
       extraEnvVars.MOSIP_ESIGNET_CAPTCHA_SITE_KEY.valueFrom.secretKeyRef.name: "esignet-captcha"
@@ -163,7 +175,10 @@ apps:
       extraEnvVars.KEYMANAGER_PKCS11_MODULE_PATH: ""
       extraEnvVars.KEYMANAGER_PKCS11_TOKEN_LABEL: ""
       extraEnvVars.KEYMANAGER_PKCS11_SLOT_ID: ""
-      extraEnvVars.KEYMANAGER_PKCS11_PIN: ""
+      # KEYMANAGER_PKCS11_PIN's chart default is a table (valueFrom.secretKeyRef), unlike the
+      # three plain-string defaults above - an empty-string override here still triggers the
+      # coalesce "cannot overwrite table with non table" warning, so null it out instead.
+      extraEnvVars.KEYMANAGER_PKCS11_PIN: "null"
     timeout: 600
     priority: -14
     hooks:
@@ -201,13 +216,21 @@ apps:
       domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_IDA_DOMAINURI: "https://esignet-mosipid.${domain_name}"
       domainConfig.MOSIP_ESIGNET_DOMAIN_URL: "https://esignet-mosipid.${domain_name}"
       domainConfig.OIDC_UI_HOSTNAME: "esignet-mosipid.${domain_name}"
-      # Moved from domainConfig to extraEnvVars (same key names as the chart's own
-      # extraEnvVars defaults) to avoid two same-named entries in the rendered env: list,
-      # which breaks Kubernetes' strategic-merge-patch $setElementOrder computation on
-      # upgrade. Values unchanged.
-      extraEnvVars.MOSIP_ESIGNET_HOST: "https://esignet-mosipid.${domain_name}"
-      extraEnvVars.MOSIP_SIGNUP_HOST: "https://signup-mosipid.${domain_name}"
-      extraEnvVars.MOSIP_API_INTERNAL_HOST: "https://api-internal.${mosipid_domain_name}"
+      domainConfig.MOSIP_ESIGNET_HOST: "https://esignet-mosipid.${domain_name}"
+      domainConfig.MOSIP_SIGNUP_HOST: "https://signup-mosipid.${domain_name}"
+      domainConfig.MOSIP_API_INTERNAL_HOST: "https://api-internal.${mosipid_domain_name}"
+      # Chart-default extraEnvVars.MOSIP_ESIGNET_HOST/MOSIP_SIGNUP_HOST/MOSIP_API_INTERNAL_HOST
+      # are tables (valueFrom.configMapKeyRef against esignet-global). A plain string override
+      # at the same key produces a "cannot overwrite table with non table" coalesce warning
+      # (harmless on its own, but noisy) and still leaves domainConfig's own same-named entry
+      # as a genuinely separate list item - so null the chart-default keys out entirely
+      # instead, letting domainConfig (above) be the sole source, matching the pattern used
+      # for KEYMANAGER_PKCS11_* elsewhere in this file. "null" (quoted) is required: Helmsman's
+      # YAML parsing turns a bare `null` into an empty string, not the literal text Helm needs
+      # to delete a key.
+      extraEnvVars.MOSIP_ESIGNET_HOST: "null"
+      extraEnvVars.MOSIP_SIGNUP_HOST: "null"
+      extraEnvVars.MOSIP_API_INTERNAL_HOST: "null"
       extraEnvVars.KEYCLOAK_EXTERNAL_URL.valueFrom.configMapKeyRef.name: "keycloak-host"
       extraEnvVars.KEYCLOAK_EXTERNAL_URL.valueFrom.configMapKeyRef.key: "keycloak-external-url"
       extraEnvVars.REDIS_HOST.valueFrom.configMapKeyRef.name: "redis-config"
@@ -301,13 +324,21 @@ apps:
       domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_SUNBIRD_RC_AUTH_FACTOR_KBI_REGISTRY_SEARCH_URL: "https://registry.${mosipid_domain_name}/api/v1/Insurance/search"
       domainConfig.MOSIP_ESIGNET_AUTHENTICATOR_SUNBIRD_RC_REGISTRY_GET_URL: "https://registry.${mosipid_domain_name}/api/v1/Insurance/"
       domainConfig.OIDC_UI_HOSTNAME: "esignet-sunbird.${domain_name}"
-      # Moved from domainConfig to extraEnvVars (same key names as the chart's own
-      # extraEnvVars defaults) to avoid two same-named entries in the rendered env: list,
-      # which breaks Kubernetes' strategic-merge-patch $setElementOrder computation on
-      # upgrade. Values unchanged.
-      extraEnvVars.MOSIP_ESIGNET_HOST: "https://esignet-sunbird.${domain_name}"
-      extraEnvVars.MOSIP_SIGNUP_HOST: "https://signup-sunbird.${domain_name}"
-      extraEnvVars.MOSIP_API_INTERNAL_HOST: "https://api-internal.${domain_name}"
+      domainConfig.MOSIP_ESIGNET_HOST: "https://esignet-sunbird.${domain_name}"
+      domainConfig.MOSIP_SIGNUP_HOST: "https://signup-sunbird.${domain_name}"
+      domainConfig.MOSIP_API_INTERNAL_HOST: "https://api-internal.${domain_name}"
+      # Chart-default extraEnvVars.MOSIP_ESIGNET_HOST/MOSIP_SIGNUP_HOST/MOSIP_API_INTERNAL_HOST
+      # are tables (valueFrom.configMapKeyRef against esignet-global). A plain string override
+      # at the same key produces a "cannot overwrite table with non table" coalesce warning
+      # (harmless on its own, but noisy) and still leaves domainConfig's own same-named entry
+      # as a genuinely separate list item - so null the chart-default keys out entirely
+      # instead, letting domainConfig (above) be the sole source, matching the pattern used
+      # for KEYMANAGER_PKCS11_* elsewhere in this file. "null" (quoted) is required: Helmsman's
+      # YAML parsing turns a bare `null` into an empty string, not the literal text Helm needs
+      # to delete a key.
+      extraEnvVars.MOSIP_ESIGNET_HOST: "null"
+      extraEnvVars.MOSIP_SIGNUP_HOST: "null"
+      extraEnvVars.MOSIP_API_INTERNAL_HOST: "null"
       extraEnvVars.KEYCLOAK_EXTERNAL_URL.valueFrom.configMapKeyRef.name: "keycloak-host"
       extraEnvVars.KEYCLOAK_EXTERNAL_URL.valueFrom.configMapKeyRef.key: "keycloak-external-url"
       extraEnvVars.MOSIP_ESIGNET_CAPTCHA_MODULE_NAME: "esignetsunbird"
@@ -460,6 +491,12 @@ apps:
       domainConfig.installation-domain: "${domain_name}"
       domainConfig.MOSIP_MOCK_IDA_IDENTITY_SCHEMA_URL: "https://raw.githubusercontent.com/prathmeshj12/addidentityschema_testing/refs/heads/main/email-signup-schema-testing.json"
       domainConfig.MOSIP_MOCK_UI_SPEC_SCHEMA_URL: "https://raw.githubusercontent.com/prathmeshj12/addidentityschema_testing/refs/heads/main/ui_spec_reset_password_phone.json"
+      # Chart-default extraEnvVars.MOSIP_ESIGNET_HOST is a table (valueFrom.configMapKeyRef
+      # against esignet-global), which doesn't exist in the esignet-mock namespace - left
+      # unset it would both crash with CreateContainerConfigError and duplicate the
+      # domainConfig.MOSIP_ESIGNET_HOST entry above in the rendered env: list. Null it out
+      # so domainConfig is the sole source, same pattern as the esignet chart apps.
+      extraEnvVars.MOSIP_ESIGNET_HOST: "null"
       extraEnvVars.DATABASE_HOST.valueFrom.configMapKeyRef.name: "mockid-postgres-config"
       extraEnvVars.DATABASE_HOST.valueFrom.configMapKeyRef.key: "database-host"
       extraEnvVars.DATABASE_PORT.valueFrom.configMapKeyRef.name: "mockid-postgres-config"
