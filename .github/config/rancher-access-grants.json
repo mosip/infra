@@ -1,0 +1,51 @@
+[
+  {
+    "group": "DEVOPS",
+    "role": "cluster-owner",
+    "enabled": true,
+    "principal_id": "keycloak_group://DEVOPS",
+    "fix_misbound_user": true
+  },
+  {
+    "group": "QA",
+    "role": "rt-jdzrj",
+    "enabled": false,
+    "principal_id": "keycloak_group://QA"
+  },
+  {
+    "group": "DEV",
+    "role": "rt-jdzrj",
+    "enabled": false,
+    "principal_id": "keycloak_group://DEV"
+  },
+  {
+    "group": "PM",
+    "role": "rt-rgcq7",
+    "enabled": false,
+    "principal_id": "keycloak_group://PM"
+  },
+  {
+    "group": "PO",
+    "role": "rt-rgcq7",
+    "enabled": false,
+    "principal_id": "keycloak_group://PO"
+  },
+  {
+    "group": "BA",
+    "role": "rt-rgcq7",
+    "enabled": false,
+    "principal_id": "keycloak_group://BA"
+  },
+  {
+    "group": "TL+ARCHITECT",
+    "role": "rt-rgcq7",
+    "enabled": false,
+    "principal_id": "keycloak_group://TL+ARCHITECT"
+  },
+  {
+    "group": "AUTOMATION",
+    "role": "rt-89ntg",
+    "enabled": false,
+    "principal_id": "keycloak_group://AUTOMATION"
+  }
+]
