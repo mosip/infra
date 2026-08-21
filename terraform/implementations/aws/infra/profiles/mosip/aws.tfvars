@@ -6,10 +6,10 @@
 # ============================================================
 
 # Environment name (infra component)
-cluster_name = "dev1"
+cluster_name = "test1"
 
 # MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "dev1.mosip.net"
+cluster_env_domain = "test1.mosip.net"
 
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
 mosip_email_id = "ivan.meneges@technoforte.co.in"
@@ -58,10 +58,10 @@ nginx_node_ebs_volume_size_2 = 200 # Enable second EBS volume for PostgreSQL tes
 k8s_instance_root_volume_size = 64
 
 # Control-plane, ETCD, Worker
-k8s_control_plane_node_count = 3
+k8s_control_plane_node_count = 1
 
 # ETCD, Worker
-k8s_etcd_node_count = 3
+k8s_etcd_node_count = 1
 
 # Worker
 k8s_worker_node_count = 1
@@ -93,7 +93,7 @@ postgresql_port         = "5433"
 # MOSIP Infrastructure Repository Configuration
 mosip_infra_repo_url = "https://github.com/mosip/infra.git"
 
-mosip_infra_branch = "dev-1"
+mosip_infra_branch = "perfm"
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
 vpc_name = "default"
