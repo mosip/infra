@@ -353,7 +353,19 @@ jobs:
         id: destroy-plan
         run: |
           echo "Showing what will be destroyed..."
-          terraform plan -destroy -input=false -var-file="$TFVARS_FILE" ${RANCHER_RUNTIME_VARS_FILE:+-var-file="$RANCHER_RUNTIME_VARS_FILE"} -no-color
+          PLAN_LOG="${RUNNER_TEMP}/terraform-destroy-plan.log"
+          terraform plan -destroy -input=false -var-file="$TFVARS_FILE" ${RANCHER_RUNTIME_VARS_FILE:+-var-file="$RANCHER_RUNTIME_VARS_FILE"} -no-color | tee "$PLAN_LOG"
+
+          INSTANCES_IN_STATE="$(terraform state list 2>/dev/null | grep -c 'aws_instance\.' || true)"
+          INSTANCES_IN_PLAN="$(grep -cE 'aws_instance\.[^ ]+ will be destroyed' "$PLAN_LOG" || true)"
+          if [ "${INSTANCES_IN_STATE:-0}" -gt 0 ] && [ "${INSTANCES_IN_PLAN:-0}" -eq 0 ]; then
+            echo ""
+            echo "ERROR: Terraform state tracks ${INSTANCES_IN_STATE} EC2 instance(s) but destroy plan includes none."
+            echo "Destroy would leave EC2 running in AWS (DNS/IAM/null_resource only)."
+            echo "State is stale or out of sync with aws.tfvars — restore current state or terminate orphans manually."
+            terraform state list 2>/dev/null | grep 'aws_instance\.' || true
+            exit 1
+          fi
         if: "${{ inputs.TERRAFORM_DESTROY  == true }}"
 
       - name: Terraform Destroy
