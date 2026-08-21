@@ -14,8 +14,8 @@ RANCHER_TOKEN="${RANCHER_TOKEN:-}"
 CLUSTER_NAME="${CLUSTER_NAME:-}"
 CLUSTER_ID="${CLUSTER_ID:-}"
 INSECURE="${INSECURE:-false}"
-MAX_ATTEMPTS="${MAX_ATTEMPTS:-60}"
-SLEEP_SECONDS="${SLEEP_SECONDS:-5}"
+MAX_ATTEMPTS="${MAX_ATTEMPTS:-90}"
+SLEEP_SECONDS="${SLEEP_SECONDS:-10}"
 
 usage() {
   cat <<'EOF'
@@ -34,8 +34,8 @@ Optional:
   -h, --help              Show help
 
 Environment (optional):
-  MAX_ATTEMPTS            Wait attempts for cluster to become active (default: 60)
-  SLEEP_SECONDS           Seconds between wait attempts (default: 5)
+  MAX_ATTEMPTS            Wait attempts for cluster to become active (default: 90 ≈ 15 min)
+  SLEEP_SECONDS           Seconds between wait attempts (default: 10)
 
 Output (stdout): raw kubeconfig YAML (for GitHub KUBECONFIG environment secret).
 Logs go to stderr.
@@ -150,43 +150,53 @@ cluster_status_summary() {
     transitioning,
     transition: (.transitioningMessage // .transition // empty),
     agentImage: (.agentImage // empty),
-    driver: (.driver // empty)
+    driver: (.driver // empty),
+    conditions: ([.conditions[]? | {type, status, message}] | .[0:5])
   }' <<<"$json" >&2
 }
 
-cluster_is_active() {
-  local json state
-  if ! json="$(api GET "/v3/clusters/$(urlencode "$CLUSTER_ID")")"; then
-    die "Failed to query Rancher cluster '$CLUSTER_ID'"
-  fi
-  state="$(jq -r '.state // empty' <<<"$json")"
-  [[ "$state" == "active" ]]
+print_failure_diagnostics() {
+  local waited_sec="$((MAX_ATTEMPTS * SLEEP_SECONDS))"
+  err "Cluster ${CLUSTER_ID} ('${CLUSTER_NAME}') did not reach state=active within ${waited_sec}s (~$((waited_sec / 60)) min)"
+  err "Last known Rancher cluster status:"
+  cluster_status_summary || true
+  err ""
+  err "Likely causes:"
+  err "  - Rancher import did not complete (CI: check workflow step 'Apply Rancher import on cluster')"
+  err "  - Manual import: check Ansible 'Execute Rancher import' in apply logs"
+  err "  - cattle-cluster-agent not Running: ssh to control plane → kubectl get pods -n cattle-system"
+  err "  - Network: cluster nodes cannot reach Rancher (WireGuard / firewall)"
+  err "  - Stale Rancher registration after destroy/re-apply: check Rancher UI for pending/disconnected cluster"
+  die "Kubeconfig cannot be published until the cluster is active in Rancher."
 }
 
-cluster_current_state() {
-  local json
-  if ! json="$(api GET "/v3/clusters/$(urlencode "$CLUSTER_ID")")"; then
-    printf 'unknown'
-    return 1
-  fi
-  jq -r '.state // "unknown"' <<<"$json"
+cluster_status_line_from_json() {
+  local json="$1" state transition agent
+  state="$(jq -r '.state // "unknown"' <<<"$json")"
+  transition="$(jq -r '.transitioningMessage // .transition // empty' <<<"$json")"
+  agent="$(jq -r '.agentImage // empty' <<<"$json")"
+  printf 'state=%s transition=%s agentImage=%s' \
+    "$state" "${transition:-none}" "${agent:-empty}"
 }
 
 wait_for_cluster_active() {
-  local attempt state
+  local attempt status_line json state
   for ((attempt = 1; attempt <= MAX_ATTEMPTS; attempt++)); do
-    if cluster_is_active; then
+    if ! json="$(api GET "/v3/clusters/$(urlencode "$CLUSTER_ID")")"; then
+      err "Transient Rancher API error querying cluster '$CLUSTER_ID' (attempt ${attempt}/${MAX_ATTEMPTS}); retrying ..."
+      sleep "$SLEEP_SECONDS"
+      continue
+    fi
+    state="$(jq -r '.state // empty' <<<"$json")"
+    if [[ "$state" == "active" ]]; then
       log "Cluster ${CLUSTER_ID} is active"
       return 0
     fi
-    state="$(cluster_current_state || true)"
-    log "Waiting for cluster ${CLUSTER_ID} to become active (state=${state:-unknown}, attempt ${attempt}/${MAX_ATTEMPTS}) ..."
+    status_line="$(cluster_status_line_from_json "$json")"
+    log "Waiting for cluster ${CLUSTER_ID} to become active (${status_line}, attempt ${attempt}/${MAX_ATTEMPTS}) ..."
     sleep "$SLEEP_SECONDS"
   done
-  err "Cluster ${CLUSTER_ID} did not become active within $((MAX_ATTEMPTS * SLEEP_SECONDS)) seconds"
-  err "Current cluster status:"
-  cluster_status_summary || true
-  die "Import may not have completed on the downstream cluster. Check: Terraform apply logs (Ansible rancher import), cattle-system namespace on the control plane, and Rancher UI → Cluster Management (include pending clusters)."
+  print_failure_diagnostics
 }
 
 generate_kubeconfig_yaml() {
