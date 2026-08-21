@@ -114,7 +114,7 @@ apps:
       databases.mosip_regprc.port: ${db_port}
 
       databases.mosip_pms.enabled: "true"
-      databases.mosip_pms.branch: "v1.2.2.3"
+      databases.mosip_pms.branch: "v1.2.2.2"
       databases.mosip_pms.host: "postgres.${domain_name}"
       databases.mosip_pms.port: ${db_port}
 
