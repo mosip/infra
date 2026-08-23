@@ -478,10 +478,14 @@ jobs:
             
             git commit -s -am "$commit_msg"
             
-            # Pull with rebase to avoid push rejection
+            # Pull with rebase to avoid push rejection.
+            # GitHub Actions runs bash with -e; a failed $(git pull) would otherwise
+            # abort the step before this conflict-handling block can run.
             echo "Pulling latest changes with rebase..."
+            set +e
             pull_output=$(git pull --rebase origin "${{ github.ref_name }}" 2>&1)
             pull_exit=$?
+            set -e
             echo "$pull_output"
             if [ $pull_exit -ne 0 ]; then
               if echo "$pull_output" | grep -qE "Already up to date|Current branch .* is up to date"; then
