@@ -480,7 +480,7 @@ jobs:
             
             # Pull with rebase to avoid push rejection
             echo "Pulling latest changes with rebase..."
-            pull_output=$(git pull --rebase origin ${{ github.ref_name }} 2>&1)
+            pull_output=$(git pull --rebase origin "${{ github.ref_name }}" 2>&1)
             pull_exit=$?
             echo "$pull_output"
             if [ $pull_exit -ne 0 ]; then
@@ -489,8 +489,8 @@ jobs:
               elif echo "$pull_output" | grep -qE "CONFLICT|could not apply|Resolve all conflicts|You must edit the files"; then
                 echo "⚠️ Rebase conflict detected. Aborting rebase and merging with ours strategy to preserve Terraform state..."
                 git rebase --abort
-                git fetch origin ${{ github.ref_name }}
-                git merge -X ours origin/${{ github.ref_name }} --no-edit
+                git fetch origin "${{ github.ref_name }}"
+                git merge -X ours "origin/${{ github.ref_name }}" --no-edit
                 echo "Merge complete. Terraform state preserved."
               else
                 echo "❌ git pull --rebase failed with a non-conflict error:"
