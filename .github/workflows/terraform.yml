@@ -443,68 +443,24 @@ jobs:
             exit 1
           fi
           CLUSTER_NAME="${RANCHER_CLUSTER_NAME_INPUT:-$REF_NAME}"
+          GRANT_SCRIPT="$GITHUB_WORKSPACE/.github/scripts/rancher-grant-cluster-access.sh"
 
-          GRANTS_FILE="$GITHUB_WORKSPACE/.github/config/rancher-access-grants.json"
-          DEFAULT_GRANTS_FILE="$GITHUB_WORKSPACE/.github/scripts/rancher-access-grants.default.json"
-          SCRIPTS_DIR="$GITHUB_WORKSPACE/.github/scripts"
-
-          echo "Resolving Rancher grants catalog for branch '$REF_NAME' ..."
-          if [ -d "$GITHUB_WORKSPACE/.github/config" ]; then
-            echo "Contents of .github/config/:"
-            ls -la "$GITHUB_WORKSPACE/.github/config/" || true
-          fi
-          if [ -d "$SCRIPTS_DIR" ]; then
-            echo "Contents of .github/scripts/:"
-            ls -la "$SCRIPTS_DIR" || true
-          fi
-
-          if [ -f "$GRANTS_FILE" ]; then
-            echo "Using catalog: $GRANTS_FILE"
-          elif [ -f "$DEFAULT_GRANTS_FILE" ]; then
-            echo "WARN: $GRANTS_FILE not found — using $DEFAULT_GRANTS_FILE"
-            GRANTS_FILE="$DEFAULT_GRANTS_FILE"
-          else
-            echo "ERROR: no Rancher grants catalog found on branch '$REF_NAME'"
-            echo "Expected $GRANTS_FILE or $DEFAULT_GRANTS_FILE"
+          if [ ! -f "$GRANT_SCRIPT" ]; then
+            echo "ERROR: Required script missing: $GRANT_SCRIPT"
             exit 1
           fi
-          echo "Using Rancher grants catalog: $GRANTS_FILE"
-
-          if [ -f "$SCRIPTS_DIR/build-rancher-workflow-patch.sh" ]; then
-            export WORKFLOW_GRANTS_CATALOG="$GRANTS_FILE"
-            echo "Rancher team catalog:"
-            jq -r '.[] | "  - \(.group): \(.role) (catalog enabled=\(.enabled // true))"' "$GRANTS_FILE"
-            WORKFLOW_RANCHER_PATCH="$("$SCRIPTS_DIR/build-rancher-workflow-patch.sh")"
-          else
-            echo "WARN: build-rancher-workflow-patch.sh not found — applying base catalog only (DEVOPS owner default)"
-            WORKFLOW_RANCHER_PATCH='[]'
-          fi
-          echo "Workflow Rancher patch: $WORKFLOW_RANCHER_PATCH"
-          export WORKFLOW_RANCHER_PATCH
 
           echo "Applying Rancher access grants for cluster '$CLUSTER_NAME' ..."
-          BATCH_SCRIPT="$SCRIPTS_DIR/rancher-grant-cluster-access-batch.sh"
-          SINGLE_SCRIPT="$SCRIPTS_DIR/rancher-grant-cluster-access.sh"
-
-          if [ ! -f "$SINGLE_SCRIPT" ]; then
-            echo "ERROR: Required script missing: $SINGLE_SCRIPT"
-            exit 1
-          fi
-          if [ ! -f "$BATCH_SCRIPT" ]; then
-            echo "ERROR: Required script missing: $BATCH_SCRIPT"
-            exit 1
-          fi
-
           ARGS=(
             --rancher-url "$RANCHER_URL"
             --token "$RANCHER_TOKEN"
             --cluster-name "$CLUSTER_NAME"
-            --grants-file "$GRANTS_FILE"
+            --apply-catalog
           )
           if [ -n "${RANCHER_GROUP_AUTH_PREFIX:-}" ]; then
             ARGS+=(--default-group-auth-prefix "$RANCHER_GROUP_AUTH_PREFIX")
           fi
-          "$BATCH_SCRIPT" "${ARGS[@]}"
+          "$GRANT_SCRIPT" "${ARGS[@]}"
 
       - name: Publish KUBECONFIG from Rancher
         if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.TERRAFORM_APPLY == true && inputs.PUBLISH_KUBECONFIG == true && steps.apply.outcome == 'success' }}
