@@ -230,7 +230,7 @@ apps:
     set:
       # image.repository: "mosipdev/masterdata-loader"
       # image.tag: "release-1.3.x"
-      mosipDataGithubBranch: "v1.3.2-rc.1"
+      mosipDataGithubBranch: "release-1.3.x"
       mosipDataGithubRepo: "https://github.com/mosip/mosip-data"
       mosipDataXlsfolderPath: "/home/mosip/mosip-data/mosip_master/xlsx"
       db.host: "postgres.${domain_name}"
@@ -550,7 +550,7 @@ apps:
   pms-partner:
     namespace: pms
     enabled: true
-    version: 12.2.3
+    version: 12.2.2
     chart: mosip/pms-partner
     set:
       # image.repository: "mosipid/partner-management-service"
@@ -562,7 +562,7 @@ apps:
   pms-policy:
     namespace: pms
     enabled: true
-    version: 12.2.3
+    version: 12.2.2
     chart: mosip/pms-policy
     set:
       # image.repository: "mosipid/policy-management-service"
@@ -574,7 +574,7 @@ apps:
   pmp-ui:
     namespace: pms
     enabled: false
-    version: 12.0.2
+    version: 12.2.2
     chart: mosip/pmp-ui
     set:
       image.repository: "mosipid/pmp-ui"
