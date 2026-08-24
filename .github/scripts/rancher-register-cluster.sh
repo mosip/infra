@@ -30,7 +30,7 @@ SSH_KEY=""
 SSH_HOST=""
 SSH_USER="${SSH_USER:-ubuntu}"
 KUBECONFIG_REMOTE=""
-MAX_AGENT_WAIT="${MAX_AGENT_WAIT:-90}"
+MAX_AGENT_WAIT="${MAX_AGENT_WAIT:-30}"
 AGENT_SLEEP="${AGENT_SLEEP:-10}"
 
 usage() {
@@ -54,10 +54,10 @@ Optional:
 Environment (optional):
   MAX_ATTEMPTS           Poll attempts for registration token (default: 30)
   SLEEP_SECONDS          Seconds between poll attempts (default: 2)
-  MAX_AGENT_WAIT         Poll attempts for cattle-cluster-agent Running (default: 90 ≈ 15 min, apply-on-host only)
+  MAX_AGENT_WAIT         Poll attempts for cattle-cluster-agent Running (default: 30, apply-on-host only)
   AGENT_SLEEP            Seconds between agent poll attempts (default: 10)
 
-Output (stdout, last line only — logs go to stderr): "kubectl apply -f https://<host>/v3/import/<id>.yaml"
+Output (stdout, last line): "kubectl apply -f https://<host>/v3/import/<id>.yaml"
   (--apply-on-host writes diagnostics to stderr only; stdout stays empty)
 EOF
 }
@@ -127,63 +127,31 @@ apply_import_on_host() {
     ssh_cmd "bash -lc $(printf '%q' "$remote_cmd")"
   }
   cattle_agent_phase() {
-    local out
-    if ! out="$(remote_kubectl get pods -n cattle-system -l app=cattle-cluster-agent \
-      -o jsonpath='{.items[0].status.phase}' 2>/dev/null)"; then
-      printf 'query-failed'
-      return 1
-    fi
-    # kubectl exits 0 with empty output when no pods match — not the same as unhealthy.
-    if [[ -z "${out//[[:space:]]/}" ]]; then
-      printf 'missing'
-      return 0
-    fi
-    printf '%s' "$out"
+    remote_kubectl get pods -n cattle-system -l app=cattle-cluster-agent \
+      -o jsonpath='{.items[0].status.phase}' 2>/dev/null || true
   }
 
   log "Applying Rancher import on ${SSH_HOST} ..."
   if remote_kubectl get namespace cattle-system >/dev/null 2>&1; then
-    if phase="$(cattle_agent_phase)"; then
-      :
-    else
-      phase="query-failed"
-    fi
+    phase="$(cattle_agent_phase)"
     if [[ "$phase" == "Running" ]]; then
       log "cattle-system exists and cattle-cluster-agent is Running — skipping import apply"
       return 0
     fi
-    if [[ "$phase" == "query-failed" ]]; then
-      err "Could not query cattle-cluster-agent status; refusing to reset cattle-system"
-      return 1
-    fi
-    if [[ "$phase" == "missing" ]]; then
-      log "cattle-system exists but no cattle-cluster-agent pod yet — proceeding with import apply"
-    else
-      log "cattle-system exists but agent is not healthy (phase=${phase}) — resetting namespace before re-import"
-      log "WARN: this deletes all resources in cattle-system (destructive; required for stale Rancher registration recovery)"
-      if ! remote_kubectl delete namespace cattle-system --ignore-not-found --wait=true --timeout=120s; then
-        err "Failed to delete stale cattle-system namespace on ${SSH_HOST} within 120s"
-        return 1
-      fi
-    fi
+    log "cattle-system exists but agent is not healthy (phase=${phase:-missing}) — resetting namespace before re-import"
+    remote_kubectl delete namespace cattle-system --ignore-not-found --wait=true || true
   fi
 
-  if ! ssh_cmd "bash -lc $(printf '%q' "$import_cmd")"; then
-    err "Failed to apply Rancher import manifest on ${SSH_HOST}"
-    return 1
-  fi
+  ssh_cmd "bash -lc $(printf '%q' "$import_cmd")"
   log "Rancher import manifest applied"
 
   for ((attempt = 1; attempt <= MAX_AGENT_WAIT; attempt++)); do
-    if phase="$(cattle_agent_phase)"; then
-      if [[ "$phase" == "Running" ]]; then
-        log "cattle-cluster-agent is Running"
-        return 0
-      fi
-      log "Waiting for cattle-cluster-agent (phase=${phase}, attempt ${attempt}/${MAX_AGENT_WAIT}) ..."
-    else
-      log "Waiting for cattle-cluster-agent (phase=query-failed, attempt ${attempt}/${MAX_AGENT_WAIT}) ..."
+    phase="$(cattle_agent_phase)"
+    if [[ "$phase" == "Running" ]]; then
+      log "cattle-cluster-agent is Running"
+      return 0
     fi
+    log "Waiting for cattle-cluster-agent (phase=${phase:-missing}, attempt ${attempt}/${MAX_AGENT_WAIT}) ..."
     sleep "$AGENT_SLEEP"
   done
   err "Import manifest applied but cattle-cluster-agent is not Running within $((MAX_AGENT_WAIT * AGENT_SLEEP)) seconds"
