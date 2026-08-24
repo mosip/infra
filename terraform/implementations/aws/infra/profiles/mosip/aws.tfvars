@@ -24,7 +24,7 @@ aws_provider_region = "ap-south-1"
 # If empty, uses all available AZs in the region
 # Example: ["ap-south-1a", "ap-south-1b"] for specific AZs
 # Example: [] for all available AZs in the region
-specific_availability_zones = [ap-south-1b]
+specific_availability_zones = ["ap-south-1b"]
 
 # The instance type for Kubernetes nodes (control plane, worker, etcd)
 k8s_instance_type = "m6a.2xlarge"
@@ -77,7 +77,7 @@ WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 # Rancher Import URL
 # Rancher Import Configuration
 enable_rancher_import = true
-rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/lbscvhd9dqbrvr9wj6xd599c4stskz2qddv7vlvvl2nzlpkgcvwd94_c-m-7xxfmr45.yaml""
+rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/lbscvhd9dqbrvr9wj6xd599c4stskz2qddv7vlvvl2nzlpkgcvwd94_c-m-7xxfmr45.yaml\""
 
 # DNS Records to map
 subdomain_public   = ["resident", "prereg", "esignet", "healthservices", "signup"]
