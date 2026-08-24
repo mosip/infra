@@ -10,6 +10,9 @@
 #   3. Print the import command in the exact quoted form Terraform expects:
 #        "kubectl apply -f https://<rancher-host>/v3/import/<id>.yaml"
 #
+# Optional (CI post-apply): pass --apply-on-host with SSH flags to kubectl apply
+# the fresh manifest on the primary control plane after RKE2 install completes.
+#
 # The printed value can be fed straight into TF_VAR_rancher_import_url.
 #
 # Requires: bash 4+, curl, jq.
@@ -22,10 +25,17 @@ CLUSTER_NAME="${CLUSTER_NAME:-}"
 INSECURE="${INSECURE:-false}"         # skip TLS verify for Rancher API calls only
 MAX_ATTEMPTS="${MAX_ATTEMPTS:-30}"
 SLEEP_SECONDS="${SLEEP_SECONDS:-2}"
+APPLY_ON_HOST="false"
+SSH_KEY=""
+SSH_HOST=""
+SSH_USER="${SSH_USER:-ubuntu}"
+KUBECONFIG_REMOTE=""
+MAX_AGENT_WAIT="${MAX_AGENT_WAIT:-30}"
+AGENT_SLEEP="${AGENT_SLEEP:-10}"
 
 usage() {
   cat <<'EOF'
-Usage: rancher-register-cluster.sh --rancher-url <url> --token <token> --cluster-name <name> [--insecure]
+Usage: rancher-register-cluster.sh --rancher-url <url> --token <token> --cluster-name <name> [options]
 
 Required (flags or env vars RANCHER_URL / RANCHER_TOKEN / CLUSTER_NAME):
   --rancher-url <url>     Rancher base URL (https://rancher.<env>.mosip.net)
@@ -34,13 +44,21 @@ Required (flags or env vars RANCHER_URL / RANCHER_TOKEN / CLUSTER_NAME):
 
 Optional:
   --insecure             Skip TLS verification for Rancher API calls only (not the import URL)
+  --apply-on-host        After minting URL, kubectl apply on cluster via SSH (requires --ssh-key, --ssh-host)
+  --ssh-key <path>       SSH private key for control plane (with --apply-on-host)
+  --ssh-host <ip>        Control plane IP (with --apply-on-host)
+  --ssh-user <user>      SSH user (default: ubuntu)
+  --kubeconfig-remote <path>  KUBECONFIG path on control plane (optional)
   -h, --help             Show help
 
 Environment (optional):
   MAX_ATTEMPTS           Poll attempts for registration token (default: 30)
   SLEEP_SECONDS          Seconds between poll attempts (default: 2)
+  MAX_AGENT_WAIT         Poll attempts for cattle-cluster-agent Running (default: 30, apply-on-host only)
+  AGENT_SLEEP            Seconds between agent poll attempts (default: 10)
 
 Output (stdout, last line): "kubectl apply -f https://<host>/v3/import/<id>.yaml"
+  (--apply-on-host writes diagnostics to stderr only; stdout stays empty)
 EOF
 }
 
@@ -63,6 +81,11 @@ while [[ $# -gt 0 ]]; do
     --token)         require_arg --token "${2-}";       RANCHER_TOKEN="$2"; shift 2 ;;
     --cluster-name)  require_arg --cluster-name "${2-}"; CLUSTER_NAME="$2"; shift 2 ;;
     --insecure)      INSECURE="true"; shift ;;
+    --apply-on-host) APPLY_ON_HOST="true"; shift ;;
+    --ssh-key)       require_arg --ssh-key "${2-}";       SSH_KEY="$2"; shift 2 ;;
+    --ssh-host)      require_arg --ssh-host "${2-}";      SSH_HOST="$2"; shift 2 ;;
+    --ssh-user)      require_arg --ssh-user "${2-}";      SSH_USER="$2"; shift 2 ;;
+    --kubeconfig-remote) require_arg --kubeconfig-remote "${2-}"; KUBECONFIG_REMOTE="$2"; shift 2 ;;
     -h|--help)       usage; exit 0 ;;
     *)               die "Unknown argument: $1 (use --help)" ;;
   esac
@@ -84,6 +107,57 @@ RANCHER_URL="${RANCHER_URL%/}"
   || die "MAX_ATTEMPTS must be a positive integer (got: $MAX_ATTEMPTS)"
 [[ "$SLEEP_SECONDS" =~ ^[0-9]+$ && "$SLEEP_SECONDS" -gt 0 ]] \
   || die "SLEEP_SECONDS must be a positive integer (got: $SLEEP_SECONDS)"
+if [[ "$APPLY_ON_HOST" == "true" ]]; then
+  [[ -n "$SSH_KEY" && -n "$SSH_HOST" ]] || die "--apply-on-host requires --ssh-key and --ssh-host"
+  [[ -f "$SSH_KEY" ]] || die "SSH key not found: $SSH_KEY"
+  command -v ssh >/dev/null 2>&1 || die "ssh is required for --apply-on-host"
+fi
+
+apply_import_on_host() {
+  local import_cmd="$1" phase attempt remote_cmd
+  ssh_cmd() {
+    ssh -i "$SSH_KEY" \
+      -o StrictHostKeyChecking=accept-new \
+      -o ConnectTimeout=15 \
+      "${SSH_USER}@${SSH_HOST}" "$@"
+  }
+  remote_kubectl() {
+    remote_cmd="kubectl $*"
+    [[ -n "$KUBECONFIG_REMOTE" ]] && remote_cmd="KUBECONFIG=$KUBECONFIG_REMOTE $remote_cmd"
+    ssh_cmd "bash -lc $(printf '%q' "$remote_cmd")"
+  }
+  cattle_agent_phase() {
+    remote_kubectl get pods -n cattle-system -l app=cattle-cluster-agent \
+      -o jsonpath='{.items[0].status.phase}' 2>/dev/null || true
+  }
+
+  log "Applying Rancher import on ${SSH_HOST} ..."
+  if remote_kubectl get namespace cattle-system >/dev/null 2>&1; then
+    phase="$(cattle_agent_phase)"
+    if [[ "$phase" == "Running" ]]; then
+      log "cattle-system exists and cattle-cluster-agent is Running — skipping import apply"
+      return 0
+    fi
+    log "cattle-system exists but agent is not healthy (phase=${phase:-missing}) — resetting namespace before re-import"
+    remote_kubectl delete namespace cattle-system --ignore-not-found --wait=true || true
+  fi
+
+  ssh_cmd "bash -lc $(printf '%q' "$import_cmd")"
+  log "Rancher import manifest applied"
+
+  for ((attempt = 1; attempt <= MAX_AGENT_WAIT; attempt++)); do
+    phase="$(cattle_agent_phase)"
+    if [[ "$phase" == "Running" ]]; then
+      log "cattle-cluster-agent is Running"
+      return 0
+    fi
+    log "Waiting for cattle-cluster-agent (phase=${phase:-missing}, attempt ${attempt}/${MAX_AGENT_WAIT}) ..."
+    sleep "$AGENT_SLEEP"
+  done
+  err "Import manifest applied but cattle-cluster-agent is not Running within $((MAX_AGENT_WAIT * AGENT_SLEEP)) seconds"
+  remote_kubectl get pods -n cattle-system -o wide 2>/dev/null || true
+  return 1
+}
 
 api() {
   local method="$1" path="$2" body="${3:-}"
@@ -320,4 +394,9 @@ manifest_url="$(extract_manifest_url "$IMPORT_CMD" || true)"
   || die "Import URL host does not match RANCHER_URL (got: $manifest_url)"
 
 log "Import command resolved."
-printf '"%s"\n' "$IMPORT_CMD"
+if [[ "$APPLY_ON_HOST" == "true" ]]; then
+  apply_import_on_host "$IMPORT_CMD" || die "Failed to apply Rancher import on ${SSH_HOST}"
+  log "Rancher cluster import completed on ${SSH_HOST}"
+else
+  printf '"%s"\n' "$IMPORT_CMD"
+fi
