@@ -331,18 +331,36 @@ jobs:
         run: |
           echo "🔧 Installing Ansible for RKE2 cluster deployment automation..."
           sudo apt-get update -qq
-          sudo apt-get install -y software-properties-common
-          sudo add-apt-repository --yes --update ppa:ansible/ansible
-          sudo apt-get install -y ansible python3-pip
-          
-          # Install additional Python packages for Ansible
-          pip3 install --user paramiko
-          
-          # Add local bin to PATH for current session
+          sudo apt-get install -y software-properties-common python3-pip
+
+          # Launchpad PPA key fetch often returns GPGKeyTemporarilyNotFoundError (HTTP 500).
+          # Retry a few times, then fall back to Ubuntu archives and pip.
+          ppa_ok=0
+          for attempt in 1 2 3; do
+            echo "Trying Ansible PPA (attempt ${attempt}/3)..."
+            if sudo add-apt-repository --yes --update ppa:ansible/ansible; then
+              if sudo apt-get install -y ansible; then
+                ppa_ok=1
+                break
+              fi
+            fi
+            echo "PPA install failed; retrying..."
+            sleep $((attempt * 5))
+          done
+
+          if [ "$ppa_ok" -ne 1 ]; then
+            echo "Ansible PPA unavailable; installing from Ubuntu archives..."
+            if ! sudo apt-get install -y ansible; then
+              echo "Ubuntu ansible package unavailable; installing via pip..."
+              pip3 install --user ansible
+            fi
+          fi
+
+          pip3 install --user paramiko || true
+
           export PATH="$HOME/.local/bin:$PATH"
           echo "$HOME/.local/bin" >> $GITHUB_PATH
-          
-          # Verify installation
+
           ansible --version
           echo "✅ Ansible installed successfully for GitHub Actions runner"
         if: "${{ inputs.TERRAFORM_COMPONENT == 'infra' }}"
