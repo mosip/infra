@@ -105,6 +105,7 @@ apps:
       domainConfig.MOSIP_API_INTERNAL_HOST: "https://api-internal.${domain_name}"
       domainConfig.MOSIP_ESIGNET_HOST: "https://esignet.${domain_name}"
       domainConfig.MOSIP_SIGNUP_HOST: "https://signup.${domain_name}"
+      domainConfig.MOSIP_ESIGNET_BASE_URL: "https://esignet.${domain_name}/v1/esignet"
       # esignet-mock has no esignet-global configmap (only the mosipid/sunbird preinstall
       # hooks create their own per-namespace esignet-global) - these chart-default extraEnvVars
       # entries are tables (valueFrom.configMapKeyRef against esignet-global), so a plain
@@ -174,7 +175,6 @@ apps:
       extraEnvVars.KEYMANAGER_PKCS12_ALLOW_INSECURE_SOFTWARE_KEYSTORE: "true"
       extraEnvVars.KEYMANAGER_PKCS11_MODULE_PATH: ""
       extraEnvVars.KEYMANAGER_PKCS11_TOKEN_LABEL: ""
-      extraEnvVars.KEYMANAGER_PKCS11_SLOT_ID: ""
       # KEYMANAGER_PKCS11_PIN's chart default is a table (valueFrom.secretKeyRef), unlike the
       # three plain-string defaults above - an empty-string override here still triggers the
       # coalesce "cannot overwrite table with non table" warning, so null it out instead.
@@ -218,6 +218,7 @@ apps:
       domainConfig.OIDC_UI_HOSTNAME: "esignet-mosipid.${domain_name}"
       domainConfig.MOSIP_ESIGNET_HOST: "https://esignet-mosipid.${domain_name}"
       domainConfig.MOSIP_SIGNUP_HOST: "https://signup-mosipid.${domain_name}"
+      domainConfig.MOSIP_ESIGNET_BASE_URL: "https://esignet-mosipid.${domain_name}/v1/esignet"
       domainConfig.MOSIP_API_INTERNAL_HOST: "https://api-internal.${mosipid_domain_name}"
       # Chart-default extraEnvVars.MOSIP_ESIGNET_HOST/MOSIP_SIGNUP_HOST/MOSIP_API_INTERNAL_HOST
       # are tables (valueFrom.configMapKeyRef against esignet-global). A plain string override
@@ -259,7 +260,6 @@ apps:
       extraEnvVars.KEYMANAGER_KEYSTORE_TYPE: "PKCS11"
       extraEnvVars.KEYMANAGER_PKCS11_MODULE_PATH: "/usr/local/lib/softhsm/libpkcs11-proxy.so"
       extraEnvVars.KEYMANAGER_PKCS11_TOKEN_LABEL: "mosip-token"
-      extraEnvVars.KEYMANAGER_PKCS11_SLOT_ID: "null"
       extraEnvVars.KEYMANAGER_PKCS11_PIN.valueFrom.secretKeyRef.name: "esignet-softhsm-mosipid"
       extraEnvVars.KEYMANAGER_PKCS11_PIN.valueFrom.secretKeyRef.key: "security-pin"
       extraEnvVars.MOSIP_IDA_CLIENT_SECRET.valueFrom.secretKeyRef.name: "keycloak-client-secrets-mosipid"
@@ -327,6 +327,7 @@ apps:
       domainConfig.OIDC_UI_HOSTNAME: "esignet-sunbird.${domain_name}"
       domainConfig.MOSIP_ESIGNET_HOST: "https://esignet-sunbird.${domain_name}"
       domainConfig.MOSIP_SIGNUP_HOST: "https://signup-sunbird.${domain_name}"
+      domainConfig.MOSIP_ESIGNET_BASE_URL: "https://esignet-sunbird.${domain_name}/v1/esignet"
       domainConfig.MOSIP_API_INTERNAL_HOST: "https://api-internal.${domain_name}"
       # Chart-default extraEnvVars.MOSIP_ESIGNET_HOST/MOSIP_SIGNUP_HOST/MOSIP_API_INTERNAL_HOST
       # are tables (valueFrom.configMapKeyRef against esignet-global). A plain string override
@@ -369,7 +370,6 @@ apps:
       extraEnvVars.KEYMANAGER_KEYSTORE_TYPE: "PKCS11"
       extraEnvVars.KEYMANAGER_PKCS11_MODULE_PATH: "/usr/local/lib/softhsm/libpkcs11-proxy.so"
       extraEnvVars.KEYMANAGER_PKCS11_TOKEN_LABEL: "mosip-token"
-      extraEnvVars.KEYMANAGER_PKCS11_SLOT_ID: "null"
       extraEnvVars.KEYMANAGER_PKCS11_PIN.valueFrom.secretKeyRef.name: "esignet-softhsm-sunbird"
       extraEnvVars.KEYMANAGER_PKCS11_PIN.valueFrom.secretKeyRef.key: "security-pin"
       extraEnvVars.MOSIP_IDA_CLIENT_SECRET.valueFrom.secretKeyRef.name: "keycloak-client-secrets"
