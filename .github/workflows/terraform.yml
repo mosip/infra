@@ -408,8 +408,9 @@ jobs:
             CLUSTER_TF_NAME="$CLUSTER_NAME"
           fi
           SSH_KEY_FILE="${RUNNER_TEMP}/tf-ssh-key.pem"
+          install -m 600 /dev/null "$SSH_KEY_FILE"
+          trap 'rm -f "$SSH_KEY_FILE"' EXIT
           printf '%s' "$TF_VAR_ssh_private_key" > "$SSH_KEY_FILE"
-          chmod 600 "$SSH_KEY_FILE"
           KUBECONFIG_REMOTE="/home/ubuntu/.kube/${CLUSTER_TF_NAME}-CONTROL-PLANE-NODE-1.yaml"
           echo "Applying fresh Rancher import on ${CONTROL_PLANE_IP} (Rancher cluster: ${CLUSTER_NAME}) ..."
           "$GITHUB_WORKSPACE/.github/scripts/rancher-register-cluster.sh" \
@@ -420,6 +421,8 @@ jobs:
             --ssh-key "$SSH_KEY_FILE" \
             --ssh-host "$CONTROL_PLANE_IP" \
             --kubeconfig-remote "$KUBECONFIG_REMOTE"
+          rm -f "$SSH_KEY_FILE"
+          trap - EXIT
 
       - name: Grant Rancher cluster access (multi-team)
         if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.TERRAFORM_APPLY == true && inputs.ENABLE_RANCHER_IMPORT == true && steps.apply.outcome == 'success' }}
