@@ -57,7 +57,8 @@ Batch/catalog mode (apply all enabled grants from JSON):
   --apply-catalog               Apply grants from rancher-access-grants.json (auto-resolve path)
   --grants-file <path>          Catalog file (optional if --apply-catalog)
   --grants-json <json>          Full grant array (replaces file + env patches)
-  --grants-mode <merge|replace> How to apply RANCHER_ACCESS_GRANTS env patch (default: merge)
+  --grants-mode <merge|replace> How to apply RANCHER_ACCESS_GRANTS env patch (default: merge).
+                                replace: env patch overrides base per group; DEVOPS + workflow patches still apply.
   --default-group-auth-prefix   Prefix for groups without principal_id in catalog
 
 Optional:
@@ -88,6 +89,9 @@ DELETIONS_PERFORMED="false"
 DELETED_BINDING_IDS=()
 CLUSTER_BINDINGS_JSON=""
 CLUSTER_BINDINGS_CLUSTER_ID=""
+BINDINGS_FETCH_RETRIES="${BINDINGS_FETCH_RETRIES:-5}"
+BINDINGS_FETCH_SLEEP="${BINDINGS_FETCH_SLEEP:-3}"
+BATCH_GRANT_SLEEP="${BATCH_GRANT_SLEEP:-1}"
 
 err() { echo "[rancher-grant][ERROR] $*" >&2; }
 die() { err "$*"; exit 1; }
@@ -206,15 +210,23 @@ invalidate_bindings_cache() {
 }
 
 fetch_cluster_bindings() {
+  local attempt
   if [[ "$CLUSTER_BINDINGS_CLUSTER_ID" == "$CLUSTER_ID" && -n "$CLUSTER_BINDINGS_JSON" ]]; then
-    printf '%s' "$CLUSTER_BINDINGS_JSON"
     return 0
   fi
-  if ! CLUSTER_BINDINGS_JSON="$(api GET "/v3/clusterroletemplatebindings?clusterId=$(urlencode "$CLUSTER_ID")")"; then
-    return 1
-  fi
-  CLUSTER_BINDINGS_CLUSTER_ID="$CLUSTER_ID"
-  printf '%s' "$CLUSTER_BINDINGS_JSON"
+  for (( attempt=1; attempt<=BINDINGS_FETCH_RETRIES; attempt++ )); do
+    if CLUSTER_BINDINGS_JSON="$(api GET "/v3/clusterroletemplatebindings?clusterId=$(urlencode "$CLUSTER_ID")")"; then
+      CLUSTER_BINDINGS_CLUSTER_ID="$CLUSTER_ID"
+      return 0
+    fi
+    if (( attempt < BINDINGS_FETCH_RETRIES )); then
+      log "Retrying Rancher bindings list (${attempt}/${BINDINGS_FETCH_RETRIES}) ..."
+      sleep "$BINDINGS_FETCH_SLEEP"
+    fi
+  done
+  CLUSTER_BINDINGS_JSON=""
+  CLUSTER_BINDINGS_CLUSTER_ID=""
+  return 1
 }
 
 fetch_cluster_id_by_name() {
@@ -347,13 +359,13 @@ wait_for_deleted_bindings() {
   log "Waiting for Rancher to remove ${#DELETED_BINDING_IDS[@]} deleted binding(s) ..."
   for (( attempt=1; attempt<=max_attempts; attempt++ )); do
     invalidate_bindings_cache
-    if ! json="$(fetch_cluster_bindings)"; then
+    if ! fetch_cluster_bindings; then
       err "Could not verify binding cleanup (attempt ${attempt}/${max_attempts})"
       sleep "$sleep_seconds"
       continue
     fi
     for id in "${DELETED_BINDING_IDS[@]}"; do
-      if jq -e --arg id "$id" '.data[]? | select(.id == $id)' <<<"$json" >/dev/null; then
+      if jq -e --arg id "$id" '.data[]? | select(.id == $id)' <<<"$CLUSTER_BINDINGS_JSON" >/dev/null; then
         log "Binding ${id} still present (attempt ${attempt}/${max_attempts}) ..."
         sleep "$sleep_seconds"
         continue 2
@@ -391,8 +403,8 @@ update_group_binding() {
 }
 
 remove_misbound_user_bindings() {
-  local json id principal
-  if ! json="$(fetch_cluster_bindings)"; then
+  local id principal
+  if ! fetch_cluster_bindings; then
     err "Could not list bindings while checking for misbound user entries"
     return 1
   fi
@@ -405,18 +417,18 @@ remove_misbound_user_bindings() {
       select((.userPrincipalId // "") != "") |
       select((.groupPrincipalId // "") == "") |
       select(
-        (.userPrincipalId // "") | endswith("/" + $name) or endswith("://" + $name) or endswith($name)
+        (.userPrincipalId // "") | endswith("/" + $name) or endswith("://" + $name)
       ) |
       [.id, .userPrincipalId] |
       @tsv
     ] | .[]
-  ' <<<"$json")
+  ' <<<"$CLUSTER_BINDINGS_JSON")
 }
 
 reconcile_stale_group_bindings() {
-  local target="$1" json id name principal role
+  local target="$1" id name principal role
   [[ -n "$GROUP_NAME" ]] || return 0
-  if ! json="$(fetch_cluster_bindings)"; then
+  if ! fetch_cluster_bindings; then
     err "Could not list bindings while reconciling stale group entries"
     return 1
   fi
@@ -446,12 +458,12 @@ reconcile_stale_group_bindings() {
       [.id, .name, .groupPrincipalId, .roleTemplateId] |
       @tsv
     ] | .[]
-  ' <<<"$json")
+  ' <<<"$CLUSTER_BINDINGS_JSON")
 }
 
 remove_stale_role_bindings() {
-  local target="$1" json id role
-  if ! json="$(fetch_cluster_bindings)"; then
+  local target="$1" id role
+  if ! fetch_cluster_bindings; then
     err "Could not list bindings while checking for stale role entries"
     return 1
   fi
@@ -466,24 +478,24 @@ remove_stale_role_bindings() {
       [.id, .roleTemplateId] |
       @tsv
     ] | .[]
-  ' <<<"$json")
+  ' <<<"$CLUSTER_BINDINGS_JSON")
 }
 
 binding_exists() {
-  local principal="$1" json
-  if ! json="$(fetch_cluster_bindings)"; then
-    die "Failed to list cluster role template bindings"
+  local principal="$1"
+  if ! fetch_cluster_bindings; then
+    err "Failed to list cluster role template bindings for existence check"
+    return 1
   fi
   jq -e --arg gid "$principal" --arg role "$ROLE_TEMPLATE_ID" '
     (.data // [])[] |
     select((.groupPrincipalId // "") == $gid and (.roleTemplateId // "") == $role)
-  ' <<<"$json" >/dev/null
+  ' <<<"$CLUSTER_BINDINGS_JSON" >/dev/null
 }
 
 list_cluster_bindings() {
-  local json
-  if ! json="$(fetch_cluster_bindings)"; then
-    die "Failed to list cluster role template bindings"
+  if ! fetch_cluster_bindings; then
+    return 1
   fi
   jq '[.data[]? | {
     id,
@@ -492,12 +504,16 @@ list_cluster_bindings() {
     groupPrincipalId,
     userPrincipalId,
     userId
-  }]' <<<"$json"
+  }]' <<<"$CLUSTER_BINDINGS_JSON"
 }
 
 log_cluster_bindings() {
   log "Current clusterRoleTemplateBindings on ${CLUSTER_ID}:"
-  list_cluster_bindings | jq -c '.[]' >&2 || true
+  if fetch_cluster_bindings; then
+    jq -c '.data[]?' <<<"$CLUSTER_BINDINGS_JSON" >&2 || true
+  else
+    err "Could not refresh binding list for logging (non-fatal)"
+  fi
 }
 
 create_binding() {
@@ -532,6 +548,11 @@ create_binding() {
       return 2
     fi
     if [[ "${LAST_HTTP_STATUS:-}" == "409" ]]; then
+      invalidate_bindings_cache
+      if binding_exists "$principal"; then
+        log "Binding already exists after 409 conflict (skipping)"
+        return 0
+      fi
       BINDING_NAME="crtb-$(slugify "$binding_label")-$(slugify "$ROLE_TEMPLATE_ID")-$(unique_binding_suffix)"
       log "Binding name conflict (attempt ${attempt}/${max_attempts}); retrying as '${BINDING_NAME}' ..."
       sleep 1
@@ -810,16 +831,15 @@ resolve_grants_json() {
     return 0
   fi
 
-  if [[ "$GRANTS_MODE" == "replace" && -n "${RANCHER_ACCESS_GRANTS:-}" ]]; then
-    validate_grants_array "RANCHER_ACCESS_GRANTS" "$RANCHER_ACCESS_GRANTS"
-    batch_log "Using RANCHER_ACCESS_GRANTS (replace mode)"
-    printf '%s' "$RANCHER_ACCESS_GRANTS"
-    return 0
-  fi
-
   local base env_patch devops_patch merged workflow_patch
   base="$(load_base_grants)"
-  env_patch="${RANCHER_ACCESS_GRANTS:-[]}"
+  if [[ "$GRANTS_MODE" == "replace" && -n "${RANCHER_ACCESS_GRANTS:-}" ]]; then
+    validate_grants_array "RANCHER_ACCESS_GRANTS" "$RANCHER_ACCESS_GRANTS"
+    env_patch="${RANCHER_ACCESS_GRANTS}"
+    batch_log "RANCHER_ACCESS_GRANTS replace mode: env patch overrides base per group; catalog + DEVOPS + workflow patches still apply"
+  else
+    env_patch="${RANCHER_ACCESS_GRANTS:-[]}"
+  fi
   devops_patch="$(build_devops_patch)"
   workflow_patch="$(build_workflow_rancher_patch)"
 
@@ -836,7 +856,11 @@ resolve_grants_json() {
     batch_log "Applied workflow_dispatch patch (Actions UI selections)"
   fi
   if [[ -n "${RANCHER_ACCESS_GRANTS:-}" ]]; then
-    batch_log "Merged RANCHER_ACCESS_GRANTS patch onto base file"
+    if [[ "$GRANTS_MODE" == "replace" ]]; then
+      batch_log "Applied RANCHER_ACCESS_GRANTS env patch (replace mode) onto base catalog"
+    else
+      batch_log "Merged RANCHER_ACCESS_GRANTS patch onto base file"
+    fi
   else
     batch_log "Using base grants from $GRANTS_FILE"
   fi
@@ -880,6 +904,10 @@ run_single_grant() {
     log "Binding already exists for group='${GROUP_PRINCIPAL_ID}' role='${ROLE_TEMPLATE_ID}' (skipping)"
     log_cluster_bindings
     return 0
+  elif [[ -n "$CLUSTER_BINDINGS_JSON" ]]; then
+    log "Binding not found in cached list; creating ..."
+  else
+    log "WARN: Could not list existing bindings; attempting create (idempotent if already present) ..."
   fi
 
   BINDING_NAME=""
@@ -919,6 +947,13 @@ run_batch_grants() {
 
   ensure_cluster_id
 
+  batch_log "Prefetching clusterRoleTemplateBindings (cached for all grants in this run) ..."
+  if fetch_cluster_bindings; then
+    batch_log "Cached $(jq -r '(.data // []) | length' <<<"$CLUSTER_BINDINGS_JSON") binding(s) for cluster ${CLUSTER_ID}"
+  else
+    batch_log "WARN: Initial bindings list failed; each grant will retry independently"
+  fi
+
   batch_log "Effective grant plan ($count enabled):"
   printf '%s' "$grants" | jq -r '.[] | "  - \(.group): \(.role) (enabled=\(.enabled // true))"'
 
@@ -955,6 +990,9 @@ run_batch_grants() {
     if ! run_single_grant; then
       err "Grant failed for group=$GROUP role=$ROLE"
       failures=$((failures + 1))
+    fi
+    if (( index < count )) && [[ "$BATCH_GRANT_SLEEP" =~ ^[0-9]+$ && "$BATCH_GRANT_SLEEP" -gt 0 ]]; then
+      sleep "$BATCH_GRANT_SLEEP"
     fi
   done < <(printf '%s' "$grants" | jq -c '.[]')
 
