@@ -59,7 +59,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  onboard:
+  wg-env:
     runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 20
     environment: ${{ inputs.ENV_NAME }}
