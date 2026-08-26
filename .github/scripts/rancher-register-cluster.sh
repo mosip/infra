@@ -114,7 +114,9 @@ if [[ "$APPLY_ON_HOST" == "true" ]]; then
 fi
 
 apply_import_on_host() {
-  local import_cmd="$1" phase attempt remote_cmd
+  local import_cmd="$1" phase attempt precheck remote_cmd
+  local pre_agent_polls="${PRE_AGENT_POLLS:-5}"
+  local pre_agent_sleep="${PRE_AGENT_SLEEP:-5}"
   ssh_cmd() {
     ssh -i "$SSH_KEY" \
       -o StrictHostKeyChecking=accept-new \
@@ -133,6 +135,23 @@ apply_import_on_host() {
 
   log "Applying Rancher import on ${SSH_HOST} ..."
   if remote_kubectl get namespace cattle-system >/dev/null 2>&1; then
+    phase="$(cattle_agent_phase)"
+    if [[ "$phase" == "Running" ]]; then
+      log "cattle-system exists and cattle-cluster-agent is Running — skipping import apply"
+      return 0
+    fi
+    for ((precheck = 1; precheck <= pre_agent_polls; precheck++)); do
+      phase="$(cattle_agent_phase)"
+      if [[ "$phase" == "Running" ]]; then
+        log "cattle-system exists and cattle-cluster-agent is Running — skipping import apply"
+        return 0
+      fi
+      if [[ -n "$phase" && "$phase" != "Pending" ]]; then
+        break
+      fi
+      log "cattle-cluster-agent not Running yet (phase=${phase:-missing}, precheck ${precheck}/${pre_agent_polls}) ..."
+      sleep "$pre_agent_sleep"
+    done
     phase="$(cattle_agent_phase)"
     if [[ "$phase" == "Running" ]]; then
       log "cattle-system exists and cattle-cluster-agent is Running — skipping import apply"
