@@ -425,7 +425,9 @@ jobs:
           trap - EXIT
 
       - name: Grant Rancher cluster access (multi-team)
+        id: rancher-grant
         if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.TERRAFORM_APPLY == true && inputs.ENABLE_RANCHER_IMPORT == true && steps.apply.outcome == 'success' }}
+        continue-on-error: true
         env:
           RANCHER_URL: ${{ secrets.RANCHER_API_URL }}
           RANCHER_TOKEN: ${{ secrets.RANCHER_API_TOKEN }}
@@ -466,7 +468,7 @@ jobs:
           "$GRANT_SCRIPT" "${ARGS[@]}"
 
       - name: Publish KUBECONFIG from Rancher
-        if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.TERRAFORM_APPLY == true && inputs.PUBLISH_KUBECONFIG == true && steps.apply.outcome == 'success' }}
+        if: ${{ always() && inputs.TERRAFORM_COMPONENT == 'infra' && inputs.TERRAFORM_APPLY == true && inputs.PUBLISH_KUBECONFIG == true && steps.apply.outcome == 'success' }}
         continue-on-error: true
         env:
           RANCHER_URL: ${{ secrets.RANCHER_API_URL }}
