@@ -3,9 +3,8 @@
 #
 # Keep Deployment/Service name `identity`. Recreate the old in-cluster names
 # (vid, credential, credentialrequest) as aliases of those pods, and keep the
-# old VirtualService names so every previous URL hits this one service.
-# Swagger UIs redirect to:
-#   /idrepository/v1/identity/swagger-ui/index.html
+# old VirtualService names so every previous API and Swagger URL is served
+# by this one service (no Swagger redirects).
 
 image:
   registry: docker.io
@@ -80,14 +79,6 @@ extraDeploy:
       gateways:
         - istio-system/internal
       http:
-        - name: swagger-to-identity
-          match:
-            - uri:
-                prefix: /idrepository/v1/swagger-ui
-            - uri:
-                prefix: /idrepository/v1/swagger-ui.html
-          redirect:
-            uri: /idrepository/v1/identity/swagger-ui/index.html
         - match:
             - uri:
                 prefix: /idrepository/v1
@@ -111,14 +102,6 @@ extraDeploy:
       gateways:
         - istio-system/internal
       http:
-        - name: swagger-to-identity
-          match:
-            - uri:
-                prefix: /v1/credentialservice/swagger-ui
-            - uri:
-                prefix: /v1/credentialservice/swagger-ui.html
-          redirect:
-            uri: /idrepository/v1/identity/swagger-ui/index.html
         - match:
             - uri:
                 prefix: /v1/credentialservice
@@ -142,14 +125,6 @@ extraDeploy:
       gateways:
         - istio-system/internal
       http:
-        - name: swagger-to-identity
-          match:
-            - uri:
-                prefix: /v1/credentialrequest/swagger-ui
-            - uri:
-                prefix: /v1/credentialrequest/swagger-ui.html
-          redirect:
-            uri: /idrepository/v1/identity/swagger-ui/index.html
         - match:
             - uri:
                 prefix: /v1/credentialrequest
