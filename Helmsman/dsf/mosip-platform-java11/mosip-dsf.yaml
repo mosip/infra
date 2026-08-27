@@ -492,62 +492,35 @@ apps:
     timeout: 1200
 
 
-  credential:
+  # Consolidated ID-Repository: replaces standalone credential, credentialrequest,
+  # identity, and vid Helm releases. Helmsman uninstalls those four when this
+  # DSF is applied. Identity is exposed as Service `id-repository`; all Swagger
+  # URLs on the main internal gateway are routed/redirected to identity Swagger.
+  id-repository:
     namespace: idrepo
     enabled: true
     version: 12.2.4
-    chart: mosip/credential
+    chart: mosip/idrepo
+    valuesFile: "$WORKDIR/utils/id-repository-values.yaml"
     set:
-      # image.repository: "mosipid/credential-service"
-      # image.tag: "1.2.2.2"
-      replicaCount: 2      
-      resources.limits.cpu: "500m"
-      resources.limits.memory: "3000Mi"
-      resources.requests.cpu: "200m"
-      resources.requests.memory: "2000Mi"
+      identity.replicaCount: 2
+      vid.replicaCount: 2
+      credential.replicaCount: 2
+      credential.resources.limits.cpu: "500m"
+      credential.resources.limits.memory: "3000Mi"
+      credential.resources.requests.cpu: "200m"
+      credential.resources.requests.memory: "2000Mi"
+      credentialrequest.replicaCount: 2
+      credentialrequest.resources.limits.cpu: "1"
+      credentialrequest.resources.limits.memory: "4000Mi"
+      credentialrequest.resources.requests.cpu: "1"
+      credentialrequest.resources.requests.memory: "3000Mi"
+    wait: true
     priority: -8
     timeout: 1200
-
-  credentialrequest:
-    namespace: idrepo
-    enabled: true
-    version: 12.2.4
-    chart: mosip/credentialrequest
-    set:
-      # image.repository: "mosipid/credential-request-generator"
-      # image.tag: "1.2.2.2"
-      replicaCount: 2      
-      resources.limits.cpu: "1"
-      resources.limits.memory: "4000Mi"
-      resources.requests.cpu: "1"
-      resources.requests.memory: "3000Mi"
-    priority: -7
-    timeout: 1200
-  
-
-  identity:
-    namespace: idrepo
-    enabled: true
-    version: 12.2.4
-    chart: mosip/identity
-    set:
-      replicaCount: 2    
-    #   image.repository: "mosipid/id-repository-identity-service"
-    #   image.tag: "1.2.2.2"
-    priority: -7
-    timeout: 1200
-
-  vid:
-    namespace: idrepo
-    enabled: true
-    version: 12.2.4
-    chart: mosip/vid
-    set:
-      replicaCount: 2    
-    #   image.repository: "mosipid/id-repository-vid-service"
-    #   image.tag: "1.2.2.2"
-    priority: -6
-    timeout: 1200
+    hooks:
+      preInstall: "$WORKDIR/hooks/wait-for-idrepojob.sh"
+      preUpgrade: "$WORKDIR/hooks/wait-for-idrepojob.sh"
 
   # pms-keycloak-init:
   #   namespace: pms

@@ -1,0 +1,169 @@
+# Consolidated ID-Repository Helm values for mosip/idrepo.
+# Replaces the four standalone Helmsman releases (credential, credentialrequest,
+# identity, vid) with a single Helm release named id-repository.
+#
+# - identity is the main service and is exposed as Kubernetes Service `id-repository`
+# - alias Services keep MOSIP in-cluster DNS (identity.idrepo, vid.idrepo, ...)
+# - all Swagger UI URLs on the main internal gateway redirect to identity Swagger
+
+saltgen:
+  enabled: false
+
+identity:
+  enabled: true
+  fullnameOverride: id-repository
+  istio:
+    enabled: true
+    gateway: istio-system/internal
+    prefix: /idrepository/v1/identity
+  extraDeploy:
+    # Alias Services so MOSIP config that still uses identity.idrepo / vid.idrepo /
+    # credential.idrepo / credentialrequest.idrepo continues to resolve.
+    - apiVersion: v1
+      kind: Service
+      metadata:
+        name: identity
+        namespace: '{{ .Release.Namespace }}'
+        labels:
+          app.kubernetes.io/instance: '{{ .Release.Name }}'
+          app.kubernetes.io/managed-by: '{{ .Release.Service }}'
+          app.kubernetes.io/name: identity
+          mosip.io/alias-of: id-repository
+      spec:
+        ports:
+          - name: http
+            port: 80
+            protocol: TCP
+            targetPort: 8090
+        selector:
+          app.kubernetes.io/instance: '{{ .Release.Name }}'
+          app.kubernetes.io/name: identity
+    - apiVersion: v1
+      kind: Service
+      metadata:
+        name: vid
+        namespace: '{{ .Release.Namespace }}'
+        labels:
+          app.kubernetes.io/instance: '{{ .Release.Name }}'
+          app.kubernetes.io/managed-by: '{{ .Release.Service }}'
+          app.kubernetes.io/name: vid
+          mosip.io/alias-of: '{{ .Release.Name }}-vid'
+      spec:
+        ports:
+          - name: http
+            port: 80
+            protocol: TCP
+            targetPort: 8091
+        selector:
+          app.kubernetes.io/instance: '{{ .Release.Name }}'
+          app.kubernetes.io/name: vid
+    - apiVersion: v1
+      kind: Service
+      metadata:
+        name: credential
+        namespace: '{{ .Release.Namespace }}'
+        labels:
+          app.kubernetes.io/instance: '{{ .Release.Name }}'
+          app.kubernetes.io/managed-by: '{{ .Release.Service }}'
+          app.kubernetes.io/name: credential
+          mosip.io/alias-of: '{{ .Release.Name }}-credential'
+      spec:
+        ports:
+          - name: http
+            port: 80
+            protocol: TCP
+            targetPort: 8095
+        selector:
+          app.kubernetes.io/instance: '{{ .Release.Name }}'
+          app.kubernetes.io/name: credential
+    - apiVersion: v1
+      kind: Service
+      metadata:
+        name: credentialrequest
+        namespace: '{{ .Release.Namespace }}'
+        labels:
+          app.kubernetes.io/instance: '{{ .Release.Name }}'
+          app.kubernetes.io/managed-by: '{{ .Release.Service }}'
+          app.kubernetes.io/name: credentialrequest
+          mosip.io/alias-of: '{{ .Release.Name }}-credentialrequest'
+      spec:
+        ports:
+          - name: http
+            port: 80
+            protocol: TCP
+            targetPort: 8094
+        selector:
+          app.kubernetes.io/instance: '{{ .Release.Name }}'
+          app.kubernetes.io/name: credentialrequest
+    # All ID-Repository Swagger URLs on the main internal gateway:
+    # redirect sibling swagger UIs to identity, and route identity swagger
+    # to the consolidated id-repository service.
+    - apiVersion: networking.istio.io/v1alpha3
+      kind: VirtualService
+      metadata:
+        name: id-repository-swagger
+        namespace: '{{ .Release.Namespace }}'
+        labels:
+          app.kubernetes.io/instance: '{{ .Release.Name }}'
+          app.kubernetes.io/managed-by: '{{ .Release.Service }}'
+          app.kubernetes.io/name: id-repository
+      spec:
+        hosts:
+          - "*"
+        gateways:
+          - istio-system/internal
+        http:
+          - name: redirect-sibling-swagger-to-identity
+            match:
+              - uri:
+                  prefix: /idrepository/v1/swagger-ui
+              - uri:
+                  prefix: /idrepository/v1/swagger-ui.html
+              - uri:
+                  prefix: /v1/credentialservice/swagger-ui
+              - uri:
+                  prefix: /v1/credentialservice/swagger-ui.html
+              - uri:
+                  prefix: /v1/credentialrequest/swagger-ui
+              - uri:
+                  prefix: /v1/credentialrequest/swagger-ui.html
+            redirect:
+              uri: /idrepository/v1/identity/swagger-ui/index.html
+          - name: identity-swagger
+            match:
+              - uri:
+                  prefix: /idrepository/v1/identity/swagger-ui
+              - uri:
+                  prefix: /idrepository/v1/identity/swagger-ui.html
+              - uri:
+                  prefix: /idrepository/v1/identity/v3/api-docs
+            route:
+              - destination:
+                  host: id-repository
+                  port:
+                    number: 80
+            headers:
+              request:
+                set:
+                  x-forwarded-proto: https
+
+credential:
+  enabled: true
+  istio:
+    enabled: true
+    gateway: istio-system/internal
+    prefix: /v1/credentialservice
+
+vid:
+  enabled: true
+  istio:
+    enabled: true
+    gateway: istio-system/internal
+    prefix: /idrepository/v1
+
+credentialrequest:
+  enabled: true
+  istio:
+    enabled: true
+    gateway: istio-system/internal
+    prefix: /v1/credentialrequest
