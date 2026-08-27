@@ -492,29 +492,18 @@ apps:
     timeout: 1200
 
 
-  # Consolidated ID-Repository: replaces standalone credential, credentialrequest,
-  # identity, and vid Helm releases. Helmsman uninstalls those four when this
-  # DSF is applied. Identity is exposed as Service `id-repository`; all Swagger
-  # URLs on the main internal gateway are routed/redirected to identity Swagger.
+  # Combined ID-Repository (nagendra0721/id-repository-service). Replaces the
+  # four standalone credential/credentialrequest/identity/vid releases. Existing
+  # VirtualServices keep their names but all route to Service id-repository;
+  # sibling Swagger URLs redirect to /idrepository/v1/identity/swagger-ui/index.html
   id-repository:
     namespace: idrepo
     enabled: true
     version: 12.2.4
-    chart: mosip/idrepo
+    chart: mosip/identity
     valuesFile: "$WORKDIR/utils/id-repository-values.yaml"
     set:
-      identity.replicaCount: 2
-      vid.replicaCount: 2
-      credential.replicaCount: 2
-      credential.resources.limits.cpu: "500m"
-      credential.resources.limits.memory: "3000Mi"
-      credential.resources.requests.cpu: "200m"
-      credential.resources.requests.memory: "2000Mi"
-      credentialrequest.replicaCount: 2
-      credentialrequest.resources.limits.cpu: "1"
-      credentialrequest.resources.limits.memory: "4000Mi"
-      credentialrequest.resources.requests.cpu: "1"
-      credentialrequest.resources.requests.memory: "3000Mi"
+      replicaCount: 2
     wait: true
     priority: -8
     timeout: 1200
