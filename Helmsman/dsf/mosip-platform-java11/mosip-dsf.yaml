@@ -492,11 +492,11 @@ apps:
     timeout: 1200
 
 
-  # Combined ID-Repository (nagendra0721/id-repository-service). Replaces the
-  # four standalone credential/credentialrequest/identity/vid releases. Existing
-  # VirtualServices keep their names but all route to Service id-repository;
-  # sibling Swagger URLs redirect to /idrepository/v1/identity/swagger-ui/index.html
-  id-repository:
+  # Combined ID-Repository image on the existing identity release. The old
+  # credential/credentialrequest/vid Helm releases are removed; those Service
+  # and VirtualService names are recreated as aliases of identity so every
+  # previous URL hits nagendra0721/id-repository-service.
+  identity:
     namespace: idrepo
     enabled: true
     version: 12.2.4
