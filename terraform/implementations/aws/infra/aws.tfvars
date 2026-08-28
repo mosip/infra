@@ -74,7 +74,7 @@ rancher_import_url    = "\"<rancher-import-url>\""
 
 # DNS Records to map
 subdomain_public   = ["resident", "prereg", "esignet", "healthservices", "signup"]
-subdomain_internal = ["admin", "iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio", "regclient", "compliance"]
+subdomain_internal = ["admin", "iam", "activemq", "kafka", "kibana", "grafana", "postgres", "smtp", "pmp", "minio", "regclient", "compliance"]
 
 # PostgreSQL Configuration (used when second EBS volume is enabled)
 enable_postgresql_setup = true # Enable PostgreSQL setup for main infra

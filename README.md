@@ -699,7 +699,7 @@ This step creates MOSIP Kubernetes cluster, PostgreSQL (if enabled), networking,
  rancher_import_url = "\"kubectl apply -f https://rancher.mosip.net/v3/import/dzshvnb6br7qtf267zsrr9xsw6tnb2vt4x68g79r2wzsnfgvkjq2jk_c-m-b5249w76.yaml\""
  # DNS Records to map
  subdomain_public = ["resident", "prereg", "esignet", "healthservices", "signup"]
- subdomain_internal = ["admin", "iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio", "regclient", "compliance"]
+ subdomain_internal = ["admin", "iam", "activemq", "kafka", "kibana", "grafana", "postgres", "smtp", "pmp", "minio", "regclient", "compliance"]
 
  # PostgreSQL Configuration (used when second EBS volume is enabled)
  enable_postgresql_setup = true # Enable PostgreSQL setup for main infra

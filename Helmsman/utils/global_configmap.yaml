@@ -20,6 +20,7 @@ data:
   mosip-prereg-host: prereg.${ENV}
   mosip-activemq-host: activemq.${ENV}
   mosip-kibana-host: kibana.${ENV}
+  mosip-grafana-host: grafana.${ENV}
   mosip-admin-host: admin.${ENV}
   mosip-regclient-host: regclient.${ENV}
   mosip-minio-host: minio.${ENV}

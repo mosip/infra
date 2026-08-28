@@ -1,0 +1,3 @@
+grafanaHost: grafana.sandbox.xyz.net
+installName: rancher-monitoring-grafana
+grafanaPort: 80
