@@ -921,55 +921,24 @@ apps:
     timeout: 1200
     priority: -9
 
+  # Combined ID-Authentication image on the existing ida-auth release.
+  # Branch develop-1764 merges partner auth, internal auth, and OTP into
+  # mosipdev/authentication-service. The old ida-internal and ida-otp Helm
+  # releases are removed; those Service and VirtualService names are recreated
+  # as aliases of ida-auth so previous URLs still hit this one service.
+  # ida-keygen is unchanged.
   ida-auth:
     namespace: ida
     enabled: true
     version: 1.3.1-rc.1
     chart: mosip/ida-auth
-    set:
-      # image.repository: "mosipdev/authentication-service"
-      # image.tag: "release-1.3.x"
-      # enable_insecure: "false"
-      # persistence.enabled: "false"
-      # volumePermissions.enabled: "false"
-      # persistence.mountDir: "<volume_mount_path>"
-      # persistence.existingClaim: "<PVC_CLAIM_NAME>"
+    valuesFile: "$WORKDIR/utils/ida-auth-values.yaml"
+    wait: true
     timeout: 1200
     priority: -8
     hooks:
       preInstall: "$WORKDIR/hooks/wait-for-idajob.sh"
-
-  ida-internal:
-    namespace: ida
-    enabled: true
-    version: 1.3.1-rc.1
-    chart: mosip/ida-internal
-    # set:
-      # image.repository: "mosipdev/authentication-internal-service"
-      # image.tag: "release-1.3.x"
-      # enable_insecure: "false"
-      # persistence.enabled: "false"
-      # volumePermissions.enabled: "false"
-      # persistence.mountDir: "<volume_mount_path>"
-      # persistence.existingClaim: "<PVC_CLAIM_NAME>"
-    timeout: 1200
-    priority: -7
-
-  ida-otp:
-    namespace: ida
-    enabled: true
-    version: 1.3.1-rc.1
-    chart: mosip/ida-otp
-    # set:
-    #   image.repository: "mosipdev/authentication-otp-service"
-    #   image.tag: "release-1.3.x"
-      # enable_insecure: false
-      # persistence.enabled: false
-      # volumePermissions.enabled: false
-      # persistence.mountDir: "<volume_mount_path>"
-      # persistence.existingClaim: "<PVC_CLAIM_NAME>"
-    timeout: 1200
-    priority: -6
+      preUpgrade: "$WORKDIR/hooks/wait-for-idajob.sh"
 
   print-service:
     namespace: print

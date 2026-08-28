@@ -1,0 +1,142 @@
+# Combined ID-Authentication on the existing ida-auth release.
+# Image: mosipdev/authentication-service:develop-1764
+# (partner auth + internal auth + OTP, merged from the former
+# authentication-internal-service and authentication-otp-service).
+#
+# Keep Deployment/Service name `ida-auth`. Recreate the old in-cluster names
+# (ida-internal, ida-otp) as aliases of those pods, and keep the old
+# VirtualService names so previous API and Swagger URLs are served by this
+# one service. ida-keygen is unchanged.
+
+image:
+  registry: docker.io
+  repository: mosipdev/authentication-service
+  tag: develop-1764
+  pullPolicy: Always
+
+springServicePort: 8090
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 5000Mi
+  requests:
+    cpu: 1000m
+    memory: 3000Mi
+
+additionalResources:
+  javaOpts: >-
+    -XX:+UseZGC -XX:+ZGenerational -XX:+ZUncommit -XX:+ZProactive -XX:ZUncommitDelay=60 -Xms1600m -Xmx3250m -XX:SoftMaxHeapSize=2800m -XX:+UseContainerSupport -XX:MaxMetaspaceSize=256m -XX:MetaspaceSize=76m -XX:ReservedCodeCacheSize=114m -XX:InitialCodeCacheSize=28m -XX:+UseCodeCacheFlushing -XX:+HeapDumpOnOutOfMemoryError
+
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /idauthentication/v1/actuator/health
+    port: 8090
+  failureThreshold: 30
+
+istio:
+  enabled: true
+  gateways:
+    - istio-system/public
+    - istio-system/internal
+  match:
+    - uri:
+        prefix: /idauthentication/v1/auth
+    - uri:
+        prefix: /idauthentication/v1/kyc
+    - uri:
+        prefix: /idauthentication/v1/otp
+    - uri:
+        prefix: /idauthentication/v1/internal
+    - uri:
+        prefix: /idauthentication/v1/swagger-ui
+    - uri:
+        prefix: /idauthentication/v1/v3/api-docs
+    - uri:
+        prefix: /idauthentication/v1/actuator
+    - uri:
+        prefix: /idauthentication/v1/identity-key-binding
+    - uri:
+        prefix: /idauthentication/v1/vci-exchange
+
+extraDeploy:
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: ida-internal
+      namespace: '{{ .Release.Namespace }}'
+      labels:
+        mosip.io/alias-of: ida-auth
+    spec:
+      selector:
+        app.kubernetes.io/instance: '{{ .Release.Name }}'
+        app.kubernetes.io/name: ida-auth
+      ports:
+        - name: http
+          port: 80
+          protocol: TCP
+          targetPort: 8090
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: ida-otp
+      namespace: '{{ .Release.Namespace }}'
+      labels:
+        mosip.io/alias-of: ida-auth
+    spec:
+      selector:
+        app.kubernetes.io/instance: '{{ .Release.Name }}'
+        app.kubernetes.io/name: ida-auth
+      ports:
+        - name: http
+          port: 80
+          protocol: TCP
+          targetPort: 8090
+  - apiVersion: networking.istio.io/v1alpha3
+    kind: VirtualService
+    metadata:
+      name: ida-internal
+      namespace: '{{ .Release.Namespace }}'
+    spec:
+      hosts:
+        - "*"
+      gateways:
+        - istio-system/internal
+      http:
+        - match:
+            - uri:
+                prefix: /idauthentication/v1/internal
+          route:
+            - destination:
+                host: ida-auth
+                port:
+                  number: 80
+          headers:
+            request:
+              set:
+                x-forwarded-proto: https
+  - apiVersion: networking.istio.io/v1alpha3
+    kind: VirtualService
+    metadata:
+      name: ida-otp
+      namespace: '{{ .Release.Namespace }}'
+    spec:
+      hosts:
+        - "*"
+      gateways:
+        - istio-system/internal
+        - istio-system/public
+      http:
+        - match:
+            - uri:
+                prefix: /idauthentication/v1/otp
+          route:
+            - destination:
+                host: ida-auth
+                port:
+                  number: 80
+          headers:
+            request:
+              set:
+                x-forwarded-proto: https
