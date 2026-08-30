@@ -370,7 +370,7 @@ grafana:
       type: loki
       uid: loki
       access: proxy
-      url: http://loki-gateway.loki-monitoring.svc.cluster.local
+      url: http://loki.loki-monitoring.svc.cluster.local:3100
       isDefault: true
       editable: true
       jsonData:

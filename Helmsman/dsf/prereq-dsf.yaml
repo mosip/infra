@@ -58,7 +58,7 @@ apps:
     chart: $WORKDIR/utils/istio-addons/grafana-istio-addons-0.1.0.tgz
     set:
       grafanaHost: "grafana.sandbox.xyz.net"
-      installName: "rancher-monitoring-grafana.cattle-monitoring-system.svc.cluster.local"
+      installName: "grafana.loki-monitoring.svc.cluster.local"
     wait: true
     priority: -4
 

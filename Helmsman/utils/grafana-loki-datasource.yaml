@@ -3,8 +3,6 @@
 # Confirm the Loki URL first:
 #   kubectl get svc -n loki-monitoring
 # Typical URLs:
-#   http://loki-gateway.loki-monitoring.svc.cluster.local
-#   http://loki-monitoring-gateway.loki-monitoring.svc.cluster.local
 #   http://loki.loki-monitoring.svc.cluster.local:3100
 apiVersion: v1
 kind: ConfigMap
@@ -21,7 +19,7 @@ data:
         type: loki
         uid: loki
         access: proxy
-        url: http://loki-gateway.loki-monitoring.svc.cluster.local
+        url: http://loki.loki-monitoring.svc.cluster.local:3100
         isDefault: true
         editable: true
         jsonData:

@@ -1,6 +1,6 @@
 grafanaHost: grafana.sandbox.xyz.net
-# FQDN so this chart can be installed in istio-system
-installName: rancher-monitoring-grafana.cattle-monitoring-system.svc.cluster.local
+# Loki stack Grafana (not rancher-monitoring Grafana)
+installName: grafana.loki-monitoring.svc.cluster.local
 grafanaPort: 80
 gateways:
   internal:
