@@ -365,7 +365,20 @@ global:
   seLinux:
     enabled: false
 grafana:
-  additionalDataSources: []
+  additionalDataSources:
+    - name: Loki
+      type: loki
+      uid: loki
+      access: proxy
+      url: http://loki-gateway.loki-monitoring.svc.cluster.local
+      isDefault: true
+      editable: true
+      jsonData:
+        maxLines: 1000
+        timeout: 60
+        httpHeaderName1: X-Scope-OrgID
+      secureJsonData:
+        httpHeaderValue1: fake
   adminPassword: prom-operator
   defaultDashboards:
     cleanupOnUninstall: false
@@ -428,6 +441,7 @@ grafana:
       allow_embedding: true
     users:
       auto_assign_org_role: Viewer
+      home_page: /explore
   ingress:
     annotations: {}
     enabled: false
@@ -483,7 +497,7 @@ grafana:
       enabled: true
       exemplarTraceIdDestinations: {}
       httpMethod: POST
-      isDefaultDatasource: true
+      isDefaultDatasource: false
       label: grafana_datasource
       labelValue: '1'
       uid: prometheus

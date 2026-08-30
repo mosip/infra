@@ -1,0 +1,32 @@
+# Sidecar-discovered Loki datasource for rancher-monitoring Grafana.
+# Apply: kubectl apply -f Helmsman/utils/grafana-loki-datasource.yaml
+# Confirm the Loki URL first:
+#   kubectl get svc -n loki-monitoring
+# Typical URLs:
+#   http://loki-gateway.loki-monitoring.svc.cluster.local
+#   http://loki-monitoring-gateway.loki-monitoring.svc.cluster.local
+#   http://loki.loki-monitoring.svc.cluster.local:3100
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-loki-datasource
+  namespace: cattle-monitoring-system
+  labels:
+    grafana_datasource: "1"
+data:
+  loki-datasource.yaml: |-
+    apiVersion: 1
+    datasources:
+      - name: Loki
+        type: loki
+        uid: loki
+        access: proxy
+        url: http://loki-gateway.loki-monitoring.svc.cluster.local
+        isDefault: true
+        editable: true
+        jsonData:
+          maxLines: 1000
+          timeout: 60
+          httpHeaderName1: X-Scope-OrgID
+        secureJsonData:
+          httpHeaderValue1: fake
