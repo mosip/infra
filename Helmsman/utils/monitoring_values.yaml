@@ -412,6 +412,9 @@ grafana:
   forceDeployDashboards: false
   forceDeployDatasources: false
   grafana.ini:
+    server:
+      root_url: https://grafana.sandbox.xyz.net/
+      serve_from_sub_path: false
     auth:
       disable_login_form: false
     auth.anonymous:

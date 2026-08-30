@@ -4,9 +4,14 @@ metadata:
   name: grafana
 spec:
   hosts:
-  - "*"
+  - {{ .Values.grafanaHost }}
   gateways:
+    {{- if .Values.gateways.internal.enabled }}
     - grafana
+    {{- end }}
+    {{- if .Values.gateways.public.enabled }}
+    - grafana-public
+    {{- end }}
   http:
   - route:
     - destination:

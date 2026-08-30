@@ -52,13 +52,13 @@ apps:
       postInstall: "$WORKDIR/hooks/alerting-setup.sh <slack-channel-name> <slack-api-url> <env-name>"
 
   istio-addons-grafana:
-    namespace: cattle-monitoring-system
+    namespace: istio-system
     enabled: true
     version: 0.1.0
     chart: $WORKDIR/utils/istio-addons/grafana-istio-addons-0.1.0.tgz
     set:
       grafanaHost: "grafana.sandbox.xyz.net"
-      installName: "rancher-monitoring-grafana"
+      installName: "rancher-monitoring-grafana.cattle-monitoring-system.svc.cluster.local"
     wait: true
     priority: -4
 

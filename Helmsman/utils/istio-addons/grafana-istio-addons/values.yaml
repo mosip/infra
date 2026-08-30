@@ -1,3 +1,11 @@
 grafanaHost: grafana.sandbox.xyz.net
-installName: rancher-monitoring-grafana
+# FQDN so this chart can be installed in istio-system
+installName: rancher-monitoring-grafana.cattle-monitoring-system.svc.cluster.local
 grafanaPort: 80
+gateways:
+  internal:
+    enabled: true
+    selector: ingressgateway-internal
+  public:
+    enabled: true
+    selector: ingressgateway

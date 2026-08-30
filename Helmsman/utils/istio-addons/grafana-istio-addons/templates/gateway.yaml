@@ -1,14 +1,34 @@
+{{- if .Values.gateways.internal.enabled }}
 apiVersion: networking.istio.io/v1alpha3
 kind: Gateway
 metadata:
   name: grafana
 spec:
   selector:
-    istio: ingressgateway-internal
+    istio: {{ .Values.gateways.internal.selector }}
   servers:
   - port:
       number: 80
-      name: grafana
+      # Must match the existing internal Gateway port name or Istio drops this server on merge
+      name: http
       protocol: HTTP
     hosts:
     - {{ .Values.grafanaHost }}
+{{- end }}
+{{- if .Values.gateways.public.enabled }}
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: grafana-public
+spec:
+  selector:
+    istio: {{ .Values.gateways.public.selector }}
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - {{ .Values.grafanaHost }}
+{{- end }}
