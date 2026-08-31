@@ -227,9 +227,11 @@ jobs:
           # Install istioctl
           curl -L https://istio.io/downloadIstio | ISTIO_VERSION=1.22.0 TARGET_ARCH=x86_64 sh -
           
-          # Setup kubeconfig
-          echo "$KUBECONFIG_CONTENT" > ${{ github.workspace }}/.kube/config
-          chmod 400 ${{ github.workspace }}/.kube/config
+          # Prefer terraform-generated kubeconfig (stays current after destroy/apply).
+          # Fall back to the KUBECONFIG environment secret if no repo file exists.
+          ${{ github.workspace }}/.github/scripts/resolve-kubeconfig.sh \
+            ${{ github.workspace }}/.kube/config \
+            ${{ github.workspace }}
           
           # Add tools to GitHub PATH for subsequent steps
           echo "${{ github.workspace }}/.local/bin" >> $GITHUB_PATH
@@ -274,7 +276,7 @@ jobs:
           sudo chmod 644 /lib/systemd/system/wg-quick@.service
           sudo systemctl daemon-reload
           sudo wg-quick up ${{ matrix.wg_conf }}
-          sudo wg show ${{ matrix.wg_conf }}
+          ${{ github.workspace }}/.github/scripts/wait-wireguard-handshake.sh ${{ matrix.wg_conf }} 60
 
       - name: Setup Helm
         run: |
@@ -301,18 +303,25 @@ jobs:
       
       - name: Verify cluster access
         run: |
-          # Verify tools are accessible
           echo "Verifying tool availability:"
           echo "kubectl path: $(which kubectl)"
           echo "istioctl path: $(which istioctl)"
           echo "KUBECONFIG: $KUBECONFIG"
-          
-          # Test kubectl functionality
+          API_SERVER=$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}' 2>/dev/null || echo "unknown")
+          echo "Kubernetes API server: $API_SERVER"
+
           kubectl version --client
-          kubectl get nodes
+          if ! kubectl get nodes; then
+            echo "❌ Cannot reach Kubernetes API at $API_SERVER"
+            echo "If infra was recently destroyed and recreated, this usually means a stale KUBECONFIG."
+            echo "Terraform writes the current kubeconfig to:"
+            echo "  terraform/implementations/<cloud>/infra/*-CONTROL-PLANE-NODE-1.yaml"
+            echo "Re-run terraform apply (it now syncs the KUBECONFIG environment secret),"
+            echo "or copy that file into the KUBECONFIG secret for environment '${{ github.ref_name }}'."
+            sudo wg show ${{ matrix.wg_conf }} || true
+            exit 1
+          fi
           kubectl cluster-info
-          
-          # Test istioctl functionality  
           istioctl version --remote=false
       - name: Check if external-dsf label is completed only for push
         if: github.event_name == 'push'

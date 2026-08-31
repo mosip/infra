@@ -91,9 +91,9 @@ jobs:
           # Install istioctl
           curl -L https://istio.io/downloadIstio | ISTIO_VERSION=1.22.0 TARGET_ARCH=x86_64 sh -
           
-          # Setup kubeconfig
-          echo "$KUBECONFIG_CONTENT" > ${{ github.workspace }}/.kube/config
-          chmod 400 ${{ github.workspace }}/.kube/config
+          ${{ github.workspace }}/.github/scripts/resolve-kubeconfig.sh \
+            ${{ github.workspace }}/.kube/config \
+            ${{ github.workspace }}
           echo "${{ github.workspace }}/.local/bin" >> $GITHUB_PATH
           echo "${{ github.workspace }}/istio-1.22.0/bin" >> $GITHUB_PATH
           echo "KUBECTL_PATH=${{ github.workspace }}/.local/bin/kubectl" >> $GITHUB_ENV
@@ -121,7 +121,7 @@ jobs:
           sudo chmod 700 /etc/wireguard/
           sudo systemctl daemon-reload || true
           sudo wg-quick up wg0 || true
-          sudo wg show wg0 || true
+          ${{ github.workspace }}/.github/scripts/wait-wireguard-handshake.sh wg0 60 || true
 
       - name: Setup Helm
         run: |

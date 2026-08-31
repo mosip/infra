@@ -359,6 +359,21 @@ jobs:
         if: "${{ inputs.TERRAFORM_APPLY  == true }}"
         continue-on-error: true
 
+      - name: Sync KUBECONFIG environment secret
+        if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.TERRAFORM_APPLY == true && steps.apply.outcome == 'success' }}
+        env:
+          GH_TOKEN: ${{ secrets.GH_INFRA_PAT }}
+          ENVIRONMENT: ${{ github.ref_name }}
+        continue-on-error: true
+        run: |
+          KUBE_FILE=$(ls -1 *CONTROL-PLANE-NODE-1.yaml 2>/dev/null | head -1 || true)
+          if [ -z "$KUBE_FILE" ]; then
+            echo "⚠️ No CONTROL-PLANE-NODE-1.yaml found after apply; skipping KUBECONFIG secret sync"
+            exit 0
+          fi
+          echo "Syncing KUBECONFIG secret from $KUBE_FILE"
+          ../../../../.github/scripts/sync-kubeconfig-secret.sh "$KUBE_FILE"
+
       - name: Add the Terraform plan file / *.tfstate files / terraform format changes
         run: |
           echo "Current working directory: $(pwd)"
