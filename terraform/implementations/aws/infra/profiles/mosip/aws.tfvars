@@ -96,7 +96,9 @@ mosip_infra_repo_url = "https://github.com/mosip/infra.git"
 mosip_infra_branch = "loki"
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
-vpc_name = "<vpc-name>"
+# Must match the VPC Name tag in AWS. Other MOSIP QA environments that use
+# network_cidr 172.0.0.0/8 (the AWS default VPC) set this to "default".
+vpc_name = "default"
 
 # ── ActiveMQ Configuration ─────────────────────────────────────────────────────
 # Set enable_activemq_setup = true AND nginx_node_ebs_volume_size_3 > 0 to

@@ -160,6 +160,11 @@ variable "zone_id" {
 variable "vpc_name" {
   description = "Name of the existing VPC (will be discovered by tag:Name)"
   type        = string
+
+  validation {
+    condition     = var.vpc_name != "" && !can(regex("^<.*>$", trimspace(var.vpc_name)))
+    error_message = "vpc_name must be the Name tag of an existing VPC (for example \"default\" or \"mosip-boxes\"), not a placeholder like <vpc-name>."
+  }
 }
 
 variable "nginx_node_root_volume_size" {
