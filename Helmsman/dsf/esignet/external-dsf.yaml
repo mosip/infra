@@ -55,7 +55,7 @@ apps:
   # generate-secret-cm.py or manual secret/configmap creation.
   postgres:
     namespace: postgres
-    enabled: true
+    enabled: false
     version: 13.1.5
     chart: bitnami/postgresql
     wait: true
@@ -68,7 +68,7 @@ apps:
 
   istio-addons-psql:
     namespace: postgres
-    enabled: true
+    enabled: false
     version: 0.1.0
     chart: $WORKDIR/utils/istio-addons/postgres-istio-addons-0.1.0.tgz
     set:
@@ -84,7 +84,7 @@ apps:
   # All other MOSIP databases are disabled since this is a standalone eSignet.
   postgres-init-esignet:
     namespace: esignet
-    enabled: true
+    enabled: false
     version: 12.0.1
     chart: mosip/postgres-init
     set:
@@ -131,7 +131,7 @@ apps:
   # ---------------------------------------------------------------------------
   redis:
     namespace: redis
-    enabled: true
+    enabled: false
     version: 17.3.14
     chart: bitnami/redis
     set:
@@ -149,7 +149,7 @@ apps:
   # ---------------------------------------------------------------------------
   kafka:
     namespace: kafka
-    enabled: true
+    enabled: false
     version: 18.3.1
     chart: bitnami/kafka
     set:
@@ -189,7 +189,7 @@ apps:
 
   kafka-ui:
     namespace: kafka
-    enabled: true
+    enabled: false
     version: 0.4.2
     chart: kafka-ui/kafka-ui
     set:
@@ -203,7 +203,7 @@ apps:
 
   istio-addons-kafka:
     namespace: kafka
-    enabled: true
+    enabled: false
     version: 1.2.0
     chart: $WORKDIR/utils/istio-addons/kafka-istio-addons-1.2.0.tgz
     set:
@@ -220,7 +220,7 @@ apps:
   # but for consistency with existing hooks, we keep it in softhsm namespace.
   softhsm-esignet:
     namespace: softhsm
-    enabled: true
+    enabled: false
     version: 12.0.1
     chart: mosip/softhsm
     valuesFile: "$WORKDIR/utils/softhsm-esignet-values.yaml"
@@ -237,7 +237,7 @@ apps:
   # API access control for eSignet client management APIs.
   keycloak:
     namespace: keycloak
-    enabled: true
+    enabled: false
     version: 7.1.18
     chart: mosip/keycloak
     set:
@@ -270,7 +270,7 @@ apps:
 
   istio-addons-iam:
     namespace: keycloak
-    enabled: true
+    enabled: false
     version: 0.1.0
     chart: $WORKDIR/utils/istio-addons/iam-istio-addons-0.1.0.tgz
     set:
@@ -288,7 +288,7 @@ apps:
   # ---------------------------------------------------------------------------
   captcha:
     namespace: captcha
-    enabled: true
+    enabled: false
     version: 0.1.0-beta.1
     chart: mosip/captcha
     set:
