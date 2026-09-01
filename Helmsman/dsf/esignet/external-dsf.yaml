@@ -88,7 +88,7 @@ apps:
     version: 12.0.1
     chart: mosip/postgres-init
     set:
-      dbUserPasswords.dbuserPassword: "$DB_USER_PASSWORD"
+      dbUserPasswords.dbuserPassword: ""
       # Disable all MOSIP platform databases
       databases.mosip_toolkit.enabled: "false"
       databases.mosip_master.enabled: "false"
