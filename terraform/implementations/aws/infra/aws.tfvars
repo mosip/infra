@@ -59,7 +59,7 @@ WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 enable_rancher_import = true
 rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/b7dlrzwdmh7rrhwhzvrdmd7b9srmzftdb5f858h4q6m9zmvpjcbqpp_c-m-kwhxmfmc.yaml\""
 # DNS Records to map
-subdomain_public   = ["esignet", "healthservices", "signup", "healthservices-mock", "esignet-mock", "signup-mock", "esignet-sunbird", "healthservices-mosipid", "esignet-mosipid", "pms-partner-cre", "pms-policy-cre", "signup-mosipid", "healthservices-mosipid-qabase", "esignet-mosipid-qabase", "pms-partner", "pms-policy", "signup-mosipid-qabase"]
+subdomain_public   = ["esignet", "healthservices", "signup", "healthservices-mock", "esignet-mock", "esignet-go-mock", "signup-mock", "esignet-sunbird", "healthservices-mosipid", "esignet-mosipid", "pms-partner-cre", "pms-policy-cre", "signup-mosipid", "healthservices-mosipid-qabase", "esignet-mosipid-qabase", "pms-partner", "pms-policy", "signup-mosipid-qabase"]
 subdomain_internal = ["iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio"]
 
 # PostgreSQL Configuration (used when second EBS volume is enabled)
