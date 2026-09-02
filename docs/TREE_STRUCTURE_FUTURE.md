@@ -8,6 +8,16 @@ Companion to `docs/TREE_STRUCTURE.md` (current, as-built state) and
 AGENTS.md's "Vision / roadmap" section, which this expands into a
 directory-level shape.
 
+## Current vs. future: what's different
+
+| | Current (as-built — `docs/TREE_STRUCTURE.md`) | Proposed (vision — this doc) |
+|---|---|---|
+| `aws-resource-creation` monolith (security groups, EC2, EBS, Route53, IAM) | Two parallel implementations exist today, same pattern as the Layer 3 row below: the legacy monolith (still the default path whenever `PROVISIONING_COMPONENT` is left `none`) *and* 5 independent Terraform roots, each its own state — `security` (#274), `compute` (#275, EC2), `storage` (#276, EBS), `dns` (#277, Route53), `iam`. `azure`/`gcp` have no split at all yet — still single monolithic modules. | `aws-resource-creation` retires once Layer 3 also has no legacy path left (see row below); `azure`/`gcp` gain the same 5-way split (no issue filed for this part yet) |
+| Layer 3 (nginx / rke2 / rancher-import / nfs / postgresql / activemq) | Two parallel implementations exist today: the legacy embedded Terraform provisioners (still the default path) *and* a newer top-level `ansible/<component>/` tree, wired up via a dedicated CI `configure` job | Legacy provisioners retired; `ansible/<component>/` becomes the only implementation, reused unchanged across every compute provider — Ansible runs over SSH and doesn't care who provisioned the host |
+| Domain / DNS | Cloud-native only (Route53 for AWS) | A `dns-providers/` abstraction — Route53 / Azure DNS / Cloud DNS / **GoDaddy** — selectable independently of compute provider (#353) |
+| Inventory generation (Terraform → Ansible handoff) | One path: CI reads Terraform outputs + `.tfvars`, renders `inventory.yml` | Two paths: the existing CI/Terraform-driven one (unchanged) **plus** a new standalone, env-var-driven script for cases with no Terraform involved at all (e.g. pre-racked data-center hosts) |
+| **New: data-center as a provisioning target** | *Doesn't exist.* `ansible/inventory.example.yml` covers configuring already-existing on-prem hosts, but there's no Terraform-equivalent that *provisions* a data center | A new `datacenter` compute-provisioning target, mirroring the `aws` layered split (#352) — this row has no "current" side, it's a net-new addition |
+
 ## What changes from current state
 
 1. **Layer 3 already has a working decoupled implementation — it just
