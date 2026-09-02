@@ -359,6 +359,19 @@ jobs:
             echo "TERRAFORM_DESTROY confirmed - proceeding with destruction"
           fi
 
+      - name: Prepare destroy env (disable Rancher import)
+        if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.TERRAFORM_DESTROY == true }}
+        run: |
+          # Refresh/plan/destroy re-evaluate module preconditions; Rancher import URL is
+          # only minted during apply and must not block teardown. Profile aws.tfvars may
+          # have enable_rancher_import=true (automatic or manual URL), so override it off.
+          RUNTIME_VARS_FILE="${RUNNER_TEMP}/rancher-runtime.tfvars"
+          "$GITHUB_WORKSPACE/.github/scripts/write-rancher-runtime-tfvars.sh" \
+            --out "$RUNTIME_VARS_FILE" \
+            --enable false
+          echo "RANCHER_RUNTIME_VARS_FILE=$RUNTIME_VARS_FILE" >> "$GITHUB_ENV"
+          echo "Rancher import disabled for destroy (runtime -var-file override)"
+
       - name: Terraform Init
         run: |
           # First try normal init
@@ -368,20 +381,20 @@ jobs:
           fi
 
       - name: Terraform refresh
-        run: terraform refresh -input=false -var-file="$TFVARS_FILE" -no-color
+        run: terraform refresh -input=false -var-file="$TFVARS_FILE" ${RANCHER_RUNTIME_VARS_FILE:+-var-file="$RANCHER_RUNTIME_VARS_FILE"} -no-color
         if: "${{ inputs.TERRAFORM_DESTROY  == true }}"
 
       - name: Terraform Destroy Plan
         id: destroy-plan
         run: |
           echo "Showing what will be destroyed..."
-          terraform plan -destroy -input=false -var-file="$TFVARS_FILE" -no-color
+          terraform plan -destroy -input=false -var-file="$TFVARS_FILE" ${RANCHER_RUNTIME_VARS_FILE:+-var-file="$RANCHER_RUNTIME_VARS_FILE"} -no-color
         if: "${{ inputs.TERRAFORM_DESTROY  == true }}"
         continue-on-error: true
 
       - name: Terraform Destroy
         id: destroy
-        run: terraform destroy -input=false -var-file="$TFVARS_FILE" -no-color -auto-approve
+        run: terraform destroy -input=false -var-file="$TFVARS_FILE" ${RANCHER_RUNTIME_VARS_FILE:+-var-file="$RANCHER_RUNTIME_VARS_FILE"} -no-color -auto-approve
         if: "${{ inputs.TERRAFORM_DESTROY  == true }}"
         continue-on-error: true
 
