@@ -763,9 +763,10 @@ apps:
       onboarding.secrets.s3.s3-user-secret: "${MINIO_ROOT_PASSWORD}"
       onboarding.configmaps.onboarder-namespace.ns_esignet: "esignet-mock"
       onboarding.variables.push_reports_to_s3: "true"
-      # Properties-driven model (replaces the old onboarding.variables.mosipid flag and
-      # inline-hardcoded business values, per mosip-onboarding@c801268f). Values match
-      # the reference partner-onboarder/values.yaml in mosip/esignet@release-2.0.x for the
+      onboarding.variables.mosipid: "false"
+      # Properties-driven model for inline-hardcoded business values, per
+      # mosip-onboarding@c801268f. Values match the reference
+      # partner-onboarder/values.yaml in mosip/esignet@release-2.0.x for the
       # esignet module (mosip-identity-plugin/MISP case), except EXTERNAL_URL, adapted to
       # this instance. PARTNER_MANAGER_USERNAME/PASSWORD are placeholders pending real
       # Keycloak credentials for this onboarding job.
