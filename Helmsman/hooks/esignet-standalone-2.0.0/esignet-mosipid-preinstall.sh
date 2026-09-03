@@ -37,11 +37,16 @@ kubectl -n "$ESIGNET_NS" create configmap esignet-global \
 kubectl -n "$ESIGNET_NS" patch configmap postgres-config --type merge \
   -p '{"data":{"database-name":"mosip_esignet_go_mosipid","database-username":"esignetuser_go_mosipid"}}'
 
-# Create esignet-misp-onboarder-key placeholder — real value written by MISP onboarder.
+# Create esignet-misp-onboarder-key with a random placeholder value — real value written
+# by MISP onboarder if/when that's wired up. An empty value makes the Go esignet service
+# Fatal on startup during plugin provider init, so this can't be left blank. Only generated
+# once (create-if-missing, not overwritten on every run) so the value stays stable across
+# redeploys - regenerating it on every run would be pointless churn since nothing else reads
+# or depends on this specific value being consistent.
 if ! kubectl -n "$ESIGNET_NS" get secret esignet-misp-onboarder-key &>/dev/null; then
   kubectl -n "$ESIGNET_NS" create secret generic esignet-misp-onboarder-key \
-    --from-literal=mosip-esignet-misp-key=""
-  echo "esignet-misp-onboarder-key placeholder created in $ESIGNET_NS"
+    --from-literal=mosip-esignet-misp-key="$(openssl rand -hex 16)"
+  echo "esignet-misp-onboarder-key (random placeholder) created in $ESIGNET_NS"
 fi
 
 echo "Creating esignet-captcha-mosipid secret in $CAPTCHA_NS namespace"
