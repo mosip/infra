@@ -754,6 +754,9 @@ apps:
     version: 0.0.1-develop
     chart: mosip/partner-onboarder
     set:
+      image.registry: "docker.io"
+      image.repository: "mosipdev/partner-onboarder"
+      image.tag: "develop"
       onboarding.modules[0].name: "esignet"
       onboarding.modules[0].enabled: "true"
       onboarding.configmaps.s3.s3-host: "http://minio.minio:9000"
@@ -808,8 +811,9 @@ apps:
     version: 0.0.1-develop
     chart: mosip/partner-onboarder
     set:
-      image.repository: "mosipid/partner-onboarder"
-      image.tag: "1.3.0-beta.1"
+      image.registry: "docker.io"
+      image.repository: "mosipdev/partner-onboarder"
+      image.tag: "develop"
       onboarding.modules[0].name: "mock-rp-oidc"
       onboarding.modules[0].enabled: "true"
       onboarding.configmaps.s3.s3-host: "http://minio.minio:9000"
