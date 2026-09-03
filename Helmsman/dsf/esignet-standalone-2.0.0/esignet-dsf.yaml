@@ -763,7 +763,21 @@ apps:
       onboarding.secrets.s3.s3-user-secret: "${MINIO_ROOT_PASSWORD}"
       onboarding.configmaps.onboarder-namespace.ns_esignet: "esignet-mock"
       onboarding.variables.push_reports_to_s3: "true"
-      onboarding.variables.mosipid: "false"
+      # Properties-driven model (replaces the old onboarding.variables.mosipid flag and
+      # inline-hardcoded business values, per mosip-onboarding@c801268f). Values match
+      # the reference partner-onboarder/values.yaml in mosip/esignet@release-2.0.x for the
+      # esignet module (mosip-identity-plugin/MISP case), except EXTERNAL_URL, adapted to
+      # this instance. PARTNER_MANAGER_USERNAME/PASSWORD are placeholders pending real
+      # Keycloak credentials for this onboarding job.
+      onboarding.propertiesOverride.esignet.POLICY_NAME: "mpolicy-default-esignet"
+      onboarding.propertiesOverride.esignet.POLICY_GROUP_NAME: "mpolicygroup-default-esignet"
+      onboarding.propertiesOverride.esignet.PARTNER_KC_USERNAME: "mpartner-default-esignet"
+      onboarding.propertiesOverride.esignet.PARTNER_ORGANIZATION_NAME: "IIITB"
+      onboarding.propertiesOverride.esignet.PARTNER_TYPE: "Misp_Partner"
+      onboarding.propertiesOverride.esignet.PARTNER_DOMAIN: "MISP"
+      onboarding.propertiesOverride.esignet.PARTNER_MANAGER_USERNAME: "esignet-kc-mockusername"
+      onboarding.propertiesOverride.esignet.PARTNER_MANAGER_PASSWORD: "esignet-kc-mockpassword"
+      onboarding.propertiesOverride.esignet.EXTERNAL_URL: "https://esignet-mosipid.${domain_name}"
       extraEnvVarsCM[0]: "keycloak-env-vars"
       extraEnvVarsCM[1]: "keycloak-host"
       extraEnvVarsSecret[0]: "keycloak"
