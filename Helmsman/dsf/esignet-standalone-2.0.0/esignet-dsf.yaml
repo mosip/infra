@@ -151,6 +151,7 @@ apps:
       extraEnvVars.MOSIP_IDA_CLIENT_SECRET.valueFrom.secretKeyRef.name: "keycloak-client-secrets"
       extraEnvVars.MOSIP_IDA_CLIENT_SECRET.valueFrom.secretKeyRef.key: "mosip_ida_client_secret"
       extraEnvVars.MOSIP_ESIGNET_AUTHN_PROVIDER: "mock"
+      extraEnvVars.MOSIP_ESIGNET_MOCK_DOMAIN_URL: "http://mock-identity-system.esignet-mock"
       extraEnvVars.NAMESPACE: "mock"
       extraEnvVars.KEYMANAGER_DB_SCHEMA: "esignet"
       persistence.enabled: "true"
