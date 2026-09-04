@@ -475,7 +475,7 @@ apps:
   mock-identity-system:
     namespace: esignet-mock
     enabled: true
-    version: 0.0.1-develop
+    version: 0.14.0-develop
     chart: mosip/mock-identity-system
     set:
       image.repository: "mosipqa/mock-identity-system"
@@ -530,7 +530,7 @@ apps:
   mock-relying-party-service:
     namespace: esignet-mock
     enabled: true
-    version: 0.0.1-develop
+    version: 0.14.0-develop
     chart: mosip/mock-relying-party-service
     set:
       image.repository: "mosipqa/mock-relying-party-service"
@@ -564,7 +564,7 @@ apps:
   mock-relying-party-service-mosipid:
     namespace: esignet-mosipid
     enabled: true
-    version: 0.0.1-develop
+    version: 0.14.0-develop
     chart: mosip/mock-relying-party-service
     set:
       image.repository: "mosipqa/mock-relying-party-service"
@@ -598,7 +598,7 @@ apps:
   mock-relying-party-service-sunbird:
     namespace: esignet-sunbird
     enabled: true
-    version: 0.0.1-develop
+    version: 0.14.0-develop
     chart: mosip/mock-relying-party-service
     set:
       image.repository: "mosipqa/mock-relying-party-service"
@@ -632,7 +632,7 @@ apps:
   mock-relying-party-ui:
     namespace: esignet-mock
     enabled: true
-    version: 0.0.1-develop
+    version: 0.14.0-develop
     chart: mosip/mock-relying-party-ui
     set:
       image.repository: "mosipqa/mock-relying-party-ui"
@@ -668,7 +668,7 @@ apps:
   mock-relying-party-ui-mosipid:
     namespace: esignet-mosipid
     enabled: true
-    version: 0.0.1-develop
+    version: 0.14.0-develop
     chart: mosip/mock-relying-party-ui
     set:
       image.repository: "mosipqa/mock-relying-party-ui"
@@ -704,7 +704,7 @@ apps:
   mock-relying-party-ui-sunbird:
     namespace: esignet-sunbird
     enabled: true
-    version: 0.0.1-develop
+    version: 0.14.0-develop
     chart: mosip/mock-relying-party-ui
     set:
       image.repository: "mosipqa/mock-relying-party-ui"
