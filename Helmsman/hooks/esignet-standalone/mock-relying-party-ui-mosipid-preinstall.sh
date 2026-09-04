@@ -1,16 +1,16 @@
 #!/bin/bash
 # =============================================================================
-# eSignet 1.7.1 - Mock Relying Party UI MOSIPID1 Pre-install
+# eSignet 1.7.1 - Mock Relying Party UI MOSIPID Pre-install
 # =============================================================================
-# Ensures esignet-mosipid1 namespace exists and verifies mock-relying-party-service
-# is available in the esignet-mosipid1 namespace before UI deployment.
+# Ensures esignet-mosipid namespace exists and verifies mock-relying-party-service
+# is available in the esignet-mosipid namespace before UI deployment.
 # =============================================================================
 set -euo pipefail
 
-ESIGNET_NS="esignet-mosipid1"
+ESIGNET_NS="esignet-mosipid"
 
 echo "================================================"
-echo "eSignet 1.7.1 - Mock Relying Party UI MOSIPID1 Pre-install"
+echo "eSignet 1.7.1 - Mock Relying Party UI MOSIPID Pre-install"
 echo "================================================"
 
 kubectl create namespace "$ESIGNET_NS" --dry-run=client -o yaml | kubectl apply -f -
@@ -21,4 +21,4 @@ else
   echo "WARNING: Mock relying party service not found in $ESIGNET_NS. UI depends on the service being deployed."
 fi
 
-echo "Mock relying party UI MOSIPID1 pre-install completed."
+echo "Mock relying party UI MOSIPID pre-install completed."

@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# eSignet 1.7.1 - Mock Relying Party Service Pre-install
+# eSignet Standalone 2.0.0 - Mock Relying Party Service Pre-install
 # =============================================================================
 # Creates K8s secrets for mock relying party private keys from GitHub Actions
 # environment secrets, then verifies the esignet service is running.
@@ -11,7 +11,7 @@
 # =============================================================================
 set -euo pipefail
 
-ESIGNET_NS="${ESIGNET_NS:-esignet-go-mock}"
+ESIGNET_NS="${ESIGNET_NS:-esignet-mock}"
 
 CLIENT_KEY_TMPFILE=""
 JWE_KEY_TMPFILE=""
@@ -25,7 +25,7 @@ cleanup_temp_files() {
 trap cleanup_temp_files EXIT INT TERM
 
 echo "================================================"
-echo "eSignet 1.7.1 - Mock Relying Party Service Pre-install"
+echo "eSignet Standalone 2.0.0 - Mock Relying Party Service Pre-install"
 echo "================================================"
 
 kubectl create namespace "$ESIGNET_NS" --dry-run=client -o yaml | kubectl apply -f -

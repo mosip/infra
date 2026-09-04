@@ -12,7 +12,7 @@
 # =============================================================================
 set -euo pipefail
 
-ESIGNET_NS="${ESIGNET_NS:-esignet-go-mock}"
+ESIGNET_NS="${ESIGNET_NS:-esignet-mock}"
 KEYCLOAK_NS="keycloak"
 COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
 
@@ -25,6 +25,14 @@ kubectl create namespace "$ESIGNET_NS" --dry-run=client -o yaml | kubectl apply 
 # Disable Istio sidecar injection — Job pods with sidecars never reach Completed state
 kubectl label namespace "$ESIGNET_NS" istio-injection=disabled --overwrite
 echo "Istio injection disabled on namespace $ESIGNET_NS."
+
+restore_istio_injection_on_failure() {
+  local status=$?
+  if [ "$status" -ne 0 ]; then
+    kubectl label namespace "$ESIGNET_NS" istio-injection=enabled --overwrite || true
+  fi
+}
+trap restore_istio_injection_on_failure EXIT
 
 # Delete stale MISP onboarder artifacts from any previous run
 kubectl -n "$ESIGNET_NS" delete configmap esignet-onboarder-config --ignore-not-found=true
