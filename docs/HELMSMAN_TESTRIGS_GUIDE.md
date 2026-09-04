@@ -14,11 +14,11 @@ Deploy API, UI, and DSL test rigs after all services are running and partner onb
 
 | Profile | What deploys | Namespaces |
 |---------|-------------|------------|
-| `esignet-standalone` | `esignet-apitestrig` into up to 4 namespaces; optional signup apitestrig + uitestrig | `esignet-mock`, `esignet-mosipid1`, `esignet-mosipid2` *(if enabled)*, `esignet-sunbird`, `signup` |
+| `esignet-standalone` | `esignet-apitestrig` into 3 namespaces; optional signup apitestrig + uitestrig | `esignet-mock`, `esignet-mosipid`, `esignet-sunbird`, `signup` |
 | `mosip-platform-1.2.0.x` | API testrig, UI testrig, DSL testrig | MOSIP testrig namespaces |
 | `mosip-platform-1.2.1.x` | Same as above | MOSIP testrig namespaces |
 
-> **eSignet standalone (`esignet-standalone` profile):** Requires `mosipid1_domain_name` for the MOSIP-ID1 apitestrig endpoint. `mosipid2_domain_name` is only required if mosipid2 was enabled during eSignet deployment (`enable_mosipid2: true`).
+> **eSignet standalone (`esignet-standalone` profile):** Requires `mosipid_domain_name` for the MOSIP-ID apitestrig endpoint.
 
 ---
 
@@ -74,10 +74,9 @@ No additional secrets required — MinIO root password is read automatically fro
 
 | Input | Description | Example |
 |-------|-------------|---------|
-| `mosipid1_domain_name` | Domain for the MOSIP-ID1 eSignet instance | `mosipid1.mosip.net` |
-| `mosipid2_domain_name` | Domain for the MOSIP-ID2 eSignet instance — only required if mosipid2 was enabled (`enable_mosipid2: true`) during eSignet deployment | `mosipid2.mosip.net` |
+| `mosipid_domain_name` | Domain for the MOSIP-ID eSignet instance | `mosipid.mosip.net` |
 
-> If not provided as inputs, values fall back to GitHub Environment Variables: `vars.MOSIPID1_DOMAIN_NAME` and `vars.MOSIPID2_DOMAIN_NAME`.
+> If not provided as an input, the value falls back to the GitHub Environment Variable `vars.MOSIPID_DOMAIN_NAME`.
 
 ---
 
@@ -92,16 +91,15 @@ No additional secrets required — MinIO root password is read automatically fro
 - **(4)** **Deployment profile to use** — pick the profile you want (e.g., `mosip-platform-1.2.0.x` or `esignet-standalone`).
 - **(5)** **Choose Helmsman mode: dry-run or apply** — always pick **`apply`**.
 - **(6)** **Domain name for this environment** — type the web domain this environment should use (e.g., `example.xyz.net`).
-- **(7)** **MOSIP-ID1 domain name** *(eSignet profile only)* — type the base domain used by the MOSIP-ID1 eSignet instance (e.g., `mosipid1.xyz.net`). Leave blank for MOSIP platform profiles.
-- **(8)** **QA base domain name** *(eSignet profile only)* — type the base domain used by the MOSIP-ID2 eSignet instance (e.g., `mosipid2.xyz.net`). Leave blank for MOSIP platform profiles.
-- **(9)** **PostgreSQL port for MOSIP platform external postgres** — only fill this in if you picked a `mosip-platform-*` profile in step 4. Type `5433` (or whatever port your external PostgreSQL uses).
-- **(10)** **PostgreSQL port for esignet standalone container postgres** — only fill this in if you picked the `esignet-standalone` profile in step 4. Type `5432`.
-- **(11)** **Environment name** — a short nickname for this environment (e.g., `sandbox`, `dev`, `staging`).
-- **(12)** **Slack channel name for alerting** (optional) — the Slack channel that should receive test result notifications (e.g., `#mosip-alerts`). Leave blank if you don't want Slack alerts.
-- **(13)** **Slack webhook URL for alerting** (optional) — leave this blank; it's normally already saved as the `SLACK_WEBHOOK_URL` secret in your GitHub environment.
-- **(14)** Click the green **Run workflow** button to start the deployment.
+- **(7)** **MOSIP-ID domain name** *(eSignet profile only)* — type the base domain used by the MOSIP-ID eSignet instance (e.g., `mosipid.xyz.net`). Leave blank for MOSIP platform profiles.
+- **(8)** **PostgreSQL port for MOSIP platform external postgres** — only fill this in if you picked a `mosip-platform-*` profile in step 4. Type `5433` (or whatever port your external PostgreSQL uses).
+- **(9)** **PostgreSQL port for esignet standalone container postgres** — only fill this in if you picked the `esignet-standalone` profile in step 4. Type `5432`.
+- **(10)** **Environment name** — a short nickname for this environment (e.g., `sandbox`, `dev`, `staging`).
+- **(11)** **Slack channel name for alerting** (optional) — the Slack channel that should receive test result notifications (e.g., `#mosip-alerts`). Leave blank if you don't want Slack alerts.
+- **(12)** **Slack webhook URL for alerting** (optional) — leave this blank; it's normally already saved as the `SLACK_WEBHOOK_URL` secret in your GitHub environment.
+- **(13)** Click the green **Run workflow** button to start the deployment.
 
-> **Note:** Steps 7–10 all appear in the form regardless of which profile you picked — fill in only the ones that match your profile (MOSIP-ID1/MOSIP-ID2 domains for `esignet-standalone`, PostgreSQL port for `mosip-platform-*`) and leave the rest blank.
+> **Note:** Steps 7–9 all appear in the form regardless of which profile you picked — fill in only the ones that match your profile (MOSIP-ID domain for `esignet-standalone`, PostgreSQL port for `mosip-platform-*`) and leave the rest blank.
 
 > **Important:** Always pass `--keep-untracked-releases` — without it Helmsman will delete releases from previous DSFs (esignet, oidc-ui, etc.) that aren't listed in `testrigs-dsf.yaml`. The workflow handles this automatically.
 
@@ -123,8 +121,7 @@ kubectl get cronjobs -n dslrig
 
 # For eSignet standalone
 kubectl get cronjobs -n esignet
-kubectl get cronjobs -n esignet-mosipid1
-kubectl get cronjobs -n esignet-mosipid2
+kubectl get cronjobs -n esignet-mosipid
 kubectl get cronjobs -n esignet-sunbird
 ```
 
@@ -141,7 +138,7 @@ kubectl create job --from=cronjob/cronjob-dslorchestrator-full dslrig-manual-run
 
 **3. Trigger eSignet test jobs (eSignet standalone profile)**
 
-The `trigger-test-jobs-esignet.sh` postInstall hook fires automatically after the last testrig deploys — it triggers all cronjobs across all 4 esignet namespaces sequentially and optionally signup/signup-uitestrig if deployed.
+The `trigger-test-jobs-esignet.sh` postInstall hook fires automatically after the last testrig deploys — it triggers all cronjobs across all 3 esignet namespaces sequentially and optionally signup/signup-uitestrig if deployed.
 
 To trigger manually:
 
@@ -163,8 +160,7 @@ kubectl get pods -n dslrig
 
 # Check testrig pods (eSignet standalone)
 kubectl get pods -n esignet      # esignet-apitestrig cronjob
-kubectl get pods -n esignet-mosipid1
-kubectl get pods -n esignet-mosipid2
+kubectl get pods -n esignet-mosipid
 kubectl get pods -n esignet-sunbird
 kubectl get pods -n signup       # signup-apitestrig (if enabled)
 ```
