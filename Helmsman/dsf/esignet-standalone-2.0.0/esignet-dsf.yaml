@@ -82,7 +82,7 @@ apps:
   esignet-mock:
     namespace: esignet-mock
     enabled: true
-    version: 2.0.0-develop
+    version: 2.0.0-beta.1
     chart: mosip/esignet
     set:
       image.repository: "mosipdev/esignet"
@@ -188,7 +188,7 @@ apps:
   esignet-mosipid:
     namespace: esignet-mosipid
     enabled: true
-    version: 2.0.0-develop
+    version: 2.0.0-beta.1
     chart: mosip/esignet
     set:
       image.repository: "mosipdev/esignet"
@@ -302,7 +302,7 @@ apps:
   esignet-sunbird:
     namespace: esignet-sunbird
     enabled: true
-    version: 2.0.0-develop
+    version: 2.0.0-beta.1
     chart: mosip/esignet
     set:
       image.repository: "mosipdev/esignet"
