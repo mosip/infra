@@ -765,7 +765,7 @@ apps:
       onboarding.configmaps.s3.s3-region: ""
       onboarding.configmaps.s3.s3-bucket-name: "onboarder"
       onboarding.secrets.s3.s3-user-secret: "${MINIO_ROOT_PASSWORD}"
-      onboarding.configmaps.onboarder-namespace.ns_esignet: "esignet-mock"
+      onboarding.configmaps.onboarder-namespace.ns_esignet: "esignet-mosipid"
       onboarding.variables.push_reports_to_s3: "true"
       onboarding.variables.mosipid: "true"
       # Properties-driven model for inline-hardcoded business values, per
