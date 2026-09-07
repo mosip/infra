@@ -750,7 +750,7 @@ apps:
   # Runs FIRST so the MISP license key is written before mock-rp-onboarder starts.
   # After completion, restarts the esignet deployment to pick up the new MISP license key.
   esignet-misp-onboarder:
-    namespace: esignet-mock
+    namespace: esignet-mosipid
     enabled: true
     version: 0.0.1-develop
     chart: mosip/partner-onboarder
