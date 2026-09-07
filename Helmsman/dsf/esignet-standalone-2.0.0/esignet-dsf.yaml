@@ -85,8 +85,8 @@ apps:
     version: 2.0.0-develop
     chart: mosip/esignet
     set:
-      image.repository: "mosipdev/esignet"
-      image.tag: "develop-go"
+      image.repository: "mosipqa/esignet"
+      image.tag: "2.0.x"
       enable_insecure: "false"
       springConfigNameEnv: ""
       activeProfileEnv: ""
@@ -192,8 +192,8 @@ apps:
     version: 2.0.0-develop
     chart: mosip/esignet
     set:
-      image.repository: "mosipdev/esignet"
-      image.tag: "develop-go"
+      image.repository: "mosipqa/esignet"
+      image.tag: "2.0.x"
       enable_insecure: "false"
       springConfigNameEnv: ""
       activeProfileEnv: ""
@@ -306,8 +306,8 @@ apps:
     version: 2.0.0-develop
     chart: mosip/esignet
     set:
-      image.repository: "mosipdev/esignet"
-      image.tag: "develop-go"
+      image.repository: "mosipqa/esignet"
+      image.tag: "2.0.x"
       enable_insecure: "false"
       springConfigNameEnv: ""
       activeProfileEnv: ""
@@ -751,7 +751,7 @@ apps:
   # After completion, restarts the esignet deployment to pick up the new MISP license key.
   esignet-misp-onboarder:
     namespace: esignet-mock
-    enabled: false
+    enabled: true
     version: 0.0.1-develop
     chart: mosip/partner-onboarder
     set:
@@ -767,7 +767,7 @@ apps:
       onboarding.secrets.s3.s3-user-secret: "${MINIO_ROOT_PASSWORD}"
       onboarding.configmaps.onboarder-namespace.ns_esignet: "esignet-mock"
       onboarding.variables.push_reports_to_s3: "true"
-      onboarding.variables.mosipid: "false"
+      onboarding.variables.mosipid: "true"
       # Properties-driven model for inline-hardcoded business values, per
       # mosip-onboarding@c801268f. Values match the reference
       # partner-onboarder/values.yaml in mosip/esignet@release-2.0.x for the
