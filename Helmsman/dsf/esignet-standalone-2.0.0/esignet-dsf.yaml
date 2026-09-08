@@ -106,6 +106,11 @@ apps:
       domainConfig.MOSIP_ESIGNET_HOST: "https://esignet.${domain_name}"
       domainConfig.MOSIP_SIGNUP_HOST: "https://signup.${domain_name}"
       domainConfig.MOSIP_ESIGNET_BASE_URL: "https://esignet.${domain_name}/v1/esignet"
+      # Single-quoted YAML + two literal backslashes before the dot: strvals (Helm's --set
+      # parser) consumes one backslash as its own escape character, leaving exactly one in
+      # the final value - a bare "\." here would be silently dropped, and an unescaped "."
+      # would match any character instead of a literal dot. Verified via helm template.
+      extraEnvVars.MOSIP_ESIGNET_CORS_ALLOWED_ORIGIN_REGEX: '^https?://[^./]+\\.${domain_name}$'
       # esignet-mock has no esignet-global configmap (only the mosipid/sunbird preinstall
       # hooks create their own per-namespace esignet-global) - these chart-default extraEnvVars
       # entries are tables (valueFrom.configMapKeyRef against esignet-global), so a plain
@@ -221,6 +226,11 @@ apps:
       domainConfig.MOSIP_SIGNUP_HOST: "https://signup-mosipid.${domain_name}"
       domainConfig.MOSIP_ESIGNET_BASE_URL: "https://esignet-mosipid.${domain_name}/v1/esignet"
       domainConfig.MOSIP_API_INTERNAL_HOST: "https://api-internal.${mosipid_domain_name}"
+      # Single-quoted YAML + two literal backslashes before the dot: strvals (Helm's --set
+      # parser) consumes one backslash as its own escape character, leaving exactly one in
+      # the final value - a bare "\." here would be silently dropped, and an unescaped "."
+      # would match any character instead of a literal dot. Verified via helm template.
+      extraEnvVars.MOSIP_ESIGNET_CORS_ALLOWED_ORIGIN_REGEX: '^https?://[^./]+\\.${domain_name}$'
       # Chart-default extraEnvVars.MOSIP_ESIGNET_HOST/MOSIP_SIGNUP_HOST/MOSIP_API_INTERNAL_HOST
       # are tables (valueFrom.configMapKeyRef against esignet-global). A plain string override
       # at the same key produces a "cannot overwrite table with non table" coalesce warning
@@ -330,6 +340,11 @@ apps:
       domainConfig.MOSIP_SIGNUP_HOST: "https://signup-sunbird.${domain_name}"
       domainConfig.MOSIP_ESIGNET_BASE_URL: "https://esignet-sunbird.${domain_name}/v1/esignet"
       domainConfig.MOSIP_API_INTERNAL_HOST: "https://api-internal.${domain_name}"
+      # Single-quoted YAML + two literal backslashes before the dot: strvals (Helm's --set
+      # parser) consumes one backslash as its own escape character, leaving exactly one in
+      # the final value - a bare "\." here would be silently dropped, and an unescaped "."
+      # would match any character instead of a literal dot. Verified via helm template.
+      extraEnvVars.MOSIP_ESIGNET_CORS_ALLOWED_ORIGIN_REGEX: '^https?://[^./]+\\.${domain_name}$'
       # Chart-default extraEnvVars.MOSIP_ESIGNET_HOST/MOSIP_SIGNUP_HOST/MOSIP_API_INTERNAL_HOST
       # are tables (valueFrom.configMapKeyRef against esignet-global). A plain string override
       # at the same key produces a "cannot overwrite table with non table" coalesce warning
