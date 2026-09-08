@@ -7,7 +7,12 @@
 #   - Deletes stale MISP onboarder artifacts from previous runs (idempotency)
 #   - Copies keycloak resources needed by the onboarder Job
 #   - Deletes onboarder-namespace ConfigMap so this release owns it cleanly
-#   - Waits for the esignet pod to be ready before the Job starts
+# Does NOT wait for the esignet pod to be ready: MISP onboarding writes a
+# license key that esignet then consumes on startup - it doesn't call
+# esignet's own API, so it doesn't need esignet up first. Waiting here would
+# deadlock when the pod can't become ready without the key this job provides
+# (empty MOSIP_ESIGNET_MISP_KEY makes esignet Fatal before /health ever
+# serves).
 # Only used with mosip-identity-plugin (plugin 2).
 # =============================================================================
 set -euo pipefail
@@ -46,9 +51,5 @@ $COPY_UTIL secret keycloak-client-secrets "$KEYCLOAK_NS" "$ESIGNET_NS"
 
 # Delete onboarder-namespace ConfigMap so this release owns it with the correct annotation
 kubectl -n "$ESIGNET_NS" delete configmap onboarder-namespace --ignore-not-found=true
-
-# Verify eSignet service is running before the onboarder Job starts
-kubectl -n "$ESIGNET_NS" wait --for=condition=ready pod -l app.kubernetes.io/name=esignet --timeout=480s || \
-  { echo "ERROR: eSignet pods not ready after timeout" >&2; exit 1; }
 
 echo "MISP onboarder pre-install completed."
