@@ -799,12 +799,16 @@ apps:
       onboarding.propertiesOverride.esignet.PARTNER_MANAGER_PASSWORD: "esignet-kc-mockpassword"
       onboarding.propertiesOverride.esignet.EXTERNAL_URL: "https://esignet-mosipid.${domain_name}"
       extraEnvVarsCM[0]: "keycloak-env-vars"
-      extraEnvVarsCM[1]: "keycloak-host"
-      extraEnvVarsSecret[0]: "keycloak"
-      extraEnvVarsSecret[1]: "keycloak-client-secrets"
-      domainConfig.mosip-api-internal-host: "api-internal.${domain_name}"
+      extraEnvVarsCM[1]: "keycloak-host-mosipid"
+      extraEnvVarsSecret[0]: "keycloak-mosipid"
+      extraEnvVarsSecret[1]: "keycloak-client-secrets-mosipid"
+      # mosip-esignet-host/mosip-api-internal-host are read by the onboarding script itself
+      # to derive EXTERNAL_URL/URL/AUTHMANAGER_URL/PMS_URL (confirmed via the chart's
+      # templates/jobs.yaml, which renders every domainConfig entry as a plain env var) -
+      # point them at esignet-mosipid's real values, not the generic/mock ones.
+      domainConfig.mosip-api-internal-host: "api-internal.${mosipid_domain_name}"
       domainConfig.mosip-api-host: "api.${domain_name}"
-      domainConfig.mosip-esignet-host: "esignet.${domain_name}"
+      domainConfig.mosip-esignet-host: "esignet-mosipid.${domain_name}"
       domainConfig.mosip-esignet-insurance-host: "esignet-insurance.${domain_name}"
       domainConfig.mosip-resident-host: "resident.${domain_name}"
       domainConfig.installation-domain: "${domain_name}"

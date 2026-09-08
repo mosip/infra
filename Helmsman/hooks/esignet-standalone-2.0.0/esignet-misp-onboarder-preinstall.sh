@@ -44,10 +44,16 @@ kubectl -n "$ESIGNET_NS" delete configmap esignet-onboarder-config --ignore-not-
 kubectl -n "$ESIGNET_NS" delete secret esignet-onboarder-secrets --ignore-not-found=true
 echo "Stale MISP onboarder artifacts cleaned up."
 
-# Copy keycloak resources needed by the onboarder Job
+# Copy keycloak resources needed by the onboarder Job. keycloak-env-vars is generic/
+# realm-agnostic (no per-instance equivalent exists anywhere in this DSF) so it always
+# comes from the shared keycloak namespace. The admin secret and client secrets are
+# skippable via SKIP_SHARED_KEYCLOAK_SECRETS for instances (like mosipid) that
+# authenticate against their own dedicated Keycloak instead.
 $COPY_UTIL configmap keycloak-env-vars "$KEYCLOAK_NS" "$ESIGNET_NS"
-$COPY_UTIL secret keycloak "$KEYCLOAK_NS" "$ESIGNET_NS"
-$COPY_UTIL secret keycloak-client-secrets "$KEYCLOAK_NS" "$ESIGNET_NS"
+if [ "${SKIP_SHARED_KEYCLOAK_SECRETS:-false}" != "true" ]; then
+  $COPY_UTIL secret keycloak "$KEYCLOAK_NS" "$ESIGNET_NS"
+  $COPY_UTIL secret keycloak-client-secrets "$KEYCLOAK_NS" "$ESIGNET_NS"
+fi
 
 # Delete onboarder-namespace ConfigMap so this release owns it with the correct annotation
 kubectl -n "$ESIGNET_NS" delete configmap onboarder-namespace --ignore-not-found=true
