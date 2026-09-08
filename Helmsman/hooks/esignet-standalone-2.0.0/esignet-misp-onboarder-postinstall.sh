@@ -9,6 +9,7 @@
 set -euo pipefail
 
 ESIGNET_NS="${ESIGNET_NS:-esignet-mock}"
+DEPLOYMENT_NAME="${DEPLOYMENT_NAME:-esignet-mock}"
 
 echo "================================================"
 echo "eSignet 1.7.1 - MISP Onboarder Post-install"
@@ -39,12 +40,12 @@ else
   echo "esignet-config-server deployment not found — skipping restart."
 fi
 
-if kubectl -n "$ESIGNET_NS" get deployment esignet-mock &>/dev/null; then
-  kubectl -n "$ESIGNET_NS" rollout restart deployment esignet-mock
-  kubectl -n "$ESIGNET_NS" rollout status deployment esignet-mock --timeout=300s
+if kubectl -n "$ESIGNET_NS" get deployment "$DEPLOYMENT_NAME" &>/dev/null; then
+  kubectl -n "$ESIGNET_NS" rollout restart deployment "$DEPLOYMENT_NAME"
+  kubectl -n "$ESIGNET_NS" rollout status deployment "$DEPLOYMENT_NAME" --timeout=300s
   echo "esignet deployment restarted."
 else
-  echo "esignet deployment not found — skipping restart."
+  echo "esignet deployment ($DEPLOYMENT_NAME) not found — skipping restart."
 fi
 
 echo "MISP onboarder post-install completed."

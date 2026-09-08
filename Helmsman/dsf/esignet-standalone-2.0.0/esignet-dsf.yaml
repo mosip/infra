@@ -813,10 +813,10 @@ apps:
     timeout: 600
     priority: -6
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-standalone-2.0.0/esignet-misp-onboarder-preinstall.sh"
-      preUpgrade: "$WORKDIR/hooks/esignet-standalone-2.0.0/esignet-misp-onboarder-preinstall.sh"
-      postInstall: "$WORKDIR/hooks/esignet-standalone-2.0.0/esignet-misp-onboarder-postinstall.sh"
-      postUpgrade: "$WORKDIR/hooks/esignet-standalone-2.0.0/esignet-misp-onboarder-postinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone-2.0.0/esignet-misp-onboarder-mosipid-preinstall.sh"
+      preUpgrade: "$WORKDIR/hooks/esignet-standalone-2.0.0/esignet-misp-onboarder-mosipid-preinstall.sh"
+      postInstall: "$WORKDIR/hooks/esignet-standalone-2.0.0/esignet-misp-onboarder-mosipid-postinstall.sh"
+      postUpgrade: "$WORKDIR/hooks/esignet-standalone-2.0.0/esignet-misp-onboarder-mosipid-postinstall.sh"
 
   # Mock RP OIDC Partner Onboarder
   # Onboards the mock relying party as an OIDC client.
