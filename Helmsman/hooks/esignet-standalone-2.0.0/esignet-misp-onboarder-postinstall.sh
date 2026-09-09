@@ -17,7 +17,7 @@ DEPLOYMENT_NAME="${DEPLOYMENT_NAME:-esignet-mock}"
 # failure while the job is still mid-flight - confirmed via a real run that showed
 # phase=Running/restartCount=0/lastState={} with newman only one request into its very
 # first folder. Poll until the job reaches a terminal state instead of checking once.
-ONBOARDER_JOB_WAIT_TIMEOUT="${ONBOARDER_JOB_WAIT_TIMEOUT:-600}"
+ONBOARDER_JOB_WAIT_TIMEOUT="${ONBOARDER_JOB_WAIT_TIMEOUT:-300}"
 ONBOARDER_JOB_POLL_INTERVAL=10
 
 echo "================================================"
