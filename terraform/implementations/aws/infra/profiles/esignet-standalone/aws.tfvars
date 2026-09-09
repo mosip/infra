@@ -7,22 +7,22 @@
 # ============================================================
 
 # Environment name (infra component)
-cluster_name = "esqa"
+cluster_name = "<name>"
 
 # eSignet's domain (ex: esignet.xyz.net)
-cluster_env_domain = "esqa.mosip.net"
+cluster_env_domain = "<sandbox.xyz.net>"
 
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
-mosip_email_id = "thisisbn46@gmail.com"
+mosip_email_id = "<mail-id>"
 
 # SSH login key name for AWS node instances (ex: my-ssh-key)
-ssh_key_name = "mosip-aws"
+ssh_key_name = "<ssh-key-name>"
 
 # The AWS region for resource creation
 aws_provider_region = "ap-south-1"
 
 # Specific availability zones for VM deployment (optional)
-specific_availability_zones = ["ap-south-1b"]
+specific_availability_zones = []
 
 # The instance type for Kubernetes nodes (control plane, worker, etcd)
 # Smaller instance type since eSignet standalone needs fewer resources
@@ -32,7 +32,7 @@ k8s_instance_type = "t3a.2xlarge"
 nginx_instance_type = "t3a.2xlarge"
 
 # The Route 53 hosted zone ID
-zone_id = "Z090954828SJIEL6P5406"
+zone_id = "<route53_zone_id>"
 
 ## UBUNTU 24.04
 # The Amazon Machine Image ID for the instances
@@ -63,7 +63,7 @@ k8s_control_plane_node_count = 1
 k8s_etcd_node_count = 1
 
 # Worker
-k8s_worker_node_count = 3
+k8s_worker_node_count = 2
 
 # RKE2 Version Configuration
 rke2_version = "v1.28.9+rke2r1"
@@ -74,14 +74,15 @@ WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 
 # Rancher Import Configuration
 enable_rancher_import = true
-rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/rmqc6znrt9q9wd8j7zdtkslk4fcrxlxh72wpk9jl5z2vpgkkm7tlkj_c-m-rrm8fbn6.yaml\""
+rancher_import_url    = "\"<rancher import url>\""
 
 # DNS Records to map — only eSignet-relevant subdomains
-# Includes hosts for both the esignet-standalone profile and the isolated
-# esignet-standalone-2.0.0 profile (suffixed "-go"), since both are deployed
-# side-by-side against this same cluster/domain.
+# Shared by both the esignet-standalone profile and the esignet-standalone-2.0.0
+# profile — both use identical hostnames (no "-go" suffix, single consolidated
+# mosipid instance instead of separate mosipid1/mosipid2), since only one of
+# the two profiles is ever live on a given cluster/domain at a time.
 
-subdomain_public   = ["esignet", "healthservices", "signup", "esignet-sunbird", "healthservices-sunbird", "healthservices-mosipid1", "esignet-mosipid1", "pms-mosipid1", "signup-mosipid1", "healthservices-mosipid2", "esignet-mosipid2", "pms-mosipid2", "signup-mosipid2", "esignet-go", "healthservices-go", "signup-go", "esignet-go-sunbird", "healthservices-go-sunbird", "healthservices-go-mosipid1", "esignet-go-mosipid1", "pms-go-mosipid1", "signup-go-mosipid1", "healthservices-go-mosipid2", "esignet-go-mosipid2", "pms-go-mosipid2", "signup-go-mosipid2"]
+subdomain_public   = ["esignet", "healthservices", "signup", "esignet-sunbird", "healthservices-sunbird", "healthservices-mosipid", "esignet-mosipid", "pms-mosipid", "signup-mosipid"]
 subdomain_internal = ["iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio"]
 
 # PostgreSQL Configuration
@@ -94,10 +95,10 @@ postgresql_port         = "5433"
 # MOSIP Infrastructure Repository Configuration
 mosip_infra_repo_url = "https://github.com/mosip/infra.git"
 
-mosip_infra_branch = "es-go-test"
+mosip_infra_branch = "develop"
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
-vpc_name = "default"
+vpc_name = "<vpc name>"
 
 # ── ActiveMQ Configuration ─────────────────────────────────────────────────────
 # Set enable_activemq_setup = true AND nginx_node_ebs_volume_size_3 > 0 to
