@@ -16,13 +16,17 @@ echo "eSignet 1.7.1 - MISP Onboarder Post-install"
 echo "================================================"
 
 # Jobs/pods from previous runs aren't cleaned up automatically, so multiple can match
-# this label at once - always sort by creation time and take the newest (.items[-1]),
-# not .items[0] (API-returned order isn't guaranteed to be latest-last) or a bare -l
-# selector (which would match every stale pod too, producing confusing concatenated logs).
+# this label at once - always sort by creation time and take the newest, not the
+# API-returned .items[0] (order isn't guaranteed) or a bare -l selector (which would
+# match every stale pod too, producing confusing concatenated logs). Using
+# range+tail -1 rather than a jsonpath slice index (e.g. items[-1:].field): applying a
+# field accessor directly after a slice doesn't reliably drill into the single
+# resulting element in kubectl's jsonpath engine - confirmed empirically, it silently
+# returned nothing.
 JOB_STATUS=$(kubectl -n "$ESIGNET_NS" get jobs \
   -l app.kubernetes.io/instance=esignet-misp-onboarder \
   --sort-by=.metadata.creationTimestamp \
-  -o jsonpath='{.items[-1:].status.succeeded}' 2>/dev/null || echo "")
+  -o jsonpath='{range .items[*]}{.status.succeeded}{"\n"}{end}' 2>/dev/null | tail -1)
 
 # Always restore namespace injection before returning from this hook.
 kubectl label namespace "$ESIGNET_NS" istio-injection=enabled --overwrite
@@ -33,7 +37,7 @@ if ! [[ "$JOB_STATUS" =~ ^[1-9][0-9]*$ ]]; then
   LATEST_POD=$(kubectl -n "$ESIGNET_NS" get pods \
     -l app.kubernetes.io/instance=esignet-misp-onboarder \
     --sort-by=.metadata.creationTimestamp \
-    -o jsonpath='{.items[-1:].metadata.name}' 2>/dev/null || echo "")
+    -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' 2>/dev/null | tail -1)
   if [ -n "$LATEST_POD" ]; then
     kubectl -n "$ESIGNET_NS" logs "$LATEST_POD" --tail=30 2>/dev/null || true
   fi
