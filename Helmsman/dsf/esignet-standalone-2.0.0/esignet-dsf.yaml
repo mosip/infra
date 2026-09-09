@@ -565,6 +565,8 @@ apps:
       extraEnvVars.CLAIMS_LOCALES: "en"
       extraEnvVars.SCOPE_USER_PROFILE: "openid profile"
       extraEnvVars.CLAIMS_USER_PROFILE.value: '\{"userinfo":\{"given_name":\{"essential":true\},"phone_number":\{"essential":true\},"email":\{"essential":true\},"picture":\{"essential":false\},"gender":\{"essential":false\},"birthdate":\{"essential":false\},"address":\{"essential":false\}\},"id_token":\{\}\}'
+      extraEnvVars.TOKEN_ENDPOINT: "/oauth2/token"
+      extraEnvVars.USERINFO_ENDPOINT: "/oauth2/userinfo"
       mock_relying_party_service.host: ""
       mock_relying_party_service.mountDir: ""
       mock_relying_party_service.healthCheckUrl: null
@@ -599,6 +601,8 @@ apps:
       extraEnvVars.CLAIMS_LOCALES: "en"
       extraEnvVars.SCOPE_USER_PROFILE: "openid profile"
       extraEnvVars.CLAIMS_USER_PROFILE.value: '\{"userinfo":\{"given_name":\{"essential":true\},"phone_number":\{"essential":true\},"email":\{"essential":true\},"picture":\{"essential":false\},"gender":\{"essential":false\},"birthdate":\{"essential":false\},"address":\{"essential":false\}\},"id_token":\{\}\}'
+      extraEnvVars.TOKEN_ENDPOINT: "/oauth2/token"
+      extraEnvVars.USERINFO_ENDPOINT: "/oauth2/userinfo"
       mock_relying_party_service.host: ""
       mock_relying_party_service.mountDir: ""
       mock_relying_party_service.healthCheckUrl: null
@@ -633,6 +637,8 @@ apps:
       extraEnvVars.CLAIMS_LOCALES: "en"
       extraEnvVars.SCOPE_USER_PROFILE: "openid profile"
       extraEnvVars.CLAIMS_USER_PROFILE.value: '\{"userinfo":\{"given_name":\{"essential":true\},"phone_number":\{"essential":true\},"email":\{"essential":true\},"picture":\{"essential":false\},"gender":\{"essential":false\},"birthdate":\{"essential":false\},"address":\{"essential":false\}\},"id_token":\{\}\}'
+      extraEnvVars.TOKEN_ENDPOINT: "/oauth2/token"
+      extraEnvVars.USERINFO_ENDPOINT: "/oauth2/userinfo"
       mock_relying_party_service.host: ""
       mock_relying_party_service.mountDir: ""
       mock_relying_party_service.healthCheckUrl: null
