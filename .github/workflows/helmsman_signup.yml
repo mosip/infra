@@ -10,6 +10,7 @@ on:
         type: choice
         options:
           - esignet-standalone
+          - esignet-standalone-2.0.0
           - mosip-platform-1.2.0.x
           - mosip-platform-1.2.1.x
       mode:

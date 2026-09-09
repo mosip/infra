@@ -12,6 +12,7 @@ on:
           - mosip-platform-1.2.0.x
           - mosip-platform-1.2.1.x
           - esignet-standalone
+          - esignet-standalone-2.0.0
       mode:
         description: "Choose Helmsman mode: dry-run or apply"
         required: true
@@ -24,12 +25,8 @@ on:
         description: "Domain name for this environment (e.g. example.xyz.net)"
         required: true
         type: string
-      mosipid1_domain_name:
-        description: "MOSIP-ID1 domain name (e.g. mosipenv1.xyz.net) — required for esignet profile"
-        required: false
-        type: string
-      mosipid2_domain_name:
-        description: "MOSIP-ID2 domain name (e.g. mosipenv2.xyz.net) — required for esignet profile"
+      mosipid_domain_name:
+        description: "MOSIP-ID domain name (e.g. mosipenv.xyz.net) — required for esignet standalone profiles"
         required: false
         type: string
       db_port:
@@ -67,6 +64,9 @@ jobs:
       name: ${{ github.ref_name }}
     steps:
       - name: Validate required variables
+        env:
+          IN_MOSIPID_DOMAIN: ${{ github.event.inputs.mosipid_domain_name }}
+          VAR_MOSIPID_DOMAIN: ${{ vars.MOSIPID_DOMAIN_NAME }}
         run: |
           errors=()
           PROFILE="${{ github.event.inputs.profile }}"
@@ -80,12 +80,6 @@ jobs:
           [ -z "$SLACK_CH" ]        && errors+=("slack_channel_name is empty — set vars.SLACK_CHANNEL_NAME under Environment '${{ github.ref_name }}'")
           [ -z "$DB_PORT" ]         && errors+=("db_port is empty — set vars.DB_PORT under Environment '${{ github.ref_name }}'")
           [ -z "$ESIGNET_DB_PORT" ] && errors+=("esignet_db_port is empty — set vars.ESIGNET_DB_PORT under Environment '${{ github.ref_name }}'")
-          if [ -z "$PROFILE" ] || [ "$PROFILE" = "esignet-standalone" ]; then
-            MOSIPID1_DOMAIN="${{ github.event.inputs.mosipid1_domain_name || vars.MOSIPID1_DOMAIN_NAME }}"
-            MOSIPID2_DOMAIN="${{ github.event.inputs.mosipid2_domain_name || vars.MOSIPID2_DOMAIN_NAME }}"
-            [ -z "$MOSIPID1_DOMAIN" ]    && errors+=("mosipid1_domain_name is empty — set vars.MOSIPID1_DOMAIN_NAME under Environment '${{ github.ref_name }}'")
-            [ -z "$MOSIPID2_DOMAIN" ] && errors+=("mosipid2_domain_name is empty — set vars.MOSIPID2_DOMAIN_NAME under Environment '${{ github.ref_name }}'")
-          fi
           if [ ${#errors[@]} -gt 0 ]; then
             echo "❌ Required variables missing:"
             printf '  - %s\n' "${errors[@]}"
@@ -97,9 +91,21 @@ jobs:
           echo "✓ slack_channel_name = $SLACK_CH"
           echo "✓ db_port            = $DB_PORT"
           echo "✓ esignet_db_port    = $ESIGNET_DB_PORT"
-          if [ -z "$PROFILE" ] || [ "$PROFILE" = "esignet-standalone" ]; then
-            echo "✓ mosipid1_domain_name    = $MOSIPID1_DOMAIN (esignet profile)"
-            echo "✓ mosipid2_domain_name = $MOSIPID2_DOMAIN (esignet profile)"
+          # mosipid_domain_name is esignet standalone only (both esignet-standalone
+          # and esignet-standalone-2.0.0 each run a single consolidated mosipid instance).
+          # Push events always target the esignet profile (path filter); dispatch uses explicit profile input.
+          if [ -z "$PROFILE" ] || [[ "$PROFILE" == esignet-standalone* ]]; then
+            MOSIPID_DOMAIN="${IN_MOSIPID_DOMAIN:-$VAR_MOSIPID_DOMAIN}"
+            if [ -z "$MOSIPID_DOMAIN" ]; then
+              echo "❌ mosipid_domain_name is required for standalone profiles"
+              exit 1
+            fi
+            echo "✓ mosipid_domain_name = $MOSIPID_DOMAIN (esignet standalone)"
+          else
+            MOSIPID_PROVIDED="$IN_MOSIPID_DOMAIN"
+            if [ -n "$MOSIPID_PROVIDED" ]; then
+              echo "⚠ mosipid_domain_name is only used for esignet standalone profiles — ignoring for profile=$PROFILE"
+            fi
           fi
 
   deploy:
@@ -112,8 +118,7 @@ jobs:
       PATH: ${{ github.workspace }}/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
       KUBECTL_PATH: ${{ github.workspace }}/.local/bin/kubectl
       domain_name:        ${{ github.event.inputs.domain_name        || vars.DOMAIN_NAME }}
-      mosipid1_domain_name:    ${{ github.event.inputs.mosipid1_domain_name    || vars.MOSIPID1_DOMAIN_NAME }}
-      mosipid2_domain_name: ${{ github.event.inputs.mosipid2_domain_name || vars.MOSIPID2_DOMAIN_NAME }}
+      mosipid_domain_name: ${{ github.event.inputs.mosipid_domain_name || vars.MOSIPID_DOMAIN_NAME }}
       db_port:            ${{ github.event.inputs.db_port            || vars.DB_PORT }}
       esignet_db_port:    ${{ github.event.inputs.esignet_db_port    || vars.ESIGNET_DB_PORT }}
       env_name:           ${{ github.event.inputs.env_name           || vars.ENV_NAME }}
@@ -156,8 +161,7 @@ jobs:
             fi
           }
           save_var "DOMAIN_NAME"        "${{ github.event.inputs.domain_name }}"
-          save_var "MOSIPID1_DOMAIN_NAME"    "${{ github.event.inputs.mosipid1_domain_name }}"
-          save_var "MOSIPID2_DOMAIN_NAME" "${{ github.event.inputs.mosipid2_domain_name }}"
+          save_var "MOSIPID_DOMAIN_NAME" "${{ github.event.inputs.mosipid_domain_name }}"
           save_var "DB_PORT"            "${{ github.event.inputs.db_port }}"
           save_var "ESIGNET_DB_PORT"    "${{ github.event.inputs.esignet_db_port }}"
           save_var "ENV_NAME"           "${{ github.event.inputs.env_name }}"
@@ -276,7 +280,7 @@ jobs:
           kubectl get nodes
           kubectl cluster-info
       - name: Get MinIO root password (esignet profile)
-        if: env.PROFILE == 'esignet-standalone'
+        if: startsWith(env.PROFILE, 'esignet-standalone')
         run: |
           if kubectl -n minio get secret minio &>/dev/null; then
             MINIO_ROOT_PASSWORD=$(kubectl -n minio get secret minio -o jsonpath='{.data.root-password}' | base64 -d)
@@ -292,7 +296,7 @@ jobs:
           fi
 
       - name: Check if mosip-dsf label is completed
-        if: env.PROFILE != 'esignet-standalone'
+        if: ${{ !startsWith(env.PROFILE, 'esignet-standalone') }}
         run: |
           STATUS=$(kubectl get namespace default -o jsonpath='{.metadata.labels.mosip-dsf}')
           if [[ "$STATUS" != "completed" ]]; then
@@ -301,7 +305,7 @@ jobs:
           fi
 
       - name: Check if esignet-dsf label is completed
-        if: env.PROFILE == 'esignet-standalone'
+        if: startsWith(env.PROFILE, 'esignet-standalone')
         run: |
           STATUS=$(kubectl get namespace default -o jsonpath='{.metadata.labels.esignet-dsf}' 2>/dev/null || echo "")
           if [[ "$STATUS" != "completed" ]]; then
