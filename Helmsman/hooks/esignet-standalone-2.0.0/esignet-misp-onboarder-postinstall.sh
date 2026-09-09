@@ -22,11 +22,14 @@ echo "================================================"
 # range+tail -1 rather than a jsonpath slice index (e.g. items[-1:].field): applying a
 # field accessor directly after a slice doesn't reliably drill into the single
 # resulting element in kubectl's jsonpath engine - confirmed empirically, it silently
-# returned nothing.
+# returned nothing. Trailing `|| true`: under set -euo pipefail, a genuine kubectl API
+# failure (not just "no jobs found") would otherwise abort the script here, skipping the
+# istio-injection restore below - an empty JOB_STATUS already routes into the same
+# WARNING/diagnostic path as "job not done", which is the right outcome either way.
 JOB_STATUS=$(kubectl -n "$ESIGNET_NS" get jobs \
   -l app.kubernetes.io/instance=esignet-misp-onboarder \
   --sort-by=.metadata.creationTimestamp \
-  -o jsonpath='{range .items[*]}{.status.succeeded}{"\n"}{end}' 2>/dev/null | tail -1)
+  -o jsonpath='{range .items[*]}{.status.succeeded}{"\n"}{end}' 2>/dev/null | tail -1) || true
 
 # Always restore namespace injection before returning from this hook.
 kubectl label namespace "$ESIGNET_NS" istio-injection=enabled --overwrite
@@ -37,7 +40,7 @@ if ! [[ "$JOB_STATUS" =~ ^[1-9][0-9]*$ ]]; then
   LATEST_POD=$(kubectl -n "$ESIGNET_NS" get pods \
     -l app.kubernetes.io/instance=esignet-misp-onboarder \
     --sort-by=.metadata.creationTimestamp \
-    -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' 2>/dev/null | tail -1)
+    -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' 2>/dev/null | tail -1) || true
   if [ -n "$LATEST_POD" ]; then
     echo "--- pod/container status (state, restarts, last termination reason/exit code) ---"
     kubectl -n "$ESIGNET_NS" get pod "$LATEST_POD" \
