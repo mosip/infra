@@ -39,7 +39,11 @@ if ! [[ "$JOB_STATUS" =~ ^[1-9][0-9]*$ ]]; then
     --sort-by=.metadata.creationTimestamp \
     -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' 2>/dev/null | tail -1)
   if [ -n "$LATEST_POD" ]; then
-    kubectl -n "$ESIGNET_NS" logs "$LATEST_POD" --tail=30 2>/dev/null || true
+    echo "--- pod/container status (state, restarts, last termination reason/exit code) ---"
+    kubectl -n "$ESIGNET_NS" get pod "$LATEST_POD" \
+      -o jsonpath='phase={.status.phase}{"\n"}{range .status.containerStatuses[*]}container={.name} restartCount={.restartCount}{"\n"}state={.state}{"\n"}lastState={.lastState}{"\n"}{end}' 2>/dev/null || true
+    echo "--- pod logs (last 200 lines) ---"
+    kubectl -n "$ESIGNET_NS" logs "$LATEST_POD" --tail=200 2>/dev/null || true
   fi
   exit 1
 fi
