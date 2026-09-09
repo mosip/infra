@@ -788,14 +788,14 @@ apps:
       # partner-onboarder/values.yaml in mosip/esignet@release-2.0.x for the
       # esignet module (mosip-identity-plugin/MISP case), except EXTERNAL_URL, adapted to
       # this instance.
-      onboarding.propertiesOverride.esignet.POLICY_NAME: "mpolicy-default-esignetkaaaaaa"
-      onboarding.propertiesOverride.esignet.POLICY_GROUP_NAME: "mpolicygroup-default-esignetkaaaaaa"
-      onboarding.propertiesOverride.esignet.PARTNER_KC_USERNAME: "mpartner-default-esignetkaaaaaa"
+      onboarding.propertiesOverride.esignet.POLICY_NAME: "mpolicy-default-esignetkb"
+      onboarding.propertiesOverride.esignet.POLICY_GROUP_NAME: "mpolicygroup-default-esignetkb"
+      onboarding.propertiesOverride.esignet.PARTNER_KC_USERNAME: "mpartner-default-esignetkb"
       onboarding.propertiesOverride.esignet.PARTNER_ORGANIZATION_NAME: "IIITB"
       onboarding.propertiesOverride.esignet.PARTNER_TYPE: "Misp_Partner"
       onboarding.propertiesOverride.esignet.PARTNER_DOMAIN: "MISP"
-      onboarding.propertiesOverride.esignet.PARTNER_MANAGER_USERNAME: "esignet-kc-mockusernamekaaaaaa"
-      onboarding.propertiesOverride.esignet.PARTNER_MANAGER_PASSWORD: "esignet-kc-mockpasswordkaaaaaa"
+      onboarding.propertiesOverride.esignet.PARTNER_MANAGER_USERNAME: "esignet-kc-mockusernamekb"
+      onboarding.propertiesOverride.esignet.PARTNER_MANAGER_PASSWORD: "esignet-kc-mockpasswordkb"
       onboarding.propertiesOverride.esignet.EXTERNAL_URL: "https://esignet-mosipid.${domain_name}"
       extraEnvVarsCM[0]: "keycloak-env-vars"
       extraEnvVarsCM[1]: "keycloak-host-mosipid"
