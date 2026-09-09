@@ -672,8 +672,8 @@ apps:
       mock_relying_party_ui.CLAIMS_REGISTRATION: '%7B%22userinfo%22:%7B%22given_name%22:%7B%22essential%22:true%7D,%22phone_number%22:%7B%22essential%22:false%7D,%22email%22:%7B%22essential%22:true%7D,%22picture%22:%7B%22essential%22:false%7D,%22gender%22:%7B%22essential%22:false%7D,%22birthdate%22:%7B%22essential%22:false%7D,%22address%22:%7B%22essential%22:false%7D%7D,%22id_token%22:%7B%7D%7D'
       mock_relying_party_ui.DEFAULT_LANG: en
       mock_relying_party_ui.FALLBACK_LANG: '%7B%22label%22%3A%22English%22%2C%22value%22%3A%22en%22%7D'
-      mock_relying_party_ui.AUTHORIZE_ENDPOINT: /v1/esignet/oauth2/authorize
-      mock_relying_party_ui.CODE_CHALLENGE: get_code_challenge
+      extraEnvVars.AUTHORIZE_ENDPOINT: /v1/esignet/oauth2/authorize
+      extraEnvVars.CODE_CHALLENGE: get_code_challenge
       istio.hosts[0]: "healthservices.${domain_name}"
     wait: true
     timeout: 480
@@ -708,8 +708,8 @@ apps:
       mock_relying_party_ui.CLAIMS_REGISTRATION: '%7B%22userinfo%22:%7B%22given_name%22:%7B%22essential%22:true%7D,%22phone_number%22:%7B%22essential%22:false%7D,%22email%22:%7B%22essential%22:true%7D,%22picture%22:%7B%22essential%22:false%7D,%22gender%22:%7B%22essential%22:false%7D,%22birthdate%22:%7B%22essential%22:false%7D,%22address%22:%7B%22essential%22:false%7D%7D,%22id_token%22:%7B%7D%7D'
       mock_relying_party_ui.DEFAULT_LANG: en
       mock_relying_party_ui.FALLBACK_LANG: '%7B%22label%22%3A%22English%22%2C%22value%22%3A%22en%22%7D'
-      mock_relying_party_ui.AUTHORIZE_ENDPOINT: /v1/esignet/oauth2/authorize
-      mock_relying_party_ui.CODE_CHALLENGE: get_code_challenge      
+      extraEnvVars.AUTHORIZE_ENDPOINT: /v1/esignet/oauth2/authorize
+      extraEnvVars.CODE_CHALLENGE: get_code_challenge
       istio.hosts[0]: "healthservices-mosipid.${domain_name}"
     wait: true
     timeout: 480
@@ -744,8 +744,8 @@ apps:
       mock_relying_party_ui.CLAIMS_REGISTRATION: '%7B%22userinfo%22:%7B%22given_name%22:%7B%22essential%22:true%7D,%22phone_number%22:%7B%22essential%22:false%7D,%22email%22:%7B%22essential%22:true%7D,%22picture%22:%7B%22essential%22:false%7D,%22gender%22:%7B%22essential%22:false%7D,%22birthdate%22:%7B%22essential%22:false%7D,%22address%22:%7B%22essential%22:false%7D%7D,%22id_token%22:%7B%7D%7D'
       mock_relying_party_ui.DEFAULT_LANG: en
       mock_relying_party_ui.FALLBACK_LANG: '%7B%22label%22%3A%22English%22%2C%22value%22%3A%22en%22%7D'
-      mock_relying_party_ui.AUTHORIZE_ENDPOINT: /v1/esignet/oauth2/authorize
-      mock_relying_party_ui.CODE_CHALLENGE: get_code_challenge      
+      extraEnvVars.AUTHORIZE_ENDPOINT: /v1/esignet/oauth2/authorize
+      extraEnvVars.CODE_CHALLENGE: get_code_challenge
       istio.hosts[0]: "healthservices-sunbird.${domain_name}"
     wait: true
     timeout: 480
