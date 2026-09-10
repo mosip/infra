@@ -6,20 +6,34 @@ helmDefaults:
 helmRepos:
   bitnami: https://charts.bitnami.com/bitnami
   mosip: https://mosip.github.io/mosip-helm
+  wiremind: https://wiremind.github.io/wiremind-helm-charts
+  kafka-ui: https://provectus.github.io/kafka-ui-charts
 
+# Note: Based on your requirement disable the namespaces which you want to use, by default all the namespaces are protected.
 namespaces:
   postgres:
     protected: true
-  esignet:
-    protected: false
   keycloak:
     protected: true
   softhsm:
-    protected: false
-  redis:
-    protected: false
-  artifactory-1202:
-    protected: false
+    protected: true
+  minio:
+    protected: true
+  clamav:
+    protected: true
+  activemq:
+    protected: true
+  kafka:
+    protected: true
+  s3:
+    protected: true
+  msg-gateways:
+    protected: true
+  captcha:
+    protected: true
+  landing-page:
+    protected: true
+
 apps:
   postgres:
     namespace: postgres
@@ -27,105 +41,122 @@ apps:
     version: 13.1.5
     chart: bitnami/postgresql
     wait: true
-    priority: -18
+    priority: -16
     valuesFile: "$WORKDIR/utils/postgres-values.yaml"
-    timeout: 480
+    timeout: 1200
 
   istio-addons-psql:
     namespace: postgres
-    enabled: false
+    enabled: true
     version: 0.1.0
     chart: $WORKDIR/utils/istio-addons/postgres-istio-addons-0.1.0.tgz
     set:
       postgresHost: "postgres.${domain_name}"
     wait: true
-    priority: -17
+    priority: -4
     timeout: 1200
 
-  postgres-init-esignet:
-    namespace: esignet
+  postgres-init:
+    namespace: postgres
     enabled: true
-    version: 12.0.1
+    version: 12.0.2
     chart: mosip/postgres-init
     set:
-      # DB_USER_PASSWORD env var is fetched from postgres namespace in GH Actions
-      # and masked automatically by GitHub Actions runner
-      dbUserPasswords.dbuserPassword: "$DB_USER_PASSWORD"
-      databases.mosip_toolkit.enabled: "false"
-      databases.mosip_master.enabled: "false"
-      databases.mosip_audit.enabled: "false"
-      databases.mosip_keymgr.enabled: "false"
-      databases.mosip_kernel.enabled: "false"
-      databases.mosip_idmap.enabled: "false"
-      databases.mosip_prereg.enabled: "false"
-      databases.mosip_idrepo.enabled: "false"
-      databases.mosip_ida.enabled: "false"
-      databases.mosip_credential.enabled: "false"
-      databases.mosip_regprc.enabled: "false"
-      databases.mosip_regdevice.enabled: "false"
-      databases.mosip_authdevice.enabled: "false"
-      databases.mosip_pms.enabled: "false"
-      databases.mosip_hotlist.enabled: "false"
-      databases.mosip_resident.enabled: "false"
-      databases.mosip_digitalcard.enabled: "false"
-      # Enable BOTH esignet and mockidentitysystem databases
-      databases.mosip_esignet.enabled: "true"
-      databases.mosip_esignet.branch: "v1.4.1"
-      databases.mosip_esignet.host: "postgres.${domain_name}"
-      databases.mosip_esignet.port: 5433
-      databases.mosip_esignet.dml: 1
-      databases.mosip_mockidentitysystem.enabled: "false"
-      databases.mosip_mockidentitysystem.branch: "v0.9.3"
-      databases.mosip_mockidentitysystem.host: "postgres.${domain_name}"
-      databases.mosip_mockidentitysystem.repoUrl: "https://github.com/mosip/esignet-mock-services.git"
-      databases.mosip_mockidentitysystem.port: 5433
-      databases.mosip_mockidentitysystem.dml: 1
-    wait: true
-    timeout: 180
-    priority: -16
-    hooks:
-      preInstall: "$WORKDIR/hooks/esignet-init-db.sh"
+      dbUserPasswords.dbuserPassword: ""
+      databases.mosip_master.enabled: "true"
+      databases.mosip_master.branch: "v1.2.1.4"
+      databases.mosip_master.host: "postgres.${domain_name}"
+      databases.mosip_master.port: 5433
 
-  redis:
-    namespace: redis
-    enabled: true
-    version: 17.3.14
-    chart: bitnami/redis
-    wait: true
-    timeout: 480
-    priority: -16
-    set:
-      image.repository: "mosipid/redis"
-      image.tag: "7.0.5-debian-11-r25"
-    hooks:
-      postInstall: "$WORKDIR/hooks/redis-setup.sh"
+      databases.mosip_audit.enabled: "true"
+      databases.mosip_audit.branch: "v1.2.0.1"
+      databases.mosip_audit.host: "postgres.${domain_name}"
+      databases.mosip_audit.port: 5433
 
-  softhsm-esignet:
-    namespace: softhsm
-    enabled: true
-    version: 12.0.1
-    chart: mosip/softhsm
-    valuesFile: "$WORKDIR/utils/softhsm-esignet-values.yaml"
-    timeout: 480
+      databases.mosip_keymgr.enabled: "true"
+      databases.mosip_keymgr.branch: "v1.2.1.0"
+      databases.mosip_keymgr.host: "postgres.${domain_name}"
+      databases.mosip_keymgr.port: 5433
+
+      databases.mosip_kernel.enabled: "true"
+      databases.mosip_kernel.branch: "v1.2.0.2"
+      databases.mosip_kernel.host: "postgres.${domain_name}"
+      databases.mosip_kernel.port: 5433
+
+      databases.mosip_idmap.enabled: "true"
+      databases.mosip_idmap.branch: "v1.2.2.4"
+      databases.mosip_idmap.host: "postgres.${domain_name}"
+      databases.mosip_idmap.port: 5433
+
+      databases.mosip_prereg.enabled: "true"
+      databases.mosip_prereg.branch: "v1.2.0.3"
+      databases.mosip_prereg.host: "postgres.${domain_name}"
+      databases.mosip_prereg.port: 5433
+
+      databases.mosip_idrepo.enabled: "true"
+      databases.mosip_idrepo.branch: "v1.2.2.4"
+      databases.mosip_idrepo.host: "postgres.${domain_name}"
+      databases.mosip_idrepo.port: 5433
+
+      databases.mosip_ida.enabled: "true"
+      databases.mosip_ida.branch: "v1.2.1.3"
+      databases.mosip_ida.host: "postgres.${domain_name}"
+      databases.mosip_ida.port: 5433
+
+      databases.mosip_credential.enabled: "true"
+      databases.mosip_credential.branch: "v1.2.2.4"
+      databases.mosip_credential.host: "postgres.${domain_name}"
+      databases.mosip_credential.port: 5433
+
+      databases.mosip_regprc.enabled: "true"
+      databases.mosip_regprc.branch: "v1.2.1.2"
+      databases.mosip_regprc.host: "postgres.${domain_name}"
+      databases.mosip_regprc.port: 5433
+
+      databases.mosip_pms.enabled: "true"
+      databases.mosip_pms.branch: "v1.2.2.3"
+      databases.mosip_pms.host: "postgres.${domain_name}"
+      databases.mosip_pms.port: 5433
+
+      databases.mosip_hotlist.enabled: "true"
+      databases.mosip_hotlist.branch: "v1.2.1.4"
+      databases.mosip_hotlist.host: "postgres.${domain_name}"
+      databases.mosip_hotlist.port: 5433
+
+      databases.mosip_resident.enabled: "true"
+      databases.mosip_resident.branch: "v1.2.1.3"
+      databases.mosip_resident.host: "postgres.${domain_name}"
+      databases.mosip_resident.port: 5433
+
+      databases.mosip_otp.enabled: "true"
+      databases.mosip_otp.branch: "v1.3.0-beta.1"
+      databases.mosip_otp.host: "postgres.${domain_name}"
+      databases.mosip_otp.port: 5433
+
+      databases.mosip_digitalcard.enabled: "true"
+      databases.mosip_digitalcard.branch: "v1.2.0.1"
+      databases.mosip_digitalcard.host: "postgres.${domain_name}"
+      databases.mosip_digitalcard.port: 5433
+    wait: true
+    timeout: 1200
     priority: -15
-    hooks:
-      preInstall: "$WORKDIR/hooks/softhsm-esignet-setup.sh"
-      postInstall: "$WORKDIR/hooks/softhsm-esignet-postinstall.sh"
 
   keycloak:
     namespace: keycloak
-    enabled: false
-    protected: true # Prevent Helmsman from deleting this release
+    enabled: true
     version: 7.1.18
     chart: mosip/keycloak
     set:
       image.repository: "mosipid/mosip-artemis-keycloak"
       image.tag: "1.2.0.2"
       image.pullPolicy: "Always"
-      # Override Postgres image
-      postgresql.image.registry: "docker.io"
-      postgresql.image.repository: "mosipid/postgresql"
-      postgresql.image.tag: "14.2.0-debian-10-r70"
+      postgresql.enabled: "false"
+      externalDatabase.host: "postgres.${domain_name}"
+      externalDatabase.port: "5433"
+      externalDatabase.database: "bitnami_keycloak"
+      externalDatabase.user: "bn_keycloak"
+      externalDatabase.existingSecret: "keycloak-db-credentials"
+      externalDatabase.existingSecretPasswordKey: "password"
       service.type: "ClusterIP"
       auth.adminUser: "admin"
       extraEnvVars[0].name: "KEYCLOAK_EXTRA_ARGS"
@@ -145,8 +176,10 @@ apps:
       rbac.rules[0].resources[0]: "pods"
       rbac.rules[0].verbs[0]: "get"
       rbac.rules[0].verbs[1]: "list"
+    hooks:
+      preInstall: "bash $WORKDIR/hooks/keycloak-external-db-init.sh"
     wait: true
-    timeout: 600
+    timeout: 1200
     priority: -14
 
   istio-addons-iam:
@@ -160,234 +193,237 @@ apps:
       service: "keycloak"
     wait: true
     timeout: 1200
-    priority: -13
+    priority: -3
 
-  esignet-keycloak-init:
-    namespace: esignet
+  keycloak-init:
+    namespace: keycloak
     enabled: true
     version: 12.0.2
     chart: mosip/keycloak-init
-    valuesFile: "$WORKDIR/utils/keycloak-init-values.yaml"
     set:
       # image.repository: "mosipid/keycloak-init"
       # image.tag: "1.2.0.1"
       keycloakExternalHost: "iam.${domain_name}"
       keycloakInternalHost: "keycloak.keycloak"
-      clientSecrets[0].name: "$PMS_CLIENT_SECRET_KEY"
-      clientSecrets[0].secret: "$PMS_CLIENT_SECRET_VALUE"
-      clientSecrets[1].name: "$MPARTNER_DEFAULT_AUTH_SECRET_KEY"
-      clientSecrets[1].secret: "$MPARTNER_DEFAULT_AUTH_SECRET_VALUE"
-    timeout: 480
-    priority: -12
-    hooks:
-      preInstall: "$WORKDIR/hooks/esignet-preinstall-keycloak-init.sh"
-      postInstall: "$WORKDIR/hooks/esignet-postinstall-keycloak-init.sh"
-
-  artifactory-1202:
-    namespace: artifactory-1202
-    enabled: true
-    version: 12.0.2
-    chart: mosip/artifactory
-    # set:
-    #   image.repository: "mosipid/artifactory-server"
-    #   image.tag: "1.4.1-ES"
+      keycloak.realms.mosip.realm_config.attributes.frontendUrl: "https://iam.${domain_name}/auth"
+      keycloak.realms.mosip.realm_config.smtpServer.auth: "false"
+      keycloak.realms.mosip.realm_config.smtpServer.host: "smtp.gmail.com"
+      keycloak.realms.mosip.realm_config.smtpServer.port: "465"
+      keycloak.realms.mosip.realm_config.smtpServer.from: "mosipqa@gmail.com"
+      keycloak.realms.mosip.realm_config.smtpServer.starttls: "false"
+      keycloak.realms.mosip.realm_config.smtpServer.ssl: "true"
     wait: true
     timeout: 1200
-    priority: -12
-    hooks:
-      # For fresh installations
-      preInstall: "kubectl label ns artifactory-1202 istio-injection=enabled --overwrite"
+    priority: -13
 
-  esignet:
-    namespace: esignet
-    enabled: true
-    version: 1.4.1
-    chart: mosip/esignet
-    set:
-      # image.repository: "mosipid/esignet"
-      # image.tag: "1.4.1"
-      # Set to true if you don't have public domain & valid SSL (development only)
-      enable_insecure: "false"
-      extraEnvVarsCM[0]: "global"
-      extraEnvVarsCM[1]: "config-server-share"
-      extraEnvVarsCM[2]: "artifactory-1202-share"
-      extraEnvVarsCM[3]: "softhsm-esignet-share"
-    wait: true
-    timeout: 600
-    priority: -11
-    hooks:
-      preInstall: "$WORKDIR/hooks/esignet-preinstall.sh"
-
-  oidc-ui:
-    namespace: esignet
-    enabled: true
-    version: 1.4.1
-    chart: mosip/oidc-ui
-    set:
-      istio.hosts[0]: "esignet.${domain_name}"
-      extraEnvVarsCM[0]: "global"
-      extraEnvVarsCM[1]: "config-server-share"
-      extraEnvVarsCM[2]: "artifactory-share"
-      extraEnvVarsCM[3]: "softhsm-esignet-share"
-      extraEnvVarsCM[4]: "oidc-ui"
-      # image.repository: "mosipid/esignet"
-      # image.tag: "1.4.1"
-    timeout: 1200
-    priority: -10
-    hooks:
-      preInstall: "$WORKDIR/hooks/oidc-ui-preinstall.sh"
-
-  softhsm-mock-identity-system:
+  softhsm-kernel:
     namespace: softhsm
-    enabled: false
+    enabled: true
     version: 12.0.1
     chart: mosip/softhsm
-    valuesFile: "$WORKDIR/utils/softhsm-mock-identity-system-values.yaml"
-    wait: true
-    timeout: 480
-    priority: -9
-    hooks:
-      preInstall: "$WORKDIR/hooks/softhsm-mock-identity-system-preinstall.sh"
-      postInstall: "$WORKDIR/hooks/softhsm-mock-identity-system-postinstall.sh"
-
-  mock-identity-system:
-    namespace: esignet
-    enabled: false
-    version: 0.9.3
-    chart: mosip/mock-identity-system
     set:
-      # Set to true if you don't have public domain & valid SSL (development only)
-      enable_insecure: "false"
-      extraEnvVarsCM[0]: "global"
-      extraEnvVarsCM[1]: "config-server-share"
-      extraEnvVarsCM[2]: "artifactory-1202-share"
-      extraEnvVarsCM[3]: "softhsm-mock-identity-system-share"
-    timeout: 480
+      # resources.limits.cpu: "250m"
+      # resources.limits.memory: "1Gi"
+      resources.requests.cpu: "100m"
+      resources.requests.memory: "100Mi"
+    wait: true
+    timeout: 1200
+    priority: -12
+    hooks:
+      preInstall: "kubectl label ns softhsm istio-injection=enabled --overwrite"
+
+  softhsm-ida:
+    namespace: softhsm
+    enabled: true
+    version: 12.0.1
+    chart: mosip/softhsm
+    set:
+      # resources.limits.cpu: "250m"
+      # resources.limits.memory: "1Gi"
+      resources.requests.cpu: "100m"
+      resources.requests.memory: "200Mi"
+    wait: true
+    timeout: 1200
+    priority: -11
+
+  minio:
+    namespace: minio
+    enabled: true
+    version: 10.1.6
+    chart: mosip/minio
+    set:
+      image.repository: "mosipid/minio"
+      image.tag: "2022.2.7-debian-10-r0"
+      metrics.serviceMonitor.enabled: "true"
+      extraEnvVars[0].name: "MINIO_PROMETHEUS_URL"
+      extraEnvVars[0].value: "http://rancher-monitoring-prometheus.cattle-monitoring-system:9090"
+      extraEnvVars[1].name: "MINIO_PROMETHEUS_JOB_ID"
+      extraEnvVars[1].value: "minio"
+      resourcesPreset: "none"
+    wait: true
+    timeout: 1200
+    priority: -10
+
+  istio-addons-minio:
+    namespace: minio
+    enabled: true
+    version: 1.2.0
+    chart: $WORKDIR/utils/istio-addons/minio-istio-addons-1.2.0.tgz
+    set:
+      externalHost: "minio.${domain_name}"
+    wait: true
+    timeout: 1200
+    hooks:
+      postInstall: "$WORKDIR/hooks/s3-setup.sh"
+    priority: -2
+
+  clamav:
+    namespace: clamav
+    enabled: true
+    version: 3.1.0
+    chart: wiremind/clamav
+    set:
+      replicaCount: "1"
+      # image.repository, image.tag, and image.pullPolicy are commented out in the original YAML
+      # Uncomment and update as needed:
+      image.repository: "mosipid/clamav"
+      image.tag: "1.3.0_base"
+      # image.pullPolicy: "Always"
+    wait: true
+    timeout: 1200
+    priority: -9
+
+  activemq:
+    namespace: activemq
+    enabled: true
+    version: 0.0.2
+    chart: mosip/activemq-artemis
+    set: 
+      istio.enabled: "true"
+      istio.hosts[0]: "activemq.${domain_name}"
+      istio.ingressController.name: "ingressgateway-internal"
+      istio.prefix: ""
+    wait: true
+    timeout: 1200
     priority: -8
     hooks:
-      preInstall: "$WORKDIR/hooks/mock-identity-system-preinstall.sh"
+      postInstall: "$WORKDIR/hooks/captcha-setup.sh ${PREREG_CAPTCHA_SITE_KEY} ${PREREG_CAPTCHA_SECRET_KEY} ${ADMIN_CAPTCHA_SITE_KEY} ${ADMIN_CAPTCHA_SECRET_KEY} ${RESIDENT_CAPTCHA_SITE_KEY} ${RESIDENT_CAPTCHA_SECRET_KEY}"
+  # Note: Create a google recaptcha v2 ("I am not a Robot") from Google Recaptcha Admin.
+  # Pass the captcha site and secret key in the above post install script as an argument.To create site and secret key below is the link:
+  # https://cloud.google.com/security/products/recaptcha
+  # https://www.google.com/recaptcha/admin/create
 
-  mock-relying-party-service:
-    namespace: esignet
+  kafka: 
+    namespace: kafka
     enabled: true
-    version: 0.9.3
-    chart: mosip/mock-relying-party-service
+    version: 18.3.1
+    chart: bitnami/kafka
     set:
-      # eSignet service URL (internal)
-      mock_relying_party_service.ESIGNET_SERVICE_URL: "http://esignet.esignet/v1/esignet"
-      # eSignet AUD URL (external) - UPDATE with your esignet domain
-      mock_relying_party_service.ESIGNET_AUD_URL: "https://esignet.${domain_name}/v1/esignet/oauth/v2/token"
-      # Set to true if you don't have public domain & valid SSL (development only)
-      enable_insecure: "false"
-    timeout: 480
+      # Add these for image overrides
+      image.repository: "mosipid/kafka"
+      image.tag: "3.2.1-debian-11-r9"
+      zookeeper.image.repository: "mosipid/zookeeper"
+      zookeeper.image.tag: "3.8.0-debian-11-r30"
+      clusterDomain: "cluster.local"
+      logRetentionBytes: "_1073741824"
+      defaultReplicationFactor: "3"
+      offsetsTopicReplicationFactor: "3"
+      transactionStateLogReplicationFactor: "3"
+      numPartitions: "20"
+      replicaCount: "5"
+      autoCreateTopicsEnable: "true"
+      deleteTopicEnable: "true"
+      persistence.enabled: "false"
+      persistence.accessModes[0]: "ReadWriteOnce"
+      persistence.size: "8Gi"
+      zookeeper.enabled: "true"
+      zookeeper.resources.requests.cpu: "150m"
+      zookeeper.resources.requests.memory: "600Mi"
+      zookeeper.resources.limits.cpu: "300m"
+      zookeeper.resources.limits.memory: "1200Mi"
+      zookeeper.replicaCount: "5"
+      zookeeper.persistence.enabled: "false"
+      zookeeper.persistence.size: "2Gi"
+      resources.limits.cpu: "1000m"
+      resources.limits.memory: "3500Mi"
+      resources.requests.cpu: "500m"
+      resources.requests.memory: "2500Mi"
+      startupProbe.enabled: "true"
+      startupProbe.initialDelaySeconds: "30"
+      startupProbe.periodSeconds: "10"
+      startupProbe.timeoutSeconds: "1"
+      startupProbe.failureThreshold: "30"
+      startupProbe.successThreshold: "1"
+    wait: true
+    timeout: 1200
     priority: -7
-    hooks:
-      preInstall: "$WORKDIR/hooks/mock-relying-party-service-preinstall.sh"
 
-  mock-relying-party-ui:
-    namespace: esignet
+  kafka-ui:
+    namespace: kafka
     enabled: true
-    version: 0.9.3
-    chart: mosip/mock-relying-party-ui
+    version: 0.4.2
+    chart: kafka-ui/kafka-ui
     set:
-      # UPDATE THIS: Mock Relying Party UI domain (e.g., healthservices.${domain_name})
-      mock_relying_party_ui.mock_relying_party_ui_service_host: "healthservices.${domain_name}"
-      mock_relying_party_ui.ESIGNET_UI_BASE_URL: "https://esignet.${domain_name}"
-      mock_relying_party_ui.MOCK_RELYING_PARTY_SERVER_URL: "https://healthservices.${domain_name}/mock-relying-party-service"
-      mock_relying_party_ui.REDIRECT_URI: "https://healthservices.${domain_name}/userprofile"
-      mock_relying_party_ui.REDIRECT_URI_REGISTRATION: "https://healthservices.${domain_name}/registration"
-      mock_relying_party_ui.SIGN_IN_BUTTON_PLUGIN_URL: "https://esignet.${domain_name}/plugins/sign-in-button-plugin.js"
-      istio.hosts[0]: "healthservices.${domain_name}"
+      # Add these for image overrides
+      # image.repository: "docker.io/provectuslabs/kafka-ui"
+      # image.tag: "v0.4.0"
+      envs.config.KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "kafka.kafka:9092"
+      envs.config.KAFKA_CLUSTERS_0_NAME: "main_kafka"
+      envs.config.KAFKA_CLUSTERS_0_ZOOKEEPER: "kafka-zookeeper.kafka:2181"
+      envs.config.KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: "http://debezium-service.reporting:8083"
+      envs.config.KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: "debezium"
+      envs.config.KAFKA_CLUSTERS_0_KAFKACONNECT_1_ADDRESS: "http://es-connect.reporting:8083"
+      envs.config.KAFKA_CLUSTERS_0_KAFKACONNECT_1_NAME: "es-connect"
+      image.pullPolicy: "Always"
     wait: true
-    timeout: 480
+    timeout: 1200
     priority: -6
-    hooks:
-      preInstall: "$WORKDIR/hooks/mock-relying-party-ui-preinstall.sh"
 
-  esignet-resident-oidc-partner-onboarder:
-    namespace: esignet
+  istio-addons-kafka:
+    namespace: kafka
     enabled: true
-    version: 12.0.1
-    chart: mosip/partner-onboarder
+    version: 1.2.0
+    chart: $WORKDIR/utils/istio-addons/kafka-istio-addons-1.2.0.tgz
     set:
-      # Module Configuration
-      # S3 Configuration - UPDATE THESE VALUES FOR YOUR ENVIRONMENT
-      onboarding.configmaps.s3.s3-host: "http://minio.minio:9000"
-      onboarding.configmaps.s3.s3-user-key: "admin"
-      onboarding.configmaps.s3.s3-region: ""
-      onboarding.configmaps.s3.s3-bucket-name: "onboarder"
-      onboarding.modules[0].name: "ida"
-      onboarding.modules[0].enabled: "false"
-      onboarding.modules[1].name: "print"
-      onboarding.modules[1].enabled: "false"
-      onboarding.modules[2].name: "abis"
-      onboarding.modules[2].enabled: "false"
-      onboarding.modules[3].name: "resident"
-      onboarding.modules[3].enabled: "false"
-      onboarding.modules[4].name: "mobileid"
-      onboarding.modules[4].enabled: "false"
-      onboarding.modules[5].name: "digitalcard"
-      onboarding.modules[5].enabled: "false"
-      onboarding.modules[6].name: "esignet"
-      onboarding.modules[6].enabled: "true"
-      onboarding.modules[7].name: "resident-oidc"
-      onboarding.modules[7].enabled: "true"
-      onboarding.modules[8].name: "demo-oidc"
-      onboarding.modules[8].enabled: "false"
-      onboarding.modules[9].name: "mimoto-keybinding"
-      onboarding.modules[9].enabled: "false"
-      # Set to true if you don't have public domain & valid SSL (development only)
-      #onboarding.configmaps.onboarding.ENABLE_INSECURE: "false"
+      kafkaUiHost: "kafka.${domain_name}"
+      installName: "kafka-ui"
     wait: true
-    waitForJobs: true
-    timeout: 240
+    timeout: 1200
+    hooks:
+      postInstall: "$WORKDIR/hooks/msg-gateways-setup.sh"
+    priority: -1
+
+  landing-page:
+    namespace: landing-page
+    enabled: true
+    version: 12.0.2
+    chart: mosip/landing-page
+    set:
+      landing.version: "develop"
+      landing.name: "${env_name}"
+      landing.api: "api.${domain_name}"
+      landing.apiInternal: "api-internal.${domain_name}"
+      landing.admin: "admin.${domain_name}"
+      landing.prereg: "prereg.${domain_name}"
+      landing.kafka: "kafka.${domain_name}"
+      landing.kibana: "kibana.${domain_name}"
+      landing.activemq: "activemq.${domain_name}"
+      landing.minio: "minio.${domain_name}"
+      landing.keycloak: "iam.${domain_name}"
+      landing.regclient: "regclient.${domain_name}"
+      landing.postgres.host: "postgres.${domain_name}"
+      landing.postgres.port: "5433"
+      landing.compliance: "compliance.${domain_name}"
+      landing.pmp: "pmp.${domain_name}"
+      landing.resident: "resident.${domain_name}"
+      landing.esignet: "esignet.${domain_name}"
+      landing.smtp: "smtp.${domain_name}"
+      landing.healthservices: "healthservices.${domain_name}"
+      landing.injiweb: "injiweb.${domain_name}"
+      landing.injiverify: "injiverify.${domain_name}"
+      istio.host: "${domain_name}"
+    wait: true
+    timeout: 1200
+    hooks:
+      preInstall: "$WORKDIR/hooks/landing-page.sh"
     priority: -5
-    hooks:
-      preInstall: "$WORKDIR/hooks/esignet-partner-onboarder-preinstall.sh"
-      preUpgrade: "$WORKDIR/hooks/esignet-partner-onboarder-preinstall.sh"
-      postInstall: "$WORKDIR/hooks/esignet-partner-onboarder-postinstall.sh"
-      postUpgrade: "$WORKDIR/hooks/esignet-partner-onboarder-postinstall.sh"
-
-  esignet-demo-oidc-partner-onboarder:
-    namespace: esignet
-    enabled: true
-    version: 12.0.1
-    chart: mosip/partner-onboarder
-    set:
-      # Module Configuration - Only demo-oidc enabled
-      onboarding.modules[0].name: "ida"
-      onboarding.modules[0].enabled: "false"
-      onboarding.modules[1].name: "print"
-      onboarding.modules[1].enabled: "false"
-      onboarding.modules[2].name: "abis"
-      onboarding.modules[2].enabled: "false"
-      onboarding.modules[3].name: "resident"
-      onboarding.modules[3].enabled: "false"
-      onboarding.modules[4].name: "mobileid"
-      onboarding.modules[4].enabled: "false"
-      onboarding.modules[5].name: "digitalcard"
-      onboarding.modules[5].enabled: "false"
-      onboarding.modules[6].name: "esignet"
-      onboarding.modules[6].enabled: "false"
-      onboarding.modules[7].name: "resident-oidc"
-      onboarding.modules[7].enabled: "false"
-      onboarding.modules[8].name: "demo-oidc"
-      onboarding.modules[8].enabled: "true"
-      onboarding.modules[9].name: "mimoto-keybinding"
-      onboarding.modules[9].enabled: "false"
-      # S3 Configuration - UPDATE THESE VALUES FOR YOUR ENVIRONMENT
-      onboarding.configmaps.s3.s3-host: "http://minio.minio:9000"
-      onboarding.configmaps.s3.s3-user-key: "admin"
-      onboarding.configmaps.s3.s3-region: ""
-      onboarding.configmaps.s3.s3-bucket-name: "onboarder"
-      # Set to true if you don't have public domain & valid SSL (development only)
-      #onboarding.configmaps.onboarding.ENABLE_INSECURE: "false"
-    wait: true
-    waitForJobs: true
-    timeout: 240
-    priority: -4
-    hooks:
-      preInstall: "$WORKDIR/hooks/esignet-demo-oidc-partner-onboarder-preinstall.sh"
-      preUpgrade: "$WORKDIR/hooks/esignet-demo-oidc-partner-onboarder-preinstall.sh"
-      postInstall: "$WORKDIR/hooks/esignet-demo-oidc-partner-onboarder-postinstall.sh"
-      postUpgrade: "$WORKDIR/hooks/esignet-demo-oidc-partner-onboarder-postinstall.sh"
