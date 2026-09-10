@@ -101,6 +101,12 @@ variable "zone_id" {
   type        = string
 }
 
+variable "enable_route53_records" {
+  description = "Whether to create Route53 DNS records. Set to false when the domain's authoritative DNS is not Route53."
+  type        = bool
+  default     = true
+}
+
 variable "k8s_infra_repo_url" {
   description = "The URL of the Kubernetes infrastructure GitHub repository"
   type        = string

@@ -34,6 +34,10 @@ nginx_instance_type = "t3a.2xlarge"
 # The Route 53 hosted zone ID
 zone_id = "<route53_zone_id>"
 
+# Set to false if the domain's authoritative DNS is not Route53 (e.g. Azure DNS, Cloudflare, GoDaddy) —
+# infrastructure is still created, just without Route53 records. See DNS docs for the manual record list.
+enable_route53_records = true
+
 ## UBUNTU 24.04
 # The Amazon Machine Image ID for the instances
 ami = "ami-0ad21ae1d0696ad58"

@@ -218,7 +218,7 @@ resource "aws_instance" "K8S_CLUSTER_EC2_INSTANCE" {
     Cluster   = local.K8S_EC2_NODE.tags.Cluster
     Component = var.CLUSTER_NAME
   }
-  
+
   lifecycle {
     # Create new instances before destroying old ones during updates
     create_before_destroy = true
@@ -290,7 +290,7 @@ resource "aws_route53_record" "DNS_RECORDS" {
     null_resource.k8s_status_checks
   ]
 
-  for_each = merge(local.MAP_DNS_TO_IP, var.DNS_RECORDS)
+  for_each = var.ENABLE_ROUTE53_RECORDS ? merge(local.MAP_DNS_TO_IP, var.DNS_RECORDS) : {}
   name     = each.value.name
   type     = each.value.type
   zone_id  = each.value.zone_id
