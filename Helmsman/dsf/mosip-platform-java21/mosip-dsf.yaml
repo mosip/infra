@@ -550,7 +550,7 @@ apps:
   pms-partner:
     namespace: pms
     enabled: true
-    version: 12.2.3
+    version: 12.2.2
     chart: mosip/pms-partner
     set:
       # image.repository: "mosipid/partner-management-service"
@@ -562,7 +562,7 @@ apps:
   pms-policy:
     namespace: pms
     enabled: true
-    version: 12.2.3
+    version: 12.2.2
     chart: mosip/pms-policy
     set:
       # image.repository: "mosipid/policy-management-service"
@@ -574,7 +574,7 @@ apps:
   pmp-ui:
     namespace: pms
     enabled: false
-    version: 12.0.2
+    version: 12.2.2
     chart: mosip/pmp-ui
     set:
       image.repository: "mosipid/pmp-ui"
@@ -1047,11 +1047,11 @@ apps:
       extraEnvVarsCM[1]: "keycloak-env-vars"
       extraEnvVarsCM[2]: "keycloak-host"
       onboarding.modules[0].name: "ida"
-      onboarding.modules[0].enabled: false
+      onboarding.modules[0].enabled: true
       onboarding.modules[1].name: "print"
-      onboarding.modules[1].enabled: true
+      onboarding.modules[1].enabled: false
       onboarding.modules[2].name: "abis"
-      onboarding.modules[2].enabled: false
+      onboarding.modules[2].enabled: true
       onboarding.modules[3].name: "resident"
       onboarding.modules[3].enabled: true
       onboarding.modules[4].name: "mobileid"
