@@ -1,0 +1,26 @@
+modules:
+  - name: signupui
+    enabled: true
+    image:
+      registry: docker.io
+      repository: mosipdev/uitest-signup
+      tag: develop
+
+extraEnvVarsCM:
+  - s3
+  - keycloak-host
+  - db
+  - uitestrig
+
+extraEnvVarsSecret:
+  - s3
+  - keycloak-client-secrets
+  - postgres-postgresql
+
+resources:
+  limits:
+    cpu: 300m
+    memory: 500Mi
+  requests:
+    cpu: 300m
+    memory: 500Mi

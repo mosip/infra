@@ -64,7 +64,7 @@ k8s_control_plane_node_count = 3
 k8s_etcd_node_count = 3
 
 # Worker
-k8s_worker_node_count = 2
+k8s_worker_node_count = 1
 
 # RKE2 Version Configuration
 rke2_version = "v1.28.9+rke2r1"
@@ -93,7 +93,7 @@ postgresql_port         = "5433"
 # MOSIP Infrastructure Repository Configuration
 mosip_infra_repo_url = "https://github.com/mosip/infra.git"
 
-mosip_infra_branch = "release-0.2.0"
+mosip_infra_branch = "develop"
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
 vpc_name = "<vpc-name>"
@@ -108,4 +108,4 @@ nginx_node_ebs_volume_size_3 = 30   # Volume size in GB (e.g. 100); 0 = disabled
 
 activemq_storage_device    = "/dev/nvme3n1"
 activemq_mount_point       = "/srv/activemq"
-activemq_nfs_allowed_hosts = "*"  # Restrict to cluster CIDR in production e.g. "10.0.0.0/8"
+activemq_nfs_allowed_hosts = "*" # Restrict to cluster CIDR in production e.g. "10.0.0.0/8"

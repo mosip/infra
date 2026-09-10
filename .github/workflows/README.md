@@ -169,22 +169,25 @@ graph TD
 ### Production-Grade Features
 - **Zero-configuration GPG**: Uses GPG_PRIVATE_KEY secret automatically
 - **AES256 encryption**: Local state files encrypted with GPG
-- **Custom naming**: Pattern: `{provider}-{component}-{branch}-terraform.tfstate`
+- **Custom naming**: 
+    - for base-infra and observ-infra: `{provider}-{component}-{branch}-terraform.tfstate`
+    - for infra: `{provider}-{component}-{profile}-{branch}-terraform.tfstate`
 - **Git safety**: Encrypted state files tracked in repository
 - **Branch isolation**: Complete separation of environment states
 
 ### State File Organization
 ```bash
 # Repository Structure (Encrypted)
-.terraform-state/
-├── aws-base-infra-testgrid-terraform.tfstate.gpg
-├── aws-infra-testgrid-terraform.tfstate.gpg
-└── aws-observ-infra-testgrid-terraform.tfstate.gpg
+terraform/implementations/aws/base-infra/aws-base-infra-<branch>-terraform.tfstate.gpg
+terraform/implementations/aws/infra/profiles/<profile>/aws-infra-<profile>-<branch>-terraform.tfstate.gpg
+terraform/implementations/aws/observ-infra/aws-observ-infra-<branch>-terraform.tfstate.gpg
 
 # Decrypted for Terraform Use (Temporary)
-terraform/base-infra/aws-base-infra-testgrid-terraform.tfstate
-terraform/infra/aws-infra-testgrid-terraform.tfstate
-terraform/observ-infra/aws-observ-infra-testgrid-terraform.tfstate
+terraform/implementations/aws/base-infra/aws-base-infra-<branch>-terraform.tfstate
+terraform/implementations/aws/infra/profiles/<profile>/aws-infra-<profile>-<branch>-terraform.tfstate
+terraform/implementations/aws/observ-infra/aws-observ-infra-<branch>-terraform.tfstate
+
+where <profile> = mosip/esignet
 ```
 
 ### GPG Key Management
@@ -214,7 +217,7 @@ GPG_PRIVATE_KEY: |
 ```yaml
 BACKEND_TYPE: local
 # State files encrypted with GPG and stored in repository
-# Custom naming: aws-infra-testgrid-terraform.tfstate
+# Custom naming: aws-infra-<branch>-terraform.tfstate
 ```
 
 #### Remote Backend (Legacy Support) 
@@ -303,13 +306,15 @@ TERRAFORM_APPLY: true
 CLOUD_PROVIDER: aws
 TERRAFORM_COMPONENT: infra
 BACKEND_TYPE: local
-# State: aws-infra-main-terraform.tfstate.gpg
+INFRA_PROFILE: mosip/esignet
+# State: profiles/<profile>/aws-infra-<profile>-main-terraform.tfstate.gpg
 
 # Staging deployment (staging branch) 
 CLOUD_PROVIDER: aws
 TERRAFORM_COMPONENT: infra
 BACKEND_TYPE: local
-# State: aws-infra-staging-terraform.tfstate.gpg
+INFRA_PROFILE: mosip/esignet
+# State: profiles/<profile>/aws-infra-<profile>-staging-terraform.tfstate.gpg
 ```
 
 ### Sequential Workflow Deployment

@@ -1,0 +1,139 @@
+# Config-server values for eSignet standalone profile.
+# Based on: esignet/deploy/config-server/values.yaml
+#
+# Domain values (API_HOST, ESIGNET_HOST, etc.) are read from the
+# esignet-global ConfigMap created by config-server-esignet-setup.sh
+# from workflow env vars — no static domain values here.
+#
+# envVariables is a Helm list — this file is the single source of truth for
+# all entries. Do NOT partially override via a second -f file; it replaces
+# the whole list.
+
+gitRepo:
+  uri: https://github.com/mosip/mosip-config
+  version: esqa-2
+  searchFolders: ""
+  private: false
+  username: ""
+  token: ""
+
+resources:
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  limits:
+    cpu: 400m
+    memory: 2000Mi
+  requests:
+    cpu: 200m
+    memory: 1500Mi
+
+envVariables:
+  - name: SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_DB_DBUSER_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: db-common-secrets
+        key: db-dbuser-password
+    enabled: true
+
+  - name: SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_MOSIP_API_PUBLIC_HOST
+    valueFrom:
+      configMapKeyRef:
+        name: esignet-global
+        key: mosip-api-host
+    enabled: true
+
+  - name: SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_MOSIP_API_INTERNAL_HOST
+    valueFrom:
+      configMapKeyRef:
+        name: esignet-global
+        key: mosip-api-internal-host
+    enabled: true
+
+  - name: SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_KEYCLOAK_INTERNAL_URL
+    valueFrom:
+      configMapKeyRef:
+        name: keycloak-host
+        key: keycloak-internal-url
+    enabled: true
+
+  - name: SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_KEYCLOAK_EXTERNAL_URL
+    valueFrom:
+      configMapKeyRef:
+        name: keycloak-host
+        key: keycloak-external-url
+    enabled: true
+
+  - name: SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_MOSIP_ESIGNET_HOST
+    valueFrom:
+      configMapKeyRef:
+        name: esignet-global
+        key: mosip-esignet-host
+    enabled: true
+
+  - name: SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_KEYCLOAK_INTERNAL_HOST
+    valueFrom:
+      configMapKeyRef:
+        name: keycloak-host
+        key: keycloak-internal-host
+    enabled: true
+
+  - name: SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_KEYCLOAK_EXTERNAL_HOST
+    valueFrom:
+      configMapKeyRef:
+        name: keycloak-host
+        key: keycloak-external-host
+    enabled: true
+
+  - name: SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_MPARTNER_DEFAULT_AUTH_SECRET
+    valueFrom:
+      secretKeyRef:
+        name: keycloak-client-secrets
+        key: mpartner_default_auth_secret
+    enabled: true
+
+  - name: SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_SOFTHSM_ESIGNET_SECURITY_PIN
+    valueFrom:
+      secretKeyRef:
+        name: esignet-softhsm
+        key: security-pin
+    enabled: true
+
+  - name: SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_ESIGNET_CAPTCHA_SECRET_KEY
+    valueFrom:
+      secretKeyRef:
+        name: esignet-captcha
+        key: esignet-captcha-secret-key
+    enabled: true
+
+  - name: SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_ESIGNET_CAPTCHA_SITE_KEY
+    valueFrom:
+      secretKeyRef:
+        name: esignet-captcha
+        key: esignet-captcha-site-key
+    enabled: true
+
+  # Placeholder until MISP onboarder runs (priority -6).
+  # After onboarder writes the real key, config-server is restarted by
+  # esignet-misp-onboarder-postinstall.sh so the updated secret is loaded.
+  - name: SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_MOSIP_ESIGNET_MISP_KEY
+    valueFrom:
+      secretKeyRef:
+        name: esignet-misp-onboarder-key
+        key: mosip-esignet-misp-key
+    enabled: true
+
+  - name: SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_MOSIP_PMS_CLIENT_SECRET
+    valueFrom:
+      secretKeyRef:
+        name: keycloak-client-secrets
+        key: mosip_pms_client_secret
+    enabled: true
+
+  - name: SPRING_CLOUD_CONFIG_SERVER_OVERRIDES_MOSIP_SIGNUP_HOST
+    valueFrom:
+      configMapKeyRef:
+        name: esignet-global
+        key: mosip-signup-host
+    enabled: true

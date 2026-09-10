@@ -1,0 +1,118 @@
+# eSignet MOSIPID2 — plugin 2 (mosip-identity-plugin) runtime configuration.
+# pluginNameEnv=mosip-identity-plugin.jar set in DSF set: block.
+# Update IDA service URLs below to match your MOSIP IDA deployment.
+
+# Override full extraEnvVars to use namespace-specific softhsm secret name.
+extraEnvVars:
+  - name: KEYCLOAK_EXTERNAL_URL
+    valueFrom:
+      configMapKeyRef:
+        name: keycloak-host
+        key: keycloak-external-url
+  - name: REDIS_HOST
+    valueFrom:
+      configMapKeyRef:
+        name: redis-config
+        key: redis-host
+  - name: REDIS_PORT
+    valueFrom:
+      configMapKeyRef:
+        name: redis-config
+        key: redis-port
+  - name: REDIS_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: redis
+        key: redis-password
+  - name: DATABASE_HOST
+    valueFrom:
+      configMapKeyRef:
+        name: postgres-config
+        key: database-host
+  - name: DATABASE_PORT
+    valueFrom:
+      configMapKeyRef:
+        name: postgres-config
+        key: database-port
+  - name: DATABASE_NAME
+    valueFrom:
+      configMapKeyRef:
+        name: postgres-config
+        key: database-name
+  - name: DATABASE_USERNAME
+    valueFrom:
+      configMapKeyRef:
+        name: postgres-config
+        key: database-username
+  - name: DB_DBUSER_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: db-common-secrets
+        key: db-dbuser-password
+  - name: SOFTHSM_ESIGNET_SECURITY_PIN
+    valueFrom:
+      secretKeyRef:
+        name: esignet-softhsm-mosipid2
+        key: security-pin
+  - name: MOSIP_IDA_CLIENT_SECRET
+    valueFrom:
+      secretKeyRef:
+        name: keycloak-client-secrets-mosipid2
+        key: mosip_ida_client_secret
+
+extraEnvVarsAdditional:
+  - name: "MOSIP_ESIGNET_CAPTCHA_MODULE_NAME"
+    value: "esignetmosipid2"
+  - name: "MOSIP_ESIGNET_CAPTCHA_SITE-KEY"
+    valueFrom:
+      secretKeyRef:
+        name: esignet-captcha-mosipid2
+        key: esignet-captcha-site-key
+
+  # ---------------------------------------------------------------------------
+  # Plugin 2: mosip-identity-plugin
+  # Update URLs to match your MOSIP IDA deployment.
+  # ---------------------------------------------------------------------------
+  - name: NAMESPACE
+    value: mosipid2
+  - name: plugin_name_env
+    value: mosip-identity-plugin.jar
+  - name: SPRING_KAFKA_CONSUMER_GROUP_ID
+    value: esignet-consumer-esignet-mosipid2
+  - name: MOSIP_ESIGNET_SIGNUP_ID_TOKEN_AUDIENCE
+    value: esignet-mosipid2-signup-esqa020
+  - name: MOSIP_ESIGNET_AUTHENTICATOR_IDA_OTP_CHANNELS
+    value: email,phone
+  - name: MOSIP_ESIGNET_SEND_OTP_ATTEMPTS
+    value: '300'
+  - name: MOSIP_ESIGNET_AUTHENTICATE_ATTEMPTS
+    value: '300'
+  - name: MOSIP_ESIGNET_AUTHENTICATION_EXPIRE_IN_SECS
+    value: '600'
+  - name: MOSIP_ESIGNET_PREAUTHENTICATION_EXPIRE_IN_SECS
+    value: '600'
+  - name: MOSIP_ESIGNET_UI_CONFIG_USERNAME_POSTFIX
+    value: '@phone'
+  - name: MOSIP_ESIGNET_UI_CONFIG_LOGIN_ID_OPTIONS
+    value: >-
+      {{ "{{" }} 'id': 'mobile', 'svg': 'mobile_icon', 'prefixes': {{ "{{" }}'label':
+      'IND', 'value': '+91', 'maxLength': '', 'regex': ''},{'label':
+      'KHM', 'value': '+855', 'regex': ''{{ "}}" }}, 'postfix': '@phone',
+      'maxLength': '', 'regex': '' }, { 'id': 'nrc', 'svg':
+      'nrc_id_icon', 'prefixes': '', 'postfix': '@nrc', 'maxLength':
+      '', 'regex': '' }, { 'id': 'vid', 'svg': 'vid_icon', 'prefixes':
+      '', 'postfix': '', 'maxLength': '', 'regex': '' }, { 'id':
+      'email', 'svg': 'email_icon', 'prefixes': '', 'postfix':
+      '@email', 'maxLength': '', 'regex': '' {{ "}}" }}
+  - name: LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB_CLIENT
+    value: DEBUG
+  - name: MOSIP_ESIGNET_CAPTCHA_REQUIRED
+    value: ""
+  - name: MOSIP_ESIGNET_CAPTCHA_URL
+    value: http://captcha.captcha
+  - name: "MOSIP_ESIGNET_MISP_KEY"
+    valueFrom:
+      secretKeyRef:
+        name: esignet-misp-onboarder-key
+        key: mosip-esignet-misp-key
+

@@ -1,0 +1,28 @@
+# SoftHSM values for esignet-mosipid2 namespace
+# Identical to softhsm-esignet-values.yaml — separate file so each namespace
+# gets an independent SoftHSM PVC and pin secret.
+
+replicaCount: 1
+
+image:
+  repository: mosipid/softhsm
+  tag: v2
+  pullPolicy: Always
+
+persistence:
+  enabled: true
+  size: 1Gi
+  storageClass: ""
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+securityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000

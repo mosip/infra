@@ -1,0 +1,21 @@
+# Keycloak init values for signup-service client
+# Based on: esignet-signup/deploy/keycloak/keycloak-init-values.yaml
+keycloak:
+  realms:
+    mosip:
+      roles:
+        - AUTH
+        - ID_REPOSITORY
+        - REGISTRATION_ADMIN
+      clients:
+        - name: mosip-signup-client
+          mappers: []
+          saroles:
+            - AUTH
+            - CREDENTIAL_REQUEST
+            - ID_REPOSITORY
+            - REGISTRATION_ADMIN
+
+# clientSecrets is intentionally omitted here.
+# mosip_signup_client_secret is managed by signup-keycloak-init-preinstall.sh
+# and signup-keycloak-init-postinstall.sh hooks.

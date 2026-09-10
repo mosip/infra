@@ -1,0 +1,457 @@
+# =============================================================================
+# eSignet Profile - External Services DSF (Desired State File)
+# =============================================================================
+# This DSF deploys only the external/infrastructure services required for
+# standalone eSignet v1.7.1 deployment (without full MOSIP platform).
+#
+# Components:
+#   - PostgreSQL (optional, disable it if using external DB)
+#   - PostgreSQL Init (eSignet DB only - v1.7.1 branch)
+#   - Redis
+#   - Kafka + Kafka UI
+#   - SoftHSM for eSignet
+#   - Keycloak (for IAM / API access control)
+#   - Captcha validation service
+#   - Istio addons for service exposure
+#
+# Based on eSignet v1.7.1 deploy scripts:
+#   - install-prereq.sh
+#   - initialise-prereq.sh
+# =============================================================================
+
+helmDefaults:
+  tillerNamespace: kube-system
+  tillerless: true
+  install: true
+
+helmRepos:
+  bitnami: https://charts.bitnami.com/bitnami
+  mosip: https://mosip.github.io/mosip-helm
+  kafka-ui: https://provectus.github.io/kafka-ui-charts
+
+namespaces:
+  postgres:
+    protected: true
+  keycloak:
+    protected: true
+  redis:
+    protected: false
+  kafka:
+    protected: false
+  captcha:
+    protected: false
+  minio:
+    protected: false
+  esignet-mock:
+    protected: false
+  signup:
+    protected: false  
+apps:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL Server
+  # ---------------------------------------------------------------------------
+  # Disabled by default - enable if deploying a new PostgreSQL instance.
+  # If using an external PostgreSQL, keep disabled and configure via
+  # generate-secret-cm.py or manual secret/configmap creation.
+  postgres:
+    namespace: postgres
+    enabled: true
+    version: 13.1.5
+    chart: bitnami/postgresql
+    set:
+      image.repository: "mosipid/postgresql"
+      image.tag: "14.2.0-debian-10-r70"
+    wait: true
+    priority: -18
+    valuesFile: "$WORKDIR/utils/postgres-values.yaml"
+    timeout: 1200
+    hooks:
+      preInstall: "$WORKDIR/hooks/esignet-standalone/postgres-preinstall.sh"
+      postInstall: "$WORKDIR/hooks/esignet-standalone/postgres-postinstall.sh"
+
+  istio-addons-psql:
+    namespace: postgres
+    enabled: true
+    version: 0.1.0
+    chart: $WORKDIR/utils/istio-addons/postgres-istio-addons-0.1.0.tgz
+    set:
+      postgresHost: "postgres.${domain_name}"
+    wait: true
+    priority: -17
+    timeout: 1200
+    hooks:
+      preInstall: "$WORKDIR/hooks/wait-for-istio-crds.sh"
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL Init - eSignet Database Only
+  # ---------------------------------------------------------------------------
+  # Initializes esignet and mock-identity databases for all namespaces.
+  # Uses postgres-init 0.0.1-develop which supports dynamic dbName/dbUser per entry.
+  # scriptsDir is fixed (must match repo folder); dbName/dbUser are customized per namespace.
+  postgres-init-esignet:
+    namespace: postgres
+    enabled: true
+    version: 0.0.1-develop
+    chart: mosip/postgres-init
+    set:
+      image.repository: "mosipdev/postgres-init"
+      image.tag: "develop"
+      image.pullPolicy: "Always"
+      dbUserPasswords.dbuserPassword: ""
+      # ---------------------------------------------------------------------------
+      # esignet namespace (plugin 1 - mock)
+      # ---------------------------------------------------------------------------
+      databases.mosip_esignet.enabled: "true"
+      databases.mosip_esignet.scriptsDir: "mosip_esignet"
+      databases.mosip_esignet.dbName: "mosip_esignet"
+      databases.mosip_esignet.dbUser: "esignetuser"
+      databases.mosip_esignet.branch: "develop"
+      databases.mosip_esignet.host: "postgres.${domain_name}"
+      databases.mosip_esignet.port: ${esignet_db_port}
+      databases.mosip_esignet.dml: 1
+      databases.mosip_esignet_mosipid1.repoUrl: "https://github.com/mosip/esignet.git"
+      databases.mosip_esignet_mosipid1.defaultDb: "postgres"
+      databases.mosip_esignet_mosipid1.su.user: "postgres"
+      databases.mosip_esignet_mosipid1.su.secret.name: "postgres-postgresql"
+      databases.mosip_esignet_mosipid1.su.secret.key: "postgres-password"
+      # ---------------------------------------------------------------------------
+      # esignet-mosipid1 namespace (plugin 2 - mosip-identity)
+      # ---------------------------------------------------------------------------
+      databases.mosip_esignet_mosipid1.enabled: "true"
+      databases.mosip_esignet_mosipid1.scriptsDir: "mosip_esignet"
+      databases.mosip_esignet_mosipid1.dbName: "mosip_esignet_mosipid1"
+      databases.mosip_esignet_mosipid1.dbUser: "esignetuser_mosipid1"
+      databases.mosip_esignet_mosipid1.branch: "develop"
+      databases.mosip_esignet_mosipid1.host: "postgres.${domain_name}"
+      databases.mosip_esignet_mosipid1.port: ${esignet_db_port}
+      databases.mosip_esignet_mosipid1.dml: 1
+      databases.mosip_esignet_mosipid1.repoUrl: "https://github.com/mosip/esignet.git"
+      databases.mosip_esignet_mosipid1.defaultDb: "postgres"
+      databases.mosip_esignet_mosipid1.su.user: "postgres"
+      databases.mosip_esignet_mosipid1.su.secret.name: "postgres-postgresql"
+      databases.mosip_esignet_mosipid1.su.secret.key: "postgres-password"
+      # ---------------------------------------------------------------------------
+      # esignet-mosipid2 namespace (plugin 2 - mosip-identity)
+      # ---------------------------------------------------------------------------
+      databases.mosip_esignet_mosipid2.enabled: "true"
+      databases.mosip_esignet_mosipid2.scriptsDir: "mosip_esignet"
+      databases.mosip_esignet_mosipid2.dbName: "mosip_esignet_mosipid2"
+      databases.mosip_esignet_mosipid2.dbUser: "esignetuser_mosipid2"
+      databases.mosip_esignet_mosipid2.branch: "develop"
+      databases.mosip_esignet_mosipid2.host: "postgres.${domain_name}"
+      databases.mosip_esignet_mosipid2.port: ${esignet_db_port}
+      databases.mosip_esignet_mosipid2.dml: 1
+      databases.mosip_esignet_mosipid2.repoUrl: "https://github.com/mosip/esignet.git"
+      databases.mosip_esignet_mosipid2.defaultDb: "postgres"
+      databases.mosip_esignet_mosipid2.su.user: "postgres"
+      databases.mosip_esignet_mosipid2.su.secret.name: "postgres-postgresql"
+      databases.mosip_esignet_mosipid2.su.secret.key: "postgres-password"
+      # ---------------------------------------------------------------------------
+      # esignet-sunbird namespace (plugin 3 - sunbird-rc)
+      # ---------------------------------------------------------------------------
+      databases.mosip_esignet_sunbird.enabled: "true"
+      databases.mosip_esignet_sunbird.scriptsDir: "mosip_esignet"
+      databases.mosip_esignet_sunbird.dbName: "mosip_esignet_sunbird"
+      databases.mosip_esignet_sunbird.dbUser: "esignetuser_sunbird"
+      databases.mosip_esignet_sunbird.branch: "develop"
+      databases.mosip_esignet_sunbird.host: "postgres.${domain_name}"
+      databases.mosip_esignet_sunbird.port: ${esignet_db_port}
+      databases.mosip_esignet_sunbird.dml: 1
+      databases.mosip_esignet_sunbird.repoUrl: "https://github.com/mosip/esignet.git"
+      databases.mosip_esignet_sunbird.defaultDb: "postgres"
+      databases.mosip_esignet_sunbird.su.user: "postgres"
+      databases.mosip_esignet_sunbird.su.secret.name: "postgres-postgresql"
+      databases.mosip_esignet_sunbird.su.secret.key: "postgres-password"
+      # ---------------------------------------------------------------------------
+      # mock-identity-system (used with esignet namespace, plugin 1)
+      # ---------------------------------------------------------------------------
+      databases.mosip_mockidentitysystem.enabled: "true"
+      databases.mosip_mockidentitysystem.scriptsDir: "mosip_mockidentitysystem"
+      databases.mosip_mockidentitysystem.dbName: "mosip_mockidentitysystem"
+      databases.mosip_mockidentitysystem.dbUser: "mockidentityuser"
+      databases.mosip_mockidentitysystem.branch: "develop"
+      databases.mosip_mockidentitysystem.host: "postgres.${domain_name}"
+      databases.mosip_mockidentitysystem.repoUrl: "https://github.com/mosip/esignet-mock-services.git"
+      databases.mosip_mockidentitysystem.port: ${esignet_db_port}
+      databases.mosip_mockidentitysystem.dml: 1
+    wait: true
+    timeout: 300
+    priority: -16
+    hooks:
+      preInstall: "$WORKDIR/hooks/esignet-standalone/esignet-init-db.sh"
+      postInstall: "$WORKDIR/hooks/esignet-standalone/esignet-db-postinstall.sh"
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL Init - Signup Service Databases
+  # ---------------------------------------------------------------------------
+  # Enable when deploying signup-service.
+  # Initializes mosip_audit, mosip_kernel, mosip_otp (v1.2.0.1 branch).
+  postgres-init-signup:
+    namespace: signup
+    enabled: true
+    version: 12.0.1
+    chart: mosip/postgres-init
+    set:
+      dbUserPasswords.dbuserPassword: ""
+      # Disable all MOSIP platform databases
+      databases.mosip_toolkit.enabled: "false"
+      databases.mosip_master.enabled: "false"
+      databases.mosip_keymgr.enabled: "false"
+      databases.mosip_idmap.enabled: "false"
+      databases.mosip_prereg.enabled: "false"
+      databases.mosip_idrepo.enabled: "false"
+      databases.mosip_ida.enabled: "false"
+      databases.mosip_credential.enabled: "false"
+      databases.mosip_regprc.enabled: "false"
+      databases.mosip_regdevice.enabled: "false"
+      databases.mosip_authdevice.enabled: "false"
+      databases.mosip_pms.enabled: "false"
+      databases.mosip_hotlist.enabled: "false"
+      databases.mosip_resident.enabled: "false"
+      databases.mosip_digitalcard.enabled: "false"
+      databases.mosip_esignet.enabled: "false"
+      databases.mosip_mockidentitysystem.enabled: "false"
+      # Enable signup databases
+      databases.mosip_audit.enabled: "true"
+      databases.mosip_audit.branch: "v1.2.0.1"
+      databases.mosip_audit.repoUrl: "https://github.com/mosip/audit-manager.git"
+      databases.mosip_audit.host: "postgres.${domain_name}"
+      databases.mosip_audit.port: ${esignet_db_port}
+      databases.mosip_audit.dml: 0
+      databases.mosip_kernel.enabled: "true"
+      databases.mosip_kernel.branch: "v1.2.0.1"
+      databases.mosip_kernel.repoUrl: "https://github.com/mosip/commons.git"
+      databases.mosip_kernel.host: "postgres.${domain_name}"
+      databases.mosip_kernel.port: ${esignet_db_port}
+      databases.mosip_kernel.dml: 0
+      databases.mosip_otp.enabled: "true"
+      databases.mosip_otp.branch: "v1.2.0.1"
+      databases.mosip_otp.repoUrl: "https://github.com/mosip/otp-manager.git"
+      databases.mosip_otp.host: "postgres.${domain_name}"
+      databases.mosip_otp.port: ${esignet_db_port}
+      databases.mosip_otp.dml: 0
+    wait: true
+    timeout: 300
+    priority: -16
+    hooks:
+      preInstall: "$WORKDIR/hooks/esignet-standalone/signup-init-db.sh"
+
+  # ---------------------------------------------------------------------------
+  # Redis
+  # ---------------------------------------------------------------------------
+  redis:
+    namespace: redis
+    enabled: true
+    version: 17.3.14
+    chart: bitnami/redis
+    set:
+      image.repository: "mosipid/redis"
+      image.tag: "7.0.5-debian-11-r25"
+      image.pullPolicy: "Always"
+    wait: true
+    timeout: 480
+    priority: -15
+    hooks:
+      postInstall: "$WORKDIR/hooks/esignet-standalone/redis-setup.sh"
+
+  # ---------------------------------------------------------------------------
+  # Kafka
+  # ---------------------------------------------------------------------------
+  kafka:
+    namespace: kafka
+    enabled: true
+    version: 18.3.1
+    chart: bitnami/kafka
+    set:
+      image.repository: "mosipid/kafka"
+      image.tag: "3.2.1-debian-11-r9"
+      zookeeper.image.repository: "mosipid/zookeeper"
+      zookeeper.image.tag: "3.8.0-debian-11-r30"
+      clusterDomain: "cluster.local"
+      logRetentionBytes: "_1073741824"
+      defaultReplicationFactor: "3"
+      offsetsTopicReplicationFactor: "3"
+      transactionStateLogReplicationFactor: "3"
+      numPartitions: "20"
+      replicaCount: "5"
+      autoCreateTopicsEnable: "true"
+      deleteTopicEnable: "true"
+      persistence.enabled: "true"
+      persistence.accessModes[0]: "ReadWriteOnce"
+      persistence.size: "8Gi"
+      zookeeper.enabled: "true"
+      zookeeper.replicaCount: "5"
+      zookeeper.persistence.enabled: "true"
+      zookeeper.persistence.size: "2Gi"
+      resources.requests.cpu: "200m"
+      resources.requests.memory: "2000Mi"
+      startupProbe.enabled: "true"
+      startupProbe.initialDelaySeconds: "30"
+      startupProbe.periodSeconds: "10"
+      startupProbe.timeoutSeconds: "1"
+      startupProbe.failureThreshold: "30"
+      startupProbe.successThreshold: "1"
+    wait: true
+    timeout: 1200
+    priority: -14
+    hooks:
+      postInstall: "$WORKDIR/hooks/esignet-standalone/kafka-postinstall.sh"
+
+  kafka-ui:
+    namespace: kafka
+    enabled: true
+    version: 0.4.2
+    chart: kafka-ui/kafka-ui
+    set:
+      envs.config.KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "kafka.kafka:9092"
+      envs.config.KAFKA_CLUSTERS_0_NAME: "main_kafka"
+      envs.config.KAFKA_CLUSTERS_0_ZOOKEEPER: "kafka-zookeeper.kafka:2181"
+      image.pullPolicy: "Always"
+    wait: true
+    timeout: 1200
+    priority: -15
+
+  istio-addons-kafka:
+    namespace: kafka
+    enabled: true
+    version: 1.2.0
+    chart: $WORKDIR/utils/istio-addons/kafka-istio-addons-1.2.0.tgz
+    set:
+      kafkaUiHost: "kafka.${domain_name}"
+      installName: "kafka-ui"
+    wait: true
+    timeout: 1200
+    priority: -1
+
+  # ---------------------------------------------------------------------------
+  # Keycloak (IAM for API Access Control)
+  # ---------------------------------------------------------------------------
+  # Keycloak is optional for eSignet standalone. Enable if you need
+  # API access control for eSignet client management APIs.
+  keycloak:
+    namespace: keycloak
+    enabled: true
+    version: 7.1.18
+    chart: mosip/keycloak
+    set:
+      image.repository: "mosipid/mosip-artemis-keycloak"
+      image.tag: "1.2.0.2"
+      image.pullPolicy: "Always"
+      postgresql.image.registry: "docker.io"
+      postgresql.image.repository: "mosipid/postgresql"
+      postgresql.image.tag: "14.2.0-debian-10-r70"
+      service.type: "ClusterIP"
+      auth.adminUser: "admin"
+      extraEnvVars[0].name: "KEYCLOAK_EXTRA_ARGS"
+      extraEnvVars[0].value: "-Dkeycloak.profile.feature.upload_scripts=enabled -Dkeycloak.profile.feature.token_exchange=enabled -Dkeycloak.profile.feature.admin_fine_grained_authz=enabled"
+      ingress.enabled: "false"
+      ingress.hostname: ""
+      ingress.annotations.ingress\.kubernetes\.io/class: "nginx"
+      proxyAddressForwarding: "true"
+      replicaCount: "1"
+      serviceDiscovery.enabled: "true"
+      resources.requests.cpu: "200m"
+      resources.requests.memory: "1000Mi"
+      rbac.create: "true"
+      rbac.rules[0].apiGroups[0]: ""
+      rbac.rules[0].resources[0]: "pods"
+      rbac.rules[0].verbs[0]: "get"
+      rbac.rules[0].verbs[1]: "list"
+    wait: true
+    timeout: 1200
+    priority: -12
+
+  istio-addons-iam:
+    namespace: keycloak
+    enabled: true
+    version: 0.1.0
+    chart: $WORKDIR/utils/istio-addons/iam-istio-addons-0.1.0.tgz
+    set:
+      keycloakExternalHost: "iam.${domain_name}"
+      keycloakInternalHost: "keycloak.keycloak"
+      service: "keycloak"
+    wait: true
+    timeout: 1200
+    priority: -3
+
+  # ---------------------------------------------------------------------------
+  # eSignet Keycloak Init
+  # ---------------------------------------------------------------------------
+  # Runs in keycloak ns (after keycloak at -12) so all keycloak resources
+  # (keycloak secret, keycloak-env-vars CM) are already present — no preInstall
+  # copying needed. The chart creates keycloak-host CM and keycloak-client-secrets
+  # secret in keycloak ns. The postInstall hook fans both out to all esignet
+  # namespaces so they are ready when esignet-dsf runs.
+  esignet-keycloak-init:
+    namespace: keycloak
+    enabled: true
+    version: 12.0.2
+    chart: mosip/keycloak-init
+    valuesFile: "$WORKDIR/utils/keycloak-esignet-init-values.yaml"
+    set:
+      keycloakExternalHost: "iam.${domain_name}"
+      keycloakInternalHost: "keycloak.keycloak"
+      keycloak.realms.mosip.realm_config.attributes.frontendUrl: "https://iam.${domain_name}/auth"
+      clientSecrets[0].name: "mosip_pms_client_secret"
+      clientSecrets[0].secret: "${PMS_CLIENT_SECRET_VALUE}"
+      clientSecrets[1].name: "mpartner_default_auth_secret"
+      clientSecrets[1].secret: "${MPARTNER_DEFAULT_AUTH_SECRET_VALUE}"
+      clientSecrets[2].name: "mosip_ida_client_secret"
+      clientSecrets[2].secret: "${IDA_CLIENT_SECRET_VALUE}"
+      clientSecrets[3].name: "mosip_deployment_client_secret"
+      clientSecrets[3].secret: "${DEPLOYMENT_CLIENT_SECRET_VALUE}"
+      clientSecrets[4].name: "mosip_mpartner_default_mobile_secret"
+      clientSecrets[4].secret: "${MPARTNER_DEFAULT_MOBILE_SECRET_VALUE}"
+    wait: true
+    timeout: 480
+    priority: -1
+    hooks:
+      preInstall: "$WORKDIR/hooks/esignet-standalone/esignet-preinstall-keycloak-init.sh"
+      postInstall: "$WORKDIR/hooks/esignet-standalone/esignet-postinstall-keycloak-init.sh"
+  # ---------------------------------------------------------------------------
+  # Captcha Validation Service
+  # ---------------------------------------------------------------------------
+  captcha:
+    namespace: captcha
+    enabled: true
+    version: 0.1.0-beta.1
+    chart: mosip/captcha
+    set:
+      metrics.serviceMonitor.enabled: "false"
+    wait: true
+    timeout: 480
+    priority: -10
+    hooks:
+      postInstall: "$WORKDIR/hooks/esignet-standalone/captcha-postinstall.sh"
+
+  minio:
+    namespace: minio
+    enabled: true
+    version: 10.1.6
+    chart: mosip/minio
+    set:
+      image.repository: "mosipid/minio"
+      image.tag: "2022.2.7-debian-10-r0"
+      metrics.serviceMonitor.enabled: "true"
+      extraEnvVars[0].name: "MINIO_PROMETHEUS_URL"
+      extraEnvVars[0].value: "http://rancher-monitoring-prometheus.cattle-monitoring-system:9090"
+      extraEnvVars[1].name: "MINIO_PROMETHEUS_JOB_ID"
+      extraEnvVars[1].value: "minio"
+      resourcesPreset: "none"
+    wait: true
+    timeout: 1200
+    priority: -9
+    # Ensure minio is deployed before its Istio addons
+
+  istio-addons-minio:
+    namespace: minio
+    enabled: true
+    version: 1.2.0
+    chart: $WORKDIR/utils/istio-addons/minio-istio-addons-1.2.0.tgz
+    set:
+      externalHost: "minio.${domain_name}"
+    wait: true
+    timeout: 1200
+    hooks:
+      postInstall: "$WORKDIR/hooks/s3-setup.sh"
+    priority: -2
