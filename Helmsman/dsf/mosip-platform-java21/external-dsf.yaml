@@ -177,7 +177,7 @@ apps:
       rbac.rules[0].verbs[0]: "get"
       rbac.rules[0].verbs[1]: "list"
     hooks:
-      preInstall: "$WORKDIR/hooks/keycloak-external-db-init.sh"
+      preInstall: "bash $WORKDIR/hooks/keycloak-external-db-init.sh"
     wait: true
     timeout: 1200
     priority: -14
