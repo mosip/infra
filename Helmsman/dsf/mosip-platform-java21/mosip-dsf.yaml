@@ -550,7 +550,7 @@ apps:
   pms-partner:
     namespace: pms
     enabled: true
-    version: 12.2.3
+    version: 12.2.2
     chart: mosip/pms-partner
     set:
       # image.repository: "mosipid/partner-management-service"
@@ -562,7 +562,7 @@ apps:
   pms-policy:
     namespace: pms
     enabled: true
-    version: 12.2.3
+    version: 12.2.2
     chart: mosip/pms-policy
     set:
       # image.repository: "mosipid/policy-management-service"
@@ -574,7 +574,7 @@ apps:
   pmp-ui:
     namespace: pms
     enabled: false
-    version: 12.0.2
+    version: 12.2.2
     chart: mosip/pmp-ui
     set:
       image.repository: "mosipid/pmp-ui"
