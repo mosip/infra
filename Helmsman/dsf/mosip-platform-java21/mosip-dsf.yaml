@@ -121,7 +121,7 @@ apps:
   mock-abis:
     namespace: abis
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-develop
     chart: mosip/mock-abis
     # set:
     #   image.repository: "mosipdev/mock-abis"
@@ -136,7 +136,7 @@ apps:
   mock-mv:
     namespace: abis
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-develop
     chart: mosip/mock-mv
     # set:
     #   image.repository: "mosipdev/mock-mv"
@@ -264,7 +264,7 @@ apps:
   idgenerator:
     namespace: kernel
     enabled: true
-    version: 1.3.0
+    version: 1.3.1
     chart: mosip/idgenerator
     # set:
       # image.repository: "mosipdev/kernel-idgenerator-service"
@@ -281,7 +281,7 @@ apps:
   masterdata:
     namespace: kernel
     enabled: true
-    version: 1.3.0
+    version: 1.3.1
     chart: mosip/masterdata
     set:
       # image.repository: "mosipdev/kernel-masterdata-service"
@@ -309,7 +309,7 @@ apps:
   pridgenerator:
     namespace: kernel
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-develop
     chart: mosip/pridgenerator
     # set:
       # image.repository: "mosipdev/kernel-pridgenerator-service"
@@ -320,7 +320,7 @@ apps:
   ridgenerator:
     namespace: kernel
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-develop
     chart: mosip/ridgenerator
     # set:
       # image.repository: "mosipdev/kernel-ridgenerator-service"
@@ -331,7 +331,7 @@ apps:
   syncdata:
     namespace: kernel
     enabled: true
-    version: 1.3.0
+    version: 1.3.1
     chart: mosip/syncdata
     # set:
       # image.repository: "mosipdev/kernel-syncdata-service"
@@ -347,7 +347,7 @@ apps:
   notifier:
     namespace: kernel
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-develop
     chart: mosip/notifier
     # set:
       # image.repository: "mosipdev/kernel-notification-service"
@@ -382,7 +382,7 @@ apps:
   datashare:
     namespace: datashare
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-develop
     chart: mosip/datashare
     # set:
     #   image.repository: "mosipdev/data-share-service"
@@ -428,7 +428,7 @@ apps:
   prereg-booking:
     namespace: prereg
     enabled: true
-    version: 1.3.0
+    version: 1.3.1-develop
     chart: mosip/prereg-booking
     # set:
     #   image.repository: "mosipdev/pre-registration-booking-service"
@@ -859,7 +859,7 @@ apps:
   admin-hotlist:
     namespace: admin
     enabled: true
-    version: 1.3.0
+    version: 1.3.1
     chart: mosip/admin-hotlist
     # set:
     #   image.repository: "mosipdev/hotlist-service"
@@ -875,7 +875,7 @@ apps:
   admin-service:
     namespace: admin
     enabled: true
-    version: 1.3.0
+    version: 1.3.1
     chart: mosip/admin-service
     set:
       # image.repository: "mosipdev/admin-service"
@@ -906,7 +906,7 @@ apps:
   ida-keygen:
     namespace: ida
     enabled: true
-    version: 1.3.1-develop
+    version: 1.4.1-develop
     chart: mosip/keygen
     set:
       # image.repository: "mosipdev/keys-generator"
@@ -974,7 +974,7 @@ apps:
   print-service:
     namespace: print
     enabled: true
-    version: 1.3.0
+    version: 1.3.1
     chart: mosip/print-service
     # set:
     #   image.repository: "mosipdev/print"
@@ -1091,7 +1091,7 @@ apps:
   regclient:
     namespace: regclient
     enabled: true
-    version: 1.3.0
+    version: 12.0.3
     chart: mosip/regclient
     set:
       startupProbe.failureThreshold: "60"
