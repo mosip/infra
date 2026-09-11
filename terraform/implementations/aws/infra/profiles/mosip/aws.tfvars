@@ -77,7 +77,7 @@ WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 # Rancher Import URL
 # Rancher Import Configuration
 enable_rancher_import = true
-rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/j4pqp8pgrspp5rqghpvs2cmnw9vkm48jt2cskbtfmcxjrvgdgszdxb_c-m-hzk6258h.yaml\""
+rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/j4pqp8pgrspp5rqghpvs2cmnw9vkm48jt2cskbtfmcxjrvgdgszdxb_c-m-hzk6258h.yaml\""
 
 # DNS Records to map
 subdomain_public   = ["resident", "prereg", "esignet", "healthservices", "signup"]
