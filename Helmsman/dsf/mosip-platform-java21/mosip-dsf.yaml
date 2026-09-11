@@ -909,8 +909,8 @@ apps:
     version: 1.4.1-develop
     chart: mosip/keygen
     set:
-      # image.repository: "mosipdev/keys-generator"
-      # image.tag: "release-1.3.x"
+      image.repository: "mosipdev/keys-generator"
+      image.tag: "release-1.3.x"
       springConfigNameEnv: "id-authentication" 
       softHsmCM: "softhsm-ida-share"
       # persistence.enabled: false
