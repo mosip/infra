@@ -155,8 +155,8 @@ apps:
     version: 1.4.1-develop
     chart: mosip/keygen
     set:
-       image.repository: "mosipdev/keys-generator"
-       image.tag: "release-1.4.x"
+      image.repository: "mosipdev/keys-generator"
+      image.tag: "release-1.4.x"
       springConfigNameEnv: "kernel"
       softHsmCM: "softhsm-kernel-share"
       # persistence.enabled: "false"
