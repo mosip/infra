@@ -89,7 +89,7 @@ apps:
       databases.mosip_idmap.port: 5433
 
       databases.mosip_prereg.enabled: "true"
-      databases.mosip_prereg.branch: "release-1.3.x"
+      databases.mosip_prereg.branch: "v1.3.0"
       databases.mosip_prereg.host: "postgres.${domain_name}"
       databases.mosip_prereg.port: 5433
 
