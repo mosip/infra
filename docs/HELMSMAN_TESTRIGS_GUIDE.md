@@ -15,10 +15,13 @@ Deploy API, UI, and DSL test rigs after all services are running and partner onb
 | Profile | What deploys | Namespaces |
 |---------|-------------|------------|
 | `esignet-standalone` | `esignet-apitestrig` into 3 namespaces; optional signup apitestrig + uitestrig | `esignet-mock`, `esignet-mosipid`, `esignet-sunbird`, `signup` |
+| `esignet-standalone-2.0.0` | Identical to `esignet-standalone` (Go rewrite) | Same namespaces as above |
 | `mosip-platform-1.2.0.x` | API testrig, UI testrig, DSL testrig | MOSIP testrig namespaces |
 | `mosip-platform-1.2.1.x` | Same as above | MOSIP testrig namespaces |
 
-> **eSignet standalone (`esignet-standalone` profile):** Requires `mosipid_domain_name` for the MOSIP-ID apitestrig endpoint.
+> **eSignet standalone (`esignet-standalone` / `esignet-standalone-2.0.0` profiles):** Requires `mosipid_domain_name` for the MOSIP-ID apitestrig endpoint.
+>
+> **`esignet-standalone-2.0.0` note:** `testrigs-dsf.yaml` deploys the exact same apps into the exact same namespaces as `esignet-standalone` — only the hook scripts differ (`hooks/esignet-standalone-2.0.0/` instead of `hooks/esignet-standalone/`).
 
 ---
 
@@ -62,7 +65,7 @@ No additional secrets required — MinIO root password is read automatically fro
 
 | Input | Description | Example |
 |-------|-------------|---------|
-| `profile` | Deployment profile | `esignet-standalone` / `mosip-platform-1.2.0.x` / `mosip-platform-1.2.1.x` |
+| `profile` | Deployment profile | `esignet-standalone` / `esignet-standalone-2.0.0` / `mosip-platform-1.2.0.x` / `mosip-platform-1.2.1.x` |
 | `mode` | Helmsman mode | Always `apply` — dry-run will fail |
 | `domain_name` | Base domain for this environment | `soil38.mosip.net` |
 | `db_port` | External postgres port — MOSIP platform only | `5433` |
@@ -70,7 +73,7 @@ No additional secrets required — MinIO root password is read automatically fro
 | `env_name` | Environment name | `soil38` |
 | `slack_channel_name` | Slack channel for alerting (optional) | `#mosip-alerts` |
 
-### eSignet standalone profile additionally
+### eSignet standalone profiles (`esignet-standalone` / `esignet-standalone-2.0.0`) additionally
 
 | Input | Description | Example |
 |-------|-------------|---------|
@@ -88,7 +91,7 @@ No additional secrets required — MinIO root password is read automatically fro
   > Can't find it? Search for "Testrig" or "Testrigs" in the workflows list.
 - **(2)** Click the **Run workflow** dropdown button (top right) — this opens the form shown above.
 - **(3)** **Branch** — pick the branch you're deploying from (e.g., `MOSIP-44613`).
-- **(4)** **Deployment profile to use** — pick the profile you want (e.g., `mosip-platform-1.2.0.x` or `esignet-standalone`).
+- **(4)** **Deployment profile to use** — pick the profile you want (e.g., `mosip-platform-1.2.0.x`, `esignet-standalone`, or `esignet-standalone-2.0.0` for the Go rewrite).
 - **(5)** **Choose Helmsman mode: dry-run or apply** — always pick **`apply`**.
 - **(6)** **Domain name for this environment** — type the web domain this environment should use (e.g., `example.xyz.net`).
 - **(7)** **MOSIP-ID domain name** *(eSignet profile only)* — type the base domain used by the MOSIP-ID eSignet instance (e.g., `mosipid.xyz.net`). Leave blank for MOSIP platform profiles.
@@ -136,7 +139,7 @@ kubectl create job --from=cronjob/cronjob-dslorchestrator-full dslrig-manual-run
 > kubectl logs -f job/dslrig-manual-run -n dslrig
 > ```
 
-**3. Trigger eSignet test jobs (eSignet standalone profile)**
+**3. Trigger eSignet test jobs (eSignet standalone profiles)**
 
 The `trigger-test-jobs-esignet.sh` postInstall hook fires automatically after the last testrig deploys — it triggers all cronjobs across all 3 esignet namespaces sequentially and optionally signup/signup-uitestrig if deployed.
 
@@ -145,7 +148,12 @@ To trigger manually:
 ```bash
 export KUBECONFIG=/path/to/kubeconfig
 export WORKDIR=/path/to/Helmsman
+
+# esignet-standalone
 ./hooks/esignet-standalone/trigger-test-jobs-esignet.sh
+
+# esignet-standalone-2.0.0
+./hooks/esignet-standalone-2.0.0/trigger-test-jobs-esignet.sh
 ```
 
 ---
@@ -158,7 +166,7 @@ kubectl get pods -n apitestrig
 kubectl get pods -n uitestrig
 kubectl get pods -n dslrig
 
-# Check testrig pods (eSignet standalone)
+# Check testrig pods (eSignet standalone — same namespaces for esignet-standalone-2.0.0)
 kubectl get pods -n esignet      # esignet-apitestrig cronjob
 kubectl get pods -n esignet-mosipid
 kubectl get pods -n esignet-sunbird
