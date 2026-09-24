@@ -6,7 +6,7 @@ Deploy API, UI, and DSL test rigs after all services are running and partner onb
 
 **Workflow:** `helmsman_testrigs.yml`  
 **DSF:** `Helmsman/dsf/<profile>/testrigs-dsf.yaml`  
-**Time required:** 10–20 minutes
+**Time required:** 10–20 minutes (`esignet-standalone-2.0.0`: up to ~45 minutes — its 3 UI testrigs each run headless Chrome + a JVM, which is slower than the API-only rigs)
 
 ---
 
@@ -14,14 +14,16 @@ Deploy API, UI, and DSL test rigs after all services are running and partner onb
 
 | Profile | What deploys | Namespaces |
 |---------|-------------|------------|
-| `esignet-standalone` | `esignet-apitestrig` into 3 namespaces; optional signup apitestrig + uitestrig | `esignet-mock`, `esignet-mosipid`, `esignet-sunbird`, `signup` |
-| `esignet-standalone-2.0.0` | Identical to `esignet-standalone` (Go rewrite) | Same namespaces as above |
+| `esignet-standalone` | Generic `mosip/apitestrig`/`mosip/uitestrig` charts: `esignet-apitestrig` into 3 namespaces; optional signup apitestrig + uitestrig | `esignet-mock`, `esignet-mosipid`, `esignet-sunbird`, `signup` |
+| `esignet-standalone-2.0.0` | eSignet's own dedicated `mosip/esignet-apitestrig` (Go harness) + `mosip/esignet-uitestrig` (Java harness) charts — see note below; plus the same optional signup apitestrig/uitestrig as `esignet-standalone` | `esignet-mock`, `esignet-mosipid`, `esignet-sunbird`, `esignet-uitestrig`, `esignet-mosipid-uitestrig`, `esignet-sunbird-uitestrig`, `signup` |
 | `mosip-platform-1.2.0.x` | API testrig, UI testrig, DSL testrig | MOSIP testrig namespaces |
 | `mosip-platform-1.2.1.x` | Same as above | MOSIP testrig namespaces |
 
 > **eSignet standalone (`esignet-standalone` / `esignet-standalone-2.0.0` profiles):** Requires `mosipid_domain_name` for the MOSIP-ID apitestrig endpoint.
 >
-> **`esignet-standalone-2.0.0` note:** `testrigs-dsf.yaml` deploys the exact same apps into the exact same namespaces as `esignet-standalone` — only the hook scripts differ (`hooks/esignet-standalone-2.0.0/` instead of `hooks/esignet-standalone/`).
+> **`esignet-standalone-2.0.0` note:** Unlike the profile-differences doc gap this used to have, `testrigs-dsf.yaml` here does **not** deploy the same apps as `esignet-standalone` — it deploys eSignet's own reference testrig charts instead, modeled directly on
+> [`esignet-apitestrig/install.sh`](https://github.com/mosip/esignet/blob/v2.0.0/deploy/esignet-apitestrig/install.sh) and
+> [`esignet-uitestrig/install.sh`](https://github.com/mosip/esignet/blob/v2.0.0/deploy/esignet-uitestrig/install.sh). Each eSignet instance's apitestrig lives in that instance's own namespace (matching install.sh's `NS=esignet` pattern); each uitestrig gets its **own** namespace, separate from the eSignet instance it tests (matching install.sh's `NS=esignet-uitestrig` / `SOURCE_NS=esignet` split) — see [Required Secrets](#required-secrets) below for the extra values this needs. Only `esignet-mosipid` (the only instance backed by a real IDA identity) needs real test-identity values; `esignet-mock` and `esignet-sunbird` don't.
 
 ---
 
@@ -49,9 +51,44 @@ All secrets are **Environment Secrets** — configure at **Repository → Settin
 | `CLUSTER_WIREGUARD_WG0` | WireGuard VPN config for cluster access |
 | `SLACK_WEBHOOK_URL` | Slack incoming webhook URL (optional — for test result notifications) |
 
-### eSignet standalone profile only
+### `esignet-standalone` profile only
 
 No additional secrets required for testrigs — captcha and keycloak secrets were already created during eSignet deployment and are available in each namespace.
+
+### `esignet-standalone-2.0.0` profile only
+
+`esignet-apitestrig`/`esignet-uitestrig` (eSignet's own reference charts) need a few values the generic testrig charts didn't. Some are read live from the cluster (no setup needed); the rest must be configured as **Environment Secrets/Variables**:
+
+**Read automatically from the cluster** (already provisioned by eSignet's own deployment — nothing to add):
+
+| Value | Source |
+|-------|--------|
+| `KEYCLOAK_CLIENT_SECRET` (apitestrig, all 3 instances) | `keycloak-client-secrets` secret in the `keycloak` namespace — the same `mosip_pms_client_secret` key `esignet-preinstall-keycloak-init.sh` already uses |
+| `esignetDbPassword` (uitestrig, all 3 instances) | `db-common-secrets` secret in the `postgres` namespace |
+
+**Required Environment Secrets/Variables** (Settings → Environments → `<branch-name>`):
+
+| Secret/Variable | Type | Used by | Description |
+|---|---|---|---|
+| `MOSIPID_KEYCLOAK_ADMIN_PASSWORD` | Secret | uitestrig, all 3 instances | Reuses the same Keycloak admin password `esignet-misp-onboarder-mosipid-preinstall.sh` already needs — one shared `mosip/keycloak` release for the whole profile |
+| `ESIGNET_UITESTRIG_OIDC_CLIENT_ID` | Variable | uitestrig, all 3 instances | Pre-provisioned OIDC client ID for browser login testing (reused across instances, same pattern as `mock-relying-party-service`'s shared `CLIENT_ID` in `esignet-dsf.yaml`) |
+| `ESIGNET_UITESTRIG_CLIENT_SECRET` | Secret | uitestrig, all 3 instances | Secret for the client above |
+| `MOSIPID_TESTRIG_INDIVIDUAL_ID` | Secret | apitestrig, `esignet-mosipid` only | Real IDA test identity (UIN) — PII |
+| `MOSIPID_TESTRIG_OTP_RECIPIENT` | Secret | apitestrig, `esignet-mosipid` only | Phone/email that receives the test OTP |
+| `MOSIPID_TESTRIG_AUTH_PARTNER_ID` | Variable | apitestrig, `esignet-mosipid` only | Auth partner ID used to build the test client ID |
+| `MOSIPID_TESTRIG_AUTH_POLICY_ID` | Variable | apitestrig, `esignet-mosipid` only | Policy ID used to build the test client ID |
+| `MOSIPID_TESTRIG_UIN` | Secret | uitestrig, `esignet-mosipid` only | Test UIN — PII |
+| `MOSIPID_TESTRIG_VID` | Secret | uitestrig, `esignet-mosipid` only | Test VID — PII |
+| `MOSIPID_TESTRIG_PHONE_NUMBER` | Secret | uitestrig, `esignet-mosipid` only | Test UIN's phone number — PII |
+| `MOSIPID_TESTRIG_EMAIL_LOGIN_ID` | Secret | uitestrig, `esignet-mosipid` only | Test identity for email-OTP login scenarios |
+| `MOSIPID_TESTRIG_PASSWORD_LOGIN_UIN` | Secret | uitestrig, `esignet-mosipid` only | Test identity for password-login scenarios |
+| `MOSIPID_TESTRIG_PASSWORD_LOGIN_PASSWORD` | Secret | uitestrig, `esignet-mosipid` only | Password for the identity above |
+
+Only `esignet-mosipid` needs real test-identity/onboarding values — it's the only instance backed by a real IDA identity (`config.mosip.json`/the `mosip` plugin). `esignet-mock` (`config.mock.json`/`mock` plugin) and `esignet-sunbird` (`config.sunbird.json`/`sunbird` plugin) need none of the `MOSIPID_TESTRIG_*` values above.
+
+The workflow's own "Validate esignet-standalone-2.0.0 testrig secrets" step fails clearly, listing exactly which of these are missing, before it tries to deploy.
+
+Report storage uses a PVC (`reports.persistence.enabled: true`), not S3 — there's no established MinIO bucket convention for these charts yet in this repo. Switch to `reports.s3.*` once one exists.
 
 ### MOSIP platform profiles only
 
@@ -126,6 +163,11 @@ kubectl get cronjobs -n dslrig
 kubectl get cronjobs -n esignet
 kubectl get cronjobs -n esignet-mosipid
 kubectl get cronjobs -n esignet-sunbird
+
+# esignet-standalone-2.0.0 only — separate uitestrig namespaces
+kubectl get cronjobs -n esignet-uitestrig
+kubectl get cronjobs -n esignet-mosipid-uitestrig
+kubectl get cronjobs -n esignet-sunbird-uitestrig
 ```
 
 **2. Trigger DSL orchestrator (MOSIP platform profiles)**
@@ -166,9 +208,14 @@ kubectl get pods -n apitestrig
 kubectl get pods -n uitestrig
 kubectl get pods -n dslrig
 
-# Check testrig pods (eSignet standalone — same namespaces for esignet-standalone-2.0.0)
+# Check testrig pods (eSignet standalone apitestrig — same namespaces for esignet-standalone-2.0.0)
 kubectl get pods -n esignet      # esignet-apitestrig cronjob
 kubectl get pods -n esignet-mosipid
 kubectl get pods -n esignet-sunbird
 kubectl get pods -n signup       # signup-apitestrig (if enabled)
+
+# esignet-standalone-2.0.0 only — separate uitestrig namespaces
+kubectl get pods -n esignet-uitestrig
+kubectl get pods -n esignet-mosipid-uitestrig
+kubectl get pods -n esignet-sunbird-uitestrig
 ```

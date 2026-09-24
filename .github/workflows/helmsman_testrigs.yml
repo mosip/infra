@@ -124,6 +124,29 @@ jobs:
       env_name:           ${{ github.event.inputs.env_name           || vars.ENV_NAME }}
       slack_channel_name: ${{ github.event.inputs.slack_channel_name || vars.SLACK_CHANNEL_NAME }}
       SLACK_WEBHOOK_URL:  ${{ github.event.inputs.slack_webhook_url  || secrets.SLACK_WEBHOOK_URL }}
+      # esignet-standalone-2.0.0 only — esignet-apitestrig/esignet-uitestrig (the Go/Java
+      # rewrite testrig charts, replacing the generic apitestrig/uitestrig charts for this
+      # profile). Reused across all 3 instances (mock/mosipid/sunbird), same as
+      # mock-relying-party-service's own CLIENT_ID constant in esignet-dsf.yaml.
+      ESIGNET_UITESTRIG_OIDC_CLIENT_ID: ${{ vars.ESIGNET_UITESTRIG_OIDC_CLIENT_ID }}
+      ESIGNET_UITESTRIG_CLIENT_SECRET:  ${{ secrets.ESIGNET_UITESTRIG_CLIENT_SECRET }}
+      # Single shared Keycloak admin password (one mosip/keycloak release for the whole
+      # profile — see external-dsf.yaml) — already provisioned for the MISP onboarder.
+      MOSIPID_KEYCLOAK_ADMIN_PASSWORD: ${{ secrets.MOSIPID_KEYCLOAK_ADMIN_PASSWORD }}
+      # esignet-mosipid apitestrig/uitestrig only — config.mosip.json (apitestrig) and the
+      # MOSIP-ID plugin path (uitestrig) are the only ones backed by a real IDA identity, so
+      # these are the only instance that needs real test-identity/onboarding values. esignet-mock
+      # (config.mock.json) and esignet-sunbird (config.sunbird.json) need none of this.
+      MOSIPID_TESTRIG_INDIVIDUAL_ID:          ${{ secrets.MOSIPID_TESTRIG_INDIVIDUAL_ID }}
+      MOSIPID_TESTRIG_OTP_RECIPIENT:          ${{ secrets.MOSIPID_TESTRIG_OTP_RECIPIENT }}
+      MOSIPID_TESTRIG_AUTH_PARTNER_ID:        ${{ vars.MOSIPID_TESTRIG_AUTH_PARTNER_ID }}
+      MOSIPID_TESTRIG_AUTH_POLICY_ID:         ${{ vars.MOSIPID_TESTRIG_AUTH_POLICY_ID }}
+      MOSIPID_TESTRIG_UIN:                    ${{ secrets.MOSIPID_TESTRIG_UIN }}
+      MOSIPID_TESTRIG_VID:                    ${{ secrets.MOSIPID_TESTRIG_VID }}
+      MOSIPID_TESTRIG_PHONE_NUMBER:           ${{ secrets.MOSIPID_TESTRIG_PHONE_NUMBER }}
+      MOSIPID_TESTRIG_EMAIL_LOGIN_ID:         ${{ secrets.MOSIPID_TESTRIG_EMAIL_LOGIN_ID }}
+      MOSIPID_TESTRIG_PASSWORD_LOGIN_UIN:     ${{ secrets.MOSIPID_TESTRIG_PASSWORD_LOGIN_UIN }}
+      MOSIPID_TESTRIG_PASSWORD_LOGIN_PASSWORD: ${{ secrets.MOSIPID_TESTRIG_PASSWORD_LOGIN_PASSWORD }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -294,6 +317,67 @@ jobs:
           else
             echo "❌ secret minio not found in minio namespace"; exit 1
           fi
+
+      - name: Validate esignet-standalone-2.0.0 testrig secrets
+        if: env.PROFILE == 'esignet-standalone-2.0.0'
+        run: |
+          errors=()
+          [ -z "$ESIGNET_UITESTRIG_OIDC_CLIENT_ID" ]        && errors+=("ESIGNET_UITESTRIG_OIDC_CLIENT_ID (vars)")
+          [ -z "$ESIGNET_UITESTRIG_CLIENT_SECRET" ]         && errors+=("ESIGNET_UITESTRIG_CLIENT_SECRET (secrets)")
+          [ -z "$MOSIPID_KEYCLOAK_ADMIN_PASSWORD" ]         && errors+=("MOSIPID_KEYCLOAK_ADMIN_PASSWORD (secrets)")
+          [ -z "$MOSIPID_TESTRIG_INDIVIDUAL_ID" ]           && errors+=("MOSIPID_TESTRIG_INDIVIDUAL_ID (secrets)")
+          [ -z "$MOSIPID_TESTRIG_OTP_RECIPIENT" ]           && errors+=("MOSIPID_TESTRIG_OTP_RECIPIENT (secrets)")
+          [ -z "$MOSIPID_TESTRIG_AUTH_PARTNER_ID" ]         && errors+=("MOSIPID_TESTRIG_AUTH_PARTNER_ID (vars)")
+          [ -z "$MOSIPID_TESTRIG_AUTH_POLICY_ID" ]          && errors+=("MOSIPID_TESTRIG_AUTH_POLICY_ID (vars)")
+          [ -z "$MOSIPID_TESTRIG_UIN" ]                     && errors+=("MOSIPID_TESTRIG_UIN (secrets)")
+          [ -z "$MOSIPID_TESTRIG_VID" ]                     && errors+=("MOSIPID_TESTRIG_VID (secrets)")
+          [ -z "$MOSIPID_TESTRIG_PHONE_NUMBER" ]            && errors+=("MOSIPID_TESTRIG_PHONE_NUMBER (secrets)")
+          [ -z "$MOSIPID_TESTRIG_EMAIL_LOGIN_ID" ]          && errors+=("MOSIPID_TESTRIG_EMAIL_LOGIN_ID (secrets)")
+          [ -z "$MOSIPID_TESTRIG_PASSWORD_LOGIN_UIN" ]      && errors+=("MOSIPID_TESTRIG_PASSWORD_LOGIN_UIN (secrets)")
+          [ -z "$MOSIPID_TESTRIG_PASSWORD_LOGIN_PASSWORD" ] && errors+=("MOSIPID_TESTRIG_PASSWORD_LOGIN_PASSWORD (secrets)")
+          if [ ${#errors[@]} -gt 0 ]; then
+            echo "❌ Missing required Environment values for esignet-standalone-2.0.0 testrigs:"
+            printf '  - %s\n' "${errors[@]}"
+            echo "Go to: Settings → Environments → ${{ github.ref_name }} → Secrets/Variables"
+            exit 1
+          fi
+          echo "✅ All esignet-standalone-2.0.0 testrig secrets/variables are configured"
+
+      - name: Get PMS client secret (esignet-standalone-2.0.0 apitestrig)
+        if: env.PROFILE == 'esignet-standalone-2.0.0'
+        run: |
+          # esignet-apitestrig's KEYCLOAK_CLIENT_SECRET is the same mosip-pms-client secret
+          # esignet-preinstall-keycloak-init.sh/esignet-postinstall-keycloak-init.sh already use
+          # (PMS_CLIENT_SECRET_KEY='mosip_pms_client_secret') — by the time testrigs run, eSignet
+          # DSF has already completed, so keycloak-client-secrets is guaranteed to exist.
+          if ! kubectl -n keycloak get secret keycloak-client-secrets &>/dev/null; then
+            echo "❌ keycloak-client-secrets not found in keycloak namespace"; exit 1
+          fi
+          PMS_CLIENT_SECRET_VALUE=$(kubectl -n keycloak get secret keycloak-client-secrets \
+            -o jsonpath='{.data.mosip_pms_client_secret}' | base64 -d)
+          if [ -z "$PMS_CLIENT_SECRET_VALUE" ]; then
+            echo "❌ mosip_pms_client_secret is empty in keycloak-client-secrets"; exit 1
+          fi
+          echo "::add-mask::$PMS_CLIENT_SECRET_VALUE"
+          echo "PMS_CLIENT_SECRET_VALUE=$PMS_CLIENT_SECRET_VALUE" >> $GITHUB_ENV
+          echo "✅ PMS_CLIENT_SECRET_VALUE retrieved"
+
+      - name: Get consent DB password (esignet-standalone-2.0.0 uitestrig)
+        if: env.PROFILE == 'esignet-standalone-2.0.0'
+        run: |
+          # esignet-uitestrig's esignetDbPassword — same db-common-secrets/db-dbuser-password
+          # helmsman_esignet.yml's own "Get DB User Password" step already reads.
+          if ! kubectl -n postgres get secret db-common-secrets &>/dev/null; then
+            echo "❌ db-common-secrets not found in postgres namespace"; exit 1
+          fi
+          DB_USER_PASSWORD=$(kubectl -n postgres get secret db-common-secrets \
+            -o jsonpath='{.data.db-dbuser-password}' | base64 -d)
+          if [ -z "$DB_USER_PASSWORD" ]; then
+            echo "❌ db-dbuser-password is empty in db-common-secrets"; exit 1
+          fi
+          echo "::add-mask::$DB_USER_PASSWORD"
+          echo "DB_USER_PASSWORD=$DB_USER_PASSWORD" >> $GITHUB_ENV
+          echo "✅ DB_USER_PASSWORD retrieved"
 
       - name: Check if mosip-dsf label is completed
         if: ${{ !startsWith(env.PROFILE, 'esignet-standalone') }}
