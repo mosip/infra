@@ -3,7 +3,9 @@
 # eSignet Standalone 2.0.0 - Trigger Testrig CronJobs
 # =============================================================================
 # Immediately triggers testrig CronJobs after deployment:
-#   apitestrig  → esignet-mock ns
+#   apitestrig        → esignet-mock / esignet-mosipid / esignet-sunbird ns
+#   uitestrig          → esignet-uitestrig / esignet-mosipid-uitestrig /
+#                         esignet-sunbird-uitestrig ns
 #   signup-apitestrig → signup ns  (if deployed)
 #   signup-uitestrig  → signup-uitestrig ns (if deployed)
 # =============================================================================
@@ -119,6 +121,15 @@ trigger_all_in_ns esignet-mosipid || OVERALL_SUCCESS=false
 
 echo "=== eSignet-Sunbird API Testrig (esignet-sunbird ns) ==="
 trigger_all_in_ns esignet-sunbird || OVERALL_SUCCESS=false
+
+echo "=== eSignet UI Testrig (esignet-uitestrig ns) ==="
+trigger_all_in_ns esignet-uitestrig || OVERALL_SUCCESS=false
+
+echo "=== eSignet-MOSIPID UI Testrig (esignet-mosipid-uitestrig ns) ==="
+trigger_all_in_ns esignet-mosipid-uitestrig || OVERALL_SUCCESS=false
+
+echo "=== eSignet-Sunbird UI Testrig (esignet-sunbird-uitestrig ns) ==="
+trigger_all_in_ns esignet-sunbird-uitestrig || OVERALL_SUCCESS=false
 
 echo "=== Signup API Testrig (signup ns, if deployed) ==="
 trigger_all_in_ns signup || OVERALL_SUCCESS=false
