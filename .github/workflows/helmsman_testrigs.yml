@@ -128,6 +128,8 @@ jobs:
       # rewrite testrig charts, replacing the generic apitestrig/uitestrig charts for this
       # profile). Reused across all 3 instances (mock/mosipid/sunbird), same as
       # mock-relying-party-service's own CLIENT_ID constant in esignet-dsf.yaml.
+      # Only actual credentials (passwords/client secrets) are GitHub Secrets below —
+      # everything else (IDs, test identities) is a plain Environment Variable.
       ESIGNET_UITESTRIG_OIDC_CLIENT_ID: ${{ vars.ESIGNET_UITESTRIG_OIDC_CLIENT_ID }}
       ESIGNET_UITESTRIG_CLIENT_SECRET:  ${{ secrets.ESIGNET_UITESTRIG_CLIENT_SECRET }}
       # Single shared Keycloak admin password (one mosip/keycloak release for the whole
@@ -137,15 +139,15 @@ jobs:
       # MOSIP-ID plugin path (uitestrig) are the only ones backed by a real IDA identity, so
       # these are the only instance that needs real test-identity/onboarding values. esignet-mock
       # (config.mock.json) and esignet-sunbird (config.sunbird.json) need none of this.
-      MOSIPID_TESTRIG_INDIVIDUAL_ID:          ${{ secrets.MOSIPID_TESTRIG_INDIVIDUAL_ID }}
-      MOSIPID_TESTRIG_OTP_RECIPIENT:          ${{ secrets.MOSIPID_TESTRIG_OTP_RECIPIENT }}
+      MOSIPID_TESTRIG_INDIVIDUAL_ID:          ${{ vars.MOSIPID_TESTRIG_INDIVIDUAL_ID }}
+      MOSIPID_TESTRIG_OTP_RECIPIENT:          ${{ vars.MOSIPID_TESTRIG_OTP_RECIPIENT }}
       MOSIPID_TESTRIG_AUTH_PARTNER_ID:        ${{ vars.MOSIPID_TESTRIG_AUTH_PARTNER_ID }}
       MOSIPID_TESTRIG_AUTH_POLICY_ID:         ${{ vars.MOSIPID_TESTRIG_AUTH_POLICY_ID }}
-      MOSIPID_TESTRIG_UIN:                    ${{ secrets.MOSIPID_TESTRIG_UIN }}
-      MOSIPID_TESTRIG_VID:                    ${{ secrets.MOSIPID_TESTRIG_VID }}
-      MOSIPID_TESTRIG_PHONE_NUMBER:           ${{ secrets.MOSIPID_TESTRIG_PHONE_NUMBER }}
-      MOSIPID_TESTRIG_EMAIL_LOGIN_ID:         ${{ secrets.MOSIPID_TESTRIG_EMAIL_LOGIN_ID }}
-      MOSIPID_TESTRIG_PASSWORD_LOGIN_UIN:     ${{ secrets.MOSIPID_TESTRIG_PASSWORD_LOGIN_UIN }}
+      MOSIPID_TESTRIG_UIN:                    ${{ vars.MOSIPID_TESTRIG_UIN }}
+      MOSIPID_TESTRIG_VID:                    ${{ vars.MOSIPID_TESTRIG_VID }}
+      MOSIPID_TESTRIG_PHONE_NUMBER:           ${{ vars.MOSIPID_TESTRIG_PHONE_NUMBER }}
+      MOSIPID_TESTRIG_EMAIL_LOGIN_ID:         ${{ vars.MOSIPID_TESTRIG_EMAIL_LOGIN_ID }}
+      MOSIPID_TESTRIG_PASSWORD_LOGIN_UIN:     ${{ vars.MOSIPID_TESTRIG_PASSWORD_LOGIN_UIN }}
       MOSIPID_TESTRIG_PASSWORD_LOGIN_PASSWORD: ${{ secrets.MOSIPID_TESTRIG_PASSWORD_LOGIN_PASSWORD }}
     steps:
       - name: Checkout repository
@@ -318,22 +320,22 @@ jobs:
             echo "❌ secret minio not found in minio namespace"; exit 1
           fi
 
-      - name: Validate esignet-standalone-2.0.0 testrig secrets
+      - name: Validate esignet-standalone-2.0.0 testrig secrets/variables
         if: env.PROFILE == 'esignet-standalone-2.0.0'
         run: |
           errors=()
           [ -z "$ESIGNET_UITESTRIG_OIDC_CLIENT_ID" ]        && errors+=("ESIGNET_UITESTRIG_OIDC_CLIENT_ID (vars)")
           [ -z "$ESIGNET_UITESTRIG_CLIENT_SECRET" ]         && errors+=("ESIGNET_UITESTRIG_CLIENT_SECRET (secrets)")
           [ -z "$MOSIPID_KEYCLOAK_ADMIN_PASSWORD" ]         && errors+=("MOSIPID_KEYCLOAK_ADMIN_PASSWORD (secrets)")
-          [ -z "$MOSIPID_TESTRIG_INDIVIDUAL_ID" ]           && errors+=("MOSIPID_TESTRIG_INDIVIDUAL_ID (secrets)")
-          [ -z "$MOSIPID_TESTRIG_OTP_RECIPIENT" ]           && errors+=("MOSIPID_TESTRIG_OTP_RECIPIENT (secrets)")
+          [ -z "$MOSIPID_TESTRIG_INDIVIDUAL_ID" ]           && errors+=("MOSIPID_TESTRIG_INDIVIDUAL_ID (vars)")
+          [ -z "$MOSIPID_TESTRIG_OTP_RECIPIENT" ]           && errors+=("MOSIPID_TESTRIG_OTP_RECIPIENT (vars)")
           [ -z "$MOSIPID_TESTRIG_AUTH_PARTNER_ID" ]         && errors+=("MOSIPID_TESTRIG_AUTH_PARTNER_ID (vars)")
           [ -z "$MOSIPID_TESTRIG_AUTH_POLICY_ID" ]          && errors+=("MOSIPID_TESTRIG_AUTH_POLICY_ID (vars)")
-          [ -z "$MOSIPID_TESTRIG_UIN" ]                     && errors+=("MOSIPID_TESTRIG_UIN (secrets)")
-          [ -z "$MOSIPID_TESTRIG_VID" ]                     && errors+=("MOSIPID_TESTRIG_VID (secrets)")
-          [ -z "$MOSIPID_TESTRIG_PHONE_NUMBER" ]            && errors+=("MOSIPID_TESTRIG_PHONE_NUMBER (secrets)")
-          [ -z "$MOSIPID_TESTRIG_EMAIL_LOGIN_ID" ]          && errors+=("MOSIPID_TESTRIG_EMAIL_LOGIN_ID (secrets)")
-          [ -z "$MOSIPID_TESTRIG_PASSWORD_LOGIN_UIN" ]      && errors+=("MOSIPID_TESTRIG_PASSWORD_LOGIN_UIN (secrets)")
+          [ -z "$MOSIPID_TESTRIG_UIN" ]                     && errors+=("MOSIPID_TESTRIG_UIN (vars)")
+          [ -z "$MOSIPID_TESTRIG_VID" ]                     && errors+=("MOSIPID_TESTRIG_VID (vars)")
+          [ -z "$MOSIPID_TESTRIG_PHONE_NUMBER" ]            && errors+=("MOSIPID_TESTRIG_PHONE_NUMBER (vars)")
+          [ -z "$MOSIPID_TESTRIG_EMAIL_LOGIN_ID" ]          && errors+=("MOSIPID_TESTRIG_EMAIL_LOGIN_ID (vars)")
+          [ -z "$MOSIPID_TESTRIG_PASSWORD_LOGIN_UIN" ]      && errors+=("MOSIPID_TESTRIG_PASSWORD_LOGIN_UIN (vars)")
           [ -z "$MOSIPID_TESTRIG_PASSWORD_LOGIN_PASSWORD" ] && errors+=("MOSIPID_TESTRIG_PASSWORD_LOGIN_PASSWORD (secrets)")
           if [ ${#errors[@]} -gt 0 ]; then
             echo "❌ Missing required Environment values for esignet-standalone-2.0.0 testrigs:"

@@ -68,25 +68,27 @@ No additional secrets required for testrigs — captcha and keycloak secrets wer
 
 **Required Environment Secrets/Variables** (Settings → Environments → `<branch-name>`):
 
+Only actual credentials (passwords, client secrets) are **Secrets** below — everything else (IDs, test identities) is a plain **Variable**, even where it's technically PII, to keep the GitHub Environment setup simple.
+
 | Secret/Variable | Type | Used by | Description |
 |---|---|---|---|
 | `MOSIPID_KEYCLOAK_ADMIN_PASSWORD` | Secret | uitestrig, all 3 instances | Reuses the same Keycloak admin password `esignet-misp-onboarder-mosipid-preinstall.sh` already needs — one shared `mosip/keycloak` release for the whole profile |
 | `ESIGNET_UITESTRIG_OIDC_CLIENT_ID` | Variable | uitestrig, all 3 instances | Pre-provisioned OIDC client ID for browser login testing (reused across instances, same pattern as `mock-relying-party-service`'s shared `CLIENT_ID` in `esignet-dsf.yaml`) |
 | `ESIGNET_UITESTRIG_CLIENT_SECRET` | Secret | uitestrig, all 3 instances | Secret for the client above |
-| `MOSIPID_TESTRIG_INDIVIDUAL_ID` | Secret | apitestrig, `esignet-mosipid` only | Real IDA test identity (UIN) — PII |
-| `MOSIPID_TESTRIG_OTP_RECIPIENT` | Secret | apitestrig, `esignet-mosipid` only | Phone/email that receives the test OTP |
+| `MOSIPID_TESTRIG_INDIVIDUAL_ID` | Variable | apitestrig, `esignet-mosipid` only | Real IDA test identity (UIN) |
+| `MOSIPID_TESTRIG_OTP_RECIPIENT` | Variable | apitestrig, `esignet-mosipid` only | Phone/email that receives the test OTP |
 | `MOSIPID_TESTRIG_AUTH_PARTNER_ID` | Variable | apitestrig, `esignet-mosipid` only | Auth partner ID used to build the test client ID |
 | `MOSIPID_TESTRIG_AUTH_POLICY_ID` | Variable | apitestrig, `esignet-mosipid` only | Policy ID used to build the test client ID |
-| `MOSIPID_TESTRIG_UIN` | Secret | uitestrig, `esignet-mosipid` only | Test UIN — PII |
-| `MOSIPID_TESTRIG_VID` | Secret | uitestrig, `esignet-mosipid` only | Test VID — PII |
-| `MOSIPID_TESTRIG_PHONE_NUMBER` | Secret | uitestrig, `esignet-mosipid` only | Test UIN's phone number — PII |
-| `MOSIPID_TESTRIG_EMAIL_LOGIN_ID` | Secret | uitestrig, `esignet-mosipid` only | Test identity for email-OTP login scenarios |
-| `MOSIPID_TESTRIG_PASSWORD_LOGIN_UIN` | Secret | uitestrig, `esignet-mosipid` only | Test identity for password-login scenarios |
+| `MOSIPID_TESTRIG_UIN` | Variable | uitestrig, `esignet-mosipid` only | Test UIN |
+| `MOSIPID_TESTRIG_VID` | Variable | uitestrig, `esignet-mosipid` only | Test VID |
+| `MOSIPID_TESTRIG_PHONE_NUMBER` | Variable | uitestrig, `esignet-mosipid` only | Test UIN's phone number |
+| `MOSIPID_TESTRIG_EMAIL_LOGIN_ID` | Variable | uitestrig, `esignet-mosipid` only | Test identity for email-OTP login scenarios |
+| `MOSIPID_TESTRIG_PASSWORD_LOGIN_UIN` | Variable | uitestrig, `esignet-mosipid` only | Test identity for password-login scenarios |
 | `MOSIPID_TESTRIG_PASSWORD_LOGIN_PASSWORD` | Secret | uitestrig, `esignet-mosipid` only | Password for the identity above |
 
 Only `esignet-mosipid` needs real test-identity/onboarding values — it's the only instance backed by a real IDA identity (`config.mosip.json`/the `mosip` plugin). `esignet-mock` (`config.mock.json`/`mock` plugin) and `esignet-sunbird` (`config.sunbird.json`/`sunbird` plugin) need none of the `MOSIPID_TESTRIG_*` values above.
 
-The workflow's own "Validate esignet-standalone-2.0.0 testrig secrets" step fails clearly, listing exactly which of these are missing, before it tries to deploy.
+The workflow's own "Validate esignet-standalone-2.0.0 testrig secrets/variables" step fails clearly, listing exactly which of these are missing, before it tries to deploy.
 
 Report storage uses a PVC (`reports.persistence.enabled: true`), not S3 — there's no established MinIO bucket convention for these charts yet in this repo. Switch to `reports.s3.*` once one exists.
 
