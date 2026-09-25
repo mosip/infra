@@ -66,11 +66,8 @@ echo "================================================"
 echo "=== eSignet API Testrig (esignet-mock ns) ==="
 trigger_all_in_ns esignet-mock || OVERALL_SUCCESS=false
 
-echo "=== eSignet-MOSIPID1 API Testrig (esignet-mosipid1 ns) ==="
-trigger_all_in_ns esignet-mosipid1 || OVERALL_SUCCESS=false
-
-echo "=== eSignet-MOSIPID2 API Testrig (esignet-mosipid2 ns) ==="
-trigger_all_in_ns esignet-mosipid2 || OVERALL_SUCCESS=false
+echo "=== eSignet-MOSIPID API Testrig (esignet-mosipid ns) ==="
+trigger_all_in_ns esignet-mosipid || OVERALL_SUCCESS=false
 
 echo "=== eSignet-Sunbird API Testrig (esignet-sunbird ns) ==="
 trigger_all_in_ns esignet-sunbird || OVERALL_SUCCESS=false

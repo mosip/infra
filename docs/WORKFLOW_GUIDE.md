@@ -387,18 +387,16 @@ Mode: apply ✅
  | **mode** | `apply` | MUST be apply! |
  | **domain_name** | `sandbox.example.net` | Or set `vars.DOMAIN_NAME` |
  | **esignet_db_port** | `5432` (esignet) / `5433` (MOSIP platform) | Or set `vars.ESIGNET_DB_PORT` |
- | **mosipid1_domain_name** | `mosipid1.example.net` | esignet-standalone profile only — MOSIP-ID1 environment domain |
- | **enable_mosipid2** | `false` (default) / `true` | Toggle to deploy MOSIP-ID2 instance; leave `false` to skip |
- | **mosipid2_domain_name** | `mosipid2.example.net` | Required only if `enable_mosipid2` is `true` |
+ | **mosipid_domain_name** | `mosipid.example.net` | esignet-standalone profile only — MOSIP-ID environment domain |
  | **skip_mosip_dsf_check** | `true` for standalone, `false` when MOSIP is deployed | |
  | **delete_existing_jobs** | `true` when re-running after a failed attempt | Cleans up stale onboarder jobs |
 
-3. **Monitor Progress** (25-35 minutes for esignet-standalone profile with up to 4 instances)
+3. **Monitor Progress** (25-35 minutes for esignet-standalone profile with 3 instances)
  ```
- → SoftHSM (all 4 namespaces)
+ → SoftHSM (all 3 namespaces)
  → Config server
- → eSignet core (all 4 namespaces in parallel)
- → OIDC UI (all 4 namespaces)
+ → eSignet core (all 3 namespaces in parallel)
+ → OIDC UI (all 3 namespaces)
  → Mock identity system
  → Mock relying party
  ```
@@ -411,8 +409,7 @@ Mode: apply ✅
 **Check Status:**
 ```bash
 kubectl get pods -n esignet
-kubectl get pods -n esignet-mosipid1    # esignet profile only
-kubectl get pods -n esignet-mosipid2   # esignet profile only
+kubectl get pods -n esignet-mosipid    # esignet profile only
 kubectl get pods -n esignet-sunbird # esignet profile only
 ```
 
@@ -445,14 +442,13 @@ kubectl get pods -n esignet-sunbird # esignet profile only
  | **profile** | Same as your deployment profile | |
  | **mode** | `apply` | |
  | **domain_name** | `sandbox.example.net` | Or `vars.DOMAIN_NAME` |
- | **mosipid1_domain_name** | `mosipid1.example.net` | esignet-standalone profile only |
- | **mosipid2_domain_name** | `mosipid2.example.net` | esignet-standalone only — required if mosipid2 was enabled |
+ | **mosipid_domain_name** | `mosipid.example.net` | esignet-standalone profile only |
  | **db_port** | `5433` | MOSIP platform only |
  | **esignet_db_port** | `5432` | eSignet profile |
 
 4. **Monitor Progress** (10-20 minutes)
  ```
- → esignet-apitestrig (esignet profile: 4 instances across all namespaces)
+ → esignet-apitestrig (esignet profile: 3 instances across all namespaces)
  → signup-apitestrig (if signup was deployed)
  → API / DSL / UI test rigs (MOSIP platform profiles)
  ```
@@ -460,8 +456,7 @@ kubectl get pods -n esignet-sunbird # esignet profile only
 5. **Verify CronJobs Created**
  ```bash
  kubectl get cronjobs -n esignet
- kubectl get cronjobs -n esignet-mosipid1   # esignet profile
- kubectl get cronjobs -n esignet-mosipid2  # esignet profile
+ kubectl get cronjobs -n esignet-mosipid   # esignet profile
  kubectl get cronjobs -n esignet-sunbird # esignet profile
  ```
 
@@ -612,8 +607,7 @@ These inputs override the corresponding GitHub Environment Variables for a singl
 | `clusterid` | `vars.CLUSTER_ID` | Rancher cluster ID |
 | `db_port` | `vars.DB_PORT` | MOSIP platform postgres port |
 | `esignet_db_port` | `vars.ESIGNET_DB_PORT` | eSignet postgres port |
-| `mosipid1_domain_name` | `vars.MOSIPID1_DOMAIN_NAME` | MOSIP-ID1 environment base domain (esignet profile) |
-| `mosipid2_domain_name` | `vars.MOSIPID2_DOMAIN_NAME` | MOSIP-ID2 environment base domain (esignet profile) |
+| `mosipid_domain_name` | `vars.MOSIPID_DOMAIN_NAME` | MOSIP-ID environment base domain (esignet profile) |
 
 ---
 
@@ -772,10 +766,10 @@ DEPLOYMENT FLOW:
  └── PostgreSQL, Redis, Kafka, SoftHSM, Keycloak, Captcha, MinIO
 
 4. Helmsman: eSignet  [helmsman_esignet.yml, profile=esignet-standalone]
- └── 3 instances always (esignet-mock / esignet-mosipid1 / esignet-sunbird) + esignet-mosipid2 if enable_mosipid2=true
+ └── 3 instances always (esignet-mock / esignet-mosipid / esignet-sunbird)
 
 5. Helmsman: Test Rigs  [helmsman_testrigs.yml, profile=esignet-standalone, manual]
- └── API testrigs for all 4 esignet namespaces
+ └── API testrigs for all 3 esignet namespaces
  └── ✅ Deployment Complete!
 ```
 
