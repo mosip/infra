@@ -66,7 +66,9 @@ No additional secrets required for testrigs — captcha and keycloak secrets wer
 | `KEYCLOAK_CLIENT_SECRET` (apitestrig, all 3 instances) | `keycloak-client-secrets` secret in the `keycloak` namespace — the same `mosip_pms_client_secret` key `esignet-preinstall-keycloak-init.sh` already uses |
 | `esignetDbPassword` (uitestrig, all 3 instances) | `db-common-secrets` secret in the `postgres` namespace |
 
-**Required Environment Secrets/Variables** (Settings → Environments → `<branch-name>`):
+**Optional Environment Secrets/Variables** (Settings → Environments → `<branch-name>`):
+
+Except `MOSIPID_KEYCLOAK_ADMIN_PASSWORD` (already required by the eSignet deployment), each of these defaults to the placeholder `UPDATE_BEFORE_RUN` when unset, so Helmsman can deploy the testrigs without them. Update the real values in the testrig configmaps/secrets before triggering the test cronjobs.
 
 Only actual credentials (passwords, client secrets) are **Secrets** below — everything else (IDs, test identities) is a plain **Variable**, even where it's technically PII, to keep the GitHub Environment setup simple.
 
@@ -88,7 +90,7 @@ Only actual credentials (passwords, client secrets) are **Secrets** below — ev
 
 Only `esignet-mosipid` needs real test-identity/onboarding values — it's the only instance backed by a real IDA identity (`config.mosip.json`/the `mosip` plugin). `esignet-mock` (`config.mock.json`/`mock` plugin) and `esignet-sunbird` (`config.sunbird.json`/`sunbird` plugin) need none of the `MOSIPID_TESTRIG_*` values above.
 
-The workflow's own "Validate esignet-standalone-2.0.0 testrig secrets/variables" step fails clearly, listing exactly which of these are missing, before it tries to deploy.
+There is no validation step for these values; the placeholder defaults let the deployment succeed.
 
 Report storage uses a PVC (`reports.persistence.enabled: true`), not S3 — there's no established MinIO bucket convention for these charts yet in this repo. Switch to `reports.s3.*` once one exists.
 
@@ -185,19 +187,15 @@ kubectl create job --from=cronjob/cronjob-dslorchestrator-full dslrig-manual-run
 
 **3. Trigger eSignet test jobs (eSignet standalone profiles)**
 
-The `trigger-test-jobs-esignet.sh` postInstall hook fires automatically after the last testrig deploys — it triggers all cronjobs across all 3 esignet namespaces sequentially and optionally signup/signup-uitestrig if deployed.
+Test cronjobs are not triggered automatically after deployment. For `esignet-standalone`, trigger them with `trigger-test-jobs-esignet.sh` (all cronjobs across the esignet namespaces, plus signup/signup-uitestrig if deployed). For `esignet-standalone-2.0.0`, update the testrig values first, then trigger the cronjobs manually (for example `kubectl -n <namespace> create job --from=cronjob/<cronjob> <job-name>`).
 
-To trigger manually:
+To trigger the `esignet-standalone` jobs:
 
 ```bash
 export KUBECONFIG=/path/to/kubeconfig
 export WORKDIR=/path/to/Helmsman
 
-# esignet-standalone
 ./hooks/esignet-standalone/trigger-test-jobs-esignet.sh
-
-# esignet-standalone-2.0.0
-./hooks/esignet-standalone-2.0.0/trigger-test-jobs-esignet.sh
 ```
 
 ---
