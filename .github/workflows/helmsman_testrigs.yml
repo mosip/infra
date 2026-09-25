@@ -131,32 +131,30 @@ jobs:
       # Only actual credentials (passwords/client secrets) are GitHub Secrets below —
       # everything else (IDs, test identities) is a plain Environment Variable.
       #
-      # All fall back to a placeholder default ("changeme", matching eSignet's own
-      # testrig values.secret.yaml.example convention) so a plain `helmsman apply` never
-      # fails for not having these configured yet. Deploying with the placeholder still
-      # gets a working apitestrig/uitestrig deployment on its normal cron schedule —
-      # update the actual GitHub Environment secret/variable with a real value, and set
-      # it on the CronJob (or trigger a one-off Job from it) whenever you're ready to
-      # run a real, passing test — no redeploy needed for that.
-      ESIGNET_UITESTRIG_OIDC_CLIENT_ID: ${{ vars.ESIGNET_UITESTRIG_OIDC_CLIENT_ID || 'changeme' }}
-      ESIGNET_UITESTRIG_CLIENT_SECRET:  ${{ secrets.ESIGNET_UITESTRIG_CLIENT_SECRET || 'changeme' }}
+      # These testrig-only values are optional for deployment: when unset they default to
+      # the UPDATE_BEFORE_RUN placeholder so Helmsman can deploy the testrigs; set the real
+      # values in the testrig configmaps/secrets before triggering the cronjobs.
+      ESIGNET_UITESTRIG_OIDC_CLIENT_ID: ${{ vars.ESIGNET_UITESTRIG_OIDC_CLIENT_ID || 'UPDATE_BEFORE_RUN' }}
+      ESIGNET_UITESTRIG_CLIENT_SECRET:  ${{ secrets.ESIGNET_UITESTRIG_CLIENT_SECRET || 'UPDATE_BEFORE_RUN' }}
       # Single shared Keycloak admin password (one mosip/keycloak release for the whole
-      # profile — see external-dsf.yaml) — already provisioned for the MISP onboarder.
-      MOSIPID_KEYCLOAK_ADMIN_PASSWORD: ${{ secrets.MOSIPID_KEYCLOAK_ADMIN_PASSWORD || 'changeme' }}
+      # profile — see external-dsf.yaml) — already provisioned for the MISP onboarder, so
+      # no placeholder fallback here: an empty value means the real one genuinely went
+      # missing, not that it was never expected to exist yet.
+      MOSIPID_KEYCLOAK_ADMIN_PASSWORD: ${{ secrets.MOSIPID_KEYCLOAK_ADMIN_PASSWORD }}
       # esignet-mosipid apitestrig/uitestrig only — config.mosip.json (apitestrig) and the
       # MOSIP-ID plugin path (uitestrig) are the only ones backed by a real IDA identity, so
       # these are the only instance that needs real test-identity/onboarding values. esignet-mock
       # (config.mock.json) and esignet-sunbird (config.sunbird.json) need none of this.
-      MOSIPID_TESTRIG_INDIVIDUAL_ID:          ${{ vars.MOSIPID_TESTRIG_INDIVIDUAL_ID || 'changeme' }}
-      MOSIPID_TESTRIG_OTP_RECIPIENT:          ${{ vars.MOSIPID_TESTRIG_OTP_RECIPIENT || 'changeme' }}
-      MOSIPID_TESTRIG_AUTH_PARTNER_ID:        ${{ vars.MOSIPID_TESTRIG_AUTH_PARTNER_ID || 'changeme' }}
-      MOSIPID_TESTRIG_AUTH_POLICY_ID:         ${{ vars.MOSIPID_TESTRIG_AUTH_POLICY_ID || 'changeme' }}
-      MOSIPID_TESTRIG_UIN:                    ${{ vars.MOSIPID_TESTRIG_UIN || 'changeme' }}
-      MOSIPID_TESTRIG_VID:                    ${{ vars.MOSIPID_TESTRIG_VID || 'changeme' }}
-      MOSIPID_TESTRIG_PHONE_NUMBER:           ${{ vars.MOSIPID_TESTRIG_PHONE_NUMBER || 'changeme' }}
-      MOSIPID_TESTRIG_EMAIL_LOGIN_ID:         ${{ vars.MOSIPID_TESTRIG_EMAIL_LOGIN_ID || 'changeme' }}
-      MOSIPID_TESTRIG_PASSWORD_LOGIN_UIN:     ${{ vars.MOSIPID_TESTRIG_PASSWORD_LOGIN_UIN || 'changeme' }}
-      MOSIPID_TESTRIG_PASSWORD_LOGIN_PASSWORD: ${{ secrets.MOSIPID_TESTRIG_PASSWORD_LOGIN_PASSWORD || 'changeme' }}
+      MOSIPID_TESTRIG_INDIVIDUAL_ID:          ${{ vars.MOSIPID_TESTRIG_INDIVIDUAL_ID || 'UPDATE_BEFORE_RUN' }}
+      MOSIPID_TESTRIG_OTP_RECIPIENT:          ${{ vars.MOSIPID_TESTRIG_OTP_RECIPIENT || 'UPDATE_BEFORE_RUN' }}
+      MOSIPID_TESTRIG_AUTH_PARTNER_ID:        ${{ vars.MOSIPID_TESTRIG_AUTH_PARTNER_ID || 'UPDATE_BEFORE_RUN' }}
+      MOSIPID_TESTRIG_AUTH_POLICY_ID:         ${{ vars.MOSIPID_TESTRIG_AUTH_POLICY_ID || 'UPDATE_BEFORE_RUN' }}
+      MOSIPID_TESTRIG_UIN:                    ${{ vars.MOSIPID_TESTRIG_UIN || 'UPDATE_BEFORE_RUN' }}
+      MOSIPID_TESTRIG_VID:                    ${{ vars.MOSIPID_TESTRIG_VID || 'UPDATE_BEFORE_RUN' }}
+      MOSIPID_TESTRIG_PHONE_NUMBER:           ${{ vars.MOSIPID_TESTRIG_PHONE_NUMBER || 'UPDATE_BEFORE_RUN' }}
+      MOSIPID_TESTRIG_EMAIL_LOGIN_ID:         ${{ vars.MOSIPID_TESTRIG_EMAIL_LOGIN_ID || 'UPDATE_BEFORE_RUN' }}
+      MOSIPID_TESTRIG_PASSWORD_LOGIN_UIN:     ${{ vars.MOSIPID_TESTRIG_PASSWORD_LOGIN_UIN || 'UPDATE_BEFORE_RUN' }}
+      MOSIPID_TESTRIG_PASSWORD_LOGIN_PASSWORD: ${{ secrets.MOSIPID_TESTRIG_PASSWORD_LOGIN_PASSWORD || 'UPDATE_BEFORE_RUN' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
