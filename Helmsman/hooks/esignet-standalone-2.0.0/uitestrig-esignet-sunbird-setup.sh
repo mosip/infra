@@ -2,11 +2,11 @@
 # =============================================================================
 # eSignet Standalone 2.0.0 - eSignet-Sunbird UI Testrig Pre-install Setup
 # =============================================================================
-# esignet-sunbird-uitestrig deploys the dedicated mosip/esignet-uitestrig chart (the
+# esignet-go-sunbird-uitestrig deploys the dedicated mosip/esignet-uitestrig chart (the
 # Java-harness rewrite for eSignet 2.0.0 - see
 # https://github.com/mosip/esignet/blob/v2.0.0/deploy/esignet-uitestrig/install.sh),
-# into its own esignet-sunbird-uitestrig namespace, separate from eSignet's own
-# esignet-sunbird namespace (matches install.sh's own NS/SOURCE_NS split).
+# into its own esignet-go-sunbird-uitestrig namespace, separate from eSignet's own
+# esignet-go-sunbird namespace (matches install.sh's own NS/SOURCE_NS split).
 #
 # The chart manages its own ConfigMap/Secret entirely from set: values - no
 # pre-staged secrets needed. The only job here is namespace bootstrap, same as
@@ -14,7 +14,7 @@
 # =============================================================================
 set -euo pipefail
 
-NS=esignet-sunbird-uitestrig
+NS=esignet-go-sunbird-uitestrig
 
 echo "================================================"
 echo "eSignet Standalone 2.0.0 - eSignet-Sunbird UI Testrig Pre-install"

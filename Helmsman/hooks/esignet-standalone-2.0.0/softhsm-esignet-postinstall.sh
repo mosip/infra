@@ -13,7 +13,7 @@
 set -euo pipefail
 
 SOFTHSM_NS="${SOFTHSM_NS:-softhsm}"
-ESIGNET_NS="${ESIGNET_NS:-esignet-mock}"
+ESIGNET_NS="${ESIGNET_NS:-esignet-go-mock}"
 COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
 
 echo "================================================"

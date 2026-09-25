@@ -9,11 +9,11 @@
 # Environment Variables:
 #   ESIGNET_CAPTCHA_SITE_KEY     - reCAPTCHA site key (REQUIRED)
 #   ESIGNET_CAPTCHA_SECRET_KEY   - reCAPTCHA secret key (REQUIRED)
-#   ESIGNET_NS                  - eSignet namespace (default: esignet-mock)
+#   ESIGNET_NS                  - eSignet namespace (default: esignet-go-mock)
 # =============================================================================
 set -euo pipefail
 
-ESIGNET_NS="${ESIGNET_NS:-esignet-mock}"
+ESIGNET_NS="${ESIGNET_NS:-esignet-go-mock}"
 CAPTCHA_NS="captcha"
 CAPTCHA_SITE_KEY="${ESIGNET_CAPTCHA_SITE_KEY:?ERROR: ESIGNET_CAPTCHA_SITE_KEY environment variable must be set}"
 CAPTCHA_SECRET_KEY="${ESIGNET_CAPTCHA_SECRET_KEY:?ERROR: ESIGNET_CAPTCHA_SECRET_KEY environment variable must be set}"

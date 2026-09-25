@@ -7,21 +7,21 @@
 # =============================================================================
 set -euo pipefail
 
-ESIGNET_NS="${ESIGNET_NS:-esignet-mock}"
+ESIGNET_NS="${ESIGNET_NS:-esignet-go-mock}"
 
 echo "================================================"
 echo "eSignet 1.7.1 - Mock RP Onboarder Post-install"
 echo "================================================"
 
 JOB_STATUS=$(kubectl -n "$ESIGNET_NS" get jobs \
-  -l app.kubernetes.io/instance=esignet-mock-rp-onboarder \
+  -l app.kubernetes.io/instance=esignet-go-mock-rp-onboarder \
   -o jsonpath='{.items[0].status.succeeded}' 2>/dev/null || echo "")
 
 if [ "$JOB_STATUS" = "1" ]; then
   echo "Mock RP OIDC partner onboarding completed successfully."
 else
   echo "WARNING: onboarding job may not have completed. Check logs:"
-  kubectl -n "$ESIGNET_NS" logs -l app.kubernetes.io/instance=esignet-mock-rp-onboarder --tail=30 2>/dev/null || true
+  kubectl -n "$ESIGNET_NS" logs -l app.kubernetes.io/instance=esignet-go-mock-rp-onboarder --tail=30 2>/dev/null || true
 fi
 
 # Re-enable Istio sidecar injection now that the Job has completed

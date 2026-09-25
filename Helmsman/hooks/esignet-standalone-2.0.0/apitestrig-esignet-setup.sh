@@ -14,7 +14,7 @@
 # =============================================================================
 set -euo pipefail
 
-NS=esignet-mock
+NS=esignet-go-mock
 
 echo "================================================"
 echo "eSignet Standalone 2.0.0 - eSignet API Testrig Pre-install"

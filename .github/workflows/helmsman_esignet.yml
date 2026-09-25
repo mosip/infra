@@ -542,7 +542,11 @@ jobs:
           # Fix: skip softhsm upgrade on re-runs so the PIN in the secret never changes.
           SKIP_RELEASES_ARG=""
           if [[ "$PROFILE" == esignet-standalone* ]]; then
-            SOFTHSM_PAIRS=("esignet-softhsm:esignet-mock" "esignet-softhsm-mosipid:esignet-mosipid" "esignet-softhsm-sunbird:esignet-sunbird")
+            if [[ "$PROFILE" == "esignet-standalone-2.0.0" ]]; then
+              SOFTHSM_PAIRS=("esignet-softhsm:esignet-go-mock" "esignet-softhsm-mosipid:esignet-go-mosipid" "esignet-softhsm-sunbird:esignet-go-sunbird")
+            else
+              SOFTHSM_PAIRS=("esignet-softhsm:esignet-mock" "esignet-softhsm-mosipid:esignet-mosipid" "esignet-softhsm-sunbird:esignet-sunbird")
+            fi
             SKIP_RELEASES=""
             for pair in "${SOFTHSM_PAIRS[@]}"; do
               release="${pair%%:*}"
@@ -583,10 +587,16 @@ jobs:
           echo "Commit: ${{ github.sha }}"
           echo ""
           echo "Namespaces created/updated:"
-          kubectl get ns esignet-mock esignet-mosipid esignet-sunbird softhsm keycloak redis postgres 2>/dev/null || echo "Some namespaces may not exist yet"
+          if [[ "$PROFILE" == "esignet-standalone-2.0.0" ]]; then
+            ESIGNET_NS_LIST="esignet-go-mock esignet-go-mosipid esignet-go-sunbird"
+          else
+            ESIGNET_NS_LIST="esignet-mock esignet-mosipid esignet-sunbird"
+          fi
+          MAIN_NS="${ESIGNET_NS_LIST%% *}"
+          kubectl get ns $ESIGNET_NS_LIST softhsm keycloak redis postgres 2>/dev/null || echo "Some namespaces may not exist yet"
           echo ""
           echo "eSignet pods status:"
-          kubectl get pods -n esignet-mock 2>/dev/null || echo "esignet-mock namespace not ready"
+          kubectl get pods -n "$MAIN_NS" 2>/dev/null || echo "$MAIN_NS namespace not ready"
 
   # ---------------------------------------------------------------------------
   # Trigger signup workflow after successful esignet standalone deployment.

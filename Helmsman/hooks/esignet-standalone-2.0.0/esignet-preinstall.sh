@@ -3,18 +3,18 @@
 # eSignet 1.7.1 - eSignet Service Pre-install
 # =============================================================================
 # Based on: deploy/esignet-mock/install.sh
-# Prepares esignet-mock namespace with postgres and redis configmaps/secrets
+# Prepares esignet-go-mock namespace with postgres and redis configmaps/secrets
 # before eSignet helm chart deployment.
 #
-# softhsm-esignet-mock deploys in the esignet-mock namespace (priority -14, before
-# esignet-mock at -12), so esignet-softhsm-share is already present — no copy needed.
+# softhsm-esignet-go-mock deploys in the esignet-go-mock namespace (priority -14, before
+# esignet-go-mock at -12), so esignet-softhsm-share is already present — no copy needed.
 #
 # Environment Variables:
-#   ESIGNET_NS   - eSignet namespace (default: esignet-mock)
+#   ESIGNET_NS   - eSignet namespace (default: esignet-go-mock)
 # =============================================================================
 set -euo pipefail
 
-ESIGNET_NS="${ESIGNET_NS:-esignet-mock}"
+ESIGNET_NS="${ESIGNET_NS:-esignet-go-mock}"
 POSTGRES_NS="postgres"
 REDIS_NS="redis"
 KEYCLOAK_NS="keycloak"
@@ -24,7 +24,7 @@ echo "================================================"
 echo "eSignet 1.7.1 - eSignet Service Pre-install"
 echo "================================================"
 
-# --- Step 1: Ensure esignet-mock namespace exists with Istio ---
+# --- Step 1: Ensure esignet-go-mock namespace exists with Istio ---
 echo "Setting up $ESIGNET_NS namespace"
 kubectl create namespace "$ESIGNET_NS" --dry-run=client -o yaml | kubectl apply -f -
 kubectl label namespace "$ESIGNET_NS" istio-injection=enabled --overwrite
@@ -35,7 +35,7 @@ helm repo update
 
 # --- Step 3: Copy configmaps from other namespaces ---
 # All external services (postgres, redis) are guaranteed deployed before
-# esignet-mock-dsf runs.
+# esignet-go-mock-dsf runs.
 echo "Copying postgres-config configmap from $POSTGRES_NS"
 $COPY_UTIL configmap postgres-config "$POSTGRES_NS" "$ESIGNET_NS"
 
@@ -65,7 +65,7 @@ $COPY_UTIL secret db-common-secrets "$POSTGRES_NS" "$ESIGNET_NS"
 # external-dsf.yaml esignet-keycloak-init release), but that hook's namespace loop only
 # covers the original esignet-standalone namespaces. Copy them directly here so the
 # 2.0.0 namespace is self-sufficient without touching the shared hook. This runs for
-# every instance that delegates to this script (esignet-mock plus the
+# every instance that delegates to this script (esignet-go-mock plus the
 # mosipid/sunbird wrappers), matching the original profile's fan-out to all
 # four namespaces.
 echo "Copying keycloak-host configmap from $KEYCLOAK_NS"

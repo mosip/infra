@@ -2,12 +2,12 @@
 # =============================================================================
 # eSignet Standalone 2.0.0 - Mock Relying Party UI MOSIPID Pre-install
 # =============================================================================
-# Ensures esignet-mosipid namespace exists and verifies mock-relying-party-service
-# is available in the esignet-mosipid namespace before UI deployment.
+# Ensures esignet-go-mosipid namespace exists and verifies mock-relying-party-service
+# is available in the esignet-go-mosipid namespace before UI deployment.
 # =============================================================================
 set -euo pipefail
 
-ESIGNET_NS="esignet-mosipid"
+ESIGNET_NS="esignet-go-mosipid"
 
 echo "================================================"
 echo "eSignet Standalone 2.0.0 - Mock Relying Party UI MOSIPID Pre-install"

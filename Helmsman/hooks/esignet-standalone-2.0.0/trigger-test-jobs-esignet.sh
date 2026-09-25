@@ -3,9 +3,9 @@
 # eSignet Standalone 2.0.0 - Trigger Testrig CronJobs
 # =============================================================================
 # Immediately triggers testrig CronJobs after deployment:
-#   apitestrig        → esignet-mock / esignet-mosipid / esignet-sunbird ns
-#   uitestrig          → esignet-uitestrig / esignet-mosipid-uitestrig /
-#                         esignet-sunbird-uitestrig ns
+#   apitestrig        → esignet-go-mock / esignet-go-mosipid / esignet-go-sunbird ns
+#   uitestrig          → esignet-go-mock-uitestrig / esignet-go-mosipid-uitestrig /
+#                         esignet-go-sunbird-uitestrig ns
 #   signup-apitestrig → signup ns  (if deployed)
 #   signup-uitestrig  → signup-uitestrig ns (if deployed)
 # =============================================================================
@@ -113,23 +113,23 @@ echo "================================================"
 echo "eSignet Standalone 2.0.0 - Trigger Testrig CronJobs"
 echo "================================================"
 
-echo "=== eSignet API Testrig (esignet-mock ns) ==="
-trigger_all_in_ns esignet-mock || OVERALL_SUCCESS=false
+echo "=== eSignet API Testrig (esignet-go-mock ns) ==="
+trigger_all_in_ns esignet-go-mock || OVERALL_SUCCESS=false
 
-echo "=== eSignet-MOSIPID API Testrig (esignet-mosipid ns) ==="
-trigger_all_in_ns esignet-mosipid || OVERALL_SUCCESS=false
+echo "=== eSignet-MOSIPID API Testrig (esignet-go-mosipid ns) ==="
+trigger_all_in_ns esignet-go-mosipid || OVERALL_SUCCESS=false
 
-echo "=== eSignet-Sunbird API Testrig (esignet-sunbird ns) ==="
-trigger_all_in_ns esignet-sunbird || OVERALL_SUCCESS=false
+echo "=== eSignet-Sunbird API Testrig (esignet-go-sunbird ns) ==="
+trigger_all_in_ns esignet-go-sunbird || OVERALL_SUCCESS=false
 
-echo "=== eSignet UI Testrig (esignet-uitestrig ns) ==="
-trigger_all_in_ns esignet-uitestrig || OVERALL_SUCCESS=false
+echo "=== eSignet UI Testrig (esignet-go-mock-uitestrig ns) ==="
+trigger_all_in_ns esignet-go-mock-uitestrig || OVERALL_SUCCESS=false
 
-echo "=== eSignet-MOSIPID UI Testrig (esignet-mosipid-uitestrig ns) ==="
-trigger_all_in_ns esignet-mosipid-uitestrig || OVERALL_SUCCESS=false
+echo "=== eSignet-MOSIPID UI Testrig (esignet-go-mosipid-uitestrig ns) ==="
+trigger_all_in_ns esignet-go-mosipid-uitestrig || OVERALL_SUCCESS=false
 
-echo "=== eSignet-Sunbird UI Testrig (esignet-sunbird-uitestrig ns) ==="
-trigger_all_in_ns esignet-sunbird-uitestrig || OVERALL_SUCCESS=false
+echo "=== eSignet-Sunbird UI Testrig (esignet-go-sunbird-uitestrig ns) ==="
+trigger_all_in_ns esignet-go-sunbird-uitestrig || OVERALL_SUCCESS=false
 
 echo "=== Signup API Testrig (signup ns, if deployed) ==="
 trigger_all_in_ns signup || OVERALL_SUCCESS=false
