@@ -66,7 +66,9 @@ No additional secrets required for testrigs — captcha and keycloak secrets wer
 | `KEYCLOAK_CLIENT_SECRET` (apitestrig, all 3 instances) | `keycloak-client-secrets` secret in the `keycloak` namespace — the same `mosip_pms_client_secret` key `esignet-preinstall-keycloak-init.sh` already uses |
 | `esignetDbPassword` (uitestrig, all 3 instances) | `db-common-secrets` secret in the `postgres` namespace |
 
-**Required Environment Secrets/Variables** (Settings → Environments → `<branch-name>`):
+**Optional Environment Secrets/Variables** (Settings → Environments → `<branch-name>`):
+
+None of these are required to deploy — every one falls back to the literal placeholder `changeme` (matching eSignet's own testrig `values.secret.yaml.example` convention) if not configured, so `helmsman apply` never fails for missing them. A `changeme` deployment still gets you a working apitestrig/uitestrig on their normal cron schedule; it just won't produce a passing *test run* until the real value is in place. Set the real value in the Environment whenever you're ready for that, then trigger a fresh run — no redeploy needed.
 
 Only actual credentials (passwords, client secrets) are **Secrets** below — everything else (IDs, test identities) is a plain **Variable**, even where it's technically PII, to keep the GitHub Environment setup simple.
 
@@ -87,8 +89,6 @@ Only actual credentials (passwords, client secrets) are **Secrets** below — ev
 | `MOSIPID_TESTRIG_PASSWORD_LOGIN_PASSWORD` | Secret | uitestrig, `esignet-mosipid` only | Password for the identity above |
 
 Only `esignet-mosipid` needs real test-identity/onboarding values — it's the only instance backed by a real IDA identity (`config.mosip.json`/the `mosip` plugin). `esignet-mock` (`config.mock.json`/`mock` plugin) and `esignet-sunbird` (`config.sunbird.json`/`sunbird` plugin) need none of the `MOSIPID_TESTRIG_*` values above.
-
-The workflow's own "Validate esignet-standalone-2.0.0 testrig secrets/variables" step fails clearly, listing exactly which of these are missing, before it tries to deploy.
 
 Report storage uses a PVC (`reports.persistence.enabled: true`), not S3 — there's no established MinIO bucket convention for these charts yet in this repo. Switch to `reports.s3.*` once one exists.
 
@@ -183,22 +183,17 @@ kubectl create job --from=cronjob/cronjob-dslorchestrator-full dslrig-manual-run
 > kubectl logs -f job/dslrig-manual-run -n dslrig
 > ```
 
-**3. Trigger eSignet test jobs (eSignet standalone profiles)**
+**3. Trigger eSignet test jobs (`esignet-standalone` profile only)**
 
-The `trigger-test-jobs-esignet.sh` postInstall hook fires automatically after the last testrig deploys — it triggers all cronjobs across all 3 esignet namespaces sequentially and optionally signup/signup-uitestrig if deployed.
-
-To trigger manually:
+`trigger-test-jobs-esignet.sh` is a manual-only script — nothing triggers it automatically after deploy (the DSF's own `postInstall` hook line that would have called it is commented out). Run it by hand if you want an immediate run instead of waiting for the next scheduled CronJob fire:
 
 ```bash
 export KUBECONFIG=/path/to/kubeconfig
 export WORKDIR=/path/to/Helmsman
-
-# esignet-standalone
 ./hooks/esignet-standalone/trigger-test-jobs-esignet.sh
-
-# esignet-standalone-2.0.0
-./hooks/esignet-standalone-2.0.0/trigger-test-jobs-esignet.sh
 ```
+
+`esignet-standalone-2.0.0` has no equivalent script — its apitestrig/uitestrig CronJobs just run on their own configured schedule (`crontime` in each app's `set:` block) with no immediate trigger after deploy. See the note on `changeme` placeholders below if you want to trigger a real run manually.
 
 ---
 
