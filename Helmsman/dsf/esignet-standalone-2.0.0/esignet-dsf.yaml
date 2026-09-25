@@ -768,7 +768,8 @@ apps:
 
   # eSignet MISP Partner Onboarder
   # Onboards the eSignet MISP client — only needed with mosip-identity-plugin (plugin 2).
-  # Runs FIRST so the MISP license key is written before mock-rp-onboarder starts.
+  # Runs AFTER mock-rp-onboarder (separate namespaces/deployments — esignet-mosipid vs.
+  # esignet-mock — so there's no ordering dependency between the two either way).
   # After completion, restarts the esignet deployment to pick up the new MISP license key.
   esignet-misp-onboarder:
     namespace: esignet-mosipid
@@ -820,7 +821,7 @@ apps:
     wait: true
     waitForJobs: true
     timeout: 600
-    priority: -6
+    priority: -5
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-standalone-2.0.0/esignet-misp-onboarder-mosipid-preinstall.sh"
       preUpgrade: "$WORKDIR/hooks/esignet-standalone-2.0.0/esignet-misp-onboarder-mosipid-preinstall.sh"
@@ -830,6 +831,7 @@ apps:
   # Mock RP OIDC Partner Onboarder
   # Onboards the mock relying party as an OIDC client.
   # Enable for plugin 1 (mock) or plugin 3 (sunbird-rc). Set mosipid: "true" for mosip-identity-plugin.
+  # Runs BEFORE esignet-misp-onboarder.
   esignet-mock-rp-onboarder:
     namespace: esignet-mock
     enabled: true
@@ -849,8 +851,40 @@ apps:
       onboarding.configmaps.onboarder-namespace.ns_esignet: "esignet-mock"
       onboarding.variables.mosipid: "false"
       onboarding.variables.push_reports_to_s3: "true"
+      # Properties-driven model for inline-hardcoded business values, matching the
+      # reference partner-onboarder/values.yaml mock-rp-oidc module, adapted to this
+      # instance (EXTERNAL_URL/URL/AUTHMANAGER_URL/PMS_URL/KEYCLOAK_URL/LOGO_URI/
+      # REDIRECT_URIS use ${domain_name} instead of the reference's sandbox.mosip.net).
+      # KEYCLOAK_ADMIN_PASSWORD/KEYCLOAK_CLIENT_SECRET/mosip_pms_client_secret are
+      # deliberately NOT set here — same as esignet-misp-onboarder below, they reach the
+      # onboarding Job as real secret env vars via extraEnvVarsSecret, never as a
+      # plaintext value in this file.
+      onboarding.propertiesOverride.mock-rp-oidc.POLICY_NAME: "mpolicy-default-mock-rp-oidc"
+      onboarding.propertiesOverride.mock-rp-oidc.POLICY_GROUP_NAME: "mpolicygroup-default-mock-rp-oidc"
+      onboarding.propertiesOverride.mock-rp-oidc.PARTNER_KC_USERNAME: "mpartner-default-mock-rp-oidc"
+      onboarding.propertiesOverride.mock-rp-oidc.PARTNER_MANAGER_USERNAME: "mock-rp-oidc-kc-mockusername"
+      onboarding.propertiesOverride.mock-rp-oidc.PARTNER_MANAGER_PASSWORD: "mock-rp-oidc-kc-mockuserpassword"
+      onboarding.propertiesOverride.mock-rp-oidc.OIDC_CLIENTID: "default-non-mosipid-oidc-client"
+      onboarding.propertiesOverride.mock-rp-oidc.OIDC_CLIENT_NAME: "Health service OIDC Client"
+      # esignet-mock uses the mock plugin (plugin 1), not mosip-identity-plugin.
+      onboarding.propertiesOverride.mock-rp-oidc.MOSIP_ID: "false"
+      onboarding.propertiesOverride.mock-rp-oidc.LOGO_URI: "https://healthservices.${domain_name}/logo.png"
+      onboarding.propertiesOverride.mock-rp-oidc.REDIRECT_URIS: "https://healthservices.${domain_name}/userprofile"
+      onboarding.propertiesOverride.mock-rp-oidc.URL: "https://api-internal.${domain_name}"
+      onboarding.propertiesOverride.mock-rp-oidc.AUTHMANAGER_URL: "https://api-internal.${domain_name}"
+      onboarding.propertiesOverride.mock-rp-oidc.PMS_URL: "https://api-internal.${domain_name}"
+      onboarding.propertiesOverride.mock-rp-oidc.KEYCLOAK_URL: "https://iam.${domain_name}"
+      onboarding.propertiesOverride.mock-rp-oidc.EXTERNAL_URL: "https://esignet.${domain_name}"
+      onboarding.propertiesOverride.mock-rp-oidc.KEYCLOAK_ADMIN_USERNAME: "admin"
       extraEnvVarsCM[0]: "keycloak-env-vars"
       extraEnvVarsCM[1]: "keycloak-host"
+      # esignet-mock-rp-onboarder-preinstall.sh already copies both of these into
+      # esignet-mock — wiring them here is what actually gets KEYCLOAK_ADMIN_PASSWORD
+      # (from the "keycloak" secret) and KEYCLOAK_CLIENT_SECRET/mosip_pms_client_secret
+      # (from "keycloak-client-secrets") into the Job's environment, same pattern as
+      # esignet-misp-onboarder's own extraEnvVarsSecret below.
+      extraEnvVarsSecret[0]: "keycloak"
+      extraEnvVarsSecret[1]: "keycloak-client-secrets"
       domainConfig.mosip-api-internal-host: "api-internal.${domain_name}"
       domainConfig.mosip-api-host: "api.${domain_name}"
       domainConfig.mosip-esignet-host: "esignet.${domain_name}"
@@ -860,7 +894,7 @@ apps:
     wait: true
     waitForJobs: true
     timeout: 600
-    priority: -5
+    priority: -6
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-standalone-2.0.0/esignet-mock-rp-onboarder-preinstall.sh"
       preUpgrade: "$WORKDIR/hooks/esignet-standalone-2.0.0/esignet-mock-rp-onboarder-preinstall.sh"
