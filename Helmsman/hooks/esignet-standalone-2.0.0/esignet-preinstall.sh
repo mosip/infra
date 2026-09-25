@@ -80,4 +80,13 @@ $COPY_UTIL secret keycloak "$KEYCLOAK_NS" "$ESIGNET_NS"
 echo "Copying keycloak-client-secrets secret from $KEYCLOAK_NS"
 $COPY_UTIL secret keycloak-client-secrets "$KEYCLOAK_NS" "$ESIGNET_NS"
 
+# kafka-config is normally created by kafka-postinstall.sh (postInstall hook of the
+# shared external-dsf.yaml kafka release), but only in the original esignet-standalone
+# namespace. Create it here so the 2.0.0 namespace is self-sufficient.
+KAFKA_URL="${KAFKA_URL:-kafka-0.kafka-headless.kafka.svc.cluster.local:9092,kafka-1.kafka-headless.kafka.svc.cluster.local:9092,kafka-2.kafka-headless.kafka.svc.cluster.local:9092}"
+echo "Creating kafka-config configmap in $ESIGNET_NS"
+kubectl -n "$ESIGNET_NS" create configmap kafka-config \
+  --from-literal=SPRING_KAFKA_BOOTSTRAP-SERVERS="$KAFKA_URL" \
+  --dry-run=client -o yaml | kubectl apply -f -
+
 echo "eSignet pre-install completed."
