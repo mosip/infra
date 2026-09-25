@@ -773,12 +773,12 @@ apps:
   esignet-misp-onboarder:
     namespace: esignet-go-mosipid
     enabled: true
-    version: 0.0.1-develop
+    version: 1.4.0
     chart: mosip/partner-onboarder
     set:
-      image.registry: "docker.io"
-      image.repository: "mosipdev/partner-onboarder"
-      image.tag: "develop"
+      # image.registry: "docker.io"
+      # image.repository: "mosipdev/partner-onboarder"
+      # image.tag: "develop"
       onboarding.modules[0].name: "esignet"
       onboarding.modules[0].enabled: "true"
       onboarding.configmaps.s3.s3-host: "http://minio.minio:9000"
@@ -833,12 +833,12 @@ apps:
   esignet-go-mock-rp-onboarder:
     namespace: esignet-go-mock
     enabled: true
-    version: 0.0.1-develop
+    version: 1.4.0
     chart: mosip/partner-onboarder
     set:
-      image.registry: "docker.io"
-      image.repository: "mosipdev/partner-onboarder"
-      image.tag: "develop"
+      # image.registry: "docker.io"
+      # image.repository: "mosipdev/partner-onboarder"
+      # image.tag: "develop"
       onboarding.modules[0].name: "mock-rp-oidc"
       onboarding.modules[0].enabled: "true"
       onboarding.configmaps.s3.s3-host: "http://minio.minio:9000"
