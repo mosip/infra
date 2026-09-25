@@ -82,11 +82,11 @@ apps:
   esignet-go-mock:
     namespace: esignet-go-mock
     enabled: true
-    version: 2.0.0-develop
+    version: 2.0.0
     chart: mosip/esignet
     set:
-      image.repository: "mosipqa/esignet"
-      image.tag: "2.0.x"
+      # image.repository: "mosipqa/esignet"
+      # image.tag: "2.0.x"
       enable_insecure: "false"
       springConfigNameEnv: ""
       activeProfileEnv: ""
@@ -188,17 +188,17 @@ apps:
     timeout: 600
     priority: -14
     hooks:
-      preInstall: "$WORKDIR/hooks/esignet-standalone-2.0.0/esignet-preinstall.sh"
+      preInstall: "$WORKDIR/hooks/esignet-standalone-2.0.0/esignet-mock-preinstall.sh"
       postInstall: "$WORKDIR/hooks/esignet-standalone-2.0.0/captcha-postinstall.sh"
 
   esignet-go-mosipid:
     namespace: esignet-go-mosipid
     enabled: true
-    version: 2.0.0-develop
+    version: 2.0.0
     chart: mosip/esignet
     set:
-      image.repository: "mosipqa/esignet"
-      image.tag: "2.0.x"
+      # image.repository: "mosipqa/esignet"
+      # image.tag: "2.0.x"
       enable_insecure: "false"
       springConfigNameEnv: ""
       activeProfileEnv: ""
@@ -313,11 +313,11 @@ apps:
   esignet-go-sunbird:
     namespace: esignet-go-sunbird
     enabled: true
-    version: 2.0.0-develop
+    version: 2.0.0
     chart: mosip/esignet
     set:
-      image.repository: "mosipqa/esignet"
-      image.tag: "2.0.x"
+      # image.repository: "mosipqa/esignet"
+      # image.tag: "2.0.x"
       enable_insecure: "false"
       springConfigNameEnv: ""
       activeProfileEnv: ""
@@ -420,11 +420,11 @@ apps:
   oidc-ui:
     namespace: esignet-go-mock
     enabled: true
-    version: 2.0.0-develop
+    version: 2.0.0
     chart: mosip/oidc-ui
     set:
-      image.repository: "mosipqa/oidc-ui"
-      image.tag: "2.0.x"    
+      # image.repository: "mosipqa/oidc-ui"
+      # image.tag: "2.0.x"
       istio.hosts[0]: "esignet-go-mock.${domain_name}"
       oidc_ui.oidc_service_host: "esignet-go-mock.esignet-go-mock"
       oidc_ui.configmaps.oidc-ui.REACT_APP_API_BASE_URL: "http://esignet-go-mock.esignet-go-mock/v1/esignet"
@@ -438,11 +438,11 @@ apps:
   oidc-ui-mosipid:
     namespace: esignet-go-mosipid
     enabled: true
-    version: 2.0.0-develop
+    version: 2.0.0
     chart: mosip/oidc-ui
     set:
-      image.repository: "mosipqa/oidc-ui"
-      image.tag: "2.0.x"
+      # image.repository: "mosipqa/oidc-ui"
+      # image.tag: "2.0.x"
       istio.hosts[0]: "esignet-go-mosipid.${domain_name}"
       oidc_ui.oidc_service_host: "esignet-go-mosipid.esignet-go-mosipid"
       oidc_ui.configmaps.oidc-ui.REACT_APP_API_BASE_URL: "http://esignet-go-mosipid.esignet-go-mosipid/v1/esignet"
@@ -455,11 +455,11 @@ apps:
   oidc-ui-sunbird:
     namespace: esignet-go-sunbird
     enabled: true
-    version: 2.0.0-develop
+    version: 2.0.0
     chart: mosip/oidc-ui
     set:
-      image.repository: "mosipqa/oidc-ui"
-      image.tag: "2.0.x"
+      # image.repository: "mosipqa/oidc-ui"
+      # image.tag: "2.0.x"
       istio.hosts[0]: "esignet-go-sunbird.${domain_name}"
       oidc_ui.oidc_service_host: "esignet-go-sunbird.esignet-go-sunbird"
       oidc_ui.configmaps.oidc-ui.REACT_APP_API_BASE_URL: "http://esignet-go-sunbird.esignet-go-sunbird/v1/esignet"
@@ -491,11 +491,11 @@ apps:
   mock-identity-system:
     namespace: esignet-go-mock
     enabled: true
-    version: 0.14.0-develop
+    version: 0.14.0
     chart: mosip/mock-identity-system
     set:
-      image.repository: "mosipqa/mock-identity-system"
-      image.tag: "0.14.x"
+      # image.repository: "mosipqa/mock-identity-system"
+      # image.tag: "0.14.x"
       enable_insecure: "false"
       extraEnvVarsCM[0]: "softhsm-mock-identity-system-share"
       domainConfig.MOSIP_ESIGNET_HOST: "esignet-go-mock.${domain_name}"
@@ -546,11 +546,11 @@ apps:
   mock-relying-party-service:
     namespace: esignet-go-mock
     enabled: true
-    version: 0.14.0-develop
+    version: 0.14.0
     chart: mosip/mock-relying-party-service
     set:
-      image.repository: "mosipqa/mock-relying-party-service"
-      image.tag: "0.14.x"
+      # image.repository: "mosipqa/mock-relying-party-service"
+      # image.tag: "0.14.x"
       mock_relying_party_service.ESIGNET_SERVICE_URL: "https://esignet-go-mock.${domain_name}/v1/esignet"
       mock_relying_party_service.ESIGNET_AUD_URL: "https://esignet-go-mock.${domain_name}"
       mock_relying_party_service.ESIGNET_PAR_ENDPOINT: "https://esignet-go-mock.${domain_name}/v1/esignet/oauth2/par"
@@ -582,11 +582,11 @@ apps:
   mock-relying-party-service-mosipid:
     namespace: esignet-go-mosipid
     enabled: true
-    version: 0.14.0-develop
+    version: 0.14.0
     chart: mosip/mock-relying-party-service
     set:
-      image.repository: "mosipqa/mock-relying-party-service"
-      image.tag: "0.14.x"
+      # image.repository: "mosipqa/mock-relying-party-service"
+      # image.tag: "0.14.x"
       mock_relying_party_service.ESIGNET_SERVICE_URL: "https://esignet-go-mosipid.${domain_name}/v1/esignet"
       mock_relying_party_service.ESIGNET_AUD_URL: "https://esignet-go-mosipid.${domain_name}"
       mock_relying_party_service.ESIGNET_PAR_ENDPOINT: "https://esignet-go-mosipid.${domain_name}/v1/esignet/oauth2/par"
@@ -618,11 +618,11 @@ apps:
   mock-relying-party-service-sunbird:
     namespace: esignet-go-sunbird
     enabled: true
-    version: 0.14.0-develop
+    version: 0.14.0
     chart: mosip/mock-relying-party-service
     set:
-      image.repository: "mosipqa/mock-relying-party-service"
-      image.tag: "0.14.x"    
+      # image.repository: "mosipqa/mock-relying-party-service"
+      # image.tag: "0.14.x"
       mock_relying_party_service.ESIGNET_SERVICE_URL: "https://esignet-go-sunbird.${domain_name}/v1/esignet"
       mock_relying_party_service.ESIGNET_AUD_URL: "https://esignet-go-sunbird.${domain_name}"
       mock_relying_party_service.ESIGNET_PAR_ENDPOINT: "https://esignet-go-sunbird.${domain_name}/v1/esignet/oauth2/par"
@@ -654,11 +654,11 @@ apps:
   mock-relying-party-ui:
     namespace: esignet-go-mock
     enabled: true
-    version: 0.14.0-develop
+    version: 0.14.0
     chart: mosip/mock-relying-party-ui
     set:
-      image.repository: "mosipqa/mock-relying-party-ui"
-      image.tag: "0.14.x"    
+      # image.repository: "mosipqa/mock-relying-party-ui"
+      # image.tag: "0.14.x"
       mock_relying_party_ui.mock_relying_party_ui_service_host: "healthservices-go-mock.${domain_name}"
       mock_relying_party_ui.MOCK_RELYING_PARTY_SERVICE_INTERNAL_URL: "http://mock-relying-party-service.esignet-go-mock"
       mock_relying_party_ui.ESIGNET_UI_BASE_URL: "https://esignet-go-mock.${domain_name}"
@@ -690,11 +690,11 @@ apps:
   mock-relying-party-ui-mosipid:
     namespace: esignet-go-mosipid
     enabled: true
-    version: 0.14.0-develop
+    version: 0.14.0
     chart: mosip/mock-relying-party-ui
     set:
-      image.repository: "mosipqa/mock-relying-party-ui"
-      image.tag: "0.14.x"    
+      # image.repository: "mosipqa/mock-relying-party-ui"
+      # image.tag: "0.14.x"
       mock_relying_party_ui.mock_relying_party_ui_service_host: "healthservices-go-mosipid.${domain_name}"
       mock_relying_party_ui.MOCK_RELYING_PARTY_SERVICE_INTERNAL_URL: "http://mock-relying-party-service-mosipid.esignet-go-mosipid"
       mock_relying_party_ui.ESIGNET_UI_BASE_URL: "https://esignet-go-mosipid.${domain_name}"
@@ -726,11 +726,11 @@ apps:
   mock-relying-party-ui-sunbird:
     namespace: esignet-go-sunbird
     enabled: true
-    version: 0.14.0-develop
+    version: 0.14.0
     chart: mosip/mock-relying-party-ui
     set:
-      image.repository: "mosipqa/mock-relying-party-ui"
-      image.tag: "0.14.x"    
+      # image.repository: "mosipqa/mock-relying-party-ui"
+      # image.tag: "0.14.x"
       mock_relying_party_ui.mock_relying_party_ui_service_host: "healthservices-go-sunbird.${domain_name}"
       mock_relying_party_ui.MOCK_RELYING_PARTY_SERVICE_INTERNAL_URL: "http://mock-relying-party-service-sunbird.esignet-go-sunbird"
       mock_relying_party_ui.ESIGNET_UI_BASE_URL: "https://esignet-go-sunbird.${domain_name}"
