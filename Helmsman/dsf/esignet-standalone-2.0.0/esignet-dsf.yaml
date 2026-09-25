@@ -768,7 +768,9 @@ apps:
 
   # eSignet MISP Partner Onboarder
   # Onboards the eSignet MISP client — only needed with mosip-identity-plugin (plugin 2).
-  # Runs FIRST so the MISP license key is written before mock-rp-onboarder starts.
+  # Runs AFTER esignet-go-mock-rp-onboarder (priority -5 vs -6). The MISP license key
+  # it writes is only used by esignet-go-mosipid, so the mock RP onboarder does not
+  # depend on it.
   # After completion, restarts the esignet deployment to pick up the new MISP license key.
   esignet-misp-onboarder:
     namespace: esignet-go-mosipid
@@ -820,7 +822,7 @@ apps:
     wait: true
     waitForJobs: true
     timeout: 600
-    priority: -6
+    priority: -5
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-standalone-2.0.0/esignet-misp-onboarder-mosipid-preinstall.sh"
       preUpgrade: "$WORKDIR/hooks/esignet-standalone-2.0.0/esignet-misp-onboarder-mosipid-preinstall.sh"
@@ -860,7 +862,7 @@ apps:
     wait: true
     waitForJobs: true
     timeout: 600
-    priority: -5
+    priority: -6
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-standalone-2.0.0/esignet-mock-rp-onboarder-preinstall.sh"
       preUpgrade: "$WORKDIR/hooks/esignet-standalone-2.0.0/esignet-mock-rp-onboarder-preinstall.sh"
