@@ -82,7 +82,7 @@ rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/
 # mosipid instance instead of separate mosipid1/mosipid2), since only one of
 # the two profiles is ever live on a given cluster/domain at a time.
 
-subdomain_public   = ["esignet", "healthservices", "signup", "esignet-sunbird", "healthservices-sunbird", "healthservices-mosipid", "esignet-mosipid", "pms-mosipid", "signup-mosipid"]
+subdomain_public   = ["esignet-go-mock", "healthservices-go-mock", "esignet", "healthservices", "signup", "esignet-sunbird", "healthservices-sunbird", "healthservices-mosipid", "esignet-mosipid", "pms-mosipid", "signup-mosipid","esignet-go-sunbird", "healthservices-go-sunbird", "healthservices-go-mosipid", "esignet-go-mosipid", "pms-go-mosipid", "signup-go-mosipid"]
 subdomain_internal = ["iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio"]
 
 # PostgreSQL Configuration
