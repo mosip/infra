@@ -2,12 +2,12 @@
 # =============================================================================
 # eSignet Standalone 2.0.0 - Mock Relying Party UI Sunbird Pre-install
 # =============================================================================
-# Ensures esignet-sunbird namespace exists and verifies mock-relying-party-service
-# is available in the esignet-sunbird namespace before UI deployment.
+# Ensures esignet-go-sunbird namespace exists and verifies mock-relying-party-service
+# is available in the esignet-go-sunbird namespace before UI deployment.
 # =============================================================================
 set -euo pipefail
 
-ESIGNET_NS="esignet-sunbird"
+ESIGNET_NS="esignet-go-sunbird"
 
 echo "================================================"
 echo "eSignet Standalone 2.0.0 - Mock Relying Party UI Sunbird Pre-install"

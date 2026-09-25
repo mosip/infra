@@ -8,16 +8,16 @@
 #   - Verifies softhsm-mock-identity-system-share ConfigMap is present
 #
 # Environment Variables:
-#   MOCKID_DB_NAME  - Mock identity DB name (default: mosip_mockidentitysystem)
-#   MOCKID_DB_USER  - Mock identity DB user (default: mockidentityuser)
+#   MOCKID_DB_NAME  - Mock identity DB name (default: mosip_mockidentitysystem_go)
+#   MOCKID_DB_USER  - Mock identity DB user (default: mockidentityuser_go)
 #   MOCKID_DB_PORT  - Postgres port (default: 5432)
 # =============================================================================
 set -euo pipefail
 
-ESIGNET_NS="${ESIGNET_NS:-esignet-mock}"
+ESIGNET_NS="${ESIGNET_NS:-esignet-go-mock}"
 SOFTHSM_NS="softhsm"
-MOCKID_DB_NAME="${MOCKID_DB_NAME:-mosip_mockidentitysystem}"
-MOCKID_DB_USER="${MOCKID_DB_USER:-mockidentityuser}"
+MOCKID_DB_NAME="${MOCKID_DB_NAME:-mosip_mockidentitysystem_go}"
+MOCKID_DB_USER="${MOCKID_DB_USER:-mockidentityuser_go}"
 MOCKID_DB_PORT="${MOCKID_DB_PORT:-5432}"
 COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
 

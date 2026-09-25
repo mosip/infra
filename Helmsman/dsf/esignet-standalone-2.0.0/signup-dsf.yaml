@@ -155,7 +155,7 @@ apps:
       image.tag: "1.2.2"
       enable_insecure: "false"
       plugin_name_env: "esignet-mock-plugin.jar"
-      domainConfig.MOSIP_ESIGNET_HOST: "esignet.${domain_name}"
+      domainConfig.MOSIP_ESIGNET_HOST: "esignet-go-mock.${domain_name}"
       domainConfig.MOSIP_SIGNUP_HOST: "signup.${domain_name}"
       domainConfig.MOSIP_IAM_EXTERNAL_HOST: "iam.${domain_name}"
     wait: true

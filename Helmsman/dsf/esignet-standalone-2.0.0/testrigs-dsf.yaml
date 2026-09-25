@@ -17,10 +17,10 @@
 # conventions or sourced from a required GitHub Environment secret/variable (see
 # docs/HELMSMAN_TESTRIGS_GUIDE.md).
 #
-# Only esignet-mosipid gets real test-identity/onboarding values (INDIVIDUAL_ID,
+# Only esignet-go-mosipid gets real test-identity/onboarding values (INDIVIDUAL_ID,
 # OTP recipient, auth partner/policy ID, UIN/VID/etc.) — it's the only instance
-# backed by a real IDA identity (config.mosip.json / the "mosip" plugin). esignet-mock
-# (config.mock.json / "mock" plugin) and esignet-sunbird (config.sunbird.json /
+# backed by a real IDA identity (config.mosip.json / the "mosip" plugin). esignet-go-mock
+# (config.mock.json / "mock" plugin) and esignet-go-sunbird (config.sunbird.json /
 # "sunbird" plugin) need none of that.
 #
 # Report storage: reports.persistence (PVC) is used instead of reports.s3 — the S3
@@ -44,17 +44,17 @@ helmRepos:
 # NS=esignet-uitestrig (separate from esignet-apitestrig's namespace) and matching
 # this DSF's existing signup-uitestrig precedent.
 namespaces:
-  esignet-mock:
+  esignet-go-mock:
     protected: false
-  esignet-mosipid:
+  esignet-go-mosipid:
     protected: false
-  esignet-sunbird:
+  esignet-go-sunbird:
     protected: false
-  esignet-uitestrig:
+  esignet-go-mock-uitestrig:
     protected: false
-  esignet-mosipid-uitestrig:
+  esignet-go-mosipid-uitestrig:
     protected: false
-  esignet-sunbird-uitestrig:
+  esignet-go-sunbird-uitestrig:
     protected: false
   signup:
     protected: false
@@ -63,10 +63,10 @@ namespaces:
 
 apps:
   # ---------------------------------------------------------------------------
-  # eSignet API Testrig (Go harness) — esignet-mock namespace
+  # eSignet API Testrig (Go harness) — esignet-go-mock namespace
   # ---------------------------------------------------------------------------
   esignet-apitestrig:
-    namespace: esignet-mock
+    namespace: esignet-go-mock
     enabled: true
     version: 2.0.0
     chart: mosip/esignet-apitestrig
@@ -74,7 +74,7 @@ apps:
       apitestrig.configFile: /app/data/config/config.mock.json
       # No plan JSON files provisioned for this profile — see header comment.
       apitestrig.surfaces: "api,e2e"
-      apitestrig.extraEnvVars.MOSIP_ESIGNET_BASE_URL: "https://esignet.${domain_name}/v1/esignet"
+      apitestrig.extraEnvVars.MOSIP_ESIGNET_BASE_URL: "https://esignet-go-mock.${domain_name}/v1/esignet"
       apitestrig.extraEnvVars.KEYCLOAK_TOKEN_URL: "https://iam.${domain_name}/auth/realms/mosip/protocol/openid-connect/token"
       apitestrig.extraEnvVars.KEYCLOAK_CLIENT_ID: "mosip-pms-client"
       apitestrig.extraEnvVarsSecret.KEYCLOAK_CLIENT_SECRET: "${PMS_CLIENT_SECRET_VALUE}"
@@ -85,18 +85,18 @@ apps:
       preInstall: "$WORKDIR/hooks/esignet-standalone-2.0.0/apitestrig-esignet-setup.sh"
 
   # ---------------------------------------------------------------------------
-  # eSignet-MOSIPID API Testrig (Go harness) — esignet-mosipid namespace
+  # eSignet-MOSIPID API Testrig (Go harness) — esignet-go-mosipid namespace
   # Only instance with real test-identity/onboarding values — see header comment.
   # ---------------------------------------------------------------------------
-  esignet-mosipid-apitestrig:
-    namespace: esignet-mosipid
+  esignet-go-mosipid-apitestrig:
+    namespace: esignet-go-mosipid
     enabled: true
     version: 2.0.0
     chart: mosip/esignet-apitestrig
     set:
       apitestrig.configFile: /app/data/config/config.mosip.json
       apitestrig.surfaces: "api,e2e"
-      apitestrig.extraEnvVars.MOSIP_ESIGNET_BASE_URL: "https://esignet-mosipid.${domain_name}/v1/esignet"
+      apitestrig.extraEnvVars.MOSIP_ESIGNET_BASE_URL: "https://esignet-go-mosipid.${domain_name}/v1/esignet"
       apitestrig.extraEnvVars.KEYCLOAK_TOKEN_URL: "https://iam.${domain_name}/auth/realms/mosip/protocol/openid-connect/token"
       apitestrig.extraEnvVars.KEYCLOAK_CLIENT_ID: "mosip-pms-client"
       apitestrig.extraEnvVars.ID_TYPE: "uin"
@@ -114,17 +114,17 @@ apps:
       preInstall: "$WORKDIR/hooks/esignet-standalone-2.0.0/apitestrig-esignet-mosipid-setup.sh"
 
   # ---------------------------------------------------------------------------
-  # eSignet-Sunbird API Testrig (Go harness) — esignet-sunbird namespace
+  # eSignet-Sunbird API Testrig (Go harness) — esignet-go-sunbird namespace
   # ---------------------------------------------------------------------------
-  esignet-sunbird-apitestrig:
-    namespace: esignet-sunbird
+  esignet-go-sunbird-apitestrig:
+    namespace: esignet-go-sunbird
     enabled: true
     version: 2.0.0
     chart: mosip/esignet-apitestrig
     set:
       apitestrig.configFile: /app/data/config/config.sunbird.json
       apitestrig.surfaces: "api,e2e"
-      apitestrig.extraEnvVars.MOSIP_ESIGNET_BASE_URL: "https://esignet-sunbird.${domain_name}/v1/esignet"
+      apitestrig.extraEnvVars.MOSIP_ESIGNET_BASE_URL: "https://esignet-go-sunbird.${domain_name}/v1/esignet"
       apitestrig.extraEnvVars.KEYCLOAK_TOKEN_URL: "https://iam.${domain_name}/auth/realms/mosip/protocol/openid-connect/token"
       apitestrig.extraEnvVars.KEYCLOAK_CLIENT_ID: "mosip-pms-client"
       apitestrig.extraEnvVarsSecret.KEYCLOAK_CLIENT_SECRET: "${PMS_CLIENT_SECRET_VALUE}"
@@ -137,16 +137,16 @@ apps:
   # ---------------------------------------------------------------------------
   # eSignet UI Testrig (Java harness, uitest-esignet image) — own namespace
   # ---------------------------------------------------------------------------
-  esignet-uitestrig:
-    namespace: esignet-uitestrig
+  esignet-go-mock-uitestrig:
+    namespace: esignet-go-mock-uitestrig
     enabled: true
     version: 2.0.0
     chart: mosip/esignet-uitestrig
     set:
       uitestrig.extraEnvVars.ENV_ENDPOINT: "https://api-internal.${domain_name}"
       uitestrig.extraEnvVars.ENV_USER: "api-internal.${env_name}"
-      uitestrig.configMap.baseurl: "https://healthservices.${domain_name}/"
-      uitestrig.configMap.eSignetbaseurl: "https://esignet.${domain_name}"
+      uitestrig.configMap.baseurl: "https://healthservices-go-mock.${domain_name}/"
+      uitestrig.configMap.eSignetbaseurl: "https://esignet-go-mock.${domain_name}"
       uitestrig.configMap.pluginToExecute: "mock"
       uitestrig.configMap.esignetDbHost: "postgres-postgresql.postgres"
       uitestrig.configMap.esignetDbPort: "${esignet_db_port}"
@@ -164,16 +164,16 @@ apps:
   # eSignet-MOSIPID UI Testrig — own namespace
   # Only instance with real test-identity values — see header comment.
   # ---------------------------------------------------------------------------
-  esignet-mosipid-uitestrig:
-    namespace: esignet-mosipid-uitestrig
+  esignet-go-mosipid-uitestrig:
+    namespace: esignet-go-mosipid-uitestrig
     enabled: true
     version: 2.0.0
     chart: mosip/esignet-uitestrig
     set:
       uitestrig.extraEnvVars.ENV_ENDPOINT: "https://api-internal.${mosipid_domain_name}"
       uitestrig.extraEnvVars.ENV_USER: "api-internal.${env_name}"
-      uitestrig.configMap.baseurl: "https://healthservices-mosipid.${domain_name}/"
-      uitestrig.configMap.eSignetbaseurl: "https://esignet-mosipid.${domain_name}"
+      uitestrig.configMap.baseurl: "https://healthservices-go-mosipid.${domain_name}/"
+      uitestrig.configMap.eSignetbaseurl: "https://esignet-go-mosipid.${domain_name}"
       uitestrig.configMap.pluginToExecute: "mosip"
       uitestrig.configMap.esignetDbHost: "postgres-postgresql.postgres"
       uitestrig.configMap.esignetDbPort: "${esignet_db_port}"
@@ -196,16 +196,16 @@ apps:
   # ---------------------------------------------------------------------------
   # eSignet-Sunbird UI Testrig — own namespace
   # ---------------------------------------------------------------------------
-  esignet-sunbird-uitestrig:
-    namespace: esignet-sunbird-uitestrig
+  esignet-go-sunbird-uitestrig:
+    namespace: esignet-go-sunbird-uitestrig
     enabled: true
     version: 2.0.0
     chart: mosip/esignet-uitestrig
     set:
       uitestrig.extraEnvVars.ENV_ENDPOINT: "https://api-internal.${domain_name}"
       uitestrig.extraEnvVars.ENV_USER: "api-internal.${env_name}"
-      uitestrig.configMap.baseurl: "https://healthservices-sunbird.${domain_name}/"
-      uitestrig.configMap.eSignetbaseurl: "https://esignet-sunbird.${domain_name}"
+      uitestrig.configMap.baseurl: "https://healthservices-go-sunbird.${domain_name}/"
+      uitestrig.configMap.eSignetbaseurl: "https://esignet-go-sunbird.${domain_name}"
       uitestrig.configMap.pluginToExecute: "sunbird"
       uitestrig.configMap.esignetDbHost: "postgres-postgresql.postgres"
       uitestrig.configMap.esignetDbPort: "${esignet_db_port}"

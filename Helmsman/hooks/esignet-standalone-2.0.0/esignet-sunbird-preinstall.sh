@@ -2,14 +2,14 @@
 # =============================================================================
 # eSignet 1.7.1 - eSignet Sunbird Service Pre-install
 # =============================================================================
-# Wrapper: sets ESIGNET_NS=esignet-sunbird, runs base esignet preinstall (copies
+# Wrapper: sets ESIGNET_NS=esignet-go-sunbird, runs base esignet preinstall (copies
 # postgres + redis config/secrets), then creates esignet-captcha-sunbird secret
-# in the captcha namespace from workflow env vars, copies it to esignet-sunbird,
+# in the captcha namespace from workflow env vars, copies it to esignet-go-sunbird,
 # and patches the captcha deployment with the Sunbird secret key.
 # =============================================================================
 set -euo pipefail
 
-export ESIGNET_NS="esignet-sunbird"
+export ESIGNET_NS="esignet-go-sunbird"
 CAPTCHA_NS="captcha"
 COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
 CAPTCHA_SITE_KEY="${ESIGNET_SUNBIRD_CAPTCHA_SITE_KEY:?ERROR: ESIGNET_SUNBIRD_CAPTCHA_SITE_KEY must be set}"
@@ -22,11 +22,11 @@ kubectl -n "$ESIGNET_NS" create configmap esignet-global \
   --from-literal=installation-domain="${domain_name}" \
   --from-literal=mosip-api-host="api.${domain_name}" \
   --from-literal=mosip-api-internal-host="api-internal.${domain_name}" \
-  --from-literal=mosip-esignet-host="esignet-sunbird.${domain_name}" \
+  --from-literal=mosip-esignet-host="esignet-go-sunbird.${domain_name}" \
   --from-literal=mosip-iam-external-host="iam.${domain_name}" \
   --from-literal=mosip-kafka-host="kafka.${domain_name}" \
   --from-literal=mosip-postgres-host="postgres.${domain_name}" \
-  --from-literal=mosip-signup-host="signup-sunbird.${domain_name}" \
+  --from-literal=mosip-signup-host="signup-go-sunbird.${domain_name}" \
   --from-literal=mosip-smtp-host="smtp.${domain_name}" \
   --from-literal=mosip-version="develop" \
   --dry-run=client -o yaml | kubectl apply -f -

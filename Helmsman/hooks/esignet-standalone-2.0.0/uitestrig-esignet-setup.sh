@@ -5,7 +5,7 @@
 # esignet-uitestrig deploys the dedicated mosip/esignet-uitestrig chart (the
 # Java-harness rewrite for eSignet 2.0.0 - see
 # https://github.com/mosip/esignet/blob/v2.0.0/deploy/esignet-uitestrig/install.sh),
-# into its own esignet-uitestrig namespace, separate from eSignet's own esignet-mock
+# into its own esignet-go-mock-uitestrig namespace, separate from eSignet's own esignet-go-mock
 # namespace (matches install.sh's own NS=esignet-uitestrig / SOURCE_NS=esignet split).
 #
 # The chart manages its own ConfigMap/Secret entirely from set: values - no
@@ -14,7 +14,7 @@
 # =============================================================================
 set -euo pipefail
 
-NS=esignet-uitestrig
+NS=esignet-go-mock-uitestrig
 
 echo "================================================"
 echo "eSignet Standalone 2.0.0 - eSignet UI Testrig Pre-install"

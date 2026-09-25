@@ -218,7 +218,7 @@ apps:
       databases.mosip_esignet_go_sunbird.su.user: "postgres"
       databases.mosip_esignet_go_sunbird.su.secret.name: "postgres-postgresql"
       databases.mosip_esignet_go_sunbird.su.secret.key: "postgres-password"
-      databases.mosip_mockidentitysystem_go.enabled: "false"
+      databases.mosip_mockidentitysystem_go.enabled: "true"
       databases.mosip_mockidentitysystem_go.scriptsDir: "mosip_mockidentitysystem"
       databases.mosip_mockidentitysystem_go.dbName: "mosip_mockidentitysystem_go"
       databases.mosip_mockidentitysystem_go.dbUser: "mockidentityuser_go"

@@ -2,21 +2,21 @@
 # Post-install hook for esignet-keycloak-init (eSignet 2.0.0 (Go) standalone)
 # The chart runs in keycloak ns and creates keycloak-host CM and
 # keycloak-client-secrets secret there. This hook fans those resources out to
-# all esignet-mock namespaces so every esignet-mock instance can reference them without
+# all esignet-go-mock namespaces so every esignet-go-mock instance can reference them without
 # cross-namespace lookups.
 set -euo pipefail
 
 KEYCLOAK_NS="keycloak"
 COPY_UTIL="$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh"
 
-# All esignet-mock namespaces that need keycloak resources
-ESIGNET_NAMESPACES=(esignet-mock esignet-mosipid esignet-sunbird)
+# All esignet-go-mock namespaces that need keycloak resources
+ESIGNET_NAMESPACES=(esignet-go-mock esignet-go-mosipid esignet-go-sunbird)
 
 echo "================================================"
 echo "eSignet 2.0.0 (Go) - Keycloak Init Post-install"
 echo "================================================"
 
-echo "Sharing keycloak resources from $KEYCLOAK_NS to all esignet-mock namespaces"
+echo "Sharing keycloak resources from $KEYCLOAK_NS to all esignet-go-mock namespaces"
 for NS_TARGET in "${ESIGNET_NAMESPACES[@]}"; do
   if ! kubectl get namespace "$NS_TARGET" &>/dev/null; then
     echo "Namespace $NS_TARGET does not exist, skipping"

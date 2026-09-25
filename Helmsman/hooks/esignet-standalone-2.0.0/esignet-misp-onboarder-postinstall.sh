@@ -8,8 +8,8 @@
 # =============================================================================
 set -euo pipefail
 
-ESIGNET_NS="${ESIGNET_NS:-esignet-mock}"
-DEPLOYMENT_NAME="${DEPLOYMENT_NAME:-esignet-mock}"
+ESIGNET_NS="${ESIGNET_NS:-esignet-go-mock}"
+DEPLOYMENT_NAME="${DEPLOYMENT_NAME:-esignet-go-mock}"
 # The onboarding job runs a long newman flow (~15 folders, each with one or more
 # requests, plus a mandatory 2s --delay-request between every request) that easily
 # takes several minutes end to end. helm upgrade returns as soon as the Job object is
