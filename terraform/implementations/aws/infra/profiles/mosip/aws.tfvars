@@ -77,11 +77,11 @@ WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 # Rancher Import URL
 # Rancher Import Configuration
 enable_rancher_import = true
-rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/52snh64w22tp2nf6cqlpzwtj4kzdzkhcqzb4dvjbx6zdhbvst27r6x_c-m-n8w7xd59.yaml\""
+rancher_import_url    = "\"kubectl apply -f https://rancher.mosip.net/v3/import/7n2tv6qn2zk2jxqtpdkdj4lxh9bjtgxcdhcsrz2nz259zsnnlstmfc_c-m-7b52vnt2.yaml\""
 
 # DNS Records to map
 subdomain_public   = ["resident", "prereg", "esignet", "healthservices", "signup"]
-subdomain_internal = ["admin", "iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio", "regclient", "compliance"]
+subdomain_internal = ["admin", "iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio", "regclient", "compliance", "grafana"]
 
 # PostgreSQL Configuration (used when second EBS volume is enabled)
 enable_postgresql_setup = true # Enable PostgreSQL setup for main infra
