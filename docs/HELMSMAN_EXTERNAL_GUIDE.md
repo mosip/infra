@@ -23,7 +23,7 @@ Choose the profile that matches your deployment target:
 
 | Profile | Use when |
 |---------|----------|
-| `esignet-standalone` | eSignet standalone — up to 4 parallel instances (esignet-mock, esignet-mosipid1, esignet-mosipid2, esignet-sunbird). mosipid2 is optional via `enable_mosipid2` toggle. No full MOSIP stack. |
+| `esignet-standalone` | eSignet standalone — 3 parallel instances (esignet-mock, esignet-mosipid, esignet-sunbird). No full MOSIP stack. |
 | `mosip-platform-1.2.0.x` | Full MOSIP platform with Java 11 |
 | `mosip-platform-1.2.1.x` | Full MOSIP platform with Java 21 |
 

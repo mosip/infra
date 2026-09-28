@@ -7,13 +7,13 @@
 # ============================================================
 
 # Environment name (infra component)
-cluster_name = "<cluster-name>"
+cluster_name = "<name>"
 
 # eSignet's domain (ex: esignet.xyz.net)
-cluster_env_domain = "<cluster-env-domain>"
+cluster_env_domain = "<sandbox.xyz.net>"
 
 # Email-ID will be used by certbot to notify SSL certificate expiry via email
-mosip_email_id = "<email-id>"
+mosip_email_id = "<mail-id>"
 
 # SSH login key name for AWS node instances (ex: my-ssh-key)
 ssh_key_name = "<ssh-key-name>"
@@ -74,11 +74,15 @@ WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
 
 # Rancher Import Configuration
 enable_rancher_import = true
-rancher_import_url    = "\"<rancher-import-url>\""
+rancher_import_url    = "\"<rancher import url>\""
 
 # DNS Records to map — only eSignet-relevant subdomains
+# Shared by both the esignet-standalone profile and the esignet-standalone-2.0.0
+# profile — both use identical hostnames (no "-go" suffix, single consolidated
+# mosipid instance instead of separate mosipid1/mosipid2), since only one of
+# the two profiles is ever live on a given cluster/domain at a time.
 
-subdomain_public   = ["esignet", "healthservices", "signup", "esignet-sunbird", "healthservices-sunbird", "healthservices-mosipid1", "esignet-mosipid1", "pms-mosipid1", "signup-mosipid1", "healthservices-mosipid2", "esignet-mosipid2", "pms-mosipid2", "signup-mosipid2"]
+subdomain_public   = ["esignet", "healthservices", "signup", "esignet-sunbird", "healthservices-sunbird", "healthservices-mosipid", "esignet-mosipid", "pms-mosipid", "signup-mosipid"]
 subdomain_internal = ["iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio"]
 
 # PostgreSQL Configuration
@@ -94,7 +98,7 @@ mosip_infra_repo_url = "https://github.com/mosip/infra.git"
 mosip_infra_branch = "develop"
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
-vpc_name = "<vpc-name>"
+vpc_name = "<vpc name>"
 
 # ── ActiveMQ Configuration ─────────────────────────────────────────────────────
 # Set enable_activemq_setup = true AND nginx_node_ebs_volume_size_3 > 0 to
