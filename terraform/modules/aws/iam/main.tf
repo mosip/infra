@@ -78,7 +78,7 @@ resource "aws_iam_instance_profile" "certbot_profile" {
 # objects to).
 resource "null_resource" "attach_certbot_profile" {
   triggers = {
-    instance_id     = var.nginx_instance_id
+    instance_id      = var.nginx_instance_id
     instance_profile = aws_iam_instance_profile.certbot_profile.name
   }
 

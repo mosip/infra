@@ -86,7 +86,7 @@ resource "aws_security_group" "nginx" {
   ingress {
     description      = "Allow ICMP (open access)"
     from_port        = -1
-    to_port           = -1
+    to_port          = -1
     protocol         = "ICMP"
     cidr_blocks      = ["0.0.0.0/0"]
     ipv6_cidr_blocks = ["::/0"]
@@ -192,7 +192,7 @@ resource "aws_security_group" "k8s_control_plane" {
   ingress {
     description      = "Allow ICMP (open access)"
     from_port        = -1
-    to_port           = -1
+    to_port          = -1
     protocol         = "ICMP"
     cidr_blocks      = ["0.0.0.0/0"]
     ipv6_cidr_blocks = ["::/0"]
@@ -314,7 +314,7 @@ resource "aws_security_group" "k8s_etcd" {
   ingress {
     description      = "Allow ICMP (open access)"
     from_port        = -1
-    to_port           = -1
+    to_port          = -1
     protocol         = "ICMP"
     cidr_blocks      = ["0.0.0.0/0"]
     ipv6_cidr_blocks = ["::/0"]
@@ -423,7 +423,7 @@ resource "aws_security_group" "k8s_worker" {
   ingress {
     description      = "Allow ICMP (open access)"
     from_port        = -1
-    to_port           = -1
+    to_port          = -1
     protocol         = "ICMP"
     cidr_blocks      = ["0.0.0.0/0"]
     ipv6_cidr_blocks = ["::/0"]
