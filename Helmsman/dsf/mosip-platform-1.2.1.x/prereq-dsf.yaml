@@ -7,6 +7,8 @@ helmRepos:
   bitnami: https://charts.bitnami.com/bitnami
   mosip: https://mosip.github.io/mosip-helm
   banzaicloud-stable: https://charts.helm.sh/stable
+  grafana: https://grafana.github.io/helm-charts
+  grafana-community: https://grafana-community.github.io/helm-charts
 
 # Note: Based on your requirement disable the namespaces which you want to use, by default all the namespaces are protected.
 namespaces:
@@ -14,13 +16,16 @@ namespaces:
     protected: true
   cattle-monitoring-system:
     protected: true
-  cattle-logging-system:
-    protected: true
+  # As part of a move to a standalone monitoring stack, we're replacing rancher-logging with Loki. Cluster logging and log collection are unaffected — only the backend and where logs surface are changing.
+  # cattle-logging-system:
+  #   protected: true
   istio-system:
     protected: true
   istio-operator:
     protected: true
   httpbin:
+    protected: true
+  loki-monitoring:
     protected: true
 
 apps:
@@ -51,61 +56,104 @@ apps:
     hooks:
       postInstall: "$WORKDIR/hooks/alerting-setup.sh ${slack_channel_name} ${SLACK_WEBHOOK_URL} ${env_name}"
 
-  elasticsearch:
-    namespace: cattle-logging-system
-    enabled: true
-    version: 17.9.25
-    chart: mosip/elasticsearch
-    set:
-      image.repository: "mosipint/elasticsearch"
-      image.tag: "7.17.2-debian-10-r4"
-      # Kibana configuration and image
-      global.kibanaEnabled: "true"
-      kibana.image.repository: "mosipid/kibana"
-      kibana.image.tag: "7.17.2-debian-10-r0"
-      kibana.image.pullPolicy: IfNotPresent
-      data.heapSize: "728m"
-      data.persistence.enabled: "true"
-      data.persistence.size: "64Gi"
-      data.resources.requests.memory: "1100Mi"
-      master.heapSize: "1024m"
-      master.persistence.enabled: "true"
-      master.persistence.size: "4Gi"
-      master.resources.requests.memory: "1536Mi"
-      kibana.persistence.enabled: "false"
-      sysctlImage.repository: "mosipid/os-shell"
-      sysctlImage.tag: "12-debian-12-r46"
-    wait: true
-    timeout: 900
-    priority: -4
+  # As part of a move to a standalone monitoring stack, we're replacing rancher-logging with Loki. Cluster logging and log collection are unaffected — only the backend and where logs surface are changing.
+  # elasticsearch:
+  #   namespace: cattle-logging-system
+  #   enabled: true
+  #   version: 17.9.25
+  #   chart: mosip/elasticsearch
+  #   set:
+  #     image.repository: "mosipint/elasticsearch"
+  #     image.tag: "7.17.2-debian-10-r4"
+  #     # Kibana configuration and image
+  #     global.kibanaEnabled: "true"
+  #     kibana.image.repository: "mosipid/kibana"
+  #     kibana.image.tag: "7.17.2-debian-10-r0"
+  #     kibana.image.pullPolicy: IfNotPresent
+  #     data.heapSize: "728m"
+  #     data.persistence.enabled: "true"
+  #     data.persistence.size: "64Gi"
+  #     data.resources.requests.memory: "1100Mi"
+  #     master.heapSize: "1024m"
+  #     master.persistence.enabled: "true"
+  #     master.persistence.size: "4Gi"
+  #     master.resources.requests.memory: "1536Mi"
+  #     kibana.persistence.enabled: "false"
+  #     sysctlImage.repository: "mosipid/os-shell"
+  #     sysctlImage.tag: "12-debian-12-r46"
+  #   wait: true
+  #   timeout: 900
+  #   priority: -4
 
-  istio-addons-logging:
-    namespace: cattle-logging-system
+  # istio-addons-logging:
+  #   namespace: cattle-logging-system
+  #   enabled: true
+  #   version: 0.1.0
+  #   chart: $WORKDIR/utils/istio-addons/logging-istio-addons-0.1.0.tgz
+  #   set:
+  #     kibanaHost: "kibana.${domain_name}"
+  #     installName: "elasticsearch-kibana"
+  #   wait: true
+  #   priority: -3
+
+  # rancher-logging-crd:
+  #   namespace: cattle-logging-system
+  #   enabled: true
+  #   version: 103.1.1+up4.4.0
+  #   chart: mosip/rancher-logging-crd
+  #   wait: true
+  #   priority: -2
+
+  # rancher-logging:
+  #   namespace: cattle-logging-system
+  #   enabled: true
+  #   version: 103.1.1+up4.4.0
+  #   chart: mosip/rancher-logging
+  #   valuesFile: "$WORKDIR/utils/rancher-logging-values.yaml"
+  #   wait: true
+  #   priority: -1
+  #   timeout: 1200
+  #   hooks:
+  #     postInstall: "$WORKDIR/hooks/post_logging-setup.sh"
+
+  loki:
+    namespace: loki-monitoring
     enabled: true
-    version: 0.1.0
-    chart: $WORKDIR/utils/istio-addons/logging-istio-addons-0.1.0.tgz
-    set:
-      kibanaHost: "kibana.${domain_name}"
-      installName: "elasticsearch-kibana"
+    version: 6.55.0
+    chart: grafana/loki
+    valuesFile: "$WORKDIR/utils/loki-values.yaml"
+    wait: true
+    priority: -4
+    timeout: 300
+
+  grafana:
+    namespace: loki-monitoring
+    enabled: true
+    version: 11.3.2
+    chart: grafana-community/grafana
+    valuesFile: "$WORKDIR/utils/grafana-values.yaml"
     wait: true
     priority: -3
+    timeout: 300
+    hooks:
+      postInstall: "$WORKDIR/hooks/import-dashboards.sh"
 
-  rancher-logging-crd:
-    namespace: cattle-logging-system
+  alloy:
+    namespace: loki-monitoring
     enabled: true
-    version: 103.1.1+up4.4.0
-    chart: mosip/rancher-logging-crd
+    version: 1.6.2
+    chart: grafana/alloy
+    valuesFile: "$WORKDIR/utils/alloy-values.yaml"
     wait: true
     priority: -2
+    timeout: 300
 
-  rancher-logging:
-    namespace: cattle-logging-system
+  istio-addons-loki:
+    namespace: loki-monitoring
     enabled: true
-    version: 103.1.1+up4.4.0
-    chart: mosip/rancher-logging
-    valuesFile: "$WORKDIR/utils/rancher-logging-values.yaml"
+    version: 0.0.1-develop
+    chart: $WORKDIR/utils/istio-addons/loki-istio-addons-0.0.1-develop.tgz
+    set:
+      istio.host: "grafana.${domain_name}"
     wait: true
     priority: -1
-    timeout: 1200
-    hooks:
-      postInstall: "$WORKDIR/hooks/post_logging-setup.sh"
