@@ -14,8 +14,10 @@ This directory contains GitHub Actions workflows for automated MOSIP deployment:
 
 | Workflow | Purpose | Trigger | State Management | PostgreSQL |
 |----------|---------|---------|------------------|------------|
-| `terraform.yml` | Deploy/Update Infrastructure | Manual Dispatch | GPG encrypted local | Integrated via Terraform |
-| `terraform-destroy.yml` | Destroy Infrastructure | Manual Dispatch | Uses encrypted state | Handles PostgreSQL cleanup |
+| `terraform.yml` | Deploy/Update Infrastructure (Terraform + Ansible) | Manual Dispatch | GPG encrypted local | Ansible, per profile |
+| `terraform-destroy.yml` | Destroy Infrastructure (reverse order) | Manual Dispatch | Uses encrypted state | Volume removed with storage |
+| `terraform-component.yml` | Reusable: one Terraform root | Called by the two above | Per component | — |
+| `infra-checks.yml` | Static checks | Pull request | — | — |
 | `helmsman_external.yml` | Deploy Prerequisites & External Dependencies | Manual Dispatch | Uses deployed infra | **Parallel deployment** |
 | `helmsman_mosip.yml` | Deploy MOSIP Services | Manual Dispatch | Uses deployed infra | Uses deployed PostgreSQL |
 | `helmsman_esignet.yml` | Deploy eSignet Stack | Manual/Push | Uses deployed infra | Uses deployed PostgreSQL |
@@ -31,24 +33,21 @@ This directory contains GitHub Actions workflows for automated MOSIP deployment:
 
 ## Deployment Guide
 
-### Step 1: Deploy Infrastructure with PostgreSQL
+### Step 1: Deploy Infrastructure
 
 1. **Navigate**: Actions → "terraform plan / apply"
 2. **Configure Parameters**:
  ```yaml
- CLOUD_PROVIDER: aws # Currently only AWS fully supported
- TERRAFORM_COMPONENT: base-infra # base-infra | infra | observ-infra 
- BACKEND_TYPE: local # local with GPG encryption (recommended)
- REMOTE_BACKEND_CONFIG: "" # Not used with local backend
- SSH_PRIVATE_KEY: SSH_PRIVATE_KEY # GitHub secret name
- TERRAFORM_APPLY: true # false = plan only
- ENABLE_STATE_LOCKING: false # Optional DynamoDB state locking
+ CLOUD_PROVIDER: aws
+ COMPONENT: all              # or one component, configure, base-infra
+ PROFILE: mosip              # mosip | esignet-standalone | observ
+ BACKEND_TYPE: local         # GPG-encrypted state committed to the branch
+ SSH_PRIVATE_KEY: mosip-aws  # name of the secret with the node SSH key
+ TERRAFORM_APPLY: true       # required for all / configure
  ```
 3. **Execute**: Click "Run workflow"
-4. **PostgreSQL Configuration**: Set in `terraform/implementations/aws/infra/aws.tfvars`:
- ```hcl
- enable_postgresql_setup = true # External PostgreSQL via Terraform + Ansible
- ```
+4. **PostgreSQL / ActiveMQ**: controlled by the profile — `profiles/<profile>/profile.yml`
+   (`configure_components`) and the volume sizes in `profiles/<profile>/aws/storage.tfvars`.
 
 ### Step 2: Deploy Prerequisites & External Dependencies (After Infrastructure Ready)
 
@@ -75,241 +74,79 @@ This directory contains GitHub Actions workflows for automated MOSIP deployment:
 
 ## PostgreSQL Integration
 
-### Terraform Configuration (Not Workflow Parameter)
-PostgreSQL is configured in Terraform variables, not as a workflow input:
+External PostgreSQL runs on the nginx node's second data volume. It's on when
+the profile lists `postgresql` in `configure_components` **and** (on AWS) the
+storage component creates the volume:
 
 ```hcl
-# terraform/implementations/aws/infra/aws.tfvars
-enable_postgresql_setup = true # Enable external PostgreSQL
-nginx_node_ebs_volume_size_2 = 200 # EBS volume size for PostgreSQL data
-postgresql_version = "15" # PostgreSQL version
-postgresql_port = "5433" # PostgreSQL port
+# profiles/mosip/aws/storage.tfvars
+nginx_node_ebs_volume_size_2 = 200   # 0 = no postgres volume → postgresql is skipped
 ```
 
-### PostgreSQL Deployment Options
-- **External Database** (`enable_postgresql_setup = true`): PostgreSQL on dedicated instances via Terraform + Ansible
-- **Container Database** (`enable_postgresql_setup = false`): In-cluster PostgreSQL as microservice container via Helmsman
+Version / port come from `profiles/<profile>/profile.yml` (`ansible_vars`).
+Leave it off to use in-cluster PostgreSQL via Helmsman.
 
-## Three-Component Architecture
+## Terraform workflows
 
 ```
-Component Deployment Order
-==========================
-
-Step 1: Foundation (One-time)
-├── Component: base-infra
-├── Resources: VPC, Subnets, WireGuard
-└── Purpose: Network foundation
-
-Step 2: Management (Optional)
-├── Component: observ-infra
-├── Resources: Rancher UI, Keycloak
-├── Dependencies: base-infra
-└── Purpose: Cluster management
-
-Step 3: Application (Repeatable)
-├── Component: infra
-├── Resources: MOSIP K8s clusters
-├── Dependencies: base-infra
-└── Purpose: MOSIP deployments
+terraform.yml (dispatch)                 terraform-destroy.yml (dispatch)
+  validate                                 validate
+  security ─► compute ─► iam ─►            dns ─► storage ─► iam ─►
+  storage ─► dns ─► configure (Ansible)    compute ─► security
+        │                                        │
+        └──── each job calls terraform-component.yml (reusable) ────┘
+                 plan / apply / destroy of ONE root, own state
 ```
 
-```mermaid
-graph LR
- A[base-infra<br/>Foundation] --> B[observ-infra<br/>Management<br/>Optional]
- A --> C[infra<br/>MOSIP Clusters]
- B -.->|Import Clusters| C
- C --> D[Multiple MOSIP<br/>Deployments]
- 
- style A fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
- style B fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000000
- style C fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000000
- style D fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px,color:#000000
-```
+| Input | Values | Notes |
+|-------|--------|-------|
+| `CLOUD_PROVIDER` | `aws` \| `azure` \| `gcp` | azure/gcp: `base-infra` only |
+| `COMPONENT` | `all` \| `security` \| `compute` \| `iam` \| `storage` \| `dns` \| `configure` \| `base-infra` | `all` = every component in order, then configure |
+| `PROFILE` | `mosip` \| `esignet-standalone` \| `observ` | deployment shape, see [docs/PROFILES.md](../../docs/PROFILES.md) |
+| `BACKEND_TYPE` | `local` \| `remote` | local = GPG-encrypted state in git |
+| `REMOTE_BACKEND_CONFIG` | `aws:bucket:region` … | remote only |
+| `ENABLE_STATE_LOCKING` | bool | remote only |
+| `SSH_PRIVATE_KEY` | secret name | key for `ssh_key_name` |
+| `TERRAFORM_APPLY` | bool | unchecked = plan only; required for `all` / `configure` |
+| `ENABLE_RANCHER_IMPORT` | bool | register in Rancher via API during configure |
+| `RANCHER_CLUSTER_NAME`, `PUBLISH_KUBECONFIG`, `GRANT_GROUP_ACCESS`, `RANCHER_CLUSTER_OWNER_GROUP*` | | Rancher follow-ups, as before |
 
-| Component | Purpose | Deployment Order | Dependencies | Lifecycle |
-|-----------|---------|------------------|--------------|-----------|
-| **base-infra** | VPC, Networking, WireGuard VPN | 1st (Foundation) | None | One-time setup |
-| **observ-infra** | Rancher UI, Keycloak, RBAC management | 2nd (Optional) | base-infra | One-time setup |
-| **infra** | MOSIP Kubernetes clusters (RKE2, NGINX, NFS) | 3rd (Multiple) | base-infra | Multiple deployments |
+- Each component job only calls cloud APIs; the `configure` job connects
+  WireGuard and runs `ansible/site.yml` over SSH.
+- A component can always be run alone for day-2 changes (`COMPONENT=dns`
+  to update only Route53, `COMPONENT=configure` to re-run Ansible).
+- Destroy: **terraform destroy** with the same `COMPONENT` / `PROFILE`;
+  unchecked `TERRAFORM_DESTROY` only runs `plan -destroy`.
+- Order and data-centre use: [docs/DEPLOYMENT_SEQUENCE.md](../../docs/DEPLOYMENT_SEQUENCE.md).
 
-## #273 Decoupled Provisioning (New) — layered components + Ansible configuration
-
-`infra` and `observ-infra` each used to be **one** monolithic Terraform root (security groups + EC2 + EBS + DNS + nginx + RKE2, one state file, one apply). That's still fully supported — see "Legacy path" below — but each now *also* has 5 independent, decoupled Terraform roots plus a separate Ansible-driven configuration stage, selected with a second workflow input, `PROVISIONING_COMPONENT`.
-
-### Two inputs decide the path
-
-| `TERRAFORM_COMPONENT` | `PROVISIONING_COMPONENT` | Result |
-|---|---|---|
-| `base-infra` | `none` (only valid value) | Foundation network — unchanged |
-| `infra` / `observ-infra` | `none` (default) | **Legacy monolithic root** — one apply, one state file, unchanged from before #273 |
-| `infra` / `observ-infra` | `security`\|`compute`\|`storage`\|`dns`\|`iam` | Applies **just that one** decoupled Terraform root under the chosen parent |
-| `infra` / `observ-infra` | `configure` | Runs the **Ansible** job — nginx, RKE2, and the rest, against whichever of the 5 components are already applied |
-
-### Decision tree
+### What `configure` does
 
 ```mermaid
 graph TD
-    START[workflow_dispatch] --> TC{TERRAFORM_COMPONENT}
-    TC -->|base-infra| BI[job: terraform<br/>Foundation network]
-    TC -->|infra or observ-infra| PC{PROVISIONING_COMPONENT}
-    PC -->|none - default| LEGACY[job: terraform<br/>Legacy monolithic root<br/>security groups + EC2 + EBS + DNS + nginx + RKE2<br/>one apply, one state file]
-    PC -->|security / compute / storage / dns / iam| ONE[job: terraform<br/>Applies just that one<br/>decoupled Terraform root]
-    PC -->|configure| CFG[job: configure<br/>Ansible invocation]
-
-    style BI fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
-    style LEGACY fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000000
-    style ONE fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000000
-    style CFG fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px,color:#000000
+    A[configure] --> B[WireGuard up]
+    B --> C[terraform output: compute + storage]
+    C --> D[ansible/inventory/generate.py --from-terraform]
+    D --> E[mint Rancher import cmd - if enabled]
+    E --> F["ansible/site.yml<br/>preflight → tls+nginx → rke2 → rancher import<br/>→ nfs → postgresql → activemq → rancher+keycloak<br/>(profile selects which)"]
+    F --> G[Rancher: fresh import, team grants, publish KUBECONFIG - if enabled]
 ```
 
-### Standing up a full stack with the new components — 6 dispatches, in order
+### State files
 
-```mermaid
-graph LR
-    S[① security<br/>4 security groups] --> C[② compute<br/>nginx + K8s EC2 instances<br/>tagged Role=nginx/control-plane/etcd/worker]
-    C --> ST[③ storage<br/>EBS volumes<br/>attached by tag lookup]
-    ST --> D[④ dns<br/>Route53 records<br/>by tag lookup]
-    D --> I[⑤ iam<br/>certbot IAM role<br/>attached by tag lookup]
-    I --> CF[⑥ configure<br/>Ansible job]
+`{provider}-{component}-{profile}-{branch}-terraform.tfstate` per root
+(`base-infra` has no profile). With the local backend only the `.gpg` file is
+committed, e.g.
 
-    style S fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
-    style C fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
-    style ST fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
-    style D fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
-    style I fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
-    style CF fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px,color:#000000
 ```
-
-Each of ①–⑤ is its own dispatch (`TERRAFORM_COMPONENT: infra`, `PROVISIONING_COMPONENT: <name>`, `TERRAFORM_APPLY: true`), waiting for the previous one to finish. **Order matters** — each component looks its dependency up by AWS tag (`Cluster`/`Role`), not shared state, so e.g. `compute` will fail if `security` hasn't been applied yet.
-
-### What the `configure` job (⑥) does
-
-```mermaid
-graph TD
-    A[configure job starts] --> B[Connect WireGuard<br/>SSH access to nodes]
-    B --> C[terraform output -json<br/>from all 5 components]
-    C --> D[ansible/inventory/generate.py<br/>renders inventory: nginx / control_plane / etcd / workers groups]
-    D --> E[ansible/nginx<br/>nginx + certbot]
-    E --> F[ansible/rke2<br/>installs the K8s cluster]
-    F --> G{Which parent?}
-    G -->|infra| H["rancher-import (if enabled)<br/>nfs (always)<br/>postgresql (if storage has that volume)<br/>activemq (if storage has that volume)"]
-    G -->|observ-infra| J["nfs (always)<br/>rancher-keycloak-setup"]
-
-    style A fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px,color:#000000
-    style H fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000000
-    style J fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000000
-```
-
-### Legacy path — still the default, completely unchanged
-
-Leaving `PROVISIONING_COMPONENT` at `none` (the default) runs `terraform/implementations/aws/{infra,observ-infra}/main.tf` — the original monolithic root — exactly as it worked before this decoupling. Nothing about that path was modified; both paths coexist side by side. There is currently no single-dispatch "run all 6 steps automatically" option for the new path — that's tracked as future work (see the plan's Phase 2) since it needs a stronger dependency guarantee than a simple GitHub Actions matrix provides.
-
-## Workflow Execution Flow
-
-```mermaid
-graph TD
- START[GitHub Actions Trigger] --> VALIDATE[Validate Parameters]
- VALIDATE --> SETUP[Setup Terraform & Cloud Credentials]
- SETUP --> BACKEND[Configure Local Backend with GPG]
- 
- BACKEND --> DECRYPT{Encrypted State Exists?}
- DECRYPT -->|Yes| DECRYPTSTATE[Decrypt State with GPG]
- DECRYPT -->|No| INIT[terraform init]
- DECRYPTSTATE --> INIT
- 
- INIT --> PLAN[terraform plan]
- PLAN --> DECISION{Apply or Plan Only?}
- 
- DECISION -->|Plan Only| OUTPUT[Show Plan Output]
- DECISION -->|Apply| APPLY[terraform apply]
- 
- APPLY --> ENCRYPT[Encrypt State with GPG]
- ENCRYPT --> SUCCESS[Deployment Complete]
- OUTPUT --> COMPLETE[Workflow Complete]
- SUCCESS --> COMPLETE
- 
- style START fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px,color:#000000
- style APPLY fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000000
- style SUCCESS fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
-```
-
-**Note**: PostgreSQL setup is handled by Terraform modules and Ansible during the `terraform apply` step based on `enable_postgresql_setup` configuration in `.tfvars` files, not as a separate workflow step.
-
-## GPG Encrypted State Management
-
-### Production-Grade Features
-- **Zero-configuration GPG**: Uses GPG_PRIVATE_KEY secret automatically
-- **AES256 encryption**: Local state files encrypted with GPG
-- **Custom naming**: 
-    - for base-infra and observ-infra: `{provider}-{component}-{branch}-terraform.tfstate`
-    - for infra: `{provider}-{component}-{profile}-{branch}-terraform.tfstate`
-- **Git safety**: Encrypted state files tracked in repository
-- **Branch isolation**: Complete separation of environment states
-
-### State File Organization
-```bash
-# Repository Structure (Encrypted)
 terraform/implementations/aws/base-infra/aws-base-infra-<branch>-terraform.tfstate.gpg
-terraform/implementations/aws/infra/profiles/<profile>/aws-infra-<profile>-<branch>-terraform.tfstate.gpg
-terraform/implementations/aws/observ-infra/aws-observ-infra-<branch>-terraform.tfstate.gpg
-
-# Decrypted for Terraform Use (Temporary)
-terraform/implementations/aws/base-infra/aws-base-infra-<branch>-terraform.tfstate
-terraform/implementations/aws/infra/profiles/<profile>/aws-infra-<profile>-<branch>-terraform.tfstate
-terraform/implementations/aws/observ-infra/aws-observ-infra-<branch>-terraform.tfstate
-
-where <profile> = mosip/esignet
+terraform/implementations/aws/compute/profiles/<profile>/aws-compute-<profile>-<branch>-terraform.tfstate.gpg
 ```
 
-### GPG Key Management
-```bash
-# Required GitHub Secret
-GPG_PRIVATE_KEY: |
- -----BEGIN PGP PRIVATE KEY BLOCK-----
- <your-gpg-private-key>
- -----END PGP PRIVATE KEY BLOCK-----
-```
+### PR checks
 
-## Parameter Reference
-
-### Required Parameters
-
-| Parameter | Description | Values | Example |
-|-----------|-------------|---------|---------|
-| `CLOUD_PROVIDER` | Target cloud platform | `aws` (fully supported) \| `azure` \| `gcp` (placeholders) | `aws` |
-| `TERRAFORM_COMPONENT` | Parent component | `base-infra` \| `observ-infra` \| `infra` | `base-infra` |
-| `PROVISIONING_COMPONENT` | Optional — #273 decoupled root to run under `infra`/`observ-infra` instead of the legacy monolith (see [#273 Decoupled Provisioning](#273-decoupled-provisioning-new--layered-components--ansible-configuration) above) | `none` (default) \| `security` \| `compute` \| `storage` \| `dns` \| `iam` \| `configure` | `none` |
-| `BACKEND_TYPE` | State storage method | `local` (recommended) \| `remote` | `local` |
-| `SSH_PRIVATE_KEY` | GitHub secret for SSH access | Secret name | `SSH_PRIVATE_KEY` |
-| `GPG_PRIVATE_KEY` | GitHub secret for state encryption | Secret name | `GPG_PRIVATE_KEY` |
-
-### Backend Configuration
-
-#### Local Backend (Recommended)
-```yaml
-BACKEND_TYPE: local
-# State files encrypted with GPG and stored in repository
-# Custom naming: aws-infra-<branch>-terraform.tfstate
-```
-
-#### Remote Backend (Legacy Support) 
-```yaml
-BACKEND_TYPE: remote
-REMOTE_BACKEND_CONFIG: aws:bucket-name:region
-# Format: <cloud>:<bucket-name>:<region>
-# Example: aws:mosip-terraform-bucket:us-west-2
-```
-
-### Optional Parameters
-
-| Parameter | Description | Default | Options |
-|-----------|-------------|---------|---------|
-| `TERRAFORM_APPLY` | Execute apply after plan | `false` | `true` \| `false` |
-| `TERRAFORM_DESTROY` | Destroy infrastructure | `false` | `true` \| `false` |
-| `ENABLE_STATE_LOCKING` | Enable DynamoDB state locking | `false` | `true` \| `false` |
-
-**Note**: PostgreSQL configuration is set in Terraform `.tfvars` files, not as workflow parameters.
+`infra-checks.yml` runs on pull requests: `terraform fmt -check`,
+`terraform test` for every module, `terraform validate` for every root, the
+inventory generator's unit tests and a `site.yml` syntax check per profile.
 
 ## Security & Access Control
 
@@ -359,59 +196,30 @@ SLACK_WEBHOOK_URL: https://hooks.slack.com/services/...
 
 ## Workflow Examples
 
-### Complete AWS Deployment with PostgreSQL
 ```yaml
-# Deploy base infrastructure
-CLOUD_PROVIDER: aws
-TERRAFORM_COMPONENT: base-infra
-BACKEND_TYPE: local
-SSH_PRIVATE_KEY: SSH_PRIVATE_KEY
-GPG_PRIVATE_KEY: GPG_PRIVATE_KEY
+# One-time network
+COMPONENT: base-infra
 TERRAFORM_APPLY: true
 
-# PostgreSQL configured in terraform/implementations/aws/infra/aws.tfvars:
-# enable_postgresql_setup = true
+# Observability cluster (optional, before MOSIP clusters that import into it)
+COMPONENT: all
+PROFILE: observ
+TERRAFORM_APPLY: true
+
+# MOSIP cluster, registered in Rancher
+COMPONENT: all
+PROFILE: mosip
+TERRAFORM_APPLY: true
+ENABLE_RANCHER_IMPORT: true
+
+# Later: change DNS records only
+COMPONENT: dns
+PROFILE: mosip
+TERRAFORM_APPLY: true
 ```
 
-### Multi-Environment Setup
-```yaml
-# Production deployment (main branch)
-CLOUD_PROVIDER: aws
-TERRAFORM_COMPONENT: infra
-BACKEND_TYPE: local
-INFRA_PROFILE: mosip/esignet
-# State: profiles/<profile>/aws-infra-<profile>-main-terraform.tfstate.gpg
-
-# Staging deployment (staging branch) 
-CLOUD_PROVIDER: aws
-TERRAFORM_COMPONENT: infra
-BACKEND_TYPE: local
-INFRA_PROFILE: mosip/esignet
-# State: profiles/<profile>/aws-infra-<profile>-staging-terraform.tfstate.gpg
-```
-
-### Sequential Workflow Deployment
-```yaml
-# Step 1: Deploy Terraform infrastructure (must complete first)
-Workflow: terraform.yml
- Component: base-infra → Deploy foundational infrastructure
- Component: observ-infra → Deploy monitoring cluster (optional)
- Component: infra → Deploy MOSIP cluster + PostgreSQL
-
-# Step 2: Deploy Helmsman components (after Terraform complete)
-Workflow: helmsman_external.yml → Parallel deployment:
- - Prerequisites: Monitoring, Istio, Logging
- - External Dependencies: PostgreSQL connection, MinIO, Keycloak, Kafka
-
-# Step 3: Deploy MOSIP services (after external dependencies ready)
-Workflow: helmsman_mosip.yml → Deploy MOSIP applications
-
-# Step 4: Deploy eSignet stack (after MOSIP services or standalone)
-Workflow: helmsman_esignet.yml → Deploy eSignet authentication stack
-
-# Optional: Deploy test components
-Workflow: helmsman_testrigs.yml → Deploy testing infrastructure
-```
+Then the Helmsman workflows: `helmsman_external.yml` → `helmsman_mosip.yml`
+→ `helmsman_esignet.yml` → `helmsman_testrigs.yml`.
 
 ## Troubleshooting
 
@@ -461,9 +269,9 @@ sequenceDiagram
  Terraform Workflows->>AWS Infrastructure: Create VPC, WireGuard
  AWS Infrastructure-->>User: Base infrastructure ready
  
- User->>Terraform Workflows: 2. Deploy infra + PostgreSQL
- Terraform Workflows->>AWS Infrastructure: Create RKE2 cluster
- Terraform Workflows->>PostgreSQL: Setup PostgreSQL 15 via Ansible
+ User->>Terraform Workflows: 2. Deploy COMPONENT=all (profile)
+ Terraform Workflows->>AWS Infrastructure: security, compute, iam, storage, dns
+ Terraform Workflows->>PostgreSQL: configure: Ansible site.yml (RKE2, nginx, PostgreSQL 15, ...)
  AWS Infrastructure-->>User: MOSIP cluster + PostgreSQL ready
  
  User->>Helmsman Workflows: 3. Deploy Prerequisites (parallel)
@@ -485,8 +293,8 @@ sequenceDiagram
 
 1. **Terraform Workflows** (Sequential - Infrastructure Setup):
  - `terraform.yml` → Deploy base-infra
- - `terraform.yml` → Deploy observ-infra (optional)
- - `terraform.yml` → Deploy infra + PostgreSQL
+ - `terraform.yml` → `COMPONENT=all`, `PROFILE=observ` (optional)
+ - `terraform.yml` → `COMPONENT=all`, `PROFILE=mosip` / `esignet-standalone`
 
 2. **Helmsman Workflows** (Can run in parallel after Terraform complete):
  - `helmsman_external.yml` → Prerequisites + External Dependencies (simultaneous)
@@ -542,7 +350,7 @@ graph TD
 - **Workflow Maintenance**: Keep workflows updated with latest Terraform versions 
 - **State Management**: GPG encrypted state with branch-based isolation 
 - **Security Reviews**: Regular rotation of GPG keys and cloud credentials 
--  **PostgreSQL Management**: Automated setup via Terraform + Ansible integration 
+- **PostgreSQL Management**: Automated setup via Ansible, selected per profile 
 - **Performance Optimization**: Use parallel deployment for 20% faster setup times 
 
 ## Cloud Provider Contribution Guide

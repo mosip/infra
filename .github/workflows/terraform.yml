@@ -1,90 +1,67 @@
-# MOSIP Infrastructure Deployment Workflow
-# 
-# This workflow supports both remote (S3/Azure Storage/GCS) and local backend configurations
-# 
-# GPG Encryption for Local Backend:
-# - When BACKEND_TYPE is 'local', Terraform state files are automatically encrypted using GPG
-# - Required GitHub Secret: GPG_PASSPHRASE (used for encrypting/decrypting state files)
-# - Encrypted files: terraform.tfstate.gpg, terraform.tfstate.backup.gpg, tf-plan.gpg
-# - On subsequent runs, encrypted files are automatically decrypted before Terraform operations
-# - Only encrypted files are committed to repository for security
+# MOSIP infrastructure: plan / apply
 #
-# Security Features:
-# - State files never stored unencrypted in repository when using local backend
-# - AES256 encryption with compression
-# - Automatic cleanup of unencrypted files after encryption
+# One Terraform root per component, each with its own state:
+#   terraform/implementations/<cloud>/<component>
+# Values come from profiles/<PROFILE>/<cloud>/{common,<component>}.tfvars;
+# Layer 3 (nginx, rke2, nfs, ...) is configured by Ansible (ansible/site.yml)
+# in the `configure` job.
 #
+# COMPONENT=all runs everything in the legacy order and requires
+# TERRAFORM_APPLY (later components look up what earlier ones created):
+#   security → compute → iam → storage → dns → configure
+# Any single component can be run on its own for day-2 changes, e.g. dns
+# to update only Route53 records.
+#
+# Local backend: state is GPG-encrypted (GPG_PASSPHRASE) and committed to
+# the branch. See docs/DEPLOYMENT_SEQUENCE.md and docs/PROFILES.md.
 name: terraform plan / apply
 
 on:
   workflow_dispatch:
     inputs:
       CLOUD_PROVIDER:
-        description: 'Choose the cloud provider (aws, azure, gcp)'
+        description: 'Cloud provider (azure/gcp: base-infra only)'
         required: true
         type: choice
-        options:
-          - aws
-          - azure
-          - gcp
-      TERRAFORM_COMPONENT:
-        description: 'Parent component: base-infra (one-time), infra/observ-infra (legacy monolith — runs as-is unless PROVISIONING_COMPONENT below is also set).'
+        options: [aws, azure, gcp]
+      COMPONENT:
+        description: 'What to run. all = every component in order, then configure. base-infra = one-time VPC/WireGuard.'
         required: true
         type: choice
-        options:
-          - base-infra
-          - infra
-          - observ-infra
-        default: infra
-      PROVISIONING_COMPONENT:
-        description: 'Optional, only meaningful when TERRAFORM_COMPONENT is infra or observ-infra. Leave as none to run that parent''s legacy monolith unchanged. Set to run one of #273''s decoupled roots under that parent instead (implementations/{provider}/{infra,observ-infra}/{component}/) — this bypasses the legacy monolith entirely for that dispatch. "configure" has no Terraform directory of its own; it runs the Ansible-invocation job against whichever of the 5 components have already been applied under the chosen parent.'
-        required: false
+        options: [all, security, compute, iam, storage, dns, configure, base-infra]
+        default: all
+      PROFILE:
+        description: 'Deployment shape (profiles/<name>) — ignored for base-infra'
+        required: true
         type: choice
-        options:
-          - none
-          - security
-          - compute
-          - storage
-          - dns
-          - iam
-          - configure
-        default: none
-      INFRA_PROFILE:
-        description: 'Infrastructure profile — only used when TERRAFORM_COMPONENT is infra (observ-infra has no profiles, it is a single fixed cluster shape)'
-        required: false
-        type: choice
-        options:
-          - mosip
-          - esignet-standalone
+        options: [mosip, esignet-standalone, observ]
         default: mosip
       BACKEND_TYPE:
-        description: 'Choose Terraform backend type'
+        description: 'Terraform backend type'
         required: true
         type: choice
-        options:
-          - local
-          - remote
+        options: [local, remote]
         default: local
       REMOTE_BACKEND_CONFIG:
-        description: 'Remote backend config (format: aws:bucket_base_name:region OR azure:rg_name:storage_account:container OR gcp:bucket_name). SECURITY: Use separate buckets per component for production (e.g., mybucket-base-infra, mybucket-infra, mybucket-observ)'
+        description: 'Remote backend config (aws:bucket_base_name:region | azure:rg:storage_account:container | gcp:bucket)'
         required: false
         type: string
       ENABLE_STATE_LOCKING:
-        description: 'Enable Terraform state locking with DynamoDB (recommended for production)'
+        description: 'Enable state locking (recommended for remote backends)'
         required: false
         type: boolean
         default: false
       SSH_PRIVATE_KEY:
-        description: 'The GitHub secret containing the private key of the SSH key named in the preceding input variable `SSH_PRIVATE_KEY` is used for SSH login purposes on nginx node.'
+        description: 'Name of the GitHub secret holding the SSH private key for the nodes'
         required: true
         type: string
       TERRAFORM_APPLY:
-        description: 'Terraform apply'
+        description: 'Apply (unchecked = plan only). Required for all/configure.'
         required: false
         type: boolean
         default: false
       ENABLE_RANCHER_IMPORT:
-        description: 'Auto-register cluster in Rancher via API (needs RANCHER_API_URL + RANCHER_API_TOKEN secrets)'
+        description: 'Register the cluster in Rancher via API (RANCHER_API_URL + RANCHER_API_TOKEN secrets)'
         required: false
         type: boolean
         default: false
@@ -93,12 +70,12 @@ on:
         required: false
         type: string
       PUBLISH_KUBECONFIG:
-        description: 'After infra apply, fetch kubeconfig from Rancher and set KUBECONFIG env secret (needs RANCHER_API_* secrets + import complete)'
+        description: 'After import, fetch kubeconfig from Rancher and set the KUBECONFIG env secret'
         required: false
         type: boolean
         default: true
       GRANT_GROUP_ACCESS:
-        description: 'Also grant other teams from rancher-access-grants.json (roles/enabled flags per JSON + env vars). DEVOPS cluster-owner is always applied regardless.'
+        description: 'Also grant other teams from rancher-access-grants.json. DEVOPS cluster-owner is always applied.'
         required: false
         type: boolean
         default: false
@@ -108,415 +85,321 @@ on:
         type: boolean
         default: false
       RANCHER_CLUSTER_OWNER_GROUP:
-        description: 'Group name for cluster-owner override (e.g. QA). Used when option above is enabled; overrides JSON role for that group.'
+        description: 'Group name for cluster-owner override (e.g. QA)'
         required: false
         type: string
         default: ''
-        
-env:
-  # TF_LOG_PATH: ./temp/terraform.log
-  ## TRACE, DEBUG, INFO, WARN or ERROR
-  # TF_LOG: TRACE
-  # Repository-level secrets for cloud credentials
-  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  # Fix: Use lowercase variable name to match Terraform variable
-  TF_VAR_ssh_private_key: ${{ secrets[inputs.SSH_PRIVATE_KEY] }}
-  GITHUB_TOKEN: ${{ secrets.GH_INFRA_PAT }}
 
 jobs:
-  terraform:
-    if: ${{ inputs.PROVISIONING_COMPONENT != 'configure' }}
-    runs-on: ubuntu-latest  # 16 vCPU, 64GB RAM for maximum performance
-    # Use dynamic environment based on current branch name
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate input combination
+        run: |
+          set -euo pipefail
+          C="${{ inputs.COMPONENT }}"
+          if [ "${{ inputs.CLOUD_PROVIDER }}" != "aws" ] && [ "$C" != "base-infra" ]; then
+            echo "ERROR: only base-infra exists for ${{ inputs.CLOUD_PROVIDER }}; components are AWS-only today."
+            echo "Data-centre VMs need no Terraform: see docs/DEPLOYMENT_SEQUENCE.md."
+            exit 1
+          fi
+          if { [ "$C" = "all" ] || [ "$C" = "configure" ]; } && [ "${{ inputs.TERRAFORM_APPLY }}" != "true" ]; then
+            echo "ERROR: COMPONENT=$C needs TERRAFORM_APPLY=true (later steps look up what earlier ones created)."
+            exit 1
+          fi
+          echo "OK: ${{ inputs.CLOUD_PROVIDER }} / $C / profile ${{ inputs.PROFILE }}"
+
+  base-infra:
+    needs: validate
+    if: ${{ inputs.COMPONENT == 'base-infra' }}
+    uses: ./.github/workflows/terraform-component.yml
+    secrets: inherit
+    with:
+      CLOUD_PROVIDER: ${{ inputs.CLOUD_PROVIDER }}
+      COMPONENT: base-infra
+      ACTION: apply
+      CONFIRM: ${{ inputs.TERRAFORM_APPLY }}
+      BACKEND_TYPE: ${{ inputs.BACKEND_TYPE }}
+      REMOTE_BACKEND_CONFIG: ${{ inputs.REMOTE_BACKEND_CONFIG }}
+      ENABLE_STATE_LOCKING: ${{ inputs.ENABLE_STATE_LOCKING }}
+      SSH_PRIVATE_KEY: ${{ inputs.SSH_PRIVATE_KEY }}
+
+  # ---- components, in dependency order --------------------------------
+  # Each runs when selected on its own, or as part of `all` once the
+  # previous one succeeded.
+
+  security:
+    needs: validate
+    if: ${{ inputs.COMPONENT == 'security' || inputs.COMPONENT == 'all' }}
+    uses: ./.github/workflows/terraform-component.yml
+    secrets: inherit
+    with:
+      CLOUD_PROVIDER: ${{ inputs.CLOUD_PROVIDER }}
+      COMPONENT: security
+      PROFILE: ${{ inputs.PROFILE }}
+      ACTION: apply
+      CONFIRM: ${{ inputs.TERRAFORM_APPLY }}
+      BACKEND_TYPE: ${{ inputs.BACKEND_TYPE }}
+      REMOTE_BACKEND_CONFIG: ${{ inputs.REMOTE_BACKEND_CONFIG }}
+      ENABLE_STATE_LOCKING: ${{ inputs.ENABLE_STATE_LOCKING }}
+
+  compute:
+    needs: [validate, security]
+    if: ${{ always() && needs.validate.result == 'success' && (inputs.COMPONENT == 'compute' || (inputs.COMPONENT == 'all' && needs.security.result == 'success')) }}
+    uses: ./.github/workflows/terraform-component.yml
+    secrets: inherit
+    with:
+      CLOUD_PROVIDER: ${{ inputs.CLOUD_PROVIDER }}
+      COMPONENT: compute
+      PROFILE: ${{ inputs.PROFILE }}
+      ACTION: apply
+      CONFIRM: ${{ inputs.TERRAFORM_APPLY }}
+      BACKEND_TYPE: ${{ inputs.BACKEND_TYPE }}
+      REMOTE_BACKEND_CONFIG: ${{ inputs.REMOTE_BACKEND_CONFIG }}
+      ENABLE_STATE_LOCKING: ${{ inputs.ENABLE_STATE_LOCKING }}
+
+  iam:
+    needs: [validate, compute]
+    if: ${{ always() && needs.validate.result == 'success' && (inputs.COMPONENT == 'iam' || (inputs.COMPONENT == 'all' && needs.compute.result == 'success')) }}
+    uses: ./.github/workflows/terraform-component.yml
+    secrets: inherit
+    with:
+      CLOUD_PROVIDER: ${{ inputs.CLOUD_PROVIDER }}
+      COMPONENT: iam
+      PROFILE: ${{ inputs.PROFILE }}
+      ACTION: apply
+      CONFIRM: ${{ inputs.TERRAFORM_APPLY }}
+      BACKEND_TYPE: ${{ inputs.BACKEND_TYPE }}
+      REMOTE_BACKEND_CONFIG: ${{ inputs.REMOTE_BACKEND_CONFIG }}
+      ENABLE_STATE_LOCKING: ${{ inputs.ENABLE_STATE_LOCKING }}
+
+  storage:
+    needs: [validate, iam]
+    if: ${{ always() && needs.validate.result == 'success' && (inputs.COMPONENT == 'storage' || (inputs.COMPONENT == 'all' && needs.iam.result == 'success')) }}
+    uses: ./.github/workflows/terraform-component.yml
+    secrets: inherit
+    with:
+      CLOUD_PROVIDER: ${{ inputs.CLOUD_PROVIDER }}
+      COMPONENT: storage
+      PROFILE: ${{ inputs.PROFILE }}
+      ACTION: apply
+      CONFIRM: ${{ inputs.TERRAFORM_APPLY }}
+      BACKEND_TYPE: ${{ inputs.BACKEND_TYPE }}
+      REMOTE_BACKEND_CONFIG: ${{ inputs.REMOTE_BACKEND_CONFIG }}
+      ENABLE_STATE_LOCKING: ${{ inputs.ENABLE_STATE_LOCKING }}
+
+  dns:
+    needs: [validate, storage]
+    if: ${{ always() && needs.validate.result == 'success' && (inputs.COMPONENT == 'dns' || (inputs.COMPONENT == 'all' && needs.storage.result == 'success')) }}
+    uses: ./.github/workflows/terraform-component.yml
+    secrets: inherit
+    with:
+      CLOUD_PROVIDER: ${{ inputs.CLOUD_PROVIDER }}
+      COMPONENT: dns
+      PROFILE: ${{ inputs.PROFILE }}
+      ACTION: apply
+      CONFIRM: ${{ inputs.TERRAFORM_APPLY }}
+      BACKEND_TYPE: ${{ inputs.BACKEND_TYPE }}
+      REMOTE_BACKEND_CONFIG: ${{ inputs.REMOTE_BACKEND_CONFIG }}
+      ENABLE_STATE_LOCKING: ${{ inputs.ENABLE_STATE_LOCKING }}
+
+  # ---- Layer 3: Ansible ------------------------------------------------
+  # DNS is applied before this (legacy order: DNS → nginx); the preflight
+  # play in site.yml re-checks it. Needs SSH to the private nodes, hence
+  # WireGuard — the Terraform jobs above only call cloud APIs.
+  configure:
+    needs: [validate, dns]
+    if: ${{ always() && needs.validate.result == 'success' && (inputs.COMPONENT == 'configure' || (inputs.COMPONENT == 'all' && needs.dns.result == 'success')) }}
+    runs-on: ubuntu-latest
     environment: ${{ github.ref_name }}
     concurrency:
-      group: terraform-${{ inputs.CLOUD_PROVIDER }}-${{ inputs.TERRAFORM_COMPONENT }}-${{ inputs.PROVISIONING_COMPONENT }}-${{ inputs.INFRA_PROFILE }}-${{ github.ref_name }}
+      group: terraform-configure-${{ inputs.CLOUD_PROVIDER }}-${{ inputs.PROFILE }}-${{ github.ref_name }}
       cancel-in-progress: false
     permissions:
-      contents: write
+      contents: read
     defaults:
       run:
         shell: bash
-        # Flat legacy path (base-infra, or infra/observ-infra with no
-        # PROVISIONING_COMPONENT) vs. one of #273's decoupled roots nested
-        # one level deeper under the chosen parent.
-        working-directory: >-
-          ${{ inputs.PROVISIONING_COMPONENT != 'none'
-              && format('terraform/implementations/{0}/{1}/{2}', inputs.CLOUD_PROVIDER, inputs.TERRAFORM_COMPONENT, inputs.PROVISIONING_COMPONENT)
-              || format('terraform/implementations/{0}/{1}', inputs.CLOUD_PROVIDER, inputs.TERRAFORM_COMPONENT) }}
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      ANSIBLE_CONFIG: ${{ github.workspace }}/ansible/ansible.cfg
+      PROFILE_DIR: ${{ github.workspace }}/profiles/${{ inputs.PROFILE }}
+      RANCHER_URL: ${{ secrets.RANCHER_API_URL }}
+      RANCHER_TOKEN: ${{ secrets.RANCHER_API_TOKEN }}
+      RANCHER_CLUSTER_NAME: ${{ inputs.RANCHER_CLUSTER_NAME || github.ref_name }}
+      REF_NAME: ${{ github.ref_name }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           ref: ${{ github.ref }}
-          fetch-depth: 0  # Full history needed for rebase
+          fetch-depth: 0
           token: ${{ secrets.GH_INFRA_PAT }}
 
       - name: Ensure workflow scripts are executable
-        run: |
-          shopt -s nullglob
-          scripts=("$GITHUB_WORKSPACE/.github/scripts/"*.sh)
-          if ((${#scripts[@]} == 0)); then
-            echo "ERROR: No scripts found under $GITHUB_WORKSPACE/.github/scripts/"
-            exit 1
-          fi
-          chmod +x "${scripts[@]}"
+        run: chmod +x .github/scripts/*.sh
 
-      - name: Check for required implementation directory
-        run: |
-          if [ "${{ inputs.TERRAFORM_COMPONENT }}" = "base-infra" ] && [ "${{ inputs.PROVISIONING_COMPONENT }}" != "none" ]; then
-            echo "ERROR: PROVISIONING_COMPONENT is only meaningful when TERRAFORM_COMPONENT is infra or observ-infra."
-            echo "Got TERRAFORM_COMPONENT=base-infra with PROVISIONING_COMPONENT=${{ inputs.PROVISIONING_COMPONENT }}."
-            exit 1
-          fi
-
-          if [ ! -d "." ]; then
-            echo "Directory '$(pwd)' does not exist."
-            echo "Available providers: aws, azure, gcp"
-            echo "Available parent components: base-infra, infra, observ-infra"
-            echo "Available provisioning components (under infra/observ-infra): security, compute, storage, dns, iam"
-            exit 1
-          fi
-
-          # tfvars path shape depends only on TERRAFORM_COMPONENT (only infra
-          # has profiles) — true whether running the legacy monolith or one
-          # of #273's decoupled roots under infra, since both keep the same
-          # profiles/<profile>/aws.tfvars convention.
-          TFVARS_FILE="${{ inputs.CLOUD_PROVIDER }}.tfvars"
-          if [ "${{ inputs.TERRAFORM_COMPONENT }}" = "infra" ] && [ -n "${{ inputs.INFRA_PROFILE }}" ]; then
-            TFVARS_FILE="profiles/${{ inputs.INFRA_PROFILE }}/${{ inputs.CLOUD_PROVIDER }}.tfvars"
-          fi
-          if [ ! -f "$TFVARS_FILE" ]; then
-            echo "Configuration file '$TFVARS_FILE' not found in current directory."
-            exit 1
-          fi
-          echo "TFVARS_FILE=$TFVARS_FILE" >> $GITHUB_ENV
-          echo "Using tfvars: $TFVARS_FILE"
-
-          # #273's decoupled roots additionally need the shared common.tfvars
-          # one level up (identity values: cluster_name, aws_provider_region,
-          # etc.) — the legacy monolith doesn't use this pattern, so this
-          # stays empty for PROVISIONING_COMPONENT: none.
-          COMMON_TFVARS_FILE=""
-          if [ "${{ inputs.PROVISIONING_COMPONENT }}" != "none" ]; then
-            if [ "${{ inputs.TERRAFORM_COMPONENT }}" = "infra" ]; then
-              COMMON_TFVARS_FILE="../profiles/${{ inputs.INFRA_PROFILE }}/common.tfvars"
-            else
-              COMMON_TFVARS_FILE="../common.tfvars"
-            fi
-            if [ ! -f "$COMMON_TFVARS_FILE" ]; then
-              echo "Configuration file '$COMMON_TFVARS_FILE' not found."
-              exit 1
-            fi
-          fi
-          echo "COMMON_TFVARS_FILE=$COMMON_TFVARS_FILE" >> $GITHUB_ENV
-
-          # Component name passed to the backend-management scripts below —
-          # the sub-component's own name when set (so its state file/key is
-          # independent of every sibling), else the parent's name (legacy
-          # monolith behavior, unchanged). Profile presence (infra: always,
-          # observ-infra: never) already disambiguates same-named
-          # sub-components across the two parents in configure-backend.sh's
-          # state key — no parent prefix needed here.
-          COMPONENT_FOR_SCRIPTS="${{ inputs.TERRAFORM_COMPONENT }}"
-          COMPONENT_LABEL="${{ inputs.TERRAFORM_COMPONENT }}"
-          if [ "${{ inputs.PROVISIONING_COMPONENT }}" != "none" ]; then
-            COMPONENT_FOR_SCRIPTS="${{ inputs.PROVISIONING_COMPONENT }}"
-            COMPONENT_LABEL="${{ inputs.TERRAFORM_COMPONENT }}-${{ inputs.PROVISIONING_COMPONENT }}"
-          fi
-          echo "COMPONENT_FOR_SCRIPTS=$COMPONENT_FOR_SCRIPTS" >> $GITHUB_ENV
-          echo "COMPONENT_LABEL=$COMPONENT_LABEL" >> $GITHUB_ENV
-
-      - name: Setup Cloud Storage for Remote State (All Providers)
-        run: |
-          if [ "${{ inputs.BACKEND_TYPE }}" = "remote" ]; then
-            echo "Setting up cloud storage for remote Terraform state..."
-
-            # Use the cloud-agnostic storage setup script
-            "$GITHUB_WORKSPACE/.github/scripts/setup-cloud-storage.sh" \
-              --provider "${{ inputs.CLOUD_PROVIDER }}" \
-              --config "${{ inputs.REMOTE_BACKEND_CONFIG }}" \
-              --branch "${{ github.ref_name }}" \
-              --component "$COMPONENT_FOR_SCRIPTS" \
-              ${{ inputs.ENABLE_STATE_LOCKING == true && '--enable-locking' || '' }}
-          else
-            echo "Skipping cloud storage setup (using local backend)"
-          fi
-
-      - name: Configure Terraform Backend for State Management
-        run: |
-          # Use backend configuration script for cleaner code
-          PROFILE_ARG=""
-          if [ "${{ inputs.TERRAFORM_COMPONENT }}" = "infra" ] && [ -n "${{ inputs.INFRA_PROFILE }}" ]; then
-            PROFILE_ARG="--profile ${{ inputs.INFRA_PROFILE }}"
-          fi
-          "$GITHUB_WORKSPACE/.github/scripts/configure-backend.sh" \
-            --type "${{ inputs.BACKEND_TYPE }}" \
-            --provider "${{ inputs.CLOUD_PROVIDER }}" \
-            --component "$COMPONENT_FOR_SCRIPTS" \
-            --branch "${{ github.ref_name }}" \
-            --remote-config "${{ inputs.REMOTE_BACKEND_CONFIG }}" \
-            ${{ inputs.ENABLE_STATE_LOCKING == true && '--enable-locking' || '' }} \
-            $PROFILE_ARG
-
-      - name: Skip SSH Host key verification
-        run: |
-          mkdir -p ~/.ssh
-          echo -e "Host *\n     StrictHostKeyChecking no" > ~/.ssh/config
-
-      # #273's decoupled roots (security/compute/storage/dns/iam) only ever
-      # call AWS APIs — no SSH into any node — so WireGuard connectivity is
-      # unnecessary for them. Only needed for the legacy monolith path.
       - name: Install WireGuard
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y wireguard
-        if: "${{ inputs.TERRAFORM_COMPONENT != 'base-infra' && inputs.PROVISIONING_COMPONENT == 'none' }}"
 
       - name: Configure WireGuard
+        env:
+          TF_WG_CONFIG: ${{ secrets.TF_WG_CONFIG }}
         run: |
           if [ ${#TF_WG_CONFIG} -eq 0 ]; then
             echo "ERROR: TF_WG_CONFIG secret is not configured for environment '$REF_NAME'"
             exit 1
           fi
-
           sudo mkdir -p /etc/wireguard
           sudo chmod 700 /etc/wireguard
           sudo install -m 600 -o root -g root /dev/null /etc/wireguard/wg0.conf
           printf '%s' "$TF_WG_CONFIG" | sudo tee /etc/wireguard/wg0.conf > /dev/null
-
-          if ! sudo test -s /etc/wireguard/wg0.conf; then
-            echo "ERROR: WireGuard config file is empty"
-            exit 1
-          fi
           if ! sudo grep -q "\[Interface\]" /etc/wireguard/wg0.conf; then
             echo "ERROR: WireGuard config missing [Interface] section"
             exit 1
           fi
-          echo "WireGuard config validated"
-        env:
-          TF_WG_CONFIG: ${{ secrets.TF_WG_CONFIG }}
-          REF_NAME: ${{ github.ref_name }}
-        if: "${{ inputs.TERRAFORM_COMPONENT != 'base-infra' && inputs.PROVISIONING_COMPONENT == 'none' }}"
 
       - name: Start WireGuard
         run: |
-          sudo chmod 600 /etc/wireguard/wg0.conf
-          sudo chmod 700 /etc/wireguard/
           sudo systemctl daemon-reload
-          if ! sudo wg-quick up wg0; then
-            echo "ERROR: Failed to start WireGuard VPN"
-            exit 1
-          fi
-          echo "WireGuard started"
+          sudo wg-quick up wg0 || { echo "ERROR: Failed to start WireGuard VPN"; exit 1; }
           sudo wg show wg0
-        if: "${{ inputs.TERRAFORM_COMPONENT != 'base-infra' && inputs.PROVISIONING_COMPONENT == 'none' }}"
 
-      - name: Setup Terraform with specified version on the runner
+      - name: Setup Terraform
         uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
         with:
           terraform_version: v1.8.5
+          terraform_wrapper: false
 
-      - name: Setup GPG for State File Encryption
+      - name: Setup GPG
         run: |
-          "$GITHUB_WORKSPACE/.github/scripts/setup-gpg.sh" \
+          .github/scripts/setup-gpg.sh \
             --backend-type "${{ inputs.BACKEND_TYPE }}" \
             --passphrase "${{ secrets.GPG_PASSPHRASE }}"
 
-      - name: Decrypt Existing State Files
+      - name: Install Ansible
         run: |
-          "$GITHUB_WORKSPACE/.github/scripts/decrypt-state.sh" \
-            --backend-type "${{ inputs.BACKEND_TYPE }}" \
-            --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
-            --operation "apply"
-
-      - name: Display Component Information
-        run: |
-          echo "Deploying to: ${{ inputs.CLOUD_PROVIDER }} (${{ inputs.TERRAFORM_COMPONENT }}${{ inputs.PROVISIONING_COMPONENT != 'none' && format('/{0}', inputs.PROVISIONING_COMPONENT) || '' }})"
-          echo "Working directory: $(pwd)"
-          echo "Available files:"
-          ls -la
-
-          if [ "${{ inputs.TERRAFORM_COMPONENT }}" = "base-infra" ]; then
-            echo "WARNING: base-infra should only be deployed once per cloud provider"
-            echo "   This creates foundational resources like VPCs, subnets, etc."
-          elif [ "${{ inputs.PROVISIONING_COMPONENT }}" != "none" ]; then
-            echo "INFO: #273 decoupled component deployment - can be destroyed and recreated independently"
-          else
-            echo "INFO: infra deployment - can be destroyed and recreated multiple times"
-            echo "   This creates MOSIP application infrastructure"
-          fi
-
-      - name: Terraform fmt
-        run: terraform fmt -recursive
-
-      - name: Terraform Init
-        run: |
-          # First try normal init
-          if ! terraform init -input=false; then
-            echo "Normal init failed, trying with -reconfigure to handle backend configuration changes..."
-            terraform init -input=false -reconfigure
-          fi
-
-      - name: Terraform Validate
-        run: terraform validate -no-color
-
-      - name: Install Ansible for RKE2 Cluster Automation
-        run: |
-          echo "🔧 Installing Ansible for RKE2 cluster deployment automation..."
           sudo apt-get update -qq
           sudo apt-get install -y software-properties-common
           sudo add-apt-repository --yes --update ppa:ansible/ansible
-          sudo apt-get install -y ansible python3-pip
-          
-          # Install additional Python packages for Ansible
-          python3 -m pip install --user paramiko
-          
-          # Add local bin to PATH for current session
-          export PATH="$HOME/.local/bin:$PATH"
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-          
-          # Verify installation
+          sudo apt-get install -y ansible python3-yaml jq
           ansible --version
-          echo "✅ Ansible installed successfully for GitHub Actions runner"
-        if: "${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.PROVISIONING_COMPONENT == 'none' }}"
+          ansible-galaxy collection install -r ansible/requirements.yml
 
-      - name: Generate Rancher import URL via API
-        if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.PROVISIONING_COMPONENT == 'none' && inputs.ENABLE_RANCHER_IMPORT == true }}
+      - name: Write SSH private key
         env:
-          RANCHER_URL: ${{ secrets.RANCHER_API_URL }}
-          RANCHER_TOKEN: ${{ secrets.RANCHER_API_TOKEN }}
-          RANCHER_CLUSTER_NAME_INPUT: ${{ inputs.RANCHER_CLUSTER_NAME }}
-          REF_NAME: ${{ github.ref_name }}
+          SSH_KEY_CONTENT: ${{ secrets[inputs.SSH_PRIVATE_KEY] }}
         run: |
-          # Inline mint block — duplicated in "Refresh Rancher import URL before apply"; keep both in sync.
+          install -m 600 /dev/null "$RUNNER_TEMP/ansible_ssh_key"
+          printf '%s' "$SSH_KEY_CONTENT" > "$RUNNER_TEMP/ansible_ssh_key"
+
+      # Only compute (hosts) and storage (which data volumes exist) feed the
+      # inventory; the other components have nothing Ansible needs.
+      - name: Read compute + storage outputs
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/tf-outputs"
+          for component in compute storage; do
+            pushd "terraform/implementations/${{ inputs.CLOUD_PROVIDER }}/$component" > /dev/null
+            "$GITHUB_WORKSPACE/.github/scripts/configure-backend.sh" \
+              --type "${{ inputs.BACKEND_TYPE }}" \
+              --provider "${{ inputs.CLOUD_PROVIDER }}" \
+              --component "$component" \
+              --branch "$REF_NAME" \
+              --remote-config "${{ inputs.REMOTE_BACKEND_CONFIG }}" \
+              ${{ inputs.ENABLE_STATE_LOCKING && '--enable-locking' || '' }} \
+              --profile "${{ inputs.PROFILE }}" > /dev/null
+            "$GITHUB_WORKSPACE/.github/scripts/decrypt-state.sh" \
+              --backend-type "${{ inputs.BACKEND_TYPE }}" \
+              --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
+              --operation apply > /dev/null
+            terraform init -input=false > /dev/null
+            if ! terraform output -json > "$RUNNER_TEMP/tf-outputs/$component.json"; then
+              echo "ERROR: no outputs for '$component' — apply it first (COMPONENT=$component, TERRAFORM_APPLY=true)."
+              exit 1
+            fi
+            popd > /dev/null
+          done
+
+      - name: Render Ansible inventory
+        run: |
+          python3 ansible/inventory/generate.py \
+            --profile "$PROFILE_DIR" \
+            --from-terraform "$RUNNER_TEMP/tf-outputs" \
+            --tfvars "$PROFILE_DIR/${{ inputs.CLOUD_PROVIDER }}/common.tfvars" \
+            --set "ansible_ssh_private_key_file=$RUNNER_TEMP/ansible_ssh_key" \
+            -o inventory.yml
+          cat inventory.yml
+
+      - name: Mint Rancher import command
+        id: rancher_import
+        if: ${{ inputs.ENABLE_RANCHER_IMPORT }}
+        run: |
+          set -euo pipefail
+          if ! grep -q '^ *- rancher_import$' "$PROFILE_DIR/profile.yml"; then
+            echo "Profile ${{ inputs.PROFILE }} doesn't run rancher_import — skipping."
+            exit 0
+          fi
           if [ -z "$RANCHER_URL" ] || [ -z "$RANCHER_TOKEN" ]; then
             echo "ERROR: RANCHER_API_URL and RANCHER_API_TOKEN must be set for environment '$REF_NAME'"
             exit 1
           fi
-          CLUSTER_NAME="${RANCHER_CLUSTER_NAME_INPUT:-$REF_NAME}"
-          echo "Registering cluster '$CLUSTER_NAME' in Rancher (plan-time placeholder)..."
-          set -o pipefail
-          IMPORT_CMD="$("$GITHUB_WORKSPACE/.github/scripts/rancher-register-cluster.sh" \
+          IMPORT_CMD="$(.github/scripts/rancher-register-cluster.sh \
             --rancher-url "$RANCHER_URL" \
             --token "$RANCHER_TOKEN" \
-            --cluster-name "$CLUSTER_NAME" | tail -n1)"
+            --cluster-name "$RANCHER_CLUSTER_NAME" | tail -n1)"
           [[ -n "$IMPORT_CMD" ]] || { echo "ERROR: Rancher registration returned empty import command"; exit 1; }
-          RUNTIME_VARS_FILE="${RUNNER_TEMP}/rancher-runtime.tfvars"
-          "$GITHUB_WORKSPACE/.github/scripts/write-rancher-runtime-tfvars.sh" \
-            --out "$RUNTIME_VARS_FILE" \
-            --enable true \
-            --import-cmd "$IMPORT_CMD"
-          echo "RANCHER_RUNTIME_VARS_FILE=$RUNTIME_VARS_FILE" >> "$GITHUB_ENV"
-          echo "Rancher import URL minted for: $CLUSTER_NAME (runtime -var-file; not written to profile aws.tfvars)"
+          echo "::add-mask::$IMPORT_CMD"
+          echo "rancher_import_url=$IMPORT_CMD" >> "$GITHUB_OUTPUT"
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
 
-      - name: Terraform Plan
-        id: plan
-        run: |
-          TF_ARGS=(-input=false)
-          if [ -n "${COMMON_TFVARS_FILE:-}" ] && [ -f "$COMMON_TFVARS_FILE" ]; then
-            TF_ARGS+=(-var-file="$COMMON_TFVARS_FILE")
-          fi
-          TF_ARGS+=(-var-file="$TFVARS_FILE")
-          if [ -n "${RANCHER_RUNTIME_VARS_FILE:-}" ]; then
-            TF_ARGS+=(-var-file="$RANCHER_RUNTIME_VARS_FILE")
-          fi
-          terraform plan "${TF_ARGS[@]}" -out ./tf-plan -no-color
-        continue-on-error: true
-
-      - name: Refresh Rancher import URL before apply
-        if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.PROVISIONING_COMPONENT == 'none' && inputs.TERRAFORM_APPLY == true && inputs.ENABLE_RANCHER_IMPORT == true && steps.plan.outcome == 'success' }}
+      # Order (preflight → nginx → rke2 → rancher import → nfs → postgresql →
+      # activemq → rancher/keycloak) lives in site.yml; the profile only
+      # selects components. Secrets go through a 0600 file, not argv.
+      - name: Configure (ansible/site.yml)
         env:
-          RANCHER_URL: ${{ secrets.RANCHER_API_URL }}
-          RANCHER_TOKEN: ${{ secrets.RANCHER_API_TOKEN }}
-          RANCHER_CLUSTER_NAME_INPUT: ${{ inputs.RANCHER_CLUSTER_NAME }}
-          REF_NAME: ${{ github.ref_name }}
+          RANCHER_IMPORT_URL: ${{ steps.rancher_import.outputs.rancher_import_url }}
+          RANCHER_BOOTSTRAP_PASSWORD: ${{ secrets.RANCHER_BOOTSTRAP_PASSWORD }}
         run: |
-          # Inline mint block — duplicated from "Generate Rancher import URL via API"; keep both in sync.
-          if [ -z "$RANCHER_URL" ] || [ -z "$RANCHER_TOKEN" ]; then
-            echo "ERROR: RANCHER_API_URL and RANCHER_API_TOKEN must be set for environment '$REF_NAME'"
-            exit 1
-          fi
-          CLUSTER_NAME="${RANCHER_CLUSTER_NAME_INPUT:-$REF_NAME}"
-          echo "Refreshing Rancher import URL for cluster '$CLUSTER_NAME' immediately before apply..."
-          set -o pipefail
-          IMPORT_CMD="$("$GITHUB_WORKSPACE/.github/scripts/rancher-register-cluster.sh" \
-            --rancher-url "$RANCHER_URL" \
-            --token "$RANCHER_TOKEN" \
-            --cluster-name "$CLUSTER_NAME" | tail -n1)"
-          [[ -n "$IMPORT_CMD" ]] || { echo "ERROR: Rancher registration returned empty import command"; exit 1; }
-          RUNTIME_VARS_FILE="${RUNNER_TEMP}/rancher-runtime.tfvars"
-          "$GITHUB_WORKSPACE/.github/scripts/write-rancher-runtime-tfvars.sh" \
-            --out "$RUNTIME_VARS_FILE" \
-            --enable true \
-            --import-cmd "$IMPORT_CMD"
-          echo "RANCHER_RUNTIME_VARS_FILE=$RUNTIME_VARS_FILE" >> "$GITHUB_ENV"
-          echo "Refreshed Rancher import URL for apply (runtime -var-file)"
+          set -euo pipefail
+          EXTRA="$RUNNER_TEMP/extra-vars.json"
+          install -m 600 /dev/null "$EXTRA"
+          python3 - "$EXTRA" <<'EOF'
+          import json, os, sys
+          extra = {}
+          if os.environ.get("RANCHER_IMPORT_URL"):
+              extra["enable_rancher_import"] = True
+              extra["rancher_import_url"] = os.environ["RANCHER_IMPORT_URL"]
+          if os.environ.get("RANCHER_BOOTSTRAP_PASSWORD"):
+              extra["rancher_password"] = os.environ["RANCHER_BOOTSTRAP_PASSWORD"]
+          with open(sys.argv[1], "w") as fh:
+              json.dump(extra, fh)
+          EOF
+          ansible-playbook -i inventory.yml ansible/site.yml -e "@$EXTRA"
+          rm -f "$EXTRA"
 
-      - name: Terraform Apply
-        id: apply
-        run: |
-          TF_ARGS=(-input=false)
-          if [ -n "${COMMON_TFVARS_FILE:-}" ] && [ -f "$COMMON_TFVARS_FILE" ]; then
-            TF_ARGS+=(-var-file="$COMMON_TFVARS_FILE")
-          fi
-          TF_ARGS+=(-var-file="$TFVARS_FILE")
-          if [ -n "${RANCHER_RUNTIME_VARS_FILE:-}" ]; then
-            TF_ARGS+=(-var-file="$RANCHER_RUNTIME_VARS_FILE")
-          fi
-          terraform apply "${TF_ARGS[@]}" -no-color -auto-approve
-        if: ${{ inputs.TERRAFORM_APPLY == true && steps.plan.outcome == 'success' }}
-        continue-on-error: true
-
+      # ---- Rancher follow-ups (same as develop's legacy flow) ----------
       - name: Apply Rancher import on cluster (fresh token)
-        if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.PROVISIONING_COMPONENT == 'none' && inputs.TERRAFORM_APPLY == true && inputs.ENABLE_RANCHER_IMPORT == true && steps.apply.outcome == 'success' }}
-        env:
-          RANCHER_URL: ${{ secrets.RANCHER_API_URL }}
-          RANCHER_TOKEN: ${{ secrets.RANCHER_API_TOKEN }}
-          RANCHER_CLUSTER_NAME_INPUT: ${{ inputs.RANCHER_CLUSTER_NAME }}
-          REF_NAME: ${{ github.ref_name }}
+        if: ${{ steps.rancher_import.outputs.enabled == 'true' }}
         run: |
-          if [ -z "$RANCHER_URL" ] || [ -z "$RANCHER_TOKEN" ]; then
-            echo "ERROR: RANCHER_API_URL and RANCHER_API_TOKEN must be set for environment '$REF_NAME'"
-            exit 1
-          fi
-          CLUSTER_NAME="${RANCHER_CLUSTER_NAME_INPUT:-$REF_NAME}"
-          CONTROL_PLANE_IP="$(terraform output -raw control_plane_node_1 2>/dev/null || true)"
-          if [ -z "$CONTROL_PLANE_IP" ]; then
-            echo "ERROR: control_plane_node_1 output is empty — cannot apply Rancher import on cluster"
-            exit 1
-          fi
-          CLUSTER_TF_NAME="$(terraform output -json cluster_info 2>/dev/null | jq -r '.cluster_name // empty')"
-          if [ -z "$CLUSTER_TF_NAME" ]; then
-            echo "WARN: cluster_info.cluster_name unavailable; deriving node name from Rancher cluster name"
-            CLUSTER_TF_NAME="$CLUSTER_NAME"
-          fi
-          SSH_KEY_FILE="${RUNNER_TEMP}/tf-ssh-key.pem"
-          install -m 600 /dev/null "$SSH_KEY_FILE"
-          trap 'rm -f "$SSH_KEY_FILE"' EXIT
-          printf '%s' "$TF_VAR_ssh_private_key" > "$SSH_KEY_FILE"
-          KUBECONFIG_REMOTE="/home/ubuntu/.kube/${CLUSTER_TF_NAME}-CONTROL-PLANE-NODE-1.yaml"
-          echo "Applying fresh Rancher import on ${CONTROL_PLANE_IP} (Rancher cluster: ${CLUSTER_NAME}) ..."
-          "$GITHUB_WORKSPACE/.github/scripts/rancher-register-cluster.sh" \
+          set -euo pipefail
+          CONTROL_PLANE_IP="$(jq -r '.k8s_primary_control_plane_ip.value' "$RUNNER_TEMP/tf-outputs/compute.json")"
+          CLUSTER_TF_NAME="$(python3 -c "import yaml; print(yaml.safe_load(open('inventory.yml'))['all']['vars']['cluster_name'])")"
+          .github/scripts/rancher-register-cluster.sh \
             --rancher-url "$RANCHER_URL" \
             --token "$RANCHER_TOKEN" \
-            --cluster-name "$CLUSTER_NAME" \
+            --cluster-name "$RANCHER_CLUSTER_NAME" \
             --apply-on-host \
-            --ssh-key "$SSH_KEY_FILE" \
+            --ssh-key "$RUNNER_TEMP/ansible_ssh_key" \
             --ssh-host "$CONTROL_PLANE_IP" \
-            --kubeconfig-remote "$KUBECONFIG_REMOTE"
-          rm -f "$SSH_KEY_FILE"
-          trap - EXIT
+            --kubeconfig-remote "/home/ubuntu/.kube/${CLUSTER_TF_NAME}-CONTROL-PLANE-NODE-1.yaml"
 
       - name: Grant Rancher cluster access (multi-team)
-        id: rancher-grant
-        if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.PROVISIONING_COMPONENT == 'none' && inputs.TERRAFORM_APPLY == true && inputs.ENABLE_RANCHER_IMPORT == true && steps.apply.outcome == 'success' }}
+        if: ${{ steps.rancher_import.outputs.enabled == 'true' }}
         continue-on-error: true
         env:
-          RANCHER_URL: ${{ secrets.RANCHER_API_URL }}
-          RANCHER_TOKEN: ${{ secrets.RANCHER_API_TOKEN }}
-          RANCHER_CLUSTER_NAME_INPUT: ${{ inputs.RANCHER_CLUSTER_NAME }}
-          REF_NAME: ${{ github.ref_name }}
           RANCHER_ACCESS_GRANTS: ${{ vars.RANCHER_ACCESS_GRANTS }}
           RANCHER_DEVOPS_ROLE: ${{ vars.RANCHER_DEVOPS_ROLE }}
           RANCHER_DEVOPS_ENABLED: ${{ vars.RANCHER_DEVOPS_ENABLED }}
@@ -527,424 +410,44 @@ jobs:
           WORKFLOW_CLUSTER_OWNER_GROUP_ENABLED: ${{ inputs.RANCHER_CLUSTER_OWNER_GROUP_ENABLED }}
           WORKFLOW_CLUSTER_OWNER_GROUP: ${{ inputs.RANCHER_CLUSTER_OWNER_GROUP }}
         run: |
-          if [ -z "$RANCHER_URL" ] || [ -z "$RANCHER_TOKEN" ]; then
-            echo "ERROR: RANCHER_API_URL and RANCHER_API_TOKEN must be set for environment '$REF_NAME'"
-            exit 1
-          fi
-          CLUSTER_NAME="${RANCHER_CLUSTER_NAME_INPUT:-$REF_NAME}"
-          GRANT_SCRIPT="$GITHUB_WORKSPACE/.github/scripts/rancher-grant-cluster-access.sh"
-
-          if [ ! -f "$GRANT_SCRIPT" ]; then
-            echo "ERROR: Required script missing: $GRANT_SCRIPT"
-            exit 1
-          fi
-
-          echo "Applying Rancher access grants for cluster '$CLUSTER_NAME' ..."
-          ARGS=(
-            --rancher-url "$RANCHER_URL"
-            --token "$RANCHER_TOKEN"
-            --cluster-name "$CLUSTER_NAME"
-            --apply-catalog
-          )
+          ARGS=(--rancher-url "$RANCHER_URL" --token "$RANCHER_TOKEN" --cluster-name "$RANCHER_CLUSTER_NAME" --apply-catalog)
           if [ -n "${RANCHER_GROUP_AUTH_PREFIX:-}" ]; then
             ARGS+=(--default-group-auth-prefix "$RANCHER_GROUP_AUTH_PREFIX")
           fi
-          "$GRANT_SCRIPT" "${ARGS[@]}"
+          .github/scripts/rancher-grant-cluster-access.sh "${ARGS[@]}"
 
       - name: Publish KUBECONFIG from Rancher
-        if: ${{ always() && inputs.TERRAFORM_COMPONENT == 'infra' && inputs.PROVISIONING_COMPONENT == 'none' && inputs.TERRAFORM_APPLY == true && inputs.PUBLISH_KUBECONFIG == true && steps.apply.outcome == 'success' }}
+        if: ${{ steps.rancher_import.outputs.enabled == 'true' && inputs.PUBLISH_KUBECONFIG }}
         continue-on-error: true
         env:
-          RANCHER_URL: ${{ secrets.RANCHER_API_URL }}
-          RANCHER_TOKEN: ${{ secrets.RANCHER_API_TOKEN }}
-          RANCHER_CLUSTER_NAME_INPUT: ${{ inputs.RANCHER_CLUSTER_NAME }}
-          REF_NAME: ${{ github.ref_name }}
           GH_TOKEN: ${{ secrets.GH_INFRA_PAT }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          # Post-apply import step waits for cattle-cluster-agent; allow ~6 min for Rancher state=active
+          # The import step waits for cattle-cluster-agent; allow ~6 min for Rancher state=active
           MAX_ATTEMPTS: "24"
           SLEEP_SECONDS: "15"
         run: |
-          if [ -z "$RANCHER_URL" ] || [ -z "$RANCHER_TOKEN" ]; then
-            echo "Skipping KUBECONFIG publish: RANCHER_API_URL / RANCHER_API_TOKEN not set for environment '$REF_NAME'"
-            exit 0
-          fi
-          if [ -z "$GH_TOKEN" ]; then
-            echo "ERROR: GH_INFRA_PAT is required to publish KUBECONFIG environment secret"
-            exit 1
-          fi
-          command -v gh >/dev/null 2>&1 || { echo "ERROR: gh CLI is required"; exit 1; }
-
-          CLUSTER_NAME="${RANCHER_CLUSTER_NAME_INPUT:-$REF_NAME}"
-          WAIT_MIN=$((MAX_ATTEMPTS * SLEEP_SECONDS / 60))
-          echo "Fetching kubeconfig for Rancher cluster '$CLUSTER_NAME' (wait up to ${WAIT_MIN} min for state=active) ..."
-
-          if ! KUBECONFIG_CONTENT="$("$GITHUB_WORKSPACE/.github/scripts/rancher-fetch-kubeconfig.sh" \
+          set -euo pipefail
+          [ -n "$GH_TOKEN" ] || { echo "ERROR: GH_INFRA_PAT is required to publish KUBECONFIG"; exit 1; }
+          if ! KUBECONFIG_CONTENT="$(.github/scripts/rancher-fetch-kubeconfig.sh \
             --rancher-url "$RANCHER_URL" \
             --token "$RANCHER_TOKEN" \
-            --cluster-name "$CLUSTER_NAME")"; then
-            echo ""
-            echo "ERROR: Failed to publish KUBECONFIG — Rancher cluster '$CLUSTER_NAME' did not become active within ~${WAIT_MIN} minutes."
-            echo ""
-            echo "What to check:"
-            echo "  1. Step 'Apply Rancher import on cluster (fresh token)' — did cattle-cluster-agent reach Running?"
-            echo "  2. Terraform apply logs — Ansible Play 3 'Execute Rancher import' (manual URL path) or errors above"
-            echo "  3. Control plane: kubectl get pods -n cattle-system"
-            echo "  4. Rancher UI → Cluster Management → '$CLUSTER_NAME' (state, transitioning message)"
-            echo ""
-            echo "The wait is not retried — fix the import/connectivity issue and re-run publish or the full apply."
+            --cluster-name "$RANCHER_CLUSTER_NAME")"; then
+            echo "ERROR: Rancher cluster '$RANCHER_CLUSTER_NAME' did not become active in time."
+            echo "Check: the 'Apply Rancher import' step, kubectl get pods -n cattle-system, and the Rancher UI."
             exit 1
           fi
-
-          printf '%s' "$KUBECONFIG_CONTENT" | gh secret set KUBECONFIG \
-            --env "$REF_NAME" \
-            --repo "$GITHUB_REPOSITORY"
+          printf '%s' "$KUBECONFIG_CONTENT" | gh secret set KUBECONFIG --env "$REF_NAME" --repo "$GITHUB_REPOSITORY"
           echo "Published KUBECONFIG environment secret for: $REF_NAME"
-
-      - name: Add the Terraform plan file / *.tfstate files / terraform format changes
-        run: |
-          echo "Current working directory: $(pwd)"
-          echo "Files in current directory:"
-          ls -la
-          
-          echo "Checking for Terraform files to commit..."
-          
-          # Encrypt state files if using local backend
-          "$GITHUB_WORKSPACE/.github/scripts/encrypt-state.sh" \
-            --backend-type "${{ inputs.BACKEND_TYPE }}" \
-            --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
-            --operation "apply"
-          
-          # Extract dynamic path from backend.tf to commit targeted profile states
-          if [ -f "backend.tf" ]; then
-            BACKEND_PATH=$(grep -A 5 'backend "local"' backend.tf | grep 'path' | sed 's/.*path = "\([^"]*\)".*/\1/' | head -1)
-            if [ -n "$BACKEND_PATH" ]; then
-              git add -f "${BACKEND_PATH}*" 2>/dev/null || echo "No isolated state files to add for $BACKEND_PATH"
-            fi
-          fi
-
-          # Force add base Terraform files even if they're in .gitignore
-          git add -f *.tfstate* 2>/dev/null || echo "No base .tfstate files found"
-          git add -f *.gpg 2>/dev/null || echo "No base .gpg files found"
-          git add -f tf-plan* 2>/dev/null || echo "No tf-plan files found"
-          git add -f backend.tf 2>/dev/null || echo "No backend.tf file found"
-          git add -f *.tf 2>/dev/null || echo "No .tf file found"
-          
-          # Remove problematic files that shouldn't be committed before git add -A
-          rm -rf .terraform/ 2>/dev/null || echo "No .terraform directory to remove"
-          rm -f .terraform.lock.hcl 2>/dev/null || echo "No .terraform.lock.hcl to remove"
-          
-          # Remove embedded git repositories to avoid submodule issues
-          find . -name ".git" -type d -not -path "./.git" -exec rm -rf {} + 2>/dev/null || true
-          
-          # Also add any other Terraform-related files that might have been created
-          git add -A
-          
-          echo "Git status after adding files:"
-          git status
-          
-          # Check if there are any changes to commit
-          if git diff --cached --quiet; then
-            echo "No changes to commit - this is normal for remote backends or when state is managed remotely"
-            echo "Terraform execution completed successfully"
-          else
-            echo "Committing Terraform changes..."
-            git config --global user.email ${{ github.actor }}@users.noreply.github.com
-            git config --global user.name ${{ github.actor }}
-            
-            # Customize commit message based on backend type
-            if [ "${{ inputs.BACKEND_TYPE }}" = "local" ]; then
-              commit_msg="Terraform files (encrypted state) GitHub Actions - ${{ inputs.CLOUD_PROVIDER }}-$COMPONENT_LABEL"
-            else
-              commit_msg="Terraform files GitHub Actions - ${{ inputs.CLOUD_PROVIDER }}-$COMPONENT_LABEL"
-            fi
-            
-            git commit -s -m "$commit_msg"
-            
-            # Pull with rebase to avoid push rejection
-            echo "Pulling latest changes with rebase..."
-            pull_exit=0
-            pull_output=$(git pull --rebase origin "$REF_NAME" 2>&1) || pull_exit=$?
-            echo "$pull_output"
-            if [ $pull_exit -ne 0 ]; then
-              if echo "$pull_output" | grep -qE "Already up to date|Current branch .* is up to date"; then
-                echo "Already up to date, nothing to pull."
-              elif echo "$pull_output" | grep -qE "CONFLICT|could not apply|Resolve all conflicts|You must edit the files"; then
-                echo "Rebase conflict detected. Aborting rebase and merging with ours strategy..."
-                # Terraform state generated in this workflow is authoritative.
-                # Preserve local state during merge conflicts.
-                git rebase --abort
-                git fetch origin "$REF_NAME"
-                git merge -X ours "origin/${REF_NAME}" --no-edit
-                echo "Merge complete. Terraform state preserved."
-              else
-                echo "❌ git pull --rebase failed with a non-conflict error:"
-                echo "$pull_output"
-                exit 1
-              fi
-            fi
-            
-            git push
-            echo "Changes committed and pushed successfully"
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_INFRA_PAT }}
-          REF_NAME: ${{ github.ref_name }}
-        if: always()
-
-      - name: Terraform plan / apply status
-        if: ${{ steps.plan.outcome == 'failure' || steps.apply.outcome == 'failure' }}
-        run: exit 1
-
-      - uses: 8398a7/action-slack@v3
-        continue-on-error: true
-        with:
-          status: ${{ job.status }}
-          fields: repo,message,author,commit,workflow,job # selectable (default: repo,message)
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} # required
-        if: "${{ github.event_name != 'pull_request' && failure() }}" # Pick up events even if the job fails or is canceled.
-
-  # Ansible-invocation job (#282 Phase 1) — dispatched by setting
-  # PROVISIONING_COMPONENT: configure. Runs against whichever of the 5
-  # #273 provisioning components (security/compute/storage/dns/iam) have
-  # already been applied under the chosen TERRAFORM_COMPONENT parent
-  # (infra or observ-infra). Independent of the `terraform` job above — no
-  # `needs:`, since an operator dispatches this only after separately
-  # applying all 5 components in order (Phase 1 does not auto-chain them;
-  # see the plan's Phase 2 for that follow-up).
-  configure:
-    if: ${{ inputs.PROVISIONING_COMPONENT == 'configure' }}
-    runs-on: ubuntu-latest
-    environment: ${{ github.ref_name }}
-    concurrency:
-      group: terraform-configure-${{ inputs.CLOUD_PROVIDER }}-${{ inputs.TERRAFORM_COMPONENT }}-${{ inputs.INFRA_PROFILE }}-${{ github.ref_name }}
-      cancel-in-progress: false
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GH_INFRA_PAT }}
-
-      - name: Validate parent component
-        run: |
-          if [ "${{ inputs.TERRAFORM_COMPONENT }}" = "base-infra" ]; then
-            echo "ERROR: PROVISIONING_COMPONENT: configure requires TERRAFORM_COMPONENT to be infra or observ-infra."
-            exit 1
-          fi
-
-      # Ansible needs SSH access to the nodes over the WireGuard tunnel —
-      # same requirement the legacy monolith's null_resource/remote-exec
-      # steps had. Unlike the `terraform` job's 5 sub-components (pure AWS
-      # API calls, no SSH), this job always needs it.
-      - name: Skip SSH Host key verification
-        run: |
-          mkdir -p ~/.ssh
-          echo -e "Host *\n     StrictHostKeyChecking no" > ~/.ssh/config
-
-      - name: Setup ufw firewall
-        run: |
-          sudo ufw enable
-          sudo ufw allow ssh
-          sudo ufw allow 443/tcp
-          sudo ufw allow 51820/udp
-          sudo ufw status
-
-      - name: Install WireGuard
-        run: sudo apt-get install -y wireguard
-
-      - name: Configure WireGuard
-        run: |
-          if [ -z "${{ secrets.TF_WG_CONFIG }}" ]; then
-            echo "❌ ERROR: TF_WG_CONFIG secret is not configured for environment '${{ github.ref_name }}'"
-            exit 1
-          fi
-          sudo mkdir -p /etc/wireguard
-          sudo chmod 755 /etc/wireguard
-          sudo chown root:root /etc/wireguard
-          printf '%s' "$TF_WG_CONFIG" > /tmp/wg0.conf.tmp
-          sudo tee /etc/wireguard/wg0.conf < /tmp/wg0.conf.tmp > /dev/null
-          rm -f /tmp/wg0.conf.tmp
-          sudo chmod 600 /etc/wireguard/wg0.conf
-          sudo chown root:root /etc/wireguard/wg0.conf
-          if ! sudo grep -q "\[Interface\]" /etc/wireguard/wg0.conf; then
-            echo "❌ ERROR: WireGuard config doesn't contain [Interface] section"
-            exit 1
-          fi
-          echo "✅ WireGuard configuration applied successfully"
-        env:
-          TF_WG_CONFIG: ${{ secrets.TF_WG_CONFIG }}
-
-      - name: Start WireGuard
-        run: |
-          sudo chmod 600 /etc/wireguard/wg0.conf
-          sudo chmod 700 /etc/wireguard/
-          sudo chmod 644 /lib/systemd/system/wg-quick@.service
-          sudo systemctl daemon-reload
-          if ! sudo wg-quick up wg0; then
-            echo "❌ ERROR: Failed to start WireGuard VPN"
-            exit 1
-          fi
-          sudo wg show wg0
-
-      - name: Setup Terraform with specified version on the runner
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: v1.8.5
-
-      - name: Setup GPG for State File Decryption
-        run: |
-          "$GITHUB_WORKSPACE/.github/scripts/setup-gpg.sh" \
-            --backend-type "${{ inputs.BACKEND_TYPE }}" \
-            --passphrase "${{ secrets.GPG_PASSPHRASE }}"
-
-      - name: Install Ansible
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y software-properties-common
-          sudo add-apt-repository --yes --update ppa:ansible/ansible
-          sudo apt-get install -y ansible python3-pip jq
-          pip3 install --user paramiko
-          export PATH="$HOME/.local/bin:$PATH"
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          ansible --version
-          ansible-galaxy collection install community.general ansible.posix
-
-      - name: Write SSH private key to file
-        run: |
-          printf '%s' "$SSH_KEY_CONTENT" > "$GITHUB_WORKSPACE/ansible_ssh_key"
-          chmod 600 "$GITHUB_WORKSPACE/ansible_ssh_key"
-        env:
-          SSH_KEY_CONTENT: ${{ secrets[inputs.SSH_PRIVATE_KEY] }}
-
-      - name: Fetch outputs from all 5 provisioning components
-        run: |
-          set -euo pipefail
-          PARENT_DIR="terraform/implementations/${{ inputs.CLOUD_PROVIDER }}/${{ inputs.TERRAFORM_COMPONENT }}"
-          PROFILE_ARG=""
-          if [ "${{ inputs.TERRAFORM_COMPONENT }}" = "infra" ] && [ -n "${{ inputs.INFRA_PROFILE }}" ]; then
-            PROFILE_ARG="--profile ${{ inputs.INFRA_PROFILE }}"
-          fi
-
-          mkdir -p /tmp/tf-outputs
-
-          for component in security compute storage dns iam; do
-            COMPONENT_DIR="$PARENT_DIR/$component"
-            if [ ! -d "$COMPONENT_DIR" ]; then
-              echo "ERROR: $COMPONENT_DIR does not exist."
-              exit 1
-            fi
-            echo "=== Fetching outputs for $component ($COMPONENT_DIR) ==="
-            pushd "$COMPONENT_DIR" > /dev/null
-
-            "$GITHUB_WORKSPACE/.github/scripts/configure-backend.sh" \
-              --type "${{ inputs.BACKEND_TYPE }}" \
-              --provider "${{ inputs.CLOUD_PROVIDER }}" \
-              --component "$component" \
-              --branch "${{ github.ref_name }}" \
-              --remote-config "${{ inputs.REMOTE_BACKEND_CONFIG }}" \
-              ${{ inputs.ENABLE_STATE_LOCKING == true && '--enable-locking' || '' }} \
-              $PROFILE_ARG
-
-            "$GITHUB_WORKSPACE/.github/scripts/decrypt-state.sh" \
-              --backend-type "${{ inputs.BACKEND_TYPE }}" \
-              --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
-              --operation "apply"
-
-            terraform init -input=false > /dev/null
-
-            if ! terraform output -json > "/tmp/tf-outputs/${component}.json"; then
-              echo "ERROR: Failed to read outputs for '$component' — has it actually been applied yet?"
-              echo "Run this component (TERRAFORM_COMPONENT=${{ inputs.TERRAFORM_COMPONENT }}, PROVISIONING_COMPONENT=$component) with TERRAFORM_APPLY: true first."
-              exit 1
-            fi
-            echo "--- $component outputs ---"
-            cat "/tmp/tf-outputs/${component}.json"
-
-            popd > /dev/null
-          done
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
-      - name: Mint Rancher import command (infra only)
-        if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.ENABLE_RANCHER_IMPORT == true }}
-        id: rancher_import
-        env:
-          RANCHER_URL: ${{ secrets.RANCHER_API_URL }}
-          RANCHER_TOKEN: ${{ secrets.RANCHER_API_TOKEN }}
-          RANCHER_CLUSTER_NAME_INPUT: ${{ inputs.RANCHER_CLUSTER_NAME }}
-          REF_NAME: ${{ github.ref_name }}
-        run: |
-          set -o pipefail
-          if [ -z "$RANCHER_URL" ] || [ -z "$RANCHER_TOKEN" ]; then
-            echo "ERROR: RANCHER_API_URL and RANCHER_API_TOKEN must be set for environment '$REF_NAME'"
-            exit 1
-          fi
-          CLUSTER_NAME="${RANCHER_CLUSTER_NAME_INPUT:-$REF_NAME}"
-          IMPORT_CMD="$("$GITHUB_WORKSPACE/.github/scripts/rancher-register-cluster.sh" \
-            --rancher-url "$RANCHER_URL" \
-            --token "$RANCHER_TOKEN" \
-            --cluster-name "$CLUSTER_NAME" | tail -n1)"
-          [[ -n "$IMPORT_CMD" ]] || { echo "ERROR: Rancher registration returned empty import command"; exit 1; }
-          echo "::add-mask::$IMPORT_CMD"
-          echo "rancher_import_url=$IMPORT_CMD" >> "$GITHUB_OUTPUT"
-
-      - name: Render Ansible inventory
-        run: |
-          set -euo pipefail
-          PARENT_DIR="terraform/implementations/${{ inputs.CLOUD_PROVIDER }}/${{ inputs.TERRAFORM_COMPONENT }}"
-          if [ "${{ inputs.TERRAFORM_COMPONENT }}" = "infra" ]; then
-            PROFILE_DIR="profiles/${{ inputs.INFRA_PROFILE }}"
-            COMMON_TFVARS="$PARENT_DIR/profiles/${{ inputs.INFRA_PROFILE }}/common.tfvars"
-          else
-            PROFILE_DIR="profiles/observ"
-            COMMON_TFVARS="$PARENT_DIR/common.tfvars"
-          fi
-          python3 ansible/inventory/generate.py \
-            --profile "$PROFILE_DIR" \
-            --from-terraform /tmp/tf-outputs \
-            --tfvars "$COMMON_TFVARS" \
-            --set "ansible_ssh_private_key_file=$GITHUB_WORKSPACE/ansible_ssh_key" \
-            -o "$GITHUB_WORKSPACE/inventory.yml"
-          cat "$GITHUB_WORKSPACE/inventory.yml"
-
-      # Order (preflight → nginx → rke2 → rancher import → nfs → postgresql →
-      # activemq → rancher/keycloak) lives in site.yml; the profile only
-      # selects components.
-      - name: Configure (ansible/site.yml)
-        env:
-          ANSIBLE_CONFIG: ${{ github.workspace }}/ansible/ansible.cfg
-          RANCHER_IMPORT_URL: ${{ steps.rancher_import.outputs.rancher_import_url }}
-          RANCHER_BOOTSTRAP_PASSWORD: ${{ secrets.RANCHER_BOOTSTRAP_PASSWORD }}
-        run: |
-          set -euo pipefail
-          EXTRA="$RUNNER_TEMP/extra-vars.yml"
-          install -m 600 /dev/null "$EXTRA"
-          python3 - "$EXTRA" <<'EOF'
-          import json, os, sys
-          extra = {}
-          if os.environ.get("RANCHER_IMPORT_URL"):
-              extra["enable_rancher_import"] = True
-              extra["rancher_import_url"] = os.environ["RANCHER_IMPORT_URL"]
-          if os.environ.get("RANCHER_BOOTSTRAP_PASSWORD"):
-              extra["rancher_password"] = os.environ["RANCHER_BOOTSTRAP_PASSWORD"]
-          json.dump(extra, open(sys.argv[1], "w"))
-          EOF
-          ansible-playbook -i inventory.yml ansible/site.yml -e "@$EXTRA"
-          rm -f "$EXTRA"
 
       - name: Clean up SSH key
         if: always()
-        run: rm -f "$GITHUB_WORKSPACE/ansible_ssh_key"
+        run: rm -f "$RUNNER_TEMP/ansible_ssh_key"
 
       - uses: 8398a7/action-slack@v3
         continue-on-error: true
+        if: ${{ failure() }}
         with:
           status: ${{ job.status }}
           fields: repo,message,author,commit,workflow,job
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        if: "${{ github.event_name != 'pull_request' && failure() }}"
