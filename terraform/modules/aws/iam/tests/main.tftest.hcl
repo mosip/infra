@@ -14,6 +14,7 @@ mock_provider "aws" {}
 variables {
   cluster_name      = "testcluster"
   nginx_instance_id = "i-0123456789abcdef0"
+  route53_zone_ids  = ["Z0123456789ABCDEFGHI"]
 }
 
 run "certbot_role_matches_legacy_name_and_trust_policy" {
@@ -53,7 +54,7 @@ run "certbot_policy_matches_legacy_route53_permissions" {
     error_message = "policy document must be valid JSON"
   }
   assert {
-    condition = toset(jsondecode(aws_iam_policy.certbot_policy.policy).Statement[0].Action) == toset([
+    condition = toset(flatten([for s in jsondecode(aws_iam_policy.certbot_policy.policy).Statement : s.Action])) == toset([
       "route53:ListHostedZones",
       "route53:GetChange",
       "route53:ChangeResourceRecordSets",
@@ -61,9 +62,38 @@ run "certbot_policy_matches_legacy_route53_permissions" {
     error_message = "certbot policy must grant exactly the 3 legacy Route53 actions — ListHostedZones, GetChange, ChangeResourceRecordSets"
   }
   assert {
-    condition     = jsondecode(aws_iam_policy.certbot_policy.policy).Statement[0].Effect == "Allow"
-    error_message = "certbot policy statement must be Allow, not Deny"
+    condition     = alltrue([for s in jsondecode(aws_iam_policy.certbot_policy.policy).Statement : s.Effect == "Allow"])
+    error_message = "certbot policy statements must be Allow, not Deny"
   }
+}
+
+run "record_changes_scoped_to_the_given_zones" {
+  command = plan
+
+  variables {
+    route53_zone_ids = ["ZONEA00000000000000", "ZONEB00000000000000"]
+  }
+
+  assert {
+    condition = [
+      for s in jsondecode(aws_iam_policy.certbot_policy.policy).Statement : s.Resource
+      if contains(flatten([s.Action]), "route53:ChangeResourceRecordSets")
+      ][0] == [
+      "arn:aws:route53:::hostedzone/ZONEA00000000000000",
+      "arn:aws:route53:::hostedzone/ZONEB00000000000000",
+    ]
+    error_message = "ChangeResourceRecordSets must be limited to the listed zones, never *"
+  }
+}
+
+run "zone_ids_are_required" {
+  command = plan
+
+  variables {
+    route53_zone_ids = []
+  }
+
+  expect_failures = [var.route53_zone_ids]
 }
 
 run "role_policy_attachment_links_role_to_policy" {

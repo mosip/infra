@@ -62,6 +62,36 @@ Actions → **terraform plan / apply**:
 Each Terraform component only calls AWS APIs; only `configure` needs
 WireGuard (it SSHes into the private nodes).
 
+## Day-2: DNS only
+
+`COMPONENT=dns` touches nothing but Route53 records (its own state):
+
+- **Subdomains:** edit `subdomain_public` / `subdomain_internal` in
+  `profiles/<profile>/profile.yml` (single source for AWS and data centre).
+- **Other zones:** any number of hosted zones in the same account, by ID or
+  by name, in `profiles/<profile>/aws/dns.tfvars`:
+
+  ```hcl
+  zones = {
+    public   = { name = "mosip.example.org" }
+    internal = { name = "mosip.example.org", private = true }  # split-horizon
+    partner  = { zone_id = "Z0123456789ABCDEFGHI" }
+  }
+  public_zone   = "public"    # api + public subdomains
+  internal_zone = "internal"  # api-internal, bare domain, internal subdomains
+  ```
+
+  Moving internal names into a private zone stops publishing private IPs in
+  public DNS. A record's name must be inside its zone's domain.
+- **Any other record** (TXT, MX, CAA, A to another host):
+  `extra_records = { verify = { name = "...", type = "TXT", records = ["..."], zone = "partner" } }`.
+  These default to `allow_overwrite = false`.
+- **Targets:** the running nginx instance by tag, or `nginx_public_ip` /
+  `nginx_private_ip` — e.g. a data-centre nginx whose domain is in Route53.
+- **Certbot:** the `iam` component only lets nginx change records in
+  `zone_id` (or `certbot_zone_ids`) — list the zone that holds
+  `cluster_env_domain` if you split zones.
+
 ## Data centre
 
 No Terraform. On any machine that can SSH to the VMs:

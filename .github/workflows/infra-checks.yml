@@ -29,10 +29,10 @@ jobs:
       - name: fmt
         run: terraform fmt -check -recursive -diff terraform
 
-      - name: Module tests (terraform test, mocked providers)
+      - name: Module and root tests (terraform test, mocked providers)
         run: |
           set -euo pipefail
-          for dir in $(find terraform/modules -type d -name tests -exec dirname {} \; | sort); do
+          for dir in $(find terraform -type d -name tests -not -path '*/.terraform/*' -exec dirname {} \; | sort); do
             echo "::group::test $dir"
             (cd "$dir" && terraform init -backend=false -input=false >/dev/null && terraform test -no-color)
             echo "::endgroup::"
