@@ -1,0 +1,44 @@
+# Deployment shape: full MOSIP platform.
+#
+# A profile says WHAT a deployment looks like, independent of where it runs.
+# The same file drives:
+#   - AWS: terraform roots read ./aws/*.tfvars; the dns root also reads the
+#     subdomain lists below.
+#   - Data centre: ansible/inventory/generate.py --from-hosts reads this file
+#     plus the operator's hosts.yml. No Terraform involved.
+# See docs/PROFILES.md.
+
+name: mosip
+description: Full MOSIP platform (IDA, ID Repo, PMS, PreReg, Kernel, Resident, eSignet)
+
+# nginx config flavour from k8s-infra: mosip | observability
+nginx_type: mosip
+
+# Layer-3 components to run. site.yml runs them in its own fixed order;
+# this list only selects which ones.
+configure_components:
+  - nginx
+  - rke2
+  - rancher_import
+  - nfs
+  - postgresql
+  - activemq
+
+# DNS names. Public → CNAME to api.<domain>; internal → CNAME to
+# api-internal.<domain>. Used by the dns component and for nginx's
+# public_domain_list.
+subdomain_public: [resident, prereg, esignet, healthservices, signup]
+subdomain_internal: [admin, iam, activemq, kafka, kibana, postgres, smtp, pmp, minio, regclient, compliance]
+
+# Ansible defaults for this profile. Lowest precedence: hosts.yml vars,
+# tfvars-derived values and --set all override them.
+ansible_vars:
+  k8s_infra_repo_url: https://github.com/mosip/k8s-infra.git
+  k8s_infra_branch: release-1.2.1.x
+  tls_mode: dns01
+  dns01_provider: route53
+  postgresql_version: "15"
+  postgresql_port: "5433"
+  mount_point: /srv/postgres
+  activemq_mount_point: /srv/activemq
+  activemq_nfs_allowed_hosts: "*"
