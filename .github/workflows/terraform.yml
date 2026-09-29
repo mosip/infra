@@ -8,9 +8,10 @@
 #
 # COMPONENT=all runs everything in the legacy order and requires
 # TERRAFORM_APPLY (later components look up what earlier ones created):
-#   security → compute → iam → storage → dns → configure
+#   security → iam → compute → storage → dns → configure
 # Any single component can be run on its own for day-2 changes, e.g. dns
-# to update only Route53 records.
+# to update only Route53 records. `vm` (standalone EC2 + SG + IAM from
+# profiles/<p>/aws/vm.tfvars) is separate and never part of `all`.
 #
 # Local backend: state is GPG-encrypted (GPG_PASSPHRASE) and committed to
 # the branch. See docs/DEPLOYMENT_SEQUENCE.md and docs/PROFILES.md.
@@ -25,10 +26,10 @@ on:
         type: choice
         options: [aws, azure, gcp]
       COMPONENT:
-        description: 'What to run. all = every component in order, then configure. base-infra = one-time VPC/WireGuard.'
+        description: 'What to run. all = every component in order, then configure. vm = standalone EC2+SG+IAM. base-infra = one-time VPC/WireGuard.'
         required: true
         type: choice
-        options: [all, security, compute, iam, storage, dns, configure, base-infra]
+        options: [all, security, iam, compute, storage, dns, configure, vm, base-infra]
         default: all
       PROFILE:
         description: 'Deployment shape (profiles/<name>) — ignored for base-infra'
@@ -143,24 +144,9 @@ jobs:
       REMOTE_BACKEND_CONFIG: ${{ inputs.REMOTE_BACKEND_CONFIG }}
       ENABLE_STATE_LOCKING: ${{ inputs.ENABLE_STATE_LOCKING }}
 
-  compute:
-    needs: [validate, security]
-    if: ${{ always() && needs.validate.result == 'success' && (inputs.COMPONENT == 'compute' || (inputs.COMPONENT == 'all' && needs.security.result == 'success')) }}
-    uses: ./.github/workflows/terraform-component.yml
-    secrets: inherit
-    with:
-      CLOUD_PROVIDER: ${{ inputs.CLOUD_PROVIDER }}
-      COMPONENT: compute
-      PROFILE: ${{ inputs.PROFILE }}
-      ACTION: apply
-      CONFIRM: ${{ inputs.TERRAFORM_APPLY }}
-      BACKEND_TYPE: ${{ inputs.BACKEND_TYPE }}
-      REMOTE_BACKEND_CONFIG: ${{ inputs.REMOTE_BACKEND_CONFIG }}
-      ENABLE_STATE_LOCKING: ${{ inputs.ENABLE_STATE_LOCKING }}
-
   iam:
-    needs: [validate, compute]
-    if: ${{ always() && needs.validate.result == 'success' && (inputs.COMPONENT == 'iam' || (inputs.COMPONENT == 'all' && needs.compute.result == 'success')) }}
+    needs: [validate, security]
+    if: ${{ always() && needs.validate.result == 'success' && (inputs.COMPONENT == 'iam' || (inputs.COMPONENT == 'all' && needs.security.result == 'success')) }}
     uses: ./.github/workflows/terraform-component.yml
     secrets: inherit
     with:
@@ -173,9 +159,24 @@ jobs:
       REMOTE_BACKEND_CONFIG: ${{ inputs.REMOTE_BACKEND_CONFIG }}
       ENABLE_STATE_LOCKING: ${{ inputs.ENABLE_STATE_LOCKING }}
 
-  storage:
+  compute:
     needs: [validate, iam]
-    if: ${{ always() && needs.validate.result == 'success' && (inputs.COMPONENT == 'storage' || (inputs.COMPONENT == 'all' && needs.iam.result == 'success')) }}
+    if: ${{ always() && needs.validate.result == 'success' && (inputs.COMPONENT == 'compute' || (inputs.COMPONENT == 'all' && needs.iam.result == 'success')) }}
+    uses: ./.github/workflows/terraform-component.yml
+    secrets: inherit
+    with:
+      CLOUD_PROVIDER: ${{ inputs.CLOUD_PROVIDER }}
+      COMPONENT: compute
+      PROFILE: ${{ inputs.PROFILE }}
+      ACTION: apply
+      CONFIRM: ${{ inputs.TERRAFORM_APPLY }}
+      BACKEND_TYPE: ${{ inputs.BACKEND_TYPE }}
+      REMOTE_BACKEND_CONFIG: ${{ inputs.REMOTE_BACKEND_CONFIG }}
+      ENABLE_STATE_LOCKING: ${{ inputs.ENABLE_STATE_LOCKING }}
+
+  storage:
+    needs: [validate, compute]
+    if: ${{ always() && needs.validate.result == 'success' && (inputs.COMPONENT == 'storage' || (inputs.COMPONENT == 'all' && needs.compute.result == 'success')) }}
     uses: ./.github/workflows/terraform-component.yml
     secrets: inherit
     with:
@@ -196,6 +197,21 @@ jobs:
     with:
       CLOUD_PROVIDER: ${{ inputs.CLOUD_PROVIDER }}
       COMPONENT: dns
+      PROFILE: ${{ inputs.PROFILE }}
+      ACTION: apply
+      CONFIRM: ${{ inputs.TERRAFORM_APPLY }}
+      BACKEND_TYPE: ${{ inputs.BACKEND_TYPE }}
+      REMOTE_BACKEND_CONFIG: ${{ inputs.REMOTE_BACKEND_CONFIG }}
+      ENABLE_STATE_LOCKING: ${{ inputs.ENABLE_STATE_LOCKING }}
+
+  vm:
+    needs: validate
+    if: ${{ inputs.COMPONENT == 'vm' }}
+    uses: ./.github/workflows/terraform-component.yml
+    secrets: inherit
+    with:
+      CLOUD_PROVIDER: ${{ inputs.CLOUD_PROVIDER }}
+      COMPONENT: vm
       PROFILE: ${{ inputs.PROFILE }}
       ACTION: apply
       CONFIRM: ${{ inputs.TERRAFORM_APPLY }}

@@ -406,7 +406,7 @@ kubectl get namespaces | grep -E "cattle|istio"
  Parameters:
  - Branch: release-0.1.0 (your deployment branch)
  - CLOUD_PROVIDER: aws
- - COMPONENT: all      (reverse order: dns → storage → iam → compute → security)
+ - COMPONENT: all      (reverse order: dns → storage → compute → iam → security)
  - PROFILE: mosip / esignet-standalone
  - BACKEND_TYPE: local (or remote, match your deployment)
  - TERRAFORM_DESTROY: ✅ (unchecked = plan -destroy only)
@@ -427,7 +427,7 @@ kubectl get namespaces | grep -E "cattle|istio"
 ```bash
 # One root per component — destroy in reverse order
 P=mosip
-for c in dns storage iam compute security; do
+for c in dns storage compute iam security; do
   (cd terraform/implementations/aws/$c && terraform init && \
    terraform destroy -auto-approve \
      -var-file=../../../../profiles/$P/aws/common.tfvars \
@@ -888,7 +888,7 @@ echo "Step 5/7: Waiting for namespace deletion..."
 sleep 60
 
 echo "Step 6/7: Destroying Kubernetes Infrastructure..."
-for c in dns storage iam compute security; do
+for c in dns storage compute iam security; do
   (cd terraform/implementations/aws/$c && terraform destroy -auto-approve \
     -var-file=../../../../profiles/mosip/aws/common.tfvars \
     -var-file=../../../../profiles/mosip/aws/$c.tfvars)

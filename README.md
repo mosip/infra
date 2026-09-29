@@ -569,7 +569,7 @@ On your deployment branch, edit the files of the profile you'll use:
 `all` runs the components in the legacy order, each with its own state, stopping at the first failure:
 
 ```
-security → compute → iam → storage → dns → configure (Ansible: nginx → rke2 → rancher import → nfs → postgresql → activemq)
+security → iam → compute → storage → dns → configure (Ansible: nginx → rke2 → rancher import → nfs → postgresql → activemq)
 ```
 
 To preview without changing anything, run a single component with **TERRAFORM_APPLY** unchecked (plan only). Every component can also be re-run on its own later — e.g. `COMPONENT=dns` to change only Route53 records, or `COMPONENT=configure` to re-run Ansible. See [Deployment sequence](docs/DEPLOYMENT_SEQUENCE.md).

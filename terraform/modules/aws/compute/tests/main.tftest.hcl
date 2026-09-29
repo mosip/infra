@@ -1,8 +1,8 @@
 # Verifies the decoupled `compute` module produces the same nginx + K8s node
 # instance configuration as the pre-#273 monolith's
 # `aws-resource-creation-main.tf`, with the intentional differences
-# (dropped ebs_block_device/iam_instance_profile — moved to #276/#278; added
-# Role/Primary tags — needed for tag-based discovery) called out explicitly.
+# (dropped ebs_block_device — moved to #276; added Role/Primary tags —
+# needed for tag-based discovery) called out explicitly.
 
 mock_provider "aws" {}
 
@@ -174,5 +174,18 @@ run "observ_infra_shape_single_node_no_etcd_no_worker" {
   assert {
     condition     = contains(aws_instance.k8s_cluster["CONTROL-PLANE-NODE-1"].vpc_security_group_ids, "sg-control-plane")
     error_message = "the sole node must still get the control-plane security group"
+  }
+}
+
+run "certbot_profile_set_on_nginx_at_creation" {
+  command = plan
+
+  variables {
+    nginx_iam_instance_profile = "testcluster-certbot-instance-profile"
+  }
+
+  assert {
+    condition     = aws_instance.nginx.iam_instance_profile == "testcluster-certbot-instance-profile"
+    error_message = "nginx must get the certbot instance profile at creation (legacy parity: IAM before EC2)"
   }
 }

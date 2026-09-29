@@ -7,7 +7,7 @@ AWS and on data-centre VMs.
 ```
             AWS (Terraform, one state each)                    Data centre
  ┌──────────────────────────────────────────────────┐   ┌─────────────────────┐
- │ security → compute → iam → storage → dns          │   │ pre-created VMs      │
+ │ security → iam → compute → storage → dns          │   │ pre-created VMs      │
  └───────────────┬──────────────────────────────────┘   │ + hosts.yml          │
                  │ terraform output (compute, storage)   └──────────┬──────────┘
                  ▼                                                  ▼
@@ -23,8 +23,8 @@ The order is the legacy monolith's `depends_on` chain, kept on purpose:
 | # | Step | AWS | Data centre | Must be true before the next step |
 |---|------|-----|-------------|-----------------------------------|
 | 1 | security | `COMPONENT=security` | firewall prepared by the DC team | security groups exist |
-| 2 | compute | `COMPONENT=compute` | VMs handed over | hosts reachable over SSH |
-| 3 | iam | `COMPONENT=iam` (certbot Route53 profile) | not needed; DNS-01 credentials replace it | nginx can update Route53 |
+| 2 | iam | `COMPONENT=iam` (certbot Route53 profile) | not needed; DNS-01 credentials replace it | instance profile exists |
+| 3 | compute | `COMPONENT=compute` (nginx gets the profile at creation) | VMs handed over | hosts reachable over SSH |
 | 4 | storage | `COMPONENT=storage` (EBS) | disks already attached | data disks visible (`lsblk`) |
 | 5 | **dns** | `COMPONENT=dns` | DNS team, or `COMPONENT=dns` if the zone is Route53 | `api.<domain>` resolves to nginx |
 | 6 | tls + nginx | configure | `site.yml` | certificate in `/etc/letsencrypt/live/<domain>/` |
@@ -52,7 +52,7 @@ Actions → **terraform plan / apply**:
 
 - `COMPONENT=all` + `TERRAFORM_APPLY` — everything above, in order, stopping at
   the first failure. Destroy is **terraform destroy** with `COMPONENT=all`
-  (reverse order: dns → storage → iam → compute → security).
+  (reverse order: dns → storage → compute → iam → security).
 - `COMPONENT=<one>` — just that component. With `TERRAFORM_APPLY` unchecked it
   only plans. Use this for day-2 changes:
   - DNS records only → `COMPONENT=dns`
@@ -91,6 +91,19 @@ WireGuard (it SSHes into the private nodes).
 - **Certbot:** the `iam` component only lets nginx change records in
   `zone_id` (or `certbot_zone_ids`) — list the zone that holds
   `cluster_env_domain` if you split zones.
+
+## Standalone EC2 (`COMPONENT=vm`)
+
+For machines outside the cluster — bastion, tools box, a reporting DB —
+`profiles/<profile>/aws/vm.tfvars` holds `instance_groups`. Each group gets
+its own security group (ingress by CIDR or from another group), IAM role and
+instance profile (managed policy ARNs and/or inline JSON) and `count`
+instances, all in one apply and one state. IMDSv2 and encrypted root volumes
+are enforced; SSH from `0.0.0.0/0` is rejected unless
+`allow_ssh_from_anywhere = true`. Instances are tagged `Cluster` /
+`Role=<group>`, so `extra_records` in the dns component can name them.
+`vm` is never part of `COMPONENT=all`; `terraform destroy` with
+`COMPONENT=all` does remove it.
 
 ## Data centre
 

@@ -183,7 +183,7 @@ If Terraform Apply = ☐ (unchecked)
 
 6. **Monitor Progress** (This takes 15-30 minutes)
  ```
- → security → compute → iam → storage → dns (one job each)
+ → security → iam → compute → storage → dns (one job each)
  → configure: nginx + TLS, RKE2, NFS
  → PostgreSQL / ActiveMQ (if the profile uses them)
  → Importing to Rancher (if enabled)
