@@ -1,0 +1,77 @@
+# Static checks for Terraform, Ansible and profiles — no cloud credentials.
+# Same commands work locally; see docs/DEPLOYMENT_SEQUENCE.md#checks.
+name: infra checks
+
+on:
+  pull_request:
+    paths:
+      - 'terraform/**'
+      - 'ansible/**'
+      - 'profiles/**'
+      - '.github/workflows/terraform*.yml'
+      - '.github/workflows/infra-checks.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_version: v1.8.5
+          terraform_wrapper: false
+
+      - name: fmt
+        run: terraform fmt -check -recursive -diff terraform
+
+      - name: Module and root tests (terraform test, mocked providers)
+        run: |
+          set -euo pipefail
+          for dir in $(find terraform -type d -name tests -not -path '*/.terraform/*' -exec dirname {} \; | sort); do
+            echo "::group::test $dir"
+            (cd "$dir" && terraform init -backend=false -input=false >/dev/null && terraform test -no-color)
+            echo "::endgroup::"
+          done
+
+      - name: Validate every root
+        run: |
+          set -euo pipefail
+          for dir in terraform/implementations/aws/*/; do
+            echo "::group::validate $dir"
+            (cd "$dir" && terraform init -backend=false -input=false >/dev/null && terraform validate -no-color)
+            echo "::endgroup::"
+          done
+
+  ansible:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install ansible-core + collections
+        run: |
+          pip install ansible-core pyyaml
+          ansible-galaxy collection install -r ansible/requirements.yml
+
+      - name: Inventory generator unit tests
+        run: python -m unittest discover -s ansible/inventory/tests -v
+
+      - name: site.yml syntax check for every profile
+        env:
+          ANSIBLE_CONFIG: ansible/ansible.cfg
+        run: |
+          set -euo pipefail
+          for profile in profiles/*/; do
+            name=$(basename "$profile")
+            python ansible/inventory/generate.py --profile "$profile" \
+              --from-hosts ansible/inventory/hosts.example.yml -o "/tmp/inv-$name.yml"
+            ansible-playbook -i "/tmp/inv-$name.yml" ansible/site.yml --syntax-check
+          done
