@@ -61,7 +61,7 @@ This is the easiest approach - AWS creates the key pair for you.
 
 3. **Update Terraform Configuration**
    ```hcl
-   # In terraform/implementations/aws/infra/aws.tfvars
+   # In profiles/<profile>/aws/common.tfvars
    ssh_key_name = "mosip-aws" # Must match the AWS key pair name
    ```
 
@@ -119,13 +119,13 @@ ssh-keygen -t rsa -b 4096 -C "your-email@example.com" -f ~/.ssh/mosip-aws
 cat ~/.ssh/mosip-aws
 
 # Add as Repository Secret in GitHub:
-# Name: mosip-aws (must match ssh_key_name in terraform.tfvars)
+# Name: mosip-aws (must match ssh_key_name in profiles/<profile>/aws/common.tfvars)
 # Value: (paste the entire private key including BEGIN and END lines)
 ```
 
 #### Update Terraform Configuration:
 ```hcl
-# In terraform/implementations/aws/infra/aws.tfvars
+# In profiles/<profile>/aws/common.tfvars
 ssh_key_name = "mosip-aws" # Must match the name in AWS and GitHub secret
 ```
 
@@ -439,41 +439,25 @@ KUBECONFIG is a configuration file that contains credentials and connection deta
 
 ### How to Get KUBECONFIG
 
-KUBECONFIG is **automatically generated** by Terraform after deploying infrastructure.
+KUBECONFIG comes from the RKE2 cluster the `configure` step builds.
 
-#### Step 1: Deploy Infrastructure First
+#### Option 1: Published automatically
+
+Run the deployment with **ENABLE_RANCHER_IMPORT** and **PUBLISH_KUBECONFIG**
+ticked: the workflow fetches the kubeconfig from Rancher and stores it as the
+`KUBECONFIG` environment secret. Nothing else to do.
+
+#### Option 2: Copy it from the primary control-plane node
+
+The rke2 role writes a kubeconfig pointing at the node's private IP (reachable
+over WireGuard):
+
 ```bash
-# Complete Terraform infra deployment
-# Wait for workflow to complete successfully
+scp -i <ssh-key> ubuntu@<k8s_primary_control_plane_ip>:/home/ubuntu/.kube/<cluster_name>-CONTROL-PLANE-NODE-1.yaml kubeconfig_<cluster_name>
 ```
 
-#### Step 2: Locate KUBECONFIG File
-
-The file is created in your Terraform outputs:
-
-```bash
-# Location in repository:
-terraform/implementations/aws/infra/kubeconfig_<cluster-name>
-
-# Example:
-terraform/implementations/aws/infra/kubeconfig_soil38
-```
-
-#### Step 3: Download KUBECONFIG
-
-**Option 1: From GitHub Actions Artifacts**
-1. Go to your GitHub repository
-2. Click "Actions" tab
-3. Find the completed "Terraform Infrastructure" workflow
-4. Scroll to "Artifacts" section at the bottom
-5. Download artifact containing kubeconfig
-
-**Option 2: From Terraform Outputs**
-```bash
-# View kubeconfig content
-cd terraform/implementations/aws/infra/
-cat kubeconfig_<your-cluster-name>
-```
+`k8s_primary_control_plane_ip` is in the `configure` job log (rendered
+inventory) or `terraform output` of the compute component.
 
 #### Step 4: Test KUBECONFIG Locally (Optional)
 

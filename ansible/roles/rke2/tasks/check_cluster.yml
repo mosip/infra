@@ -1,0 +1,40 @@
+---
+# Ported from rke2-playbook.yml's Play 1 ("Check if PRIMARY RKE2 cluster
+# already exists"). Runs against the primary control-plane node only.
+
+- name: Skip existing-cluster detection when disabled
+  ansible.builtin.set_fact:
+    rke2_cluster_exists: false
+  when: not (check_existing_config | bool)
+
+- name: Check if RKE2 server is already running on primary
+  ansible.builtin.systemd:
+    name: rke2-server
+  register: primary_rke2_status
+  failed_when: false
+  when: check_existing_config | bool
+
+- name: Check kubectl connectivity if service is active
+  ansible.builtin.command: kubectl get nodes
+  register: kubectl_test
+  changed_when: false
+  failed_when: false
+  when:
+    - check_existing_config | bool
+    - primary_rke2_status.status is defined
+    - primary_rke2_status.status.ActiveState == "active"
+
+- name: Set cluster-exists fact
+  ansible.builtin.set_fact:
+    rke2_cluster_exists: >-
+      {{
+        (primary_rke2_status.status is defined and
+         primary_rke2_status.status.ActiveState == "active" and
+         kubectl_test.rc | default(1) == 0)
+      }}
+  when: check_existing_config | bool
+
+- name: Explain skip
+  ansible.builtin.debug:
+    msg: "RKE2 cluster '{{ cluster_name }}' is already running and accessible — skipping primary/subsequent install plays."
+  when: rke2_cluster_exists | default(false)
