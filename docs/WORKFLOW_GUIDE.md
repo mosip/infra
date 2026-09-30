@@ -160,20 +160,21 @@ If Terraform Apply = ☐ (unchecked)
  | Parameter | What to Select | Example | Why? |
  |-----------|---------------|---------|------|
  | **Use workflow from** | `Branch: release-0.1.0` | Your branch | Dropdown at top |
- | **Cloud Provider** | `aws` | `aws` | Where to deploy |
- | **Component** | `infra` | `infra` | Main MOSIP infrastructure |
- | **Profile** | `esignet-standalone` or `mosip` | `esignet` | Selects tfvars and cluster size — see below |
- | **Backend** | `local` or `s3` | `local` | State storage location |
- | **Terraform apply** | ✅ | ✅ | Check to deploy, uncheck for dry run |
+ | **CLOUD_PROVIDER** | `aws` | `aws` | Where to deploy |
+ | **COMPONENT** | `all` | `all` | Every component in order, then Ansible |
+ | **PROFILE** | `mosip` or `esignet-standalone` | `mosip` | Deployment shape — see below |
+ | **BACKEND_TYPE** | `local` or `remote` | `local` | State storage location |
+ | **TERRAFORM_APPLY** | ✅ | ✅ | Required for `all` |
 
- **Profile options for `infra` component:**
+ **Profiles:**
 
- | Profile | tfvars loaded | Cluster size | Use for |
- |---------|--------------|--------------|---------|
- | `esignet` | `profiles/esignet/aws.tfvars` | 4-node K8s cluster | eSignet standalone |
- | `mosip` | `profiles/mosip/aws.tfvars` | 7-node K8s cluster | Full MOSIP platform |
+ | Profile | Values | Cluster size | Use for |
+ |---------|--------|--------------|---------|
+ | `esignet-standalone` | `profiles/esignet-standalone/` | 4 nodes | eSignet standalone |
+ | `mosip` | `profiles/mosip/` | 7 nodes | Full MOSIP platform |
+ | `observ` | `profiles/observ/` | 1 node | Rancher + Keycloak (Workflow 3) |
 
- > **Note**: `base-infra` and `observ-infra` do not use a profile — this field only applies to the `infra` component.
+ > **Note**: `base-infra` doesn't use a profile. To preview changes, run a single `COMPONENT` with apply unchecked.
 
 5. **Run the Workflow**
  ```
@@ -182,10 +183,9 @@ If Terraform Apply = ☐ (unchecked)
 
 6. **Monitor Progress** (This takes 15-30 minutes)
  ```
- → Creating Kubernetes cluster
- → Installing RKE2
- → Configuring networking
- → Setting up PostgreSQL (if enabled)
+ → security → iam → compute → storage → dns (one job each)
+ → configure: nginx + TLS, RKE2, NFS
+ → PostgreSQL / ActiveMQ (if the profile uses them)
  → Importing to Rancher (if enabled)
  ```
 
@@ -194,11 +194,11 @@ If Terraform Apply = ☐ (unchecked)
 **Success Indicators:**
 - ✅ Kubernetes cluster created
 - ✅ Multiple nodes visible in AWS EC2
-- ✅ KUBECONFIG file generated
+- ✅ KUBECONFIG published as environment secret (with Rancher import) or on the primary node at `/home/ubuntu/.kube/<cluster>-CONTROL-PLANE-NODE-1.yaml`
 - ✅ PostgreSQL running (if enabled)
 
 **Outputs to Save:**
-- KUBECONFIG file location
+- KUBECONFIG (see above)
 - Cluster endpoint URL
 - Node IP addresses
 
@@ -222,8 +222,7 @@ If Terraform Apply = ☐ (unchecked)
 
 2. **Find the Workflow**
  ```
- Left Sidebar: "Terraform Observability Infrastructure"
- OR look for: "Observ Infra" / "Monitoring Infrastructure"
+ Left Sidebar: "terraform plan / apply" (same workflow, profile `observ`)
  ```
 
 3. **Configure Parameters**
@@ -232,9 +231,12 @@ If Terraform Apply = ☐ (unchecked)
  |-----------|---------------|---------|
  | **Branch** | `release-0.1.0` | Your deployment branch |
  | **Cloud Provider** | `aws` | `aws` |
- | **Component** | `observ-infra` | `observ-infra` |
- | **Backend** | `local` or `s3` | `local` for dev |
- | **Terraform apply** | ✅ | Check to deploy |
+ | **COMPONENT** | `all` | `all` |
+ | **PROFILE** | `observ` | `observ` |
+ | **BACKEND_TYPE** | `local` or `remote` | `local` for dev |
+ | **TERRAFORM_APPLY** | ✅ | Check to deploy |
+
+ Set the `RANCHER_BOOTSTRAP_PASSWORD` environment secret first — it's the initial Rancher `admin` password.
 
 4. **Run and Monitor**
  - Deployment takes 10-20 minutes
@@ -496,33 +498,34 @@ Cloud Provider: [aws | azure | gcp]
 
 ---
 
-#### Component
+#### COMPONENT
 ```
-Component: [base-infra | infra | observ-infra]
+COMPONENT: [all | security | compute | iam | storage | dns | configure | base-infra]
 ```
-**What it does**: Selects which infrastructure layer to deploy
+**What it does**: Selects what to run. Each component is its own Terraform root and state.
 
-**Options**:
 | Component | Creates | Run Order |
 |-----------|---------|-----------|
-| `base-infra` | VPC, networking, jump server | **1st** (foundation) |
-| `observ-infra` | Rancher management cluster | **2nd** (optional) |
-| `infra` | MOSIP Kubernetes cluster | **3rd** (main deployment) |
+| `base-infra` | VPC, networking, jump server | **once**, first |
+| `all` | everything below, in order | normal deployment |
+| `security` → `compute` → `iam` → `storage` → `dns` | one layer | day-2 changes (e.g. `dns` only) |
+| `configure` | Ansible: nginx, RKE2, NFS, PostgreSQL, ActiveMQ, Rancher | re-run configuration |
 
 ---
 
-#### Infra Profile
+#### PROFILE
 ```
-Profile: [esignet | mosip]
+PROFILE: [mosip | esignet-standalone | observ]
 ```
-**Applies to**: `infra` component only (`base-infra` and `observ-infra` ignore this field)
+**Applies to**: everything except `base-infra`. See [Profiles](PROFILES.md).
 
-| Profile | tfvars file | Cluster size | Use for |
-|---------|------------|--------------|---------|
-| `esignet-standalone` | `profiles/esignet-standalone/aws.tfvars` | eSignet standalone deployment |
-| `mosip` | `profiles/mosip/aws.tfvars` | Full MOSIP platform deployment |
+| Profile | Values | Use for |
+|---------|--------|---------|
+| `esignet-standalone` | `profiles/esignet-standalone/` | eSignet standalone deployment |
+| `mosip` | `profiles/mosip/` | Full MOSIP platform deployment |
+| `observ` | `profiles/observ/` | Rancher UI + Keycloak management cluster |
 
-**Important**: The Terraform profile (`esignet-standalone` / `mosip`) and the Helmsman profile (`esignet-standalone` / `mosip-platform-1.2.0.x` / `mosip-platform-1.2.1.x`) are separate inputs. After running `infra` with `profile=mosip`, you choose the specific MOSIP platform version when running the Helmsman workflows.
+**Important**: The Terraform profile (`esignet-standalone` / `mosip`) and the Helmsman profile (`esignet-standalone` / `mosip-platform-1.2.0.x` / `mosip-platform-1.2.1.x`) are separate inputs. After deploying with `PROFILE=mosip`, you choose the specific MOSIP platform version when running the Helmsman workflows.
 
 ---
 

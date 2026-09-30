@@ -1,0 +1,12 @@
+---
+# Run: ansible-playbook -i <inventory> ansible/playbooks/activemq.yml
+# Runs on the "nginx" host (the storage host) and uses "control_plane" for
+# the StorageClass apply. Only run by profiles that list `activemq`; on AWS,
+# site.yml also skips it when the storage component didn't create the
+# ActiveMQ volume.
+- name: Prepare ActiveMQ NFS storage and StorageClass
+  hosts: nginx
+  become: false
+  gather_facts: true
+  roles:
+    - activemq

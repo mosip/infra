@@ -1,225 +1,87 @@
 # High-Level Architecture Overview
 
-> **Note:** Complete Terraform scripts are available for **AWS only**. Azure and GCP currently have placeholder structures only — community contributions are welcome to implement full functionality.
+> **Note:** Terraform provisioning is implemented for **AWS**; Azure and GCP have `base-infra` only. Data-centre VMs need no Terraform — the Ansible layer configures them directly.
 
 ## Deployment Flow & Dependencies
 
 ```mermaid
 graph TD
- A[Start Deployment] --> B{Choose Cloud Provider}
- B -->|AWS| C[AWS Deployment]
- B -->|Azure| D[Azure Deployment] 
- B -->|GCP| E[GCP Deployment]
- 
- C --> F[1. Deploy base-infra<br/>VPC + WireGuard<br/>One-time setup]
- D --> G[1. Deploy base-infra<br/>VNet + WireGuard<br/>One-time setup]
- E --> H[1. Deploy base-infra<br/>VPC + WireGuard<br/>One-time setup]
- 
- F --> I{Deploy observ-infra?}
- G --> J{Deploy observ-infra?}
- H --> K{Deploy observ-infra?}
- 
- I -->|Yes| L[2. Deploy observ-infra<br/>Rancher + Keycloak]
- I -->|No| M[3. Deploy infra<br/>RKE2 + NGINX + NFS]
- J -->|Yes| N[2. Deploy observ-infra<br/>Rancher + Keycloak]
- J -->|No| O[3. Deploy infra<br/>RKE2 + NGINX + NFS]
- K -->|Yes| P[2. Deploy observ-infra<br/>Rancher + Keycloak]
- K -->|No| Q[3. Deploy infra<br/>RKE2 + NGINX + NFS]
- 
- L --> M
- N --> O
- P --> Q
- 
- M --> R[MOSIP Cluster Ready]
- O --> S[MOSIP Cluster Ready]
- Q --> T[MOSIP Cluster Ready]
- 
- L -.->|Optional Import| R
- N -.->|Optional Import| S
- P -.->|Optional Import| T
- 
- R --> R1[4. Deploy Prerequisites + External Deps]
- S --> S1[4. Deploy Prerequisites + External Deps]
- T --> T1[4. Deploy Prerequisites + External Deps]
- 
- R1 --> R2[5. Deploy MOSIP Services]
- S1 --> S2[5. Deploy MOSIP Services]
- T1 --> T2[5. Deploy MOSIP Services]
- 
- R2 --> RE{Deploy eSignet Stack?}
- S2 --> SE{Deploy eSignet Stack?}
- T2 --> TE{Deploy eSignet Stack?}
- RE -->|Yes| R3[6. Deploy eSignet Stack]
- SE -->|Yes| S3[6. Deploy eSignet Stack]
- TE -->|Yes| T3[6. Deploy eSignet Stack]
- 
- R3 --> RT{Deploy Test Rigs?}
- S3 --> ST{Deploy Test Rigs?}
- T3 --> TT{Deploy Test Rigs?}
- RE -->|No| RT
- SE -->|No| ST
- TE -->|No| TT
-RT -->|Yes| R4[7. Deploy Test Rigs]
-ST -->|Yes| S4[7. Deploy Test Rigs]
-TT -->|Yes| T4[7. Deploy Test Rigs]
-RT -->|No| R_Done[Deployment Complete]
-ST -->|No| S_Done[Deployment Complete]
-TT -->|No| T_Done[Deployment Complete]
-R4 --> R_Done
-S4 --> S_Done
-T4 --> T_Done
- 
- style F fill:#e1f5fe,stroke:#01579b,color:#000000
- style G fill:#e1f5fe,stroke:#01579b,color:#000000
- style H fill:#e1f5fe,stroke:#01579b,color:#000000
- style L fill:#fff3e0,stroke:#f57c00,color:#000000
- style N fill:#fff3e0,stroke:#f57c00,color:#000000
- style P fill:#fff3e0,stroke:#f57c00,color:#000000
+ A[Start] --> B{Where do the hosts come from?}
+ B -->|AWS| C[1. base-infra<br/>VPC + WireGuard<br/>one-time]
+ B -->|Data centre| DC[Pre-created VMs<br/>+ hosts.yml]
+
+ C --> OBS{Management cluster?}
+ OBS -->|Yes| O[2. COMPONENT=all<br/>PROFILE=observ<br/>Rancher + Keycloak]
+ OBS -->|No| M
+ O --> M[3. COMPONENT=all<br/>PROFILE=mosip / esignet-standalone]
+
+ M --> TF[security → iam → compute → storage → dns]
+ TF --> CFG[configure: ansible/site.yml]
+ DC --> DNS[DNS records by DNS team]
+ DNS --> CFG
+
+ CFG --> R[Cluster ready: RKE2 + nginx/TLS + NFS<br/>+ PostgreSQL / ActiveMQ per profile]
+ O -.->|Rancher import| R
+
+ R --> H1[4. Helmsman: Prerequisites + External]
+ H1 --> H2[5. Helmsman: MOSIP services / eSignet]
+ H2 --> H3[6. Helmsman: Test rigs - optional]
+
+ style C fill:#e1f5fe,stroke:#01579b,color:#000000
+ style DC fill:#e1f5fe,stroke:#01579b,color:#000000
+ style O fill:#fff3e0,stroke:#f57c00,color:#000000
  style M fill:#f3e5f5,stroke:#4a148c,color:#000000
- style O fill:#f3e5f5,stroke:#4a148c,color:#000000
- style Q fill:#f3e5f5,stroke:#4a148c,color:#000000
- style R3 fill:#e0f2f1,stroke:#00695c,color:#000000
- style S3 fill:#e0f2f1,stroke:#00695c,color:#000000
- style T3 fill:#e0f2f1,stroke:#00695c,color:#000000
+ style CFG fill:#e8f5e8,stroke:#1b5e20,color:#000000
 ```
 
-## Terraform Module Structure
+## Layers and contracts
 
 ```mermaid
-graph TB
- subgraph "Terraform Directory Structure"
- subgraph "implementations/"
- subgraph "aws/"
- AWS_BASE[base-infra/<br/>Foundation setup]
- AWS_OBS[observ-infra/<br/>Management cluster]
- AWS_INF[infra/<br/>MOSIP clusters]
+graph LR
+ subgraph "Layer 1-2 · Terraform (AWS)"
+ S[security] --> I[iam] --> CO[compute] --> ST[storage] --> D[dns]
  end
- subgraph "azure/"
- AZ_BASE[base-infra/<br/>Foundation setup]
- AZ_OBS[observ-infra/<br/>Management cluster]
- AZ_INF[infra/<br/>MOSIP clusters]
+ subgraph "Contract"
+ INV[inventory<br/>generate.py]
  end
- subgraph "gcp/"
- GCP_BASE[base-infra/<br/>Foundation setup]
- GCP_OBS[observ-infra/<br/>Management cluster]
- GCP_INF[infra/<br/>MOSIP clusters]
+ subgraph "Layer 3 · Ansible (any host)"
+ PF[preflight] --> N[tls + nginx] --> K[rke2] --> RI[rancher import] --> NF[nfs] --> PG[postgresql] --> AM[activemq] --> RK[rancher + keycloak]
  end
- end
- 
- subgraph "modules/"
- subgraph "AWS Modules"
- AWS_VPC[aws-resource-creation/<br/>VPC, subnets, security]
- AWS_RKE[rke2-cluster/<br/>Kubernetes setup]
- AWS_NGINX[nginx-setup/<br/>Load balancer]
- AWS_NFS[nfs-setup/<br/>Storage]
- end
- subgraph "Azure Modules"
- AZ_VNET[azure-resource-creation/<br/>VNet, NSG, security]
- AZ_RKE[rke2-cluster/<br/>Kubernetes setup]
- AZ_LB[lb-setup/<br/>Load balancer]
- AZ_STOR[storage-setup/<br/>Storage]
- end
- subgraph "GCP Modules"
- GCP_VPC_MOD[gcp-resource-creation/<br/>VPC, firewall]
- GCP_RKE[rke2-cluster/<br/>Kubernetes setup]
- GCP_LB[lb-setup/<br/>Load balancer]
- GCP_STOR[storage-setup/<br/>Storage]
- end
- end
- end
- 
- AWS_BASE --> AWS_VPC
- AWS_OBS --> AWS_RKE
- AWS_INF --> AWS_RKE
- AWS_INF --> AWS_NGINX
- AWS_INF --> AWS_NFS
- 
- AZ_BASE --> AZ_VNET
- AZ_OBS --> AZ_RKE
- AZ_INF --> AZ_RKE
- AZ_INF --> AZ_LB
- AZ_INF --> AZ_STOR
- 
- GCP_BASE --> GCP_VPC_MOD
- GCP_OBS --> GCP_RKE
- GCP_INF --> GCP_RKE
- GCP_INF --> GCP_LB
- GCP_INF --> GCP_STOR
- 
- style AWS_BASE fill:#e1f5fe,stroke:#01579b,color:#000000
- style AWS_OBS fill:#fff3e0,stroke:#f57c00,color:#000000
- style AWS_INF fill:#f3e5f5,stroke:#4a148c,color:#000000
- style AZ_BASE fill:#e1f5fe,stroke:#01579b,color:#000000
- style AZ_OBS fill:#fff3e0,stroke:#f57c00,color:#000000
- style AZ_INF fill:#f3e5f5,stroke:#4a148c,color:#000000
- style GCP_BASE fill:#e1f5fe,stroke:#01579b,color:#000000
- style GCP_OBS fill:#fff3e0,stroke:#f57c00,color:#000000
- style GCP_INF fill:#f3e5f5,stroke:#4a148c,color:#000000
+ CO -->|terraform output| INV
+ HY[hosts.yml<br/>data centre] --> INV
+ INV --> PF
 ```
 
-## State File Isolation
+Components find each other through AWS tags (`Cluster`, `Role`), never
+shared state. The only contract between the layers is the inventory, which
+`ansible/inventory/generate.py` renders identically from Terraform outputs or
+from an operator's `hosts.yml`.
 
-### Branch-Based Isolation
+## State isolation
+
+One state per component × profile × branch:
+
 ```
-State Management Structure
-==========================
-
-Production (main branch):
-├── mosip-terraform-bucket-main/
-│ ├── aws-base-infra-main-terraform.tfstate
-│ ├── aws-observ-infra-main-terraform.tfstate
-│ ├── aws-infra-<profile>-main-terraform.tfstate
-│ ├── azure-base-infra-main-terraform.tfstate
-│ ├── azure-observ-infra-main-terraform.tfstate
-│ ├── azure-infra-<profile>-main-terraform.tfstate
-│ ├── gcp-base-infra-main-terraform.tfstate
-│ ├── gcp-observ-infra-main-terraform.tfstate
-│ └── gcp-infra-<profile>-main-terraform.tfstate
-
-Staging (staging branch):
-├── mosip-terraform-bucket-staging/
-└── ... (same pattern for staging environment)
-
-Development (dev branch):
-├── mosip-terraform-bucket-dev/
-└── ... (same pattern for dev environment)
+{provider}-{component}-{profile}-{branch}-terraform.tfstate
+e.g. aws-compute-mosip-main-terraform.tfstate
+     aws-compute-observ-main-terraform.tfstate
+     aws-base-infra-main-terraform.tfstate          (base-infra has no profile)
 ```
 
-### Cloud-Specific State Backends
-```
-AWS: S3 Bucket + DynamoDB Locking
-├── Bucket: mosip-terraform-bucket-{branch}
-├── Locking: DynamoDB table for state coordination
-└── Versioning: Enabled for rollback capability
+Local backend: GPG-encrypted and committed to the branch. Remote backend:
+one bucket per component (S3 / Azure Storage / GCS), with optional locking.
 
-Azure: Storage Account + Container Isolation
-├── Account: mosipterraform{branch}storage
-├── Container: terraform-state-{component}
-└── Versioning: Blob versioning enabled
+## Component summary
 
-GCP: Google Cloud Storage + Versioning
-├── Bucket: mosip-terraform-bucket-{branch}
-├── Objects: {cloud}-{component}-{profile}-{branch}-terraform.tfstate
-└── Versioning: Object versioning enabled
-```
+| Component | Purpose | Key resources | Lifecycle |
+|-----------|---------|---------------|-----------|
+| **base-infra** | Foundation & VPN | VPC, subnets, jump server, WireGuard | One-time |
+| **security** | Network rules | 4 security groups | Per cluster |
+| **compute** | Hosts | nginx + RKE2 EC2 instances | Per cluster; resize any time |
+| **iam** | Certbot access | Route53 role + instance profile | Per cluster |
+| **storage** | Data disks | EBS for NFS / PostgreSQL / ActiveMQ | Per cluster; destroyed last-but-one |
+| **dns** | Names | Route53 records → nginx | Per cluster; change any time |
+| **configure** | Everything on the hosts | nginx/TLS, RKE2, NFS, PostgreSQL, ActiveMQ, Rancher/Keycloak | Re-runnable |
 
-## Component Summary
-
-| Component | Purpose | Key Resources | Cloud Services | Lifecycle |
-|-----------|---------|---------------|----------------|-----------|
-| **base-infra** | Foundation & VPN | VPC, Subnets, Jumpserver, WireGuard | Network, Compute, Security | One-time setup |
-| **observ-infra** | Cluster Management | Rancher UI, Keycloak, RBAC | Lightweight K8s, Load Balancer | Optional, Independent |
-| **infra** | MOSIP Applications | RKE2, NGINX, NFS, Databases | Full K8s, Storage, Networking | Multiple deployments |
-
-## Architecture Benefits
-
-- **Modular Design**: Independent component lifecycle management
-- **Multi-Cloud Ready**: Full AWS implementation, Azure/GCP placeholders for community contributions
-- **Security First**: Built-in VPN, encryption, and access controls
-- **State Isolation**: Complete separation of environments and components
-- **Centralized Management**: Optional Rancher UI for cluster oversight
-- **Scalable**: Support for multiple MOSIP deployments
-
----
-
-**Professional architecture designed for MOSIP deployments with modular components, state isolation, and multi-cloud support**
+Profiles (`mosip`, `esignet-standalone`, `observ`) pick sizes and which
+Layer-3 components run — see [docs/PROFILES.md](../PROFILES.md).

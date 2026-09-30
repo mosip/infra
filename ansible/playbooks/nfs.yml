@@ -1,0 +1,11 @@
+---
+# Run: ansible-playbook -i <inventory> ansible/playbooks/nfs.yml
+# Runs on the "nginx" host (also the NFS server) and uses "control_plane"
+# for the NFS CSI driver install. Set nfs_storage_device in the inventory
+# when the data disk isn't the AWS default (/dev/nvme1n1).
+- name: Set up NFS server and CSI driver
+  hosts: nginx
+  become: false
+  gather_facts: true
+  roles:
+    - nfs

@@ -1,0 +1,11 @@
+---
+# Run: ansible-playbook -i <inventory> ansible/playbooks/postgresql.yml
+# Runs on the "nginx" host (postgres lives on its own disk there) and uses
+# "control_plane" to publish the Secret/ConfigMap. Only run by profiles
+# that list `postgresql`; on AWS, site.yml also skips it when the storage
+# component didn't create the postgres volume.
+- name: Set up PostgreSQL and publish its Kubernetes Secret/ConfigMap
+  hosts: nginx
+  gather_facts: true
+  roles:
+    - postgresql
