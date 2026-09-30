@@ -1,0 +1,89 @@
+# Verifies the decoupled `iam` module's certbot IAM role/policy/profile
+# match the legacy monolith's certbot-ssl-certgen.tf exactly (name patterns,
+# tags, assume-role trust policy, Route53 permissions policy).
+#
+# command = plan is used for every run in this file, deliberately, and must
+# stay that way: this module also has a null_resource with a local-exec
+# provisioner (the post-creation instance-profile attachment, decision 4) —
+# provisioners only execute on `apply`, never on `plan`, so `plan` is the
+# only way to test this module's IAM resource attributes without actually
+# invoking the real `aws` CLI locally.
+
+mock_provider "aws" {}
+
+variables {
+  cluster_name      = "testcluster"
+  nginx_instance_id = "i-0123456789abcdef0"
+}
+
+run "certbot_role_matches_legacy_name_and_trust_policy" {
+  command = plan
+
+  assert {
+    condition     = aws_iam_role.certbot_role.name == "testcluster-certbot-route53-role"
+    error_message = "certbot role name doesn't match legacy's <cluster_name>-certbot-route53-role convention"
+  }
+  assert {
+    condition     = aws_iam_role.certbot_role.tags.Name == "testcluster-certbot-route53-role" && aws_iam_role.certbot_role.tags.Cluster == "testcluster"
+    error_message = "certbot role tags don't match legacy convention"
+  }
+  assert {
+    condition     = can(jsondecode(aws_iam_role.certbot_role.assume_role_policy))
+    error_message = "assume_role_policy must be valid JSON"
+  }
+  assert {
+    condition     = jsondecode(aws_iam_role.certbot_role.assume_role_policy).Statement[0].Principal.Service == "ec2.amazonaws.com"
+    error_message = "assume_role_policy must trust ec2.amazonaws.com (legacy: certbot-ssl-certgen.tf's assume_role_policy)"
+  }
+  assert {
+    condition     = jsondecode(aws_iam_role.certbot_role.assume_role_policy).Statement[0].Action == "sts:AssumeRole"
+    error_message = "assume_role_policy must allow sts:AssumeRole"
+  }
+}
+
+run "certbot_policy_matches_legacy_route53_permissions" {
+  command = plan
+
+  assert {
+    condition     = aws_iam_policy.certbot_policy.name == "testcluster-certbot-route53-policy"
+    error_message = "certbot policy name doesn't match legacy's <cluster_name>-certbot-route53-policy convention"
+  }
+  assert {
+    condition     = can(jsondecode(aws_iam_policy.certbot_policy.policy))
+    error_message = "policy document must be valid JSON"
+  }
+  assert {
+    condition = toset(jsondecode(aws_iam_policy.certbot_policy.policy).Statement[0].Action) == toset([
+      "route53:ListHostedZones",
+      "route53:GetChange",
+      "route53:ChangeResourceRecordSets",
+    ])
+    error_message = "certbot policy must grant exactly the 3 legacy Route53 actions — ListHostedZones, GetChange, ChangeResourceRecordSets"
+  }
+  assert {
+    condition     = jsondecode(aws_iam_policy.certbot_policy.policy).Statement[0].Effect == "Allow"
+    error_message = "certbot policy statement must be Allow, not Deny"
+  }
+}
+
+run "role_policy_attachment_links_role_to_policy" {
+  command = plan
+
+  assert {
+    condition     = aws_iam_role_policy_attachment.certbot_policy_attachment.role == "testcluster-certbot-route53-role"
+    error_message = "policy attachment must reference the certbot role by name"
+  }
+}
+
+run "instance_profile_matches_legacy_name_and_role" {
+  command = plan
+
+  assert {
+    condition     = aws_iam_instance_profile.certbot_profile.name == "testcluster-certbot-instance-profile"
+    error_message = "instance profile name doesn't match legacy's <cluster_name>-certbot-instance-profile convention"
+  }
+  assert {
+    condition     = aws_iam_instance_profile.certbot_profile.role == "testcluster-certbot-route53-role"
+    error_message = "instance profile must be built on the certbot role"
+  }
+}

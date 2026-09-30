@@ -13,7 +13,7 @@ usage() {
     echo "  -p, --provider        Cloud provider: aws, azure, gcp (required)"
     echo "  -c, --config          Remote backend config string (required for remote backend)"
     echo "  -b, --branch          Branch name for resource naming (required)"
-    echo "  -t, --component       Component type: base-infra, infra, observ-infra (required)"
+    echo "  -t, --component       Component type: base-infra, infra, observ-infra, security, compute, storage, dns, iam (required)"
     echo "  --enable-locking      Cleanup state locking resources (optional)"
     echo "  -h, --help            Show this help message"
     echo ""
@@ -97,9 +97,10 @@ if [[ ! "$CLOUD_PROVIDER" =~ ^(aws|azure|gcp)$ ]]; then
 fi
 
 # Validate component
-if [[ ! "$COMPONENT" =~ ^(base-infra|infra|observ-infra)$ ]]; then
+# See configure-backend.sh for why "configure" isn't accepted here.
+if [[ ! "$COMPONENT" =~ ^(base-infra|infra|observ-infra|security|compute|storage|dns|iam)$ ]]; then
     echo "Error: Invalid component: $COMPONENT"
-    echo "Valid components: base-infra, infra, observ-infra"
+    echo "Valid components: base-infra, infra, observ-infra, security, compute, storage, dns, iam"
     exit 1
 fi
 

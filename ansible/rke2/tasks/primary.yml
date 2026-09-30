@@ -1,0 +1,119 @@
+---
+# Ported from rke2-playbook.yml's "Install Primary RKE2 Control Plane Node"
+# play — trimmed of CI-runner-specific debug/logging noise, functional logic
+# unchanged. Runs against the primary control-plane node only (node_role ==
+# "control-plane", Primary == "true" per #275's EC2 tags).
+#
+# enable_rancher_import/rancher_import_url are intentionally NOT set here —
+# rancher import moved to its own ansible/rancher-import/ role (#280).
+
+- name: Skip when cluster already exists
+  ansible.builtin.debug:
+    msg: "Skipping primary install for '{{ cluster_name }}' — cluster already exists."
+  when: rke2_cluster_exists | default(false)
+
+- name: Install and configure primary node
+  when: not (rke2_cluster_exists | default(false))
+  become: true
+  block:
+    - name: Update system packages
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Install required packages
+      ansible.builtin.apt:
+        name: [curl, git, unzip]
+        state: present
+
+    - name: Create RKE2 config directory
+      ansible.builtin.file:
+        path: "{{ rke2_config_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Set environment variables for primary
+      ansible.builtin.blockinfile:
+        path: "{{ env_file_path }}"
+        block: |
+          export CLUSTER_NAME={{ cluster_name }}
+          export CLUSTER_ENV_DOMAIN={{ cluster_env_domain }}
+          export NODE_NAME={{ inventory_hostname }}
+          export INTERNAL_IP={{ ansible_default_ipv4.address }}
+          export K8S_INFRA_REPO_URL={{ k8s_infra_repo_url }}
+          export K8S_INFRA_BRANCH={{ k8s_infra_branch }}
+          export RKE2_SERVICE=rke2-server
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - RKE2 VARS PRIMARY"
+
+    - name: Download and install RKE2
+      ansible.builtin.shell: |
+        set -e
+        export INSTALL_RKE2_VERSION="{{ rke2_version }}"
+        curl -sfL https://get.rke2.io | sh -
+      args:
+        executable: /bin/bash
+        creates: /usr/local/bin/rke2
+
+    - name: Clone k8s-infra repository
+      ansible.builtin.git:
+        repo: "{{ k8s_infra_repo_url }}"
+        dest: "/home/ubuntu/k8s-infra"
+        version: "{{ k8s_infra_branch }}"
+        force: false
+        update: true
+      become_user: ubuntu
+      ignore_errors: true
+
+    - name: Copy RKE2 config templates
+      ansible.builtin.shell: |
+        set -e
+        cd /home/ubuntu/k8s-infra/k8-cluster/on-prem/rke2
+        cp -n *.template {{ rke2_config_dir }}/ || true
+      args:
+        executable: /bin/bash
+      ignore_errors: true
+
+    - name: Configure primary control plane config
+      ansible.builtin.copy:
+        src: "{{ rke2_config_dir }}/rke2-server-control-plane-primary.conf.template"
+        dest: "{{ rke2_config_dir }}/config.yaml"
+        remote_src: true
+        force: false
+        backup: true
+
+    - name: Replace placeholders in primary config
+      ansible.builtin.replace:
+        path: "{{ rke2_config_dir }}/config.yaml"
+        regexp: "{{ item.regexp }}"
+        replace: "{{ item.replace }}"
+      loop:
+        - { regexp: '<configure-some-token-here>', replace: '{{ cluster_token }}' }
+        - { regexp: '<node-name>', replace: '{{ inventory_hostname }}' }
+        - { regexp: '<node-internal-ip>', replace: '{{ ansible_default_ipv4.address }}' }
+      no_log: true
+
+    - name: Start and enable RKE2 server
+      ansible.builtin.systemd:
+        name: rke2-server
+        enabled: true
+        state: started
+
+    - name: Wait for Kubernetes API to be ready
+      ansible.builtin.wait_for:
+        port: 6443
+        host: "{{ ansible_default_ipv4.address }}"
+        timeout: 300
+        delay: 30
+
+    - name: Set up kubectl and kubeconfig on primary
+      ansible.builtin.include_tasks: kubeconfig.yml
+
+    - name: Verify primary cluster is ready
+      ansible.builtin.command: kubectl get nodes
+      register: kubectl_result
+      until: kubectl_result.rc == 0
+      retries: 10
+      delay: 15
+      become_user: ubuntu
+      environment:
+        KUBECONFIG: "/home/ubuntu/.kube/{{ inventory_hostname }}.yaml"

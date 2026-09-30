@@ -1,0 +1,20 @@
+---
+# Run: ansible-playbook -i <inventory> ansible/rancher-keycloak-setup/playbook.yml
+# Relocated from terraform/modules/aws/rancher-keycloak-setup/ansible/ — same
+# 4 playbooks, same order, mechanism unchanged. Previously each was a
+# separate null_resource local-exec invocation chained by depends_on; here
+# they're sequenced directly since Ansible's import_playbook is already
+# sequential. Needed only when observ-infra's Rancher/Keycloak management
+# plane is deployed (ENABLE_RANCHER_KEYCLOAK) — infra's own pipeline doesn't
+# call this.
+- name: Install Rancher UI
+  ansible.builtin.import_playbook: install-rancher.yml
+
+- name: Report Rancher status
+  ansible.builtin.import_playbook: get-rancher-info.yml
+
+- name: Install Keycloak
+  ansible.builtin.import_playbook: install-keycloak.yml
+
+- name: Report Keycloak status
+  ansible.builtin.import_playbook: get-keycloak-info.yml
