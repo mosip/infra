@@ -107,7 +107,7 @@ are enforced; SSH from `0.0.0.0/0` is rejected unless
 
 ## Data centre
 
-No Terraform. On any machine that can SSH to the VMs:
+Step-by-step guide: **[DATACENTRE_DEPLOYMENT.md](DATACENTRE_DEPLOYMENT.md)**. In short — no Terraform; on any machine that can SSH to the VMs:
 
 ```bash
 cp ansible/inventory/hosts.example.yml my-hosts.yml   # IPs, disks, TLS mode, SSH key

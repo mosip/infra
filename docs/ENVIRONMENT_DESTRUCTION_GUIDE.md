@@ -38,15 +38,18 @@ Navigate to: **Repository → Actions → terraform destroy**
 
 ![Infrastructure Terraform Destroy](\_images/infra-terraform-destroy.png)
 
+> Screenshot from the previous workflow version — the form now shows `COMPONENT` and `PROFILE` (see parameters below).
+
 Click **"Run workflow"** and configure:
 
 ```
 Parameters:
 ├─ Branch: release-0.1.0 (or your deployment branch)
-├─ Cloud Provider: aws
-├─ Component: infra
-├─ Profile: mosip/esignet
-└─ Backend: local (or s3, match your deployment configuration)
+├─ CLOUD_PROVIDER: aws
+├─ COMPONENT: all        (dns → storage → compute → iam → security, + vm)
+├─ PROFILE: mosip / esignet-standalone / observ
+├─ BACKEND_TYPE: local (or remote, match your deployment)
+└─ TERRAFORM_DESTROY: ✅  (unchecked = plan -destroy only)
 ```
 
 #### 3. Wait for Completion
@@ -81,10 +84,13 @@ If you also want to delete the VPC and networking (base-infra):
 
 ![Base Infrastructure Terraform Destroy](\_images/base-infra-terraform-destroy.png)
 
-1. Go to **Actions → Terraform Infrastructure Destroy**
+> Screenshot from the previous workflow version — select `COMPONENT: base-infra`.
+
+1. Go to **Actions → terraform destroy**
 2. Run workflow with:
    ```
-   Component: base-infra
+   COMPONENT: base-infra
+   TERRAFORM_DESTROY: ✅
    ```
 3. Wait 5-8 minutes for completion
 

@@ -1,7 +1,8 @@
 # Repository tree
 
 State files (`*.tfstate*`, `*.gpg`), `.terraform/` caches and lockfiles are
-omitted. For the deployment order see [DEPLOYMENT_SEQUENCE.md](DEPLOYMENT_SEQUENCE.md).
+omitted. For the deployment order see [DEPLOYMENT_SEQUENCE.md](DEPLOYMENT_SEQUENCE.md);
+for Ansible-only deployment onto existing VMs see [DATACENTRE_DEPLOYMENT.md](DATACENTRE_DEPLOYMENT.md).
 
 ## Top level
 

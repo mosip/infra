@@ -754,13 +754,13 @@ apps:
 **Symptom**: Services can't connect to database
 
 **Solution**:
-1. Verify PostgreSQL enabled setting matches Terraform:
+1. Verify the PostgreSQL setting matches your profile:
  ```yaml
- # If Terraform enable_postgresql_setup = true
+ # profile.yml lists `postgresql` (external PostgreSQL on the nginx node)
  postgres:
  enabled: false # Use external
  
- # If Terraform enable_postgresql_setup = false
+ # profile.yml doesn't list `postgresql`
  postgres:
  enabled: true # Use container
  ```

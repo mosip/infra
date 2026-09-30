@@ -1,4 +1,5 @@
 # Data-centre / pre-created VMs: the only file an operator writes.
+# Full guide: docs/DATACENTRE_DEPLOYMENT.md
 #
 #   cp ansible/inventory/hosts.example.yml my-hosts.yml   # fill it in
 #   python3 ansible/inventory/generate.py --profile profiles/mosip \
