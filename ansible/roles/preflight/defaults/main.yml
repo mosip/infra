@@ -1,0 +1,18 @@
+---
+# Components this run will configure, in profile.yml order. Written into the
+# inventory by ansible/inventory/generate.py.
+configure_components: []
+
+# DNS gate before nginx (the legacy order is DNS → nginx):
+#   auto  → fail when tls_mode is http01 (Let's Encrypt can't validate
+#           without DNS), warn otherwise.
+#   fail / warn / skip → force that behaviour.
+preflight_dns_check: auto
+
+# The address api.<domain> must resolve to. Defaults to nginx_public_ip
+# (set on AWS from the compute outputs). On a data centre behind NAT, set
+# it to the public/NAT address; leave it unset to only check that the name
+# resolves at all.
+dns_expected_ip: "{{ nginx_public_ip | default('') }}"
+
+tls_mode: dns01

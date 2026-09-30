@@ -1,0 +1,21 @@
+---
+# Report Keycloak status — converted from a standalone play into a role task file.
+# Play-level vars moved to ../defaults/main.yml.
+
+- name: Get Keycloak pod status
+  shell: "{{ kubectl_path }} get pods -n keycloak | grep keycloak || echo 'Keycloak pods not found'"
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  register: keycloak_pods
+
+- name: Display Keycloak status
+  debug:
+    msg: "{{ keycloak_pods.stdout_lines }}"
+
+- name: Display Keycloak URL
+  debug:
+    msg: "Keycloak URL: https://{{ keycloak_hostname }}"
+
+- name: Display access info
+  debug:
+    msg: "Access Keycloak admin console with credentials provided by the installation script"

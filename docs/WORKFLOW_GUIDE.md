@@ -47,13 +47,13 @@ Your Repository
 
 **Relationship with Terraform Apply:**
 ```
-If Terraform Apply = ✅ AND Rancher Import = True
- → Cluster is deployed AND imported into Rancher
+If COMPONENT = all/configure AND ENABLE_RANCHER_IMPORT = ✅
+ → Cluster is deployed AND imported into Rancher (during configure)
 
-If Terraform Apply = ✅ AND Rancher Import = False
+If ENABLE_RANCHER_IMPORT = ☐
  → Cluster is deployed but NOT imported
 
-If Terraform Apply = ☐ (unchecked)
+If TERRAFORM_APPLY = ☐ (single component, plan only)
  → Dry run only, nothing happens (Rancher import setting is ignored)
 ```
 
@@ -74,7 +74,7 @@ If Terraform Apply = ☐ (unchecked)
 
 2. **Find the Workflow**
  ```
- Left Sidebar: Look for "Terraform Base Infrastructure"
+ Left Sidebar: Look for "terraform plan / apply"
  Click on it
  ```
 
@@ -90,8 +90,8 @@ If Terraform Apply = ☐ (unchecked)
  |-----------|---------------|---------|-------|
  | **Use workflow from** | `Branch: release-0.1.0` | Your deployment branch | Dropdown at top |
  | **Cloud Provider** | `aws` | `aws` | Azure/GCP not fully implemented |
- | **Component** | `base-infra` | `base-infra` | Creates VPC & networking |
- | **Backend** | `local` or `s3` | `local` for dev, `s3` for prod | Where Terraform stores state |
+ | **COMPONENT** | `base-infra` | `base-infra` | Creates VPC & networking |
+ | **BACKEND_TYPE** | `local` or `remote` | `local` for dev, `remote` for prod | Where Terraform stores state |
  | **Terraform apply** | ✅ Check this box | ✅ | Leave unchecked for dry run |
 
 5. **Run the Workflow**
@@ -111,12 +111,13 @@ If Terraform Apply = ☐ (unchecked)
 
 **During Execution:**
 ```
-✓ Setup environment
-✓ Configure WireGuard
-✓ Run Terraform init
-✓ Run Terraform plan
-→ Run Terraform apply (if checked)
-✓ Complete
+✓ validate (checks the input combination)
+✓ base-infra → Resolve root and var files
+✓ Configure Terraform backend
+✓ Terraform init / validate
+✓ Terraform plan
+→ Terraform apply (if checked)
+✓ Encrypt and commit state
 ```
 
 **After Success:**
@@ -128,9 +129,9 @@ If Terraform Apply = ☐ (unchecked)
 
 ---
 
-### Workflow 2: Main Infrastructure
+### Workflow 2: MOSIP cluster (COMPONENT=all)
 
-**What it does**: Creates MOSIP Kubernetes cluster, PostgreSQL (optional), application infrastructure
+**What it does**: Terraform creates the AWS resources (security, iam, compute, storage, dns), then Ansible builds the MOSIP Kubernetes cluster, nginx + TLS, NFS and — per profile — PostgreSQL and ActiveMQ
 
 #### Step-by-Step Navigation
 
@@ -141,14 +142,9 @@ If Terraform Apply = ☐ (unchecked)
 
 2. **Find the Workflow**
  ```
- Left Sidebar: Look for "Terraform Infrastructure"
+ Left Sidebar: Look for "terraform plan / apply"
  Click on it
  ```
- 
- **Note**: The workflow name might also appear as:
- - "Terraform"
- - "Deploy Infrastructure"
- - Check for keywords: "Infrastructure" or "Main Infra"
 
 3. **Start the Workflow**
  ```
@@ -160,20 +156,21 @@ If Terraform Apply = ☐ (unchecked)
  | Parameter | What to Select | Example | Why? |
  |-----------|---------------|---------|------|
  | **Use workflow from** | `Branch: release-0.1.0` | Your branch | Dropdown at top |
- | **Cloud Provider** | `aws` | `aws` | Where to deploy |
- | **Component** | `infra` | `infra` | Main MOSIP infrastructure |
- | **Profile** | `esignet-standalone` or `mosip` | `esignet` | Selects tfvars and cluster size — see below |
- | **Backend** | `local` or `s3` | `local` | State storage location |
- | **Terraform apply** | ✅ | ✅ | Check to deploy, uncheck for dry run |
+ | **CLOUD_PROVIDER** | `aws` | `aws` | Where to deploy |
+ | **COMPONENT** | `all` | `all` | Every component in order, then Ansible |
+ | **PROFILE** | `mosip` or `esignet-standalone` | `mosip` | Deployment shape — see below |
+ | **BACKEND_TYPE** | `local` or `remote` | `local` | State storage location |
+ | **TERRAFORM_APPLY** | ✅ | ✅ | Required for `all` |
 
- **Profile options for `infra` component:**
+ **Profiles:**
 
- | Profile | tfvars loaded | Cluster size | Use for |
- |---------|--------------|--------------|---------|
- | `esignet` | `profiles/esignet/aws.tfvars` | 4-node K8s cluster | eSignet standalone |
- | `mosip` | `profiles/mosip/aws.tfvars` | 7-node K8s cluster | Full MOSIP platform |
+ | Profile | Values | Cluster size | Use for |
+ |---------|--------|--------------|---------|
+ | `esignet-standalone` | `profiles/esignet-standalone/` | 4 nodes | eSignet standalone |
+ | `mosip` | `profiles/mosip/` | 7 nodes | Full MOSIP platform |
+ | `observ` | `profiles/observ/` | 1 node | Rancher + Keycloak (Workflow 3) |
 
- > **Note**: `base-infra` and `observ-infra` do not use a profile — this field only applies to the `infra` component.
+ > **Note**: `base-infra` doesn't use a profile. To preview changes, run a single `COMPONENT` with apply unchecked.
 
 5. **Run the Workflow**
  ```
@@ -182,10 +179,9 @@ If Terraform Apply = ☐ (unchecked)
 
 6. **Monitor Progress** (This takes 15-30 minutes)
  ```
- → Creating Kubernetes cluster
- → Installing RKE2
- → Configuring networking
- → Setting up PostgreSQL (if enabled)
+ → security → iam → compute → storage → dns (one job each)
+ → configure: nginx + TLS, RKE2, NFS
+ → PostgreSQL / ActiveMQ (if the profile uses them)
  → Importing to Rancher (if enabled)
  ```
 
@@ -194,11 +190,11 @@ If Terraform Apply = ☐ (unchecked)
 **Success Indicators:**
 - ✅ Kubernetes cluster created
 - ✅ Multiple nodes visible in AWS EC2
-- ✅ KUBECONFIG file generated
+- ✅ KUBECONFIG published as environment secret (with Rancher import) or on the primary node at `/home/ubuntu/.kube/<cluster>-CONTROL-PLANE-NODE-1.yaml`
 - ✅ PostgreSQL running (if enabled)
 
 **Outputs to Save:**
-- KUBECONFIG file location
+- KUBECONFIG (see above)
 - Cluster endpoint URL
 - Node IP addresses
 
@@ -222,8 +218,7 @@ If Terraform Apply = ☐ (unchecked)
 
 2. **Find the Workflow**
  ```
- Left Sidebar: "Terraform Observability Infrastructure"
- OR look for: "Observ Infra" / "Monitoring Infrastructure"
+ Left Sidebar: "terraform plan / apply" (same workflow, profile `observ`)
  ```
 
 3. **Configure Parameters**
@@ -232,9 +227,12 @@ If Terraform Apply = ☐ (unchecked)
  |-----------|---------------|---------|
  | **Branch** | `release-0.1.0` | Your deployment branch |
  | **Cloud Provider** | `aws` | `aws` |
- | **Component** | `observ-infra` | `observ-infra` |
- | **Backend** | `local` or `s3` | `local` for dev |
- | **Terraform apply** | ✅ | Check to deploy |
+ | **COMPONENT** | `all` | `all` |
+ | **PROFILE** | `observ` | `observ` |
+ | **BACKEND_TYPE** | `local` or `remote` | `local` for dev |
+ | **TERRAFORM_APPLY** | ✅ | Check to deploy |
+
+ Set the `RANCHER_BOOTSTRAP_PASSWORD` environment secret first — it's the initial Rancher `admin` password.
 
 4. **Run and Monitor**
  - Deployment takes 10-20 minutes
@@ -496,50 +494,51 @@ Cloud Provider: [aws | azure | gcp]
 
 ---
 
-#### Component
+#### COMPONENT
 ```
-Component: [base-infra | infra | observ-infra]
+COMPONENT: [all | security | compute | iam | storage | dns | configure | base-infra]
 ```
-**What it does**: Selects which infrastructure layer to deploy
+**What it does**: Selects what to run. Each component is its own Terraform root and state.
 
-**Options**:
 | Component | Creates | Run Order |
 |-----------|---------|-----------|
-| `base-infra` | VPC, networking, jump server | **1st** (foundation) |
-| `observ-infra` | Rancher management cluster | **2nd** (optional) |
-| `infra` | MOSIP Kubernetes cluster | **3rd** (main deployment) |
+| `base-infra` | VPC, networking, jump server | **once**, first |
+| `all` | everything below, in order | normal deployment |
+| `security` → `compute` → `iam` → `storage` → `dns` | one layer | day-2 changes (e.g. `dns` only) |
+| `configure` | Ansible: nginx, RKE2, NFS, PostgreSQL, ActiveMQ, Rancher | re-run configuration |
 
 ---
 
-#### Infra Profile
+#### PROFILE
 ```
-Profile: [esignet | mosip]
+PROFILE: [mosip | esignet-standalone | observ]
 ```
-**Applies to**: `infra` component only (`base-infra` and `observ-infra` ignore this field)
+**Applies to**: everything except `base-infra`. See [Profiles](PROFILES.md).
 
-| Profile | tfvars file | Cluster size | Use for |
-|---------|------------|--------------|---------|
-| `esignet-standalone` | `profiles/esignet-standalone/aws.tfvars` | eSignet standalone deployment |
-| `mosip` | `profiles/mosip/aws.tfvars` | Full MOSIP platform deployment |
+| Profile | Values | Use for |
+|---------|--------|---------|
+| `esignet-standalone` | `profiles/esignet-standalone/` | eSignet standalone deployment |
+| `mosip` | `profiles/mosip/` | Full MOSIP platform deployment |
+| `observ` | `profiles/observ/` | Rancher UI + Keycloak management cluster |
 
-**Important**: The Terraform profile (`esignet-standalone` / `mosip`) and the Helmsman profile (`esignet-standalone` / `mosip-platform-1.2.0.x` / `mosip-platform-1.2.1.x`) are separate inputs. After running `infra` with `profile=mosip`, you choose the specific MOSIP platform version when running the Helmsman workflows.
+**Important**: The Terraform profile (`esignet-standalone` / `mosip`) and the Helmsman profile (`esignet-standalone` / `mosip-platform-1.2.0.x` / `mosip-platform-1.2.1.x`) are separate inputs. After deploying with `PROFILE=mosip`, you choose the specific MOSIP platform version when running the Helmsman workflows.
 
 ---
 
 #### Backend
 ```
-Backend: [local | s3]
+BACKEND_TYPE: [local | remote]
 ```
 **What it does**: Determines where Terraform stores state files
 
 | Backend | Storage Location | Best For | Encryption |
 |---------|-----------------|----------|------------|
 | `local` | GitHub repository | Development, small teams | GPG encrypted |
-| `s3` | AWS S3 bucket | Production, large teams | S3 server-side encryption |
+| `remote` | S3 / Azure Storage / GCS bucket (`REMOTE_BACKEND_CONFIG`) | Production, large teams | Provider server-side encryption |
 
 **Recommendations**:
 - Development → `local`
-- Production → `s3`
+- Production → `remote` (with `ENABLE_STATE_LOCKING`)
 
 ---
 
@@ -627,7 +626,7 @@ These inputs override the corresponding GitHub Environment Variables for a singl
 | Documentation Says | Actual Workflow Name Might Be |
 |--------------------|------------------------------|
 | "Helmsman External Dependencies" | "Deploy External services of mosip using Helmsman" |
-| "Terraform Infrastructure" | "Terraform" or "Deploy Infrastructure" |
+| "terraform plan / apply" | same name in the sidebar (file `terraform.yml`) |
 
 ---
 
@@ -730,11 +729,11 @@ Updating existing deployment → ☐ Uncheck first to see changes
 
 ### For Terraform Workflows
 
-- [ ] tfvars file updated with correct values
+- [ ] `profiles/<profile>/aws/common.tfvars` placeholders filled (and other tfvars reviewed)
 - [ ] Cloud provider = `aws`
-- [ ] Backend choice made (`local` or `s3`)
+- [ ] Backend choice made (`local` or `remote`)
 - [ ] Understand dry-run vs apply
-- [ ] WireGuard configured (for infra deployment)
+- [ ] WireGuard (`TF_WG_CONFIG`) configured (needed by the `configure` step)
 
 ### For Helmsman Workflows
 
@@ -754,12 +753,12 @@ Updating existing deployment → ☐ Uncheck first to see changes
 ```
 DEPLOYMENT FLOW:
 
-1. Terraform: Base Infrastructure
+1. Terraform: base-infra (COMPONENT=base-infra)
  └── VPC, networking, WireGuard jump server
 
-2. Terraform: Main Infrastructure
- └── RKE2 Kubernetes cluster
- └── PAUSE: Add KUBECONFIG secret
+2. terraform plan / apply: COMPONENT=all, PROFILE=esignet-standalone
+ └── security → iam → compute → storage → dns → configure (Ansible: nginx, RKE2, NFS)
+ └── PAUSE: KUBECONFIG secret (auto with Rancher import + PUBLISH_KUBECONFIG)
 
 3. Helmsman: External Dependencies  [helmsman_external.yml, profile=esignet-standalone]
  └── prereq-dsf + external-dsf (parallel)
@@ -778,8 +777,8 @@ DEPLOYMENT FLOW:
 ```
 DEPLOYMENT FLOW:
 
-1. Terraform: Base Infrastructure
-2. Terraform: Main Infrastructure
+1. Terraform: base-infra (COMPONENT=base-infra)
+2. terraform plan / apply: COMPONENT=all, PROFILE=mosip (+ PostgreSQL, ActiveMQ)
 3. Helmsman: External Dependencies  [helmsman_external.yml, profile=mosip-platform-*]
  └── ✅ Auto-triggers MOSIP workflow on success
 

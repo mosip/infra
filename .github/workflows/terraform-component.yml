@@ -1,0 +1,281 @@
+# Reusable: plan/apply or destroy ONE Terraform root.
+#
+#   terraform/implementations/<CLOUD_PROVIDER>/<COMPONENT>
+#
+# Called by terraform.yml (apply, in dependency order) and
+# terraform-destroy.yml (destroy, reverse order) — never dispatched directly.
+#
+# Var files: base-infra keeps its own <cloud>.tfvars next to the root.
+# Every other component reads
+#   profiles/<PROFILE>/<cloud>/common.tfvars
+#   profiles/<PROFILE>/<cloud>/<COMPONENT>.tfvars
+#
+# Local backend: state is GPG-encrypted and committed back to the branch
+# (GPG_PASSPHRASE secret), exactly as before. Remote backend: state lives in
+# S3 / Azure Storage / GCS, keyed by provider-component-profile-branch.
+name: terraform component (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      CLOUD_PROVIDER:
+        type: string
+        required: true
+      COMPONENT:
+        type: string
+        required: true
+      PROFILE:
+        type: string
+        required: false
+        default: ''
+      ACTION:
+        description: apply | destroy
+        type: string
+        required: true
+      CONFIRM:
+        description: 'apply: false = plan only. destroy: must be true to destroy.'
+        type: boolean
+        required: false
+        default: false
+      BACKEND_TYPE:
+        type: string
+        required: true
+      REMOTE_BACKEND_CONFIG:
+        type: string
+        required: false
+        default: ''
+      ENABLE_STATE_LOCKING:
+        type: boolean
+        required: false
+        default: false
+      SSH_PRIVATE_KEY:
+        description: Name of the secret holding the SSH private key (base-infra only)
+        type: string
+        required: false
+        default: ''
+    outputs:
+      outcome:
+        description: success | failure | skipped
+        value: ${{ jobs.terraform.outputs.outcome }}
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name }}
+    concurrency:
+      group: terraform-${{ inputs.CLOUD_PROVIDER }}-${{ inputs.COMPONENT }}-${{ inputs.PROFILE }}-${{ github.ref_name }}
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    outputs:
+      outcome: ${{ steps.result.outputs.outcome }}
+    defaults:
+      run:
+        shell: bash
+        working-directory: terraform/implementations/${{ inputs.CLOUD_PROVIDER }}/${{ inputs.COMPONENT }}
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      TF_VAR_ssh_private_key: ${{ inputs.SSH_PRIVATE_KEY != '' && secrets[inputs.SSH_PRIVATE_KEY] || '' }}
+      TF_IN_AUTOMATION: "true"
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          # Branch tip, not the dispatch SHA: earlier components in the same
+          # run may have pushed their (encrypted) state.
+          ref: ${{ github.ref }}
+          fetch-depth: 0
+          token: ${{ secrets.GH_INFRA_PAT }}
+
+      - name: Ensure workflow scripts are executable
+        working-directory: .
+        run: chmod +x .github/scripts/*.sh
+
+      - name: Resolve root and var files
+        run: |
+          set -euo pipefail
+          if [ ! -f main.tf ]; then
+            echo "ERROR: $(pwd) is not a Terraform root (no main.tf)."
+            echo "Available: $(ls "$GITHUB_WORKSPACE/terraform/implementations/${{ inputs.CLOUD_PROVIDER }}" | tr '\n' ' ')"
+            exit 1
+          fi
+
+          VAR_FILES=()
+          if [ "${{ inputs.COMPONENT }}" = "base-infra" ]; then
+            VAR_FILES+=("${{ inputs.CLOUD_PROVIDER }}.tfvars")
+            PROFILE_ARG=""
+          else
+            if [ -z "${{ inputs.PROFILE }}" ]; then
+              echo "ERROR: PROFILE is required for component ${{ inputs.COMPONENT }}"
+              exit 1
+            fi
+            PROFILE_DIR="$GITHUB_WORKSPACE/profiles/${{ inputs.PROFILE }}/${{ inputs.CLOUD_PROVIDER }}"
+            VAR_FILES+=("$PROFILE_DIR/common.tfvars" "$PROFILE_DIR/${{ inputs.COMPONENT }}.tfvars")
+            PROFILE_ARG="--profile ${{ inputs.PROFILE }}"
+            # Roots that read the profile manifest (dns: subdomains) pick
+            # this up; the others don't declare it and ignore it.
+            echo "TF_VAR_profile_manifest=$GITHUB_WORKSPACE/profiles/${{ inputs.PROFILE }}/profile.yml" >> "$GITHUB_ENV"
+          fi
+          for f in "${VAR_FILES[@]}"; do
+            [ -f "$f" ] || { echo "ERROR: var file not found: $f"; exit 1; }
+          done
+          VAR_ARGS=""
+          for f in "${VAR_FILES[@]}"; do VAR_ARGS="$VAR_ARGS -var-file=$f"; done
+          echo "TF_VAR_ARGS=$VAR_ARGS" >> "$GITHUB_ENV"
+          echo "PROFILE_ARG=$PROFILE_ARG" >> "$GITHUB_ENV"
+          echo "Root: $(pwd)"
+          echo "Var files: ${VAR_FILES[*]}"
+
+      - name: Setup cloud storage for remote state
+        if: ${{ inputs.BACKEND_TYPE == 'remote' }}
+        run: |
+          "$GITHUB_WORKSPACE/.github/scripts/setup-cloud-storage.sh" \
+            --provider "${{ inputs.CLOUD_PROVIDER }}" \
+            --config "${{ inputs.REMOTE_BACKEND_CONFIG }}" \
+            --branch "${{ github.ref_name }}" \
+            --component "${{ inputs.COMPONENT }}" \
+            ${{ inputs.ENABLE_STATE_LOCKING && '--enable-locking' || '' }}
+
+      - name: Configure Terraform backend
+        run: |
+          "$GITHUB_WORKSPACE/.github/scripts/configure-backend.sh" \
+            --type "${{ inputs.BACKEND_TYPE }}" \
+            --provider "${{ inputs.CLOUD_PROVIDER }}" \
+            --component "${{ inputs.COMPONENT }}" \
+            --branch "${{ github.ref_name }}" \
+            --remote-config "${{ inputs.REMOTE_BACKEND_CONFIG }}" \
+            ${{ inputs.ENABLE_STATE_LOCKING && '--enable-locking' || '' }} \
+            $PROFILE_ARG
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_version: v1.8.5
+          terraform_wrapper: false
+
+      - name: Setup GPG
+        run: |
+          "$GITHUB_WORKSPACE/.github/scripts/setup-gpg.sh" \
+            --backend-type "${{ inputs.BACKEND_TYPE }}" \
+            --passphrase "${{ secrets.GPG_PASSPHRASE }}"
+
+      - name: Decrypt existing state
+        run: |
+          "$GITHUB_WORKSPACE/.github/scripts/decrypt-state.sh" \
+            --backend-type "${{ inputs.BACKEND_TYPE }}" \
+            --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
+            --operation "${{ inputs.ACTION }}"
+
+      - name: Terraform init / validate
+        run: |
+          terraform fmt -check -recursive -diff
+          terraform init -input=false || terraform init -input=false -reconfigure
+          terraform validate -no-color
+
+      - name: Terraform plan
+        id: plan
+        if: ${{ inputs.ACTION == 'apply' }}
+        continue-on-error: true
+        run: terraform plan -input=false $TF_VAR_ARGS -out ./tf-plan -no-color
+
+      - name: Terraform apply
+        id: apply
+        if: ${{ inputs.ACTION == 'apply' && inputs.CONFIRM && steps.plan.outcome == 'success' }}
+        continue-on-error: true
+        run: terraform apply -input=false -no-color -auto-approve ./tf-plan
+
+      - name: Terraform destroy plan
+        id: destroy_plan
+        if: ${{ inputs.ACTION == 'destroy' }}
+        continue-on-error: true
+        run: terraform plan -destroy -input=false $TF_VAR_ARGS -no-color
+
+      - name: Terraform destroy
+        id: destroy
+        if: ${{ inputs.ACTION == 'destroy' && inputs.CONFIRM && steps.destroy_plan.outcome == 'success' }}
+        continue-on-error: true
+        run: terraform destroy -input=false $TF_VAR_ARGS -no-color -auto-approve
+
+      - name: Clean up state after successful destroy
+        if: ${{ steps.destroy.outcome == 'success' }}
+        run: |
+          "$GITHUB_WORKSPACE/.github/scripts/encrypt-state.sh" \
+            --backend-type "${{ inputs.BACKEND_TYPE }}" \
+            --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
+            --operation "destroy" \
+            --destroy-success "true"
+          if [ "${{ inputs.BACKEND_TYPE }}" = "remote" ]; then
+            "$GITHUB_WORKSPACE/.github/scripts/cleanup-state-locking.sh" \
+              --provider "${{ inputs.CLOUD_PROVIDER }}" \
+              --config "${{ inputs.REMOTE_BACKEND_CONFIG }}" \
+              --branch "${{ github.ref_name }}" \
+              --component "${{ inputs.COMPONENT }}" \
+              ${{ inputs.ENABLE_STATE_LOCKING && '--enable-locking' || '' }}
+          fi
+
+      - name: Encrypt and commit state
+        if: always()
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -uo pipefail
+          if [ "${{ steps.destroy.outcome }}" != "success" ]; then
+            "$GITHUB_WORKSPACE/.github/scripts/encrypt-state.sh" \
+              --backend-type "${{ inputs.BACKEND_TYPE }}" \
+              --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
+              --operation "${{ inputs.ACTION }}" \
+              ${{ inputs.ACTION == 'destroy' && '--destroy-success false' || '' }}
+          fi
+          rm -rf .terraform .terraform.lock.hcl tf-plan
+
+          # Only this root's state artefacts are committed.
+          git add -A . 2>/dev/null || true
+          if [ -f backend.tf ]; then
+            BACKEND_PATH=$(grep -A 5 'backend "local"' backend.tf | grep 'path' | sed 's/.*path = "\([^"]*\)".*/\1/' | head -1)
+            [ -n "$BACKEND_PATH" ] && git add -f "${BACKEND_PATH}"*.gpg 2>/dev/null || true
+            git add -f backend.tf 2>/dev/null || true
+          fi
+          git add -f ./*.gpg 2>/dev/null || true
+          git reset -q -- '*.tfstate' '*.tfstate.backup' 2>/dev/null || true
+
+          if git diff --cached --quiet; then
+            echo "No state changes to commit (normal for remote backends)."
+            exit 0
+          fi
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+          git config --global user.name "${{ github.actor }}"
+          git commit -s -q -m "terraform ${{ inputs.ACTION }}: ${{ inputs.CLOUD_PROVIDER }}/${{ inputs.COMPONENT }}${{ inputs.PROFILE != '' && format(' ({0})', inputs.PROFILE) || '' }}"
+          for attempt in 1 2 3; do
+            if git pull --rebase -q origin "$REF_NAME"; then
+              git push -q origin "HEAD:$REF_NAME" && exit 0
+            else
+              # State produced by this run is authoritative.
+              git rebase --abort 2>/dev/null || true
+              git fetch -q origin "$REF_NAME"
+              git merge -q -X ours "origin/$REF_NAME" --no-edit && git push -q origin "HEAD:$REF_NAME" && exit 0
+            fi
+            sleep $((attempt * 5))
+          done
+          echo "ERROR: could not push state after 3 attempts"
+          exit 1
+
+      - name: Result
+        id: result
+        if: always()
+        run: |
+          OUTCOME=success
+          for o in "${{ steps.plan.outcome }}" "${{ steps.apply.outcome }}" "${{ steps.destroy_plan.outcome }}" "${{ steps.destroy.outcome }}"; do
+            [ "$o" = "failure" ] && OUTCOME=failure
+          done
+          echo "outcome=$OUTCOME" >> "$GITHUB_OUTPUT"
+          echo "${{ inputs.ACTION }} ${{ inputs.COMPONENT }}: $OUTCOME"
+          [ "$OUTCOME" = "success" ]
+
+      - uses: 8398a7/action-slack@v3
+        continue-on-error: true
+        if: ${{ failure() }}
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,author,commit,workflow,job
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

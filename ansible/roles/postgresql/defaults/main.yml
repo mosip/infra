@@ -1,0 +1,8 @@
+---
+postgresql_version: "15"
+postgresql_port: "5433"
+storage_device: "/dev/nvme2n1"
+mount_point: "/srv/postgres"
+network_cidr: "10.0.0.0/8"
+kubernetes_namespace: "postgres"
+secret_name: "postgres-postgresql"

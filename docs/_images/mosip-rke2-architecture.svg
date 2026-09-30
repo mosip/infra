@@ -75,8 +75,8 @@
   <rect width="100%" height="100%" fill="var(--bg-primary, #ffffff)" opacity="0.95"/>
   
   <!-- Title -->
-  <text x="600" y="30" text-anchor="middle" class="title">MOSIP Three-Component Architecture</text>
-  <text x="600" y="50" text-anchor="middle" class="subtitle">Cloud-Agnostic RKE2 Infrastructure Deployment</text>
+  <text x="600" y="30" text-anchor="middle" class="title">MOSIP Layered Architecture</text>
+  <text x="600" y="50" text-anchor="middle" class="subtitle">Terraform on AWS · Ansible on any VMs (Azure, GCP, data centre)</text>
   
   <!-- GitHub Actions Orchestration -->
   <rect x="500" y="80" width="200" height="50" rx="8" fill="#E0F2FE" stroke="#0EA5E9" stroke-width="2.5" opacity="0.9" filter="url(#drop-shadow)"/>
@@ -94,16 +94,16 @@
   <text x="130" y="265" text-anchor="middle" class="component-text">WireGuard VPN</text>
   <text x="130" y="280" text-anchor="middle" class="component-text">EC2 Jumpserver</text>
   
-  <!-- AWS observ-infra -->
+  <!-- AWS observ profile -->
   <rect x="210" y="210" width="120" height="80" rx="6" fill="#FFFBEB" stroke="#F59E0B" stroke-width="2"/>
-  <text x="270" y="235" text-anchor="middle" class="component-title">observ-infra</text>
+  <text x="270" y="235" text-anchor="middle" class="component-title">profile: observ</text>
   <text x="270" y="250" text-anchor="middle" class="component-text">RKE2 Cluster</text>
   <text x="270" y="265" text-anchor="middle" class="component-text">Rancher UI</text>
   <text x="270" y="280" text-anchor="middle" class="component-text">Keycloak</text>
   
   <!-- AWS infra -->
   <rect x="70" y="310" width="120" height="80" rx="6" fill="#F3F4F6" stroke="#8B5CF6" stroke-width="2"/>
-  <text x="130" y="335" text-anchor="middle" class="component-title">infra</text>
+  <text x="130" y="335" text-anchor="middle" class="component-title">profile: mosip / esignet</text>
   <text x="130" y="350" text-anchor="middle" class="component-text">RKE2 Cluster</text>
   <text x="130" y="365" text-anchor="middle" class="component-text">MOSIP Services</text>
   <text x="130" y="380" text-anchor="middle" class="component-text">NGINX + NFS</text>
@@ -122,25 +122,25 @@
   
   <!-- Azure Cloud -->
   <rect x="400" y="170" width="300" height="400" rx="12" fill="#F0F9FF" stroke="#0EA5E9" stroke-width="2.5" opacity="0.95" filter="url(#drop-shadow)"/>
-  <text x="550" y="195" text-anchor="middle" class="cloud-title">Azure Cloud</text>
+  <text x="550" y="195" text-anchor="middle" class="cloud-title">Azure (your VMs)</text>
   
   <!-- Azure base-infra -->
   <rect x="420" y="210" width="120" height="80" rx="6" fill="#EFF6FF" stroke="#3B82F6" stroke-width="2"/>
   <text x="480" y="235" text-anchor="middle" class="component-title">base-infra</text>
-  <text x="480" y="250" text-anchor="middle" class="component-text">VNet 10.0.0.0/16</text>
+  <text x="480" y="250" text-anchor="middle" class="component-text">base-infra: placeholder</text>
   <text x="480" y="265" text-anchor="middle" class="component-text">WireGuard VPN</text>
   <text x="480" y="280" text-anchor="middle" class="component-text">VM Jumpserver</text>
   
-  <!-- Azure observ-infra -->
+  <!-- Azure observ profile -->
   <rect x="560" y="210" width="120" height="80" rx="6" fill="#FFFBEB" stroke="#F59E0B" stroke-width="2"/>
-  <text x="620" y="235" text-anchor="middle" class="component-title">observ-infra</text>
+  <text x="620" y="235" text-anchor="middle" class="component-title">profile: observ</text>
   <text x="620" y="250" text-anchor="middle" class="component-text">RKE2 Cluster</text>
   <text x="620" y="265" text-anchor="middle" class="component-text">Rancher UI</text>
   <text x="620" y="280" text-anchor="middle" class="component-text">Keycloak</text>
   
   <!-- Azure infra -->
   <rect x="420" y="310" width="120" height="80" rx="6" fill="#F3F4F6" stroke="#8B5CF6" stroke-width="2"/>
-  <text x="480" y="335" text-anchor="middle" class="component-title">infra</text>
+  <text x="480" y="335" text-anchor="middle" class="component-title">profile: mosip / esignet</text>
   <text x="480" y="350" text-anchor="middle" class="component-text">RKE2 Cluster</text>
   <text x="480" y="365" text-anchor="middle" class="component-text">MOSIP Services</text>
   <text x="480" y="380" text-anchor="middle" class="component-text">NGINX + NFS</text>
@@ -154,12 +154,12 @@
   
   <!-- Azure State -->
   <ellipse cx="550" cy="450" rx="85" ry="42" fill="#FEF2F2" stroke="#EF4444" stroke-width="2.5"/>
-  <text x="550" y="445" text-anchor="middle" class="component-title">Storage State</text>
+  <text x="550" y="445" text-anchor="middle" class="component-title">no Terraform state</text>
   <text x="550" y="460" text-anchor="middle" class="state-text">Branch Isolated</text>
   
   <!-- GCP Cloud -->
   <rect x="750" y="170" width="300" height="400" rx="12" fill="#FEFCE8" stroke="#EAB308" stroke-width="2.5" opacity="0.95" filter="url(#drop-shadow)"/>
-  <text x="900" y="195" text-anchor="middle" class="cloud-title">GCP Cloud</text>
+  <text x="900" y="195" text-anchor="middle" class="cloud-title">GCP (your VMs)</text>
   
   <!-- GCP base-infra -->
   <rect x="770" y="210" width="120" height="80" rx="6" fill="#EFF6FF" stroke="#3B82F6" stroke-width="2"/>
@@ -168,16 +168,16 @@
   <text x="830" y="265" text-anchor="middle" class="component-text">WireGuard VPN</text>
   <text x="830" y="280" text-anchor="middle" class="component-text">Compute Engine</text>
   
-  <!-- GCP observ-infra -->
+  <!-- GCP observ profile -->
   <rect x="910" y="210" width="120" height="80" rx="6" fill="#FFFBEB" stroke="#F59E0B" stroke-width="2"/>
-  <text x="970" y="235" text-anchor="middle" class="component-title">observ-infra</text>
+  <text x="970" y="235" text-anchor="middle" class="component-title">profile: observ</text>
   <text x="970" y="250" text-anchor="middle" class="component-text">RKE2 Cluster</text>
   <text x="970" y="265" text-anchor="middle" class="component-text">Rancher UI</text>
   <text x="970" y="280" text-anchor="middle" class="component-text">Keycloak</text>
   
   <!-- GCP infra -->
   <rect x="770" y="310" width="120" height="80" rx="6" fill="#F3F4F6" stroke="#8B5CF6" stroke-width="2"/>
-  <text x="830" y="335" text-anchor="middle" class="component-title">infra</text>
+  <text x="830" y="335" text-anchor="middle" class="component-title">profile: mosip / esignet</text>
   <text x="830" y="350" text-anchor="middle" class="component-text">RKE2 Cluster</text>
   <text x="830" y="365" text-anchor="middle" class="component-text">MOSIP Services</text>
   <text x="830" y="380" text-anchor="middle" class="component-text">NGINX + NFS</text>
@@ -191,7 +191,7 @@
   
   <!-- GCP State -->
   <ellipse cx="900" cy="450" rx="85" ry="42" fill="#FEF2F2" stroke="#EF4444" stroke-width="2.5"/>
-  <text x="900" y="445" text-anchor="middle" class="component-title">GCS State Files</text>
+  <text x="900" y="445" text-anchor="middle" class="component-title">no Terraform state</text>
   <text x="900" y="460" text-anchor="middle" class="state-text">Branch Isolated</text>
   
   <!-- GitHub Actions to Cloud arrows -->
@@ -234,16 +234,16 @@
   <text x="110" y="672" class="component-text">base-infra: Foundation (VPC, WireGuard VPN, Jumpserver)</text>
   
   <rect x="80" y="680" width="20" height="15" rx="3" fill="#FFFBEB" stroke="#F59E0B" stroke-width="1.5"/>
-  <text x="110" y="692" class="component-text">observ-infra: Management (RKE2, Rancher UI, Keycloak) - Optional</text>
+  <text x="110" y="692" class="component-text">profile observ: Management (RKE2, Rancher UI, Keycloak) - Optional</text>
   
   <rect x="80" y="700" width="20" height="15" rx="3" fill="#F3F4F6" stroke="#8B5CF6" stroke-width="1.5"/>
-  <text x="110" y="712" class="component-text">infra: MOSIP Application (RKE2 Clusters, NGINX, NFS, Databases)</text>
+  <text x="110" y="712" class="component-text">mosip / esignet profiles: Terraform components on AWS + Ansible (RKE2, NGINX, NFS, DBs)</text>
   
   <rect x="80" y="720" width="20" height="15" rx="3" fill="#F0FDF4" stroke="#22C55E" stroke-width="1.5"/>
   <text x="110" y="732" class="component-text">Multiple Environments: Production, Staging, Development</text>
   
   <ellipse cx="90" cy="750" rx="15" ry="8" fill="#FEF2F2" stroke="#EF4444" stroke-width="1.5"/>
-  <text x="110" y="755" class="component-text">State Files: Isolated per branch and cloud provider</text>
+  <text x="110" y="755" class="component-text">State: one per component · profile · branch</text>
   
   <!-- Legend arrows -->
   <line x1="600" y1="660" x2="650" y2="660" class="arrow"/>
