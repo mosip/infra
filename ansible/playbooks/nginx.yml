@@ -1,0 +1,12 @@
+---
+# Run: ansible-playbook -i <inventory> ansible/playbooks/nginx.yml
+# Obtains the TLS certificate (role `tls`: byo | http01 | dns01) and then
+# installs nginx from k8s-infra. Run after DNS is in place — see
+# docs/DEPLOYMENT_SEQUENCE.md.
+- name: Configure TLS + nginx
+  hosts: nginx
+  become: false
+  gather_facts: true
+  roles:
+    - tls
+    - nginx
