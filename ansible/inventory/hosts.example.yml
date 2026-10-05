@@ -31,6 +31,15 @@ vars:
   # dns01_plugin_install: pip
   # dns01_credentials_file: /path/to/godaddy.ini
 
+  # ---- DNS records ----
+  # Created by the dns play when dns_provider is set; otherwise your DNS
+  # team creates them before site.yml (see docs/DATACENTRE_DEPLOYMENT.md).
+  # dns_provider: godaddy        # godaddy | rfc2136 | cloudflare | route53 | manual
+  # dns_zone: "mosip.gov.example"   # zone apex, if different from cluster_env_domain
+  # dns_godaddy_key / dns_godaddy_secret, dns_cloudflare_api_token,
+  # dns_rfc2136_server / dns_rfc2136_key_name / dns_rfc2136_key_secret
+  #   → pass from a vault file: -e @secrets.yml
+
   # ---- DNS gate ----
   # Public/NAT address api.<domain> must resolve to. Leave unset to only
   # check the name resolves.

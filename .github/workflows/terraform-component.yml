@@ -53,6 +53,11 @@ on:
         type: string
         required: false
         default: ''
+      EXTRA_VARS:
+        description: Extra -var flags (e.g. -var=attach_certbot_profile=false)
+        type: string
+        required: false
+        default: ''
     outputs:
       outcome:
         description: success | failure | skipped
@@ -121,6 +126,7 @@ jobs:
           done
           VAR_ARGS=""
           for f in "${VAR_FILES[@]}"; do VAR_ARGS="$VAR_ARGS -var-file=$f"; done
+          VAR_ARGS="$VAR_ARGS ${{ inputs.EXTRA_VARS }}"
           echo "TF_VAR_ARGS=$VAR_ARGS" >> "$GITHUB_ENV"
           echo "PROFILE_ARG=$PROFILE_ARG" >> "$GITHUB_ENV"
           echo "Root: $(pwd)"

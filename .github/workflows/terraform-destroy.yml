@@ -7,6 +7,10 @@
 #
 # Data-centre VMs aren't managed by Terraform; there is nothing to destroy
 # here for them.
+#
+# DNS_PROVIDER must match the one used to deploy. For providers other than
+# terraform-route53 the records were created by Ansible: remove them with
+#   ansible-playbook -i inventory.yml ansible/playbooks/dns.yml -e dns_state=absent
 name: terraform destroy
 
 on:
@@ -53,6 +57,12 @@ on:
         required: false
         type: boolean
         default: false
+      DNS_PROVIDER:
+        description: 'Must match the deploy. Non-Route53 providers skip the Terraform dns + iam components.'
+        required: false
+        type: choice
+        options: [terraform-route53, godaddy, cloudflare, rfc2136, manual]
+        default: terraform-route53
 
 jobs:
   validate:
@@ -98,7 +108,7 @@ jobs:
 
   dns:
     needs: validate
-    if: ${{ inputs.COMPONENT == 'dns' || inputs.COMPONENT == 'all' }}
+    if: ${{ inputs.COMPONENT == 'dns' || (inputs.COMPONENT == 'all' && inputs.DNS_PROVIDER == 'terraform-route53') }}
     uses: ./.github/workflows/terraform-component.yml
     secrets: inherit
     with:
@@ -113,7 +123,7 @@ jobs:
 
   storage:
     needs: [validate, dns]
-    if: ${{ always() && needs.validate.result == 'success' && (inputs.COMPONENT == 'storage' || (inputs.COMPONENT == 'all' && needs.dns.result == 'success')) }}
+    if: ${{ always() && needs.validate.result == 'success' && (inputs.COMPONENT == 'storage' || (inputs.COMPONENT == 'all' && (needs.dns.result == 'success' || (inputs.DNS_PROVIDER != 'terraform-route53' && needs.dns.result == 'skipped')))) }}
     uses: ./.github/workflows/terraform-component.yml
     secrets: inherit
     with:
@@ -140,10 +150,11 @@ jobs:
       BACKEND_TYPE: ${{ inputs.BACKEND_TYPE }}
       REMOTE_BACKEND_CONFIG: ${{ inputs.REMOTE_BACKEND_CONFIG }}
       ENABLE_STATE_LOCKING: ${{ inputs.ENABLE_STATE_LOCKING }}
+      EXTRA_VARS: ${{ inputs.DNS_PROVIDER != 'terraform-route53' && '-var=attach_certbot_profile=false' || '' }}
 
   iam:
     needs: [validate, compute]
-    if: ${{ always() && needs.validate.result == 'success' && (inputs.COMPONENT == 'iam' || (inputs.COMPONENT == 'all' && needs.compute.result == 'success')) }}
+    if: ${{ always() && needs.validate.result == 'success' && (inputs.COMPONENT == 'iam' || (inputs.COMPONENT == 'all' && inputs.DNS_PROVIDER == 'terraform-route53' && needs.compute.result == 'success')) }}
     uses: ./.github/workflows/terraform-component.yml
     secrets: inherit
     with:
@@ -157,8 +168,8 @@ jobs:
       ENABLE_STATE_LOCKING: ${{ inputs.ENABLE_STATE_LOCKING }}
 
   security:
-    needs: [validate, iam]
-    if: ${{ always() && needs.validate.result == 'success' && (inputs.COMPONENT == 'security' || (inputs.COMPONENT == 'all' && needs.iam.result == 'success')) }}
+    needs: [validate, compute, iam]
+    if: ${{ always() && needs.validate.result == 'success' && (inputs.COMPONENT == 'security' || (inputs.COMPONENT == 'all' && needs.compute.result == 'success' && (needs.iam.result == 'success' || (inputs.DNS_PROVIDER != 'terraform-route53' && needs.iam.result == 'skipped')))) }}
     uses: ./.github/workflows/terraform-component.yml
     secrets: inherit
     with:
