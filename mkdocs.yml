@@ -95,7 +95,6 @@ plugins:
   - redirects:
       # Old file locations keep working after the docs restructure.
       redirect_maps:
-        README.md: index.md
         SECRET_GENERATION_GUIDE.md: getting-started/secrets.md
         DATACENTRE_DEPLOYMENT.md: getting-started/quickstart-datacentre.md
         WORKFLOW_GUIDE.md: getting-started/github-actions.md
