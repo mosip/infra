@@ -1,0 +1,126 @@
+# MOSIP Infra documentation site.
+#   pip install -r docs/requirements.txt
+#   mkdocs serve          # http://127.0.0.1:8000
+#   mkdocs build --strict
+site_name: MOSIP Infra
+site_description: Deploy MOSIP infrastructure on AWS or on your own data-centre VMs
+site_url: https://mosip.github.io/infra/
+repo_url: https://github.com/mosip/infra
+repo_name: mosip/infra
+edit_uri: edit/develop/docs/
+docs_dir: docs
+copyright: MOSIP — Modular Open Source Identity Platform
+
+# Legacy guides at the top of docs/ are moved into the sections below in the
+# full implementation; until then they're kept out of the site build.
+exclude_docs: |
+  /*.md
+  !/index.md
+  /_images/*.md
+  /*.drawio
+  /_images/*.drawio
+  /requirements.txt
+
+theme:
+  name: material
+  logo: _images/MOSIP_Black.svg
+  favicon: _images/MOSIP_Black.svg
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - navigation.indexes
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+    - content.action.edit
+  icon:
+    repo: fontawesome/brands/github
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - def_list
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+# Material picks up an already-loaded Mermaid; served from jsdelivr.
+extra_javascript:
+  - https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/mosip/infra
+
+nav:
+  - Home: index.md
+  - Overview:
+      - Introduction: overview/introduction.md
+      - Architecture: overview/architecture.md
+      - Concepts: overview/concepts.md
+      - Supported platforms: overview/supported-platforms.md
+  - Getting started:
+      - Prerequisites: getting-started/prerequisites.md
+      - Secrets & configuration: getting-started/secrets.md
+      - "Quickstart: AWS": getting-started/quickstart-aws.md
+      - "Quickstart: data centre": getting-started/quickstart-datacentre.md
+      - Deploy MOSIP services: getting-started/deploy-mosip.md
+  - How-to guides:
+      - Choose or add a profile: guides/profiles.md
+      - DNS providers: guides/dns-providers.md
+      - TLS certificates: guides/tls-certificates.md
+      - Add or remove nodes: guides/scaling-nodes.md
+      - Standalone VM: guides/standalone-vm.md
+      - Observability cluster & Rancher: guides/observability-rancher.md
+      - WireGuard access: guides/wireguard.md
+      - Destroy an environment: guides/destroy.md
+  - Reference:
+      - Workflow inputs: reference/workflow-inputs.md
+      - Terraform components: reference/terraform-components.md
+      - Ansible roles: reference/ansible-roles.md
+      - profile.yml & hosts.yml: reference/schemas.md
+      - State & backends: reference/state-backends.md
+      - Repository layout: reference/repository-layout.md
+  - Troubleshooting:
+      - Error catalogue: troubleshooting/errors.md
+      - FAQ: troubleshooting/faq.md
+  - Glossary: glossary/index.md
+  - Release notes: release-notes/index.md
