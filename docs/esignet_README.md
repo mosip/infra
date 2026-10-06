@@ -233,11 +233,9 @@ Custom Helm values are stored in:
 - **(7)** **Delete existing onboarder jobs before deploy** (checkbox) — only tick this when re-running after a failure. Leave unticked on a first-time deploy.
 - **(8)** **Domain name for this environment** — type the web domain this environment should use (e.g., `example.xyz.net`).
 - **(9)** **PostgreSQL port for esignet databases** — type `5432` for eSignet standalone, or `5433` if this is part of a MOSIP platform profile.
-- **(10)** **MOSIP-ID1 domain name** *(eSignet standalone only)* — base domain for the MOSIP-ID1 eSignet instance (e.g., `mosipid1.xyz.net`). Leave blank if you're not deploying MOSIP-ID1.
-- **(11)** **Enable MOSIP-ID2 eSignet instance** *(eSignet standalone only)* — toggle to `true` to deploy the MOSIP-ID2 instance (softhsm, esignet, oidc-ui, mock-rp). Leave `false` to skip it entirely.
-- **(12)** **MOSIP-ID2 domain name** *(eSignet standalone only, required if enable_mosipid2 is true)* — base domain for the MOSIP-ID2 eSignet instance (e.g., `mosipid2.xyz.net`).
-- **(13)** **Environment name** — a short nickname for this environment (e.g., `sandbox`, `dev`, `staging`).
-- **(14)** Click the green **Run workflow** button to start the deployment.
+- **(10)** **MOSIP-ID domain name** *(eSignet standalone only)* — base domain for the MOSIP-ID eSignet instance (e.g., `mosipid.xyz.net`). Leave blank if you're not deploying MOSIP-ID.
+- **(11)** **Environment name** — a short nickname for this environment (e.g., `sandbox`, `dev`, `staging`).
+- **(12)** Click the green **Run workflow** button to start the deployment.
 
 ---
 
@@ -258,9 +256,7 @@ Custom Helm values are stored in:
 | `mode` | `dry-run` or `apply` | Yes | Always use `apply` — dry-run will fail |
 | `domain_name` | Your base domain | Yes | Or set `vars.DOMAIN_NAME` in GitHub Environment |
 | `esignet_db_port` | PostgreSQL port for esignet databases | Yes | `5433` for MOSIP platform external postgres, `5432` for eSignet standalone (or `vars.ESIGNET_DB_PORT`) |
-| `mosipid1_domain_name` | Base domain for the MOSIP-ID1 eSignet instance | No | eSignet standalone only — leave blank otherwise (or `vars.MOSIPID1_DOMAIN_NAME`) |
-| `enable_mosipid2` | Deploy MOSIP-ID2 eSignet instance | No | Toggle `true` to deploy softhsm, esignet, oidc-ui, mock-rp for mosipid2; default `false` |
-| `mosipid2_domain_name` | Base domain for the MOSIP-ID2 eSignet instance | No | Required only if `enable_mosipid2` is `true` (or `vars.MOSIPID2_DOMAIN_NAME`) |
+| `mosipid_domain_name` | Base domain for the MOSIP-ID eSignet instance | No | eSignet standalone only — leave blank otherwise (or `vars.MOSIPID_DOMAIN_NAME`) |
 | `env_name` | Environment name shown on the landing page | Yes | Or set `vars.ENV_NAME` in GitHub Environment |
 | `skip_mosip_dsf_check` | Skip MOSIP DSF completion check | No | Tick for eSignet standalone deploys; default `false` otherwise |
 | `delete_existing_jobs` | Delete stale onboarder jobs before deploy | No | Set `true` when re-running after a failure |
