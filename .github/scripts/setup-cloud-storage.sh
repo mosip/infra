@@ -2,7 +2,7 @@
 
 # MOSIP Cloud-Agnostic Remote Storage Setup Script
 # Handles remote storage setup for Terraform state across AWS, Azure, and GCP
-# Supports all workflow inputs: providers (aws, azure, gcp), components (base-infra, infra, observ-infra), and backend types
+# Supports all workflow inputs: providers (aws, azure, gcp), components (base-infra, security, iam, compute, storage, dns, vm), and backend types
 
 set -e  # Exit on any error
 
@@ -13,7 +13,7 @@ usage() {
     echo "  -p, --provider        Cloud provider: aws, azure, gcp (required)"
     echo "  -c, --config          Remote backend config string (required)"
     echo "  -b, --branch          Branch name for resource naming (required)"
-    echo "  -t, --component       Component type: base-infra, infra, observ-infra (optional, for validation)"
+    echo "  -t, --component       Component type: base-infra, security, iam, compute, storage, dns, vm (optional, for validation)"
     echo "  --enable-locking      Enable state locking (optional, for production)"
     echo "  -h, --help            Show this help message"
     echo ""
@@ -24,13 +24,14 @@ usage() {
     echo ""
     echo "Supported combinations:"
     echo "  Providers: aws, azure, gcp"
-    echo "  Components: base-infra (one-time), infra (can be destroyed/recreated), observ-infra (can be destroyed/recreated)"
+    echo "  Components: base-infra (one-time), security/iam/compute/storage/dns/vm (terraform/implementations/{provider}/{component}, destroyable)"
+    echo "              security/iam/compute/storage/dns/vm (terraform/implementations/{provider}/{component}, destroyable)"
     echo "  Backends: local, remote (this script handles remote only)"
     echo ""
     echo "Examples:"
-    echo "  $0 --provider aws --config 'aws:mosip-state:us-east-1' --branch main --component infra"
+    echo "  $0 --provider aws --config 'aws:mosip-state:us-east-1' --branch main --component compute"
     echo "  $0 --provider azure --config 'azure:mosip-rg:mosipstate:terraform-state' --branch main --component base-infra"
-    echo "  $0 --provider gcp --config 'gcp:mosip-terraform-state:us-central1' --branch main --component observ-infra"
+    echo "  $0 --provider gcp --config 'gcp:mosip-terraform-state:us-central1' --branch main --component compute"
 }
 
 # Default values
@@ -90,9 +91,10 @@ if [[ ! "$CLOUD_PROVIDER" =~ ^(aws|azure|gcp)$ ]]; then
 fi
 
 # Validate component if provided
-if [ -n "$COMPONENT" ] && [[ ! "$COMPONENT" =~ ^(base-infra|infra|observ-infra)$ ]]; then
+# See configure-backend.sh for why "configure" isn't accepted here.
+if [ -n "$COMPONENT" ] && [[ ! "$COMPONENT" =~ ^(base-infra|security|iam|compute|storage|dns|vm)$ ]]; then
     echo "Error: Invalid component '$COMPONENT'"
-    echo "Valid components: base-infra, infra, observ-infra"
+    echo "Valid components: base-infra, security, iam, compute, storage, dns, vm"
     exit 1
 fi
 
@@ -125,7 +127,7 @@ setup_aws_s3() {
     
     # SECURITY IMPROVEMENT: Create component-specific buckets for better isolation
     # For production, recommended pattern: bucket-base-component-branch
-    # e.g., mosip-state-base-infra-main, mosip-state-infra-main, mosip-state-observ-infra-main
+    # e.g., mosip-state-base-infra-main, mosip-state-compute-main, mosip-state-dns-main
     local bucket_name
     
     # Check if bucket_base_name already includes component (for backwards compatibility)
@@ -145,8 +147,7 @@ setup_aws_s3() {
     echo ""
     echo "SECURITY NOTE: Using component-specific bucket for better isolation"
     echo "  - base-infra: Contains VPC, networking (high security)"
-    echo "  - infra: Contains applications (medium security)"  
-    echo "  - observ-infra: Contains monitoring (low security)"
+    echo "  - security/iam/compute/storage/dns/vm: one bucket per component (per-profile state keys inside)"
     
     # Check if bucket exists
     if aws s3api head-bucket --bucket "$bucket_name" 2>/dev/null; then
@@ -462,7 +463,7 @@ case "$CLOUD_PROVIDER" in
             exit 1
         fi
         
-        setup_aws_s3 "$BUCKET_BASE_NAME" "$REGION" "$BRANCH_NAME" "${COMPONENT:-infra}" "$ENABLE_LOCKING"
+        setup_aws_s3 "$BUCKET_BASE_NAME" "$REGION" "$BRANCH_NAME" "${COMPONENT:-compute}" "$ENABLE_LOCKING"
         ;;
         
     azure)
@@ -480,7 +481,7 @@ case "$CLOUD_PROVIDER" in
             exit 1
         fi
         
-        setup_azure_storage "$RESOURCE_GROUP" "$STORAGE_ACCOUNT" "$CONTAINER" "$BRANCH_NAME" "${COMPONENT:-infra}" "$ENABLE_LOCKING"
+        setup_azure_storage "$RESOURCE_GROUP" "$STORAGE_ACCOUNT" "$CONTAINER" "$BRANCH_NAME" "${COMPONENT:-compute}" "$ENABLE_LOCKING"
         ;;
         
     gcp)
@@ -497,7 +498,7 @@ case "$CLOUD_PROVIDER" in
             exit 1
         fi
         
-        setup_gcp_storage "$BUCKET_BASE_NAME" "$REGION" "$BRANCH_NAME" "${COMPONENT:-infra}" "$ENABLE_LOCKING"
+        setup_gcp_storage "$BUCKET_BASE_NAME" "$REGION" "$BRANCH_NAME" "${COMPONENT:-compute}" "$ENABLE_LOCKING"
         ;;
         
     *)

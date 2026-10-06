@@ -331,7 +331,7 @@ logging.basicConfig(level=logging.DEBUG)
 - [Keycloak Admin REST API](https://www.keycloak.org/docs-api/latest/rest-api/)
 - [Rancher API Documentation](https://rancher.com/docs/rancher/v2.x/en/api/)
 - [SAML 2.0 Specification](http://docs.oasis-open.org/security/saml/Post2.0/sstc-saml-tech-overview-2.0.html)
-- [GitHub Actions Workflow Guide](../docs/WORKFLOW_GUIDE.md)
+- [GitHub Actions Workflow Guide](../docs/getting-started/github-actions.md)
 
 ---
 

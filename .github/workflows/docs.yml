@@ -1,0 +1,71 @@
+# Documentation site (mkdocs.yml at the repo root).
+#
+# - Pull requests: strict build only (broken links, pages missing from nav).
+# - Push to develop (mosip/infra) or the docs branch (fork preview), or a
+#   manual run: build and publish to GitHub Pages.
+#
+# One-time setup per repository: Settings → Pages → Source: GitHub Actions,
+# and allow the publishing branch under Settings → Environments → github-pages.
+name: docs
+
+on:
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - '.github/workflows/docs.yml'
+  push:
+    branches:
+      - develop
+      - 273-v2/08-docs-site
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - '.github/workflows/docs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: docs/requirements.txt
+
+      - name: Install MkDocs
+        run: pip install -r docs/requirements.txt
+
+      - name: Build (strict)
+        run: mkdocs build --strict --site-dir site
+
+      - name: Upload site
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    if: ${{ github.event_name != 'pull_request' }}
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publish to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

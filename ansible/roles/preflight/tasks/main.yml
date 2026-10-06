@@ -1,0 +1,126 @@
+---
+# Runs once, on the nginx host, before anything is configured. Everything
+# here is read-only.
+
+- name: Check inventory shape
+  ansible.builtin.assert:
+    that:
+      - groups['nginx'] | default([]) | length == 1
+      - groups['control_plane'] | default([]) | length >= 1
+      - configure_components | length > 0
+    fail_msg: >-
+      Inventory must have exactly one host in group 'nginx', at least one in
+      'control_plane', and a non-empty configure_components list. Generate it
+      with ansible/inventory/generate.py.
+    quiet: true
+
+- name: Check required variables
+  ansible.builtin.assert:
+    that:
+      - vars[item] is defined
+      - vars[item] | string | length > 0
+    fail_msg: "Required variable '{{ item }}' is missing or empty"
+    quiet: true
+  loop:
+    - cluster_name
+    - cluster_env_domain
+    - k8s_infra_repo_url
+    - k8s_infra_branch
+    - k8s_primary_control_plane_ip
+    - k8s_node_ips_joined
+
+- name: Check the Rancher bootstrap password is supplied
+  ansible.builtin.assert:
+    that: rancher_password | default('') | length > 0
+    fail_msg: "profile runs rancher_keycloak but rancher_password is not set (pass it from a secret)"
+    quiet: true
+  when: "'rancher_keycloak' in configure_components"
+
+- name: Check the Rancher import command is supplied
+  ansible.builtin.assert:
+    that: rancher_import_url | default('') | length > 0
+    fail_msg: "enable_rancher_import is true but rancher_import_url is not set"
+    quiet: true
+  when:
+    - "'rancher_import' in configure_components"
+    - enable_rancher_import | default(false) | bool
+
+- name: Build the list of data disks this run needs
+  ansible.builtin.set_fact:
+    preflight_devices: >-
+      {{
+        ([{'component': 'nfs', 'device': nfs_storage_device | default('/dev/nvme1n1')}] if 'nfs' in configure_components else [])
+        + ([{'component': 'postgresql', 'device': storage_device | default('/dev/nvme2n1')}] if 'postgresql' in configure_components else [])
+        + ([{'component': 'activemq', 'device': activemq_storage_device | default('/dev/nvme3n1')}] if 'activemq' in configure_components else [])
+      }}
+
+- name: Check data disks exist on the nginx host
+  ansible.builtin.stat:
+    path: "{{ item.device }}"
+  loop: "{{ preflight_devices }}"
+  loop_control:
+    label: "{{ item.component }}: {{ item.device }}"
+  register: preflight_device_stat
+
+- name: Fail on missing data disks
+  ansible.builtin.assert:
+    that: missing | length == 0
+    fail_msg: >-
+      Data disk(s) not found on {{ inventory_hostname }}: {{ missing | join(', ') }}.
+      Attach the disk (AWS: apply the storage component) or set the matching
+      *_storage_device variable to the right block device.
+    quiet: true
+  vars:
+    missing: >-
+      {{ preflight_device_stat.results | rejectattr('stat.exists')
+         | map(attribute='item') | map(attribute='device') | list }}
+
+- name: DNS gate (DNS must be in place before nginx)
+  when:
+    - "'nginx' in configure_components"
+    - preflight_dns_check != 'skip'
+  block:
+    # Records just created by the dns play can take a while to propagate,
+    # so keep resolving for up to preflight_dns_retries × 10 s.
+    - name: Resolve api.{{ cluster_env_domain }}
+      ansible.builtin.command:
+        cmd: "getent ahostsv4 api.{{ cluster_env_domain }}"
+      register: preflight_dns
+      changed_when: false
+      failed_when: false
+      until: >-
+        preflight_dns.rc == 0 and (dns_expected_ip | length == 0
+        or dns_expected_ip in (preflight_dns.stdout_lines | map('split') | map('first') | list))
+      retries: "{{ preflight_dns_retries | int }}"
+      delay: 10
+
+    - name: Collect resolved addresses
+      ansible.builtin.set_fact:
+        preflight_dns_ips: "{{ preflight_dns.stdout_lines | map('split') | map('first') | unique | list }}"
+        preflight_dns_strict: "{{ preflight_dns_check == 'fail' or (preflight_dns_check == 'auto' and tls_mode == 'http01') }}"
+
+    - name: Compare with the expected address
+      ansible.builtin.set_fact:
+        preflight_dns_ok: >-
+          {{ preflight_dns.rc == 0 and (dns_expected_ip | length == 0 or dns_expected_ip in preflight_dns_ips) }}
+
+    - name: DNS is not ready (blocking)
+      ansible.builtin.fail:
+        msg: >-
+          api.{{ cluster_env_domain }} resolves to {{ preflight_dns_ips }},
+          expected {{ dns_expected_ip if dns_expected_ip | length > 0 else 'any address' }}.
+          Apply the dns component (or have your DNS team create the records) before nginx.
+      when:
+        - not preflight_dns_ok | bool
+        - preflight_dns_strict | bool
+
+    - name: DNS is not ready (warning)
+      ansible.builtin.debug:
+        msg: >-
+          WARNING: api.{{ cluster_env_domain }} resolves to {{ preflight_dns_ips }},
+          expected {{ dns_expected_ip if dns_expected_ip | length > 0 else 'any address' }}.
+          tls_mode={{ tls_mode }} doesn't need it for the certificate, but DNS
+          comes before nginx and apps stay unreachable until it's fixed.
+      when:
+        - not preflight_dns_ok | bool
+        - not preflight_dns_strict | bool

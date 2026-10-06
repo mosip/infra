@@ -1,0 +1,78 @@
+# Data-centre / pre-created VMs: the only file an operator writes.
+# Full guide: docs/getting-started/quickstart-datacentre.md
+#
+#   cp ansible/inventory/hosts.example.yml my-hosts.yml   # fill it in
+#   python3 ansible/inventory/generate.py --profile profiles/mosip \
+#       --from-hosts my-hosts.yml -o inventory.yml
+#   ansible-playbook -i inventory.yml ansible/site.yml
+#
+# Host names in the generated inventory follow the AWS convention
+# (<cluster>-CONTROL-PLANE-NODE-1, ...) so every role behaves identically.
+# DNS must already point at nginx before site.yml runs — see
+# docs/overview/deployment-sequence.md.
+
+vars:
+  # ---- identity ----
+  cluster_name: "<cluster-name>"
+  cluster_env_domain: "<cluster-env-domain>"   # e.g. mosip.gov.example
+  certbot_email: "<email-id>"                  # not needed with tls_mode: byo
+
+  # ---- TLS: pick one mode ----
+  tls_mode: byo              # byo | http01 | dns01
+  # byo: controller-side paths (fullchain = cert + intermediates)
+  tls_cert_file: "/path/to/fullchain.pem"
+  tls_key_file: "/path/to/privkey.pem"
+  # dns01 with a non-route53 provider:
+  # tls_mode: dns01
+  # dns01_provider: cloudflare            # any certbot dns-<provider> plugin
+  # dns01_credentials_file: /path/to/cloudflare.ini
+  # dns01 via GoDaddy (not packaged by Ubuntu, installed from pip):
+  # dns01_provider: godaddy
+  # dns01_plugin_install: pip
+  # dns01_credentials_file: /path/to/godaddy.ini
+
+  # ---- DNS records ----
+  # Created by the dns play when dns_provider is set; otherwise your DNS
+  # team creates them before site.yml (see docs/getting-started/quickstart-datacentre.md).
+  # dns_provider: godaddy        # godaddy | rfc2136 | cloudflare | route53 | manual
+  # dns_zone: "mosip.gov.example"   # zone apex, if different from cluster_env_domain
+  # dns_godaddy_key / dns_godaddy_secret, dns_cloudflare_api_token,
+  # dns_rfc2136_server / dns_rfc2136_key_name / dns_rfc2136_key_secret
+  #   → pass from a vault file: -e @secrets.yml
+
+  # ---- DNS gate ----
+  # Public/NAT address api.<domain> must resolve to. Leave unset to only
+  # check the name resolves.
+  # dns_expected_ip: "203.0.113.10"
+
+  # ---- data disks on the nginx host (AWS defaults are /dev/nvme*n1) ----
+  nfs_storage_device: "/dev/sdb"
+  storage_device: "/dev/sdc"             # postgresql, if the profile runs it
+  activemq_storage_device: "/dev/sdd"    # activemq, if the profile runs it
+
+  # ---- Rancher import (profiles that list rancher_import) ----
+  enable_rancher_import: false
+  # rancher_import_url: "kubectl apply -f https://<rancher-host>/v3/import/<id>.yaml"
+
+  # ---- SSH ----
+  ansible_user: ubuntu
+  ansible_ssh_private_key_file: "/path/to/ssh-key"
+
+# The nginx / reverse-proxy host (also NFS server and postgres/activemq host).
+nginx:
+  address: "10.10.0.10"        # address Ansible connects to
+  # public_ip: "203.0.113.10"  # optional; used as the default dns_expected_ip
+
+# RKE2 nodes. The first control_plane entry is the primary. Leave etcd /
+# workers empty (or omit them) when the cluster has no dedicated nodes.
+control_plane:
+  - "10.10.1.10"
+  - "10.10.1.11"
+  - "10.10.1.12"
+etcd:
+  - "10.10.2.10"
+  - "10.10.2.11"
+  - "10.10.2.12"
+workers:
+  - "10.10.3.10"
+  - "10.10.3.11"
