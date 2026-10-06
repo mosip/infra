@@ -157,6 +157,12 @@ variable "zone_id" {
   type        = string
 }
 
+variable "enable_route53_records" {
+  description = "Whether to create Route53 DNS records. Set to false when the domain's authoritative DNS is not Route53 (e.g. Azure DNS, Cloudflare, GoDaddy)."
+  type        = bool
+  default     = true
+}
+
 variable "vpc_name" {
   description = "Name of the existing VPC (will be discovered by tag:Name)"
   type        = string

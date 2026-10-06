@@ -124,6 +124,7 @@ module "aws-resource-creation" {
   NGINX_INSTANCE_TYPE           = var.NGINX_INSTANCE_TYPE
   CLUSTER_ENV_DOMAIN            = var.CLUSTER_ENV_DOMAIN
   ZONE_ID                       = var.ZONE_ID
+  ENABLE_ROUTE53_RECORDS        = var.ENABLE_ROUTE53_RECORDS
   AMI                           = var.AMI
   K8S_INSTANCE_ROOT_VOLUME_SIZE = var.K8S_INSTANCE_ROOT_VOLUME_SIZE
 

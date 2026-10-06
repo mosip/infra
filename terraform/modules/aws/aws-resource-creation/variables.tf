@@ -43,6 +43,11 @@ variable "NGINX_INSTANCE_TYPE" {
 }
 variable "CLUSTER_ENV_DOMAIN" { type = string }
 variable "ZONE_ID" { type = string }
+variable "ENABLE_ROUTE53_RECORDS" {
+  description = "Whether to create Route53 DNS records. Set to false when the domain's authoritative DNS is not Route53 (e.g. Azure DNS, Cloudflare, GoDaddy) — infrastructure is still created, just without Route53 records."
+  type        = bool
+  default     = true
+}
 variable "NGINX_NODE_ROOT_VOLUME_SIZE" { type = number }
 variable "NGINX_NODE_EBS_VOLUME_SIZE" { type = number }
 variable "NGINX_NODE_EBS_VOLUME_SIZE_2" { type = number }

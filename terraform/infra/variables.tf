@@ -168,6 +168,12 @@ variable "zone_id" {
   default     = ""
 }
 
+variable "enable_route53_records" {
+  description = "Whether to create Route53 DNS records (AWS only). Set to false when the domain's authoritative DNS is not Route53."
+  type        = bool
+  default     = true
+}
+
 variable "vpc_name" {
   description = "Name of the existing VPC (will be discovered by tag:Name)"
   type        = string

@@ -36,6 +36,7 @@ module "aws_observ_infra" {
   ssh_key_name                  = var.ssh_key_name
   ssh_private_key               = var.ssh_private_key
   zone_id                       = var.zone_id
+  enable_route53_records        = var.enable_route53_records
   vpc_name                      = var.vpc_name
   mosip_email_id                = var.mosip_email_id
   subdomain_public              = var.subdomain_public
