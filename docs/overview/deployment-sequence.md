@@ -4,6 +4,78 @@ MOSIP infrastructure is built in layers. Each Terraform component has its own
 state and can be run on its own; Layer 3 is Ansible and runs identically on
 AWS and on data-centre VMs.
 
+## End-to-end flow
+
+From a fresh fork to a running MOSIP deployment:
+
+```mermaid
+%%{init: {'theme': 'neutral'}}%%
+graph TB
+    %% Prerequisites
+    A[Fork Repository] --> B[Configure Secrets]
+    B --> C{Where do the<br/>hosts come from?}
+
+    %% Infrastructure Phase
+    C -->|AWS| D[Terraform: base-infra<br/>VPC, Networking, WireGuard]
+    C -->|Data centre / any VMs| DCV[Pre-created VMs + hosts.yml<br/>DNS by DNS team<br/>Ansible only - no Terraform]
+    DCV --> PS
+    D --> OBS{Deploy<br/>Observability?}
+    OBS -->|Yes| F[Terraform + Ansible<br/>profile: observ<br/>Rancher UI + Keycloak]
+    OBS -->|No| PS
+    F --> PS
+
+    %% Profile selection (same profiles on AWS and data centre)
+    PS{Select<br/>Profile}
+    PS -->|esignet-standalone| TF_ES[Terraform + Ansible<br/>profile: esignet-standalone]
+    PS -->|mosip| TF_MP[Terraform + Ansible<br/>profile: mosip]
+
+    %% ── eSignet Standalone Flow — Helmsman profile: esignet ─────
+    TF_ES --> ES_EXT[Helmsman: Prereqs + External<br/>profile: esignet-standalone]
+    ES_EXT --> ES_ESIGNET[Helmsman: eSignet Standalone<br/>4 parallel namespaces]
+
+    ES_ESIGNET --> NS1[esignet mock plugin]
+    ES_ESIGNET --> NS2[mosip-identity plugin]
+    ES_ESIGNET --> NS4[sunbird-rc plugin]
+
+    NS1 --> ES_TRIGS[Helmsman: Testrigs]
+    NS2 --> ES_TRIGS
+    NS4 --> ES_TRIGS
+
+    %% ── MOSIP Platform Flow — Helmsman profile selection ────────
+    TF_MP --> MP_VER{Helmsman<br/>Profile}
+    MP_VER -->|mosip-platform-1.2.0.x| MP_EXT[Helmsman: Prereqs + External]
+    MP_VER -->|mosip-platform-1.2.1.x| MP_EXT
+    MP_EXT --> MP_MOSIP[Helmsman: MOSIP Core<br/>auto-triggered]
+    MP_MOSIP --> MP_ESIGNET[Helmsman: eSignet<br/>with MOSIP platform]
+    MP_ESIGNET --> MP_TRIGS[Helmsman: Testrigs]
+
+    %% Final Verification
+    ES_TRIGS --> V[Verify Deployment]
+    MP_TRIGS --> V
+    V --> DONE[Deployment Complete]
+
+    %% Styling — transparent fills for readability in both light and dark themes
+    classDef prereq fill:none,stroke:#ff8f00,stroke-width:2px
+    classDef terraform fill:none,stroke:#1976d2,stroke-width:2px
+    classDef helmsman fill:none,stroke:#7b1fa2,stroke-width:2px
+    classDef mosip fill:none,stroke:#3949ab,stroke-width:2px
+    classDef ns fill:none,stroke:#558b2f,stroke-width:1px
+    classDef success fill:none,stroke:#388e3c,stroke-width:2px
+    classDef decision fill:none,stroke:#c2185b,stroke-width:2px
+
+    class A,B prereq
+    class DCV terraform
+    class D,F,TF_ES,TF_MP terraform
+    class ES_EXT,ES_ESIGNET,ES_TRIGS helmsman
+    class MP_EXT,MP_MOSIP,MP_ESIGNET,MP_TRIGS mosip
+    class NS1,NS2,NS3,NS4 ns
+    class V,DONE success
+    class C,OBS,PS,MP_VER decision
+```
+
+
+## Infrastructure layers
+
 ```
             AWS (Terraform, one state each)                    Data centre
  ┌──────────────────────────────────────────────────┐   ┌─────────────────────┐
@@ -133,7 +205,7 @@ Who creates the records is one setting — `DNS_PROVIDER` in the workflow, or
 
 ## Data centre
 
-Step-by-step guide: **[DATACENTRE_DEPLOYMENT.md](DATACENTRE_DEPLOYMENT.md)**. In short — no Terraform; on any machine that can SSH to the VMs:
+Step-by-step guide: **[Data-centre quickstart](../getting-started/quickstart-datacentre.md)**. In short — no Terraform; on any machine that can SSH to the VMs:
 
 ```bash
 cp ansible/inventory/hosts.example.yml my-hosts.yml   # IPs, disks, TLS mode, SSH key

@@ -20,7 +20,7 @@
 # profiles/<p>/aws/vm.tfvars) is separate and never part of `all`.
 #
 # Local backend: state is GPG-encrypted (GPG_PASSPHRASE) and committed to
-# the branch. See docs/DEPLOYMENT_SEQUENCE.md and docs/PROFILES.md.
+# the branch. See docs/overview/deployment-sequence.md and docs/guides/profiles.md.
 name: terraform plan / apply
 
 on:
@@ -113,7 +113,7 @@ jobs:
           C="${{ inputs.COMPONENT }}"
           if [ "${{ inputs.CLOUD_PROVIDER }}" != "aws" ] && [ "$C" != "base-infra" ]; then
             echo "ERROR: only base-infra exists for ${{ inputs.CLOUD_PROVIDER }}; components are AWS-only today."
-            echo "Data-centre VMs need no Terraform: see docs/DEPLOYMENT_SEQUENCE.md."
+            echo "Data-centre VMs need no Terraform: see docs/overview/deployment-sequence.md."
             exit 1
           fi
           if { [ "$C" = "all" ] || [ "$C" = "configure" ]; } && [ "${{ inputs.TERRAFORM_APPLY }}" != "true" ]; then

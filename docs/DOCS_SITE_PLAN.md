@@ -1,7 +1,7 @@
 # Plan: Enterprise-style documentation site for MOSIP infra
 
 ## Context
-The infra work (#273, PRs #406–#411, #415) changed how MOSIP is deployed, and the docs now exist as ~28 separate Markdown files (~11k lines) spread over `docs/`, `README.md`, `terraform/`, `.github/`, `Rancher-keycloak-integration/`. They're accurate but hard to navigate: no single entry point, no search, mixed audiences (operators, DevOps, country teams), overlapping content (README 1,080 lines; WORKFLOW_GUIDE, TERRAFORM_WORKFLOW_GUIDE and DEPLOYMENT_SEQUENCE repeat each other).
+The infra work (#273, PRs #406–#411, #415) changed how MOSIP is deployed, and the docs now exist as ~28 separate Markdown files (~11k lines) spread over `docs/`, `index.md`, `terraform/`, `.github/`, `Rancher-keycloak-integration/`. They're accurate but hard to navigate: no single entry point, no search, mixed audiences (operators, DevOps, country teams), overlapping content (README 1,080 lines; WORKFLOW_GUIDE, TERRAFORM_WORKFLOW_GUIDE and DEPLOYMENT_SEQUENCE repeat each other).
 
 **Goal:** a user-friendly, enterprise-product-style documentation site — clear navigation, search, "choose your path" landing page, task-based guides, reference and troubleshooting — built from the repo's Markdown so it stays reviewable in PRs and readable on GitHub.
 
@@ -59,7 +59,7 @@ Title → one-line purpose → "Before you begin" (admonition) → numbered step
 
 ### Content strategy
 - **Reuse, don't rewrite:** move existing guides into the tree (`git mv`, content kept), split oversized ones (README, WORKFLOW_GUIDE) into task pages, remove duplication.
-- **README.md** shrinks to a short product overview + "Read the docs" link + quickstart summary (keeps GitHub landing useful).
+- **index.md** shrinks to a short product overview + "Read the docs" link + quickstart summary (keeps GitHub landing useful).
 - **New pages:** home, introduction, concepts, supported platforms, quickstart AWS, reference (workflow inputs, components, roles, schema), error catalogue, FAQ, release notes.
 - Reference tables derived from the code (workflow `inputs:`, `variables.tf`, role `defaults/main.yml`) so they're accurate.
 
@@ -83,15 +83,15 @@ Title → one-line purpose → "Before you begin" (admonition) → numbered step
 ### Phase 2 — Implement (after prototype approval)
 1. New sub-issue under #273 ("docs: enterprise documentation site").
 2. Restructure `docs/` per the IA; move/split existing guides; write remaining new pages; `mkdocs-redirects` for moved paths; fix all repo links (README, workflow READMEs, hosts.example.yml, code comments).
-3. Slim README.md to overview + links.
+3. Slim index.md to overview + links.
 4. `docs.yml` workflow + `docs` job in `infra-checks.yml`.
 5. Commit (`-s`) on `273-v2/08-docs-site`, push to origin, draft PR "Stack 8 of 8" into upstream `GH-issue-273-v2`; update stack numbering in #406–#415 bodies.
 
 ## Critical files
 - New: `mkdocs.yml`, `docs/requirements.txt`, `docs/index.md`, `docs/{overview,getting-started,guides,reference,troubleshooting}/…`, `docs/release-notes.md`, `.github/workflows/docs.yml`
-- Moved/split: `docs/*.md` (all 20), `README.md`, `terraform/base-infra/WIREGUARD_SETUP.md` (copied/linked), `.github/scripts/README.md`
-- Edited: `.github/workflows/infra-checks.yml`, links in `README.md`, `.github/workflows/README.md`, `ansible/inventory/hosts.example.yml`
-- Reused as sources: `.github/workflows/terraform*.yml` (inputs), `terraform/implementations/aws/*/variables.tf`, `ansible/roles/*/defaults/main.yml`, existing Mermaid diagrams in `README.md` / `docs/_images/ARCHITECTURE_DIAGRAMS.md`
+- Moved/split: `docs/*.md` (all 20), `index.md`, `docs/guides/wireguard.md` (copied/linked), `.github/scripts/index.md`
+- Edited: `.github/workflows/infra-checks.yml`, links in `index.md`, `.github/workflows/index.md`, `ansible/inventory/hosts.example.yml`
+- Reused as sources: `.github/workflows/terraform*.yml` (inputs), `terraform/implementations/aws/*/variables.tf`, `ansible/roles/*/defaults/main.yml`, existing Mermaid diagrams in `index.md` / `docs/overview/architecture.md`
 
 ## Verification
 - `mkdocs build --strict` passes (no broken links, every page in nav).

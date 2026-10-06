@@ -47,7 +47,7 @@ All secrets are **Environment Secrets** — configure at **Repository → Settin
 
 If the automatic trigger fails or you need to re-run independently:
 
-![Deploy MOSIP Services - Helmsman](_images/helmsman-mosip.png)
+![Deploy MOSIP Services - Helmsman](../_images/helmsman-mosip.png)
 
 - **(1)** Go to **Actions** (top of the repository page) → click **"Deploy MOSIP services using Helmsman"** in the list on the left.
 - **(2)** Click the **Run workflow** dropdown button (top right) — this opens the form shown above.
@@ -106,7 +106,7 @@ kubectl get ns default --show-labels | grep mosip-dsf
 
 **How to check and rerun failed onboarding:**
 
-See [ONBOARDING_GUIDE.md](ONBOARDING_GUIDE.md) for the full procedure — includes accessing MinIO reports, identifying failed partners, and re-running specific modules.
+See [Partner onboarding guide](partner-onboarding.md) for the full procedure — includes accessing MinIO reports, identifying failed partners, and re-running specific modules.
 
 ---
 
@@ -114,5 +114,5 @@ See [ONBOARDING_GUIDE.md](ONBOARDING_GUIDE.md) for the full procedure — includ
 
 Once all MOSIP pods are `Running` and partner onboarding is confirmed:
 
-- Deploy eSignet → [esignet_README.md](esignet_README.md)
-- Deploy testrigs → [HELMSMAN_TESTRIGS_GUIDE.md](HELMSMAN_TESTRIGS_GUIDE.md)
+- Deploy eSignet → [eSignet guide](esignet.md)
+- Deploy testrigs → [Test rigs guide](testrigs.md)

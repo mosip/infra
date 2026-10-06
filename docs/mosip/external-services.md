@@ -50,7 +50,7 @@ All secrets are **Environment Secrets** — configure at **Repository → Settin
 | `ESIGNET_CAPTCHA_SITE_KEY` | Google reCAPTCHA site key for the main esignet namespace |
 | `ESIGNET_CAPTCHA_SECRET_KEY` | Google reCAPTCHA secret key for the main esignet namespace |
 
-> For MOSIP-ID1, MOSIP-ID2, and Sunbird namespace captcha secrets, see [ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md](ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md).
+> For MOSIP-ID1, MOSIP-ID2, and Sunbird namespace captcha secrets, see [eSignet standalone guide](esignet-standalone.md).
 
 ### MOSIP platform profiles only
 
@@ -62,7 +62,7 @@ reCAPTCHA v2 keys for each MOSIP service domain — add as **Environment Secrets
 | `ADMIN_CAPTCHA_SITE_KEY` / `ADMIN_CAPTCHA_SECRET_KEY` | `admin.<your-domain>` |
 | `RESIDENT_CAPTCHA_SITE_KEY` / `RESIDENT_CAPTCHA_SECRET_KEY` | `resident.<your-domain>` |
 
-> Get reCAPTCHA keys from [Google reCAPTCHA Admin Console](https://www.google.com/recaptcha/admin/create). Create reCAPTCHA v2 (Invisible) type. See [RECAPTCHA_SETUP_GUIDE.md](RECAPTCHA_SETUP_GUIDE.md) for detailed steps.
+> Get reCAPTCHA keys from [Google reCAPTCHA Admin Console](https://www.google.com/recaptcha/admin/create). Create reCAPTCHA v2 (Invisible) type. See [reCAPTCHA setup guide](recaptcha.md) for detailed steps.
 
 ---
 
@@ -85,7 +85,7 @@ reCAPTCHA v2 keys for each MOSIP service domain — add as **Environment Secrets
 
 ## Step-by-Step: Run the Workflow
 
-![Deploy External Services - Helmsman](_images/helmsman-external-services.png)
+![Deploy External Services - Helmsman](../_images/helmsman-external-services.png)
 
 - **(1)** Go to **Actions** (top of the repository page) → click **"Deploy External services of mosip using Helmsman"** in the list on the left.
   > Can't find it? Search for "External" in the workflows list.
@@ -130,8 +130,8 @@ reCAPTCHA v2 keys for each MOSIP service domain — add as **Environment Secrets
 
 ## After This Workflow
 
-- **MOSIP platform profiles** → `helmsman_mosip.yml` is auto-triggered. See [HELMSMAN_MOSIP_GUIDE.md](HELMSMAN_MOSIP_GUIDE.md).
-- **eSignet profile** → run `helmsman_esignet.yml` manually. See [ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md](ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md).
+- **MOSIP platform profiles** → `helmsman_mosip.yml` is auto-triggered. See [MOSIP services guide](mosip-services.md).
+- **eSignet profile** → run `helmsman_esignet.yml` manually. See [eSignet standalone guide](esignet-standalone.md).
 
 ---
 

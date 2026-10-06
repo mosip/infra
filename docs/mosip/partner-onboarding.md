@@ -8,7 +8,6 @@ This guide provides detailed instructions for handling partner onboarding proces
 - [Understanding MOSIP Onboarding](#understanding-mosip-onboarding)
 - [Identifying Failed Onboarding Processes](#identifying-failed-onboarding-processes)
 - [Manual Partner Re-onboarding Procedures](#manual-partner-re-onboarding-procedures)
-- [Verification Steps](#verification-steps)
 
 ## Overview
 

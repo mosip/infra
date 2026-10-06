@@ -96,7 +96,7 @@ security → iam → compute → storage → dns → configure (Ansible)
 
 ## Next steps
 
-- [Deploy MOSIP services](deploy-mosip.md) with Helmsman.
+- [Deploy MOSIP services](../mosip/index.md) with Helmsman.
 - Day-2: [change DNS](../guides/dns-providers.md) · [add nodes](../guides/scaling-nodes.md) ·
   [destroy](../guides/destroy.md).
 - Something failed? See the [error catalogue](../troubleshooting/errors.md).

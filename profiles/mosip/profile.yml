@@ -6,7 +6,7 @@
 #     subdomain lists below.
 #   - Data centre: ansible/inventory/generate.py --from-hosts reads this file
 #     plus the operator's hosts.yml. No Terraform involved.
-# See docs/PROFILES.md.
+# See docs/guides/profiles.md.
 
 name: mosip
 description: Full MOSIP platform (IDA, ID Repo, PMS, PreReg, Kernel, Resident, eSignet)

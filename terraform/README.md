@@ -5,8 +5,8 @@ the hosts — nginx, TLS, RKE2, NFS, PostgreSQL, ActiveMQ, Rancher/Keycloak — 
 Ansible (Layer 3, [`../ansible`](../ansible)), which works the same on
 Terraform-provisioned AWS hosts and on pre-created data-centre VMs.
 
-See [docs/DEPLOYMENT_SEQUENCE.md](../docs/DEPLOYMENT_SEQUENCE.md) for the full
-order and [docs/PROFILES.md](../docs/PROFILES.md) for deployment shapes.
+See [docs/overview/deployment-sequence.md](../docs/overview/deployment-sequence.md) for the full
+order and [docs/guides/profiles.md](../docs/guides/profiles.md) for deployment shapes.
 
 ## Layout
 

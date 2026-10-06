@@ -74,7 +74,7 @@ Complete this checklist before triggering any workflow:
   - one for `esignet-mosipid` namespace
   - one for `esignet-sunbird` namespace
   - one for `signup` namespace
-  - See [reCAPTCHA Setup Guide](RECAPTCHA_SETUP_GUIDE.md)
+  - See [reCAPTCHA Setup Guide](recaptcha.md)
 - [ ] Mock Relying Party PEM key pair is generated (client private key + JWE private key)
 - [ ] GitHub Environment named after your branch (e.g. `MOSIP-44613`) exists under:
   `Repository → Settings → Environments`
@@ -98,11 +98,11 @@ GitHub has two places to store secrets. It is important to put each secret in th
 
 | Secret Name | What it is | Notes |
 |---|---|---|
-| `GH_INFRA_PAT` | GitHub Fine-grained Personal Access Token | **Contents**: R/W · **Actions**: R/W · **Environments**: R/W · **Variables**: R/W · **Metadata**: R/O. Used by Helmsman workflows to update env vars and dispatch signup. See [Secret Generation Guide](SECRET_GENERATION_GUIDE.md). |
+| `GH_INFRA_PAT` | GitHub Fine-grained Personal Access Token | **Contents**: R/W · **Actions**: R/W · **Environments**: R/W · **Variables**: R/W · **Metadata**: R/O. Used by Helmsman workflows to update env vars and dispatch signup. See [Secret Generation Guide](../getting-started/secrets.md). |
 | `AWS_ACCESS_KEY_ID` | AWS IAM access key ID | Used by the Terraform workflow to create/manage AWS resources |
 | `AWS_SECRET_ACCESS_KEY` | AWS IAM secret access key | Paired with `AWS_ACCESS_KEY_ID` |
 | `GPG_PASSPHRASE` | Passphrase for encrypting Terraform state | Terraform state files are GPG-encrypted before being committed to the repo when using local backend |
-| `TF_WG_CONFIG` | WireGuard client config for Terraform runner | Terraform connects to the nginx node via WireGuard VPN to run post-provisioning scripts. Paste the raw `wg0.conf` content — **not** base64 encoded. See [Secret Generation Guide](SECRET_GENERATION_GUIDE.md). |
+| `TF_WG_CONFIG` | WireGuard client config for Terraform runner | Terraform connects to the nginx node via WireGuard VPN to run post-provisioning scripts. Paste the raw `wg0.conf` content — **not** base64 encoded. See [Secret Generation Guide](../getting-started/secrets.md). |
 | `SLACK_WEBHOOK_URL` | Slack incoming webhook URL | Used by Terraform and Helmsman for failure/success notifications |
 
 > ⚠️ **Common `GH_INFRA_PAT` mistake:** Using a Classic token, or setting `Contents` to Read-only — both cause a `403` when the workflow tries to push commits or update environment variables. Always use Fine-grained tokens.
@@ -123,8 +123,8 @@ Path to create `GH_INFRA_PAT`: `Your profile → Settings → Developer settings
 | Secret Name | What it is | Notes |
 |---|---|---|
 | `KUBECONFIG` | Raw kubeconfig YAML for your cluster | Paste the raw YAML — **do not** base64 encode it. Generated after Terraform apply completes. |
-| `CLUSTER_WIREGUARD_WG0` | WireGuard VPN client config for Helmsman runner (interface 0) | Different from `TF_WG_CONFIG` — this is the Helmsman runner's peer config. See [Secret Generation Guide](SECRET_GENERATION_GUIDE.md). |
-| `CLUSTER_WIREGUARD_WG1` | WireGuard VPN client config for Helmsman runner (interface 1) | Second WireGuard interface — required alongside `WG0`. See [Secret Generation Guide](SECRET_GENERATION_GUIDE.md). |
+| `CLUSTER_WIREGUARD_WG0` | WireGuard VPN client config for Helmsman runner (interface 0) | Different from `TF_WG_CONFIG` — this is the Helmsman runner's peer config. See [Secret Generation Guide](../getting-started/secrets.md). |
+| `CLUSTER_WIREGUARD_WG1` | WireGuard VPN client config for Helmsman runner (interface 1) | Second WireGuard interface — required alongside `WG0`. See [Secret Generation Guide](../getting-started/secrets.md). |
 
 **For `helmsman_external.yml` (profile = `esignet-standalone`):**
 
@@ -182,7 +182,7 @@ Navigate to: `Repository → Settings → Environments → <your-branch-name> �
 | `DOMAIN_NAME` | `sandbox.xyz.net` | **Yes** | Base domain — all service hostnames are built from this |
 | `ESIGNET_DB_PORT` | `5432` | **Yes** | Postgres port — always `5432` for standalone |
 | `ENV_NAME` | `sandbox` | **Yes** | Short environment label shown on the landing page |
-| `CLUSTER_ID` | `c-xxxxx` | **Yes** | Rancher cluster ID used by monitoring setup — see [Finding your clusterid](../README.md#step-4a-configure-github-environment-variables) in the root README |
+| `CLUSTER_ID` | `c-xxxxx` | **Yes** | Rancher cluster ID used by monitoring setup — see [Finding your clusterid](index.md#configure-the-environment) in Deploy MOSIP services |
 | `SLACK_CHANNEL_NAME` | `#mosip-alerts` | **Yes** | Slack channel name for alert notifications |
 | `MOSIPID_DOMAIN_NAME` | `mosipid.xyz.net` | **Yes** | Base domain of the MOSIP environment that `esignet-mosipid` connects to |
 | `ESIGNET_MOSIPID_SPRING_CONFIG_LABEL` | `develop` | Optional | Git branch/tag for MOSIP-ID config-server (defaults to `develop`) |
@@ -258,9 +258,9 @@ Commit the updated file on your branch before triggering the workflow.
 
 > **One-time per AWS account.** Creates the shared base networking layer — VPC, subnets, WireGuard jump server. If `base-infra` has already been deployed for this AWS account, skip to `0c`.
 
-Follow the full instructions in the root README: [Step 3a: Base Infrastructure](../README.md#step-3a-base-infrastructure)
+Follow [Quickstart: AWS — step 1](../getting-started/quickstart-aws.md#step-1--create-the-network-once-per-account)
 
-After `base-infra` completes, configure `TF_WG_CONFIG` (repository secret) with your WireGuard client config before proceeding — see [WireGuard VPN Setup](../README.md#step-3b-wireguard-vpn-setup-required-for-private-network-access).
+After `base-infra` completes, configure `TF_WG_CONFIG` (repository secret) with your WireGuard client config before proceeding — see [WireGuard access](../guides/wireguard.md).
 
 ---
 
@@ -268,7 +268,7 @@ After `base-infra` completes, configure `TF_WG_CONFIG` (repository secret) with 
 
 > **Optional.** Creates a separate lightweight Kubernetes cluster for Rancher and Keycloak. eSignet standalone works without it — skip if you don't need a dedicated management cluster.
 
-Follow the root README: [Step 3d](../README.md#step-3d-deploy-with-one-run) with `PROFILE=observ`.
+Follow [Quickstart: AWS — step 4](../getting-started/quickstart-aws.md#step-4--deploy) with `PROFILE=observ`.
 
 ---
 
@@ -323,7 +323,7 @@ Follow the root README: [Step 3d](../README.md#step-3d-deploy-with-one-run) with
 
 6. Click the green **`Run workflow`** button
 
-![Deploy External Services - Helmsman](_images/helmsman-external-services.png)
+![Deploy External Services - Helmsman](../_images/helmsman-external-services.png)
 
 **How to know it succeeded:** Click into the running workflow. Wait for all jobs to show a green tick. Then run:
 
@@ -362,7 +362,7 @@ All pods should show `Running` or `Completed`.
 
 4. Click the green **`Run workflow`** button
 
-![Deploy eSignet - Helmsman](_images/esignet.png)
+![Deploy eSignet - Helmsman](../_images/esignet.png)
 
 > **`esignet-standalone-2.0.0` note:** Selecting `esignet-standalone-2.0.0` runs `Helmsman/dsf/esignet-standalone-2.0.0/esignet-dsf.yaml`
 > instead — it deploys the same 3 instances (main/mock, mosipid, sunbird) plus their OIDC UIs and mock relying
@@ -422,7 +422,7 @@ All pods should show `Running`.
 
 4. Click the green **`Run workflow`** button
 
-![Deploy Test Rigs - Helmsman](_images/helmsman-testrigs.png)
+![Deploy Test Rigs - Helmsman](../_images/helmsman-testrigs.png)
 
 **How to know it succeeded:** The workflow log should show all Helmsman releases applied without errors. Verify that test cronjobs were created:
 

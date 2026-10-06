@@ -1,5 +1,5 @@
 # Static checks for Terraform, Ansible and profiles — no cloud credentials.
-# Same commands work locally; see docs/DEPLOYMENT_SEQUENCE.md#checks.
+# Same commands work locally; see docs/overview/deployment-sequence.md#checks.
 name: infra checks
 
 on:

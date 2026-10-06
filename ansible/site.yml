@@ -13,7 +13,7 @@
 # (godaddy, rfc2136, cloudflare, route53, manual) the dns play creates the
 # records; with the default "none" they come from the Terraform dns
 # component or your DNS team. Either way preflight waits for them.
-# See docs/DEPLOYMENT_SEQUENCE.md.
+# See docs/overview/deployment-sequence.md.
 
 - name: DNS records
   ansible.builtin.import_playbook: playbooks/dns.yml

@@ -513,7 +513,7 @@ COMPONENT: [all | security | compute | iam | storage | dns | configure | base-in
 ```
 PROFILE: [mosip | esignet-standalone | observ]
 ```
-**Applies to**: everything except `base-infra`. See [Profiles](PROFILES.md).
+**Applies to**: everything except `base-infra`. See [Profiles](../guides/profiles.md).
 
 | Profile | Values | Use for |
 |---------|--------|---------|
@@ -797,11 +797,11 @@ DEPLOYMENT FLOW:
 
 ## Need More Help?
 
-- **Detailed Configurations**: See [DSF Configuration Guide](DSF_CONFIGURATION_GUIDE.md)
-- **Secret Setup**: See [Secret Generation Guide](SECRET_GENERATION_GUIDE.md)
-- **Troubleshooting**: See [Main README Troubleshooting Section](../README.md#troubleshooting-guides)
+- **Detailed Configurations**: See [DSF Configuration Guide](../mosip/dsf-configuration.md)
+- **Secret Setup**: See [Secret Generation Guide](secrets.md)
+- **Troubleshooting**: See [Error catalogue](../troubleshooting/errors.md) and [Known limitations](../troubleshooting/known-limitations.md)
 - **Report Issues**: Open GitHub issue with workflow logs
 
 ---
 
-**Navigation**: [Back to Main README](../README.md) | [View Glossary](GLOSSARY.md)
+**Navigation**: [Documentation home](../index.md) | [View Glossary](../glossary/index.md)

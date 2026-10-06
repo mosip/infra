@@ -601,18 +601,18 @@ After running destruction, verify everything is cleaned up:
 **To fully stop costs, you must also run:**
 
 Run **Actions → terraform destroy** with `COMPONENT=all`, your `PROFILE`, and `TERRAFORM_DESTROY` ticked
-(see [Environment Destruction Guide](ENVIRONMENT_DESTRUCTION_GUIDE.md)).
+(see [Environment Destruction Guide](../guides/destroy.md)).
 
-See [Environment Destruction Guide](ENVIRONMENT_DESTRUCTION_GUIDE.md) for complete infrastructure teardown.
+See [Environment Destruction Guide](../guides/destroy.md) for complete infrastructure teardown.
 
 ---
 
 ## Related Documentation
 
-- **Infrastructure Destruction**: [Environment Destruction Guide](ENVIRONMENT_DESTRUCTION_GUIDE.md)
-- **DSF Configuration**: [DSF Configuration Guide](DSF_CONFIGURATION_GUIDE.md)
-- **Helmsman Overview**: [Helmsman README](../Helmsman/README.md)
-- **Workflow Guide**: [GitHub Actions Workflow Guide](WORKFLOW_GUIDE.md)
+- **Infrastructure Destruction**: [Environment Destruction Guide](../guides/destroy.md)
+- **DSF Configuration**: [DSF Configuration Guide](dsf-configuration.md)
+- **Helmsman Overview**: [Helmsman README](https://github.com/mosip/infra/blob/develop/Helmsman/README.md)
+- **Workflow Guide**: [GitHub Actions Workflow Guide](../getting-started/github-actions.md)
 
 ---
 

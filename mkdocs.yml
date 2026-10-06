@@ -11,14 +11,10 @@ edit_uri: edit/develop/docs/
 docs_dir: docs
 copyright: MOSIP — Modular Open Source Identity Platform
 
-# Legacy guides at the top of docs/ are moved into the sections below in the
-# full implementation; until then they're kept out of the site build.
+# Kept in the repo but not part of the site.
 exclude_docs: |
-  /*.md
-  !/index.md
-  /_images/*.md
-  /*.drawio
-  /_images/*.drawio
+  /DOCS_SITE_PLAN.md
+  *.drawio
   /requirements.txt
 
 theme:
@@ -63,6 +59,10 @@ markdown_extensions:
   - tables
   - toc:
       permalink: true
+      # GitHub-compatible heading anchors, so in-page links work on GitHub and on the site
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
   - pymdownx.details
   - pymdownx.tabbed:
       alternate_style: true
@@ -90,19 +90,48 @@ extra:
     - icon: fontawesome/brands/github
       link: https://github.com/mosip/infra
 
+plugins:
+  - search
+  - redirects:
+      # Old file locations keep working after the docs restructure.
+      redirect_maps:
+        README.md: index.md
+        SECRET_GENERATION_GUIDE.md: getting-started/secrets.md
+        DATACENTRE_DEPLOYMENT.md: getting-started/quickstart-datacentre.md
+        WORKFLOW_GUIDE.md: getting-started/github-actions.md
+        TERRAFORM_WORKFLOW_GUIDE.md: reference/workflow-inputs.md
+        DEPLOYMENT_SEQUENCE.md: overview/deployment-sequence.md
+        PROFILES.md: guides/profiles.md
+        TREE_STRUCTURE.md: reference/repository-layout.md
+        GLOSSARY.md: glossary/index.md
+        ENVIRONMENT_DESTRUCTION_GUIDE.md: guides/destroy.md
+        k8s-health-checker.md: guides/k8s-health-check.md
+        HELMSMAN_DESTROY_GUIDE.md: mosip/destroy-services.md
+        HELMSMAN_EXTERNAL_GUIDE.md: mosip/external-services.md
+        HELMSMAN_MOSIP_GUIDE.md: mosip/mosip-services.md
+        HELMSMAN_TESTRIGS_GUIDE.md: mosip/testrigs.md
+        esignet_README.md: mosip/esignet.md
+        ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md: mosip/esignet-standalone.md
+        DSF_CONFIGURATION_GUIDE.md: mosip/dsf-configuration.md
+        ONBOARDING_GUIDE.md: mosip/partner-onboarding.md
+        RECAPTCHA_SETUP_GUIDE.md: mosip/recaptcha.md
+        _images/ARCHITECTURE_DIAGRAMS.md: overview/architecture.md
+        getting-started/deploy-mosip.md: mosip/index.md
+
 nav:
   - Home: index.md
   - Overview:
       - Introduction: overview/introduction.md
       - Architecture: overview/architecture.md
       - Concepts: overview/concepts.md
+      - Deployment sequence: overview/deployment-sequence.md
       - Supported platforms: overview/supported-platforms.md
   - Getting started:
       - Prerequisites: getting-started/prerequisites.md
       - Secrets & configuration: getting-started/secrets.md
+      - Using GitHub Actions: getting-started/github-actions.md
       - "Quickstart: AWS": getting-started/quickstart-aws.md
       - "Quickstart: data centre": getting-started/quickstart-datacentre.md
-      - Deploy MOSIP services: getting-started/deploy-mosip.md
   - How-to guides:
       - Choose or add a profile: guides/profiles.md
       - DNS providers: guides/dns-providers.md
@@ -111,7 +140,19 @@ nav:
       - Standalone VM: guides/standalone-vm.md
       - Observability cluster & Rancher: guides/observability-rancher.md
       - WireGuard access: guides/wireguard.md
+      - Kubernetes health check: guides/k8s-health-check.md
       - Destroy an environment: guides/destroy.md
+  - Deploy MOSIP:
+      - Overview: mosip/index.md
+      - External services: mosip/external-services.md
+      - MOSIP services: mosip/mosip-services.md
+      - eSignet: mosip/esignet.md
+      - eSignet standalone: mosip/esignet-standalone.md
+      - Test rigs: mosip/testrigs.md
+      - DSF configuration: mosip/dsf-configuration.md
+      - Partner onboarding: mosip/partner-onboarding.md
+      - reCAPTCHA: mosip/recaptcha.md
+      - Remove MOSIP services: mosip/destroy-services.md
   - Reference:
       - Workflow inputs: reference/workflow-inputs.md
       - Terraform components: reference/terraform-components.md
@@ -122,5 +163,6 @@ nav:
   - Troubleshooting:
       - Error catalogue: troubleshooting/errors.md
       - FAQ: troubleshooting/faq.md
+      - Known limitations: troubleshooting/known-limitations.md
   - Glossary: glossary/index.md
   - Release notes: release-notes/index.md

@@ -39,7 +39,7 @@ Configure in **Repository → Settings → Environments → `<branch-name>` → 
 | `ESIGNET_CAPTCHA_SITE_KEY` | Google reCAPTCHA site key | Plain text |
 | `ESIGNET_CAPTCHA_SECRET_KEY` | Google reCAPTCHA secret key | Plain text |
 
-> **eSignet standalone profile** requires additional per-namespace captcha secrets and Keycloak/Postgres passwords for MOSIP-ID1, MOSIP-ID2, and Sunbird environments. See [ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md](ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md) for the full secrets list.
+> **eSignet standalone profile** requires additional per-namespace captcha secrets and Keycloak/Postgres passwords for MOSIP-ID1, MOSIP-ID2, and Sunbird environments. See [eSignet standalone guide](esignet-standalone.md) for the full secrets list.
 
 ### Creating Environment Secrets
 
@@ -87,7 +87,7 @@ cat kubeconfig
 
 ### Captcha Secrets
 
-> **Note:** For detailed instructions on creating Google reCAPTCHA keys with screenshots, see [RECAPTCHA Setup Guide](./RECAPTCHA_SETUP_GUIDE.md).
+> **Note:** For detailed instructions on creating Google reCAPTCHA keys with screenshots, see [RECAPTCHA Setup Guide](recaptcha.md).
 
 Get reCAPTCHA keys from [Google reCAPTCHA Admin Console](https://www.google.com/recaptcha/admin):
 
@@ -122,7 +122,7 @@ Use `skip_mosip_dsf_check=false` (default) — the workflow checks for the `mosi
 
 Set `skip_mosip_dsf_check=true` only if you need to re-run eSignet independently after it has already been deployed once.
 
-> **For eSignet standalone** (no full MOSIP, 4 parallel instances): see [ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md](ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md).
+> **For eSignet standalone** (no full MOSIP, 4 parallel instances): see [eSignet standalone guide](esignet-standalone.md).
 
 ---
 
@@ -221,7 +221,7 @@ Custom Helm values are stored in:
 
 ### Deploy via GitHub Actions
 
-![Deploy eSignet - Helmsman](_images/esignet.png)
+![Deploy eSignet - Helmsman](../_images/esignet.png)
 
 - **(1)** Go to **Actions** (top of the repository page) → click **"Deploy eSignet using Helmsman"** in the list on the left.
 - **(2)** Click the **Run workflow** dropdown button (top right) — this opens the form shown above.
@@ -433,10 +433,10 @@ kubectl delete ns redis
 
 ## Related Documentation
 
-- [Helmsman DSF Guide](../README.md)
-- [Workflows README](../../.github/workflows/README.md)
-- [Secret Generation Guide](./SECRET_GENERATION_GUIDE.md)
-- [Onboarding Guide](./ONBOARDING_GUIDE.md)
+- [DSF configuration](dsf-configuration.md)
+- [Workflows README](https://github.com/mosip/infra/blob/develop/.github/workflows/README.md)
+- [Secret Generation Guide](../getting-started/secrets.md)
+- [Onboarding Guide](partner-onboarding.md)
 
 ---
 

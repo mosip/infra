@@ -1,5 +1,5 @@
 # Data-centre / pre-created VMs: the only file an operator writes.
-# Full guide: docs/DATACENTRE_DEPLOYMENT.md
+# Full guide: docs/getting-started/quickstart-datacentre.md
 #
 #   cp ansible/inventory/hosts.example.yml my-hosts.yml   # fill it in
 #   python3 ansible/inventory/generate.py --profile profiles/mosip \
@@ -9,7 +9,7 @@
 # Host names in the generated inventory follow the AWS convention
 # (<cluster>-CONTROL-PLANE-NODE-1, ...) so every role behaves identically.
 # DNS must already point at nginx before site.yml runs — see
-# docs/DEPLOYMENT_SEQUENCE.md.
+# docs/overview/deployment-sequence.md.
 
 vars:
   # ---- identity ----
@@ -33,7 +33,7 @@ vars:
 
   # ---- DNS records ----
   # Created by the dns play when dns_provider is set; otherwise your DNS
-  # team creates them before site.yml (see docs/DATACENTRE_DEPLOYMENT.md).
+  # team creates them before site.yml (see docs/getting-started/quickstart-datacentre.md).
   # dns_provider: godaddy        # godaddy | rfc2136 | cloudflare | route53 | manual
   # dns_zone: "mosip.gov.example"   # zone apex, if different from cluster_env_domain
   # dns_godaddy_key / dns_godaddy_secret, dns_cloudflare_api_token,

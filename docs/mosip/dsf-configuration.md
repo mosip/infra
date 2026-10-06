@@ -318,12 +318,12 @@ apps:
  postInstall: "$WORKDIR/hooks/captcha-setup.sh PREREG_SITE_KEY PREREG_SECRET_KEY ADMIN_SITE_KEY ADMIN_SECRET_KEY RESIDENT_SITE_KEY RESIDENT_SECRET_KEY"
 ```
 
-**How to get keys**: See [Secret Generation Guide - reCAPTCHA](SECRET_GENERATION_GUIDE.md#6-recaptcha-keys)
+**How to get keys**: See [Secret Generation Guide - reCAPTCHA](../getting-started/secrets.md#7-recaptcha-keys)
 
 **Example with actual keys**:
 ```yaml
 hooks:
- postInstall: "$WORKDIR/hooks/captcha-setup.sh 6LfkAMwrAAAAAATB1WhkIhzuAVMtOs9VWabODoZ_ 6LfkAMwrAAAAAHQAT93nTGcLKa-h3XYhGoNSG-NL 6LdNAcwrAAAAAETGWvz-3I12vZ5V8vPJLu2ct9CO 6LdNAcwrAAAAAE4iWGJ-g6Dc2HreeJdIwAl5h1iL 6LdRAcwrAAAAAFUEHHKK5D_bSrwAPqdqAJqo4mCk 6LdRAcwrAAAAAOeVl6yHGBCBA8ye9GsUOy4pi9s9"
+ postInstall: "$WORKDIR/hooks/captcha-setup.sh <recaptcha-site-key> <recaptcha-secret-key> 6LdNAcwrAAAAAETGWvz-3I12vZ5V8vPJLu2ct9CO 6LdNAcwrAAAAAE4iWGJ-g6Dc2HreeJdIwAl5h1iL 6LdRAcwrAAAAAFUEHHKK5D_bSrwAPqdqAJqo4mCk 6LdRAcwrAAAAAOeVl6yHGBCBA8ye9GsUOy4pi9s9"
 ```
 
 **Key Order (CRITICAL)**:
@@ -807,11 +807,11 @@ apps:
 
 ## Need More Help?
 
-- **Workflow Execution**: [Workflow Guide](WORKFLOW_GUIDE.md)
-- **Secret Configuration**: [Secret Generation Guide](SECRET_GENERATION_GUIDE.md)
-- **Technical Terms**: [Glossary](GLOSSARY.md)
-- **Main Documentation**: [README](../README.md)
+- **Workflow Execution**: [Workflow Guide](../getting-started/github-actions.md)
+- **Secret Configuration**: [Secret Generation Guide](../getting-started/secrets.md)
+- **Technical Terms**: [Glossary](../glossary/index.md)
+- **Main Documentation**: [Documentation home](../index.md)
 
 ---
 
-**Navigation**: [Back to Main README](../README.md) | [View All Docs](.)
+**Navigation**: [Documentation home](../index.md) | [Glossary](../glossary/index.md)

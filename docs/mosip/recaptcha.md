@@ -14,7 +14,7 @@ This guide provides step-by-step instructions for creating and configuring Googl
 
 ### Steps 1-4: Create reCAPTCHA for PreReg Domain
 
-![Steps 1-4: Create reCAPTCHA](_images/1.png)
+![Steps 1-4: Create reCAPTCHA](../_images/1.png)
 
 1. **Add Label**: Enter a descriptive label name for your reCAPTCHA (e.g., `MOSIP PreReg`)
 2. **Select reCAPTCHA Type**: Choose **"I'm not a robot" Checkbox** (reCAPTCHA v2)
@@ -25,7 +25,7 @@ This guide provides step-by-step instructions for creating and configuring Googl
 
 ### Steps 5-7: Copy Keys and Access Settings
 
-![Steps 5-7: Copy Keys](_images/5.png)
+![Steps 5-7: Copy Keys](../_images/5.png)
 
 5. **Copy Site Key**: Copy the **Site Key** and save it securely - you'll need this for configuration
 6. **Copy Secret Key**: Copy the **Secret Key** and save it securely - you'll need this for configuration
@@ -35,7 +35,7 @@ This guide provides step-by-step instructions for creating and configuring Googl
 
 ### Step 8: Save Settings
 
-![Step 8: Save Settings](_images/8.png)
+![Step 8: Save Settings](../_images/8.png)
 
 8. **Save**: Click the **Save** button to save your reCAPTCHA settings
 
@@ -43,7 +43,7 @@ This guide provides step-by-step instructions for creating and configuring Googl
 
 ### Step 9: Add Additional Domains
 
-![Step 9: Add More Domains](_images/9.png)
+![Step 9: Add More Domains](../_images/9.png)
 
 9. **Add More Domains**: Click the **+** button to create reCAPTCHA keys for **Admin** and **Resident** domains
 
@@ -51,7 +51,7 @@ This guide provides step-by-step instructions for creating and configuring Googl
 
 ### Step 10: Repeat for Admin and Resident
 
-![Step 10: Repeat Process](_images/10.png)
+![Step 10: Repeat Process](../_images/10.png)
 
 10. **Repeat Steps 1-9**: Refresh the page and repeat steps 1-9 for:
     - **Admin domain**: `admin.your-domain.net`
@@ -85,7 +85,7 @@ hooks:
 
 ```yaml
 hooks:
-  postInstall: "$WORKDIR/hooks/captcha-setup.sh 6LfkAMwrAAAAAATB1WhkIhzuAVMtOs9VWabODoZ_ 6LfkAMwrAAAAAHQAT93nTGcLKa-h3XYhGoNSG-NL 6LdNAcwrAAAAAETGWvz-3I12vZ5V8vPJLu2ct9CO 6LdNAcwrAAAAAE4iWGJ-g6Dc2HreeJdIwAl5h1iL 6LdRAcwrAAAAAFUEHHKK5D_bSrwAPqdqAJqo4mCk 6LdRAcwrAAAAAOeVl6yHGBCBA8ye9GsUOy4pi9s9"
+  postInstall: "$WORKDIR/hooks/captcha-setup.sh <recaptcha-site-key> <recaptcha-secret-key> 6LdNAcwrAAAAAETGWvz-3I12vZ5V8vPJLu2ct9CO 6LdNAcwrAAAAAE4iWGJ-g6Dc2HreeJdIwAl5h1iL 6LdRAcwrAAAAAFUEHHKK5D_bSrwAPqdqAJqo4mCk 6LdRAcwrAAAAAOeVl6yHGBCBA8ye9GsUOy4pi9s9"
 ```
 
 ---
@@ -104,5 +104,5 @@ hooks:
 
 ## Related Documentation
 
-- [DSF Configuration Guide](DSF_CONFIGURATION_GUIDE.md)
-- [Main README](../README.md)
+- [DSF Configuration Guide](dsf-configuration.md)
+- [Deploy MOSIP services](index.md)

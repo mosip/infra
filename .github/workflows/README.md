@@ -102,7 +102,7 @@ terraform.yml (dispatch)                 terraform-destroy.yml (dispatch)
 |-------|--------|-------|
 | `CLOUD_PROVIDER` | `aws` \| `azure` \| `gcp` | azure/gcp: `base-infra` only |
 | `COMPONENT` | `all` \| `security` \| `compute` \| `iam` \| `storage` \| `dns` \| `configure` \| `base-infra` | `all` = every component in order, then configure |
-| `PROFILE` | `mosip` \| `esignet-standalone` \| `observ` | deployment shape, see [docs/PROFILES.md](../../docs/PROFILES.md) |
+| `PROFILE` | `mosip` \| `esignet-standalone` \| `observ` | deployment shape, see [docs/guides/profiles.md](../../docs/guides/profiles.md) |
 | `BACKEND_TYPE` | `local` \| `remote` | local = GPG-encrypted state in git |
 | `REMOTE_BACKEND_CONFIG` | `aws:bucket:region` … | remote only |
 | `ENABLE_STATE_LOCKING` | bool | remote only |
@@ -118,7 +118,7 @@ terraform.yml (dispatch)                 terraform-destroy.yml (dispatch)
   to update only Route53, `COMPONENT=configure` to re-run Ansible).
 - Destroy: **terraform destroy** with the same `COMPONENT` / `PROFILE`;
   unchecked `TERRAFORM_DESTROY` only runs `plan -destroy`.
-- Order and data-centre use: [docs/DEPLOYMENT_SEQUENCE.md](../../docs/DEPLOYMENT_SEQUENCE.md).
+- Order and data-centre use: [docs/overview/deployment-sequence.md](../../docs/overview/deployment-sequence.md).
 
 ### What `configure` does
 
