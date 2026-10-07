@@ -112,6 +112,9 @@ jobs:
             PROFILE_DIR="$GITHUB_WORKSPACE/profiles/${{ inputs.PROFILE }}/${{ inputs.CLOUD_PROVIDER }}"
             VAR_FILES+=("$PROFILE_DIR/common.tfvars" "$PROFILE_DIR/${{ inputs.COMPONENT }}.tfvars")
             PROFILE_ARG="--profile ${{ inputs.PROFILE }}"
+            # Roots that read the profile manifest (dns: subdomains) pick
+            # this up; the others don't declare it and ignore it.
+            echo "TF_VAR_profile_manifest=$GITHUB_WORKSPACE/profiles/${{ inputs.PROFILE }}/profile.yml" >> "$GITHUB_ENV"
           fi
           for f in "${VAR_FILES[@]}"; do
             [ -f "$f" ] || { echo "ERROR: var file not found: $f"; exit 1; }

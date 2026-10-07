@@ -34,4 +34,5 @@ module "iam" {
 
   cluster_name      = var.cluster_name
   nginx_instance_id = data.aws_instance.nginx.id
+  route53_zone_ids  = coalesce(var.certbot_zone_ids, [var.zone_id])
 }

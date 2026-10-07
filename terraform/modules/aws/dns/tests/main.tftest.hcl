@@ -108,3 +108,114 @@ run "empty_subdomain_lists_still_create_the_3_fixed_records" {
     error_message = "with no subdomains configured, only the 2 A records + homepage CNAME should exist"
   }
 }
+
+# ── multi-zone ─────────────────────────────────────────────────────────────
+
+run "split_horizon_public_and_private_zones_by_id" {
+  command = plan
+
+  variables {
+    zone_id = null
+    zones = {
+      public   = { zone_id = "ZPUBLIC000000000000" }
+      internal = { zone_id = "ZPRIVATE00000000000" }
+    }
+    public_zone   = "public"
+    internal_zone = "internal"
+  }
+
+  assert {
+    condition = alltrue([
+      for k in ["API_DNS", "resident", "prereg", "esignet"] :
+      aws_route53_record.records[k].zone_id == "ZPUBLIC000000000000"
+    ])
+    error_message = "api + public subdomains must go to the public zone"
+  }
+  assert {
+    condition = alltrue([
+      for k in ["API_INTERNAL_DNS", "test.example.com", "admin", "iam", "kafka"] :
+      aws_route53_record.records[k].zone_id == "ZPRIVATE00000000000"
+    ])
+    error_message = "api-internal, bare domain + internal subdomains must go to the internal zone"
+  }
+}
+
+run "zone_looked_up_by_name" {
+  command = plan
+
+  override_data {
+    target = data.aws_route53_zone.by_name["public"]
+    values = { zone_id = "ZLOOKEDUP0000000000" }
+  }
+
+  variables {
+    zone_id       = null
+    zones         = { public = { name = "example.com" } }
+    public_zone   = "public"
+    internal_zone = "public"
+  }
+
+  assert {
+    condition     = aws_route53_record.records["API_DNS"].zone_id == "ZLOOKEDUP0000000000"
+    error_message = "a zone given by name must resolve through the aws_route53_zone lookup"
+  }
+  assert {
+    condition     = output.zone_ids["public"] == "ZLOOKEDUP0000000000"
+    error_message = "zone_ids output must expose the resolved ID (used to scope certbot IAM)"
+  }
+}
+
+run "extra_records_any_type_any_zone" {
+  command = plan
+
+  variables {
+    zone_id = null
+    zones = {
+      default = { zone_id = "Z0123456789ABCDEFGHI" }
+      partner = { zone_id = "ZPARTNER00000000000" }
+    }
+    extra_records = {
+      verify = { name = "_verify.partner.org", type = "TXT", records = ["token-123"], zone = "partner", ttl = 60 }
+      mail   = { name = "test.example.com", type = "MX", records = ["10 mx.example.com"] }
+    }
+  }
+
+  assert {
+    condition     = aws_route53_record.records["extra/verify"].type == "TXT" && aws_route53_record.records["extra/verify"].zone_id == "ZPARTNER00000000000"
+    error_message = "extra TXT record must land in the zone it names"
+  }
+  assert {
+    condition     = aws_route53_record.records["extra/verify"].ttl == 60 && aws_route53_record.records["extra/verify"].allow_overwrite == false
+    error_message = "extra records take their own ttl and default to allow_overwrite = false"
+  }
+  assert {
+    condition     = aws_route53_record.records["extra/mail"].zone_id == "Z0123456789ABCDEFGHI"
+    error_message = "extra records default to the 'default' zone"
+  }
+  assert {
+    condition     = length(aws_route53_record.records) == 11
+    error_message = "9 managed records + 2 extra records expected"
+  }
+}
+
+run "record_in_unknown_zone_is_rejected" {
+  command = plan
+
+  variables {
+    extra_records = {
+      bad = { name = "x.example.com", type = "A", records = ["192.0.2.1"], zone = "nope" }
+    }
+  }
+
+  expect_failures = [aws_route53_record.records]
+}
+
+run "zone_needs_exactly_one_of_id_or_name" {
+  command = plan
+
+  variables {
+    zones = { both = { zone_id = "Z1", name = "example.com" } }
+  }
+
+  expect_failures = [var.zones]
+}
