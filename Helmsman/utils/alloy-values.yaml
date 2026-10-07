@@ -32,7 +32,7 @@ alloy:
         rule {
           source_labels = ["__meta_kubernetes_namespace"]
           action = "drop"
-          regex = "kube-system|cattle-system|cattle-monitoring-system|nfs|cattle-fleet-system|cattle-logging-system|logging"
+          regex = "kube-system|cattle-system|cattle-monitoring-system|monitoring|nfs|cattle-fleet-system|cattle-logging-system|logging"
         }
 
         // Only keep running pods
