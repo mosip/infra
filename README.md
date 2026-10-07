@@ -551,8 +551,8 @@ On your deployment branch, edit the files of the profile you'll use:
 
 - `profiles/<profile>/aws/compute.tfvars` — instance types and node counts.
 - `profiles/<profile>/aws/storage.tfvars` — data volumes on the nginx node. `nginx_node_ebs_volume_size_2 = 0` skips PostgreSQL, `nginx_node_ebs_volume_size_3 = 0` (or `enable_activemq_setup = false`) skips ActiveMQ.
-- `profiles/<profile>/aws/dns.tfvars` — public / internal subdomains.
-- `profiles/<profile>/profile.yml` — which Layer-3 components run, the `k8s_infra_branch`, and the TLS mode.
+- `profiles/<profile>/aws/dns.tfvars` — optional: extra hosted zones, extra records.
+- `profiles/<profile>/profile.yml` — public / internal subdomains, which Layer-3 components run, the `k8s_infra_branch`, and the TLS mode.
 
 #### Step 3d: Deploy with one run
 

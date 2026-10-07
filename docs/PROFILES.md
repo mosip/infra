@@ -13,7 +13,7 @@ profiles/<name>/
     ├── compute.tfvars     # instance types, node counts
     ├── iam.tfvars
     ├── storage.tfvars     # data volumes (0 = don't create)
-    └── dns.tfvars         # subdomains
+    └── dns.tfvars         # optional: extra zones / records (subdomains are in profile.yml)
 ```
 
 | Profile | Nodes (cp/etcd/worker) | Layer 3 | nginx |
