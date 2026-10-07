@@ -1,0 +1,115 @@
+---
+# Ported from terraform/modules/aws/activemq-setup/activemq-setup.yml (#281)
+# — same logic, now real Ansible instead of a null_resource shelling
+# ansible-playbook over SSH from the Terraform runner. ActiveMQ itself runs
+# inside Kubernetes; this only prepares the 3rd EBS volume (#276) as an NFS
+# share and registers a matching StorageClass.
+#
+# The original applied the generated StorageClass YAML via a *second*,
+# separate Terraform null_resource that scp'd it to the control plane and
+# ran kubectl there. Folded into one playbook here: this role runs against
+# the nginx host to prepare storage, then delegates the kubectl apply to the
+# primary control-plane node directly (its on-node kubeconfig, from
+# ansible/rke2/tasks/kubeconfig.yml, already exists at cluster-install time).
+
+- name: Update apt cache
+  become: true
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install required tools
+  become: true
+  ansible.builtin.apt:
+    name: [xfsprogs, util-linux, nfs-kernel-server]
+    state: present
+
+- name: Wait for ActiveMQ storage device to appear
+  ansible.builtin.wait_for:
+    path: "{{ activemq_storage_device }}"
+    timeout: 240
+    msg: "Timed out waiting for device {{ activemq_storage_device }}"
+
+- name: Check if device already has a filesystem
+  ansible.builtin.command: blkid -o value -s TYPE "{{ activemq_storage_device }}"
+  register: existing_fs
+  changed_when: false
+  failed_when: false
+  become: true
+
+- name: Create XFS filesystem on device (skipped if already formatted)
+  become: true
+  community.general.filesystem:
+    fstype: xfs
+    dev: "{{ activemq_storage_device }}"
+  when: existing_fs.stdout == ""
+
+- name: Resolve filesystem UUID of the device
+  ansible.builtin.command: blkid -o value -s UUID "{{ activemq_storage_device }}"
+  register: device_uuid
+  changed_when: false
+  retries: 3
+  delay: 5
+  until: device_uuid.stdout != ""
+  become: true
+
+- name: Create mount point directory
+  become: true
+  ansible.builtin.file:
+    path: "{{ activemq_mount_point }}"
+    state: directory
+    mode: '0777'
+
+- name: Mount device by UUID and add to fstab (idempotent)
+  become: true
+  ansible.posix.mount:
+    path: "{{ activemq_mount_point }}"
+    src: "UUID={{ device_uuid.stdout | trim }}"
+    fstype: xfs
+    opts: defaults,nofail
+    dump: '0'
+    passno: '2'
+    state: mounted
+
+- name: Add ActiveMQ NFS export entry
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/exports
+    line: "{{ activemq_mount_point }} {{ activemq_nfs_allowed_hosts }}(rw,sync,no_root_squash,no_all_squash,insecure,subtree_check)"
+    state: present
+    create: true
+    backup: true
+
+- name: Apply NFS export changes (exportfs -rav)
+  become: true
+  ansible.builtin.command: exportfs -rav
+  changed_when: true
+
+- name: Start and enable NFS kernel server
+  become: true
+  ansible.builtin.systemd:
+    name: nfs-kernel-server
+    state: restarted
+    enabled: true
+    daemon_reload: true
+
+- name: Apply ActiveMQ NFS StorageClass to Kubernetes
+  delegate_to: "{{ groups['control_plane'][0] }}"
+  ansible.builtin.command:
+    cmd: kubectl apply -f -
+    stdin: |
+      apiVersion: storage.k8s.io/v1
+      kind: StorageClass
+      metadata:
+        name: {{ activemq_storageclass_name }}
+      provisioner: nfs.csi.k8s.io
+      parameters:
+        server: {{ ansible_default_ipv4.address }}
+        share: {{ activemq_mount_point }}/
+        mountPermissions: '0777'
+        subDir: ${pvc.metadata.namespace}-${pvc.metadata.name}-${pv.metadata.name}
+      reclaimPolicy: Delete
+      volumeBindingMode: Immediate
+  environment:
+    KUBECONFIG: "/home/ubuntu/.kube/{{ groups['control_plane'][0] }}.yaml"
+  changed_when: true

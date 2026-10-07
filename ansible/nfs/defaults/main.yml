@@ -1,0 +1,6 @@
+---
+nfs_server_location: "/srv/nfs"
+nfs_storage_device: "/dev/nvme1n1"
+k8s_infra_branch: "main"
+deployment_type: "infra"
+helm_version: "helm-v3.15.4-linux-amd64.tar.gz"

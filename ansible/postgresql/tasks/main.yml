@@ -1,0 +1,484 @@
+---
+# Ported from Helmsman/utils/ansible/postgresql-setup.yml (#281) — same secure
+# password-generation/idempotency logic, unchanged. Originally this playbook
+# wrote the generated Secret/ConfigMap YAML to /tmp on the Terraform runner
+# (delegate_to: localhost), and a *separate* Terraform null_resource scp'd
+# those files to the K8s control plane and ran kubectl there. Folded into one
+# playbook here: apply directly via delegate_to the primary control-plane
+# node, using its on-node kubeconfig (from ansible/rke2/tasks/kubeconfig.yml)
+# — no intermediate files, no second SSH hop.
+#
+# Runs against the nginx host (postgres lives on the 2nd EBS volume there,
+# #276), gated upstream by nginx_node_ebs_volume_size_2 > 0.
+
+- name: Gather OS facts
+  ansible.builtin.setup:
+    gather_subset: ['distribution', 'distribution_version']
+
+- name: Ensure Python3 is available (CentOS/RHEL compatibility)
+  become: true
+  ansible.builtin.package:
+    name: python3
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Verify Python3 with secrets module availability
+  ansible.builtin.command: python3 -c "import secrets; print('Python secrets module available')"
+  register: python_secrets_check
+  failed_when: python_secrets_check.rc != 0
+  changed_when: false
+
+- name: Check if device exists
+  ansible.builtin.stat:
+    path: "{{ storage_device }}"
+    follow: true
+  register: device_check
+  failed_when: not device_check.stat.exists or not device_check.stat.isblk
+
+- name: Check if PostgreSQL is already configured with a password
+  ansible.builtin.shell: |
+    sudo -u postgres psql -p {{ postgresql_port }} -c "SELECT 1;" 2>/dev/null
+  register: postgres_status_check
+  failed_when: false
+  changed_when: false
+  become: true
+
+- name: Try to read existing encrypted password from stored file
+  ansible.builtin.shell: |
+    if [ -f /var/lib/postgresql/.postgres_password_enc ] && [ -f /var/lib/postgresql/.postgres_encryption_key ]; then
+      ENCRYPTION_KEY=$(cat /var/lib/postgresql/.postgres_encryption_key)
+      openssl enc -aes-256-cbc -d -salt -pbkdf2 -pass pass:"$ENCRYPTION_KEY" -in /var/lib/postgresql/.postgres_password_enc 2>/dev/null
+    else
+      exit 1
+    fi
+  register: existing_encrypted_password
+  failed_when: false
+  changed_when: false
+  no_log: true
+  become: true
+
+- name: Set existing password if file exists and is valid
+  ansible.builtin.set_fact:
+    postgres_password: "{{ existing_encrypted_password.stdout }}"
+  when:
+    - existing_encrypted_password.rc == 0
+    - existing_encrypted_password.stdout is defined
+    - (existing_encrypted_password.stdout | length) == 16
+  no_log: true
+
+- name: Generate secure PostgreSQL password only if needed (OS-independent method)
+  ansible.builtin.shell: |
+    python3 -c "
+    import secrets
+    import string
+    uppercase = ''.join(secrets.choice(string.ascii_uppercase) for _ in range(4))
+    lowercase = ''.join(secrets.choice(string.ascii_lowercase) for _ in range(4))
+    digits = ''.join(secrets.choice(string.digits) for _ in range(4))
+    safe_special = '-_.'
+    extra = ''.join(secrets.choice(safe_special) for _ in range(4))
+    password = list(uppercase + lowercase + digits + extra)
+    secrets.SystemRandom().shuffle(password)
+    print(''.join(password))
+    "
+  register: generated_password_primary
+  when: postgres_password is not defined
+  no_log: true
+
+- name: Generate secure PostgreSQL password using OpenSSL fallback (Linux/macOS only)
+  ansible.builtin.shell: |
+    openssl rand -base64 24 | tr -d "=+/" | cut -c1-16
+  register: generated_password_fallback
+  when:
+    - postgres_password is not defined
+    - generated_password_primary.failed is defined
+    - generated_password_primary.failed == true
+  no_log: true
+  failed_when: false
+
+- name: Set password from OS-independent generation
+  ansible.builtin.set_fact:
+    postgres_password: "{{ generated_password_primary.stdout if generated_password_primary.stdout is defined else generated_password_fallback.stdout }}"
+  when: postgres_password is not defined
+  no_log: true
+
+- name: Validate password complexity
+  ansible.builtin.assert:
+    that:
+      - postgres_password | length == 16
+      - postgres_password is search('[A-Z]')
+      - postgres_password is search('[a-z]')
+      - postgres_password is search('[0-9]')
+    fail_msg: "Generated password does not meet complexity requirements"
+    success_msg: "Password meets security requirements"
+  no_log: true
+
+- name: Check if device is already mounted
+  ansible.builtin.command: mountpoint -q {{ mount_point }}
+  register: mount_check
+  failed_when: false
+  changed_when: false
+  become: true
+
+- name: Format device if not mounted
+  become: true
+  community.general.filesystem:
+    fstype: xfs
+    dev: "{{ storage_device }}"
+    force: false
+  when: mount_check.rc != 0
+
+- name: Resolve filesystem UUID of the device
+  ansible.builtin.command: blkid -o value -s UUID "{{ storage_device }}"
+  register: device_uuid
+  changed_when: false
+  retries: 3
+  delay: 5
+  until: device_uuid.stdout != ""
+  become: true
+
+- name: Create mount point and mount device
+  become: true
+  ansible.posix.mount:
+    path: "{{ mount_point }}"
+    src: "UUID={{ device_uuid.stdout | trim }}"
+    fstype: xfs
+    opts: defaults,noatime
+    state: mounted
+
+- name: Install required packages for repository (Ubuntu/Debian)
+  become: true
+  ansible.builtin.apt:
+    name: [wget, ca-certificates, gnupg, lsb-release, python3-bcrypt, python3-psycopg2]
+    state: present
+    update_cache: true
+  when: ansible_os_family == "Debian"
+
+- name: Install PostgreSQL repository (CentOS/RHEL)
+  become: true
+  ansible.builtin.yum:
+    name: "https://download.postgresql.org/pub/repos/yum/reporpms/EL-{{ ansible_distribution_major_version }}-x86_64/pgdg-redhat-repo-latest.noarch.rpm"
+    state: present
+    disable_gpg_check: true
+  when: ansible_os_family == "RedHat"
+
+- name: Install required packages (CentOS/RHEL)
+  become: true
+  ansible.builtin.yum:
+    name:
+      - "postgresql{{ postgresql_version }}-server"
+      - "postgresql{{ postgresql_version }}"
+      - python3-bcrypt
+      - python3-psycopg2
+      - wget
+      - ca-certificates
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Get Ubuntu codename
+  ansible.builtin.command: lsb_release -cs
+  register: ubuntu_codename
+  changed_when: false
+  when: ansible_os_family == "Debian"
+
+- name: Add PostgreSQL signing key
+  become: true
+  ansible.builtin.apt_key:
+    url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Add PostgreSQL APT repository
+  become: true
+  ansible.builtin.apt_repository:
+    repo: "deb http://apt.postgresql.org/pub/repos/apt {{ ubuntu_codename.stdout }}-pgdg main"
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Update package cache after adding PostgreSQL repo
+  become: true
+  ansible.builtin.apt:
+    update_cache: true
+  when: ansible_os_family == "Debian"
+
+- name: Install PostgreSQL packages (Ubuntu/Debian)
+  become: true
+  ansible.builtin.apt:
+    name:
+      - "postgresql-{{ postgresql_version }}"
+      - "postgresql-client-{{ postgresql_version }}"
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Initialize PostgreSQL database (CentOS/RHEL only)
+  become: true
+  ansible.builtin.command: "/usr/pgsql-{{ postgresql_version }}/bin/postgresql-{{ postgresql_version }}-setup initdb"
+  when: ansible_os_family == "RedHat"
+  register: postgres_init_result
+  failed_when: false
+  changed_when: postgres_init_result.rc == 0
+
+- name: Set OS-specific PostgreSQL paths
+  ansible.builtin.set_fact:
+    postgres_data_dir: "{{ mount_point }}/postgresql/{{ postgresql_version }}/main"
+    postgres_old_dir: "{{ '/var/lib/postgresql/' ~ postgresql_version ~ '/main' if ansible_os_family == 'Debian' else '/var/lib/pgsql/' ~ postgresql_version ~ '/data' }}"
+    postgres_config_dir: "{{ '/etc/postgresql/' ~ postgresql_version ~ '/main' if ansible_os_family == 'Debian' else '/var/lib/pgsql/' ~ postgresql_version ~ '/data' }}"
+    postgres_namespace: "{{ kubernetes_namespace }}"
+    postgres_secret_name: "{{ secret_name }}"
+    postgres_external_host: "{{ ansible_default_ipv4.address }}"
+
+- name: Generate or retrieve encryption key for password storage
+  become: true
+  ansible.builtin.shell: |
+    if [ ! -f /var/lib/postgresql/.postgres_encryption_key ]; then
+      openssl rand -base64 32 > /var/lib/postgresql/.postgres_encryption_key
+      chmod 600 /var/lib/postgresql/.postgres_encryption_key
+      chown postgres:postgres /var/lib/postgresql/.postgres_encryption_key
+    fi
+    cat /var/lib/postgresql/.postgres_encryption_key
+  register: encryption_key
+  no_log: true
+
+- name: Store password securely for future runs
+  become: true
+  ansible.builtin.shell: |
+    echo "{{ postgres_password }}" | openssl enc -aes-256-cbc -salt -pbkdf2 -pass pass:"{{ encryption_key.stdout }}" -out /var/lib/postgresql/.postgres_password_enc
+    chmod 600 /var/lib/postgresql/.postgres_password_enc
+    chown postgres:postgres /var/lib/postgresql/.postgres_password_enc
+    echo "{{ postgres_password }}" | sha256sum | cut -d' ' -f1 > /var/lib/postgresql/.postgres_password_hash
+    chmod 600 /var/lib/postgresql/.postgres_password_hash
+    chown postgres:postgres /var/lib/postgresql/.postgres_password_hash
+  when: postgres_password is defined
+  no_log: true
+
+- name: Stop PostgreSQL for data migration
+  become: true
+  ansible.builtin.systemd:
+    name: postgresql
+    state: stopped
+
+- name: Check if old data directory exists
+  ansible.builtin.stat:
+    path: "{{ postgres_old_dir }}/PG_VERSION"
+  register: old_data_exists
+  become: true
+
+- name: Check if new data directory is empty
+  ansible.builtin.find:
+    paths: "{{ postgres_data_dir }}"
+    file_type: any
+  register: new_data_check
+  failed_when: false
+  become: true
+
+- name: Create new data directory
+  become: true
+  ansible.builtin.file:
+    path: "{{ postgres_data_dir }}"
+    state: directory
+    owner: postgres
+    group: postgres
+    mode: '0700'
+    recurse: true
+
+- name: Copy data to new location
+  become: true
+  ansible.builtin.shell: |
+    sudo -u postgres cp -a {{ postgres_old_dir }}/* {{ postgres_data_dir }}/
+    sudo -u postgres cp -a {{ postgres_old_dir }}/.[^.]* {{ postgres_data_dir }}/ 2>/dev/null || true
+  when:
+    - old_data_exists.stat.exists
+    - new_data_check.matched == 0
+
+- name: Fix permissions on data directory
+  become: true
+  ansible.builtin.file:
+    path: "{{ postgres_data_dir }}"
+    owner: postgres
+    group: postgres
+    mode: '0700'
+    recurse: true
+
+- name: Configure PostgreSQL settings
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgres_config_dir }}/postgresql.conf"
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    backup: true
+  loop:
+    - { regexp: '^#?data_directory\s*=', line: "data_directory = '{{ postgres_data_dir }}'" }
+    - { regexp: '^#?port\s*=', line: "port = {{ postgresql_port }}" }
+    - { regexp: '^#?listen_addresses\s*=', line: "listen_addresses = '*'" }
+    - { regexp: '^#?max_connections\s*=', line: "max_connections = 1000" }
+  notify: restart postgresql
+
+- name: Configure pg_hba.conf for access
+  become: true
+  ansible.builtin.copy:
+    dest: "{{ postgres_config_dir }}/pg_hba.conf"
+    content: |
+      local   all             postgres                                peer
+      local   all             all                                     peer
+      host    all             all             0.0.0.0/0               md5
+      host    all             all             ::1/128                 md5
+      local   replication     all                                     peer
+      host    replication     all             127.0.0.1/32            md5
+      host    replication     all             ::1/128                 md5
+    owner: postgres
+    group: postgres
+    mode: '0640'
+    backup: true
+  notify: restart postgresql
+
+- name: Start and enable PostgreSQL
+  become: true
+  ansible.builtin.systemd:
+    name: postgresql
+    state: started
+    enabled: true
+
+- name: Wait for PostgreSQL to be ready
+  ansible.builtin.wait_for:
+    port: "{{ postgresql_port }}"
+    timeout: 30
+
+- name: Test if password is already set correctly
+  ansible.builtin.shell: |
+    export PGPASSWORD='{{ postgres_password }}'
+    psql -h localhost -p {{ postgresql_port }} -U postgres -c "SELECT 'Password already configured' as status;"
+  register: existing_password_test
+  no_log: true
+  failed_when: false
+  changed_when: false
+
+- name: Set PostgreSQL postgres user password only if needed
+  become: true
+  ansible.builtin.shell: |
+    sudo -u postgres psql -p {{ postgresql_port }} <<EOF
+    ALTER USER postgres PASSWORD '{{ postgres_password }}';
+    EOF
+  no_log: true
+  register: password_set_result
+  when: existing_password_test.rc != 0
+
+- name: Reload PostgreSQL configuration
+  become: true
+  ansible.builtin.shell: sudo -u postgres psql -p {{ postgresql_port }} -c "SELECT pg_reload_conf();"
+  changed_when: true
+
+- name: Wait for PostgreSQL to be fully ready after password change
+  ansible.builtin.wait_for:
+    timeout: 5
+
+- name: Test local connection first (using peer authentication)
+  become: true
+  ansible.builtin.shell: |
+    sudo -u postgres psql -p {{ postgresql_port }} -c "SELECT 'Local peer authentication works' as status;"
+  register: peer_test
+  changed_when: false
+
+- name: Test password authentication locally first
+  ansible.builtin.shell: |
+    export PGPASSWORD='{{ postgres_password }}'
+    psql -h localhost -p {{ postgresql_port }} -U postgres -c "SELECT 'Local password authentication works' as status;"
+  register: local_password_test
+  no_log: true
+  retries: 3
+  delay: 2
+  until: local_password_test.rc == 0
+  changed_when: false
+
+- name: Test PostgreSQL connection with new password (remote)
+  ansible.builtin.shell: |
+    export PGPASSWORD='{{ postgres_password }}'
+    psql -h {{ postgres_external_host }} -p {{ postgresql_port }} -U postgres -c "SELECT version();"
+  register: pg_test
+  no_log: true
+  retries: 3
+  delay: 2
+  until: pg_test.rc == 0
+  changed_when: false
+
+- name: Verify password consistency by testing connection again
+  ansible.builtin.shell: |
+    export PGPASSWORD='{{ postgres_password }}'
+    psql -h {{ postgres_external_host }} -p {{ postgresql_port }} -U postgres -c "SELECT 'Password verification successful' as status;"
+  register: password_verification
+  no_log: true
+  failed_when: password_verification.rc != 0
+  retries: 3
+  delay: 2
+  until: password_verification.rc == 0
+  changed_when: false
+
+- name: Generate base64 encoded values for Kubernetes secret
+  ansible.builtin.set_fact:
+    postgres_password_b64: "{{ postgres_password | b64encode }}"
+  no_log: true
+  when: password_verification is defined and password_verification.rc == 0
+
+- name: Apply PostgreSQL Kubernetes Secret and ConfigMap
+  when: postgres_password_b64 is defined
+  delegate_to: "{{ groups['control_plane'][0] }}"
+  environment:
+    KUBECONFIG: "/home/ubuntu/.kube/{{ groups['control_plane'][0] }}.yaml"
+  block:
+    - name: Ensure postgres namespace exists
+      ansible.builtin.shell: >-
+        kubectl create namespace {{ postgres_namespace }}
+        --dry-run=client -o yaml | kubectl apply -f -
+      changed_when: true
+
+    - name: Apply PostgreSQL Secret
+      ansible.builtin.command:
+        cmd: kubectl apply -f -
+        stdin: |
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: {{ postgres_secret_name }}
+            namespace: {{ postgres_namespace }}
+          data:
+            postgres-password: {{ postgres_password_b64 }}
+          type: Opaque
+      no_log: true
+      changed_when: true
+
+    - name: Apply PostgreSQL ConfigMap
+      ansible.builtin.command:
+        cmd: kubectl apply -f -
+        stdin: |
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: postgres-setup-config
+            namespace: {{ postgres_namespace }}
+          data:
+            mosip-database-hostname-override: {{ postgres_external_host }}
+            mosip-database-port-override: "{{ postgresql_port }}"
+      changed_when: true
+
+- name: Final password consistency validation
+  ansible.builtin.shell: |
+    export PGPASSWORD='{{ postgres_password }}'
+    psql -h localhost -p {{ postgresql_port }} -U postgres -c "SELECT 'Setup completed successfully' as status;"
+  register: final_validation
+  no_log: true
+  when: postgres_password_b64 is defined
+  changed_when: false
+
+- name: Clear sensitive variables from Ansible facts
+  ansible.builtin.set_fact:
+    postgres_password: ""
+    postgres_password_b64: ""
+    generated_password_primary: ""
+    generated_password_fallback: ""
+  no_log: true
+
+- name: Display setup summary
+  ansible.builtin.debug:
+    msg:
+      - "PostgreSQL {{ postgresql_version }} secure setup complete"
+      - "Host: {{ postgres_external_host }}, Port: {{ postgresql_port }}"
+      - "Password: {{ 'REUSED EXISTING' if existing_password_test.rc == 0 else 'NEWLY GENERATED' }}"
+      - "Kubernetes Secret/ConfigMap applied to namespace {{ postgres_namespace }} on the primary control-plane node"

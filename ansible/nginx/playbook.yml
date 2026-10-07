@@ -1,0 +1,12 @@
+---
+# Run: ansible-playbook -i <inventory> ansible/nginx/playbook.yml
+# Inventory group "nginx" — populated from #275's compute nginx_public_ip/private_ip
+# outputs (cloud) or a static entry (on-prem). See CLAUDE.md's provisioning
+# contract and pipeline-handoff section.
+- name: Configure nginx + certbot
+  hosts: nginx
+  become: false
+  gather_facts: true
+  tasks:
+    - name: Run nginx role tasks
+      ansible.builtin.include_tasks: tasks/main.yml

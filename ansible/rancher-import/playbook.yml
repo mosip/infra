@@ -1,0 +1,14 @@
+---
+# Run: ansible-playbook -i <inventory> ansible/rancher-import/playbook.yml
+# Same inventory as ansible/rke2/playbook.yml (#279) — needs the
+# "control_plane"/"etcd"/"workers" groups to compute the expected node count,
+# and expects the primary's kubeconfig at /home/ubuntu/.kube/<primary>.yaml
+# (written by rke2's kubeconfig.yml). Separate from rke2 (#280) so it can be
+# re-run on its own, e.g. after Rancher token rotation.
+- name: Verify cluster and import into Rancher
+  hosts: control_plane[0]
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Run rancher-import tasks
+      ansible.builtin.include_tasks: tasks/main.yml

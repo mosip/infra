@@ -1,0 +1,60 @@
+---
+# Cluster join token. Base logic (deterministic hash of cluster_name) is what
+# rke2-playbook.yml already did. Added on top, leveraged from ATI's
+# rke2_deploy/tasks/token.yml (44d1186, 2026-07-15): recover the token from
+# the actual live primary node when one already exists, and warn on mismatch,
+# instead of blindly trusting a possibly-stale deterministic value — matters
+# once a real cluster exists and someone re-runs this against it.
+
+- name: Check for existing RKE2 server token on primary node
+  ansible.builtin.stat:
+    path: /var/lib/rancher/rke2/server/token
+  register: rke2_primary_token_stat
+  delegate_to: "{{ groups['control_plane'][0] }}"
+  become: true
+  failed_when: false
+  when: not (rke2_cluster_exists | default(false))
+
+- name: Read existing RKE2 server token from primary node
+  ansible.builtin.slurp:
+    src: /var/lib/rancher/rke2/server/token
+  register: rke2_primary_token_slurp
+  delegate_to: "{{ groups['control_plane'][0] }}"
+  become: true
+  when:
+    - not (rke2_cluster_exists | default(false))
+    - rke2_primary_token_stat.stat.exists | default(false)
+
+- name: Set token recovered from the live primary node
+  ansible.builtin.set_fact:
+    rke2_recovered_token: "{{ rke2_primary_token_slurp.content | b64decode | trim }}"
+  when:
+    - not (rke2_cluster_exists | default(false))
+    - rke2_primary_token_stat.stat.exists | default(false)
+    - rke2_primary_token_slurp.content is defined
+  no_log: true
+
+- name: Generate deterministic cluster token (fallback — same convention as before)
+  ansible.builtin.set_fact:
+    cluster_token: "{{ cluster_name | hash('md5') | truncate(32, True, '') }}"
+    cacheable: true
+  no_log: true
+
+- name: Warn when the live primary token differs from the deterministic one
+  ansible.builtin.debug:
+    msg: >-
+      Primary node's actual RKE2 token differs from the deterministic
+      cluster_name-derived one. Using the live token from the primary to
+      avoid a bootstrap mismatch when joining new nodes.
+  when:
+    - rke2_recovered_token is defined
+    - rke2_recovered_token != cluster_token
+
+- name: Prefer the live-recovered token over the deterministic one when available
+  ansible.builtin.set_fact:
+    cluster_token: "{{ rke2_recovered_token }}"
+    cacheable: true
+  when:
+    - rke2_recovered_token is defined
+    - rke2_recovered_token | length > 0
+  no_log: true

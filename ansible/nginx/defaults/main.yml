@@ -1,0 +1,18 @@
+---
+# nginx_type selects which of the two configs below applies — "mosip" or "observability"
+nginx_type: "mosip"
+
+env_var_file: "/etc/environment"
+k8s_infra_branch: "main"
+
+# mosip-specific nodeports (unused when nginx_type == observability)
+cluster_ingress_public_nodeport: "30080"
+cluster_ingress_internal_nodeport: "31080"
+cluster_ingress_postgres_nodeport: "31432"
+cluster_ingress_minio_nodeport: "30900"
+cluster_ingress_activemq_nodeport: "31616"
+
+# observability-specific nodeport (unused when nginx_type == mosip)
+observation_ingress_nodeport: "30080"
+
+working_dir: "/home/ubuntu/"

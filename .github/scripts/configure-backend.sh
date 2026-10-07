@@ -2,7 +2,7 @@
 
 # MOSIP Terraform Backend Configuration Script
 # This script generates appropriate backend.tf files based on provider and configuration
-# Supports all workflow inputs: providers (aws, azure, gcp), components (base-infra, infra, observ-infra), and backend types (local, remote)
+# Supports all workflow inputs: providers (aws, azure, gcp), components (base-infra, infra, observ-infra, security, compute, storage, dns, iam), and backend types (local, remote)
 
 set -e  # Exit on any error
 
@@ -12,7 +12,7 @@ usage() {
     echo "Options:"
     echo "  -t, --type            Backend type: local or remote (required)"
     echo "  -p, --provider        Cloud provider: aws, azure, gcp (required)"
-    echo "  -c, --component       Component: base-infra, infra, observ-infra (required)"
+    echo "  -c, --component       Component: base-infra, infra, observ-infra, security, compute, storage, dns, iam (required)"
     echo "  -b, --branch          Branch name for state key (required for remote)"
     echo "  -r, --remote-config   Remote backend config string (required for remote)"
     echo "  --profile             Infrastructure profile (e.g., mosip, esignet-standalone) - included in state key"
@@ -21,7 +21,8 @@ usage() {
     echo ""
     echo "Supported combinations:"
     echo "  Providers: aws, azure, gcp"
-    echo "  Components: base-infra (one-time), infra (can be destroyed/recreated), observ-infra (can be destroyed/recreated)"
+    echo "  Components: base-infra (one-time), infra/observ-infra (legacy monolith, destroyable)"
+    echo "              security/compute/storage/dns/iam (#273 decoupled infra roots, nested under implementations/{provider}/{infra,observ-infra}/, destroyable)"
     echo "  Backends: local, remote"
     echo ""
     echo "Remote config formats:"
@@ -110,9 +111,17 @@ if [[ ! "$CLOUD_PROVIDER" =~ ^(aws|azure|gcp)$ ]]; then
 fi
 
 # Validate component
-if [[ ! "$COMPONENT" =~ ^(base-infra|infra|observ-infra)$ ]]; then
+# base-infra/infra/observ-infra are the original flat components (still the
+# only values TERRAFORM_COMPONENT itself takes in terraform.yml). The
+# remaining five are #273's decoupled provisioning roots, nested under
+# terraform/implementations/{provider}/{infra,observ-infra}/{component}/ and
+# selected via the separate PROVISIONING_COMPONENT workflow input — this
+# script only ever sees the concrete component name being configured right
+# now, never a parent/child pair. "configure" (the Ansible-invocation
+# meta-value) has no backend.tf of its own and never reaches this script.
+if [[ ! "$COMPONENT" =~ ^(base-infra|infra|observ-infra|security|compute|storage|dns|iam)$ ]]; then
     echo "Error: Invalid component '$COMPONENT'"
-    echo "Valid components: base-infra, infra, observ-infra"
+    echo "Valid components: base-infra, infra, observ-infra, security, compute, storage, dns, iam"
     exit 1
 fi
 

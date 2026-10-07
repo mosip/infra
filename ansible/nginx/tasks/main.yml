@@ -1,0 +1,153 @@
+---
+# Ported from terraform/modules/aws/nginx-setup/{nginx-setup-main.tf,nginx-setup.sh}
+# (#278) — same logic, now real Ansible instead of a null_resource shelling a
+# script over SSH. IAM (certbot's Route53 permissions) is a separate Terraform
+# root (iam) — this role assumes that instance profile is already
+# attached, it never touches AWS IAM itself.
+
+- name: Select config for this nginx type
+  ansible.builtin.set_fact:
+    nginx_config: >-
+      {{
+        {
+          "cluster_env_domain": cluster_env_domain,
+          "env_var_file": env_var_file,
+          "certbot_email": certbot_email,
+          "k8s_infra_repo_url": k8s_infra_repo_url,
+          "k8s_infra_branch": k8s_infra_branch,
+          "working_dir": working_dir,
+          "nginx_location": "./k8s-infra/nginx/mosip/",
+          "cluster_nginx_certs": "/etc/letsencrypt/live/" + cluster_env_domain + "/fullchain.pem",
+          "cluster_nginx_cert_key": "/etc/letsencrypt/live/" + cluster_env_domain + "/privkey.pem",
+          "cluster_node_ips": k8s_node_ips_joined,
+          "cluster_public_domains": public_domain_list,
+          "cluster_ingress_public_nodeport": cluster_ingress_public_nodeport,
+          "cluster_ingress_internal_nodeport": cluster_ingress_internal_nodeport,
+          "cluster_ingress_postgres_nodeport": cluster_ingress_postgres_nodeport,
+          "cluster_ingress_minio_nodeport": cluster_ingress_minio_nodeport,
+          "cluster_ingress_activemq_nodeport": cluster_ingress_activemq_nodeport,
+        }
+        if nginx_type == "mosip" else
+        {
+          "cluster_env_domain": cluster_env_domain,
+          "env_var_file": env_var_file,
+          "certbot_email": certbot_email,
+          "k8s_infra_repo_url": k8s_infra_repo_url,
+          "k8s_infra_branch": k8s_infra_branch,
+          "working_dir": working_dir,
+          "nginx_location": "./k8s-infra/nginx/observation/",
+          "observation_nginx_certs": "/etc/letsencrypt/live/" + cluster_env_domain + "/fullchain.pem",
+          "observation_nginx_cert_key": "/etc/letsencrypt/live/" + cluster_env_domain + "/privkey.pem",
+          "observation_cluster_node_ips": k8s_node_ips_joined,
+          "observation_ingress_nodeport": observation_ingress_nodeport,
+        }
+      }}
+
+- name: Write nginx config values to /etc/environment
+  ansible.builtin.lineinfile:
+    path: "{{ env_var_file }}"
+    line: "export {{ item.key }}={{ item.value }}"
+    create: true
+  loop: "{{ nginx_config | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+
+- name: Install nginx + certbot + ssl dependencies
+  become: true
+  ansible.builtin.apt:
+    name:
+      - software-properties-common
+      - letsencrypt
+      - certbot
+      - python3-certbot-nginx
+      - python3-certbot-dns-route53
+    state: present
+    update_cache: true
+
+- name: Fetch instance metadata token (cloud only — nginx_public_ip set from #275's compute output)
+  ansible.builtin.uri:
+    url: "http://169.254.169.254/latest/api/token"
+    method: PUT
+    headers:
+      X-aws-ec2-metadata-token-ttl-seconds: "21600"
+    return_content: true
+  register: imds_token
+  when: nginx_public_ip is defined and nginx_public_ip | length > 0
+
+- name: Fetch internal IP from instance metadata (cloud only)
+  ansible.builtin.uri:
+    url: "http://169.254.169.254/latest/meta-data/local-ipv4"
+    headers:
+      X-aws-ec2-metadata-token: "{{ imds_token.content }}"
+    return_content: true
+  register: imds_internal_ip
+  when: nginx_public_ip is defined and nginx_public_ip | length > 0
+
+# On-prem has no IMDS to ask — fall back to the gathered interface address.
+- name: Determine nginx host's internal IP (cloud via IMDS, on-prem via gathered facts)
+  ansible.builtin.set_fact:
+    nginx_internal_ip_value: >-
+      {{ imds_internal_ip.content if (nginx_public_ip is defined and nginx_public_ip | length > 0)
+         else ansible_default_ipv4.address }}
+
+- name: Record cluster_nginx_internal_ip / cluster_nginx_public_ip (mosip only)
+  ansible.builtin.lineinfile:
+    path: "{{ env_var_file }}"
+    line: "export {{ item.key }}={{ item.value }}"
+    create: true
+  loop:
+    - { key: "cluster_nginx_internal_ip", value: "{{ nginx_internal_ip_value }}" }
+    # AWS fix: public IPs can't be bound to a network interface — install.sh
+    # needs the private IP even for the "public" variable. Same override the
+    # original nginx-setup.sh applied. On-prem has no separate public IP
+    # either, so the same value is correct there too.
+    - { key: "cluster_nginx_public_ip", value: "{{ nginx_internal_ip_value }}" }
+  when: nginx_type == "mosip"
+
+- name: Record observation_nginx_ip (observability only)
+  ansible.builtin.lineinfile:
+    path: "{{ env_var_file }}"
+    line: "export observation_nginx_ip={{ nginx_internal_ip_value }}"
+    create: true
+  when: nginx_type == "observability"
+
+- name: Request wildcard SSL certificate via certbot (Route53 DNS-01 challenge)
+  become: true
+  ansible.builtin.command:
+    cmd: >-
+      certbot certonly --dns-route53
+      -d *.{{ cluster_env_domain }} -d {{ cluster_env_domain }}
+      --non-interactive --agree-tos --email {{ certbot_email }}
+    creates: "/etc/letsencrypt/live/{{ cluster_env_domain }}/fullchain.pem"
+
+- name: Clone k8s-infra repository
+  ansible.builtin.git:
+    repo: "{{ k8s_infra_repo_url }}"
+    dest: "{{ working_dir }}/k8s-infra"
+    version: "{{ k8s_infra_branch }}"
+    force: false
+
+- name: Check install.sh exists in nginx location
+  ansible.builtin.stat:
+    path: "{{ working_dir }}/{{ nginx_config.nginx_location }}/install.sh"
+  register: install_sh
+
+- name: Fail if install.sh not found
+  ansible.builtin.fail:
+    msg: "install.sh not found in {{ nginx_config.nginx_location }}"
+  when: not install_sh.stat.exists
+
+- name: Run k8s-infra nginx install.sh
+  become: true
+  ansible.builtin.command:
+    cmd: "./install.sh"
+    chdir: "{{ working_dir }}/{{ nginx_config.nginx_location }}"
+  environment: "{{ dict(nginx_config.items() | list) }}"
+
+- name: Verify nginx configuration
+  become: true
+  ansible.builtin.command:
+    cmd: nginx -t
+  register: nginx_test
+  changed_when: false
+  failed_when: nginx_test.rc != 0

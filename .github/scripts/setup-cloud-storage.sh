@@ -2,7 +2,7 @@
 
 # MOSIP Cloud-Agnostic Remote Storage Setup Script
 # Handles remote storage setup for Terraform state across AWS, Azure, and GCP
-# Supports all workflow inputs: providers (aws, azure, gcp), components (base-infra, infra, observ-infra), and backend types
+# Supports all workflow inputs: providers (aws, azure, gcp), components (base-infra, infra, observ-infra, security, compute, storage, dns, iam), and backend types
 
 set -e  # Exit on any error
 
@@ -13,7 +13,7 @@ usage() {
     echo "  -p, --provider        Cloud provider: aws, azure, gcp (required)"
     echo "  -c, --config          Remote backend config string (required)"
     echo "  -b, --branch          Branch name for resource naming (required)"
-    echo "  -t, --component       Component type: base-infra, infra, observ-infra (optional, for validation)"
+    echo "  -t, --component       Component type: base-infra, infra, observ-infra, security, compute, storage, dns, iam (optional, for validation)"
     echo "  --enable-locking      Enable state locking (optional, for production)"
     echo "  -h, --help            Show this help message"
     echo ""
@@ -24,7 +24,8 @@ usage() {
     echo ""
     echo "Supported combinations:"
     echo "  Providers: aws, azure, gcp"
-    echo "  Components: base-infra (one-time), infra (can be destroyed/recreated), observ-infra (can be destroyed/recreated)"
+    echo "  Components: base-infra (one-time), infra/observ-infra (legacy monolith, destroyable)"
+    echo "              security/compute/storage/dns/iam (#273 decoupled infra roots, destroyable)"
     echo "  Backends: local, remote (this script handles remote only)"
     echo ""
     echo "Examples:"
@@ -90,9 +91,10 @@ if [[ ! "$CLOUD_PROVIDER" =~ ^(aws|azure|gcp)$ ]]; then
 fi
 
 # Validate component if provided
-if [ -n "$COMPONENT" ] && [[ ! "$COMPONENT" =~ ^(base-infra|infra|observ-infra)$ ]]; then
+# See configure-backend.sh for why "configure" isn't accepted here.
+if [ -n "$COMPONENT" ] && [[ ! "$COMPONENT" =~ ^(base-infra|infra|observ-infra|security|compute|storage|dns|iam)$ ]]; then
     echo "Error: Invalid component '$COMPONENT'"
-    echo "Valid components: base-infra, infra, observ-infra"
+    echo "Valid components: base-infra, infra, observ-infra, security, compute, storage, dns, iam"
     exit 1
 fi
 

@@ -1,0 +1,12 @@
+---
+# Run: ansible-playbook -i <inventory> ansible/nfs/playbook.yml
+# Inventory group "nginx" (also the NFS server, #275/#276) plus
+# "control_plane" (for the NFS CSI driver install). Needs k8s_infra_repo_url,
+# k8s_infra_branch, cluster_name — same common vars every other role uses.
+- name: Set up NFS server and CSI driver
+  hosts: nginx
+  become: false
+  gather_facts: true
+  tasks:
+    - name: Run nfs role tasks
+      ansible.builtin.include_tasks: tasks/main.yml

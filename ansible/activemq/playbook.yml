@@ -1,0 +1,13 @@
+---
+# Run: ansible-playbook -i <inventory> ansible/activemq/playbook.yml
+# Inventory group "nginx" (the storage host, #275/#276) plus "control_plane"
+# (for the StorageClass apply). Gated upstream by
+# nginx_node_ebs_volume_size_3 > 0, same condition the old Terraform
+# null_resource used.
+- name: Prepare ActiveMQ NFS storage and StorageClass
+  hosts: nginx
+  become: false
+  gather_facts: true
+  tasks:
+    - name: Run activemq role tasks
+      ansible.builtin.include_tasks: tasks/main.yml

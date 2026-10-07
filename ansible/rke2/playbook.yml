@@ -1,0 +1,37 @@
+---
+# Run: ansible-playbook -i <inventory> ansible/rke2/playbook.yml
+# Inventory groups "control_plane" (index 0 = primary, per #275's Primary=true
+# tag), "etcd", "workers" — populated from #275's compute k8s_node_ips_by_role
+# output (cloud) or a static inventory (on-prem). Each host needs a
+# node_role hostvar ("control-plane"|"etcd"|"worker") set when the inventory
+# is generated. See CLAUDE.md's provisioning contract.
+#
+# Ported from terraform/modules/aws/rke2-cluster/ansible/rke2-playbook.yml,
+# unwrapped from its null_resource (#279). Rancher import (the source's Play 3)
+# is intentionally NOT here — see ansible/rancher-import/ (#280).
+
+- name: Install primary RKE2 control-plane node
+  hosts: control_plane[0]
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Check whether the cluster already exists
+      ansible.builtin.include_tasks: tasks/check_cluster.yml
+
+    - name: Determine cluster join token
+      ansible.builtin.include_tasks: tasks/token.yml
+
+    - name: Install and configure the primary node
+      ansible.builtin.include_tasks: tasks/primary.yml
+
+- name: Install all other RKE2 nodes in parallel
+  hosts: control_plane[1:],etcd,workers
+  become: true
+  gather_facts: true
+  strategy: free
+  tasks:
+    - name: Determine cluster join token
+      ansible.builtin.include_tasks: tasks/token.yml
+
+    - name: Install and join this node
+      ansible.builtin.include_tasks: tasks/subsequent.yml

@@ -1,0 +1,178 @@
+---
+# Ported from rke2-playbook.yml's "Install All Other RKE2 Nodes in Parallel"
+# play — trimmed of CI-runner-specific debug/logging noise, functional logic
+# unchanged. Runs against every non-primary node (node_role == "control-plane"
+# minus the primary, "etcd", "worker" — set per host when the inventory is
+# generated from #275's Role tag).
+#
+# Per-host idempotency check (systemd ActiveState) is the same mechanism
+# already verified safe for adding a single new node without touching
+# existing ones — untouched here. Cluster-wide "did every node join"
+# verification moved to ansible/rancher-import/ (#280), since the source
+# only ever checked that collectively, once, on the primary.
+
+- name: Determine expected RKE2 service for this node
+  ansible.builtin.set_fact:
+    expected_rke2_service: "{{ 'rke2-server' if node_role == 'control-plane' else 'rke2-agent' }}"
+
+- name: Check if RKE2 service is already running
+  ansible.builtin.systemd:
+    name: "{{ expected_rke2_service }}"
+  register: node_rke2_status
+  failed_when: false
+  become: true
+
+- name: Skip this host — RKE2 already active
+  ansible.builtin.meta: end_host
+  when:
+    - node_rke2_status.status is defined
+    - node_rke2_status.status.ActiveState | default('') == "active"
+
+- name: Install and join subsequent node
+  become: true
+  block:
+    - name: Update system packages
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Install required packages
+      ansible.builtin.apt:
+        name: [curl, git, unzip]
+        state: present
+
+    - name: Create RKE2 config directory
+      ansible.builtin.file:
+        path: "{{ rke2_config_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Set environment variables
+      ansible.builtin.blockinfile:
+        path: "{{ env_file_path }}"
+        block: |
+          export CLUSTER_NAME={{ cluster_name }}
+          export CLUSTER_ENV_DOMAIN={{ cluster_env_domain }}
+          export NODE_NAME={{ inventory_hostname }}
+          export INTERNAL_IP={{ ansible_default_ipv4.address }}
+          export K8S_INFRA_REPO_URL={{ k8s_infra_repo_url }}
+          export K8S_INFRA_BRANCH={{ k8s_infra_branch }}
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - RKE2 VARS"
+
+    - name: Download and install RKE2
+      ansible.builtin.shell: |
+        set -e
+        export INSTALL_RKE2_VERSION="{{ rke2_version }}"
+        curl -sfL https://get.rke2.io | sh -
+      args:
+        executable: /bin/bash
+        creates: /usr/local/bin/rke2
+
+    - name: Clone k8s-infra repository
+      ansible.builtin.git:
+        repo: "{{ k8s_infra_repo_url }}"
+        dest: "/home/ubuntu/k8s-infra"
+        version: "{{ k8s_infra_branch }}"
+        force: false
+        update: true
+      become_user: ubuntu
+      ignore_errors: true
+
+    - name: Copy RKE2 config templates
+      ansible.builtin.shell: |
+        set -e
+        cd /home/ubuntu/k8s-infra/k8-cluster/on-prem/rke2
+        cp -n *.template {{ rke2_config_dir }}/ || true
+      args:
+        executable: /bin/bash
+      ignore_errors: true
+
+    - name: Configure subsequent control plane node
+      when: node_role == "control-plane"
+      block:
+        - name: Copy subsequent control plane config
+          ansible.builtin.copy:
+            src: "{{ rke2_config_dir }}/rke2-server-control-plane.subsequent.conf.template"
+            dest: "{{ rke2_config_dir }}/config.yaml"
+            remote_src: true
+            force: false
+            backup: true
+
+        - name: Replace placeholders in subsequent control plane config
+          ansible.builtin.replace:
+            path: "{{ rke2_config_dir }}/config.yaml"
+            regexp: "{{ item.regexp }}"
+            replace: "{{ item.replace }}"
+          loop: &placeholder_loop
+            - { regexp: '<configure-some-token-here>', replace: '{{ cluster_token }}' }
+            - { regexp: '<node-name>', replace: '{{ inventory_hostname }}' }
+            - { regexp: '<node-internal-ip>', replace: '{{ ansible_default_ipv4.address }}' }
+            - { regexp: '<primary-server-ip>', replace: '{{ k8s_primary_control_plane_ip }}' }
+          no_log: true
+
+        - name: Record RKE2 service type
+          ansible.builtin.lineinfile:
+            path: "{{ env_file_path }}"
+            line: "export RKE2_SERVICE=rke2-server"
+
+    - name: Configure ETCD node
+      when: node_role == "etcd"
+      block:
+        - name: Copy ETCD config
+          ansible.builtin.copy:
+            src: "{{ rke2_config_dir }}/rke2-etcd-agents.conf.template"
+            dest: "{{ rke2_config_dir }}/config.yaml"
+            remote_src: true
+            force: false
+            backup: true
+
+        - name: Replace placeholders in ETCD config
+          ansible.builtin.replace:
+            path: "{{ rke2_config_dir }}/config.yaml"
+            regexp: "{{ item.regexp }}"
+            replace: "{{ item.replace }}"
+          loop: *placeholder_loop
+          no_log: true
+
+        - name: Record RKE2 service type
+          ansible.builtin.lineinfile:
+            path: "{{ env_file_path }}"
+            line: "export RKE2_SERVICE=rke2-agent"
+
+    - name: Configure worker node
+      when: node_role == "worker"
+      block:
+        - name: Copy worker config
+          ansible.builtin.copy:
+            src: "{{ rke2_config_dir }}/rke2-agents.conf.template"
+            dest: "{{ rke2_config_dir }}/config.yaml"
+            remote_src: true
+            force: false
+            backup: true
+
+        - name: Replace placeholders in worker config
+          ansible.builtin.replace:
+            path: "{{ rke2_config_dir }}/config.yaml"
+            regexp: "{{ item.regexp }}"
+            replace: "{{ item.replace }}"
+          loop: *placeholder_loop
+          no_log: true
+
+        - name: Record RKE2 service type
+          ansible.builtin.lineinfile:
+            path: "{{ env_file_path }}"
+            line: "export RKE2_SERVICE=rke2-agent"
+
+    - name: Enable and start RKE2 service
+      ansible.builtin.systemd:
+        name: "{{ 'rke2-server' if node_role == 'control-plane' else 'rke2-agent' }}"
+        enabled: true
+        state: started
+
+    - name: Wait for RKE2 service to stabilize
+      ansible.builtin.wait_for:
+        timeout: 120
+
+    - name: Set up kubectl and kubeconfig (control-plane nodes only)
+      ansible.builtin.include_tasks: kubeconfig.yml
+      when: node_role == "control-plane"
