@@ -1,0 +1,71 @@
+grafana:
+  enabled: false
+  forceDeployDashboards: true    # emit dashboard ConfigMaps even with chart-Grafana off
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+
+# ── Environment identity: this is the ONE block that differs per environment ──
+prometheus:
+  prometheusSpec:
+    externalLabels:
+      cluster: ${env_name}        # ← this environment's name (change per env)
+      tier: nonprod                # ← prod | nonprod (used for routing later)
+
+alertmanager:
+  alertmanagerSpec:
+    secrets:
+      - alertmanager-smtp            # k8s secret holding the Gmail app password
+  config:
+    global:
+      resolve_timeout: 5m
+      smtp_smarthost: 'smtp.gmail.com:587'
+      smtp_from: 'mohanraj1715@gmail.com'                 # ← your Gmail address
+      smtp_auth_username: 'mohanraj1715@gmail.com'        # ← your Gmail address
+      smtp_auth_password_file: /etc/alertmanager/secrets/alertmanager-smtp/password
+      smtp_require_tls: true
+    route:
+      group_by: ['alertname', 'namespace', 'cluster']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+      receiver: 'email-warning'
+      routes:
+        - matchers: ['alertname =~ "Watchdog|InfoInhibitor"']
+          receiver: 'null'
+        - matchers: ['severity = "critical"']
+          receiver: 'email-critical'
+        - matchers: ['severity = "warning"']
+          receiver: 'email-warning'
+    receivers:
+      - name: 'null'
+      - name: 'email-critical'
+        email_configs:
+          - to: 'mohanraj1715@gmail.com'                  # ← test recipient (your Gmail)
+            send_resolved: true
+            headers:
+              subject: '[{{ .CommonLabels.cluster }}] [{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
+            html: >-
+              {{ range .Alerts }}
+              <b>Environment:</b> {{ .Labels.cluster }}<br>
+              <b>Severity:</b> {{ .Labels.severity }}<br>
+              <b>Namespace:</b> {{ .Labels.namespace }}<br>
+              <b>Summary:</b> {{ .Annotations.summary }}<br>
+              <b>Description:</b> {{ .Annotations.description }}<br><br>
+              {{ end }}
+      - name: 'email-warning'
+        email_configs:
+          - to: 'mohanraj1715@gmail.com'                  # ← test recipient (your Gmail)
+            send_resolved: true
+            headers:
+              subject: '[{{ .CommonLabels.cluster }}] [{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
+            html: >-
+              {{ range .Alerts }}
+              <b>Environment:</b> {{ .Labels.cluster }}<br>
+              <b>Severity:</b> {{ .Labels.severity }}<br>
+              <b>Namespace:</b> {{ .Labels.namespace }}<br>
+              <b>Summary:</b> {{ .Annotations.summary }}<br>
+              <b>Description:</b> {{ .Annotations.description }}<br><br>
+              {{ end }}
