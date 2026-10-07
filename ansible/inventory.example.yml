@@ -1,0 +1,122 @@
+---
+# Sample on-prem / data-centre inventory (#301, part of #273).
+#
+# The cloud/CI path never needs this file — its inventory is generated at
+# runtime by .github/scripts/generate-ansible-inventory.sh from Terraform
+# outputs (ephemeral, never committed). This file is the on-prem
+# equivalent: hand-maintained by the operator, no Terraform involved at
+# all. Copy this file, replace every <placeholder>, and run e.g.:
+#
+#   ansible-playbook -i my-datacentre-inventory.yml ansible/nginx/playbook.yml
+#   ansible-playbook -i my-datacentre-inventory.yml ansible/rke2/playbook.yml
+#   ansible-playbook -i my-datacentre-inventory.yml ansible/nfs/playbook.yml
+#   ansible-playbook -i my-datacentre-inventory.yml ansible/postgresql/playbook.yml   # if used
+#   ansible-playbook -i my-datacentre-inventory.yml ansible/activemq/playbook.yml     # if used
+#   ansible-playbook -i my-datacentre-inventory.yml ansible/rancher-import/playbook.yml  # if importing into Rancher
+#
+# Shape matches exactly what generate-ansible-inventory.sh produces for the
+# cloud path (validated this session via `ansible-inventory --list` against
+# both a multi-node and a single-node/observ-infra-shaped synthetic
+# output) — same group names, same hostvars, same "all: vars:" keys.
+
+all:
+  vars:
+    # ---- Shared identity values (equivalent to common.tfvars, cloud-side) ----
+    cluster_name: "<cluster-name>"
+    cluster_env_domain: "<cluster-env-domain>"
+    certbot_email: "<email-id>"
+    k8s_infra_repo_url: "https://github.com/mosip/k8s-infra.git"
+    k8s_infra_branch: "main"
+
+    # nginx_type: "mosip" for a normal MOSIP cluster, "observability" for a
+    # Rancher/Keycloak management cluster (see ansible/nginx/defaults/main.yml).
+    nginx_type: "mosip"
+    # deployment_type: "infra" | "observ-infra" — used by ansible/nfs for its
+    # kubeconfig path lookup (see ansible/nfs/defaults/main.yml).
+    deployment_type: "infra"
+
+    # ---- nginx / DNS-facing values ----
+    # NOTE: nginx_public_ip is intentionally NOT set here. Its absence is
+    # what triggers ansible/nginx/tasks/main.yml's on-prem fallback
+    # (uses ansible_default_ipv4.address instead of AWS instance-metadata
+    # lookup) — do not add nginx_public_ip: "" here, omit the key entirely.
+    #
+    # k8s_node_ips_joined: comma-separated private IPs of every K8s node —
+    # only used to render the nginx vhost config, not cloud-specific.
+    k8s_node_ips_joined: "10.10.1.10,10.10.1.11,10.10.1.12,10.10.2.10,10.10.2.11,10.10.2.12,10.10.3.10,10.10.3.11"
+    # public_domain_list: comma-separated public FQDNs nginx should route —
+    # same pattern the dns Terraform module uses for cloud (api.<domain> +
+    # one entry per subdomain_public), reconstructed by hand here.
+    public_domain_list: "api.<cluster-env-domain>,resident.<cluster-env-domain>,prereg.<cluster-env-domain>,esignet.<cluster-env-domain>"
+
+    # ---- RKE2 cluster values ----
+    # Must equal the actual primary control-plane node's IP below — used
+    # by ansible/rke2/tasks/subsequent.yml to fill the <primary-server-ip>
+    # placeholder when joining every non-primary node.
+    k8s_primary_control_plane_ip: "10.10.1.10"
+
+    # ---- Rancher import (optional — only if this cluster imports into a
+    # Rancher management cluster; see ansible/rancher-import) ----
+    enable_rancher_import: false
+    rancher_import_url: '"kubectl apply -f https://<rancher-host>/v3/import/<id>.yaml"'
+
+    # ---- On-prem hardware overrides — cloud defaults assume AWS NVMe
+    # device paths (/dev/nvme1n1 etc.); real data-centre hardware almost
+    # always needs these overridden to the actual block device path ----
+    nfs_storage_device: "/dev/sdb"
+    storage_device: "/dev/sdc"          # ansible/postgresql — only if postgresql is used
+    activemq_storage_device: "/dev/sdd" # ansible/activemq — only if activemq is used
+
+    # ---- SSH connection values ----
+    ansible_user: ubuntu
+    ansible_ssh_private_key_file: "/path/to/your/datacentre-ssh-key"
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+
+  children:
+    nginx:
+      hosts:
+        <cluster-name>-NGINX-NODE:
+          ansible_host: "10.10.0.10"
+
+    control_plane:
+      hosts:
+        <cluster-name>-CONTROL-PLANE-NODE-1:
+          ansible_host: "10.10.1.10"
+          node_role: "control-plane"
+        <cluster-name>-CONTROL-PLANE-NODE-2:
+          ansible_host: "10.10.1.11"
+          node_role: "control-plane"
+        <cluster-name>-CONTROL-PLANE-NODE-3:
+          ansible_host: "10.10.1.12"
+          node_role: "control-plane"
+
+    etcd:
+      hosts:
+        <cluster-name>-ETCD-NODE-1:
+          ansible_host: "10.10.2.10"
+          node_role: "etcd"
+        <cluster-name>-ETCD-NODE-2:
+          ansible_host: "10.10.2.11"
+          node_role: "etcd"
+        <cluster-name>-ETCD-NODE-3:
+          ansible_host: "10.10.2.12"
+          node_role: "etcd"
+
+    workers:
+      hosts:
+        <cluster-name>-WORKER-NODE-1:
+          ansible_host: "10.10.3.10"
+          node_role: "worker"
+        <cluster-name>-WORKER-NODE-2:
+          ansible_host: "10.10.3.11"
+          node_role: "worker"
+
+    # rke2_cluster groups the above three together — matches what
+    # ansible/rke2 and ansible/rancher-import expect (groups['control_plane'],
+    # groups['etcd'], groups['workers']). Leave the etcd/workers lines out
+    # entirely if your cluster has no dedicated etcd/worker nodes.
+    rke2_cluster:
+      children:
+        control_plane:
+        etcd:
+        workers:

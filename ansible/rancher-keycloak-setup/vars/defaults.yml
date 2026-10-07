@@ -1,0 +1,5 @@
+---
+rancher_ui_version: "2.8.3"
+rancher_hostname_var: "rancher.{{ cluster_env_domain }}"
+keycloak_hostname_var: "iam.{{ cluster_env_domain }}"
+k8s_infra_branch_name: "{{ k8s_infra_branch }}"
