@@ -50,7 +50,7 @@ apps:
     enabled: true
     version: 88.6.2        
     chart: prometheus-community/kube-prometheus-stack
-    valuesFile: "$WORKDIR/utils/values-monitoring.yaml"
+    valuesFile: "$WORKDIR/utils/loki-monitoring-values.yaml"
     wait: true
     timeout: 900
     priority: -6
