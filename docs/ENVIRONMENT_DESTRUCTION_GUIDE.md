@@ -38,15 +38,18 @@ Navigate to: **Repository → Actions → terraform destroy**
 
 ![Infrastructure Terraform Destroy](\_images/infra-terraform-destroy.png)
 
+> Screenshot from the previous workflow version — the form now shows `COMPONENT` and `PROFILE` (see parameters below).
+
 Click **"Run workflow"** and configure:
 
 ```
 Parameters:
 ├─ Branch: release-0.1.0 (or your deployment branch)
-├─ Cloud Provider: aws
-├─ Component: infra
-├─ Profile: mosip/esignet
-└─ Backend: local (or s3, match your deployment configuration)
+├─ CLOUD_PROVIDER: aws
+├─ COMPONENT: all        (dns → storage → compute → iam → security, + vm)
+├─ PROFILE: mosip / esignet-standalone / observ
+├─ BACKEND_TYPE: local (or remote, match your deployment)
+└─ TERRAFORM_DESTROY: ✅  (unchecked = plan -destroy only)
 ```
 
 #### 3. Wait for Completion
@@ -81,10 +84,13 @@ If you also want to delete the VPC and networking (base-infra):
 
 ![Base Infrastructure Terraform Destroy](\_images/base-infra-terraform-destroy.png)
 
-1. Go to **Actions → Terraform Infrastructure Destroy**
+> Screenshot from the previous workflow version — select `COMPONENT: base-infra`.
+
+1. Go to **Actions → terraform destroy**
 2. Run workflow with:
    ```
-   Component: base-infra
+   COMPONENT: base-infra
+   TERRAFORM_DESTROY: ✅
    ```
 3. Wait 5-8 minutes for completion
 
@@ -406,7 +412,7 @@ kubectl get namespaces | grep -E "cattle|istio"
  Parameters:
  - Branch: release-0.1.0 (your deployment branch)
  - CLOUD_PROVIDER: aws
- - COMPONENT: all      (reverse order: dns → storage → iam → compute → security)
+ - COMPONENT: all      (reverse order: dns → storage → compute → iam → security)
  - PROFILE: mosip / esignet-standalone
  - BACKEND_TYPE: local (or remote, match your deployment)
  - TERRAFORM_DESTROY: ✅ (unchecked = plan -destroy only)
@@ -427,7 +433,7 @@ kubectl get namespaces | grep -E "cattle|istio"
 ```bash
 # One root per component — destroy in reverse order
 P=mosip
-for c in dns storage iam compute security; do
+for c in dns storage compute iam security; do
   (cd terraform/implementations/aws/$c && terraform init && \
    terraform destroy -auto-approve \
      -var-file=../../../../profiles/$P/aws/common.tfvars \
@@ -888,7 +894,7 @@ echo "Step 5/7: Waiting for namespace deletion..."
 sleep 60
 
 echo "Step 6/7: Destroying Kubernetes Infrastructure..."
-for c in dns storage iam compute security; do
+for c in dns storage compute iam security; do
   (cd terraform/implementations/aws/$c && terraform destroy -auto-approve \
     -var-file=../../../../profiles/mosip/aws/common.tfvars \
     -var-file=../../../../profiles/mosip/aws/$c.tfvars)

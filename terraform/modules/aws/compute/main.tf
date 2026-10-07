@@ -10,9 +10,9 @@ terraform {
 # ── nginx instance ─────────────────────────────────────────────────────────
 # No ebs_block_device here (decision 3 — EBS volumes are #276's job, attached
 # post-creation via aws_ebs_volume + aws_volume_attachment, not owned by this
-# instance resource). No iam_instance_profile either (decision 4 — certbot's
-# IAM role/profile moves to #278/nginx, attached post-creation via
-# aws_iam_instance_profile_association once this instance exists).
+# instance resource). The certbot instance profile comes from the iam
+# component, which runs first — same as the legacy monolith, which set it at
+# creation too.
 resource "aws_instance" "nginx" {
   ami                         = var.ami
   instance_type               = var.nginx_instance_type
@@ -20,6 +20,7 @@ resource "aws_instance" "nginx" {
   key_name                    = var.ssh_key_name
   vpc_security_group_ids      = [var.nginx_sg_id]
   subnet_id                   = var.public_subnet_ids[0]
+  iam_instance_profile        = var.nginx_iam_instance_profile
 
   # Sets TOKEN/INTERNAL_IP in /etc/environment for downstream Ansible use.
   # The original EBS-mount-to-/srv/nfs block is intentionally dropped here —

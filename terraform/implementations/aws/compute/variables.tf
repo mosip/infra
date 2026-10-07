@@ -22,3 +22,9 @@ variable "k8s_instance_root_volume_size" { type = number }
 variable "k8s_control_plane_node_count" { type = number }
 variable "k8s_etcd_node_count" { type = number }
 variable "k8s_worker_node_count" { type = number }
+
+variable "attach_certbot_profile" {
+  description = "Give nginx the certbot Route53 instance profile from the iam component (tls_mode dns01 + route53). Set false otherwise."
+  type        = bool
+  default     = true
+}

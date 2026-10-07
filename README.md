@@ -8,18 +8,91 @@ This repository provides a **3-step rapid deployment model** for MOSIP (Modular 
 
 ### Key Components:
 
-- **Terraform** provisions the complete cloud infrastructure including VPCs, RKE2 Kubernetes clusters, databases, and networking components with a high-level declarative approach.
+- **Terraform** provisions cloud infrastructure on AWS — VPC, security groups, IAM, EC2, EBS, Route53 — one independent component (and state) at a time.
+- **Ansible** configures the hosts — TLS + nginx, RKE2 Kubernetes, NFS, PostgreSQL, ActiveMQ, Rancher — identically on Terraform-provisioned AWS hosts and on pre-created data-centre VMs (no Terraform needed there).
 - **Helmsman** deploys and manages all MOSIP services and applications on Kubernetes using Helm charts, providing centralized control through Desired State Files (DSF).
 
 ## Architecture Overview
 
 For detailed MOSIP platform architecture Diagram, visit: [MOSIP Platform Architecture](https://docs.mosip.io/1.2.0/setup/deploymentnew/v3-installation/1.2.0.2/overview-and-architecture#architecture-diagram)
 
-**Terraform Architecture:**
-[View Terraform Architecture Diagram](docs/_images/terraform-light.draw.io.png)
+**Terraform Architecture (AWS):**
+One root and one state per component, applied in order by `terraform.yml` (`COMPONENT=all`); each finds the previous layer by AWS tags, never shared state. More diagrams: [Architecture diagrams](docs/_images/ARCHITECTURE_DIAGRAMS.md).
+
+```mermaid
+%%{init: {'theme': 'neutral'}}%%
+graph LR
+    BI["base-infra<br/>VPC · subnets · WireGuard<br/>(once per account)"]
+    PROF["profiles/&lt;profile&gt;/aws/*.tfvars"]
+    subgraph ROOTS["terraform/implementations/aws/* — one state each"]
+        direction LR
+        SEC[security<br/>4 SGs] --> IAM["iam<br/>certbot role<br/>(zone-scoped)"] --> COMP["compute<br/>nginx + RKE2 EC2"] --> STO["storage<br/>EBS volumes"] --> DNS["dns<br/>Route53<br/>multi-zone"]
+    end
+    VM["vm<br/>standalone EC2 + SG + IAM<br/>(on demand)"]
+    BI --> SEC
+    BI --> VM
+    PROF --> ROOTS
+    PROF --> VM
+    DNS --> CFG["configure<br/>Ansible site.yml"]
+    STATE[("state per component · profile · branch<br/>GPG in git or S3")]
+    ROOTS -.-> STATE
+
+    classDef tf fill:none,stroke:#1976d2,stroke-width:2px
+    classDef side fill:none,stroke:#ff8f00,stroke-width:2px
+    classDef ans fill:none,stroke:#388e3c,stroke-width:2px
+    class BI,SEC,IAM,COMP,STO,DNS,VM tf
+    class PROF,STATE side
+    class CFG ans
+```
 
 **Helmsman Architecture:**
 [View Helmsman Architecture Diagram](docs/_images/updated-Helmsman.drawio.png)
+
+**Ansible Architecture (AWS and data centre):**
+Layer 3 is the same Ansible on both paths — only where the inventory comes from differs. Data-centre steps: [Data-centre deployment](docs/DATACENTRE_DEPLOYMENT.md).
+
+```mermaid
+%%{init: {'theme': 'neutral'}}%%
+graph LR
+    %% Where the hosts come from
+    subgraph SRC["Hosts"]
+        direction TB
+        TF["AWS: Terraform<br/>security → iam → compute<br/>→ storage → dns"]
+        DC["Data centre: pre-created VMs<br/>+ hosts.yml<br/>(DNS by DNS team)"]
+    end
+
+    PROF["profiles/&lt;profile&gt;/profile.yml<br/>components · subdomains · TLS mode"]
+
+    TF -->|"terraform output<br/>compute + storage"| GEN
+    DC -->|"generate.py --from-hosts"| GEN
+    PROF --> GEN
+    GEN["ansible/inventory/generate.py<br/>one inventory format"] --> INV[inventory.yml]
+
+    %% site.yml — fixed legacy order; the profile only selects components
+    INV --> SITE
+    subgraph SITE["ansible/site.yml"]
+        direction TB
+        PF["preflight<br/>SSH · vars · disks · DNS check"] --> TLS["tls<br/>byo · http01 · dns01"]
+        TLS --> NG[nginx]
+        NG --> RK[rke2]
+        RK --> RI["rancher import<br/>(optional)"]
+        RI --> NFS[nfs]
+        NFS --> PG["postgresql<br/>(profile)"]
+        PG --> AMQ["activemq<br/>(profile)"]
+        AMQ --> RKC["rancher + keycloak<br/>(observ profile)"]
+    end
+
+    SITE --> K8S["RKE2 cluster ready<br/>→ Helmsman"]
+
+    classDef src fill:none,stroke:#1976d2,stroke-width:2px
+    classDef gen fill:none,stroke:#ff8f00,stroke-width:2px
+    classDef step fill:none,stroke:#388e3c,stroke-width:1px
+    classDef done fill:none,stroke:#7b1fa2,stroke-width:2px
+    class TF,DC src
+    class PROF,GEN,INV gen
+    class PF,TLS,NG,RK,RI,NFS,PG,AMQ,RKC step
+    class K8S done
+```
 
 ---
 
@@ -30,17 +103,19 @@ For detailed MOSIP platform architecture Diagram, visit: [MOSIP Platform Archite
 graph TB
     %% Prerequisites
     A[Fork Repository] --> B[Configure Secrets]
-    B --> C[Select Cloud Provider]
+    B --> C{Where do the<br/>hosts come from?}
 
     %% Infrastructure Phase
-    C --> D[Terraform: base-infra<br/>VPC, Networking, WireGuard]
+    C -->|AWS| D[Terraform: base-infra<br/>VPC, Networking, WireGuard]
+    C -->|Data centre / any VMs| DCV[Pre-created VMs + hosts.yml<br/>DNS by DNS team<br/>Ansible only - no Terraform]
+    DCV --> PS
     D --> OBS{Deploy<br/>Observability?}
     OBS -->|Yes| F[Terraform + Ansible<br/>profile: observ<br/>Rancher UI + Keycloak]
     OBS -->|No| PS
     F --> PS
 
-    %% Terraform Profile Selection
-    PS{Select Terraform<br/>Profile}
+    %% Profile selection (same profiles on AWS and data centre)
+    PS{Select<br/>Profile}
     PS -->|esignet-standalone| TF_ES[Terraform + Ansible<br/>profile: esignet-standalone]
     PS -->|mosip| TF_MP[Terraform + Ansible<br/>profile: mosip]
 
@@ -78,13 +153,14 @@ graph TB
     classDef success fill:none,stroke:#388e3c,stroke-width:2px
     classDef decision fill:none,stroke:#c2185b,stroke-width:2px
 
-    class A,B,C prereq
+    class A,B prereq
+    class DCV terraform
     class D,F,TF_ES,TF_MP terraform
     class ES_EXT,ES_ESIGNET,ES_TRIGS helmsman
     class MP_EXT,MP_MOSIP,MP_ESIGNET,MP_TRIGS mosip
     class NS1,NS2,NS3,NS4 ns
     class V,DONE success
-    class OBS,PS,MP_VER decision
+    class C,OBS,PS,MP_VER decision
 ```
 
 > **Note:** Terraform provisioning is implemented for **AWS**. Azure and GCP have `base-infra` only. Any other environment — including data-centre VMs — is supported by the provider-agnostic Ansible layer without Terraform.
@@ -334,7 +410,7 @@ CLUSTER_WIREGUARD_WG1: |
 
 **Need step-by-step help?** [Secret Generation Guide](docs/SECRET_GENERATION_GUIDE.md)
 
-> **Note**: PostgreSQL secrets are no longer required! PostgreSQL setup is handled automatically by Terraform modules and Ansible scripts based on your `enable_postgresql_setup` configuration.
+> **Note**: PostgreSQL secrets are no longer required! External PostgreSQL is set up automatically by Ansible when the profile lists `postgresql` in `configure_components` (and, on AWS, `nginx_node_ebs_volume_size_2 > 0` in `storage.tfvars`).
 
 ## Deployment Steps Guide
 
@@ -364,7 +440,7 @@ Add the required secrets as follows:
 - **Environment Secrets** (Settings → Secrets and variables → Actions → Environment secrets):
 - All other secrets mentioned in the Prerequisites section above (KUBECONFIG, WireGuard configs, etc.)
 
-### 3. Terraform Infrastructure Deployment
+### 3. Infrastructure Deployment (Terraform on AWS, or Ansible on your VMs)
 
 > **New to Terraform workflows?** Check our [Workflow Guide](docs/WORKFLOW_GUIDE.md) for visual step-by-step instructions on navigating GitHub Actions!
 
@@ -398,7 +474,7 @@ For detailed information about GitHub Actions workflow parameters, terraform mod
 1. **Update terraform variables:**
 
 ```bash
- # Edit terraform/implementations/aws/base-infra/aws.tfvars (or azure/gcp)
+ # Edit terraform/implementations/aws/base-infra/aws.tfvars (azure/gcp base-infra are placeholders)
 ```
 
 2. **Configure base-infra variables:**
@@ -417,6 +493,8 @@ For detailed information about GitHub Actions workflow parameters, terraform mod
 
 ![Base Infrastructure Terraform Apply](docs/_images/base-infra-terraform-apply.png)
 
+> Screenshot from the previous workflow version — the form now shows `COMPONENT` (pick `base-infra`) and `PROFILE` (ignored for base-infra) instead of `TERRAFORM_COMPONENT` / `INFRA_PROFILE`.
+
 - **(1)** Go to **Actions** → **terraform plan/apply**
   - **Can't find it?** Look in the left sidebar under "All workflows"
   - Click **Run workflow** (green button on the right)
@@ -425,7 +503,7 @@ For detailed information about GitHub Actions workflow parameters, terraform mod
   - **What's this?** The branch of code to use for deployment
 - **(3)** **Cloud Provider**: Select `aws` (Azure/GCP are placeholder implementations)
   - **Important**: Only `aws` is fully functional
-- **(4)** **Component**: Select `base-infra` (creates VPC, networking, jump server, WireGuard)
+- **(4)** **COMPONENT**: Select `base-infra` (creates VPC, networking, jump server, WireGuard)
   - **What's this?** Select which infrastructure component to build.
   - Selecting `base-infra` triggers the creation of the core infrastructure components listed below:
     - **VPC & Networking**: Secure network foundation
@@ -569,7 +647,7 @@ On your deployment branch, edit the files of the profile you'll use:
 `all` runs the components in the legacy order, each with its own state, stopping at the first failure:
 
 ```
-security → compute → iam → storage → dns → configure (Ansible: nginx → rke2 → rancher import → nfs → postgresql → activemq)
+security → iam → compute → storage → dns → configure (Ansible: nginx → rke2 → rancher import → nfs → postgresql → activemq)
 ```
 
 To preview without changing anything, run a single component with **TERRAFORM_APPLY** unchecked (plan only). Every component can also be re-run on its own later — e.g. `COMPONENT=dns` to change only Route53 records, or `COMPONENT=configure` to re-run Ansible. See [Deployment sequence](docs/DEPLOYMENT_SEQUENCE.md).
@@ -598,7 +676,7 @@ python3 ansible/inventory/generate.py --profile profiles/mosip --from-hosts my-h
 ansible-playbook -i inventory.yml ansible/site.yml
 ```
 
-Create the DNS records first (your DNS team, or `COMPONENT=dns` if the domain is in Route53). TLS can be your own certificate, Let's Encrypt HTTP-01, or Let's Encrypt DNS-01 through any provider. See [Deployment sequence](docs/DEPLOYMENT_SEQUENCE.md#data-centre).
+Create the DNS records first (your DNS team, or `COMPONENT=dns` if the domain is in Route53). TLS can be your own certificate, Let's Encrypt HTTP-01, or Let's Encrypt DNS-01 through any provider. Full guide — VM prerequisites, firewall ports, TLS options, troubleshooting: **[Data-centre deployment](docs/DATACENTRE_DEPLOYMENT.md)**.
 
 ### 4. Helmsman Deployment
 
@@ -663,7 +741,7 @@ apps:
                     # true  = deploy container PostgreSQL (for dev/test)
 ```
 
-Set this to match your Terraform `enable_postgresql_setup` value. Everything else (host, port, credentials) is resolved automatically from environment variables and hooks.
+Set this to match your profile: `false` when `profiles/<profile>/profile.yml` lists `postgresql` (external PostgreSQL on the nginx node), `true` otherwise. Everything else (host, port, credentials) is resolved automatically from environment variables and hooks.
 
 **Database branch (MOSIP platform):**
 

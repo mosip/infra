@@ -15,7 +15,7 @@ graph TD
  OBS -->|No| M
  O --> M[3. COMPONENT=all<br/>PROFILE=mosip / esignet-standalone]
 
- M --> TF[security → compute → iam → storage → dns]
+ M --> TF[security → iam → compute → storage → dns]
  TF --> CFG[configure: ansible/site.yml]
  DC --> DNS[DNS records by DNS team]
  DNS --> CFG
@@ -39,7 +39,7 @@ graph TD
 ```mermaid
 graph LR
  subgraph "Layer 1-2 · Terraform (AWS)"
- S[security] --> CO[compute] --> I[iam] --> ST[storage] --> D[dns]
+ S[security] --> I[iam] --> CO[compute] --> ST[storage] --> D[dns]
  end
  subgraph "Contract"
  INV[inventory<br/>generate.py]

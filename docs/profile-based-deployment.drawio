@@ -95,16 +95,16 @@
         <mxCell id="36" style="edgeStyle=orthogonalEdgeStyle;strokeWidth=2;strokeColor=#b85450;" parent="1" source="32" target="33" edge="1">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="40" value="Terraform Infrastructure" style="text;html=1;fontSize=14;fontStyle=5;align=center;fillColor=#fff2cc;strokeColor=#d6b656;rounded=1;" parent="1" vertex="1">
+        <mxCell id="40" value="Terraform (AWS) + Ansible" style="text;html=1;fontSize=14;fontStyle=5;align=center;fillColor=#fff2cc;strokeColor=#d6b656;rounded=1;" parent="1" vertex="1">
           <mxGeometry x="50" y="700" width="970" height="30" as="geometry"/>
         </mxCell>
-        <mxCell id="41" value="terraform.yml&#10;INFRA_PROFILE input" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;size=20;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;" parent="1" vertex="1">
+        <mxCell id="41" value="terraform.yml&#10;COMPONENT=all + PROFILE input" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;size=20;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;" parent="1" vertex="1">
           <mxGeometry x="80" y="760" width="220" height="60" as="geometry"/>
         </mxCell>
-        <mxCell id="42" value="profiles/mosip/aws.tfvars&#10;&#10;t3a.2xlarge nodes&#10;3 ctrl + 3 ETCD + 2 workers&#10;300GB + 200GB EBS&#10;5 public + 11 internal subdomains" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=8;" parent="1" vertex="1">
+        <mxCell id="42" value="profiles/mosip/&#10;&#10;t3a.2xlarge nodes&#10;3 ctrl + 3 ETCD + 1 worker&#10;300GB + 200GB + 30GB EBS&#10;nfs · postgresql · activemq&#10;5 public + 11 internal subdomains" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=8;" parent="1" vertex="1">
           <mxGeometry x="380" y="745" width="250" height="100" as="geometry"/>
         </mxCell>
-        <mxCell id="43" value="profiles/esignet/aws.tfvars&#10;&#10;t3a.xlarge nodes&#10;2 ctrl + 2 ETCD + 1 worker&#10;200GB EBS (single)&#10;2 public + 4 internal subdomains" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=left;spacingLeft=8;" parent="1" vertex="1">
+        <mxCell id="43" value="profiles/esignet-standalone/&#10;&#10;t3a.2xlarge nodes&#10;1 ctrl + 1 ETCD + 2 workers&#10;200GB EBS (nfs only)&#10;9 public + 8 internal subdomains" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=left;spacingLeft=8;" parent="1" vertex="1">
           <mxGeometry x="680" y="745" width="250" height="100" as="geometry"/>
         </mxCell>
         <mxCell id="44" style="edgeStyle=orthogonalEdgeStyle;strokeWidth=2;" parent="1" source="41" target="42" edge="1">
@@ -113,7 +113,7 @@
         <mxCell id="45" style="edgeStyle=orthogonalEdgeStyle;strokeWidth=2;" parent="1" source="41" target="43" edge="1">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="46" value="State Isolation&#10;&#10;mosip: aws-infra-mosip-main-terraform.tfstate&#10;esignet: aws-infra-esignet-main-terraform.tfstate&#10;&#10;Independent lifecycle" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;size=15;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;align=left;spacingLeft=8;" parent="1" vertex="1">
+        <mxCell id="46" value="State Isolation&#10;&#10;one state per component · profile · branch&#10;aws-compute-mosip-main-terraform.tfstate&#10;aws-compute-esignet-standalone-main-terraform.tfstate&#10;&#10;Independent lifecycle" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;size=15;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;align=left;spacingLeft=8;" parent="1" vertex="1">
           <mxGeometry x="80" y="870" width="380" height="100" as="geometry"/>
         </mxCell>
         <mxCell id="47" style="edgeStyle=orthogonalEdgeStyle;dashed=1;strokeColor=#d6b656;" parent="1" source="42" target="46" edge="1">
