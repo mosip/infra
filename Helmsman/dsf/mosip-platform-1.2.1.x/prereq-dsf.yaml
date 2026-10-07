@@ -9,13 +9,16 @@ helmRepos:
   banzaicloud-stable: https://charts.helm.sh/stable
   grafana: https://grafana.github.io/helm-charts
   grafana-community: https://grafana-community.github.io/helm-charts
+  prometheus-community: https://prometheus-community.github.io/helm-charts
 
 # Note: Based on your requirement disable the namespaces which you want to use, by default all the namespaces are protected.
 namespaces:
   kube-system:
     protected: true
-  cattle-monitoring-system:
-    protected: true
+  monitoring:
+    protected: true  
+  # cattle-monitoring-system:
+  #  protected: true
   # As part of a move to a standalone monitoring stack, we're replacing rancher-logging with Loki. Cluster logging and log collection are unaffected — only the backend and where logs surface are changing.
   # cattle-logging-system:
   #   protected: true
@@ -25,36 +28,61 @@ namespaces:
     protected: true
   httpbin:
     protected: true
-  loki-monitoring:
+  logging:
     protected: true
 
 apps:
-  rancher-monitoring-crd:
-    namespace: cattle-monitoring-system
+  kube-prometheus-stack-crd:
+    namespace: monitoring
     enabled: true
-    version: 103.1.1+up45.31.1
-    chart: mosip/rancher-monitoring-crd
+    version: 88.6.2
+    chart: prometheus-community/kube-prometheus-stack
+    wait: true
+    timeout: 300
+    priority: -7
+    hooks:
+      preInstall: "$WORKDIR/hooks/apply-prometheus-crds.sh"
+      postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh ${domain_name} ${env_name}"
+      postUpgrade: "$WORKDIR/hooks/install-istio-and-httpbin.sh ${domain_name} ${env_name}"
+
+  kube-prometheus-stack:
+    namespace: monitoring
+    enabled: true
+    version: 88.6.2        
+    chart: prometheus-community/kube-prometheus-stack
+    valuesFile: "$WORKDIR/utils/values-monitoring.yaml"
     wait: true
     timeout: 900
     priority: -6
     hooks:
-      postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh ${domain_name} ${env_name}"
-      postUpgrade: "$WORKDIR/hooks/install-istio-and-httpbin.sh ${domain_name} ${env_name}"
+      preInstall: "$WORKDIR/hooks/create-smtp-secret.sh"    
+    
+  # rancher-monitoring-crd:
+  #   namespace: cattle-monitoring-system
+  #   enabled: true
+  #   version: 103.1.1+up45.31.1
+  #   chart: mosip/rancher-monitoring-crd
+  #   wait: true
+  #   timeout: 900
+  #   priority: -6
+  #   hooks:
+  #     postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh ${domain_name} ${env_name}"
+  #    postUpgrade: "$WORKDIR/hooks/install-istio-and-httpbin.sh ${domain_name} ${env_name}"
 
-  rancher-monitoring:
-    namespace: cattle-monitoring-system
-    enabled: true
-    version: 103.1.0+up45.31.1
-    chart: mosip/rancher-monitoring
-    set:
-      grafana.global.cattle.clusterId: "$CLUSTER_ID"
-      global.cattle.clusterId: "$CLUSTER_ID"
-    wait: true
-    valuesFile: "$WORKDIR/utils/monitoring_values.yaml"
-    priority: -5
-    timeout: 600
-    hooks:
-      postInstall: "$WORKDIR/hooks/alerting-setup.sh ${slack_channel_name} ${SLACK_WEBHOOK_URL} ${env_name}"
+  # rancher-monitoring:
+  #   namespace: cattle-monitoring-system
+  #   enabled: true
+  #   version: 103.1.0+up45.31.1
+  #   chart: mosip/rancher-monitoring
+  #   set:
+  #     grafana.global.cattle.clusterId: "$CLUSTER_ID"
+  #     global.cattle.clusterId: "$CLUSTER_ID"
+  #   wait: true
+  #   valuesFile: "$WORKDIR/utils/monitoring_values.yaml"
+  #   priority: -5
+  #   timeout: 600
+  #   hooks:
+  #     postInstall: "$WORKDIR/hooks/alerting-setup.sh ${slack_channel_name} ${SLACK_WEBHOOK_URL} ${env_name}"
 
   # As part of a move to a standalone monitoring stack, we're replacing rancher-logging with Loki. Cluster logging and log collection are unaffected — only the backend and where logs surface are changing.
   # elasticsearch:
@@ -117,7 +145,7 @@ apps:
   #     postInstall: "$WORKDIR/hooks/post_logging-setup.sh"
 
   loki:
-    namespace: loki-monitoring
+    namespace: logging
     enabled: true
     version: 6.55.0
     chart: grafana/loki
@@ -127,9 +155,9 @@ apps:
     timeout: 300
 
   grafana:
-    namespace: loki-monitoring
+    namespace: logging
     enabled: true
-    version: 11.3.2
+    version: 12.11.2
     chart: grafana-community/grafana
     valuesFile: "$WORKDIR/utils/grafana-values.yaml"
     wait: true
@@ -139,7 +167,7 @@ apps:
       postInstall: "$WORKDIR/hooks/import-dashboards.sh"
 
   alloy:
-    namespace: loki-monitoring
+    namespace: logging
     enabled: true
     version: 1.6.2
     chart: grafana/alloy
@@ -149,7 +177,7 @@ apps:
     timeout: 300
 
   istio-addons-loki:
-    namespace: loki-monitoring
+    namespace: logging
     enabled: true
     version: 0.0.1-develop
     chart: $WORKDIR/utils/istio-addons/loki-istio-addons-0.0.1-develop.tgz
