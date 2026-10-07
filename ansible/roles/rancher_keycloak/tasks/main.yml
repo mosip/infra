@@ -1,0 +1,23 @@
+---
+# Same order as the legacy rancher-keycloak-setup module: Rancher first,
+# then Keycloak, each followed by a status report.
+
+- name: Require the Rancher bootstrap password
+  ansible.builtin.assert:
+    that:
+      - rancher_password is defined
+      - rancher_password | length > 0
+    fail_msg: "rancher_password must be set (pass it from a secret, e.g. -e rancher_password=...)"
+    quiet: true
+
+- name: Install Rancher UI
+  ansible.builtin.include_tasks: install_rancher.yml
+
+- name: Report Rancher status
+  ansible.builtin.include_tasks: rancher_info.yml
+
+- name: Install Keycloak
+  ansible.builtin.include_tasks: install_keycloak.yml
+
+- name: Report Keycloak status
+  ansible.builtin.include_tasks: keycloak_info.yml

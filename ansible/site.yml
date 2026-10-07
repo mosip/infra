@@ -1,0 +1,46 @@
+---
+# Single entrypoint for Layer 3, identical on AWS and on data-centre VMs:
+#
+#   python3 ansible/inventory/generate.py ... -o inventory.yml
+#   ansible-playbook -i inventory.yml ansible/site.yml [-e rancher_password=...]
+#
+# Order is fixed here and matches the legacy monolith's depends_on chain
+# (nginx → rke2 → rancher import → nfs → postgresql → activemq, then the
+# observability add-ons). A profile only chooses WHICH components run, via
+# configure_components in the inventory — never the order.
+#
+# DNS must already point at nginx before this runs (the dns component, or
+# your DNS team); preflight enforces that. See docs/DEPLOYMENT_SEQUENCE.md.
+
+- name: Preflight
+  ansible.builtin.import_playbook: playbooks/preflight.yml
+
+- name: TLS + nginx
+  ansible.builtin.import_playbook: playbooks/nginx.yml
+  when: "'nginx' in configure_components"
+
+- name: RKE2
+  ansible.builtin.import_playbook: playbooks/rke2.yml
+  when: "'rke2' in configure_components"
+
+- name: Rancher import
+  ansible.builtin.import_playbook: playbooks/rancher_import.yml
+  when:
+    - "'rancher_import' in configure_components"
+    - enable_rancher_import | default(false) | bool
+
+- name: NFS
+  ansible.builtin.import_playbook: playbooks/nfs.yml
+  when: "'nfs' in configure_components"
+
+- name: PostgreSQL
+  ansible.builtin.import_playbook: playbooks/postgresql.yml
+  when: "'postgresql' in configure_components"
+
+- name: ActiveMQ
+  ansible.builtin.import_playbook: playbooks/activemq.yml
+  when: "'activemq' in configure_components"
+
+- name: Rancher UI + Keycloak
+  ansible.builtin.import_playbook: playbooks/rancher_keycloak.yml
+  when: "'rancher_keycloak' in configure_components"

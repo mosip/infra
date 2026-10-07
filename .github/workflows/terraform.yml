@@ -869,66 +869,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-      - name: Read shared identity values and render Ansible inventory
-        run: |
-          set -euo pipefail
-          PARENT_DIR="terraform/implementations/${{ inputs.CLOUD_PROVIDER }}/${{ inputs.TERRAFORM_COMPONENT }}"
-
-          if [ "${{ inputs.TERRAFORM_COMPONENT }}" = "infra" ]; then
-            COMMON_TFVARS="$PARENT_DIR/profiles/${{ inputs.INFRA_PROFILE }}/common.tfvars"
-            DNS_TFVARS="$PARENT_DIR/dns/profiles/${{ inputs.INFRA_PROFILE }}/aws.tfvars"
-            NGINX_TYPE="mosip"
-            DEPLOYMENT_TYPE="infra"
-          else
-            COMMON_TFVARS="$PARENT_DIR/common.tfvars"
-            DNS_TFVARS="$PARENT_DIR/dns/aws.tfvars"
-            NGINX_TYPE="observability"
-            DEPLOYMENT_TYPE="observ-infra"
-          fi
-
-          if [ ! -f "$COMMON_TFVARS" ]; then
-            echo "ERROR: $COMMON_TFVARS not found."
-            exit 1
-          fi
-
-          get_val() {
-            grep -E "^\s*$1\s*=" "$COMMON_TFVARS" | head -1 | sed -E 's/^[^=]+=\s*"?([^"]*)"?\s*$/\1/'
-          }
-
-          CLUSTER_NAME="$(get_val cluster_name)"
-          CLUSTER_ENV_DOMAIN="$(get_val cluster_env_domain)"
-          CERTBOT_EMAIL="$(get_val mosip_email_id)"
-          K8S_INFRA_REPO_URL="$(get_val k8s_infra_repo_url)"
-          K8S_INFRA_BRANCH="$(get_val k8s_infra_branch)"
-
-          SUBDOMAIN_PUBLIC=$(python3 -c "
-          import re
-          with open('$DNS_TFVARS') as f:
-              content = f.read()
-          m = re.search(r'subdomain_public\s*=\s*\[(.*?)\]', content, re.S)
-          items = re.findall(r'\"([^\"]+)\"', m.group(1)) if m else []
-          print(','.join(items))
-          ")
-
-          "$GITHUB_WORKSPACE/.github/scripts/generate-ansible-inventory.sh" \
-            --compute-output /tmp/tf-outputs/compute.json \
-            --cluster-name "$CLUSTER_NAME" \
-            --cluster-env-domain "$CLUSTER_ENV_DOMAIN" \
-            --k8s-infra-repo-url "$K8S_INFRA_REPO_URL" \
-            --k8s-infra-branch "$K8S_INFRA_BRANCH" \
-            --certbot-email "$CERTBOT_EMAIL" \
-            --nginx-type "$NGINX_TYPE" \
-            --subdomain-public "$SUBDOMAIN_PUBLIC" \
-            --deployment-type "$DEPLOYMENT_TYPE" \
-            --ssh-key-file "$GITHUB_WORKSPACE/ansible_ssh_key" \
-            --output "$GITHUB_WORKSPACE/inventory.yml"
-
-      - name: Run nginx + rke2 playbooks
-        run: |
-          ansible-playbook -i inventory.yml ansible/nginx/playbook.yml
-          ansible-playbook -i inventory.yml ansible/rke2/playbook.yml
-
-      - name: Generate Rancher import URL via API (infra only)
+      - name: Mint Rancher import command (infra only)
         if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.ENABLE_RANCHER_IMPORT == true }}
         id: rancher_import
         env:
@@ -937,64 +878,63 @@ jobs:
           RANCHER_CLUSTER_NAME_INPUT: ${{ inputs.RANCHER_CLUSTER_NAME }}
           REF_NAME: ${{ github.ref_name }}
         run: |
+          set -o pipefail
           if [ -z "$RANCHER_URL" ] || [ -z "$RANCHER_TOKEN" ]; then
             echo "ERROR: RANCHER_API_URL and RANCHER_API_TOKEN must be set for environment '$REF_NAME'"
             exit 1
           fi
           CLUSTER_NAME="${RANCHER_CLUSTER_NAME_INPUT:-$REF_NAME}"
-          chmod +x "$GITHUB_WORKSPACE/.github/scripts/rancher-register-cluster.sh"
           IMPORT_CMD="$("$GITHUB_WORKSPACE/.github/scripts/rancher-register-cluster.sh" \
             --rancher-url "$RANCHER_URL" \
             --token "$RANCHER_TOKEN" \
             --cluster-name "$CLUSTER_NAME" | tail -n1)"
+          [[ -n "$IMPORT_CMD" ]] || { echo "ERROR: Rancher registration returned empty import command"; exit 1; }
+          echo "::add-mask::$IMPORT_CMD"
           echo "rancher_import_url=$IMPORT_CMD" >> "$GITHUB_OUTPUT"
 
-      - name: Run rancher-import playbook (infra only)
-        if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' && inputs.ENABLE_RANCHER_IMPORT == true }}
+      - name: Render Ansible inventory
         run: |
-          ansible-playbook -i inventory.yml ansible/rancher-import/playbook.yml \
-            -e "enable_rancher_import=true" \
-            -e "rancher_import_url=${{ steps.rancher_import.outputs.rancher_import_url }}"
-
-      - name: Run nfs playbook
-        run: ansible-playbook -i inventory.yml ansible/nfs/playbook.yml
-
-      - name: Run postgresql playbook (if storage's 2nd volume was provisioned)
-        if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' }}
-        run: |
-          POSTGRES_VOL=$(jq -r '.postgresql_volume_id.value // empty' /tmp/tf-outputs/storage.json)
-          if [ -n "$POSTGRES_VOL" ]; then
-            ansible-playbook -i inventory.yml ansible/postgresql/playbook.yml
+          set -euo pipefail
+          PARENT_DIR="terraform/implementations/${{ inputs.CLOUD_PROVIDER }}/${{ inputs.TERRAFORM_COMPONENT }}"
+          if [ "${{ inputs.TERRAFORM_COMPONENT }}" = "infra" ]; then
+            PROFILE_DIR="profiles/${{ inputs.INFRA_PROFILE }}"
+            COMMON_TFVARS="$PARENT_DIR/profiles/${{ inputs.INFRA_PROFILE }}/common.tfvars"
           else
-            echo "Skipping postgresql — storage's postgresql_volume_id is null (nginx_node_ebs_volume_size_2 is 0)."
+            PROFILE_DIR="profiles/observ"
+            COMMON_TFVARS="$PARENT_DIR/common.tfvars"
           fi
+          python3 ansible/inventory/generate.py \
+            --profile "$PROFILE_DIR" \
+            --from-terraform /tmp/tf-outputs \
+            --tfvars "$COMMON_TFVARS" \
+            --set "ansible_ssh_private_key_file=$GITHUB_WORKSPACE/ansible_ssh_key" \
+            -o "$GITHUB_WORKSPACE/inventory.yml"
+          cat "$GITHUB_WORKSPACE/inventory.yml"
 
-      - name: Run activemq playbook (if storage's 3rd volume was provisioned)
-        if: ${{ inputs.TERRAFORM_COMPONENT == 'infra' }}
+      # Order (preflight → nginx → rke2 → rancher import → nfs → postgresql →
+      # activemq → rancher/keycloak) lives in site.yml; the profile only
+      # selects components.
+      - name: Configure (ansible/site.yml)
+        env:
+          ANSIBLE_CONFIG: ${{ github.workspace }}/ansible/ansible.cfg
+          RANCHER_IMPORT_URL: ${{ steps.rancher_import.outputs.rancher_import_url }}
+          RANCHER_BOOTSTRAP_PASSWORD: ${{ secrets.RANCHER_BOOTSTRAP_PASSWORD }}
         run: |
-          ACTIVEMQ_VOL=$(jq -r '.activemq_volume_id.value // empty' /tmp/tf-outputs/storage.json)
-          if [ -n "$ACTIVEMQ_VOL" ]; then
-            ansible-playbook -i inventory.yml ansible/activemq/playbook.yml
-          else
-            echo "Skipping activemq — storage's activemq_volume_id is null (nginx_node_ebs_volume_size_3 is 0 or enable_activemq_setup is false)."
-          fi
-
-      - name: Run rancher-keycloak-setup playbook (observ-infra only)
-        if: ${{ inputs.TERRAFORM_COMPONENT == 'observ-infra' }}
-        run: |
-          TFVARS="terraform/implementations/${{ inputs.CLOUD_PROVIDER }}/observ-infra/common.tfvars"
-          get_val() {
-            grep -E "^\s*$1\s*=" "$TFVARS" | head -1 | sed -E 's/^[^=]+=\s*"?([^"]*)"?\s*$/\1/'
-          }
-          ansible-playbook -i inventory.yml ansible/rancher-keycloak-setup/playbook.yml \
-            -e "cluster_name=$(get_val cluster_name)" \
-            -e "cluster_env_domain=$(get_val cluster_env_domain)" \
-            -e "rancher_hostname_var=$(get_val rancher_hostname)" \
-            -e "keycloak_hostname_var=$(get_val keycloak_hostname)" \
-            -e "rancher_password=$(get_val rancher_bootstrap_password)" \
-            -e "rancher_ui_version=$(get_val rancher_ui_version)" \
-            -e "k8s_infra_repo_url=$(get_val k8s_infra_repo_url)" \
-            -e "k8s_infra_branch_name=$(get_val k8s_infra_branch)"
+          set -euo pipefail
+          EXTRA="$RUNNER_TEMP/extra-vars.yml"
+          install -m 600 /dev/null "$EXTRA"
+          python3 - "$EXTRA" <<'EOF'
+          import json, os, sys
+          extra = {}
+          if os.environ.get("RANCHER_IMPORT_URL"):
+              extra["enable_rancher_import"] = True
+              extra["rancher_import_url"] = os.environ["RANCHER_IMPORT_URL"]
+          if os.environ.get("RANCHER_BOOTSTRAP_PASSWORD"):
+              extra["rancher_password"] = os.environ["RANCHER_BOOTSTRAP_PASSWORD"]
+          json.dump(extra, open(sys.argv[1], "w"))
+          EOF
+          ansible-playbook -i inventory.yml ansible/site.yml -e "@$EXTRA"
+          rm -f "$EXTRA"
 
       - name: Clean up SSH key
         if: always()
