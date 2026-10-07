@@ -13,7 +13,7 @@ usage() {
     echo "  -p, --provider        Cloud provider: aws, azure, gcp (required)"
     echo "  -c, --config          Remote backend config string (required for remote backend)"
     echo "  -b, --branch          Branch name for resource naming (required)"
-    echo "  -t, --component       Component type: base-infra, infra, observ-infra, security, compute, storage, dns, iam (required)"
+    echo "  -t, --component       Component type: base-infra, security, iam, compute, storage, dns, vm (required)"
     echo "  --enable-locking      Cleanup state locking resources (optional)"
     echo "  -h, --help            Show this help message"
     echo ""
@@ -23,9 +23,9 @@ usage() {
     echo "  GCP:   gcp:bucket_name:region"
     echo ""
     echo "Examples:"
-    echo "  $0 --provider aws --config 'aws:mosip-state:us-east-1' --branch main --component infra --enable-locking"
-    echo "  $0 --provider azure --config 'azure:mosip-rg:mosipstate:terraform-state' --branch main --component infra"
-    echo "  $0 --provider gcp --config 'gcp:mosip-terraform-state:us-central1' --branch main --component infra"
+    echo "  $0 --provider aws --config 'aws:mosip-state:us-east-1' --branch main --component compute --enable-locking"
+    echo "  $0 --provider azure --config 'azure:mosip-rg:mosipstate:terraform-state' --branch main --component compute"
+    echo "  $0 --provider gcp --config 'gcp:mosip-terraform-state:us-central1' --branch main --component compute"
 }
 
 # Default values
@@ -98,9 +98,9 @@ fi
 
 # Validate component
 # See configure-backend.sh for why "configure" isn't accepted here.
-if [[ ! "$COMPONENT" =~ ^(base-infra|infra|observ-infra|security|compute|storage|dns|iam)$ ]]; then
+if [[ ! "$COMPONENT" =~ ^(base-infra|security|iam|compute|storage|dns|vm)$ ]]; then
     echo "Error: Invalid component: $COMPONENT"
-    echo "Valid components: base-infra, infra, observ-infra, security, compute, storage, dns, iam"
+    echo "Valid components: base-infra, security, iam, compute, storage, dns, vm"
     exit 1
 fi
 

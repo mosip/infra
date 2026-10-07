@@ -1,0 +1,6 @@
+---
+# Collections the roles use (ansible-core does not ship them):
+#   ansible-galaxy collection install -r ansible/requirements.yml
+collections:
+  - name: community.general   # filesystem (format data disks)
+  - name: ansible.posix       # mount

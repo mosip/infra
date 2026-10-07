@@ -147,12 +147,11 @@ kubectl get setting cluster-id -n cattle-system -o jsonpath='{.value}'
 # c-m-pbrcfglw
 ```
 
-**Option 3: From Terraform Outputs**
+**Option 3: From the Rancher API**
 
 ```bash
-# If Rancher import was enabled during Terraform deployment
-cd terraform/implementations/aws/infra/
-terraform output rancher_cluster_id
+# If Rancher import was enabled during deployment
+curl -s -H "Authorization: Bearer $RANCHER_TOKEN" "$RANCHER_URL/v3/clusters?name=<cluster-name>" | jq -r '.data[0].id'
 ```
 
 #### How to Set clusterid for Deployment
@@ -297,11 +296,11 @@ apps:
  # External PostgreSQL connection details are in terraform outputs
 ```
 
-**Important**: This setting must match your Terraform configuration:
-```hcl
-# In terraform/implementations/aws/infra/aws.tfvars
-enable_postgresql_setup = true # External → postgres.enabled = false
-enable_postgresql_setup = false # Container → postgres.enabled = true
+**Important**: This setting must match your profile:
+```yaml
+# profiles/<profile>/profile.yml — configure_components
+- postgresql      # listed (and storage volume_size_2 > 0) → external → postgres.enabled = false
+                  # not listed                              → container → postgres.enabled = true
 ```
 
 #### 3. reCAPTCHA Configuration

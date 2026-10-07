@@ -76,7 +76,7 @@ Onboarding reports are stored in MinIO and contain detailed success/failure info
 # 4. Select s3 secret to find credentials
 ```
 
-**If deployed without observ-infra:**
+**If deployed without the observ cluster (no Rancher UI):**
 
 ```bash
 # Get MinIO password using kubectl
@@ -129,7 +129,7 @@ This is the primary method to retry failed onboarding after reviewing MinIO repo
 
 #### Step 1: Delete the Completed Partner-Onboarder Job
 
-**Option 1: If deployed with observ-infra (Rancher UI available)**
+**Option 1: If deployed with the observ cluster (Rancher UI available)**
 
 1. **Access Rancher UI**
 2. **Navigate to your cluster**
