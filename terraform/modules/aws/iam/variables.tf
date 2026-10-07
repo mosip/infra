@@ -1,10 +1,5 @@
 variable "cluster_name" { type = string }
 
-variable "nginx_instance_id" {
-  description = "Instance to attach the certbot IAM profile to — looked up by tag from #275's compute component"
-  type        = string
-}
-
 variable "route53_zone_ids" {
   description = "Hosted zones certbot may change records in (the zone(s) holding <cluster_env_domain>)"
   type        = list(string)

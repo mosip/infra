@@ -15,3 +15,8 @@ nginx_instance_type = "t3a.large"
 
 nginx_node_root_volume_size   = 24
 k8s_instance_root_volume_size = 32
+
+# nginx gets the certbot Route53 instance profile from the iam component.
+# Set false when profile.yml uses another TLS mode (byo, http01, dns01 with
+# a non-route53 provider).
+attach_certbot_profile = true

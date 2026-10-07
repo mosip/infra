@@ -91,8 +91,8 @@ Leave it off to use in-cluster PostgreSQL via Helmsman.
 ```
 terraform.yml (dispatch)                 terraform-destroy.yml (dispatch)
   validate                                 validate
-  security ─► compute ─► iam ─►            dns ─► storage ─► iam ─►
-  storage ─► dns ─► configure (Ansible)    compute ─► security
+  security ─► iam ─► compute ─►            dns ─► storage ─► compute ─►
+  storage ─► dns ─► configure (Ansible)    iam ─► security   (+ vm, independent)
         │                                        │
         └──── each job calls terraform-component.yml (reusable) ────┘
                  plan / apply / destroy of ONE root, own state
@@ -270,7 +270,7 @@ sequenceDiagram
  AWS Infrastructure-->>User: Base infrastructure ready
  
  User->>Terraform Workflows: 2. Deploy COMPONENT=all (profile)
- Terraform Workflows->>AWS Infrastructure: security, compute, iam, storage, dns
+ Terraform Workflows->>AWS Infrastructure: security, iam, compute, storage, dns
  Terraform Workflows->>PostgreSQL: configure: Ansible site.yml (RKE2, nginx, PostgreSQL 15, ...)
  AWS Infrastructure-->>User: MOSIP cluster + PostgreSQL ready
  

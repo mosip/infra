@@ -13,26 +13,11 @@ provider "aws" {
   region = var.aws_provider_region
 }
 
-# nginx instance — discovered by tag from #275 (compute), not shared state.
-data "aws_instance" "nginx" {
-  filter {
-    name   = "tag:Cluster"
-    values = [var.cluster_name]
-  }
-  filter {
-    name   = "tag:Role"
-    values = ["nginx"]
-  }
-  filter {
-    name   = "instance-state-name"
-    values = ["running"]
-  }
-}
-
+# Runs before compute: the compute root looks the instance profile up by
+# name (<cluster_name>-certbot-instance-profile) and sets it on nginx.
 module "iam" {
   source = "../../../modules/aws/iam"
 
-  cluster_name      = var.cluster_name
-  nginx_instance_id = data.aws_instance.nginx.id
-  route53_zone_ids  = coalesce(var.certbot_zone_ids, [var.zone_id])
+  cluster_name     = var.cluster_name
+  route53_zone_ids = coalesce(var.certbot_zone_ids, [var.zone_id])
 }

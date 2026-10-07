@@ -16,13 +16,14 @@ terraform/
 ├── modules/aws/                   # reusable modules, each with tests/*.tftest.hcl
 │   ├── security/                  # security groups: nginx, control-plane, etcd, worker
 │   ├── compute/                   # EC2: nginx + RKE2 nodes (for_each by node name)
-│   ├── iam/                       # certbot Route53 role + instance profile
+│   ├── iam/                       # certbot Route53 role + instance profile (zone-scoped)
 │   ├── storage/                   # EBS data volumes on the nginx node (nfs / postgres / activemq)
-│   └── dns/                       # Route53 records (api, api-internal, subdomains)
+│   ├── dns/                       # Route53 records: multi-zone, extra records
+│   └── instance-group/            # generic EC2 + SG + IAM per workload (vm root)
 └── implementations/               # roots — what CI applies; one state each
     ├── aws/
     │   ├── base-infra/
-    │   └── security/  compute/  iam/  storage/  dns/
+    │   └── security/  iam/  compute/  storage/  dns/  vm/
     ├── azure/base-infra/
     └── gcp/base-infra/
 ```
@@ -35,14 +36,16 @@ Values live outside `terraform/`, per deployment shape:
 | Root | Creates | Needs first | Finds the previous layer by |
 |------|---------|-------------|-----------------------------|
 | `security` | 4 security groups | base-infra VPC | VPC `Name` tag |
-| `compute` | nginx + RKE2 EC2 instances | security | SG tags `Cluster` + `Role` |
-| `iam` | certbot role/profile, attached to nginx | compute | instance tags `Cluster` + `Role=nginx` |
-| `storage` | EBS volumes attached to nginx | compute | instance tags |
-| `dns` | Route53 records → nginx | compute | instance tags |
+| `iam` | certbot role + instance profile (Route53, scoped to the zone) | — | — |
+| `compute` | nginx + RKE2 EC2 instances; nginx gets the certbot profile at creation | security, iam | SG tags `Cluster` + `Role`; profile name |
+| `storage` | EBS volumes attached to nginx | compute | instance tags `Cluster` + `Role=nginx` |
+| `dns` | Route53 records → nginx (any number of zones, extra records) | compute | instance tags (or explicit IPs) |
+| `vm` | standalone EC2 groups, each with its own SG + IAM (`modules/aws/instance-group`) | base-infra VPC | VPC `Name` tag |
 
 Components discover each other through tags, never shared state, so each can
 be planned, applied or destroyed on its own. Only the order matters:
-`security → compute → iam → storage → dns` to create, the reverse to destroy.
+`security → iam → compute → storage → dns` to create, the reverse to destroy.
+`vm` is independent and never part of `COMPONENT=all`.
 
 ## Running
 

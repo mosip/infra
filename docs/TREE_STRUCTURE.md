@@ -1,7 +1,8 @@
 # Repository tree
 
 State files (`*.tfstate*`, `*.gpg`), `.terraform/` caches and lockfiles are
-omitted. For the deployment order see [DEPLOYMENT_SEQUENCE.md](DEPLOYMENT_SEQUENCE.md).
+omitted. For the deployment order see [DEPLOYMENT_SEQUENCE.md](DEPLOYMENT_SEQUENCE.md);
+for Ansible-only deployment onto existing VMs see [DATACENTRE_DEPLOYMENT.md](DATACENTRE_DEPLOYMENT.md).
 
 ## Top level
 
@@ -21,13 +22,14 @@ omitted. For the deployment order see [DEPLOYMENT_SEQUENCE.md](DEPLOYMENT_SEQUEN
 
 ```
 profiles/<mosip|esignet-standalone|observ>/
-├── profile.yml                  # components to configure, subdomains, Ansible defaults
+├── profile.yml                  # components to configure, subdomains (single source), Ansible defaults
 └── aws/                         # Terraform values for the AWS roots
     ├── common.tfvars            # cluster_name, domain, region, zone, AMI, VPC, CIDRs
     ├── security.tfvars  iam.tfvars
     ├── compute.tfvars           # instance types, node counts
     ├── storage.tfvars           # EBS data volumes (0 = off)
-    └── dns.tfvars               # public / internal subdomains
+    ├── dns.tfvars               # optional: extra zones / records
+    └── vm.tfvars                # optional: standalone EC2 groups (COMPONENT=vm)
 ```
 
 ## `terraform/`
@@ -36,11 +38,12 @@ profiles/<mosip|esignet-standalone|observ>/
 terraform/
 ├── base-infra/                  # one-time VPC/subnets/WireGuard module (aws, azure, gcp)
 ├── modules/aws/
-│   ├── security/  compute/  iam/  storage/  dns/
+│   ├── security/  iam/  compute/  storage/  dns/
 │   │   └── {main,variables,outputs}.tf + tests/main.tftest.hcl
+│   ├── instance-group/          # generic EC2 + SG + IAM per workload (used by the vm root)
 │   └── compute/rke-user-data.sh.tpl
 └── implementations/             # roots — one state each
-    ├── aws/{base-infra,security,compute,iam,storage,dns}/
+    ├── aws/{base-infra,security,iam,compute,storage,dns,vm}/   # dns and vm have tests/ too
     ├── azure/base-infra/
     └── gcp/base-infra/
 ```
@@ -71,7 +74,7 @@ ansible/
 ```
 .github/
 ├── workflows/
-│   ├── terraform.yml            # dispatch: all | one component | configure | base-infra
+│   ├── terraform.yml            # dispatch: all | one component | configure | vm | base-infra
 │   ├── terraform-destroy.yml    # dispatch: reverse-order destroy
 │   ├── terraform-component.yml  # reusable: plan/apply/destroy one root
 │   ├── infra-checks.yml         # PR checks: fmt, validate, terraform test, generator tests, syntax

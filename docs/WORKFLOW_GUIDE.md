@@ -47,13 +47,13 @@ Your Repository
 
 **Relationship with Terraform Apply:**
 ```
-If Terraform Apply = ✅ AND Rancher Import = True
- → Cluster is deployed AND imported into Rancher
+If COMPONENT = all/configure AND ENABLE_RANCHER_IMPORT = ✅
+ → Cluster is deployed AND imported into Rancher (during configure)
 
-If Terraform Apply = ✅ AND Rancher Import = False
+If ENABLE_RANCHER_IMPORT = ☐
  → Cluster is deployed but NOT imported
 
-If Terraform Apply = ☐ (unchecked)
+If TERRAFORM_APPLY = ☐ (single component, plan only)
  → Dry run only, nothing happens (Rancher import setting is ignored)
 ```
 
@@ -74,7 +74,7 @@ If Terraform Apply = ☐ (unchecked)
 
 2. **Find the Workflow**
  ```
- Left Sidebar: Look for "Terraform Base Infrastructure"
+ Left Sidebar: Look for "terraform plan / apply"
  Click on it
  ```
 
@@ -90,8 +90,8 @@ If Terraform Apply = ☐ (unchecked)
  |-----------|---------------|---------|-------|
  | **Use workflow from** | `Branch: release-0.1.0` | Your deployment branch | Dropdown at top |
  | **Cloud Provider** | `aws` | `aws` | Azure/GCP not fully implemented |
- | **Component** | `base-infra` | `base-infra` | Creates VPC & networking |
- | **Backend** | `local` or `s3` | `local` for dev, `s3` for prod | Where Terraform stores state |
+ | **COMPONENT** | `base-infra` | `base-infra` | Creates VPC & networking |
+ | **BACKEND_TYPE** | `local` or `remote` | `local` for dev, `remote` for prod | Where Terraform stores state |
  | **Terraform apply** | ✅ Check this box | ✅ | Leave unchecked for dry run |
 
 5. **Run the Workflow**
@@ -111,12 +111,13 @@ If Terraform Apply = ☐ (unchecked)
 
 **During Execution:**
 ```
-✓ Setup environment
-✓ Configure WireGuard
-✓ Run Terraform init
-✓ Run Terraform plan
-→ Run Terraform apply (if checked)
-✓ Complete
+✓ validate (checks the input combination)
+✓ base-infra → Resolve root and var files
+✓ Configure Terraform backend
+✓ Terraform init / validate
+✓ Terraform plan
+→ Terraform apply (if checked)
+✓ Encrypt and commit state
 ```
 
 **After Success:**
@@ -128,9 +129,9 @@ If Terraform Apply = ☐ (unchecked)
 
 ---
 
-### Workflow 2: Main Infrastructure
+### Workflow 2: MOSIP cluster (COMPONENT=all)
 
-**What it does**: Creates MOSIP Kubernetes cluster, PostgreSQL (optional), application infrastructure
+**What it does**: Terraform creates the AWS resources (security, iam, compute, storage, dns), then Ansible builds the MOSIP Kubernetes cluster, nginx + TLS, NFS and — per profile — PostgreSQL and ActiveMQ
 
 #### Step-by-Step Navigation
 
@@ -141,14 +142,9 @@ If Terraform Apply = ☐ (unchecked)
 
 2. **Find the Workflow**
  ```
- Left Sidebar: Look for "Terraform Infrastructure"
+ Left Sidebar: Look for "terraform plan / apply"
  Click on it
  ```
- 
- **Note**: The workflow name might also appear as:
- - "Terraform"
- - "Deploy Infrastructure"
- - Check for keywords: "Infrastructure" or "Main Infra"
 
 3. **Start the Workflow**
  ```
@@ -183,7 +179,7 @@ If Terraform Apply = ☐ (unchecked)
 
 6. **Monitor Progress** (This takes 15-30 minutes)
  ```
- → security → compute → iam → storage → dns (one job each)
+ → security → iam → compute → storage → dns (one job each)
  → configure: nginx + TLS, RKE2, NFS
  → PostgreSQL / ActiveMQ (if the profile uses them)
  → Importing to Rancher (if enabled)
@@ -531,18 +527,18 @@ PROFILE: [mosip | esignet-standalone | observ]
 
 #### Backend
 ```
-Backend: [local | s3]
+BACKEND_TYPE: [local | remote]
 ```
 **What it does**: Determines where Terraform stores state files
 
 | Backend | Storage Location | Best For | Encryption |
 |---------|-----------------|----------|------------|
 | `local` | GitHub repository | Development, small teams | GPG encrypted |
-| `s3` | AWS S3 bucket | Production, large teams | S3 server-side encryption |
+| `remote` | S3 / Azure Storage / GCS bucket (`REMOTE_BACKEND_CONFIG`) | Production, large teams | Provider server-side encryption |
 
 **Recommendations**:
 - Development → `local`
-- Production → `s3`
+- Production → `remote` (with `ENABLE_STATE_LOCKING`)
 
 ---
 
@@ -630,7 +626,7 @@ These inputs override the corresponding GitHub Environment Variables for a singl
 | Documentation Says | Actual Workflow Name Might Be |
 |--------------------|------------------------------|
 | "Helmsman External Dependencies" | "Deploy External services of mosip using Helmsman" |
-| "Terraform Infrastructure" | "Terraform" or "Deploy Infrastructure" |
+| "terraform plan / apply" | same name in the sidebar (file `terraform.yml`) |
 
 ---
 
@@ -733,11 +729,11 @@ Updating existing deployment → ☐ Uncheck first to see changes
 
 ### For Terraform Workflows
 
-- [ ] tfvars file updated with correct values
+- [ ] `profiles/<profile>/aws/common.tfvars` placeholders filled (and other tfvars reviewed)
 - [ ] Cloud provider = `aws`
-- [ ] Backend choice made (`local` or `s3`)
+- [ ] Backend choice made (`local` or `remote`)
 - [ ] Understand dry-run vs apply
-- [ ] WireGuard configured (for infra deployment)
+- [ ] WireGuard (`TF_WG_CONFIG`) configured (needed by the `configure` step)
 
 ### For Helmsman Workflows
 
@@ -757,12 +753,12 @@ Updating existing deployment → ☐ Uncheck first to see changes
 ```
 DEPLOYMENT FLOW:
 
-1. Terraform: Base Infrastructure
+1. Terraform: base-infra (COMPONENT=base-infra)
  └── VPC, networking, WireGuard jump server
 
-2. Terraform: Main Infrastructure
- └── RKE2 Kubernetes cluster
- └── PAUSE: Add KUBECONFIG secret
+2. terraform plan / apply: COMPONENT=all, PROFILE=esignet-standalone
+ └── security → iam → compute → storage → dns → configure (Ansible: nginx, RKE2, NFS)
+ └── PAUSE: KUBECONFIG secret (auto with Rancher import + PUBLISH_KUBECONFIG)
 
 3. Helmsman: External Dependencies  [helmsman_external.yml, profile=esignet-standalone]
  └── prereq-dsf + external-dsf (parallel)
@@ -781,8 +777,8 @@ DEPLOYMENT FLOW:
 ```
 DEPLOYMENT FLOW:
 
-1. Terraform: Base Infrastructure
-2. Terraform: Main Infrastructure
+1. Terraform: base-infra (COMPONENT=base-infra)
+2. terraform plan / apply: COMPONENT=all, PROFILE=mosip (+ PostgreSQL, ActiveMQ)
 3. Helmsman: External Dependencies  [helmsman_external.yml, profile=mosip-platform-*]
  └── ✅ Auto-triggers MOSIP workflow on success
 

@@ -1,7 +1,7 @@
 # MOSIP infrastructure: destroy
 #
 # Destroys one component, or all of them in REVERSE dependency order:
-#   dns → storage → iam → compute → security
+#   dns → storage → compute → iam → security   (+ vm, independent)
 # Without TERRAFORM_DESTROY checked, every selected component only runs
 # `terraform plan -destroy`.
 #
@@ -21,7 +21,7 @@ on:
         description: 'What to destroy. all = every component, reverse order. base-infra removes the VPC/WireGuard!'
         required: true
         type: choice
-        options: [all, dns, storage, iam, compute, security, base-infra]
+        options: [all, dns, storage, compute, iam, security, vm, base-infra]
         default: all
       PROFILE:
         description: 'Deployment shape (profiles/<name>) — ignored for base-infra'
@@ -81,6 +81,21 @@ jobs:
       ENABLE_STATE_LOCKING: ${{ inputs.ENABLE_STATE_LOCKING }}
       SSH_PRIVATE_KEY: ${{ inputs.SSH_PRIVATE_KEY }}
 
+  vm:
+    needs: validate
+    if: ${{ inputs.COMPONENT == 'vm' || inputs.COMPONENT == 'all' }}
+    uses: ./.github/workflows/terraform-component.yml
+    secrets: inherit
+    with:
+      CLOUD_PROVIDER: ${{ inputs.CLOUD_PROVIDER }}
+      COMPONENT: vm
+      PROFILE: ${{ inputs.PROFILE }}
+      ACTION: destroy
+      CONFIRM: ${{ inputs.TERRAFORM_DESTROY }}
+      BACKEND_TYPE: ${{ inputs.BACKEND_TYPE }}
+      REMOTE_BACKEND_CONFIG: ${{ inputs.REMOTE_BACKEND_CONFIG }}
+      ENABLE_STATE_LOCKING: ${{ inputs.ENABLE_STATE_LOCKING }}
+
   dns:
     needs: validate
     if: ${{ inputs.COMPONENT == 'dns' || inputs.COMPONENT == 'all' }}
@@ -111,24 +126,9 @@ jobs:
       REMOTE_BACKEND_CONFIG: ${{ inputs.REMOTE_BACKEND_CONFIG }}
       ENABLE_STATE_LOCKING: ${{ inputs.ENABLE_STATE_LOCKING }}
 
-  iam:
-    needs: [validate, storage]
-    if: ${{ always() && needs.validate.result == 'success' && (inputs.COMPONENT == 'iam' || (inputs.COMPONENT == 'all' && needs.storage.result == 'success')) }}
-    uses: ./.github/workflows/terraform-component.yml
-    secrets: inherit
-    with:
-      CLOUD_PROVIDER: ${{ inputs.CLOUD_PROVIDER }}
-      COMPONENT: iam
-      PROFILE: ${{ inputs.PROFILE }}
-      ACTION: destroy
-      CONFIRM: ${{ inputs.TERRAFORM_DESTROY }}
-      BACKEND_TYPE: ${{ inputs.BACKEND_TYPE }}
-      REMOTE_BACKEND_CONFIG: ${{ inputs.REMOTE_BACKEND_CONFIG }}
-      ENABLE_STATE_LOCKING: ${{ inputs.ENABLE_STATE_LOCKING }}
-
   compute:
-    needs: [validate, iam]
-    if: ${{ always() && needs.validate.result == 'success' && (inputs.COMPONENT == 'compute' || (inputs.COMPONENT == 'all' && needs.iam.result == 'success')) }}
+    needs: [validate, storage]
+    if: ${{ always() && needs.validate.result == 'success' && (inputs.COMPONENT == 'compute' || (inputs.COMPONENT == 'all' && needs.storage.result == 'success')) }}
     uses: ./.github/workflows/terraform-component.yml
     secrets: inherit
     with:
@@ -141,9 +141,24 @@ jobs:
       REMOTE_BACKEND_CONFIG: ${{ inputs.REMOTE_BACKEND_CONFIG }}
       ENABLE_STATE_LOCKING: ${{ inputs.ENABLE_STATE_LOCKING }}
 
-  security:
+  iam:
     needs: [validate, compute]
-    if: ${{ always() && needs.validate.result == 'success' && (inputs.COMPONENT == 'security' || (inputs.COMPONENT == 'all' && needs.compute.result == 'success')) }}
+    if: ${{ always() && needs.validate.result == 'success' && (inputs.COMPONENT == 'iam' || (inputs.COMPONENT == 'all' && needs.compute.result == 'success')) }}
+    uses: ./.github/workflows/terraform-component.yml
+    secrets: inherit
+    with:
+      CLOUD_PROVIDER: ${{ inputs.CLOUD_PROVIDER }}
+      COMPONENT: iam
+      PROFILE: ${{ inputs.PROFILE }}
+      ACTION: destroy
+      CONFIRM: ${{ inputs.TERRAFORM_DESTROY }}
+      BACKEND_TYPE: ${{ inputs.BACKEND_TYPE }}
+      REMOTE_BACKEND_CONFIG: ${{ inputs.REMOTE_BACKEND_CONFIG }}
+      ENABLE_STATE_LOCKING: ${{ inputs.ENABLE_STATE_LOCKING }}
+
+  security:
+    needs: [validate, iam]
+    if: ${{ always() && needs.validate.result == 'success' && (inputs.COMPONENT == 'security' || (inputs.COMPONENT == 'all' && needs.iam.result == 'success')) }}
     uses: ./.github/workflows/terraform-component.yml
     secrets: inherit
     with:

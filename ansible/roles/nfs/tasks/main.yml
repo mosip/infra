@@ -6,7 +6,7 @@
 #
 # Runs against the nginx host, which also serves as the NFS server (#276's
 # 1st EBS volume). Device mount is a NEW step here (not in the original —
-# see CLAUDE.md decision 3): the volume used to be mounted by nginx's
+# see modules/aws/compute/main.tf): the volume used to be mounted by nginx's
 # user_data at boot; #275 dropped that once storage (#276) became a separate,
 # later apply, so nfs (this role) now mounts it itself, mirroring
 # postgresql/activemq's existing device-mount pattern.

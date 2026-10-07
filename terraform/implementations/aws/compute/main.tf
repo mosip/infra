@@ -105,6 +105,14 @@ data "aws_security_group" "k8s_worker" {
   }
 }
 
+# Certbot's instance profile, created by the iam component (which runs
+# first). Skip with attach_certbot_profile = false when the profile's TLS
+# mode doesn't use Route53 (byo, http01, another DNS provider).
+data "aws_iam_instance_profile" "certbot" {
+  count = var.attach_certbot_profile ? 1 : 0
+  name  = "${var.cluster_name}-certbot-instance-profile"
+}
+
 module "compute" {
   source = "../../../modules/aws/compute"
 
@@ -123,6 +131,8 @@ module "compute" {
   k8s_control_plane_sg_id = data.aws_security_group.k8s_control_plane.id
   k8s_etcd_sg_id          = data.aws_security_group.k8s_etcd.id
   k8s_worker_sg_id        = data.aws_security_group.k8s_worker.id
+
+  nginx_iam_instance_profile = var.attach_certbot_profile ? data.aws_iam_instance_profile.certbot[0].name : null
 
   k8s_control_plane_node_count = var.k8s_control_plane_node_count
   k8s_etcd_node_count          = var.k8s_etcd_node_count

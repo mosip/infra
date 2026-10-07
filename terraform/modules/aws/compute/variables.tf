@@ -56,3 +56,9 @@ variable "k8s_worker_node_count" { type = number }
 locals {
   nginx_tag_name = "${var.cluster_name}-NGINX-NODE"
 }
+
+variable "nginx_iam_instance_profile" {
+  description = "Instance profile for the nginx node (certbot's Route53 access, from the iam component). Null = none."
+  type        = string
+  default     = null
+}

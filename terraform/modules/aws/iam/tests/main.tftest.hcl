@@ -2,19 +2,13 @@
 # match the legacy monolith's certbot-ssl-certgen.tf exactly (name patterns,
 # tags, assume-role trust policy, Route53 permissions policy).
 #
-# command = plan is used for every run in this file, deliberately, and must
-# stay that way: this module also has a null_resource with a local-exec
-# provisioner (the post-creation instance-profile attachment, decision 4) —
-# provisioners only execute on `apply`, never on `plan`, so `plan` is the
-# only way to test this module's IAM resource attributes without actually
-# invoking the real `aws` CLI locally.
+# Runs use command = plan with a mocked provider — no AWS credentials.
 
 mock_provider "aws" {}
 
 variables {
-  cluster_name      = "testcluster"
-  nginx_instance_id = "i-0123456789abcdef0"
-  route53_zone_ids  = ["Z0123456789ABCDEFGHI"]
+  cluster_name     = "testcluster"
+  route53_zone_ids = ["Z0123456789ABCDEFGHI"]
 }
 
 run "certbot_role_matches_legacy_name_and_trust_policy" {
