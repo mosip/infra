@@ -189,7 +189,7 @@ Each of ①–⑤ is its own dispatch (`TERRAFORM_COMPONENT: infra`, `PROVISIONI
 graph TD
     A[configure job starts] --> B[Connect WireGuard<br/>SSH access to nodes]
     B --> C[terraform output -json<br/>from all 5 components]
-    C --> D[generate-ansible-inventory.sh<br/>renders inventory: nginx / control_plane / etcd / workers groups]
+    C --> D[ansible/inventory/generate.py<br/>renders inventory: nginx / control_plane / etcd / workers groups]
     D --> E[ansible/nginx<br/>nginx + certbot]
     E --> F[ansible/rke2<br/>installs the K8s cluster]
     F --> G{Which parent?}

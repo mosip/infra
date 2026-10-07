@@ -1,0 +1,29 @@
+# Deployment shape: observability / management cluster (Rancher UI +
+# Keycloak). Previously a separate observ-infra tree; the Terraform was
+# identical, only sizing (./aws/*.tfvars) and the Layer-3 components differ.
+# See profiles/mosip/profile.yml for what each key means.
+#
+# Needs rancher_password at configure time — CI passes it from the
+# RANCHER_BOOTSTRAP_PASSWORD secret; on a data centre use -e or --set.
+# Deploy this profile BEFORE clusters that import into its Rancher.
+
+name: observ
+description: Observability cluster — Rancher UI + Keycloak
+
+nginx_type: observability
+
+configure_components:
+  - nginx
+  - rke2
+  - nfs
+  - rancher_keycloak
+
+subdomain_public: []
+subdomain_internal: [rancher, iam]
+
+ansible_vars:
+  k8s_infra_repo_url: https://github.com/mosip/k8s-infra.git
+  k8s_infra_branch: release-1.2.1.x
+  tls_mode: dns01
+  dns01_provider: route53
+  rancher_ui_version: "2.8.3"

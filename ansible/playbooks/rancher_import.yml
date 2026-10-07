@@ -1,0 +1,13 @@
+---
+# Run: ansible-playbook -i <inventory> ansible/playbooks/rancher_import.yml \
+#        -e enable_rancher_import=true -e rancher_import_url='<kubectl apply ... cmd>'
+# Needs the "control_plane"/"etcd"/"workers" groups to compute the expected
+# node count, and the primary's kubeconfig at /home/ubuntu/.kube/<primary>.yaml
+# (written by the rke2 role). Separate from rke2 so it can be re-run on its
+# own, e.g. after Rancher token rotation.
+- name: Verify cluster and import into Rancher
+  hosts: control_plane[0]
+  become: true
+  gather_facts: false
+  roles:
+    - rancher_import

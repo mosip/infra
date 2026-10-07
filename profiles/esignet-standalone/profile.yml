@@ -1,0 +1,34 @@
+# Deployment shape: standalone eSignet (no full MOSIP platform).
+# See profiles/mosip/profile.yml for what each key means.
+
+name: esignet-standalone
+description: Standalone eSignet (eSignet, OIDC UI, Postgres, Redis, Kafka, Keycloak)
+
+nginx_type: mosip
+
+# No postgresql/activemq host volumes: eSignet runs its datastores in-cluster.
+configure_components:
+  - nginx
+  - rke2
+  - rancher_import
+  - nfs
+
+# Shared by the esignet-standalone and esignet-standalone-2.0.0 Helmsman
+# profiles — only one is live on a given cluster/domain at a time.
+subdomain_public:
+  - esignet
+  - healthservices
+  - signup
+  - esignet-sunbird
+  - healthservices-sunbird
+  - healthservices-mosipid
+  - esignet-mosipid
+  - pms-mosipid
+  - signup-mosipid
+subdomain_internal: [iam, activemq, kafka, kibana, postgres, smtp, pmp, minio]
+
+ansible_vars:
+  k8s_infra_repo_url: https://github.com/mosip/k8s-infra.git
+  k8s_infra_branch: release-1.2.1.x
+  tls_mode: dns01
+  dns01_provider: route53
