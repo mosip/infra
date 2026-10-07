@@ -32,7 +32,7 @@ If you **don't need to backup any data** and want to destroy everything quickly,
 
 #### 1. Go to GitHub Actions
 
-Navigate to: **Repository → Actions → Terraform Infrastructure Destroy**
+Navigate to: **Repository → Actions → terraform destroy**
 
 #### 2. Run the Destroy Workflow
 
@@ -170,10 +170,9 @@ kubectl exec -n keycloak keycloak-0 -- /opt/jboss/keycloak/bin/standalone.sh \
 #### 2. Export Configurations
 
 ```bash
-# Export Terraform state (if using local backend)
-cd terraform/implementations/aws/infra/
-# For profile-isolated deployments, check the profiles/ directory:
-tar -czf terraform-state-backup-$(date +%Y%m%d).tar.gz profiles/<profile>/terraform.tfstate*
+# Export Terraform state (if using local backend) — one encrypted state per component
+tar -czf terraform-state-backup-$(date +%Y%m%d).tar.gz \
+  terraform/implementations/aws/*/profiles/<profile>/*.tfstate.gpg
 
 # Export Kubernetes configurations
 kubectl get all --all-namespaces -o yaml > k8s-resources-backup.yaml
@@ -397,7 +396,7 @@ kubectl get namespaces | grep -E "cattle|istio"
 
 1. **Navigate to GitHub Actions**
  ```
- Repository → Actions → Terraform Infrastructure Destroy
+ Repository → Actions → terraform destroy
  ```
 
 2. **Run Workflow**
@@ -406,10 +405,11 @@ kubectl get namespaces | grep -E "cattle|istio"
  
  Parameters:
  - Branch: release-0.1.0 (your deployment branch)
- - Cloud Provider: aws
- - Component: infra
- - Profile: mosip/esignet
- - Backend: local (or s3, match your deployment)
+ - CLOUD_PROVIDER: aws
+ - COMPONENT: all      (reverse order: dns → storage → iam → compute → security)
+ - PROFILE: mosip / esignet-standalone
+ - BACKEND_TYPE: local (or remote, match your deployment)
+ - TERRAFORM_DESTROY: ✅ (unchecked = plan -destroy only)
  ```
 
 3. **Monitor Progress**
@@ -425,17 +425,14 @@ kubectl get namespaces | grep -E "cattle|istio"
 - Terraform state accessible
 
 ```bash
-# Navigate to infra directory
-cd terraform/implementations/aws/infra/
-
-# Verify Terraform state
-terraform state list
-
-# Preview destruction
-terraform plan -destroy
-
-# Destroy infrastructure
-terraform destroy -auto-approve
+# One root per component — destroy in reverse order
+P=mosip
+for c in dns storage iam compute security; do
+  (cd terraform/implementations/aws/$c && terraform init && \
+   terraform destroy -auto-approve \
+     -var-file=../../../../profiles/$P/aws/common.tfvars \
+     -var-file=../../../../profiles/$P/aws/$c.tfvars)
+done
 
 # Watch for completion
 # This will delete:
@@ -464,20 +461,16 @@ Status: Should all be "terminated"
 ##### Using GitHub Actions
 
 ```
-Actions → Terraform Observability Infrastructure Destroy
+Actions → terraform destroy
 Parameters:
-- Component: observ-infra
-- Others: same as infra destroy
+- COMPONENT: all
+- PROFILE: observ
+- Others: same as the MOSIP cluster destroy
 ```
 
 ##### Using Terraform CLI
 
-```bash
-cd terraform/observ-infra/aws/
-
-terraform plan -destroy
-terraform destroy -auto-approve
-```
+Same loop as above with `P=observ`.
 
 ---
 
@@ -490,10 +483,10 @@ terraform destroy -auto-approve
 ##### Using GitHub Actions
 
 ```
-Actions → Terraform Base Infrastructure Destroy
+Actions → terraform destroy
 Parameters:
-- Component: base-infra
-- Others: same as previous destroys
+- COMPONENT: base-infra
+- TERRAFORM_DESTROY: ✅
 ```
 
 ##### Using Terraform CLI
@@ -895,12 +888,14 @@ echo "Step 5/7: Waiting for namespace deletion..."
 sleep 60
 
 echo "Step 6/7: Destroying Kubernetes Infrastructure..."
-cd terraform/implementations/aws/infra/
-terraform destroy -auto-approve
+for c in dns storage iam compute security; do
+  (cd terraform/implementations/aws/$c && terraform destroy -auto-approve \
+    -var-file=../../../../profiles/mosip/aws/common.tfvars \
+    -var-file=../../../../profiles/mosip/aws/$c.tfvars)
+done
 
 echo "Step 7/7: Destroying Base Infrastructure..."
-cd ../../base-infra/aws/
-terraform destroy -auto-approve
+(cd terraform/implementations/aws/base-infra && terraform destroy -auto-approve -var-file=aws.tfvars)
 
 echo "✅ Destruction complete!"
 echo "Please verify manually that all resources are deleted."

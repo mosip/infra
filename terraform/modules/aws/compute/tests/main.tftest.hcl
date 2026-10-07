@@ -155,7 +155,7 @@ run "observ_infra_shape_single_node_no_etcd_no_worker" {
   command = plan
 
   # Same module, same code path — only the input counts differ, matching
-  # observ-infra's real aws.tfvars (control-plane=1, etcd=0, worker=0).
+  # the observ profile's compute.tfvars (control-plane=1, etcd=0, worker=0).
   # Proves this is genuinely "one module, two parents", not two code paths.
   variables {
     k8s_control_plane_node_count = 1
@@ -165,7 +165,7 @@ run "observ_infra_shape_single_node_no_etcd_no_worker" {
 
   assert {
     condition     = length(aws_instance.k8s_cluster) == 1
-    error_message = "observ-infra shape should produce exactly 1 K8s node total"
+    error_message = "observ profile shape should produce exactly 1 K8s node total"
   }
   assert {
     condition     = aws_instance.k8s_cluster["CONTROL-PLANE-NODE-1"].tags.Primary == "true"

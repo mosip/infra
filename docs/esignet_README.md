@@ -68,11 +68,10 @@ cat jwe-userinfo-private-key.pem | base64 -w 0
 > **Important:** KUBECONFIG must be provided as **raw YAML** (plain text), not base64 encoded.
 
 ```bash
-# After Terraform infrastructure deployment, find the kubeconfig file in:
-# terraform/implementations/aws/infra/kubeconfig_<cluster-name>
-
-# Copy the entire contents of the kubeconfig file
-cat terraform/implementations/aws/infra/kubeconfig_<cluster-name>
+# Published automatically as the KUBECONFIG secret when the deployment ran with
+# ENABLE_RANCHER_IMPORT + PUBLISH_KUBECONFIG. Otherwise copy it from the primary node:
+scp -i <ssh-key> ubuntu@<k8s_primary_control_plane_ip>:/home/ubuntu/.kube/<cluster_name>-CONTROL-PLANE-NODE-1.yaml kubeconfig
+cat kubeconfig
 # Copy the raw YAML output → Add as KUBECONFIG (do NOT base64 encode)
 
 # Example KUBECONFIG value (raw YAML format):

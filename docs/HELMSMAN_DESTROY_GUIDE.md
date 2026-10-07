@@ -600,10 +600,8 @@ After running destruction, verify everything is cleaned up:
 
 **To fully stop costs, you must also run:**
 
-```bash
-# Terraform destroy for full cleanup
-terraform destroy -var-file=implementations/aws/infra/aws.tfvars
-```
+Run **Actions → terraform destroy** with `COMPONENT=all`, your `PROFILE`, and `TERRAFORM_DESTROY` ticked
+(see [Environment Destruction Guide](ENVIRONMENT_DESTRUCTION_GUIDE.md)).
 
 See [Environment Destruction Guide](ENVIRONMENT_DESTRUCTION_GUIDE.md) for complete infrastructure teardown.
 

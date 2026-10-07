@@ -7,23 +7,25 @@
 ## Common Parameters for All Terraform Workflows
 
 - **`CLOUD_PROVIDER`**: `aws` | `azure` | `gcp` (cloud platform selection)
-  - **Choose**: `aws` (only fully functional option)
-  - Azure/GCP are placeholder implementations
-- **`TERRAFORM_COMPONENT`**: `base-infra` | `infra` | `observ-infra` (infrastructure component)
-  - **base-infra**: VPC, networking, jump server (deploy FIRST)
-  - **observ-infra**: Rancher management cluster (optional)
-  - **infra**: MOSIP Kubernetes cluster (main deployment)
-- **`INFRA_PROFILE`**: Deployment profile — only applies to the `infra` component (`base-infra` and `observ-infra` ignore this field)
+  - **Choose**: `aws` — Azure/GCP only have `base-infra`
+  - Data-centre VMs need no Terraform at all: see [Deployment sequence](DEPLOYMENT_SEQUENCE.md#data-centre)
+- **`COMPONENT`**: what to run — each component is its own Terraform root with its own state
+  - **all**: every component in order, then `configure` (needs `TERRAFORM_APPLY`)
+  - **security** → **compute** → **iam** → **storage** → **dns**: one component (day-2 changes, e.g. `dns` to update only Route53)
+  - **configure**: Ansible only (nginx, RKE2, NFS, PostgreSQL, ActiveMQ, Rancher/Keycloak)
+  - **base-infra**: VPC, networking, jump server (deploy FIRST, once)
+- **`PROFILE`**: deployment shape — see [Profiles](PROFILES.md)
 
-  | Profile | tfvars file | Cluster size | Use for |
-  |---------|-------------|--------------|---------|
-  | `esignet` | `profiles/esignet/aws.tfvars` | 4-node K8s cluster | eSignet standalone deployment |
-  | `mosip` | `profiles/mosip/aws.tfvars` | 7-node K8s cluster | Full MOSIP platform deployment |
+  | Profile | Values | Cluster size | Use for |
+  |---------|--------|--------------|---------|
+  | `mosip` | `profiles/mosip/` | 7 nodes (3/3/1) | Full MOSIP platform |
+  | `esignet-standalone` | `profiles/esignet-standalone/` | 4 nodes (1/1/2) | eSignet standalone |
+  | `observ` | `profiles/observ/` | 1 node | Rancher UI + Keycloak (optional) |
 
-  - Selecting the profile determines which `aws.tfvars` is loaded and therefore the cluster node count, instance types, and DNS subdomains provisioned
-  - The Terraform state file is also scoped per profile so both can coexist on the same branch without conflicting state
+  - The profile decides the tfvars (`profiles/<profile>/aws/*.tfvars`), the Layer-3 components and the DNS subdomains
+  - State is scoped per component and profile, so profiles coexist on the same branch
 - **`SSH_PRIVATE_KEY`**: GitHub secret name containing SSH private key for instance access
-  - Must match the `ssh_key_name` in your terraform.tfvars
+  - Must match `ssh_key_name` in `profiles/<profile>/aws/common.tfvars`
   - [How to create SSH keys](SECRET_GENERATION_GUIDE.md#1-ssh-keys)
 - **`TERRAFORM_APPLY`**: Checkbox ☐ or ✅ (apply changes or plan-only mode)
   - ☐ **Unchecked** = Dry run (preview only, **no infrastructure changes**)
@@ -46,13 +48,13 @@
 - **Relationship with Rancher Import:**
 
 ```
-If Terraform Apply = ✅ AND Rancher Import = True
-→ Infrastructure deployed AND cluster imported to Rancher UI
+If COMPONENT = all/configure AND ENABLE_RANCHER_IMPORT = ✅
+→ Infrastructure deployed AND cluster imported to Rancher UI (during configure)
 
-If Terraform Apply = ✅ AND Rancher Import = False 
+If ENABLE_RANCHER_IMPORT = ☐
 → Infrastructure deployed but cluster runs standalone
 
-If Terraform Apply = ☐ (unchecked - dry run)
+If Terraform Apply = ☐ (unchecked - dry run, single component only)
 → Nothing happens, just shows plan
 → Rancher Import setting is ignored
 ```
@@ -86,7 +88,7 @@ Before running any Terraform workflow, understand these modes:
 ## Best Practices
 
 1. **Always Plan First**: Use unchecked mode (☐) to preview changes before applying
-2. **Consistent Naming**: Ensure `ssh_key_name` matches across terraform.tfvars and GitHub secrets
+2. **Consistent Naming**: Ensure `ssh_key_name` (profiles/<profile>/aws/common.tfvars) matches the GitHub secret
 3. **Secret Management**: Keep SSH private keys secure and never commit to repository
 4. **Environment Isolation**: Use separate branches/environments for different deployments
 5. **State Management**: Choose appropriate backend (local vs S3) based on team size and requirements
@@ -95,7 +97,7 @@ Before running any Terraform workflow, understand these modes:
 
 ### SSH Key Mismatch
 **Error**: "Key pair 'xxx' does not exist"
-**Solution**: Ensure the `ssh_key_name` value in terraform.tfvars matches the GitHub secret name exactly (case-sensitive)
+**Solution**: Ensure `ssh_key_name` in `profiles/<profile>/aws/common.tfvars` matches the GitHub secret name exactly (case-sensitive)
 
 ### State Lock Issues
 **Error**: "Error locking state: ConditionalCheckFailedException"

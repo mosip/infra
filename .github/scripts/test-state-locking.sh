@@ -59,7 +59,7 @@ test_backend_without_locking() {
     "$PROJECT_ROOT/.github/scripts/configure-backend.sh" \
         --type remote \
         --provider aws \
-        --component observ-infra \
+        --component compute \
         --branch test-branch \
         --remote-config "aws:test-bucket:us-east-1"
     
@@ -78,12 +78,12 @@ test_backend_with_locking() {
     cd "$temp_dir"
     
     # Set environment variable to simulate AWS DynamoDB table creation
-    export TERRAFORM_STATE_LOCK_TABLE="terraform-state-lock-observ-infra-test-branch"
+    export TERRAFORM_STATE_LOCK_TABLE="terraform-state-lock-compute-test-branch"
     
     "$PROJECT_ROOT/.github/scripts/configure-backend.sh" \
         --type remote \
         --provider aws \
-        --component observ-infra \
+        --component compute \
         --branch test-branch \
         --remote-config "aws:test-bucket:us-east-1" \
         --enable-locking
@@ -135,7 +135,7 @@ EOF
         --provider aws \
         --config "aws:test-bucket:us-east-1" \
         --branch test-branch \
-        --component observ-infra
+        --component compute
     
     rm -rf "$temp_dir"
     return 0
@@ -189,7 +189,7 @@ EOF
         --provider aws \
         --config "aws:test-bucket:us-east-1" \
         --branch test-branch \
-        --component observ-infra \
+        --component compute \
         --enable-locking
     
     rm -rf "$temp_dir"

@@ -197,8 +197,8 @@ There are **5 steps** in total. Run them in the order shown below. **Do not star
 ```
 Step 0 → Provision Infrastructure   (terraform plan / apply)
   ├── 0b  base-infra      ~10 min   ← once per AWS account; skip if already done
-  ├── 0c  observ-infra    ~15 min   ← optional monitoring cluster
-  └── 0d  infra           ~20 min   profile: esignet-standalone  ← the main cluster
+  ├── 0c  profile observ  ~15 min   ← optional Rancher/Keycloak cluster
+  └── 0d  COMPONENT=all   ~20 min   profile: esignet-standalone  ← the main cluster
 Step 1 → Deploy External Services   (helmsman_external.yml)   ~20 min   profile: esignet-standalone (always)
 Step 2 → Deploy eSignet             (helmsman_esignet.yml)    ~25 min   profile: esignet-standalone or esignet-standalone-2.0.0
 Step 3 → Deploy Signup              (helmsman_signup.yml)     ⚠️  IN PROGRESS — not ready yet
@@ -217,26 +217,26 @@ Step 4 → Deploy Testrigs (optional) (helmsman_testrigs.yml)   ~10 min   profil
 > **What this does:** Creates the AWS infrastructure your cluster will run on — VPC, networking, EC2 nodes, WireGuard jump server, and the RKE2 Kubernetes cluster itself.
 > **Skip this step** if your cluster already exists. Jump straight to Step 1.
 
-The Terraform workflow has three separate components. Run them in this order:
+Run the Terraform workflow in this order:
 
 ```
 0b → base-infra     (once per AWS account — skip if already done)
-0c → observ-infra   (optional — skip if not needed or already done)
-0d → infra          (profile: esignet-standalone — always required)
+0c → COMPONENT=all, PROFILE=observ              (optional — skip if not needed or already done)
+0d → COMPONENT=all, PROFILE=esignet-standalone  (always required)
 ```
 
 > **Already have `base-infra` deployed?** Skip `0b` entirely — go straight to `0c` or `0d`.
-> **Already have `observ-infra` deployed (or don't need it)?** Skip `0c` — go straight to `0d`.
+> **Already have the `observ` cluster deployed (or don't need it)?** Skip `0c` — go straight to `0d`.
 
 **Terraform workflow name:** `terraform plan / apply`
 
 ---
 
-#### 0a — Update the tfvars file
+#### 0a — Update the profile
 
-Before running the workflow, fill in the placeholders in the `esignet-standalone` tfvars file:
+Before running the workflow, fill in the placeholders of the `esignet-standalone` profile:
 
-**File:** `terraform/implementations/aws/infra/profiles/esignet-standalone/aws.tfvars`
+**File:** `profiles/esignet-standalone/aws/common.tfvars` (sizes: `compute.tfvars`, `storage.tfvars`; subdomains: `dns.tfvars`)
 
 | Field | What to set |
 |---|---|
@@ -246,10 +246,9 @@ Before running the workflow, fill in the placeholders in the `esignet-standalone
 | `ssh_key_name` | Name of the AWS key pair to use for SSH access to nodes |
 | `zone_id` | Your Route 53 hosted zone ID for this domain |
 | `vpc_name` | Name of your existing VPC (looked up by `Name` tag) |
-| `rancher_import_url` | Rancher import URL for this cluster — see [Rancher Import Configuration](../README.md#rancher-import-configuration-optional) in the root README for where to find this URL and how to escape it correctly |
 | `aws_provider_region` | AWS region to deploy into (default: `ap-south-1`) |
 
-All other fields (node counts, instance types, volume sizes) are already set to sensible defaults for eSignet standalone. Review and adjust if needed.
+All other fields (node counts, instance types, volume sizes) are already set to sensible defaults for eSignet standalone. Review and adjust if needed. Rancher import needs no tfvars value anymore — tick **ENABLE_RANCHER_IMPORT** when running the workflow.
 
 Commit the updated file on your branch before triggering the workflow.
 
@@ -267,30 +266,31 @@ After `base-infra` completes, configure `TF_WG_CONFIG` (repository secret) with 
 
 #### 0c — Run: Observability Infrastructure (optional)
 
-> **Optional.** Creates a separate lightweight Kubernetes cluster for monitoring and observability tooling (Rancher, Keycloak, logging). eSignet standalone works without it — skip if you don't need a dedicated monitoring cluster.
+> **Optional.** Creates a separate lightweight Kubernetes cluster for Rancher and Keycloak. eSignet standalone works without it — skip if you don't need a dedicated management cluster.
 
-Follow the full instructions in the root README: [Step 3ca: Observation Infrastructure](../README.md#step-3ca-observation-infrastructure-observ-infra--optional)
+Follow the root README: [Step 3d](../README.md#step-3d-deploy-with-one-run) with `PROFILE=observ`.
 
 ---
 
 #### 0d — Run: Main Infrastructure
 
-> Creates the Kubernetes nodes and cluster for eSignet standalone. Run this after `base-infra` (and optionally `observ-infra`) are complete.
+> Creates the Kubernetes nodes and cluster for eSignet standalone. Run this after `base-infra` (and optionally the `observ` cluster) are complete.
 
 1. Trigger **`terraform plan / apply`** with:
 
 | Field | Value |
 |---|---|
-| `cloud_provider` | `aws` |
-| `component` | `infra` |
-| `profile` | `esignet-standalone` |
-| `backend` | `local` *(or `s3`)* |
+| `CLOUD_PROVIDER` | `aws` |
+| `COMPONENT` | `all` |
+| `PROFILE` | `esignet-standalone` |
+| `BACKEND_TYPE` | `local` *(or `remote`)* |
 | `SSH_PRIVATE_KEY` | Name of your SSH private key secret |
-| `terraform_apply` | Tick to apply |
+| `TERRAFORM_APPLY` | Tick (required for `all`) |
+| `ENABLE_RANCHER_IMPORT` | Tick to register in Rancher (publishes `KUBECONFIG` too) |
 
-2. **After apply completes (~20 min):** Retrieve the kubeconfig from the cluster and add it as the `KUBECONFIG` environment secret (Section 2B) before proceeding to Step 1.
+2. **After apply completes (~20 min):** With Rancher import + `PUBLISH_KUBECONFIG`, the `KUBECONFIG` environment secret is already set. Otherwise copy `/home/ubuntu/.kube/<cluster_name>-CONTROL-PLANE-NODE-1.yaml` from the primary control-plane node and add it as `KUBECONFIG` (Section 2B) before proceeding to Step 1.
 
-> **Note on WireGuard:** The Terraform runner connects to the nginx node via `TF_WG_CONFIG` (repository secret) to run post-provisioning scripts. `CLUSTER_WIREGUARD_WG0` and `CLUSTER_WIREGUARD_WG1` (environment secrets) are separate — they are used by Helmsman workflows to reach the cluster API. All three must be configured before their respective workflows run.
+> **Note on WireGuard:** The `configure` job connects to the nodes via `TF_WG_CONFIG` to run Ansible. `CLUSTER_WIREGUARD_WG0` and `CLUSTER_WIREGUARD_WG1` (environment secrets) are separate — they are used by Helmsman workflows to reach the cluster API. All three must be configured before their respective workflows run.
 
 ---
 
