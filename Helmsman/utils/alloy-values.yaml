@@ -1,7 +1,7 @@
 # Grafana Alloy Values for MOSIP Cluster
 # Chart: grafana/alloy v1.6.2 (app v1.14.0)
-# Loki endpoint: http://loki.loki-monitoring.svc.cluster.local:3100
-# Deploy to: loki-monitoring namespace
+# Loki endpoint: http://loki.logging.svc.cluster.local:3100
+# Deploy to: logging namespace
 # Cluster: rke2 | Environment: dev-int
 #
 # Uses loki.source.kubernetes which fetches logs via Kubernetes API
@@ -32,7 +32,7 @@ alloy:
         rule {
           source_labels = ["__meta_kubernetes_namespace"]
           action = "drop"
-          regex = "kube-system|cattle-system|cattle-monitoring-system|nfs|cattle-fleet-system|cattle-logging-system|loki-monitoring"
+          regex = "kube-system|cattle-system|cattle-monitoring-system|nfs|cattle-fleet-system|cattle-logging-system|logging"
         }
 
         // Only keep running pods
