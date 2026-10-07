@@ -204,6 +204,7 @@ jobs:
       slack_channel_name:  ${{ github.event.inputs.slack_channel_name  || vars.SLACK_CHANNEL_NAME }}
       SLACK_WEBHOOK_URL:   ${{ github.event.inputs.slack_webhook_url   || secrets.SLACK_WEBHOOK_URL }}
       CLUSTER_ID:          ${{ github.event.inputs.clusterid           || vars.CLUSTER_ID }}
+      SMTP_PASSWORD:       ${{ secrets.SMTP_PASSWORD }}
       ESIGNET_CAPTCHA_SITE_KEY: ${{ secrets.ESIGNET_CAPTCHA_SITE_KEY }}
       ESIGNET_CAPTCHA_SECRET_KEY: ${{ secrets.ESIGNET_CAPTCHA_SECRET_KEY }}
       PREREG_CAPTCHA_SITE_KEY: ${{ secrets.PREREG_CAPTCHA_SITE_KEY }}
@@ -224,6 +225,7 @@ jobs:
 
       - name: Mask sensitive secrets
         run: |
+          echo "::add-mask::${{ secrets.SMTP_PASSWORD }}"
           echo "::add-mask::${{ secrets.ESIGNET_CAPTCHA_SITE_KEY }}"
           echo "::add-mask::${{ secrets.ESIGNET_CAPTCHA_SECRET_KEY }}"
           echo "::add-mask::${{ secrets.PREREG_CAPTCHA_SITE_KEY }}"
