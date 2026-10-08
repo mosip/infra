@@ -55,7 +55,7 @@ apps:
     timeout: 900
     priority: -6
     hooks:
-      preInstall: "$WORKDIR/hooks/create-smtp-secret.sh"    
+      preInstall: "$WORKDIR/hooks/create-smtp-secret.sh ${SMTP_PASSWORD}"    
     
   # rancher-monitoring-crd:
   #   namespace: cattle-monitoring-system
