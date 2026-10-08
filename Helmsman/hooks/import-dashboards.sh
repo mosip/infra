@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-NAMESPACE="loki-monitoring"
+NAMESPACE="logging"
 DASHBOARD_DIR="${WORKDIR:-.}/utils/loki/dashboards"
 
 kubectl wait --for=condition=ready pod \
