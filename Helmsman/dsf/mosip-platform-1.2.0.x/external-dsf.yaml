@@ -59,57 +59,57 @@ apps:
   postgres-init:
     namespace: postgres
     enabled: true
-    version: 12.0.2
+    version: 1.3.0
     chart: mosip/postgres-init
     set:
       dbUserPasswords.dbuserPassword: ""
       databases.mosip_master.enabled: "true"
-      databases.mosip_master.branch: "v1.2.1.4"
+      databases.mosip_master.branch: "v1.3.0"
       databases.mosip_master.host: "postgres.${domain_name}"
       databases.mosip_master.port: ${db_port}
 
       databases.mosip_audit.enabled: "true"
-      databases.mosip_audit.branch: "v1.2.0.1"
+      databases.mosip_audit.branch: "v1.3.0"
       databases.mosip_audit.host: "postgres.${domain_name}"
       databases.mosip_audit.port: ${db_port}
 
       databases.mosip_keymgr.enabled: "true"
-      databases.mosip_keymgr.branch: "v1.2.1.0"
+      databases.mosip_keymgr.branch: "v1.3.0"
       databases.mosip_keymgr.host: "postgres.${domain_name}"
       databases.mosip_keymgr.port: ${db_port}
 
       databases.mosip_kernel.enabled: "true"
-      databases.mosip_kernel.branch: "v1.2.0.2"
+      databases.mosip_kernel.branch: "v1.3.0"
       databases.mosip_kernel.host: "postgres.${domain_name}"
       databases.mosip_kernel.port: ${db_port}
 
       databases.mosip_idmap.enabled: "true"
-      databases.mosip_idmap.branch: "v1.2.2.4"
+      databases.mosip_idmap.branch: "v1.3.0"
       databases.mosip_idmap.host: "postgres.${domain_name}"
       databases.mosip_idmap.port: ${db_port}
 
       databases.mosip_prereg.enabled: "true"
-      databases.mosip_prereg.branch: "v1.2.0.3"
+      databases.mosip_prereg.branch: "v1.3.0"
       databases.mosip_prereg.host: "postgres.${domain_name}"
       databases.mosip_prereg.port: ${db_port}
 
       databases.mosip_idrepo.enabled: "true"
-      databases.mosip_idrepo.branch: "v1.2.2.4"
+      databases.mosip_idrepo.branch: "v1.3.0"
       databases.mosip_idrepo.host: "postgres.${domain_name}"
       databases.mosip_idrepo.port: ${db_port}
 
       databases.mosip_ida.enabled: "true"
-      databases.mosip_ida.branch: "v1.2.1.3"
+      databases.mosip_ida.branch: "v1.3.0"
       databases.mosip_ida.host: "postgres.${domain_name}"
       databases.mosip_ida.port: ${db_port}
 
       databases.mosip_credential.enabled: "true"
-      databases.mosip_credential.branch: "v1.2.2.4"
+      databases.mosip_credential.branch: "v1.3.0"
       databases.mosip_credential.host: "postgres.${domain_name}"
       databases.mosip_credential.port: ${db_port}
 
       databases.mosip_regprc.enabled: "true"
-      databases.mosip_regprc.branch: "v1.2.1.2"
+      databases.mosip_regprc.branch: "v1.3.0"
       databases.mosip_regprc.host: "postgres.${domain_name}"
       databases.mosip_regprc.port: ${db_port}
 
@@ -119,22 +119,22 @@ apps:
       databases.mosip_pms.port: ${db_port}
 
       databases.mosip_hotlist.enabled: "true"
-      databases.mosip_hotlist.branch: "v1.2.1.4"
+      databases.mosip_hotlist.branch: "v1.3.0"
       databases.mosip_hotlist.host: "postgres.${domain_name}"
       databases.mosip_hotlist.port: ${db_port}
 
       databases.mosip_resident.enabled: "true"
-      databases.mosip_resident.branch: "v1.2.1.3"
+      databases.mosip_resident.branch: "v1.3.0"
       databases.mosip_resident.host: "postgres.${domain_name}"
       databases.mosip_resident.port: ${db_port}
 
       databases.mosip_otp.enabled: "true"
-      databases.mosip_otp.branch: "v1.3.0-beta.1"
+      databases.mosip_otp.branch: "v1.3.0"
       databases.mosip_otp.host: "postgres.${domain_name}"
       databases.mosip_otp.port: ${db_port}
 
       databases.mosip_digitalcard.enabled: "true"
-      databases.mosip_digitalcard.branch: "v1.2.0.1"
+      databases.mosip_digitalcard.branch: "v1.3.0"
       databases.mosip_digitalcard.host: "postgres.${domain_name}"
       databases.mosip_digitalcard.port: ${db_port}
     wait: true
@@ -148,14 +148,16 @@ apps:
     chart: mosip/keycloak
     set:
       image.repository: "mosipid/mosip-artemis-keycloak"
-      image.tag: "1.2.0.2"
+      image.tag: "1.3.0"
       image.pullPolicy: "Always"
       # Override Postgres image
       postgresql.image.registry: "docker.io"
       postgresql.image.repository: "mosipid/postgresql"
       postgresql.image.tag: "14.2.0-debian-10-r70"
-      postgresql.primary.resources.requests.cpu: 250m
-      postgresql.primary.resources.requests.memory: 256Mi
+      # postgresql.primary.limits.requests.cpu: 250m
+      # postgresql.primary.limits.requests.memory: 256Mi      
+      postgresql.primary.resources.requests.cpu: 512m
+      postgresql.primary.resources.requests.memory: 512Mi
       # postgresql.architecture: replication
       # postgresql.primary.replicaCount: 1
       # postgresql.primary.persistence.enabled: true
@@ -182,6 +184,7 @@ apps:
       rbac.rules[0].resources[0]: "pods"
       rbac.rules[0].verbs[0]: "get"
       rbac.rules[0].verbs[1]: "list"
+    valuesFile: "$WORKDIR/utils/keycloak-postgres-values.yaml"  
     wait: true
     timeout: 1200
     priority: -14
@@ -202,11 +205,11 @@ apps:
   keycloak-init:
     namespace: keycloak
     enabled: true
-    version: 12.0.2
+    version: 1.3.0
     chart: mosip/keycloak-init
     set:
-      # image.repository: "mosipid/keycloak-init"
-      # image.tag: "1.2.0.1"
+      # image.repository: "mosipqa/keycloak-init"
+      # image.tag: "1.3.x"
       keycloakExternalHost: "iam.${domain_name}"
       keycloakInternalHost: "keycloak.keycloak"
       keycloak.realms.mosip.realm_config.attributes.frontendUrl: "https://iam.${domain_name}/auth"
@@ -223,7 +226,7 @@ apps:
   softhsm-kernel:
     namespace: softhsm
     enabled: true
-    version: 12.0.1
+    version: 1.3.0
     chart: mosip/softhsm
     set:
       # resources.limits.cpu: "250m"
@@ -239,7 +242,7 @@ apps:
   softhsm-ida:
     namespace: softhsm
     enabled: true
-    version: 12.0.1
+    version: 1.3.0
     chart: mosip/softhsm
     set:
       # resources.limits.cpu: "250m"
@@ -253,11 +256,12 @@ apps:
   minio:
     namespace: minio
     enabled: true
-    version: 10.1.6
+    version: 15.0.6
     chart: mosip/minio
     set:
+      global.security.allowInsecureImages: true
       image.repository: "mosipid/minio"
-      image.tag: "2022.2.7-debian-10-r0"
+      image.tag: "2025.2.28-debian-12-r1"
       metrics.serviceMonitor.enabled: "true"
       extraEnvVars[0].name: "MINIO_PROMETHEUS_URL"
       extraEnvVars[0].value: "http://rancher-monitoring-prometheus.cattle-monitoring-system:9090"
@@ -278,7 +282,7 @@ apps:
     wait: true
     timeout: 1200
     hooks:
-      postInstall: "$WORKDIR/hooks/s3-setup.sh"
+      postInstall: "$WORKDIR/hooks/s3-setup.sh "
     priority: -2
 
   clamav:
@@ -300,9 +304,12 @@ apps:
   activemq:
     namespace: activemq
     enabled: true
-    version: 0.0.2
+    version: 0.0.3
     chart: mosip/activemq-artemis
-    set: 
+    set:
+      # image.repository: "mosipqa/activemq-artemis"
+      # image.tag: "1.1.5"
+      persistence.storageClass: "nfs-csi-activemq"
       istio.enabled: "true"
       istio.hosts[0]: "activemq.${domain_name}"
       istio.ingressController.name: "ingressgateway-internal"
@@ -317,11 +324,12 @@ apps:
   # https://cloud.google.com/security/products/recaptcha
   # https://www.google.com/recaptcha/admin/create
 
-  kafka: 
+  kafka:
     namespace: kafka
     enabled: true
     version: 18.3.1
     chart: bitnami/kafka
+    valuesFile: "$WORKDIR/utils/Kafka-values.yaml"
     set:
       # Add these for image overrides
       image.repository: "mosipid/kafka"
@@ -341,11 +349,11 @@ apps:
       persistence.accessModes[0]: "ReadWriteOnce"
       persistence.size: "8Gi"
       zookeeper.enabled: "true"
+      zookeeper.replicaCount: "5"
       zookeeper.resources.requests.cpu: "150m"
       zookeeper.resources.requests.memory: "600Mi"
       zookeeper.resources.limits.cpu: "300m"
       zookeeper.resources.limits.memory: "1200Mi"
-      zookeeper.replicaCount: "5"
       zookeeper.persistence.enabled: "true"
       zookeeper.persistence.size: "2Gi"
       resources.limits.cpu: "1000m"
@@ -400,7 +408,7 @@ apps:
   landing-page:
     namespace: landing-page
     enabled: true
-    version: 12.0.2
+    version: 1.3.0
     chart: mosip/landing-page
     set:
       landing.version: "develop"
