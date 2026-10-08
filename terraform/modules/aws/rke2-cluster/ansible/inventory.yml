@@ -1,0 +1,56 @@
+---
+all:
+  vars:
+    cluster_name: "monitoringtest"
+    cluster_env_domain: "mosip.local"
+    k8s_infra_repo_url: "https://github.com/Mohanraj209/k8s-infra.git"
+    k8s_infra_branch: "develop"
+    install_rke2_version: "v1.28.9+rke2r1"
+    enable_rancher_import: true
+    rancher_import_url: "kubectl apply -f https://rancher.mosip.net/v3/import/ns5s8hbhp84ndzxrhkp7gnjgjblprftx64c4qjsz9mqmxnlmhdstnt_c-9nsh4.yaml"
+    ansible_user: ubuntu
+    ansible_ssh_private_key_file: ./ssh_key
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+    
+  children:
+    control_plane:
+      hosts:
+        monitoringtest-CONTROL-PLANE-NODE-1:
+          ansible_host: 172.31.71.102
+          node_role: control_plane
+          is_primary: true
+          node_index: 0
+        monitoringtest-CONTROL-PLANE-NODE-2:
+          ansible_host: 172.31.72.113
+          node_role: control_plane
+          is_primary: false
+          node_index: 1
+        monitoringtest-CONTROL-PLANE-NODE-3:
+          ansible_host: 172.31.74.225
+          node_role: control_plane
+          is_primary: false
+          node_index: 2
+    
+    etcd:
+      hosts:
+        monitoringtest-ETCD-NODE-1:
+          ansible_host: 172.31.65.104
+          node_role: etcd
+        monitoringtest-ETCD-NODE-2:
+          ansible_host: 172.31.68.50
+          node_role: etcd
+        monitoringtest-ETCD-NODE-3:
+          ansible_host: 172.31.69.128
+          node_role: etcd
+    
+    workers:
+      hosts:
+        monitoringtest-WORKER-NODE-1:
+          ansible_host: 172.31.74.147
+          node_role: worker
+
+    rke2_cluster:
+      children:
+        control_plane:
+        etcd:
+        workers:
