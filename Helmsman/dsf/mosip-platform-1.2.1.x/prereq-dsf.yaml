@@ -42,7 +42,7 @@ apps:
     timeout: 900
     priority: -6
     hooks:
-      preInstall: "$WORKDIR/hooks/apply-prometheus-crds.sh && $WORKDIR/hooks/create-smtp-secret.sh ${SMTP_PASSWORD}"
+      preInstall: "$WORKDIR/hooks/monitoring-preinstall.sh ${SMTP_PASSWORD}"
       postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh ${domain_name} ${env_name}"
       postUpgrade: "$WORKDIR/hooks/install-istio-and-httpbin.sh ${domain_name} ${env_name}"
     
