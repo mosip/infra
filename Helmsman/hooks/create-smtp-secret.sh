@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+ROOT_DIR=`pwd`
 SMTP_PASS="$1"
 
 kubectl create secret generic alertmanager-smtp -n monitoring \
