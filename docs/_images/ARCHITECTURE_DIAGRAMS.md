@@ -45,7 +45,8 @@ graph LR
  INV[inventory<br/>generate.py]
  end
  subgraph "Layer 3 · Ansible (any host)"
- PF[preflight] --> N[tls + nginx] --> K[rke2] --> RI[rancher import] --> NF[nfs] --> PG[postgresql] --> AM[activemq] --> RK[rancher + keycloak]
+ DN["dns (optional)"] --> PF[preflight]
+ PF --> N[tls + nginx] --> K[rke2] --> RI[rancher import] --> NF[nfs] --> PG[postgresql] --> AM[activemq] --> RK[rancher + keycloak]
  end
  CO -->|terraform output| INV
  HY[hosts.yml<br/>data centre] --> INV

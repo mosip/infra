@@ -1,0 +1,18 @@
+---
+# AWS Route53 without Terraform (e.g. a data-centre nginx whose domain is in
+# Route53). Credentials: the usual AWS environment / profile on the controller.
+- name: Route53 records
+  amazon.aws.route53:
+    state: "{{ dns_state }}"
+    zone: "{{ dns_zone }}"
+    private_zone: "{{ dns_route53_private_zone }}"
+    record: "{{ item.fqdn }}"
+    type: "{{ item.type }}"
+    ttl: "{{ item.ttl }}"
+    value: "{{ item.value }}"
+    overwrite: true
+  loop: "{{ dns_records }}"
+  loop_control:
+    label: "{{ item.fqdn }} {{ item.type }}"
+  delegate_to: localhost
+  run_once: true

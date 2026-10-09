@@ -80,12 +80,19 @@
     - "'nginx' in configure_components"
     - preflight_dns_check != 'skip'
   block:
+    # Records just created by the dns play can take a while to propagate,
+    # so keep resolving for up to preflight_dns_retries × 10 s.
     - name: Resolve api.{{ cluster_env_domain }}
       ansible.builtin.command:
         cmd: "getent ahostsv4 api.{{ cluster_env_domain }}"
       register: preflight_dns
       changed_when: false
       failed_when: false
+      until: >-
+        preflight_dns.rc == 0 and (dns_expected_ip | length == 0
+        or dns_expected_ip in (preflight_dns.stdout_lines | map('split') | map('first') | list))
+      retries: "{{ preflight_dns_retries | int }}"
+      delay: 10
 
     - name: Collect resolved addresses
       ansible.builtin.set_fact:

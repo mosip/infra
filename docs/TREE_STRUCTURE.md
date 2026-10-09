@@ -60,9 +60,10 @@ ansible/
 │   ├── hosts.example.yml        # what a data-centre operator fills in
 │   └── tests/test_generate.py
 ├── playbooks/                   # one per component, for running a single step
-│   └── preflight.yml nginx.yml rke2.yml rancher_import.yml nfs.yml
+│   └── dns.yml preflight.yml nginx.yml rke2.yml rancher_import.yml nfs.yml
 │       postgresql.yml activemq.yml rancher_keycloak.yml
 └── roles/
+    ├── dns/                     # DNS records via godaddy | rfc2136 | cloudflare | route53 | manual (+ tests/)
     ├── preflight/               # SSH, required vars, data disks, DNS gate
     ├── tls/                     # byo | http01 | dns01 (any certbot DNS plugin)
     ├── nginx/  rke2/  rancher_import/  nfs/  postgresql/  activemq/

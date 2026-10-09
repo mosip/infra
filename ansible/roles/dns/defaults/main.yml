@@ -1,0 +1,53 @@
+---
+# Who creates the MOSIP DNS records:
+#   none        records are managed elsewhere — the Terraform dns component
+#               (Route53, the AWS default) or your DNS team. Nothing to do.
+#   route53     AWS Route53 via Ansible (amazon.aws; needs boto3 on the controller)
+#   godaddy     GoDaddy REST API
+#   rfc2136     dynamic update (nsupdate) — BIND, PowerDNS, Windows DNS, most
+#               enterprise / government DNS (needs dnspython on the controller)
+#   cloudflare  Cloudflare API
+#   manual      print the record table; preflight then waits for the records
+dns_provider: none
+
+# present creates / updates; absent removes the records this role manages.
+dns_state: present
+
+# Zone apex the records live in. Defaults to cluster_env_domain; set it when
+# the domain is a sub-domain of the zone (e.g. zone mosip.gov.xx for
+# cluster_env_domain sandbox.mosip.gov.xx).
+dns_zone: "{{ cluster_env_domain }}"
+dns_ttl: 300
+
+# Targets. On AWS nginx_public_ip comes from the compute outputs; on a data
+# centre from nginx.public_ip in hosts.yml. Fall back to the address Ansible
+# uses for the nginx host.
+dns_public_ip: "{{ nginx_public_ip | default(hostvars[groups['nginx'][0]]['ansible_host']) }}"
+dns_private_ip: "{{ nginx_internal_ip | default(hostvars[groups['nginx'][0]]['ansible_host']) }}"
+
+# Any other records, by FQDN, inside dns_zone:
+#   - { name: _verify.sandbox.mosip.gov.xx, type: TXT, value: "token", ttl: 300 }
+dns_extra_records: []
+
+# Hide API credentials in task output.
+dns_no_log: true
+
+# ---- route53 ----
+dns_route53_private_zone: false
+
+# ---- godaddy ----
+dns_godaddy_key: ""
+dns_godaddy_secret: ""
+dns_godaddy_api_url: https://api.godaddy.com
+# GoDaddy rejects TTLs below 600.
+dns_godaddy_min_ttl: 600
+
+# ---- rfc2136 ----
+dns_rfc2136_server: ""          # IP of the primary DNS server
+dns_rfc2136_port: 53
+dns_rfc2136_key_name: ""        # TSIG key; leave empty for IP-based update rules
+dns_rfc2136_key_secret: ""
+dns_rfc2136_key_algorithm: hmac-sha256
+
+# ---- cloudflare ----
+dns_cloudflare_api_token: ""

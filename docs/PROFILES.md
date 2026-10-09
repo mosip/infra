@@ -34,7 +34,7 @@ nginx_type: mosip                 # mosip | observability (k8s-infra nginx flavo
 configure_components: [nginx, rke2, rancher_import, nfs, postgresql, activemq]
 subdomain_public: [resident, prereg, ...]
 subdomain_internal: [admin, iam, ...]
-ansible_vars:                     # Ansible defaults for this shape
+ansible_vars:                     # Ansible defaults for this shape (e.g. dns_provider)
   k8s_infra_branch: release-1.2.1.x
   tls_mode: dns01
   dns01_provider: route53
