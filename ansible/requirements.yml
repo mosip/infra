@@ -2,5 +2,6 @@
 # Collections the roles use (ansible-core does not ship them):
 #   ansible-galaxy collection install -r ansible/requirements.yml
 collections:
-  - name: community.general   # filesystem (format data disks)
+  - name: community.general   # filesystem (format data disks); nsupdate, cloudflare_dns (dns role)
   - name: ansible.posix       # mount
+  - name: amazon.aws          # route53 (dns role, dns_provider: route53)

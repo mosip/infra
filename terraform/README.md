@@ -5,8 +5,8 @@ the hosts — nginx, TLS, RKE2, NFS, PostgreSQL, ActiveMQ, Rancher/Keycloak — 
 Ansible (Layer 3, [`../ansible`](../ansible)), which works the same on
 Terraform-provisioned AWS hosts and on pre-created data-centre VMs.
 
-See [docs/DEPLOYMENT_SEQUENCE.md](../docs/DEPLOYMENT_SEQUENCE.md) for the full
-order and [docs/PROFILES.md](../docs/PROFILES.md) for deployment shapes.
+See [docs/overview/deployment-sequence.md](../docs/overview/deployment-sequence.md) for the full
+order and [docs/guides/profiles.md](../docs/guides/profiles.md) for deployment shapes.
 
 ## Layout
 
@@ -39,7 +39,7 @@ Values live outside `terraform/`, per deployment shape:
 | `iam` | certbot role + instance profile (Route53, scoped to the zone) | — | — |
 | `compute` | nginx + RKE2 EC2 instances; nginx gets the certbot profile at creation | security, iam | SG tags `Cluster` + `Role`; profile name |
 | `storage` | EBS volumes attached to nginx | compute | instance tags `Cluster` + `Role=nginx` |
-| `dns` | Route53 records → nginx (any number of zones, extra records) | compute | instance tags (or explicit IPs) |
+| `dns` | Route53 records → nginx (any number of zones, extra records). Other DNS providers: the Ansible `dns` role (`DNS_PROVIDER`) | compute | instance tags (or explicit IPs) |
 | `vm` | standalone EC2 groups, each with its own SG + IAM (`modules/aws/instance-group`) | base-infra VPC | VPC `Name` tag |
 
 Components discover each other through tags, never shared state, so each can

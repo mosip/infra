@@ -15,7 +15,7 @@
 # values.secret.yaml" into this DSF's declarative set: blocks, with every value
 # either derived from this profile's existing ${domain_name}/${mosipid_domain_name}
 # conventions or sourced from a required GitHub Environment secret/variable (see
-# docs/HELMSMAN_TESTRIGS_GUIDE.md).
+# docs/mosip/testrigs.md).
 #
 # Only esignet-mosipid gets real test-identity/onboarding values (INDIVIDUAL_ID,
 # OTP recipient, auth partner/policy ID, UIN/VID/etc.) — it's the only instance

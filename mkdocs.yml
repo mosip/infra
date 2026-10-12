@@ -1,0 +1,167 @@
+# MOSIP Infra documentation site.
+#   pip install -r docs/requirements.txt
+#   mkdocs serve          # http://127.0.0.1:8000
+#   mkdocs build --strict
+site_name: MOSIP Infra
+site_description: Deploy MOSIP infrastructure on AWS or on your own data-centre VMs
+site_url: https://mosip.github.io/infra/
+repo_url: https://github.com/mosip/infra
+repo_name: mosip/infra
+edit_uri: edit/develop/docs/
+docs_dir: docs
+copyright: MOSIP — Modular Open Source Identity Platform
+
+# Kept in the repo but not part of the site.
+exclude_docs: |
+  /DOCS_SITE_PLAN.md
+  *.drawio
+  /requirements.txt
+
+theme:
+  name: material
+  logo: _images/MOSIP_Black.svg
+  favicon: _images/MOSIP_Black.svg
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - navigation.indexes
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+    - content.action.edit
+  icon:
+    repo: fontawesome/brands/github
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - def_list
+  - tables
+  - toc:
+      permalink: true
+      # GitHub-compatible heading anchors, so in-page links work on GitHub and on the site
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+# Material picks up an already-loaded Mermaid; served from jsdelivr.
+extra_javascript:
+  - https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/mosip/infra
+
+plugins:
+  - search
+  - redirects:
+      # Old file locations keep working after the docs restructure.
+      redirect_maps:
+        SECRET_GENERATION_GUIDE.md: getting-started/secrets.md
+        DATACENTRE_DEPLOYMENT.md: getting-started/quickstart-datacentre.md
+        WORKFLOW_GUIDE.md: getting-started/github-actions.md
+        TERRAFORM_WORKFLOW_GUIDE.md: reference/workflow-inputs.md
+        DEPLOYMENT_SEQUENCE.md: overview/deployment-sequence.md
+        PROFILES.md: guides/profiles.md
+        TREE_STRUCTURE.md: reference/repository-layout.md
+        GLOSSARY.md: glossary/index.md
+        ENVIRONMENT_DESTRUCTION_GUIDE.md: guides/destroy.md
+        k8s-health-checker.md: guides/k8s-health-check.md
+        HELMSMAN_DESTROY_GUIDE.md: mosip/destroy-services.md
+        HELMSMAN_EXTERNAL_GUIDE.md: mosip/external-services.md
+        HELMSMAN_MOSIP_GUIDE.md: mosip/mosip-services.md
+        HELMSMAN_TESTRIGS_GUIDE.md: mosip/testrigs.md
+        esignet_README.md: mosip/esignet.md
+        ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md: mosip/esignet-standalone.md
+        DSF_CONFIGURATION_GUIDE.md: mosip/dsf-configuration.md
+        ONBOARDING_GUIDE.md: mosip/partner-onboarding.md
+        RECAPTCHA_SETUP_GUIDE.md: mosip/recaptcha.md
+        _images/ARCHITECTURE_DIAGRAMS.md: overview/architecture.md
+        getting-started/deploy-mosip.md: mosip/index.md
+
+nav:
+  - Home: index.md
+  - Overview:
+      - Introduction: overview/introduction.md
+      - Architecture: overview/architecture.md
+      - Concepts: overview/concepts.md
+      - Deployment sequence: overview/deployment-sequence.md
+      - Supported platforms: overview/supported-platforms.md
+  - Getting started:
+      - Prerequisites: getting-started/prerequisites.md
+      - Secrets & configuration: getting-started/secrets.md
+      - Using GitHub Actions: getting-started/github-actions.md
+      - "Quickstart: AWS": getting-started/quickstart-aws.md
+      - "Quickstart: data centre": getting-started/quickstart-datacentre.md
+  - How-to guides:
+      - Choose or add a profile: guides/profiles.md
+      - DNS providers: guides/dns-providers.md
+      - TLS certificates: guides/tls-certificates.md
+      - Add or remove nodes: guides/scaling-nodes.md
+      - Standalone VM: guides/standalone-vm.md
+      - Observability cluster & Rancher: guides/observability-rancher.md
+      - WireGuard access: guides/wireguard.md
+      - Kubernetes health check: guides/k8s-health-check.md
+      - Destroy an environment: guides/destroy.md
+  - Deploy MOSIP:
+      - Overview: mosip/index.md
+      - External services: mosip/external-services.md
+      - MOSIP services: mosip/mosip-services.md
+      - eSignet: mosip/esignet.md
+      - eSignet standalone: mosip/esignet-standalone.md
+      - Test rigs: mosip/testrigs.md
+      - DSF configuration: mosip/dsf-configuration.md
+      - Partner onboarding: mosip/partner-onboarding.md
+      - reCAPTCHA: mosip/recaptcha.md
+      - Remove MOSIP services: mosip/destroy-services.md
+  - Reference:
+      - Workflow inputs: reference/workflow-inputs.md
+      - Terraform components: reference/terraform-components.md
+      - Ansible roles: reference/ansible-roles.md
+      - profile.yml & hosts.yml: reference/schemas.md
+      - State & backends: reference/state-backends.md
+      - Repository layout: reference/repository-layout.md
+  - Troubleshooting:
+      - Error catalogue: troubleshooting/errors.md
+      - FAQ: troubleshooting/faq.md
+      - Known limitations: troubleshooting/known-limitations.md
+  - Glossary: glossary/index.md
+  - Release notes: release-notes/index.md

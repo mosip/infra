@@ -15,4 +15,8 @@ preflight_dns_check: auto
 # resolves at all.
 dns_expected_ip: "{{ nginx_public_ip | default('') }}"
 
+# How many times to re-check DNS (10 s apart) before giving up. More when the
+# dns play has just created the records and they need time to propagate.
+preflight_dns_retries: "{{ 30 if (dns_provider | default('none')) != 'none' else 0 }}"
+
 tls_mode: dns01
