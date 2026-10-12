@@ -1,0 +1,23 @@
+---
+# Dynamic DNS update (RFC 2136) — BIND, PowerDNS, Windows DNS and most
+# enterprise / government DNS servers. Names are passed absolute (trailing
+# dot) so they never get the zone appended twice.
+- name: RFC 2136 records ({{ dns_state }})
+  community.general.nsupdate:
+    server: "{{ dns_rfc2136_server }}"
+    port: "{{ dns_rfc2136_port }}"
+    zone: "{{ dns_zone }}"
+    record: "{{ item.fqdn }}."
+    type: "{{ item.type }}"
+    value: "{{ (item.value ~ '.') if item.type == 'CNAME' else item.value }}"
+    ttl: "{{ item.ttl }}"
+    state: "{{ dns_state }}"
+    key_name: "{{ dns_rfc2136_key_name if dns_rfc2136_key_name | length > 0 else omit }}"
+    key_secret: "{{ dns_rfc2136_key_secret if dns_rfc2136_key_name | length > 0 else omit }}"
+    key_algorithm: "{{ dns_rfc2136_key_algorithm if dns_rfc2136_key_name | length > 0 else omit }}"
+  loop: "{{ dns_records }}"
+  loop_control:
+    label: "{{ item.fqdn }} {{ item.type }}"
+  delegate_to: localhost
+  run_once: true
+  no_log: "{{ dns_no_log | bool }}"

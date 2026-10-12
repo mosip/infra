@@ -72,6 +72,7 @@ graph LR
     INV --> SITE
     subgraph SITE["ansible/site.yml"]
         direction TB
+        DNSR["dns (optional)<br/>godaddy · rfc2136 · cloudflare<br/>route53 · manual"] --> PF
         PF["preflight<br/>SSH · vars · disks · DNS check"] --> TLS["tls<br/>byo · http01 · dns01"]
         TLS --> NG[nginx]
         NG --> RK[rke2]
@@ -90,7 +91,7 @@ graph LR
     classDef done fill:none,stroke:#7b1fa2,stroke-width:2px
     class TF,DC src
     class PROF,GEN,INV gen
-    class PF,TLS,NG,RK,RI,NFS,PG,AMQ,RKC step
+    class DNSR,PF,TLS,NG,RK,RI,NFS,PG,AMQ,RKC step
     class K8S done
 ```
 
@@ -643,6 +644,7 @@ On your deployment branch, edit the files of the profile you'll use:
 - **(7)** **SSH_PRIVATE_KEY**: name of the secret holding the private key for `ssh_key_name`
 - **(8)** ✅ **TERRAFORM_APPLY** (required for `all`)
 - **(9)** **ENABLE_RANCHER_IMPORT**: tick to register the cluster in Rancher (needs `RANCHER_API_URL` / `RANCHER_API_TOKEN` secrets and an `observ` cluster)
+- **(10)** **DNS_PROVIDER**: `terraform-route53` (default, Route53 zone in `zone_id`), or `godaddy` / `cloudflare` / `rfc2136` / `manual` to create the records with Ansible — set the provider's secrets first (`GODADDY_API_KEY` + `GODADDY_API_SECRET`, `CLOUDFLARE_API_TOKEN`, or `DNS_RFC2136_SERVER` + TSIG key). See [DNS providers](docs/DEPLOYMENT_SEQUENCE.md#dns-providers).
 
 `all` runs the components in the legacy order, each with its own state, stopping at the first failure:
 

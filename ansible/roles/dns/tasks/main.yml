@@ -1,0 +1,39 @@
+---
+# Creates (or removes) the MOSIP DNS records through dns_provider. Every API
+# call runs once, from the Ansible controller — the nginx host is only the
+# play target so the inventory variables are in scope.
+
+- name: Validate DNS settings
+  ansible.builtin.assert:
+    that:
+      - dns_provider in ['none', 'route53', 'godaddy', 'rfc2136', 'cloudflare', 'manual']
+      - dns_state in ['present', 'absent']
+      - dns_provider != 'godaddy' or (dns_godaddy_key | length > 0 and dns_godaddy_secret | length > 0)
+      - dns_provider != 'rfc2136' or dns_rfc2136_server | length > 0
+      - dns_provider != 'cloudflare' or dns_cloudflare_api_token | length > 0
+    fail_msg: >-
+      Invalid DNS settings: dns_provider must be none|route53|godaddy|rfc2136|cloudflare|manual,
+      dns_state present|absent; godaddy needs dns_godaddy_key + dns_godaddy_secret,
+      rfc2136 needs dns_rfc2136_server, cloudflare needs dns_cloudflare_api_token.
+    quiet: true
+  run_once: true
+
+- name: Build the MOSIP record set
+  ansible.builtin.set_fact:
+    dns_records: >-
+      {{ cluster_env_domain | mosip_dns_records(
+           dns_public_ip, dns_private_ip,
+           subdomain_public | default([]), subdomain_internal | default([]),
+           dns_extra_records, dns_ttl, dns_zone) }}
+  run_once: true
+  when: dns_provider != 'none'
+
+- name: Records to {{ 'create' if dns_state == 'present' else 'remove' }} via {{ dns_provider }}
+  ansible.builtin.debug:
+    msg: "{{ dns_records | length }} records in zone {{ dns_zone }}: {{ dns_records | map(attribute='fqdn') | join(', ') }}"
+  run_once: true
+  when: dns_provider != 'none'
+
+- name: Apply records via {{ dns_provider }}
+  ansible.builtin.include_tasks: "{{ dns_provider }}.yml"
+  when: dns_provider != 'none'

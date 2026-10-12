@@ -109,6 +109,7 @@ terraform.yml (dispatch)                 terraform-destroy.yml (dispatch)
 | `SSH_PRIVATE_KEY` | secret name | key for `ssh_key_name` |
 | `TERRAFORM_APPLY` | bool | unchecked = plan only; required for `all` / `configure` |
 | `ENABLE_RANCHER_IMPORT` | bool | register in Rancher via API during configure |
+| `DNS_PROVIDER` | `terraform-route53` \| `godaddy` \| `cloudflare` \| `rfc2136` \| `manual` | who creates DNS records; non-Route53 skips the Terraform `iam` + `dns` steps and uses the Ansible `dns` role (secrets: `GODADDY_API_KEY`/`_SECRET`, `CLOUDFLARE_API_TOKEN`, `DNS_RFC2136_SERVER`/`_KEY_NAME`/`_KEY_SECRET`; optional variable `DNS_ZONE`) |
 | `RANCHER_CLUSTER_NAME`, `PUBLISH_KUBECONFIG`, `GRANT_GROUP_ACCESS`, `RANCHER_CLUSTER_OWNER_GROUP*` | | Rancher follow-ups, as before |
 
 - Each component job only calls cloud APIs; the `configure` job connects
@@ -127,7 +128,7 @@ graph TD
     B --> C[terraform output: compute + storage]
     C --> D[ansible/inventory/generate.py --from-terraform]
     D --> E[mint Rancher import cmd - if enabled]
-    E --> F["ansible/site.yml<br/>preflight → tls+nginx → rke2 → rancher import<br/>→ nfs → postgresql → activemq → rancher+keycloak<br/>(profile selects which)"]
+    E --> F["ansible/site.yml<br/>dns (if DNS_PROVIDER ≠ terraform-route53) → preflight<br/>→ tls+nginx → rke2 → rancher import<br/>→ nfs → postgresql → activemq → rancher+keycloak<br/>(profile selects which)"]
     F --> G[Rancher: fresh import, team grants, publish KUBECONFIG - if enabled]
 ```
 

@@ -26,7 +26,7 @@ The order is the legacy monolith's `depends_on` chain, kept on purpose:
 | 2 | iam | `COMPONENT=iam` (certbot Route53 profile) | not needed; DNS-01 credentials replace it | instance profile exists |
 | 3 | compute | `COMPONENT=compute` (nginx gets the profile at creation) | VMs handed over | hosts reachable over SSH |
 | 4 | storage | `COMPONENT=storage` (EBS) | disks already attached | data disks visible (`lsblk`) |
-| 5 | **dns** | `COMPONENT=dns` | DNS team, or `COMPONENT=dns` if the zone is Route53 | `api.<domain>` resolves to nginx |
+| 5 | **dns** | `COMPONENT=dns` (Route53), or the Ansible `dns` play for other providers | Ansible `dns` play (`dns_provider`), or the DNS team | `api.<domain>` resolves to nginx |
 | 6 | tls + nginx | configure | `site.yml` | certificate in `/etc/letsencrypt/live/<domain>/` |
 | 7 | rke2 | configure | `site.yml` | nodes `Ready` |
 | 8 | rancher import / rancher+keycloak | configure | `site.yml` | |
@@ -104,6 +104,32 @@ are enforced; SSH from `0.0.0.0/0` is rejected unless
 `Role=<group>`, so `extra_records` in the dns component can name them.
 `vm` is never part of `COMPONENT=all`; `terraform destroy` with
 `COMPONENT=all` does remove it.
+
+## DNS providers
+
+Who creates the records is one setting — `DNS_PROVIDER` in the workflow, or
+`dns_provider` in Ansible (profile `ansible_vars`, `hosts.yml`, or `-e`):
+
+| Provider | Records created by | Needs |
+|----------|--------------------|-------|
+| `terraform-route53` (workflow default) / `none` (Ansible default) | Terraform `dns` component on AWS, or your DNS team | Route53 zone (`zone_id`) |
+| `route53` | Ansible `dns` role (`amazon.aws.route53`) | AWS credentials + boto3 on the controller |
+| `godaddy` | Ansible `dns` role (GoDaddy REST API) | `GODADDY_API_KEY`, `GODADDY_API_SECRET` |
+| `rfc2136` | Ansible `dns` role (`nsupdate`) — BIND, PowerDNS, Windows DNS, most enterprise DNS | `DNS_RFC2136_SERVER` (+ TSIG `DNS_RFC2136_KEY_NAME` / `_KEY_SECRET`), dnspython |
+| `cloudflare` | Ansible `dns` role | `CLOUDFLARE_API_TOKEN` |
+| `manual` | your DNS team — the play prints the exact table | — |
+
+- The `dns` play runs first in `site.yml`, so the order stays DNS → nginx;
+  preflight then waits (up to ~5 min) for the records to resolve.
+- Same records as the Terraform module (api, api-internal, bare domain,
+  subdomains from `profile.yml`), plus `dns_extra_records`. Set `dns_zone`
+  when the zone apex differs from `cluster_env_domain`.
+- On AWS with a non-Route53 provider, `COMPONENT=all` skips the Route53-only
+  `iam` and `dns` components and nginx gets no certbot Route53 profile. With
+  the profile's default `tls_mode: dns01` the certificate is issued through
+  the same provider (CI writes the certbot credentials). For `manual`, set
+  `tls_mode` to `byo` or `http01` in the profile.
+- Remove records: `ansible-playbook -i inventory.yml ansible/playbooks/dns.yml -e dns_state=absent`.
 
 ## Data centre
 
