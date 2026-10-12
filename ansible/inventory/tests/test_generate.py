@@ -104,6 +104,9 @@ class TerraformMode(Fixture):
         self.assertEqual(v["nginx_type"], "mosip")
         self.assertEqual(v["configure_components"],
                          ["nginx", "rke2", "rancher_import", "nfs", "postgresql", "activemq"])
+        # the dns role builds its records from these
+        self.assertEqual(v["subdomain_public"][0], "resident")
+        self.assertIn("postgres", v["subdomain_internal"])
 
     def test_node_numbering_sorts_numerically(self):
         self.compute(cp=11, etcd=0, workers=0)

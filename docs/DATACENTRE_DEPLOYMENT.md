@@ -73,11 +73,27 @@ Every VM must have:
 
 All hosts need outbound 80/443 and DNS (53 tcp/udp).
 
-## 2. Create the DNS records first
+## 2. DNS records (before nginx)
 
-Same order as the legacy deployment: **DNS before nginx.** With your DNS
-team (or `COMPONENT=dns` if the domain is in Route53 — set `nginx_public_ip`
-in `profiles/<profile>/aws/dns.tfvars`):
+Same order as the legacy deployment: **DNS before nginx.** Two ways:
+
+**Automatic** — set `dns_provider` in `my-hosts.yml` and `site.yml` creates
+the records first, then waits for them to resolve:
+
+```yaml
+vars:
+  dns_provider: godaddy          # godaddy | rfc2136 | cloudflare | route53 | manual
+  dns_zone: mosip.gov.example    # zone apex, if cluster_env_domain is a sub-domain of it
+  dns_godaddy_key: "<key>"       # better: pass secrets with -e @secrets.yml (vault)
+  dns_godaddy_secret: "<secret>"
+  # rfc2136 (BIND / PowerDNS / Windows DNS): dns_rfc2136_server, dns_rfc2136_key_name, dns_rfc2136_key_secret
+  # cloudflare: dns_cloudflare_api_token
+```
+
+`rfc2136` needs `dnspython` and `route53` needs `boto3` on the machine you run
+Ansible from. `manual` prints the table below for your DNS team.
+
+**By hand** — leave `dns_provider` unset and have your DNS team create:
 
 | Record | Type | Points to |
 |--------|------|-----------|

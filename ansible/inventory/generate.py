@@ -221,6 +221,8 @@ def render(profile, nginx, nodes, all_vars, components):
     derived = {
         "nginx_type": profile["nginx_type"],
         "configure_components": components,
+        "subdomain_public": list(profile.get("subdomain_public") or []),
+        "subdomain_internal": list(profile.get("subdomain_internal") or []),
         "public_domain_list": ",".join(public_domains),
         "k8s_node_ips_joined": ",".join(all_node_ips),
         "k8s_primary_control_plane_ip": nodes["control_plane"][0],
