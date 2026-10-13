@@ -125,6 +125,8 @@ jobs:
   base-infra:
     needs: validate
     if: ${{ inputs.COMPONENT == 'base-infra' }}
+    permissions:
+      contents: write   # terraform-component.yml commits the encrypted state
     uses: ./.github/workflows/terraform-component.yml
     secrets: inherit
     with:
@@ -144,6 +146,8 @@ jobs:
   security:
     needs: validate
     if: ${{ inputs.COMPONENT == 'security' || inputs.COMPONENT == 'all' }}
+    permissions:
+      contents: write   # terraform-component.yml commits the encrypted state
     uses: ./.github/workflows/terraform-component.yml
     secrets: inherit
     with:
@@ -159,6 +163,8 @@ jobs:
   iam:
     needs: [validate, security]
     if: ${{ always() && needs.validate.result == 'success' && (inputs.COMPONENT == 'iam' || (inputs.COMPONENT == 'all' && inputs.DNS_PROVIDER == 'terraform-route53' && needs.security.result == 'success')) }}
+    permissions:
+      contents: write   # terraform-component.yml commits the encrypted state
     uses: ./.github/workflows/terraform-component.yml
     secrets: inherit
     with:
@@ -174,6 +180,8 @@ jobs:
   compute:
     needs: [validate, security, iam]
     if: ${{ always() && needs.validate.result == 'success' && (inputs.COMPONENT == 'compute' || (inputs.COMPONENT == 'all' && needs.security.result == 'success' && (needs.iam.result == 'success' || (inputs.DNS_PROVIDER != 'terraform-route53' && needs.iam.result == 'skipped')))) }}
+    permissions:
+      contents: write   # terraform-component.yml commits the encrypted state
     uses: ./.github/workflows/terraform-component.yml
     secrets: inherit
     with:
@@ -190,6 +198,8 @@ jobs:
   storage:
     needs: [validate, compute]
     if: ${{ always() && needs.validate.result == 'success' && (inputs.COMPONENT == 'storage' || (inputs.COMPONENT == 'all' && needs.compute.result == 'success')) }}
+    permissions:
+      contents: write   # terraform-component.yml commits the encrypted state
     uses: ./.github/workflows/terraform-component.yml
     secrets: inherit
     with:
@@ -205,6 +215,8 @@ jobs:
   dns:
     needs: [validate, storage]
     if: ${{ always() && needs.validate.result == 'success' && (inputs.COMPONENT == 'dns' || (inputs.COMPONENT == 'all' && inputs.DNS_PROVIDER == 'terraform-route53' && needs.storage.result == 'success')) }}
+    permissions:
+      contents: write   # terraform-component.yml commits the encrypted state
     uses: ./.github/workflows/terraform-component.yml
     secrets: inherit
     with:
@@ -220,6 +232,8 @@ jobs:
   vm:
     needs: validate
     if: ${{ inputs.COMPONENT == 'vm' }}
+    permissions:
+      contents: write   # terraform-component.yml commits the encrypted state
     uses: ./.github/workflows/terraform-component.yml
     secrets: inherit
     with:
