@@ -21,7 +21,7 @@ on:
       environments:
         description: |
           Environments to check (comma-separated). Leave BLANK to run ALL.
-          Valid values: 131ga, dev-int-inji, dev1, dev2, esdev, esqa1, qa11new, qainji, collab, released, synergy, qadraft
+          Valid values: 131ga, dev-int-inji, dev1, dev2, esdev, esqa1, qa11new, qainji, collab, released, synergy, qadraft, cellbox-21
         required: false
         default: ''         # blank = ALL (same behaviour as the cron trigger)
       notify_slack:
@@ -67,6 +67,7 @@ jobs:
             {"env":"collab",  "channel":"#cluster_health",  "vm_host":"postgres.collab.mosip.net",  "postgres_mode":"vm"},
             {"env":"released",  "channel":"#cluster_health",  "vm_host":"postgres.released.mosip.net",  "postgres_mode":"vm"},
             {"env":"qadraft",  "channel":"#cluster_health",  "vm_host":"postgres.qadraft.mosip.net",  "postgres_mode":"incluster"},
+            {"env":"cellbox-21",  "channel":"#cluster_health",  "vm_host":"postgres.cellbox21.mosip.net",  "postgres_mode":"incluster"},
             {"env":"synergy",  "channel":"#cluster_health",  "vm_host":"postgres.synergy.mosip.net",  "postgres_mode":"vm"}
           ]'
 
