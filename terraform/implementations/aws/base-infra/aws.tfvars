@@ -6,13 +6,13 @@
 cloud_provider = "aws"
 
 # Environment name
-jumpserver_name = "<jumpserver_name>"
+jumpserver_name = "decouple-273-jump"
 
 # Email-ID for SSL certificate notifications
-mosip_email_id = "<mosip_email_id>"
+mosip_email_id = "thisisbn46@gmail.com"
 
 # SSH key name for AWS instances
-ssh_key_name = "<ssh_key_name>"
+ssh_key_name = "mosip-aws"
 
 # AWS region
 aws_provider_region = "ap-south-1"
@@ -27,14 +27,14 @@ jumpserver_ami_id = "ami-0ad21ae1d0696ad58"
 create_jumpserver_eip = false
 
 # Network configuration
-network_name       = "mosip-boxes"
-network_cidr       = "10.0.0.0/16"
-public_subnets     = ["10.0.1.0/24", "10.0.2.0/24"]
-private_subnets    = ["10.0.3.0/24", "10.0.4.0/24"]
+network_name       = "decouple-273-vpc"
+network_cidr       = "10.73.0.0/16"
+public_subnets     = ["10.73.1.0/24", "10.73.2.0/24"]
+private_subnets    = ["10.73.3.0/24", "10.73.4.0/24"]
 availability_zones = ["ap-south-1a", "ap-south-1b"]
 
 # Environment and project tags
-environment  = "dev"
+environment  = "decouple-273-test"
 project_name = "mosip"
 
 # Network options
