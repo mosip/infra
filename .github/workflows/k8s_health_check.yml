@@ -21,7 +21,7 @@ on:
       environments:
         description: |
           Environments to check (comma-separated). Leave BLANK to run ALL.
-          Valid values: qa-java21, esperf, dev-int-inji, dev, dev11, dev2, esdev, esqa2, qa11new, qainji, collab, released, synergy
+          Valid values: 131ga, dev-int-inji, dev1, dev2, esdev, esqa1, qa11new, qainji, collab, released, synergy, qadraft
         required: false
         default: ''         # blank = ALL (same behaviour as the cron trigger)
       notify_slack:
@@ -56,18 +56,17 @@ jobs:
           #   postgres_mode  → "vm"        : postgres on vm_host, checked via SSH df
           #                    "incluster" : postgres in k8s, checked via kubectl exec
           ALL_ENVS='[
-            {"env":"qa-java21",  "channel":"#cluster_health",  "vm_host":"postgres.qajava21.mosip.net",  "postgres_mode":"vm"},
-            {"env":"esperf",  "channel":"#cluster_health",  "vm_host":"postgres.esperf.mosip.net",  "postgres_mode":"incluster"},
+            {"env":"131ga",  "channel":"#cluster_health",  "vm_host":"postgres.131ga.mosip.net",  "postgres_mode":"incluster"},
             {"env":"dev-int-inji",  "channel":"#cluster_health",  "vm_host":"postgres.dev-int-inji.mosip.net",  "postgres_mode":"incluster"},
-            {"env":"dev", "channel":"#cluster_health", "vm_host":"postgres.dev.mosip.net", "postgres_mode":"vm"},
-            {"env":"dev11", "channel":"#cluster_health", "vm_host":"postgres.dev11.mosip.net", "postgres_mode":"vm"},
+            {"env":"dev1", "channel":"#cluster_health", "vm_host":"postgres.dev1.mosip.net", "postgres_mode":"incluster"},
             {"env":"dev2",  "channel":"#cluster_health",  "vm_host":"postgres.dev2.mosip.net",  "postgres_mode":"vm"},
             {"env":"esdev",  "channel":"#cluster_health",  "vm_host":"postgres.esdev.mosip.net",  "postgres_mode":"incluster"},
-            {"env":"esqa2",  "channel":"#cluster_health",  "vm_host":"postgres.esqa2.mosip.net",  "postgres_mode":"incluster"},
+            {"env":"esqa1",  "channel":"#cluster_health",  "vm_host":"postgres.esqa1.mosip.net",  "postgres_mode":"incluster"},
             {"env":"qa11new",  "channel":"#cluster_health",  "vm_host":"postgres.qa11new.mosip.net",  "postgres_mode":"vm"},
             {"env":"qainji",  "channel":"#cluster_health",  "vm_host":"postgres.qainji.mosip.net",  "postgres_mode":"incluster"},
             {"env":"collab",  "channel":"#cluster_health",  "vm_host":"postgres.collab.mosip.net",  "postgres_mode":"vm"},
             {"env":"released",  "channel":"#cluster_health",  "vm_host":"postgres.released.mosip.net",  "postgres_mode":"vm"},
+            {"env":"qadraft",  "channel":"#cluster_health",  "vm_host":"postgres.qadraft.mosip.net",  "postgres_mode":"incluster"},
             {"env":"synergy",  "channel":"#cluster_health",  "vm_host":"postgres.synergy.mosip.net",  "postgres_mode":"vm"}
           ]'
 
