@@ -62,6 +62,7 @@ class Fixture(unittest.TestCase):
     def storage(self, pg=True, amq=True):
         with open(os.path.join(self.tf_dir, "storage.json"), "w") as fh:
             json.dump({
+                "nfs_volume_id": {"value": "vol-0aaa111"},
                 "postgresql_volume_id": {"value": "vol-pg" if pg else None},
                 "activemq_volume_id": {"value": "vol-amq" if amq else None},
             }, fh)
@@ -122,6 +123,23 @@ class TerraformMode(Fixture):
         comps = inv["all"]["vars"]["configure_components"]
         self.assertNotIn("postgresql", comps)
         self.assertIn("activemq", comps)
+
+    def test_storage_volumes_addressed_by_volume_id(self):
+        # attach order decides /dev/nvmeNn1, so each role gets its own volume's by-id link
+        self.compute()
+        self.storage(pg=True, amq=False)
+        _, inv = self.from_terraform()
+        v = inv["all"]["vars"]
+        prefix = "/dev/disk/by-id/nvme-Amazon_Elastic_Block_Store_"
+        self.assertEqual(v["nfs_storage_device"], prefix + "vol0aaa111")
+        self.assertEqual(v["storage_device"], prefix + "volpg")
+        self.assertNotIn("activemq_storage_device", v)
+
+    def test_set_overrides_storage_device(self):
+        self.compute()
+        self.storage()
+        _, inv = self.from_terraform("--set", "nfs_storage_device=/dev/xvdf")
+        self.assertEqual(inv["all"]["vars"]["nfs_storage_device"], "/dev/xvdf")
 
     def test_observ_single_node_shape(self):
         self.compute(cp=1, etcd=0, workers=0)
