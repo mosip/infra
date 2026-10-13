@@ -43,6 +43,7 @@
       }}
 
 - name: Write nginx config values to /etc/environment
+  become: true
   ansible.builtin.lineinfile:
     path: "{{ env_var_file }}"
     line: "export {{ item.key }}={{ item.value }}"
@@ -67,6 +68,7 @@
     nginx_internal_ip_value: "{{ nginx_internal_ip | default(ansible_default_ipv4.address) }}"
 
 - name: Record cluster_nginx_internal_ip / cluster_nginx_public_ip (mosip only)
+  become: true
   ansible.builtin.lineinfile:
     path: "{{ env_var_file }}"
     line: "export {{ item.key }}={{ item.value }}"
@@ -81,6 +83,7 @@
   when: nginx_type == "mosip"
 
 - name: Record observation_nginx_ip (observability only)
+  become: true
   ansible.builtin.lineinfile:
     path: "{{ env_var_file }}"
     line: "export observation_nginx_ip={{ nginx_internal_ip_value }}"
