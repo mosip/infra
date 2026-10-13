@@ -28,10 +28,12 @@
   ignore_errors: yes
 
 - name: Install Helm if not present
+  vars:
+    helm_arch: "{{ 'arm64' if ansible_architecture in ['aarch64', 'arm64'] else 'amd64' }}"
   block:
     - name: Download Helm
       get_url:
-        url: https://get.helm.sh/helm-v3.15.4-linux-amd64.tar.gz
+        url: "https://get.helm.sh/helm-v3.15.4-linux-{{ helm_arch }}.tar.gz"
         dest: /tmp/helm.tar.gz
         mode: '0644'
 
@@ -43,7 +45,7 @@
 
     - name: Move Helm binary
       copy:
-        src: /tmp/linux-amd64/helm
+        src: "/tmp/linux-{{ helm_arch }}/helm"
         dest: /usr/local/bin/helm
         mode: '0755'
         remote_src: yes
@@ -54,7 +56,7 @@
         state: absent
       loop:
         - /tmp/helm.tar.gz
-        - /tmp/linux-amd64
+        - "/tmp/linux-{{ helm_arch }}"
   when: helm_check.rc != 0
 
 - name: Get Helm version

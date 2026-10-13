@@ -91,6 +91,13 @@
 - name: Set up and run install-nfs-csi.sh on the primary control-plane node
   delegate_to: "{{ groups['control_plane'][0] }}"
   block:
+    - name: Install tools install-nfs-csi.sh needs on the primary control-plane node
+      become: true
+      ansible.builtin.apt:
+        name: [git, wget]
+        state: present
+        update_cache: true
+
     - name: Clone k8s-infra repository on the primary control-plane node
       ansible.builtin.git:
         repo: "{{ k8s_infra_repo_url }}"
@@ -114,13 +121,22 @@
         set -e
         which wget >/dev/null 2>&1 || { echo 'wget tool not found; EXITING'; exit 1; }
         if ! [[ -f ./helm ]]; then
-          wget https://get.helm.sh/{{ helm_version }}
-          tar -xzvf {{ helm_version }} linux-amd64/helm
-          mv linux-amd64/helm helm
-          rm -rf linux-amd64 {{ helm_version }}
+          case "$(uname -m)" in
+            x86_64) arch=amd64 ;;
+            aarch64|arm64) arch=arm64 ;;
+            *) echo "unsupported architecture $(uname -m)"; exit 1 ;;
+          esac
+          tarball=helm-{{ helm_release }}-linux-${arch}.tar.gz
+          wget -q https://get.helm.sh/${tarball}
+          tar -xzf ${tarball} linux-${arch}/helm
+          mv linux-${arch}/helm helm
+          rm -rf linux-${arch} ${tarball}
         fi
         export PATH="$(pwd):$PATH"
         export KUBECONFIG="{{ cluster_name }}-CONTROL-PLANE-NODE-1.yaml"
+        # NFS server = the nginx host (the host this play runs on), as in the legacy nfs-setup module.
+        export NFS_SERVER="{{ nfs_server | default(nginx_internal_ip | default(ansible_default_ipv4.address)) }}"
+        export NFS_SERVER_LOCATION="{{ nfs_server_location }}"
         bash install-nfs-csi.sh {{ cluster_name }}-CONTROL-PLANE-NODE-1.yaml
       args:
         executable: /bin/bash
