@@ -271,7 +271,7 @@ jobs:
       PROFILE_DIR: ${{ github.workspace }}/profiles/${{ inputs.PROFILE }}
       RANCHER_URL: ${{ secrets.RANCHER_API_URL }}
       RANCHER_TOKEN: ${{ secrets.RANCHER_API_TOKEN }}
-      RANCHER_CLUSTER_NAME: ${{ inputs.RANCHER_CLUSTER_NAME || github.ref_name }}
+      RANCHER_CLUSTER_NAME_REQUESTED: ${{ inputs.RANCHER_CLUSTER_NAME || github.ref_name }}
       REF_NAME: ${{ github.ref_name }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -282,6 +282,23 @@ jobs:
 
       - name: Ensure workflow scripts are executable
         run: chmod +x .github/scripts/*.sh
+
+      # Rancher cluster names must be lowercase RFC 1123 labels; the default
+      # (the branch name, e.g. GH-issue-273-v2) often isn't. Normalise once so
+      # register / kubeconfig / access-grant all use the same name.
+      - name: Rancher cluster name
+        run: |
+          set -euo pipefail
+          name="$(printf '%s' "$RANCHER_CLUSTER_NAME_REQUESTED" | tr '[:upper:]' '[:lower:]' \
+            | sed -E 's/[^a-z0-9-]+/-/g; s/-+/-/g; s/^-+//' | cut -c1-63 | sed -E 's/-+$//')"
+          if [ -z "$name" ]; then
+            echo "ERROR: cannot derive a Rancher cluster name from '$RANCHER_CLUSTER_NAME_REQUESTED'; set RANCHER_CLUSTER_NAME"
+            exit 1
+          fi
+          if [ "$name" != "$RANCHER_CLUSTER_NAME_REQUESTED" ]; then
+            echo "::notice::Rancher cluster name '$RANCHER_CLUSTER_NAME_REQUESTED' -> '$name' (lowercase RFC 1123)"
+          fi
+          echo "RANCHER_CLUSTER_NAME=$name" >> "$GITHUB_ENV"
 
       - name: Install WireGuard
         run: |
