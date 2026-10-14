@@ -23,7 +23,7 @@ Add the following secrets:
 | Secret Name | Description | Example |
 |-------------|-------------|---------|
 | `KEYCLOAK_ADMIN_PASSWORD` | Keycloak admin password | `your-secure-password` |
-| `RANCHER_TOKEN` | Rancher API token | `token-xxxxx:xxxxxxxxxxxxxxxx` |
+| `RANCHER_API_TOKEN` | Rancher API token — the same secret the terraform workflow uses for Rancher import (`RANCHER_TOKEN` is still accepted) | `token-xxxxx:xxxxxxxxxxxxxxxx` |
 | `TF_WG_CONFIG` | WireGuard VPN configuration | (see below) |
 
 ### Step 2: Run the Workflow
@@ -174,7 +174,7 @@ PersistentKeepalive = 25
 
 **Solution**:
 1. Verify `KEYCLOAK_ADMIN_PASSWORD` secret is correct
-2. Verify `RANCHER_TOKEN` secret is valid and not expired
+2. Verify `RANCHER_API_TOKEN` secret is valid and not expired
 3. Check Keycloak and Rancher hosts are accessible via VPN
 4. Review the **Rancher Diagnostics** output (runs automatically on failure)
 
@@ -184,7 +184,7 @@ PersistentKeepalive = 25
 
 **Solution**:
 1. Regenerate Rancher API token
-2. Update `RANCHER_TOKEN` secret with new token
+2. Update `RANCHER_API_TOKEN` secret with new token
 3. Verify token format: `token-xxxxx:xxxxxxxxxxxxxxxx`
 
 ### Keycloak Client Already Exists
