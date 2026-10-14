@@ -26,3 +26,11 @@
 # data-centre nginx whose domain is in Route53:
 # nginx_public_ip  = "203.0.113.10"
 # nginx_private_ip = "10.10.0.10"
+
+# ── #437 AWS test only — revert before GH-issue-273-v2 merges to develop ──
+# profile.yml's subdomain_internal plus grafana (an override replaces the
+# profile list, so all entries are repeated).
+subdomain_internal = [
+  "admin", "iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp",
+  "minio", "regclient", "compliance", "grafana",
+]
