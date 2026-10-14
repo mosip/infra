@@ -16,18 +16,18 @@ variable "nginx_tag_name" {
 }
 
 variable "nginx_node_ebs_volume_size" {
-  description = "Size (GB) of the first EBS volume (/dev/sdb) — used for /srv/nfs, always created"
+  description = "Size (GB) of the first EBS volume (/dev/sdf) — used for /srv/nfs, always created"
   type        = number
 }
 
 variable "nginx_node_ebs_volume_size_2" {
-  description = "Size (GB) of the second EBS volume (/dev/sdc) — used for PostgreSQL, 0 disables"
+  description = "Size (GB) of the second EBS volume (/dev/sdg) — used for PostgreSQL, 0 disables"
   type        = number
   default     = 0
 }
 
 variable "nginx_node_ebs_volume_size_3" {
-  description = "Size (GB) of the third EBS volume (/dev/sdd) — used for ActiveMQ, 0 disables"
+  description = "Size (GB) of the third EBS volume (/dev/sdh) — used for ActiveMQ, 0 disables"
   type        = number
   default     = 0
 }
