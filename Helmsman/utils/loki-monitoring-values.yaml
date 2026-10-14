@@ -22,8 +22,8 @@ alertmanager:
     global:
       resolve_timeout: 5m
       smtp_smarthost: 'smtp.gmail.com:587'
-      smtp_from: 'mohanraj1715@gmail.com'                 # ← your Gmail address
-      smtp_auth_username: 'mohanraj1715@gmail.com'        # ← your Gmail address
+      smtp_from: '${mail_id}'                 # ← your Gmail address
+      smtp_auth_username: '${mail_id}'        # ← your Gmail address
       smtp_auth_password_file: /etc/alertmanager/secrets/alertmanager-smtp/password
       smtp_require_tls: true
     route:
@@ -43,7 +43,7 @@ alertmanager:
       - name: 'null'
       - name: 'email-critical'
         email_configs:
-          - to: 'mohanraj1715@gmail.com'                  # ← test recipient (your Gmail)
+          - to: '${mail_id}'                  # ← test recipient (your Gmail)
             send_resolved: true
             headers:
               subject: '[{{ .CommonLabels.cluster }}] [{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
@@ -57,7 +57,7 @@ alertmanager:
               {{ end }}
       - name: 'email-warning'
         email_configs:
-          - to: 'mohanraj1715@gmail.com'                  # ← test recipient (your Gmail)
+          - to: '${mail_id}'                  # ← test recipient (your Gmail)
             send_resolved: true
             headers:
               subject: '[{{ .CommonLabels.cluster }}] [{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'

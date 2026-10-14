@@ -50,7 +50,7 @@ datasources:
           derivedFields: []
       - name: Prometheus
         type: prometheus
-        url: http://monitoring-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090
+        url: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
         access: proxy
         isDefault: false 
         version: 1
@@ -105,7 +105,7 @@ sidecar:
 grafana.ini:
   server:
     protocol: http
-    domain: "grafana.sandbox.mosip.net"
+    domain: "grafana.${domain_name}"
     root_url: "https://%(domain)s/"
   security:
     allow_embedding: true

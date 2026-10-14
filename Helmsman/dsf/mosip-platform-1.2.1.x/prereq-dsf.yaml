@@ -16,10 +16,10 @@ namespaces:
   kube-system:
     protected: true
   monitoring:
-    protected: true  
+    protected: true
+  # As part of a move to a standalone observability stack, we're replacing rancher-monitoring with the upstream kube-prometheus-stack (Prometheus, Alertmanager, node-exporter) and rancher-logging with Loki. Metrics, logs, and alerting are unaffected in coverage — what changes is the backend, where data surfaces (a single standalone Grafana for both metrics and logs), and the alerting destination (email via Alertmanager). The stack is now independent of Rancher.
   # cattle-monitoring-system:
   #  protected: true
-  # As part of a move to a standalone monitoring stack, we're replacing rancher-logging with Loki. Cluster logging and log collection are unaffected — only the backend and where logs surface are changing.
   # cattle-logging-system:
   #   protected: true
   istio-system:
@@ -32,19 +32,6 @@ namespaces:
     protected: true
 
 apps:
-  kube-prometheus-stack-crd:
-    namespace: monitoring
-    enabled: true
-    version: 88.6.2
-    chart: prometheus-community/kube-prometheus-stack
-    wait: true
-    timeout: 300
-    priority: -7
-    hooks:
-      preInstall: "$WORKDIR/hooks/apply-prometheus-crds.sh"
-      postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh ${domain_name} ${env_name}"
-      postUpgrade: "$WORKDIR/hooks/install-istio-and-httpbin.sh ${domain_name} ${env_name}"
-
   kube-prometheus-stack:
     namespace: monitoring
     enabled: true
@@ -55,7 +42,9 @@ apps:
     timeout: 900
     priority: -6
     hooks:
-      preInstall: "$WORKDIR/hooks/create-smtp-secret.sh ${SMTP_PASSWORD}"    
+      preInstall: "$WORKDIR/hooks/monitoring-preinstall.sh ${SMTP_PASSWORD}"
+      postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh ${domain_name} ${env_name}"
+      postUpgrade: "$WORKDIR/hooks/install-istio-and-httpbin.sh ${domain_name} ${env_name}"
     
   # rancher-monitoring-crd:
   #   namespace: cattle-monitoring-system
