@@ -162,7 +162,15 @@ apply_import_on_host() {
     remote_kubectl delete namespace cattle-system --ignore-not-found --wait=true || true
   fi
 
-  ssh_cmd "bash -lc $(printf '%q' "$import_cmd")"
+  # Same KUBECONFIG as remote_kubectl: the node may have no default
+  # kubeconfig, and a bare kubectl then talks to localhost:8080. Check the
+  # result explicitly — this function runs under `|| die`, where set -e is off.
+  remote_cmd="$import_cmd"
+  [[ -n "$KUBECONFIG_REMOTE" ]] && remote_cmd="KUBECONFIG=$KUBECONFIG_REMOTE $remote_cmd"
+  if ! ssh_cmd "bash -lc $(printf '%q' "$remote_cmd")"; then
+    err "kubectl apply of the Rancher import manifest failed on ${SSH_HOST}"
+    return 1
+  fi
   log "Rancher import manifest applied"
 
   for ((attempt = 1; attempt <= MAX_AGENT_WAIT; attempt++)); do
