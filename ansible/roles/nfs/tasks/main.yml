@@ -137,8 +137,21 @@
         # NFS server = the nginx host (the host this play runs on), as in the legacy nfs-setup module.
         export NFS_SERVER="{{ nfs_server | default(nginx_internal_ip | default(ansible_default_ipv4.address)) }}"
         export NFS_SERVER_LOCATION="{{ nfs_server_location }}"
+        # install-nfs-csi.sh uses `helm install`, which fails on a rerun with
+        # "cannot re-use a name that is still in use". Skip it when the driver
+        # and its StorageClass are already there; clear a failed release first.
+        if helm list -n nfs --deployed -q | grep -qx csi-driver-nfs \
+           && kubectl get storageclass nfs-csi >/dev/null 2>&1; then
+          echo "NFS_CSI_ALREADY_INSTALLED"
+          exit 0
+        fi
+        if helm list -n nfs --failed --pending -q | grep -qx csi-driver-nfs; then
+          helm uninstall csi-driver-nfs -n nfs
+        fi
         bash install-nfs-csi.sh {{ cluster_name }}-CONTROL-PLANE-NODE-1.yaml
       args:
         executable: /bin/bash
         chdir: /home/ubuntu/k8s-infra/storage-class/nfs
       become_user: ubuntu
+      register: nfs_csi_install
+      changed_when: "'NFS_CSI_ALREADY_INSTALLED' not in nfs_csi_install.stdout"
