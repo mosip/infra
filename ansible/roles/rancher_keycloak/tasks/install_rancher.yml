@@ -69,8 +69,10 @@
   debug:
     msg: "{{ helm_version.stdout }}"
 
+# --deployed: a release left "failed" by an earlier run must be retried, not
+# skipped (plain `helm list` shows failed releases too).
 - name: Check if ingress-nginx is already installed
-  shell: helm list -n ingress-nginx | grep -q ingress-nginx
+  shell: helm list -n ingress-nginx --deployed -q | grep -qx ingress-nginx
   environment:
     KUBECONFIG: "{{ kubeconfig_path }}"
   register: ingress_check
@@ -91,7 +93,7 @@
 
     - name: Install ingress-nginx chart
       shell: |
-        helm install ingress-nginx ingress-nginx/ingress-nginx \
+        helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
           --namespace ingress-nginx \
           --version 4.10.0 \
           --create-namespace \
@@ -102,6 +104,16 @@
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
   when: ingress_check.rc != 0
+
+# Rancher's Ingress is validated by the ingress-nginx admission webhook, which
+# has no endpoints until the controller pod is ready — installing Rancher
+# straight after ingress-nginx fails with "no endpoints available for service
+# ingress-nginx-controller-admission".
+- name: Wait for the ingress-nginx controller to be ready
+  command: "{{ kubectl_path }} -n ingress-nginx rollout status deployment/ingress-nginx-controller --timeout=300s"
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  changed_when: false
 
 - name: Add Rancher Helm repository
   command: helm repo add rancher-latest https://releases.rancher.com/server-charts/latest
@@ -115,7 +127,7 @@
     KUBECONFIG: "{{ kubeconfig_path }}"
 
 - name: Check if Rancher is already installed
-  shell: helm list -n cattle-system | grep -q rancher
+  shell: helm list -n cattle-system --deployed -q | grep -qx rancher
   environment:
     KUBECONFIG: "{{ kubeconfig_path }}"
   register: rancher_check
@@ -125,7 +137,7 @@
   block:
     - name: Install Rancher Helm chart
       shell: |
-        helm install rancher rancher-latest/rancher \
+        helm upgrade --install rancher rancher-latest/rancher \
           --namespace cattle-system \
           --version={{ rancher_helm_version }} \
           --create-namespace \
