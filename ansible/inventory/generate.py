@@ -192,6 +192,32 @@ def gate_components_on_storage(components, storage):
     return gated
 
 
+# storage output -> role variable holding that disk's device path
+STORAGE_DEVICE_VARS = (
+    ("nfs_volume_id", "nfs_storage_device"),
+    ("postgresql_volume_id", "storage_device"),
+    ("activemq_volume_id", "activemq_storage_device"),
+)
+
+
+def storage_device_vars(storage):
+    """Device path for each EBS data volume, by volume ID.
+
+    The storage component attaches volumes after launch, and on Nitro
+    instances /dev/nvmeNn1 numbering follows attach order — so the role
+    defaults (/dev/nvme1n1, ...) could point at the wrong disk. The by-id
+    link is stable: vol-0abc... -> nvme-Amazon_Elastic_Block_Store_vol0abc...
+    """
+    if storage is None:
+        return {}
+    out = {}
+    for output, var in STORAGE_DEVICE_VARS:
+        vol = _output(storage, output, required=False)
+        if vol:
+            out[var] = "/dev/disk/by-id/nvme-Amazon_Elastic_Block_Store_" + vol.replace("-", "")
+    return out
+
+
 def validate(nginx, nodes, all_vars):
     missing = [v for v in REQUIRED_VARS if not all_vars.get(v)]
     if missing:
@@ -275,6 +301,7 @@ def build(args):
                 if tf_key in TFVARS_TO_ANSIBLE:
                     all_vars[TFVARS_TO_ANSIBLE[tf_key]] = value
         components = gate_components_on_storage(components, storage)
+        all_vars.update(storage_device_vars(storage))
     else:
         nginx, nodes, file_vars = hosts_from_file(args.from_hosts)
         all_vars.update(file_vars)
