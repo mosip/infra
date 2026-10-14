@@ -27,3 +27,16 @@ variable "WIREGUARD_CIDR" {
   description = "CIDR block for WireGuard VPN server(s)"
   type        = string
 }
+
+variable "extra_ingress_rules" {
+  description = "Extra ingress rules per security group (nginx, control_plane, etcd, worker) — see profiles/<profile>/aws/security.tfvars"
+  type = map(list(object({
+    description      = string
+    from_port        = number
+    to_port          = number
+    protocol         = string
+    cidr_blocks      = optional(list(string), [])
+    ipv6_cidr_blocks = optional(list(string), [])
+  })))
+  default = {}
+}
