@@ -314,6 +314,38 @@ module "aws-resource-creation" {
         ipv6_cidr_blocks = ["::/0"]
       },
       {
+        description : "node-exporter metrics"
+        from_port : 9100,
+        to_port : 9100,
+        protocol : "TCP",
+        cidr_blocks      = [var.network_cidr],
+        ipv6_cidr_blocks = ["::/0"]
+      },
+      {
+        description : "kube-controller-manager metrics"
+        from_port : 10257,
+        to_port : 10257,
+        protocol : "TCP",
+        cidr_blocks      = [var.network_cidr],
+        ipv6_cidr_blocks = ["::/0"]
+      },
+      {
+        description : "kube-scheduler metrics"
+        from_port : 10259,
+        to_port : 10259,
+        protocol : "TCP",
+        cidr_blocks      = [var.network_cidr],
+        ipv6_cidr_blocks = ["::/0"]
+      },
+      {
+        description : "kube-proxy metrics"
+        from_port : 10249,
+        to_port : 10249,
+        protocol : "TCP",
+        cidr_blocks      = [var.network_cidr],
+        ipv6_cidr_blocks = ["::/0"]
+      },
+      {
         description : "PostgreSQL port (open access)"
         from_port : 5433,
         to_port : 5433,
@@ -396,6 +428,22 @@ module "aws-resource-creation" {
         ipv6_cidr_blocks = ["::/0"]
       },
       {
+        description : "node-exporter metrics"
+        from_port : 9100,
+        to_port : 9100,
+        protocol : "TCP",
+        cidr_blocks      = [var.network_cidr],
+        ipv6_cidr_blocks = ["::/0"]
+      },
+      {
+        description : "kube-proxy metrics"
+        from_port : 10249,
+        to_port : 10249,
+        protocol : "TCP",
+        cidr_blocks      = [var.network_cidr],
+        ipv6_cidr_blocks = ["::/0"]
+      },
+      {
         description : "PostgreSQL port (open access)"
         from_port : 5433,
         to_port : 5433,
@@ -449,6 +497,22 @@ module "aws-resource-creation" {
         description : "Canal CNI health checks (open access)"
         from_port : 9099,
         to_port : 9099,
+        protocol : "TCP",
+        cidr_blocks      = [var.network_cidr],
+        ipv6_cidr_blocks = ["::/0"]
+      },
+      {
+        description : "node-exporter metrics"
+        from_port : 9100,
+        to_port : 9100,
+        protocol : "TCP",
+        cidr_blocks      = [var.network_cidr],
+        ipv6_cidr_blocks = ["::/0"]
+      },
+      {
+        description : "kube-proxy metrics"
+        from_port : 10249,
+        to_port : 10249,
         protocol : "TCP",
         cidr_blocks      = [var.network_cidr],
         ipv6_cidr_blocks = ["::/0"]
