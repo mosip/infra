@@ -107,12 +107,35 @@
     msg: "install.sh not found in {{ nginx_config.nginx_location }}"
   when: not install_sh.stat.exists
 
+# install.sh reads its inputs from the environment (it prompts only when one
+# is unset). Pass the nginx IP explicitly rather than relying on sudo loading
+# /etc/environment. The observation script puts the certificate paths into
+# sed "s/.../$path/g" unescaped (it escapes them only when prompting), so
+# escape "/" here — as the legacy nginx-setup.sh did.
+- name: Build install.sh environment
+  ansible.builtin.set_fact:
+    nginx_install_env: >-
+      {{
+        nginx_config | combine(
+          {
+            "cluster_nginx_internal_ip": nginx_internal_ip_value,
+            "cluster_nginx_public_ip": nginx_internal_ip_value,
+          }
+          if nginx_type == "mosip" else
+          {
+            "observation_nginx_ip": nginx_internal_ip_value,
+            "observation_nginx_certs": nginx_config.observation_nginx_certs | replace("/", "\/"),
+            "observation_nginx_cert_key": nginx_config.observation_nginx_cert_key | replace("/", "\/"),
+          }
+        )
+      }}
+
 - name: Run k8s-infra nginx install.sh
   become: true
   ansible.builtin.command:
     cmd: "./install.sh"
     chdir: "{{ working_dir }}/{{ nginx_config.nginx_location }}"
-  environment: "{{ dict(nginx_config.items() | list) }}"
+  environment: "{{ nginx_install_env }}"
 
 - name: Verify nginx configuration
   become: true
