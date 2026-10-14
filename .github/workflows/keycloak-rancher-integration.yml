@@ -57,6 +57,23 @@ jobs:
     environment: ${{ github.ref_name }}
     
     steps:
+      # Same secret as the terraform workflow's Rancher import
+      # (RANCHER_API_TOKEN); RANCHER_TOKEN is still accepted for existing
+      # environments.
+      - name: Check required secrets
+        env:
+          KEYCLOAK_ADMIN_PASSWORD: ${{ secrets.KEYCLOAK_ADMIN_PASSWORD }}
+          RANCHER_API_TOKEN: ${{ secrets.RANCHER_API_TOKEN || secrets.RANCHER_TOKEN }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          missing=()
+          [ -n "$KEYCLOAK_ADMIN_PASSWORD" ] || missing+=(KEYCLOAK_ADMIN_PASSWORD)
+          [ -n "$RANCHER_API_TOKEN" ] || missing+=(RANCHER_API_TOKEN)
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "ERROR: missing secret(s) for environment '$REF_NAME' (or repository): ${missing[*]}"
+            exit 1
+          fi
+
       - name: Checkout repository
         uses: actions/checkout@v4
       
@@ -176,7 +193,7 @@ jobs:
 
           # Rancher Configuration
           RANCHER_HOST: ${{ inputs.rancher_host }}
-          RANCHER_TOKEN: ${{ secrets.RANCHER_TOKEN }}
+          RANCHER_TOKEN: ${{ secrets.RANCHER_API_TOKEN || secrets.RANCHER_TOKEN }}
 
           # SSL Configuration (using defaults)
           SSL_CERT_SUBJECT: ${{ inputs.ssl_cert_subject }}
@@ -202,6 +219,6 @@ jobs:
         if: failure()
         env:
           RANCHER_HOST: ${{ inputs.rancher_host }}
-          RANCHER_TOKEN: ${{ secrets.RANCHER_TOKEN }}
+          RANCHER_TOKEN: ${{ secrets.RANCHER_API_TOKEN || secrets.RANCHER_TOKEN }}
         run: |
           python3 Rancher-keycloak-integration/rancher_diagnostic.py
