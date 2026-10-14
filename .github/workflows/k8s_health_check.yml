@@ -467,7 +467,7 @@ jobs:
           if [ "$PG_MODE" = "vm" ]; then
             check_vm_disk "/srv/postgres" "Postgres Data"
           elif [ "$PG_MODE" = "incluster" ]; then
-            check_incluster_disk "app.kubernetes.io/name=postgresql" "mosip" \
+            check_incluster_disk "app.kubernetes.io/name=postgresql" "postgres" \
               "/bitnami/postgresql" "Postgres Data"
           else
             echo "| Postgres Data | - | - | - | - | ⚠️ postgres_mode not set for $ENV |" >> $GITHUB_STEP_SUMMARY
