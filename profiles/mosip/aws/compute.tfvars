@@ -3,6 +3,17 @@
 
 specific_availability_zones = []
 
+# Instance types. Changing one is an in-place update (instance stopped,
+# resized, started — same instance, private IP and disk); run COMPONENT=compute.
+#   k8s_instance_type   — EVERY cluster node, all in the same run (whole
+#                         cluster down for a few minutes). One node at a time:
+#                         k8s_node_instance_type under "Optional settings".
+#   nginx_instance_type — the nginx node. While it's stopped, ingress, NFS,
+#                         PostgreSQL and ActiveMQ storage are down. Its PUBLIC
+#                         IP CHANGES (no Elastic IP): run COMPONENT=dns right
+#                         after, so api.<domain> and the public subdomains
+#                         point to the new IP.
+#   Keep the AMI's CPU architecture (x86: t3a / m6a / m7a).
 k8s_instance_type   = "m6a.2xlarge" # #437 test: resize all nodes (revert before develop)
 nginx_instance_type = "t3a.2xlarge"
 
@@ -41,7 +52,7 @@ attach_certbot_profile = true
 #   compute run (it then also undoes a stop/start made with the workflow):
 # k8s_instance_state   = "stopped"                         # every cluster node
 # k8s_node_state       = { "WORKER-NODE-1" = "stopped" }   # named nodes; overrides the line above
-# nginx_instance_state = "stopped"                         # nginx node (public IP, NFS, PostgreSQL)
+# nginx_instance_state = "stopped"                         # nginx node — new public IP on start: run COMPONENT=dns
 #   Values: "running" | "stopped". Node names: CONTROL-PLANE-NODE-n,
 #   ETCD-NODE-n, WORKER-NODE-n.
 # Back to default: set the value to "running" and apply (starts the node),
