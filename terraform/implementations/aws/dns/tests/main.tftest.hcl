@@ -2,6 +2,10 @@
 
 mock_provider "aws" {}
 
+mock_provider "aws" {
+  alias = "dns"
+}
+
 variables {
   cluster_name        = "dev1"
   aws_provider_region = "ap-south-1"
@@ -76,4 +80,32 @@ run "without_ip_the_nginx_instance_is_looked_up" {
     condition     = local.nginx_public_ip == "203.0.113.20" && local.nginx_private_ip == "10.0.0.20"
     error_message = "tag lookup must supply both addresses"
   }
+}
+
+# ── hosted zone in another AWS account (dns_role_arn) ───────────────────────
+
+run "cross_account_role_plans_the_same_records" {
+  command = plan
+
+  variables {
+    profile_manifest = "../../../../profiles/observ/profile.yml"
+    nginx_public_ip  = "203.0.113.10"
+    dns_role_arn     = "arn:aws:iam::123456789012:role/mosip-dns-team-a"
+  }
+
+  assert {
+    condition     = length(module.dns.zone_ids) == 1 && local.subdomain_internal == tolist(["rancher", "iam"])
+    error_message = "With dns_role_arn the same zone and records must be planned (through the aws.dns provider)"
+  }
+}
+
+run "cross_account_rejects_bad_role_arn" {
+  command = plan
+
+  variables {
+    nginx_public_ip = "203.0.113.10"
+    dns_role_arn    = "role/mosip-dns"
+  }
+
+  expect_failures = [var.dns_role_arn]
 }

@@ -29,6 +29,9 @@ dns01_plugin_package: "{{ 'python3-certbot-dns-' ~ dns01_provider if dns01_plugi
 # component) grants access. For route53 outside AWS, point this at an AWS
 # shared-credentials file and it's installed as /root/.aws/credentials.
 dns01_credentials_file: ""
+# route53 only: role in another AWS account that owns the hosted zone (from
+# dns_role_arn in common.tfvars). Empty = zone in this account.
+dns01_route53_role_arn: ""
 dns01_propagation_seconds: 60
 
 # ---- byo ----

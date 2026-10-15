@@ -109,6 +109,20 @@ class TerraformMode(Fixture):
         self.assertEqual(v["subdomain_public"][0], "resident")
         self.assertIn("postgres", v["subdomain_internal"])
 
+    def test_dns_role_arn_reaches_the_tls_role(self):
+        # hosted zone in another AWS account: certbot assumes this role
+        self.compute()
+        with open(self.tfvars, "a") as fh:
+            fh.write('dns_role_arn = "arn:aws:iam::123456789012:role/mosip-dns-team-a"\n')
+        _, inv = self.from_terraform()
+        self.assertEqual(inv["all"]["vars"]["dns01_route53_role_arn"],
+                         "arn:aws:iam::123456789012:role/mosip-dns-team-a")
+
+    def test_no_dns_role_arn_by_default(self):
+        self.compute()
+        _, inv = self.from_terraform()
+        self.assertNotIn("dns01_route53_role_arn", inv["all"]["vars"])
+
     def test_node_numbering_sorts_numerically(self):
         self.compute(cp=11, etcd=0, workers=0)
         _, inv = self.from_terraform()

@@ -13,6 +13,23 @@ provider "aws" {
   region = var.aws_provider_region
 }
 
+# Records go through this provider. With dns_role_arn the hosted zone lives in
+# another AWS account: the run assumes that account's role (temporary STS
+# credentials). Without it, it's the same account as above.
+provider "aws" {
+  alias  = "dns"
+  region = var.aws_provider_region
+
+  dynamic "assume_role" {
+    for_each = var.dns_role_arn == null ? [] : [var.dns_role_arn]
+    content {
+      role_arn     = assume_role.value
+      session_name = "mosip-dns-${var.cluster_name}"
+      external_id  = var.dns_role_external_id
+    }
+  }
+}
+
 # Record targets: explicit IPs when given (e.g. a data-centre nginx whose
 # domain lives in Route53), otherwise the nginx instance from the compute
 # component, found by tag.
@@ -50,6 +67,10 @@ locals {
 
 module "dns" {
   source = "../../../modules/aws/dns"
+
+  providers = {
+    aws = aws.dns
+  }
 
   cluster_env_domain = var.cluster_env_domain
   nginx_public_ip    = local.nginx_public_ip

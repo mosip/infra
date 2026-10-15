@@ -81,3 +81,20 @@ variable "nginx_private_ip" {
   type        = string
   default     = null
 }
+
+# Hosted zone in another AWS account (see profiles/<profile>/aws/common.tfvars).
+variable "dns_role_arn" {
+  description = "Role in the AWS account that owns the hosted zone; records are written by assuming it. null = zone in this account"
+  type        = string
+  default     = null
+  validation {
+    condition     = var.dns_role_arn == null || can(regex("^arn:aws[a-z-]*:iam::[0-9]{12}:role/[A-Za-z0-9+=,.@_/-]+$", coalesce(var.dns_role_arn, "x")))
+    error_message = "dns_role_arn must be an IAM role ARN: arn:aws:iam::<12-digit account>:role/<name>."
+  }
+}
+
+variable "dns_role_external_id" {
+  description = "Optional sts:ExternalId required by the DNS account's role trust policy"
+  type        = string
+  default     = null
+}

@@ -56,6 +56,44 @@
     mode: "0600"
   when: dns01_provider != 'route53'
 
+# Hosted zone in another AWS account (dns_role_arn in common.tfvars): the
+# route53 plugin (boto3) assumes that account's role, with the nginx instance
+# profile as the source credentials. Renewals use the same file.
+- name: Assume the DNS account's role for route53
+  become: true
+  when:
+    - dns01_provider == 'route53'
+    - dns01_route53_role_arn | default('') | length > 0
+  block:
+    - name: Validate the DNS account role
+      ansible.builtin.assert:
+        that:
+          - dns01_route53_role_arn is regex('^arn:aws[a-z-]*:iam::[0-9]{12}:role/[A-Za-z0-9+=,.@_/-]+$')
+          - dns01_credentials_file | length == 0
+        fail_msg: >-
+          dns01_route53_role_arn must be an IAM role ARN
+          (arn:aws:iam::<12-digit account>:role/<name>) and is used with the
+          nginx instance profile, so dns01_credentials_file must be empty.
+        quiet: true
+
+    - name: Create /root/.aws
+      ansible.builtin.file:
+        path: /root/.aws
+        state: directory
+        mode: "0700"
+
+    - name: Write /root/.aws/config (assume the DNS account role)
+      ansible.builtin.copy:
+        dest: /root/.aws/config
+        mode: "0600"
+        content: |
+          # Managed by Ansible (tls role): certbot's route53 plugin assumes the
+          # role of the AWS account that owns the hosted zone.
+          [default]
+          role_arn = {{ dns01_route53_role_arn }}
+          credential_source = Ec2InstanceMetadata
+          role_session_name = certbot-{{ cluster_name }}
+
 - name: Build certbot DNS-01 arguments
   ansible.builtin.set_fact:
     tls_dns01_args: >-
