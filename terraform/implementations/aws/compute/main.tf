@@ -141,4 +141,6 @@ module "compute" {
   k8s_instance_state   = var.k8s_instance_state
   k8s_node_state       = var.k8s_node_state
   nginx_instance_state = var.nginx_instance_state
+
+  k8s_node_instance_type = var.k8s_node_instance_type
 }

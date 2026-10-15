@@ -3,6 +3,17 @@
 
 specific_availability_zones = []
 
+# Instance types. Changing one is an in-place update (instance stopped,
+# resized, started — same instance, private IP and disk); run COMPONENT=compute.
+#   k8s_instance_type   — EVERY cluster node, all in the same run (whole
+#                         cluster down for a few minutes). One node at a time:
+#                         k8s_node_instance_type under "Optional settings".
+#   nginx_instance_type — the nginx node. While it's stopped, ingress, NFS,
+#                         PostgreSQL and ActiveMQ storage are down. Its PUBLIC
+#                         IP CHANGES (no Elastic IP): run COMPONENT=dns right
+#                         after, so api.<domain> and the public subdomains
+#                         point to the new IP.
+#   Keep the AMI's CPU architecture (x86: t3a / m6a / m7a).
 k8s_instance_type   = "m6a.2xlarge" # #437 test: resize all nodes (revert before develop)
 nginx_instance_type = "t3a.2xlarge"
 
@@ -28,13 +39,36 @@ k8s_worker_node_count        = 5
 # a non-route53 provider).
 attach_certbot_profile = true
 
-# Power state (optional). Unset = Terraform starts instances when it creates
-# them and leaves running/stopped alone afterwards (use the "instances
-# start / stop" workflow). When set, every compute run enforces it.
-# k8s_instance_state   = "stopped"                         # all cluster nodes
-# k8s_node_state       = { "WORKER-NODE-5" = "stopped" }   # per node, overrides
-# nginx_instance_state = "running"
+# ═══ Optional settings ═══════════════════════════════════════════════════
+# Everything below is commented out = default behaviour. Uncomment only the
+# line(s) of the feature you need, then run terraform plan / apply with
+# COMPONENT=compute (plan first). "Back to default" says how to undo each one.
 
-# ── #437 AWS test only — revert before GH-issue-273-v2 merges to develop ──
-# Terraform power-state test: WORKER-NODE-5 stopped (#463), now back to running.
-k8s_node_state = { "WORKER-NODE-5" = "running" }
+# ── 1. Power state — keep nodes stopped or running (Terraform-managed) ───────
+# Default (commented out): Terraform starts each instance when it creates it,
+#   then leaves running/stopped alone. Stop/start ad hoc with the
+#   "instances start / stop" workflow (by private IP).
+# Uncomment when the state should be recorded in git and enforced on every
+#   compute run (it then also undoes a stop/start made with the workflow):
+# k8s_instance_state   = "stopped"                         # every cluster node
+# k8s_node_state       = { "WORKER-NODE-1" = "stopped" }   # named nodes; overrides the line above
+# nginx_instance_state = "stopped"                         # nginx node — new public IP on start: run COMPONENT=dns
+#   Values: "running" | "stopped". Node names: CONTROL-PLANE-NODE-n,
+#   ETCD-NODE-n, WORKER-NODE-n.
+# Back to default: set the value to "running" and apply (starts the node),
+#   then comment the line out. The plan then shows "1 to destroy" for
+#   aws_ec2_instance_state — that only stops managing the state; the instance
+#   keeps running. Commenting out while "stopped" leaves the node stopped.
+
+# ── 2. Instance type per node — rolling resize (rarely needed) ───────────────
+# Default (commented out): every cluster node uses k8s_instance_type above.
+#   Changing k8s_instance_type resizes ALL cluster nodes in the same run
+#   (whole cluster down for a few minutes).
+# Uncomment to give named nodes another type, one node per compute run:
+# k8s_node_instance_type = { "WORKER-NODE-1" = "m6a.2xlarge" }
+#   Each listed node is stopped, resized and started — same instance, private
+#   IP and disk; RKE2 rejoins on boot, no configure needed. Drain the node
+#   first; change control-plane nodes one at a time. Keep the AMI's CPU
+#   architecture (x86: t3a / m6a / m7a; ARM types need an ARM AMI).
+# Back to default: comment the line out — the next compute run resizes the
+#   node back to k8s_instance_type.

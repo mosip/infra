@@ -29,6 +29,9 @@ instance_groups = {}
 # rejected unless allow_ssh_from_anywhere = true, group names can't reuse the
 # cluster roles (nginx, control-plane, etcd, worker).
 #
-# Power state per group (optional): state = "running" | "stopped". Unset =
-# not managed after creation (use the "instances start / stop" workflow).
+# Power state per group (optional) — add state = "running" | "stopped" to a
+# group, then run COMPONENT=vm:
 #   bastion = { instance_type = "t3a.small", state = "stopped" }
+# Default (no state): started at creation, then left alone — stop/start with
+#   the "instances start / stop" workflow. With state set, every vm run
+#   enforces it. Back to default: set "running" and apply, then remove state.
