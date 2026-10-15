@@ -28,3 +28,17 @@ variable "attach_certbot_profile" {
   type        = bool
   default     = true
 }
+
+# Desired power state — see profiles/<profile>/aws/compute.tfvars
+variable "k8s_instance_state" {
+  type    = string
+  default = null
+}
+variable "k8s_node_state" {
+  type    = map(string)
+  default = {}
+}
+variable "nginx_instance_state" {
+  type    = string
+  default = null
+}

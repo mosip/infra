@@ -59,6 +59,7 @@ variable "groups" {
     iam_managed_policy_arns = optional(list(string), [])
     iam_policy_json         = optional(string)
     tags                    = optional(map(string), {})
+    state                   = optional(string) # running | stopped; unset = not managed after creation
   }))
   default = {}
 
@@ -83,6 +84,11 @@ variable "groups" {
   validation {
     condition     = alltrue([for g in values(var.groups) : g.iam_policy_json == null || can(jsondecode(g.iam_policy_json))])
     error_message = "iam_policy_json must be valid JSON."
+  }
+
+  validation {
+    condition     = alltrue([for g in values(var.groups) : g.state == null || contains(["running", "stopped"], coalesce(g.state, "running"))])
+    error_message = "state must be \"running\", \"stopped\" or unset."
   }
 
   validation {
