@@ -13,3 +13,9 @@ variable "certbot_zone_ids" {
   type        = list(string)
   default     = null
 }
+
+variable "dns_role_arn" {
+  description = "Role in the AWS account that owns the hosted zone (common.tfvars). When set, certbot assumes it. null = zone in this account"
+  type        = string
+  default     = null
+}

@@ -39,3 +39,11 @@ vpc_name = "decouple-273-vpc"
 # Security group CIDRs
 network_cidr   = "10.73.0.0/16" # Use your actual VPC CIDR
 WIREGUARD_CIDR = "10.73.0.0/16" # Use your actual WireGuard VPN CIDR
+
+# Hosted zone in ANOTHER AWS account (optional). Use when this account has no
+# Route53 zone for the domain and another account owns it (e.g. mosip.net).
+# That account creates one role limited to the zone that trusts this account
+# (see .github/workflows/README.md, "Domain in another AWS account"); zone_id
+# above is the zone's ID in that account. DNS records (COMPONENT=dns) and the
+# Let's Encrypt DNS-01 challenge then go through the role. Unset = zone here.
+# dns_role_arn = "arn:aws:iam::<DNS-ACCOUNT-ID>:role/mosip-dns-<team>"

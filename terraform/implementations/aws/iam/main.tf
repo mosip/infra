@@ -20,4 +20,5 @@ module "iam" {
 
   cluster_name     = var.cluster_name
   route53_zone_ids = coalesce(var.certbot_zone_ids, [var.zone_id])
+  route53_role_arn = var.dns_role_arn
 }

@@ -111,3 +111,39 @@ run "instance_profile_matches_legacy_name_and_role" {
     error_message = "instance profile must be built on the certbot role"
   }
 }
+
+# ── hosted zone in another AWS account (route53_role_arn) ───────────────────
+
+run "cross_account_policy_only_assumes_the_dns_role" {
+  command = plan
+
+  variables {
+    route53_role_arn = "arn:aws:iam::123456789012:role/mosip-dns-team-a"
+  }
+
+  assert {
+    condition = (
+      length(jsondecode(aws_iam_policy.certbot_policy.policy).Statement) == 1 &&
+      jsondecode(aws_iam_policy.certbot_policy.policy).Statement[0].Action == ["sts:AssumeRole"] &&
+      jsondecode(aws_iam_policy.certbot_policy.policy).Statement[0].Resource == ["arn:aws:iam::123456789012:role/mosip-dns-team-a"]
+    )
+    error_message = "With route53_role_arn the certbot policy must only allow sts:AssumeRole on that role"
+  }
+  assert {
+    condition = (
+      aws_iam_policy.certbot_policy.name == "testcluster-certbot-route53-policy" &&
+      aws_iam_policy.certbot_policy.description == "Allow Certbot to modify Route 53 records"
+    )
+    error_message = "Name and description must not change (a description change would replace the policy)"
+  }
+}
+
+run "cross_account_rejects_bad_role_arn" {
+  command = plan
+
+  variables {
+    route53_role_arn = "arn:aws:iam::12345:user/someone"
+  }
+
+  expect_failures = [var.route53_role_arn]
+}

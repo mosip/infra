@@ -53,6 +53,8 @@ TFVARS_TO_ANSIBLE = {
     "cluster_name": "cluster_name",
     "cluster_env_domain": "cluster_env_domain",
     "mosip_email_id": "certbot_email",
+    # hosted zone in another AWS account: certbot assumes this role (tls role)
+    "dns_role_arn": "dns01_route53_role_arn",
 }
 
 REQUIRED_VARS = ["cluster_name", "cluster_env_domain", "k8s_infra_repo_url", "k8s_infra_branch"]

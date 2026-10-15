@@ -36,9 +36,12 @@ resource "aws_iam_policy" "certbot_policy" {
     Cluster = var.cluster_name
   }
   description = "Allow Certbot to modify Route 53 records"
-  # Record changes only in the zones certbot needs for the DNS-01 challenge.
-  # ListHostedZones / GetChange can't be scoped to a zone, so they stay on *.
-  policy = jsonencode({
+  # Same account: record changes only in the zones certbot needs for the
+  # DNS-01 challenge. ListHostedZones / GetChange can't be scoped to a zone,
+  # so they stay on *.
+  # Zone in another account (route53_role_arn): certbot only assumes that
+  # account's role, which carries the zone-scoped Route53 rights.
+  policy = var.route53_role_arn == null ? jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
@@ -52,6 +55,16 @@ resource "aws_iam_policy" "certbot_policy" {
         Effect   = "Allow"
         Action   = ["route53:ListHostedZones", "route53:GetChange"]
         Resource = "*"
+      },
+    ]
+    }) : jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "AssumeDnsAccountRole"
+        Effect   = "Allow"
+        Action   = ["sts:AssumeRole"]
+        Resource = [var.route53_role_arn]
       },
     ]
   })

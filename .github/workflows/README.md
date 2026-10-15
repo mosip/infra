@@ -180,6 +180,67 @@ Stop and start EC2 instances by **private IP** — cluster nodes, standalone VMs
   `ec2:StartInstances`, `ec2:StopInstances` (the last two can be limited with
   an `aws:ResourceTag/...` condition).
 
+### Domain in another AWS account (`dns_role_arn`)
+
+For a team whose AWS account has no hosted zone for the domain, while another
+account owns it (e.g. `mosip.net`). Everything else is created in the team's
+account; DNS records and the certificate's DNS-01 challenge go through **one
+role in the DNS account**. No keys from the DNS account are shared: AWS STS
+hands out temporary (1 h) credentials for the role, the DNS account can
+revoke access by changing the role, and CloudTrail logs every call on both sides.
+
+**1. DNS account (once, by its admins)** — create role `mosip-dns-<team>`:
+
+Trust policy (who may use the role):
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Principal": { "AWS": [
+      "arn:aws:iam::<TEAM-ACCOUNT-ID>:user/<ci-user>",
+      "arn:aws:iam::<TEAM-ACCOUNT-ID>:role/<cluster_name>-certbot-route53-role"
+    ] },
+    "Action": "sts:AssumeRole"
+  }]
+}
+```
+The certbot role is created by the `iam` component; if it doesn't exist yet,
+use `"arn:aws:iam::<TEAM-ACCOUNT-ID>:root"` with a `Condition`
+`"ArnLike": {"aws:PrincipalArn": [...the two ARNs...]}` instead.
+
+Permissions (only the domain's zone):
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    { "Effect": "Allow",
+      "Action": ["route53:ChangeResourceRecordSets", "route53:ListResourceRecordSets", "route53:GetHostedZone"],
+      "Resource": "arn:aws:route53:::hostedzone/<ZONE_ID>" },
+    { "Effect": "Allow", "Action": "route53:GetChange", "Resource": "arn:aws:route53:::change/*" },
+    { "Effect": "Allow", "Action": ["route53:ListHostedZones", "route53:ListHostedZonesByName"], "Resource": "*" }
+  ]
+}
+```
+
+**2. Team account** — allow the CI user (the `AWS_ACCESS_KEY_ID` secret) to
+assume it: `{"Effect": "Allow", "Action": "sts:AssumeRole", "Resource": "<role ARN>"}`.
+The certbot role gets this automatically from the `iam` component.
+
+**3. Profile** — in `profiles/<profile>/aws/common.tfvars` set
+`dns_role_arn = "<role ARN>"` and `zone_id` = the zone's ID in the DNS account
+(optional `dns_role_external_id` in `dns.tfvars` if the trust policy requires an ExternalId).
+Then run `iam`, `dns` and `configure` (or `all`) as usual. Unset `dns_role_arn`
+= zone in the team's own account (default).
+
+What changes when it's set: the `dns` component writes records through the
+role (the nginx lookup stays in the team account); the certbot policy only
+allows `sts:AssumeRole` on the role; on nginx, `/root/.aws/config` (0600) makes
+certbot's route53 plugin assume the role from the instance profile, also for
+renewals. A wrong or untrusted role fails early with `Cannot assume IAM Role`.
+Only for `DNS_PROVIDER=terraform-route53` on AWS (the Ansible `dns` role's
+`route53` provider stays same-account).
+
 ## Security & Access Control
 
 ### Required GitHub Secrets
