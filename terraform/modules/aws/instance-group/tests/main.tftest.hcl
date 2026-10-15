@@ -195,3 +195,46 @@ run "unknown_source_group_rejected" {
 
   expect_failures = [aws_vpc_security_group_ingress_rule.from_group]
 }
+
+run "state_unset_means_unmanaged" {
+  command = plan
+
+  assert {
+    condition     = length(aws_ec2_instance_state.vm) == 0
+    error_message = "Groups without state must not get a desired-state resource"
+  }
+}
+
+run "state_per_group" {
+  command = plan
+
+  variables {
+    groups = {
+      bastion    = { instance_type = "t3a.small", state = "stopped" }
+      reports-db = { count = 2, instance_type = "t3a.large", state = "running" }
+      tools      = { instance_type = "t3a.small" }
+    }
+  }
+
+  assert {
+    condition = (
+      length(aws_ec2_instance_state.vm) == 3 &&
+      aws_ec2_instance_state.vm["bastion-1"].state == "stopped" &&
+      aws_ec2_instance_state.vm["reports-db-2"].state == "running" &&
+      !contains(keys(aws_ec2_instance_state.vm), "tools-1")
+    )
+    error_message = "state must apply to exactly the instances of groups that set it"
+  }
+}
+
+run "state_rejects_bad_value" {
+  command = plan
+
+  variables {
+    groups = {
+      bastion = { instance_type = "t3a.small", state = "hibernated" }
+    }
+  }
+
+  expect_failures = [var.groups]
+}

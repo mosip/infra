@@ -62,3 +62,42 @@ variable "nginx_iam_instance_profile" {
   type        = string
   default     = null
 }
+
+# ── power state ──────────────────────────────────────────────────────────────
+# "running" is enforced when an instance is created. After that the state is
+# not managed by Terraform unless set here — then every compute run enforces
+# it (and undoes a stop/start made with the instance-power workflow).
+
+variable "k8s_instance_state" {
+  description = "Desired state of every cluster node: running | stopped. null (default) = not managed after creation"
+  type        = string
+  default     = null
+  validation {
+    condition     = var.k8s_instance_state == null || contains(["running", "stopped"], coalesce(var.k8s_instance_state, "running"))
+    error_message = "k8s_instance_state must be running, stopped or null."
+  }
+}
+
+variable "k8s_node_state" {
+  description = "Desired state per cluster node name (e.g. { \"WORKER-NODE-5\" = \"stopped\" }); overrides k8s_instance_state"
+  type        = map(string)
+  default     = {}
+  validation {
+    condition     = alltrue([for s in values(var.k8s_node_state) : contains(["running", "stopped"], s)])
+    error_message = "k8s_node_state values must be running or stopped."
+  }
+  validation {
+    condition     = alltrue([for n in keys(var.k8s_node_state) : can(regex("^(CONTROL-PLANE|ETCD|WORKER)-NODE-[1-9][0-9]*$", n))])
+    error_message = "k8s_node_state keys must be node names like CONTROL-PLANE-NODE-1, ETCD-NODE-1, WORKER-NODE-5."
+  }
+}
+
+variable "nginx_instance_state" {
+  description = "Desired state of the nginx node: running | stopped. null (default) = not managed after creation"
+  type        = string
+  default     = null
+  validation {
+    condition     = var.nginx_instance_state == null || contains(["running", "stopped"], coalesce(var.nginx_instance_state, "running"))
+    error_message = "nginx_instance_state must be running, stopped or null."
+  }
+}
