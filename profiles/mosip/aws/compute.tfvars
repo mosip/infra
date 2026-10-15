@@ -3,7 +3,7 @@
 
 specific_availability_zones = []
 
-k8s_instance_type   = "t3a.2xlarge"
+k8s_instance_type   = "m6a.2xlarge" # #437 test: resize all nodes (revert before develop)
 nginx_instance_type = "t3a.2xlarge"
 
 nginx_node_root_volume_size   = 24
