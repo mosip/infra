@@ -34,3 +34,7 @@ attach_certbot_profile = true
 # k8s_instance_state   = "stopped"                         # all cluster nodes
 # k8s_node_state       = { "WORKER-NODE-5" = "stopped" }   # per node, overrides
 # nginx_instance_state = "running"
+
+# ── #437 AWS test only — revert before GH-issue-273-v2 merges to develop ──
+# Terraform power-state test: stop only WORKER-NODE-5.
+k8s_node_state = { "WORKER-NODE-5" = "stopped" }
