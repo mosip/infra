@@ -18,3 +18,10 @@ k8s_worker_node_count        = 2
 # Set false when profile.yml uses another TLS mode (byo, http01, dns01 with
 # a non-route53 provider).
 attach_certbot_profile = true
+
+# Power state (optional). Unset = Terraform starts instances when it creates
+# them and leaves running/stopped alone afterwards (use the "instances
+# start / stop" workflow). When set, every compute run enforces it.
+# k8s_instance_state   = "stopped"                         # all cluster nodes
+# k8s_node_state       = { "WORKER-NODE-5" = "stopped" }   # per node, overrides
+# nginx_instance_state = "running"

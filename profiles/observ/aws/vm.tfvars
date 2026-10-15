@@ -28,3 +28,7 @@ instance_groups = {}
 # Guardrails: IMDSv2 required, encrypted root volumes, SSH from 0.0.0.0/0
 # rejected unless allow_ssh_from_anywhere = true, group names can't reuse the
 # cluster roles (nginx, control-plane, etcd, worker).
+#
+# Power state per group (optional): state = "running" | "stopped". Unset =
+# not managed after creation (use the "instances start / stop" workflow).
+#   bastion = { instance_type = "t3a.small", state = "stopped" }

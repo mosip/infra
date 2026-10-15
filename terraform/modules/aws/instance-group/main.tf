@@ -177,3 +177,16 @@ resource "aws_instance" "vm" {
     }
   }
 }
+
+# Optional desired power state per group (vm.tfvars: state = "running" |
+# "stopped"). Unset = not managed after creation (instance-power workflow).
+resource "aws_ec2_instance_state" "vm" {
+  for_each    = { for k, inst in local.instances : k => inst if inst.state != null }
+  instance_id = aws_instance.vm[each.key].id
+  state       = each.value.state
+
+  timeouts {
+    create = "10m"
+    update = "10m"
+  }
+}

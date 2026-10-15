@@ -71,6 +71,12 @@ resource "aws_ec2_instance_state" "nginx_ready" {
     create = "10m"
     update = "10m"
   }
+
+  # "running" only at creation; afterwards see k8s_instance_state /
+  # nginx_instance_state below (or the instance-power workflow).
+  lifecycle {
+    ignore_changes = [state]
+  }
 }
 
 # ── k8s cluster instances ────────────────────────────────────────────────────
@@ -138,6 +144,59 @@ resource "aws_ec2_instance_state" "k8s_ready" {
   for_each    = aws_instance.k8s_cluster
   instance_id = each.value.id
   state       = "running"
+
+  timeouts {
+    create = "10m"
+    update = "10m"
+  }
+
+  # "running" only at creation; afterwards see k8s_instance_state /
+  # nginx_instance_state below (or the instance-power workflow).
+  lifecycle {
+    ignore_changes = [state]
+  }
+}
+
+# ── desired power state (compute.tfvars) ─────────────────────────────────────
+locals {
+  k8s_desired_state = {
+    for name, inst in aws_instance.k8s_cluster :
+    name => lookup(var.k8s_node_state, name, var.k8s_instance_state)
+    if lookup(var.k8s_node_state, name, var.k8s_instance_state) != null
+  }
+}
+
+# Fail the plan when k8s_node_state names a node that isn't in the current
+# node counts (it would otherwise be silently ignored).
+resource "terraform_data" "power_state_check" {
+  lifecycle {
+    precondition {
+      condition     = alltrue([for n in keys(var.k8s_node_state) : contains(keys(aws_instance.k8s_cluster), n)])
+      error_message = "k8s_node_state names a node that doesn't exist with the current node counts."
+    }
+  }
+}
+
+resource "aws_ec2_instance_state" "k8s_desired" {
+  for_each    = local.k8s_desired_state
+  instance_id = aws_instance.k8s_cluster[each.key].id
+  state       = each.value
+
+  # A new node first reaches "running" (k8s_ready), then the desired state.
+  depends_on = [aws_ec2_instance_state.k8s_ready]
+
+  timeouts {
+    create = "10m"
+    update = "10m"
+  }
+}
+
+resource "aws_ec2_instance_state" "nginx_desired" {
+  count       = var.nginx_instance_state == null ? 0 : 1
+  instance_id = aws_instance.nginx.id
+  state       = var.nginx_instance_state
+
+  depends_on = [aws_ec2_instance_state.nginx_ready]
 
   timeouts {
     create = "10m"
