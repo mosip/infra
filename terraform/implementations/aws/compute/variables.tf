@@ -42,3 +42,9 @@ variable "nginx_instance_state" {
   type    = string
   default = null
 }
+
+# Per-node instance type override — see profiles/<profile>/aws/compute.tfvars
+variable "k8s_node_instance_type" {
+  type    = map(string)
+  default = {}
+}

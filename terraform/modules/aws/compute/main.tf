@@ -90,8 +90,9 @@ resource "aws_instance" "k8s_cluster" {
     { for idx in range(var.k8s_worker_node_count) : "WORKER-NODE-${idx + 1}" => { index = idx, role = "worker" } }
   )
 
-  ami                         = var.ami
-  instance_type               = var.k8s_instance_type
+  ami = var.ami
+  # Per-node override (k8s_node_instance_type) for a rolling resize; else k8s_instance_type.
+  instance_type               = lookup(var.k8s_node_instance_type, each.key, var.k8s_instance_type)
   associate_public_ip_address = false
   key_name                    = var.ssh_key_name
   subnet_id                   = var.private_subnet_ids[each.value.index % length(var.private_subnet_ids)]
@@ -168,6 +169,17 @@ locals {
 
 # Fail the plan when k8s_node_state names a node that isn't in the current
 # node counts (it would otherwise be silently ignored).
+# Fail the plan when k8s_node_instance_type names a node that isn't in the
+# current node counts (it would otherwise be silently ignored).
+resource "terraform_data" "instance_type_check" {
+  lifecycle {
+    precondition {
+      condition     = alltrue([for n in keys(var.k8s_node_instance_type) : contains(keys(aws_instance.k8s_cluster), n)])
+      error_message = "k8s_node_instance_type names a node that doesn't exist with the current node counts."
+    }
+  }
+}
+
 resource "terraform_data" "power_state_check" {
   lifecycle {
     precondition {

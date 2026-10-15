@@ -101,3 +101,17 @@ variable "nginx_instance_state" {
     error_message = "nginx_instance_state must be running, stopped or null."
   }
 }
+
+variable "k8s_node_instance_type" {
+  description = "Instance type per cluster node name, overriding k8s_instance_type (e.g. { \"WORKER-NODE-5\" = \"m6a.2xlarge\" }). Changing it stops, resizes and starts that node only."
+  type        = map(string)
+  default     = {}
+  validation {
+    condition     = alltrue([for n in keys(var.k8s_node_instance_type) : can(regex("^(CONTROL-PLANE|ETCD|WORKER)-NODE-[1-9][0-9]*$", n))])
+    error_message = "k8s_node_instance_type keys must be node names like CONTROL-PLANE-NODE-1, ETCD-NODE-1, WORKER-NODE-5."
+  }
+  validation {
+    condition     = alltrue([for t in values(var.k8s_node_instance_type) : can(regex("^[a-z0-9]+\\..*", t))])
+    error_message = "Invalid instance type format. Must be in the form 'series.type'."
+  }
+}
