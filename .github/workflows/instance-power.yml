@@ -1,0 +1,78 @@
+# Show, stop or start EC2 instances by private IP — cluster nodes, standalone
+# VMs, or instances created outside this repo.
+#
+# Every IP must match exactly one instance in the named VPC, otherwise nothing
+# changes. Order comes from the Role tag when present (start: nginx ->
+# control-plane -> etcd -> worker -> others; stop: the reverse). MODE=dry-run
+# (default) only shows what would happen.
+#
+# Inputs reach the script only through env and are validated there; nothing
+# from the form is expanded into a shell command.
+name: instances start / stop
+
+on:
+  workflow_dispatch:
+    inputs:
+      ACTION:
+        description: 'status / stop / start'
+        required: true
+        type: choice
+        options: [status, stop, start]
+        default: status
+      INSTANCE_IPS:
+        description: 'Private IPs, comma-separated (max 20), e.g. 10.73.3.60,10.73.4.131'
+        required: true
+        type: string
+      VPC_NAME:
+        description: 'VPC Name tag, e.g. decouple-273-vpc'
+        required: true
+        type: string
+      REGION:
+        description: 'AWS region'
+        required: true
+        type: string
+        default: 'ap-south-1'
+      MODE:
+        description: 'dry-run = show only; apply = stop/start'
+        required: true
+        type: choice
+        options: [dry-run, apply]
+        default: dry-run
+
+permissions:
+  contents: read
+
+concurrency:
+  group: instance-power-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  power:
+    name: 'instances: status / stop / start'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Environment protection rules (e.g. required reviewers) can gate this job.
+    environment: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Show / stop / start instances
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          ACTION: ${{ inputs.ACTION }}
+          INSTANCE_IPS: ${{ inputs.INSTANCE_IPS }}
+          VPC_NAME: ${{ inputs.VPC_NAME }}
+          REGION: ${{ inputs.REGION }}
+          MODE: ${{ inputs.MODE }}
+        run: |
+          set -euo pipefail
+          args=(--action "$ACTION" --ips "$INSTANCE_IPS" --vpc-name "$VPC_NAME" --region "$REGION")
+          case "$MODE" in
+            apply) args+=(--apply) ;;
+            dry-run) ;;
+            *) echo "ERROR: MODE must be dry-run or apply"; exit 1 ;;
+          esac
+          bash .github/scripts/instance-power.sh "${args[@]}"
