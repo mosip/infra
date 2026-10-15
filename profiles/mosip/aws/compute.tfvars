@@ -38,3 +38,9 @@ attach_certbot_profile = true
 # ── #437 AWS test only — revert before GH-issue-273-v2 merges to develop ──
 # Terraform power-state test: WORKER-NODE-5 stopped (#463), now back to running.
 k8s_node_state = { "WORKER-NODE-5" = "running" }
+
+# Instance type per node (optional, rarely needed) — overrides k8s_instance_type
+# for the named nodes only, e.g. for a rolling resize (one node per compute
+# run; drain it first; control-plane nodes one at a time). Same instance, IP
+# and disk: the node is stopped, resized and started.
+# k8s_node_instance_type = { "WORKER-NODE-5" = "m6a.2xlarge" }

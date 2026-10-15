@@ -25,3 +25,9 @@ attach_certbot_profile = true
 # k8s_instance_state   = "stopped"                         # all cluster nodes
 # k8s_node_state       = { "WORKER-NODE-5" = "stopped" }   # per node, overrides
 # nginx_instance_state = "running"
+
+# Instance type per node (optional, rarely needed) — overrides k8s_instance_type
+# for the named nodes only, e.g. for a rolling resize (one node per compute
+# run; drain it first; control-plane nodes one at a time). Same instance, IP
+# and disk: the node is stopped, resized and started.
+# k8s_node_instance_type = { "WORKER-NODE-5" = "m6a.2xlarge" }
