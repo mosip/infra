@@ -130,7 +130,7 @@ jobs:
             echo "ERROR: COMPONENT=$C needs TERRAFORM_APPLY=true (later steps look up what earlier ones created)."
             exit 1
           fi
-          if [ "$DNS_PROVIDER" = "manual" ] && [ "$RANCHER_IMPORT" = "true" ]; then
+          if { [ "$C" = "all" ] || [ "$C" = "configure" ]; } && [ "$DNS_PROVIDER" = "manual" ] && [ "$RANCHER_IMPORT" = "true" ]; then
             echo "ERROR: DNS_PROVIDER=manual is the 'no DNS yet' run — it skips TLS, the nginx proxy and the Rancher import."
             echo "Import after DNS is mapped: rerun with a DNS provider and ENABLE_RANCHER_IMPORT, or import by hand."
             exit 1
