@@ -180,6 +180,37 @@ Stop and start EC2 instances by **private IP** — cluster nodes, standalone VMs
   `ec2:StartInstances`, `ec2:StopInstances` (the last two can be limited with
   an `aws:ResourceTag/...` condition).
 
+### No DNS yet (`DNS_PROVIDER=manual`)
+
+Build everything that doesn't need a domain now; do DNS, TLS and the Rancher
+import later.
+
+**Run 1 — no DNS:** **terraform plan / apply** with `COMPONENT=all`,
+`DNS_PROVIDER=manual` (leave `ENABLE_RANCHER_IMPORT` unticked — the run stops
+early otherwise).
+
+| Created / configured | Skipped |
+|---|---|
+| security groups, compute (VMs), storage (EBS) | Terraform `iam` (certbot profile) and `dns` |
+| RKE2 cluster | TLS certificate + nginx reverse proxy |
+| NFS server + CSI driver, PostgreSQL, ActiveMQ — on the nginx host | Rancher import |
+
+The run log prints the exact DNS records (with the real IPs) to create by
+hand — the "DNS records" play.
+
+**Run 2 — after DNS is mapped:** rerun with a DNS provider that has an API
+(`terraform-route53`, `godaddy`, `cloudflare`, `rfc2136`): `COMPONENT=all`
+(for `terraform-route53` this also attaches the certbot profile to nginx, in
+place) or `COMPONENT=configure`. TLS and the nginx reverse proxy run now;
+RKE2, NFS, PostgreSQL and ActiveMQ are already in place and are skipped or
+unchanged. Tick `ENABLE_RANCHER_IMPORT` to import the cluster, or import it by
+hand. DNS without any API needs a certificate from elsewhere (bring your own).
+
+**Data centre (Ansible only):** `dns_provider: manual` there keeps its meaning
+(records printed, then TLS with e.g. `tls_mode: byo`). For a no-DNS run, render
+the inventory with
+`generate.py … --without nginx --without rancher_import`.
+
 ## Security & Access Control
 
 ### Required GitHub Secrets
