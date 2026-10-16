@@ -19,6 +19,11 @@ One output contract, two ways to produce it:
 Variable precedence, lowest to highest:
   profile.yml ansible_vars < tfvars identity values < hosts.yml vars < --set
 
+--without drops components from the profile's configure_components for this
+run, e.g. "no DNS yet": --without nginx --without rancher_import builds the
+cluster, NFS, PostgreSQL and ActiveMQ and leaves TLS + the nginx reverse proxy
+and the Rancher import for a later run.
+
 Host naming follows the compute module's convention
 (<cluster>-NGINX-NODE, <cluster>-CONTROL-PLANE-NODE-<n>, ...): the rke2 and
 nfs roles derive kubeconfig paths from the primary's inventory hostname.
@@ -287,6 +292,15 @@ def parse_set(pairs):
     return out
 
 
+def drop_components(components, without):
+    """Remove the --without components (repeatable, comma lists allowed)."""
+    names = [n.strip() for item in without or [] for n in item.split(",") if n.strip()]
+    unknown = [n for n in names if n not in VALID_COMPONENTS]
+    if unknown:
+        raise InventoryError(f"--without: unknown components {unknown}; valid: {VALID_COMPONENTS}")
+    return [c for c in components if c not in names]
+
+
 def build(args):
     profile = load_profile(args.profile)
     all_vars = dict(profile.get("ansible_vars") or {})
@@ -306,6 +320,7 @@ def build(args):
         nginx, nodes, file_vars = hosts_from_file(args.from_hosts)
         all_vars.update(file_vars)
 
+    components = drop_components(components, args.without)
     all_vars.update(parse_set(args.set))
     validate(nginx, nodes, all_vars)
     return render(profile, nginx, nodes, all_vars, components)
@@ -319,6 +334,8 @@ def main(argv=None):
     src.add_argument("--from-hosts", metavar="FILE", help="operator hosts file (data centre)")
     parser.add_argument("--tfvars", action="append", help="tfvars to read identity values from (terraform mode)")
     parser.add_argument("--set", action="append", metavar="KEY=VALUE", help="override any inventory variable")
+    parser.add_argument("--without", action="append", metavar="COMPONENT",
+                        help="skip a configure component this run (repeatable / comma list), e.g. nginx,rancher_import")
     parser.add_argument("-o", "--output", required=True, help="inventory file to write")
     args = parser.parse_args(argv)
 
