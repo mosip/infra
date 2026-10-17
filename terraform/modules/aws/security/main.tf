@@ -156,6 +156,19 @@ resource "aws_security_group" "nginx" {
     ipv6_cidr_blocks = ["::/0"]
   }
 
+  # Per-environment additions (security.tfvars: extra_ingress_rules.nginx).
+  dynamic "ingress" {
+    for_each = lookup(var.extra_ingress_rules, "nginx", [])
+    content {
+      description      = ingress.value.description
+      from_port        = ingress.value.from_port
+      to_port          = ingress.value.to_port
+      protocol         = ingress.value.protocol
+      cidr_blocks      = ingress.value.cidr_blocks
+      ipv6_cidr_blocks = ingress.value.ipv6_cidr_blocks
+    }
+  }
+
   dynamic "egress" {
     for_each = local.common_egress_rules
     content {
@@ -278,6 +291,19 @@ resource "aws_security_group" "k8s_control_plane" {
     ipv6_cidr_blocks = ["::/0"]
   }
 
+  # Per-environment additions (security.tfvars: extra_ingress_rules.control_plane).
+  dynamic "ingress" {
+    for_each = lookup(var.extra_ingress_rules, "control_plane", [])
+    content {
+      description      = ingress.value.description
+      from_port        = ingress.value.from_port
+      to_port          = ingress.value.to_port
+      protocol         = ingress.value.protocol
+      cidr_blocks      = ingress.value.cidr_blocks
+      ipv6_cidr_blocks = ingress.value.ipv6_cidr_blocks
+    }
+  }
+
   dynamic "egress" {
     for_each = local.common_egress_rules
     content {
@@ -387,6 +413,19 @@ resource "aws_security_group" "k8s_etcd" {
     ipv6_cidr_blocks = ["::/0"]
   }
 
+  # Per-environment additions (security.tfvars: extra_ingress_rules.etcd).
+  dynamic "ingress" {
+    for_each = lookup(var.extra_ingress_rules, "etcd", [])
+    content {
+      description      = ingress.value.description
+      from_port        = ingress.value.from_port
+      to_port          = ingress.value.to_port
+      protocol         = ingress.value.protocol
+      cidr_blocks      = ingress.value.cidr_blocks
+      ipv6_cidr_blocks = ingress.value.ipv6_cidr_blocks
+    }
+  }
+
   dynamic "egress" {
     for_each = local.common_egress_rules
     content {
@@ -467,6 +506,19 @@ resource "aws_security_group" "k8s_worker" {
     protocol         = "TCP"
     cidr_blocks      = [var.network_cidr]
     ipv6_cidr_blocks = ["::/0"]
+  }
+
+  # Per-environment additions (security.tfvars: extra_ingress_rules.worker).
+  dynamic "ingress" {
+    for_each = lookup(var.extra_ingress_rules, "worker", [])
+    content {
+      description      = ingress.value.description
+      from_port        = ingress.value.from_port
+      to_port          = ingress.value.to_port
+      protocol         = ingress.value.protocol
+      cidr_blocks      = ingress.value.cidr_blocks
+      ipv6_cidr_blocks = ingress.value.ipv6_cidr_blocks
+    }
   }
 
   dynamic "egress" {

@@ -18,3 +18,32 @@ variable "wireguard_cidr" {
   type        = string
   default     = ""
 }
+
+variable "extra_ingress_rules" {
+  description = <<-EOT
+    Extra ingress rules per security group, added after the built-in ones.
+    Keys: nginx, control_plane, etcd, worker. Empty (default) = no change.
+  EOT
+  type = map(list(object({
+    description      = string
+    from_port        = number
+    to_port          = number
+    protocol         = string
+    cidr_blocks      = optional(list(string), [])
+    ipv6_cidr_blocks = optional(list(string), [])
+  })))
+  default = {}
+
+  validation {
+    condition     = alltrue([for k in keys(var.extra_ingress_rules) : contains(["nginx", "control_plane", "etcd", "worker"], k)])
+    error_message = "extra_ingress_rules keys must be nginx, control_plane, etcd or worker."
+  }
+  validation {
+    condition = alltrue(flatten([
+      for rules in values(var.extra_ingress_rules) : [
+        for r in rules : length(r.cidr_blocks) + length(r.ipv6_cidr_blocks) > 0 && r.from_port <= r.to_port
+      ]
+    ]))
+    error_message = "Each extra ingress rule needs cidr_blocks and/or ipv6_cidr_blocks, and from_port <= to_port."
+  }
+}

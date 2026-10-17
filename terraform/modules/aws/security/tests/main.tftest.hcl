@@ -201,3 +201,85 @@ run "all_groups_tagged_with_cluster_and_component" {
     error_message = "control-plane SG not attached to the expected VPC"
   }
 }
+
+# ── extra_ingress_rules (per-environment additions) ─────────────────────────
+
+run "extra_ingress_rules_default_changes_nothing" {
+  command = plan
+
+  assert {
+    condition = (
+      length(aws_security_group.nginx.ingress) == 10 &&
+      length(aws_security_group.k8s_worker.ingress) == 7
+    )
+    error_message = "Without extra_ingress_rules the built-in rule counts must not change"
+  }
+}
+
+run "extra_ingress_rules_are_added_to_the_right_group" {
+  command = plan
+
+  variables {
+    extra_ingress_rules = {
+      nginx = [
+        { description = "Monitoring scrape", from_port = 9100, to_port = 9100, protocol = "tcp", cidr_blocks = ["10.73.0.0/16"] },
+      ]
+      worker = [
+        { description = "Partner app", from_port = 8443, to_port = 8443, protocol = "tcp", cidr_blocks = ["203.0.113.0/24"] },
+        { description = "Partner app v6", from_port = 8443, to_port = 8443, protocol = "tcp", ipv6_cidr_blocks = ["2001:db8::/32"] },
+      ]
+    }
+  }
+
+  assert {
+    condition = length(aws_security_group.nginx.ingress) == 11 && anytrue([
+      for r in aws_security_group.nginx.ingress :
+      r.from_port == 9100 && r.protocol == "tcp" && contains(r.cidr_blocks, "10.73.0.0/16")
+    ])
+    error_message = "nginx extra rule (9100 from 10.73.0.0/16) missing"
+  }
+
+  assert {
+    condition = length(aws_security_group.k8s_worker.ingress) == 9 && anytrue([
+      for r in aws_security_group.k8s_worker.ingress :
+      r.from_port == 8443 && contains(r.ipv6_cidr_blocks, "2001:db8::/32")
+    ])
+    error_message = "worker extra rules missing"
+  }
+
+  assert {
+    condition = (
+      length(aws_security_group.k8s_control_plane.ingress) == 12 &&
+      length(aws_security_group.k8s_etcd.ingress) == 10
+    )
+    error_message = "groups without extra rules must keep their built-in rules only"
+  }
+}
+
+run "extra_ingress_rules_rejects_unknown_group" {
+  command = plan
+
+  variables {
+    extra_ingress_rules = {
+      bastion = [
+        { description = "x", from_port = 22, to_port = 22, protocol = "tcp", cidr_blocks = ["10.0.0.0/8"] },
+      ]
+    }
+  }
+
+  expect_failures = [var.extra_ingress_rules]
+}
+
+run "extra_ingress_rules_rejects_rule_without_source" {
+  command = plan
+
+  variables {
+    extra_ingress_rules = {
+      nginx = [
+        { description = "no source", from_port = 8080, to_port = 8080, protocol = "tcp" },
+      ]
+    }
+  }
+
+  expect_failures = [var.extra_ingress_rules]
+}

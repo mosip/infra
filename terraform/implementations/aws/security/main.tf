@@ -28,4 +28,6 @@ module "security" {
   vpc_id         = data.aws_vpc.existing_vpc.id
   network_cidr   = var.network_cidr
   wireguard_cidr = var.WIREGUARD_CIDR
+
+  extra_ingress_rules = var.extra_ingress_rules
 }
