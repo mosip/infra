@@ -18,6 +18,7 @@ This directory contains GitHub Actions workflows for automated MOSIP deployment:
 | `terraform-destroy.yml` | Destroy Infrastructure (reverse order) | Manual Dispatch | Uses encrypted state | Volume removed with storage |
 | `terraform-component.yml` | Reusable: one Terraform root | Called by the two above | Per component | — |
 | `infra-checks.yml` | Static checks | Pull request | — | — |
+| `instance-power.yml` | Show / stop / start instances by private IP | Manual Dispatch | — (AWS API only) | — |
 | `helmsman_external.yml` | Deploy Prerequisites & External Dependencies | Manual Dispatch | Uses deployed infra | **Parallel deployment** |
 | `helmsman_mosip.yml` | Deploy MOSIP Services | Manual Dispatch | Uses deployed infra | Uses deployed PostgreSQL |
 | `helmsman_esignet.yml` | Deploy eSignet Stack | Manual/Push | Uses deployed infra | Uses deployed PostgreSQL |
@@ -148,6 +149,67 @@ terraform/implementations/aws/compute/profiles/<profile>/aws-compute-<profile>-<
 `infra-checks.yml` runs on pull requests: `terraform fmt -check`,
 `terraform test` for every module, `terraform validate` for every root, the
 inventory generator's unit tests and a `site.yml` syntax check per profile.
+
+### Instances start / stop (`instance-power.yml`)
+
+Stop and start EC2 instances by **private IP** — cluster nodes, standalone VMs
+(`COMPONENT=vm`) or instances created outside this repo.
+
+| Input | Example | |
+|---|---|---|
+| `ACTION` | `status` / `stop` / `start` | `status` only lists |
+| `INSTANCE_IPS` | `10.73.3.60,10.73.4.131` | comma-separated, max 20 |
+| `VPC_NAME` | `decouple-273-vpc` | VPC `Name` tag |
+| `REGION` | `ap-south-1` | |
+| `MODE` | `dry-run` / `apply` | default `dry-run` shows what would happen |
+
+- Every IP must match **exactly one** instance in that VPC — otherwise nothing changes.
+- Order from the `Role` tag: start nginx → control-plane → etcd → worker → others;
+  stop the reverse; each group is waited for. Selecting an nginx node prints a
+  warning (public IP, NFS, PostgreSQL).
+- Start the control-plane nodes before running `configure` against a stopped cluster.
+- Terraform: `compute` starts instances when it creates them and then leaves
+  running/stopped alone — unless `compute.tfvars` sets `k8s_instance_state`,
+  `k8s_node_state` or `nginx_instance_state` (and `vm.tfvars` a group `state`);
+  those are enforced on every run and override a stop/start made here.
+- Security: inputs reach the script only via `env` and are validated (IPv4,
+  VPC name, region) before any AWS call; `permissions: contents: read`;
+  SHA-pinned checkout without persisted credentials; `workflow_dispatch` only;
+  environment `<branch>` (add required reviewers there to gate `apply`).
+- Minimal IAM for the AWS keys: `ec2:DescribeVpcs`, `ec2:DescribeInstances`,
+  `ec2:StartInstances`, `ec2:StopInstances` (the last two can be limited with
+  an `aws:ResourceTag/...` condition).
+
+### No DNS yet (`DNS_PROVIDER=manual`)
+
+Build everything that doesn't need a domain now; do DNS, TLS and the Rancher
+import later.
+
+**Run 1 — no DNS:** **terraform plan / apply** with `COMPONENT=all`,
+`DNS_PROVIDER=manual` (leave `ENABLE_RANCHER_IMPORT` unticked — the run stops
+early otherwise).
+
+| Created / configured | Skipped |
+|---|---|
+| security groups, compute (VMs), storage (EBS) | Terraform `iam` (certbot profile) and `dns` |
+| RKE2 cluster | TLS certificate + nginx reverse proxy |
+| NFS server + CSI driver, PostgreSQL, ActiveMQ — on the nginx host | Rancher import |
+
+The run log prints the exact DNS records (with the real IPs) to create by
+hand — the "DNS records" play.
+
+**Run 2 — after DNS is mapped:** rerun with a DNS provider that has an API
+(`terraform-route53`, `godaddy`, `cloudflare`, `rfc2136`): `COMPONENT=all`
+(for `terraform-route53` this also attaches the certbot profile to nginx, in
+place) or `COMPONENT=configure`. TLS and the nginx reverse proxy run now;
+RKE2, NFS, PostgreSQL and ActiveMQ are already in place and are skipped or
+unchanged. Tick `ENABLE_RANCHER_IMPORT` to import the cluster, or import it by
+hand. DNS without any API needs a certificate from elsewhere (bring your own).
+
+**Data centre (Ansible only):** `dns_provider: manual` there keeps its meaning
+(records printed, then TLS with e.g. `tls_mode: byo`). For a no-DNS run, render
+the inventory with
+`generate.py … --without nginx --without rancher_import`.
 
 ## Security & Access Control
 

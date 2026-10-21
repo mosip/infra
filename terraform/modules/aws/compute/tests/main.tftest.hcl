@@ -189,3 +189,162 @@ run "certbot_profile_set_on_nginx_at_creation" {
     error_message = "nginx must get the certbot instance profile at creation (legacy parity: IAM before EC2)"
   }
 }
+
+# ── power state (k8s_instance_state / k8s_node_state / nginx_instance_state) ─
+
+run "power_state_unset_means_unmanaged_after_creation" {
+  command = plan
+
+  assert {
+    condition     = length(aws_ec2_instance_state.k8s_desired) == 0 && length(aws_ec2_instance_state.nginx_desired) == 0
+    error_message = "With no power state set, no desired-state resources may exist"
+  }
+  assert {
+    condition     = alltrue([for s in aws_ec2_instance_state.k8s_ready : s.state == "running"])
+    error_message = "New nodes must still be started at creation"
+  }
+}
+
+run "power_state_all_nodes_stopped_nginx_untouched" {
+  command = plan
+
+  variables {
+    k8s_instance_state = "stopped"
+  }
+
+  assert {
+    condition = (
+      length(aws_ec2_instance_state.k8s_desired) == length(aws_instance.k8s_cluster) &&
+      alltrue([for s in aws_ec2_instance_state.k8s_desired : s.state == "stopped"]) &&
+      length(aws_ec2_instance_state.nginx_desired) == 0
+    )
+    error_message = "k8s_instance_state=stopped must stop every cluster node and leave nginx alone"
+  }
+}
+
+run "power_state_per_node_override_wins" {
+  command = plan
+
+  variables {
+    k8s_control_plane_node_count = 3
+    k8s_etcd_node_count          = 0
+    k8s_worker_node_count        = 5
+    k8s_instance_state           = "running"
+    k8s_node_state               = { "WORKER-NODE-5" = "stopped" }
+    nginx_instance_state         = "running"
+  }
+
+  assert {
+    condition = (
+      aws_ec2_instance_state.k8s_desired["WORKER-NODE-5"].state == "stopped" &&
+      aws_ec2_instance_state.k8s_desired["WORKER-NODE-1"].state == "running" &&
+      length(aws_ec2_instance_state.k8s_desired) == 8 &&
+      aws_ec2_instance_state.nginx_desired[0].state == "running"
+    )
+    error_message = "Per-node state must override k8s_instance_state"
+  }
+}
+
+run "power_state_only_named_node_managed" {
+  command = plan
+
+  variables {
+    k8s_node_state = { "WORKER-NODE-1" = "stopped" }
+  }
+
+  assert {
+    condition     = keys(aws_ec2_instance_state.k8s_desired) == ["WORKER-NODE-1"]
+    error_message = "Only the named node may get a desired state"
+  }
+}
+
+run "power_state_rejects_bad_value" {
+  command = plan
+
+  variables {
+    k8s_instance_state = "paused"
+  }
+
+  expect_failures = [var.k8s_instance_state]
+}
+
+run "power_state_rejects_bad_node_name" {
+  command = plan
+
+  variables {
+    k8s_node_state = { "worker-5" = "stopped" }
+  }
+
+  expect_failures = [var.k8s_node_state]
+}
+
+run "power_state_rejects_node_that_does_not_exist" {
+  command = plan
+
+  variables {
+    k8s_node_state = { "WORKER-NODE-9" = "stopped" }
+  }
+
+  expect_failures = [terraform_data.power_state_check]
+}
+
+# ── per-node instance type (k8s_node_instance_type) ─────────────────────────
+
+run "instance_type_default_for_every_node" {
+  command = plan
+
+  assert {
+    condition     = alltrue([for i in aws_instance.k8s_cluster : i.instance_type == "t3a.2xlarge"])
+    error_message = "Without overrides every node must use k8s_instance_type"
+  }
+}
+
+run "instance_type_override_only_named_node" {
+  command = plan
+
+  variables {
+    k8s_control_plane_node_count = 3
+    k8s_etcd_node_count          = 0
+    k8s_worker_node_count        = 5
+    k8s_node_instance_type       = { "WORKER-NODE-5" = "m6a.2xlarge" }
+  }
+
+  assert {
+    condition = (
+      aws_instance.k8s_cluster["WORKER-NODE-5"].instance_type == "m6a.2xlarge" &&
+      length([for k, i in aws_instance.k8s_cluster : k if i.instance_type == "t3a.2xlarge"]) == 7 &&
+      aws_instance.nginx.instance_type == "t3a.large"
+    )
+    error_message = "Only WORKER-NODE-5 may change type; nginx keeps nginx_instance_type"
+  }
+}
+
+run "instance_type_rejects_bad_node_name" {
+  command = plan
+
+  variables {
+    k8s_node_instance_type = { "worker-5" = "m6a.2xlarge" }
+  }
+
+  expect_failures = [var.k8s_node_instance_type]
+}
+
+run "instance_type_rejects_bad_type" {
+  command = plan
+
+  variables {
+    k8s_node_instance_type = { "WORKER-NODE-1" = "big" }
+  }
+
+  expect_failures = [var.k8s_node_instance_type]
+}
+
+run "instance_type_rejects_node_that_does_not_exist" {
+  command = plan
+
+  variables {
+    k8s_node_instance_type = { "WORKER-NODE-9" = "m6a.2xlarge" }
+  }
+
+  expect_failures = [terraform_data.instance_type_check]
+}

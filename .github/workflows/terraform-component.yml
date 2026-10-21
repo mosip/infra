@@ -58,6 +58,11 @@ on:
         type: string
         required: false
         default: ''
+      ALLOW_MISSING_STATE:
+        description: 'destroy only: a component with no state was never applied — skip it instead of failing (destroy COMPONENT=all)'
+        type: boolean
+        required: false
+        default: false
     outputs:
       outcome:
         description: success | failure | skipped
@@ -153,6 +158,31 @@ jobs:
             ${{ inputs.ENABLE_STATE_LOCKING && '--enable-locking' || '' }} \
             $PROFILE_ARG
 
+      # destroy COMPONENT=all also visits components that were never applied
+      # (e.g. vm). No state = nothing to destroy: skip the rest of the job —
+      # including the state commit — instead of failing.
+      - name: Check for existing state
+        id: state_check
+        if: ${{ inputs.ACTION == 'destroy' && inputs.ALLOW_MISSING_STATE && inputs.BACKEND_TYPE == 'local' }}
+        env:
+          COMPONENT: ${{ inputs.COMPONENT }}
+        run: |
+          set -euo pipefail
+          state_path=""
+          if [ -f backend.tf ]; then
+            state_path=$(grep -A 5 'backend "local"' backend.tf | grep 'path' | sed 's/.*path = "\([^"]*\)".*/\1/' | head -1)
+          fi
+          found=false
+          for f in ${state_path:+"$state_path.gpg"} terraform.tfstate.gpg; do
+            [ -f "$f" ] && found=true
+          done
+          if [ "$found" = true ]; then
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::No state for $COMPONENT — it was never applied; nothing to destroy, skipping."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
         with:
@@ -166,6 +196,7 @@ jobs:
             --passphrase "${{ secrets.GPG_PASSPHRASE }}"
 
       - name: Decrypt existing state
+        if: ${{ steps.state_check.outputs.skip != 'true' }}
         run: |
           "$GITHUB_WORKSPACE/.github/scripts/decrypt-state.sh" \
             --backend-type "${{ inputs.BACKEND_TYPE }}" \
@@ -173,6 +204,7 @@ jobs:
             --operation "${{ inputs.ACTION }}"
 
       - name: Terraform init / validate
+        if: ${{ steps.state_check.outputs.skip != 'true' }}
         run: |
           terraform fmt -check -recursive -diff
           terraform init -input=false || terraform init -input=false -reconfigure
@@ -192,7 +224,7 @@ jobs:
 
       - name: Terraform destroy plan
         id: destroy_plan
-        if: ${{ inputs.ACTION == 'destroy' }}
+        if: ${{ inputs.ACTION == 'destroy' && steps.state_check.outputs.skip != 'true' }}
         continue-on-error: true
         run: terraform plan -destroy -input=false $TF_VAR_ARGS -no-color
 
@@ -220,7 +252,7 @@ jobs:
           fi
 
       - name: Encrypt and commit state
-        if: always()
+        if: ${{ always() && steps.state_check.outputs.skip != 'true' }}
         env:
           REF_NAME: ${{ github.ref_name }}
         run: |
@@ -268,14 +300,17 @@ jobs:
       - name: Result
         id: result
         if: always()
+        env:
+          STATE_SKIP: ${{ steps.state_check.outputs.skip }}
         run: |
           OUTCOME=success
+          [ "$STATE_SKIP" = "true" ] && OUTCOME=skipped
           for o in "${{ steps.plan.outcome }}" "${{ steps.apply.outcome }}" "${{ steps.destroy_plan.outcome }}" "${{ steps.destroy.outcome }}"; do
             [ "$o" = "failure" ] && OUTCOME=failure
           done
           echo "outcome=$OUTCOME" >> "$GITHUB_OUTPUT"
           echo "${{ inputs.ACTION }} ${{ inputs.COMPONENT }}: $OUTCOME"
-          [ "$OUTCOME" = "success" ]
+          [ "$OUTCOME" != "failure" ]
 
       - uses: 8398a7/action-slack@v3
         continue-on-error: true

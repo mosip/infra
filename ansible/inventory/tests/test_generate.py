@@ -109,6 +109,24 @@ class TerraformMode(Fixture):
         self.assertEqual(v["subdomain_public"][0], "resident")
         self.assertIn("postgres", v["subdomain_internal"])
 
+    def test_without_drops_components(self):
+        # "no DNS yet": no TLS + nginx proxy, no Rancher import
+        self.compute()
+        _, inv = self.from_terraform("--without", "nginx", "--without", "rancher_import")
+        self.assertEqual(inv["all"]["vars"]["configure_components"],
+                         ["rke2", "nfs", "postgresql", "activemq"])
+
+    def test_without_accepts_comma_list(self):
+        self.compute()
+        _, inv = self.from_terraform("--without", "nginx,rancher_import")
+        self.assertNotIn("nginx", inv["all"]["vars"]["configure_components"])
+        self.assertNotIn("rancher_import", inv["all"]["vars"]["configure_components"])
+
+    def test_without_unknown_component_fails(self):
+        self.compute()
+        rc, _ = self.from_terraform("--without", "dns")
+        self.assertNotEqual(rc, 0)
+
     def test_node_numbering_sorts_numerically(self):
         self.compute(cp=11, etcd=0, workers=0)
         _, inv = self.from_terraform()
@@ -200,6 +218,13 @@ class HostsMode(Fixture):
         self.assertEqual(rc, 0)
         # hosts mode never gates on storage outputs
         self.assertIn("postgresql", inv["all"]["vars"]["configure_components"])
+
+    def test_without_in_hosts_mode(self):
+        hosts = write(os.path.join(self.dir, "hosts.yml"), self.HOSTS)
+        rc, inv = self.run_gen("--from-hosts", hosts, "--without", "nginx,rancher_import")
+        self.assertEqual(rc, 0)
+        self.assertEqual(inv["all"]["vars"]["configure_components"],
+                         ["rke2", "nfs", "postgresql", "activemq"])
 
 
 class Validation(Fixture):

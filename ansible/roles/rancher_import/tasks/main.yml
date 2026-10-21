@@ -38,24 +38,45 @@
     msg: "{{ cluster_status.stdout_lines }}"
 
 - name: Check if Rancher import already done
-  ansible.builtin.shell: kubectl get namespace cattle-system
+  ansible.builtin.command: kubectl get namespace cattle-system
   become_user: ubuntu
   environment:
     KUBECONFIG: "/home/ubuntu/.kube/{{ inventory_hostname }}.yaml"
   register: cattle_system_check
-  ignore_errors: true
+  failed_when: false
   when: enable_rancher_import | bool
   changed_when: false
 
+# rancher_import_url may be the full "kubectl apply -f <url>" Rancher shows,
+# or just the manifest URL. Take the URL out and run kubectl without a shell,
+# so the value is never re-parsed (it was run as `shell: "{{ ... }}"`, which
+# failed in CI with rc 127 and was ignored).
+- name: Extract the Rancher import manifest URL
+  ansible.builtin.set_fact:
+    rancher_import_manifest: "{{ rancher_import_url | trim | regex_search('https://\\S+/v3/import/\\S+\\.yaml') }}"
+  when:
+    - enable_rancher_import | bool
+    - cattle_system_check.rc != 0
+
+- name: Fail on an unusable rancher_import_url
+  ansible.builtin.fail:
+    msg: >-
+      rancher_import_url must be the Rancher import command
+      ("kubectl apply -f https://<rancher>/v3/import/<token>.yaml") or its URL.
+  when:
+    - enable_rancher_import | bool
+    - cattle_system_check.rc != 0
+    - not rancher_import_manifest
+
 - name: Execute Rancher import (first time only)
-  ansible.builtin.shell: "{{ rancher_import_url }}"
+  ansible.builtin.command:
+    argv: [kubectl, apply, -f, "{{ rancher_import_manifest }}"]
   when:
     - enable_rancher_import | bool
     - cattle_system_check.rc != 0
   become_user: ubuntu
   environment:
     KUBECONFIG: "/home/ubuntu/.kube/{{ inventory_hostname }}.yaml"
-  ignore_errors: true
 
 - name: Skip Rancher import (already imported)
   ansible.builtin.debug:
