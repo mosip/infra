@@ -55,7 +55,15 @@ variable "groups" {
       source_groups = optional(list(string), [])
       description   = optional(string, "")
     })), [])
-    egress_all              = optional(bool, true)
+    egress_all = optional(bool, true)
+    # Specific outbound rules (use with egress_all = false to restrict outbound).
+    egress = optional(list(object({
+      port        = number
+      to_port     = optional(number)
+      protocol    = optional(string, "tcp")
+      cidrs       = list(string)
+      description = optional(string, "")
+    })), [])
     iam_managed_policy_arns = optional(list(string), [])
     iam_policy_json         = optional(string)
     tags                    = optional(map(string), {})
@@ -98,5 +106,12 @@ variable "groups" {
       ]
     ]))
     error_message = "Every ingress rule needs at least one entry in cidrs or source_groups."
+  }
+
+  validation {
+    condition = alltrue(flatten([
+      for g in values(var.groups) : [for r in g.egress : length(r.cidrs) > 0]
+    ]))
+    error_message = "Every egress rule needs at least one entry in cidrs."
   }
 }

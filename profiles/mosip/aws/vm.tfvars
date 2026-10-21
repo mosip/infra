@@ -29,6 +29,17 @@ instance_groups = {}
 # rejected unless allow_ssh_from_anywhere = true, group names can't reuse the
 # cluster roles (nginx, control-plane, etcd, worker).
 #
+# Outbound (optional): every group allows all outbound by default
+# (egress_all = true). To restrict it, set egress_all = false and list the
+# allowed destinations, then run COMPONENT=vm:
+#   reports-db = {
+#     instance_type = "t3a.large"
+#     egress_all    = false
+#     egress        = [{ port = 443, cidrs = ["0.0.0.0/0"], description = "HTTPS" },
+#                      { port = 5432, cidrs = ["10.73.3.0/24"] }]
+#   }
+# Inbound works the same way with ingress = [...] (see the examples above).
+#
 # Power state per group (optional) — add state = "running" | "stopped" to a
 # group, then run COMPONENT=vm:
 #   bastion = { instance_type = "t3a.small", state = "stopped" }

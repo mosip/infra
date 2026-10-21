@@ -238,3 +238,51 @@ run "state_rejects_bad_value" {
 
   expect_failures = [var.groups]
 }
+
+run "egress_rules_per_destination" {
+  command = plan
+
+  variables {
+    groups = {
+      reports-db = {
+        instance_type = "t3a.large"
+        egress_all    = false
+        egress = [
+          { port = 443, cidrs = ["10.73.0.0/16", "203.0.113.0/24"], description = "HTTPS" },
+          { port = 5432, cidrs = ["10.73.3.0/24"] },
+        ]
+      }
+    }
+  }
+
+  assert {
+    condition = (
+      length(aws_vpc_security_group_egress_rule.cidr) == 3 &&
+      length(aws_vpc_security_group_egress_rule.all) == 0 &&
+      aws_vpc_security_group_egress_rule.cidr["reports-db/0/203.0.113.0/24"].from_port == 443 &&
+      aws_vpc_security_group_egress_rule.cidr["reports-db/1/10.73.3.0/24"].to_port == 5432
+    )
+    error_message = "egress rules must become one rule per destination, and egress_all=false must drop the allow-all rule"
+  }
+}
+
+run "egress_default_is_allow_all_only" {
+  command = plan
+
+  assert {
+    condition     = length(aws_vpc_security_group_egress_rule.cidr) == 0 && length(aws_vpc_security_group_egress_rule.all) == 2
+    error_message = "Without egress rules each group keeps only the allow-all egress"
+  }
+}
+
+run "egress_rule_without_cidrs_rejected" {
+  command = plan
+
+  variables {
+    groups = {
+      tools = { instance_type = "t3a.small", egress = [{ port = 443, cidrs = [] }] }
+    }
+  }
+
+  expect_failures = [var.groups]
+}
