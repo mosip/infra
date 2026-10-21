@@ -44,6 +44,18 @@ locals {
     ]...)
   ]...)
 
+  # Groups that look their AMI up by owner + name (none by default).
+  ami_lookup_groups = { for g, cfg in var.groups : g => cfg if cfg.ami_name != null }
+
+  # Extra data disks: one volume per (instance, entry), at /dev/sdf, /dev/sdg, ...
+  # (Ubuntu AMIs reserve sdb/sdc). None by default.
+  data_devices = ["/dev/sdf", "/dev/sdg", "/dev/sdh", "/dev/sdi", "/dev/sdj", "/dev/sdk", "/dev/sdl", "/dev/sdm", "/dev/sdn", "/dev/sdo", "/dev/sdp"]
+  data_volumes = merge([
+    for k, inst in local.instances : {
+      for i, d in inst.data_volumes : "${k}/${i}" => merge(d, { instance = k, index = i, group = inst.group })
+    }
+  ]...)
+
   with_iam = {
     for g, cfg in var.groups : g => cfg
     if length(cfg.iam_managed_policy_arns) > 0 || cfg.iam_policy_json != null
@@ -159,10 +171,40 @@ resource "aws_iam_instance_profile" "group" {
 
 # ── instances ─────────────────────────────────────────────────────────────
 
+# ── AMI lookup (only for groups with ami_name) ───────────────────────────────
+data "aws_ec2_instance_type" "lookup" {
+  for_each      = toset([for g, cfg in local.ami_lookup_groups : cfg.instance_type])
+  instance_type = each.key
+}
+
+data "aws_ami" "lookup" {
+  for_each    = local.ami_lookup_groups
+  most_recent = true
+  owners      = [each.value.ami_owner]
+
+  filter {
+    name   = "name"
+    values = [each.value.ami_name]
+  }
+  filter {
+    name   = "architecture"
+    values = [contains(data.aws_ec2_instance_type.lookup[each.value.instance_type].supported_architectures, "arm64") ? "arm64" : "x86_64"]
+  }
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+  filter {
+    name   = "state"
+    values = ["available"]
+  }
+}
+
 resource "aws_instance" "vm" {
   for_each = local.instances
 
-  ami                         = coalesce(each.value.ami, var.default_ami)
+  # Explicit ami > owner + name lookup > default_ami (common.tfvars).
+  ami                         = coalesce(each.value.ami, try(data.aws_ami.lookup[each.value.group].id, null), var.default_ami)
   instance_type               = each.value.instance_type
   key_name                    = each.value.key_name != null ? each.value.key_name : var.default_key_name
   subnet_id                   = each.value.subnet == "public" ? var.public_subnet_ids[each.value.index % length(var.public_subnet_ids)] : var.private_subnet_ids[each.value.index % length(var.private_subnet_ids)]
@@ -210,4 +252,27 @@ resource "aws_ec2_instance_state" "vm" {
     create = "10m"
     update = "10m"
   }
+}
+
+# ── extra data disks (vm.tfvars: data_volumes) ───────────────────────────────
+resource "aws_ebs_volume" "data" {
+  for_each          = local.data_volumes
+  availability_zone = aws_instance.vm[each.value.instance].availability_zone
+  size              = each.value.size_gb
+  type              = each.value.type
+  iops              = each.value.iops
+  throughput        = each.value.throughput
+  encrypted         = true
+
+  tags = merge(local.common_tags, {
+    Name = "${var.cluster_name}-${each.value.instance}-data-${each.value.index + 1}"
+    Role = each.value.group
+  })
+}
+
+resource "aws_volume_attachment" "data" {
+  for_each    = local.data_volumes
+  device_name = local.data_devices[each.value.index]
+  volume_id   = aws_ebs_volume.data[each.key].id
+  instance_id = aws_instance.vm[each.value.instance].id
 }

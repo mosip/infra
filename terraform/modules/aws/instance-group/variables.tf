@@ -68,6 +68,18 @@ variable "groups" {
     iam_policy_json         = optional(string)
     tags                    = optional(map(string), {})
     state                   = optional(string) # running | stopped; unset = not managed after creation
+    # AMI lookup (optional): newest image of this owner matching the name
+    # pattern, for the instance type's CPU architecture. Unset = ami or
+    # default_ami as before.
+    ami_owner = optional(string)
+    ami_name  = optional(string)
+    # Extra EBS data disks (optional), attached at /dev/sdf, /dev/sdg, ...
+    data_volumes = optional(list(object({
+      size_gb    = number
+      type       = optional(string, "gp3")
+      iops       = optional(number)
+      throughput = optional(number)
+    })), [])
   }))
   default = {}
 
@@ -113,5 +125,26 @@ variable "groups" {
       for g in values(var.groups) : [for r in g.egress : length(r.cidrs) > 0]
     ]))
     error_message = "Every egress rule needs at least one entry in cidrs."
+  }
+
+  validation {
+    condition     = alltrue([for g in values(var.groups) : !(g.ami != null && g.ami_name != null)])
+    error_message = "Set either ami (an AMI ID) or ami_name (+ ami_owner) for a group, not both."
+  }
+
+  validation {
+    # An image name alone is not trusted: anyone can publish a matching name.
+    condition = alltrue([for g in values(var.groups) :
+      g.ami_name == null || (g.ami_owner != null && can(regex("^([0-9]{12}|amazon|aws-marketplace|self)$", coalesce(g.ami_owner, "x"))))
+    ])
+    error_message = "ami_name needs ami_owner: a 12-digit AWS account ID (e.g. 099720109477 Canonical, 309956199498 Red Hat) or amazon / aws-marketplace / self."
+  }
+
+  validation {
+    condition = alltrue(flatten([for g in values(var.groups) : [
+      length(g.data_volumes) <= 11,
+      [for d in g.data_volumes : d.size_gb >= 1 && contains(["gp3", "gp2", "io1", "io2", "st1", "sc1"], d.type)],
+    ]]))
+    error_message = "data_volumes: at most 11 per instance (/dev/sdf-/dev/sdp), size_gb >= 1, type gp3 / gp2 / io1 / io2 / st1 / sc1."
   }
 }

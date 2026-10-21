@@ -224,6 +224,23 @@ Remove a rule from the file and apply again to drop it.
 `ingress = [...]` (from CIDRs or other groups) and `egress = [...]` (to CIDRs);
 `egress_all = false` restricts outbound to the listed rules. Run `COMPONENT=vm`.
 
+### Standalone instance — any type, AMI, VPC, disks (`COMPONENT=vm`)
+
+Everything is per group in `profiles/<profile>/aws/vm.tfvars`; all new
+options are optional — without them a VM is created exactly as before.
+
+| Need | Setting |
+|---|---|
+| Instance type | `instance_type = "t3a.large"` |
+| Inbound / outbound | `ingress = [...]`, `egress = [...]`, `egress_all = false` |
+| Public IP or not | `subnet = "public"` / `"private"`; `public_ip = true/false` |
+| AMI | fixed `ami = "ami-…"`, or newest by `ami_owner` + `ami_name` (CPU architecture from the instance type) |
+| Extra disks | `data_volumes = [{ size_gb = 100 }]` — encrypted, `/dev/sdf…`; grow in place |
+| VPC | default: base-infra VPC; or `vm_use_default_vpc`, `vm_vpc_id`, `vm_vpc_name` (+ `vm_public_subnet_ids` / `vm_private_subnet_ids`) |
+
+Run **terraform plan / apply** with `COMPONENT=vm`. Outputs: `instances`,
+`instance_amis`, `data_volume_ids`, `security_group_ids`, `iam_role_arns`.
+
 ## Security & Access Control
 
 ### Required GitHub Secrets
