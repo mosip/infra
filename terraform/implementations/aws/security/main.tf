@@ -30,4 +30,5 @@ module "security" {
   wireguard_cidr = var.WIREGUARD_CIDR
 
   extra_ingress_rules = var.extra_ingress_rules
+  extra_egress_rules  = var.extra_egress_rules
 }

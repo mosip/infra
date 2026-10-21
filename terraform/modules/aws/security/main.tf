@@ -169,8 +169,10 @@ resource "aws_security_group" "nginx" {
     }
   }
 
+  # Built-in outbound rules + per-environment additions
+  # (security.tfvars: extra_egress_rules.nginx).
   dynamic "egress" {
-    for_each = local.common_egress_rules
+    for_each = concat(local.common_egress_rules, lookup(var.extra_egress_rules, "nginx", []))
     content {
       description      = egress.value.description
       from_port        = egress.value.from_port
@@ -304,8 +306,10 @@ resource "aws_security_group" "k8s_control_plane" {
     }
   }
 
+  # Built-in outbound rules + per-environment additions
+  # (security.tfvars: extra_egress_rules.control_plane).
   dynamic "egress" {
-    for_each = local.common_egress_rules
+    for_each = concat(local.common_egress_rules, lookup(var.extra_egress_rules, "control_plane", []))
     content {
       description      = egress.value.description
       from_port        = egress.value.from_port
@@ -426,8 +430,10 @@ resource "aws_security_group" "k8s_etcd" {
     }
   }
 
+  # Built-in outbound rules + per-environment additions
+  # (security.tfvars: extra_egress_rules.etcd).
   dynamic "egress" {
-    for_each = local.common_egress_rules
+    for_each = concat(local.common_egress_rules, lookup(var.extra_egress_rules, "etcd", []))
     content {
       description      = egress.value.description
       from_port        = egress.value.from_port
@@ -521,8 +527,10 @@ resource "aws_security_group" "k8s_worker" {
     }
   }
 
+  # Built-in outbound rules + per-environment additions
+  # (security.tfvars: extra_egress_rules.worker).
   dynamic "egress" {
-    for_each = local.common_egress_rules
+    for_each = concat(local.common_egress_rules, lookup(var.extra_egress_rules, "worker", []))
     content {
       description      = egress.value.description
       from_port        = egress.value.from_port

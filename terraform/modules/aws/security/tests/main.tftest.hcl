@@ -283,3 +283,77 @@ run "extra_ingress_rules_rejects_rule_without_source" {
 
   expect_failures = [var.extra_ingress_rules]
 }
+
+# ── extra_egress_rules (per-environment outbound additions) ─────────────────
+
+run "extra_egress_rules_default_changes_nothing" {
+  command = plan
+
+  assert {
+    condition = (
+      length(aws_security_group.nginx.egress) == 6 &&
+      length(aws_security_group.k8s_control_plane.egress) == 6 &&
+      length(aws_security_group.k8s_etcd.egress) == 6 &&
+      length(aws_security_group.k8s_worker.egress) == 6
+    )
+    error_message = "Without extra_egress_rules every group keeps exactly the 6 built-in egress rules"
+  }
+}
+
+run "extra_egress_rules_are_added_to_the_right_group" {
+  command = plan
+
+  variables {
+    extra_egress_rules = {
+      worker = [
+        { description = "SMTP relay", from_port = 587, to_port = 587, protocol = "tcp", cidr_blocks = ["198.51.100.25/32"] },
+        { description = "Partner API v6", from_port = 8443, to_port = 8443, protocol = "tcp", ipv6_cidr_blocks = ["2001:db8::/32"] },
+      ]
+    }
+  }
+
+  assert {
+    condition = (
+      length(aws_security_group.k8s_worker.egress) == 8 &&
+      anytrue([for r in aws_security_group.k8s_worker.egress : r.from_port == 587 && contains(r.cidr_blocks, "198.51.100.25/32")]) &&
+      anytrue([for r in aws_security_group.k8s_worker.egress : r.from_port == 8443 && contains(r.ipv6_cidr_blocks, "2001:db8::/32")])
+    )
+    error_message = "worker extra egress rules missing"
+  }
+  assert {
+    condition = (
+      length(aws_security_group.nginx.egress) == 6 &&
+      length(aws_security_group.k8s_control_plane.egress) == 6 &&
+      length(aws_security_group.k8s_etcd.egress) == 6
+    )
+    error_message = "groups without extra egress rules must keep their built-in rules only"
+  }
+}
+
+run "extra_egress_rules_rejects_unknown_group" {
+  command = plan
+
+  variables {
+    extra_egress_rules = {
+      bastion = [
+        { description = "x", from_port = 443, to_port = 443, protocol = "tcp", cidr_blocks = ["0.0.0.0/0"] },
+      ]
+    }
+  }
+
+  expect_failures = [var.extra_egress_rules]
+}
+
+run "extra_egress_rules_rejects_rule_without_destination" {
+  command = plan
+
+  variables {
+    extra_egress_rules = {
+      nginx = [
+        { description = "no destination", from_port = 25, to_port = 25, protocol = "tcp" },
+      ]
+    }
+  }
+
+  expect_failures = [var.extra_egress_rules]
+}

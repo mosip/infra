@@ -211,6 +211,19 @@ hand. DNS without any API needs a certificate from elsewhere (bring your own).
 the inventory with
 `generate.py … --without nginx --without rancher_import`.
 
+### Adding inbound / outbound security-group rules
+
+**Cluster nodes** (nginx, control-plane, etcd, worker groups) —
+`profiles/<profile>/aws/security.tfvars`:
+`extra_ingress_rules` (inbound) and `extra_egress_rules` (outbound), per group
+(`nginx`, `control_plane`, `etcd`, `worker`), added after the built-in rules.
+Run `COMPONENT=security`: the groups are updated in place, instances untouched.
+Remove a rule from the file and apply again to drop it.
+
+**Standalone VMs** — `profiles/<profile>/aws/vm.tfvars`, per group:
+`ingress = [...]` (from CIDRs or other groups) and `egress = [...]` (to CIDRs);
+`egress_all = false` restricts outbound to the listed rules. Run `COMPONENT=vm`.
+
 ## Security & Access Control
 
 ### Required GitHub Secrets

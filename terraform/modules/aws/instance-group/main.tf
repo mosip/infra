@@ -25,6 +25,16 @@ locals {
     ]...)
   ]...)
 
+  # Flattened egress rules: one resource per (group, rule, destination).
+  egress_cidr_rules = merge([
+    for g, cfg in var.groups : merge([
+      for i, rule in cfg.egress : {
+        for cidr in rule.cidrs :
+        "${g}/${i}/${cidr}" => merge(rule, { group = g, cidr = cidr })
+      }
+    ]...)
+  ]...)
+
   ingress_group_rules = merge([
     for g, cfg in var.groups : merge([
       for i, rule in cfg.ingress : {
@@ -88,6 +98,17 @@ resource "aws_vpc_security_group_ingress_rule" "from_group" {
       error_message = "Group ${each.value.group} allows traffic from '${each.value.source}', which isn't a group in this map."
     }
   }
+}
+
+# Specific outbound rules per group (vm.tfvars: egress = [...]).
+resource "aws_vpc_security_group_egress_rule" "cidr" {
+  for_each          = local.egress_cidr_rules
+  security_group_id = aws_security_group.group[each.value.group].id
+  cidr_ipv4         = each.value.cidr
+  ip_protocol       = each.value.protocol
+  from_port         = each.value.protocol == "-1" ? null : each.value.port
+  to_port           = each.value.protocol == "-1" ? null : coalesce(each.value.to_port, each.value.port)
+  description       = each.value.description
 }
 
 resource "aws_vpc_security_group_egress_rule" "all" {
