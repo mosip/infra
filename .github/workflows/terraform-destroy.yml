@@ -109,6 +109,9 @@ jobs:
       BACKEND_TYPE: ${{ inputs.BACKEND_TYPE }}
       REMOTE_BACKEND_CONFIG: ${{ inputs.REMOTE_BACKEND_CONFIG }}
       ENABLE_STATE_LOCKING: ${{ inputs.ENABLE_STATE_LOCKING }}
+      # vm isn't part of an `all` apply — when it was never applied there's
+      # nothing to destroy. An explicit COMPONENT=vm still fails without state.
+      ALLOW_MISSING_STATE: ${{ inputs.COMPONENT == 'all' }}
 
   dns:
     needs: validate
