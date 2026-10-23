@@ -1,5 +1,5 @@
 terraform {
   backend "local" {
-    path = "profiles/mosip/aws-iam-mosip-GH-issue-273-v2-terraform.tfstate"
+    path = "profiles/observ/aws-iam-observ-GH-issue-273-v2-terraform.tfstate"
   }
 }
