@@ -81,7 +81,7 @@ resource "aws_security_group" "nginx" {
     to_port          = 22
     protocol         = "TCP"
     cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
   ingress {
     description      = "Allow ICMP (open access)"
@@ -89,7 +89,7 @@ resource "aws_security_group" "nginx" {
     to_port          = -1
     protocol         = "ICMP"
     cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
   ingress {
     description      = "HTTP port (public)"
@@ -97,7 +97,7 @@ resource "aws_security_group" "nginx" {
     to_port          = 80
     protocol         = "TCP"
     cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
   ingress {
     description      = "HTTPS port (public)"
@@ -105,7 +105,7 @@ resource "aws_security_group" "nginx" {
     to_port          = 443
     protocol         = "TCP"
     cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
   ingress {
     description      = "Minio console port (open access)"
@@ -113,7 +113,7 @@ resource "aws_security_group" "nginx" {
     to_port          = 9000
     protocol         = "TCP"
     cidr_blocks      = [var.network_cidr]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
   ingress {
     description      = "Postgres port (open access)"
@@ -121,7 +121,7 @@ resource "aws_security_group" "nginx" {
     to_port          = 5432
     protocol         = "TCP"
     cidr_blocks      = [var.network_cidr]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
   ingress {
     description      = "Postgres alternative port (open access)"
@@ -129,7 +129,7 @@ resource "aws_security_group" "nginx" {
     to_port          = 5433
     protocol         = "TCP"
     cidr_blocks      = [var.network_cidr]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
   ingress {
     description      = "ActiveMQ port (open access)"
@@ -137,7 +137,7 @@ resource "aws_security_group" "nginx" {
     to_port          = 61616
     protocol         = "TCP"
     cidr_blocks      = [var.network_cidr]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
   ingress {
     description      = "NFS server port tcp (open access)"
@@ -145,7 +145,7 @@ resource "aws_security_group" "nginx" {
     to_port          = 2049
     protocol         = "TCP"
     cidr_blocks      = [var.network_cidr]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
   ingress {
     description      = "NFS server port udp (open access)"
@@ -153,7 +153,7 @@ resource "aws_security_group" "nginx" {
     to_port          = 2049
     protocol         = "UDP"
     cidr_blocks      = [var.network_cidr]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
 
   # Per-environment additions (security.tfvars: extra_ingress_rules.nginx).
@@ -202,7 +202,7 @@ resource "aws_security_group" "k8s_control_plane" {
     to_port          = 22
     protocol         = "TCP"
     cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
   ingress {
     description      = "Allow ICMP (open access)"
@@ -210,7 +210,7 @@ resource "aws_security_group" "k8s_control_plane" {
     to_port          = -1
     protocol         = "ICMP"
     cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
   ingress {
     description      = "Kubernetes API (open access)"
@@ -218,7 +218,7 @@ resource "aws_security_group" "k8s_control_plane" {
     to_port          = 6443
     protocol         = "TCP"
     cidr_blocks      = [var.network_cidr]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
   ingress {
     description      = "RKE2 supervisor API (open access)"
@@ -226,7 +226,7 @@ resource "aws_security_group" "k8s_control_plane" {
     to_port          = 9345
     protocol         = "TCP"
     cidr_blocks      = [var.network_cidr]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
   ingress {
     description      = "Kubelet metrics (open access)"
@@ -234,7 +234,7 @@ resource "aws_security_group" "k8s_control_plane" {
     to_port          = 10250
     protocol         = "TCP"
     cidr_blocks      = [var.network_cidr]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
   ingress {
     description      = "ETCD client port (open access)"
@@ -242,7 +242,7 @@ resource "aws_security_group" "k8s_control_plane" {
     to_port          = 2379
     protocol         = "TCP"
     cidr_blocks      = [var.network_cidr]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
   ingress {
     description      = "ETCD peer port (open access)"
@@ -250,7 +250,7 @@ resource "aws_security_group" "k8s_control_plane" {
     to_port          = 2380
     protocol         = "TCP"
     cidr_blocks      = [var.network_cidr]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
   ingress {
     description      = "ETCD metrics port (open access)"
@@ -258,7 +258,7 @@ resource "aws_security_group" "k8s_control_plane" {
     to_port          = 2381
     protocol         = "TCP"
     cidr_blocks      = [var.network_cidr]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
   ingress {
     description      = "NodePort port range (open access)"
@@ -266,7 +266,7 @@ resource "aws_security_group" "k8s_control_plane" {
     to_port          = 32767
     protocol         = "TCP"
     cidr_blocks      = [var.network_cidr]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
   ingress {
     description      = "Canal CNI with VXLAN (open access)"
@@ -274,7 +274,7 @@ resource "aws_security_group" "k8s_control_plane" {
     to_port          = 8472
     protocol         = "UDP"
     cidr_blocks      = [var.network_cidr]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
   ingress {
     description      = "Canal CNI health checks (open access)"
@@ -282,7 +282,7 @@ resource "aws_security_group" "k8s_control_plane" {
     to_port          = 9099
     protocol         = "TCP"
     cidr_blocks      = [var.network_cidr]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
   ingress {
     description      = "PostgreSQL port (open access)"
@@ -290,7 +290,7 @@ resource "aws_security_group" "k8s_control_plane" {
     to_port          = 5433
     protocol         = "TCP"
     cidr_blocks      = [var.network_cidr]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
 
   ingress {
@@ -372,7 +372,7 @@ resource "aws_security_group" "k8s_etcd" {
     to_port          = 22
     protocol         = "TCP"
     cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
   ingress {
     description      = "Allow ICMP (open access)"
@@ -380,7 +380,7 @@ resource "aws_security_group" "k8s_etcd" {
     to_port          = -1
     protocol         = "ICMP"
     cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
   ingress {
     description      = "Kubelet metrics (open access)"
@@ -388,7 +388,7 @@ resource "aws_security_group" "k8s_etcd" {
     to_port          = 10250
     protocol         = "TCP"
     cidr_blocks      = [var.network_cidr]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
   ingress {
     description      = "NodePort port range (open access)"
@@ -396,7 +396,7 @@ resource "aws_security_group" "k8s_etcd" {
     to_port          = 32767
     protocol         = "TCP"
     cidr_blocks      = [var.network_cidr]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
   ingress {
     description      = "ETCD client port (open access)"
@@ -404,7 +404,7 @@ resource "aws_security_group" "k8s_etcd" {
     to_port          = 2379
     protocol         = "TCP"
     cidr_blocks      = [var.network_cidr]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
   ingress {
     description      = "ETCD peer port (open access)"
@@ -412,7 +412,7 @@ resource "aws_security_group" "k8s_etcd" {
     to_port          = 2380
     protocol         = "TCP"
     cidr_blocks      = [var.network_cidr]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
   ingress {
     description      = "ETCD metrics port (open access)"
@@ -420,7 +420,7 @@ resource "aws_security_group" "k8s_etcd" {
     to_port          = 2381
     protocol         = "TCP"
     cidr_blocks      = [var.network_cidr]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
   ingress {
     description      = "Canal CNI with VXLAN (open access)"
@@ -428,7 +428,7 @@ resource "aws_security_group" "k8s_etcd" {
     to_port          = 8472
     protocol         = "UDP"
     cidr_blocks      = [var.network_cidr]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
   ingress {
     # NOTE: this one is intentionally 0.0.0.0/0, not network_cidr — matches the
@@ -439,7 +439,7 @@ resource "aws_security_group" "k8s_etcd" {
     to_port          = 9099
     protocol         = "TCP"
     cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
   ingress {
     description      = "PostgreSQL port (open access)"
@@ -447,7 +447,7 @@ resource "aws_security_group" "k8s_etcd" {
     to_port          = 5433
     protocol         = "TCP"
     cidr_blocks      = [var.network_cidr]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
 
   ingress {
@@ -513,7 +513,7 @@ resource "aws_security_group" "k8s_worker" {
     to_port          = 22
     protocol         = "TCP"
     cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
   ingress {
     description      = "Allow ICMP (open access)"
@@ -521,7 +521,7 @@ resource "aws_security_group" "k8s_worker" {
     to_port          = -1
     protocol         = "ICMP"
     cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
   ingress {
     description      = "Kubelet metrics (open access)"
@@ -529,7 +529,7 @@ resource "aws_security_group" "k8s_worker" {
     to_port          = 10250
     protocol         = "TCP"
     cidr_blocks      = [var.network_cidr]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
   ingress {
     description      = "NodePort port range (open access)"
@@ -537,7 +537,7 @@ resource "aws_security_group" "k8s_worker" {
     to_port          = 32767
     protocol         = "TCP"
     cidr_blocks      = [var.network_cidr]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
   ingress {
     description      = "Canal CNI with VXLAN (open access)"
@@ -545,7 +545,7 @@ resource "aws_security_group" "k8s_worker" {
     to_port          = 8472
     protocol         = "UDP"
     cidr_blocks      = [var.network_cidr]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
   ingress {
     description      = "Canal CNI health checks (open access)"
@@ -553,7 +553,7 @@ resource "aws_security_group" "k8s_worker" {
     to_port          = 9099
     protocol         = "TCP"
     cidr_blocks      = [var.network_cidr]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
   ingress {
     description      = "PostgreSQL port (open access)"
@@ -561,7 +561,7 @@ resource "aws_security_group" "k8s_worker" {
     to_port          = 5433
     protocol         = "TCP"
     cidr_blocks      = [var.network_cidr]
-    ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = []
   }
 
   ingress {

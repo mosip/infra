@@ -384,3 +384,16 @@ run "metrics_ports_vpc_only_ipv4_only" {
     error_message = "control plane: 9100/10249/10257/10259; etcd + worker: 9100/10249; nginx: none"
   }
 }
+
+run "no_builtin_rule_allows_ipv6" {
+  command = plan
+
+  assert {
+    condition = alltrue(flatten([
+      for g in [aws_security_group.nginx, aws_security_group.k8s_control_plane, aws_security_group.k8s_etcd, aws_security_group.k8s_worker] : [
+        for r in setunion(g.ingress, g.egress) : length(r.ipv6_cidr_blocks) == 0
+      ]
+    ]))
+    error_message = "Built-in rules must not allow IPv6 (ipv6_cidr_blocks = [])"
+  }
+}
