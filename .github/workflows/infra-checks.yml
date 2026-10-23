@@ -38,6 +38,16 @@ jobs:
             echo "::endgroup::"
           done
 
+      - name: Security group rules of every profile match the legacy rules
+        run: |
+          set -euo pipefail
+          cd terraform/modules/aws/security
+          for f in ../../../../profiles/*/aws/security.tfvars; do
+            echo "::group::security rules $f"
+            terraform test -no-color -test-directory=tests-profiles -var-file="$f"
+            echo "::endgroup::"
+          done
+
       - name: Validate every root
         run: |
           set -euo pipefail

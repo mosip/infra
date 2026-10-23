@@ -215,10 +215,13 @@ the inventory with
 
 **Cluster nodes** (nginx, control-plane, etcd, worker groups) —
 `profiles/<profile>/aws/security.tfvars`:
-`extra_ingress_rules` (inbound) and `extra_egress_rules` (outbound), per group
-(`nginx`, `control_plane`, `etcd`, `worker`), added after the built-in rules.
-Run `COMPONENT=security`: the groups are updated in place, instances untouched.
-Remove a rule from the file and apply again to drop it.
+every rule lives there — `ingress_rules` per group (`nginx`, `control_plane`,
+`etcd`, `worker`) and `egress_rules` for all groups; the module holds no ports.
+Add, edit or delete a row, then run `COMPONENT=security`: the groups are updated
+in place, instances untouched. `"network_cidr"` / `"wireguard_cidr"` in
+`cidr_blocks` are filled in from `common.tfvars`. The older
+`extra_ingress_rules` / `extra_egress_rules` still add on top. CI
+(`infra-checks.yml`) checks every profile's table against the legacy rules.
 
 **Standalone VMs** — `profiles/<profile>/aws/vm.tfvars`, per group:
 `ingress = [...]` (from CIDRs or other groups) and `egress = [...]` (to CIDRs);

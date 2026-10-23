@@ -15,178 +15,76 @@ variables {
   vpc_id         = "vpc-0123456789abcdef0"
   network_cidr   = "172.0.0.0/8"
   wireguard_cidr = "172.0.0.0/8"
-}
 
-run "nginx_sg_matches_legacy_ingress_rules" {
-  command = plan
-
-  # Legacy: SECURITY_GROUP.NGINX_SECURITY_GROUP had exactly 10 ingress rules
-  # (SSH, ICMP, HTTP, HTTPS, Minio, Postgres, Postgres-alt, ActiveMQ, NFS-tcp, NFS-udp)
-  assert {
-    condition     = length(aws_security_group.nginx.ingress) == 10
-    error_message = "nginx SG ingress rule count changed from legacy's 10 rules"
+  # Fixture rule table (copy of profiles/*/aws/security.tfvars) for the module
+  # mechanics tests below. The real profile tables are checked against the
+  # legacy rules by ../tests-profiles/ (run per profile in infra-checks.yml).
+  ingress_rules = {
+    nginx = [
+      { description = "SSH login port (open access)", from_port = 22, to_port = 22, protocol = "TCP", cidr_blocks = ["0.0.0.0/0"] },
+      { description = "Allow ICMP (open access)", from_port = -1, to_port = -1, protocol = "ICMP", cidr_blocks = ["0.0.0.0/0"] },
+      { description = "HTTP port (public)", from_port = 80, to_port = 80, protocol = "TCP", cidr_blocks = ["0.0.0.0/0"] },
+      { description = "HTTPS port (public)", from_port = 443, to_port = 443, protocol = "TCP", cidr_blocks = ["0.0.0.0/0"] },
+      { description = "Minio console port (open access)", from_port = 9000, to_port = 9000, protocol = "TCP", cidr_blocks = ["network_cidr"] },
+      { description = "Postgres port (open access)", from_port = 5432, to_port = 5432, protocol = "TCP", cidr_blocks = ["network_cidr"] },
+      { description = "Postgres alternative port (open access)", from_port = 5433, to_port = 5433, protocol = "TCP", cidr_blocks = ["network_cidr"] },
+      { description = "ActiveMQ port (open access)", from_port = 61616, to_port = 61616, protocol = "TCP", cidr_blocks = ["network_cidr"] },
+      { description = "NFS server port tcp (open access)", from_port = 2049, to_port = 2049, protocol = "TCP", cidr_blocks = ["network_cidr"] },
+      { description = "NFS server port udp (open access)", from_port = 2049, to_port = 2049, protocol = "UDP", cidr_blocks = ["network_cidr"] },
+    ]
+    control_plane = [
+      { description = "SSH login port (open access)", from_port = 22, to_port = 22, protocol = "TCP", cidr_blocks = ["0.0.0.0/0"] },
+      { description = "Allow ICMP (open access)", from_port = -1, to_port = -1, protocol = "ICMP", cidr_blocks = ["0.0.0.0/0"] },
+      { description = "Kubernetes API (open access)", from_port = 6443, to_port = 6443, protocol = "TCP", cidr_blocks = ["network_cidr"] },
+      { description = "RKE2 supervisor API (open access)", from_port = 9345, to_port = 9345, protocol = "TCP", cidr_blocks = ["network_cidr"] },
+      { description = "Kubelet metrics (open access)", from_port = 10250, to_port = 10250, protocol = "TCP", cidr_blocks = ["network_cidr"] },
+      { description = "ETCD client port (open access)", from_port = 2379, to_port = 2379, protocol = "TCP", cidr_blocks = ["network_cidr"] },
+      { description = "ETCD peer port (open access)", from_port = 2380, to_port = 2380, protocol = "TCP", cidr_blocks = ["network_cidr"] },
+      { description = "ETCD metrics port (open access)", from_port = 2381, to_port = 2381, protocol = "TCP", cidr_blocks = ["network_cidr"] },
+      { description = "NodePort port range (open access)", from_port = 30000, to_port = 32767, protocol = "TCP", cidr_blocks = ["network_cidr"] },
+      { description = "Canal CNI with VXLAN (open access)", from_port = 8472, to_port = 8472, protocol = "UDP", cidr_blocks = ["network_cidr"] },
+      { description = "Canal CNI health checks (open access)", from_port = 9099, to_port = 9099, protocol = "TCP", cidr_blocks = ["network_cidr"] },
+      { description = "PostgreSQL port (open access)", from_port = 5433, to_port = 5433, protocol = "TCP", cidr_blocks = ["network_cidr"] },
+      { description = "node-exporter metrics", from_port = 9100, to_port = 9100, protocol = "TCP", cidr_blocks = ["network_cidr"] },
+      { description = "kube-controller-manager metrics", from_port = 10257, to_port = 10257, protocol = "TCP", cidr_blocks = ["network_cidr"] },
+      { description = "kube-scheduler metrics", from_port = 10259, to_port = 10259, protocol = "TCP", cidr_blocks = ["network_cidr"] },
+      { description = "kube-proxy metrics", from_port = 10249, to_port = 10249, protocol = "TCP", cidr_blocks = ["network_cidr"] },
+    ]
+    etcd = [
+      { description = "SSH login port (open access)", from_port = 22, to_port = 22, protocol = "TCP", cidr_blocks = ["0.0.0.0/0"] },
+      { description = "Allow ICMP (open access)", from_port = -1, to_port = -1, protocol = "ICMP", cidr_blocks = ["0.0.0.0/0"] },
+      { description = "Kubelet metrics (open access)", from_port = 10250, to_port = 10250, protocol = "TCP", cidr_blocks = ["network_cidr"] },
+      { description = "NodePort port range (open access)", from_port = 30000, to_port = 32767, protocol = "TCP", cidr_blocks = ["network_cidr"] },
+      { description = "ETCD client port (open access)", from_port = 2379, to_port = 2379, protocol = "TCP", cidr_blocks = ["network_cidr"] },
+      { description = "ETCD peer port (open access)", from_port = 2380, to_port = 2380, protocol = "TCP", cidr_blocks = ["network_cidr"] },
+      { description = "ETCD metrics port (open access)", from_port = 2381, to_port = 2381, protocol = "TCP", cidr_blocks = ["network_cidr"] },
+      { description = "Canal CNI with VXLAN (open access)", from_port = 8472, to_port = 8472, protocol = "UDP", cidr_blocks = ["network_cidr"] },
+      { description = "Canal CNI health checks (open access)", from_port = 9099, to_port = 9099, protocol = "TCP", cidr_blocks = ["0.0.0.0/0"] },
+      { description = "PostgreSQL port (open access)", from_port = 5433, to_port = 5433, protocol = "TCP", cidr_blocks = ["network_cidr"] },
+      { description = "node-exporter metrics", from_port = 9100, to_port = 9100, protocol = "TCP", cidr_blocks = ["network_cidr"] },
+      { description = "kube-proxy metrics", from_port = 10249, to_port = 10249, protocol = "TCP", cidr_blocks = ["network_cidr"] },
+    ]
+    worker = [
+      { description = "SSH login port (open access)", from_port = 22, to_port = 22, protocol = "TCP", cidr_blocks = ["0.0.0.0/0"] },
+      { description = "Allow ICMP (open access)", from_port = -1, to_port = -1, protocol = "ICMP", cidr_blocks = ["0.0.0.0/0"] },
+      { description = "Kubelet metrics (open access)", from_port = 10250, to_port = 10250, protocol = "TCP", cidr_blocks = ["network_cidr"] },
+      { description = "NodePort port range (open access)", from_port = 30000, to_port = 32767, protocol = "TCP", cidr_blocks = ["network_cidr"] },
+      { description = "Canal CNI with VXLAN (open access)", from_port = 8472, to_port = 8472, protocol = "UDP", cidr_blocks = ["network_cidr"] },
+      { description = "Canal CNI health checks (open access)", from_port = 9099, to_port = 9099, protocol = "TCP", cidr_blocks = ["network_cidr"] },
+      { description = "PostgreSQL port (open access)", from_port = 5433, to_port = 5433, protocol = "TCP", cidr_blocks = ["network_cidr"] },
+      { description = "node-exporter metrics", from_port = 9100, to_port = 9100, protocol = "TCP", cidr_blocks = ["network_cidr"] },
+      { description = "kube-proxy metrics", from_port = 10249, to_port = 10249, protocol = "TCP", cidr_blocks = ["network_cidr"] },
+    ]
   }
 
-  assert {
-    condition = anytrue([
-      for r in aws_security_group.nginx.ingress :
-      r.from_port == 22 && r.to_port == 22 && r.protocol == "TCP" && contains(r.cidr_blocks, "0.0.0.0/0")
-    ])
-    error_message = "nginx SG missing legacy SSH (22/TCP, 0.0.0.0/0) ingress rule"
-  }
-
-  assert {
-    condition = anytrue([
-      for r in aws_security_group.nginx.ingress :
-      r.from_port == 9000 && r.to_port == 9000 && r.protocol == "TCP" && contains(r.cidr_blocks, "172.0.0.0/8")
-    ])
-    error_message = "nginx SG missing legacy Minio console (9000/TCP, network_cidr) ingress rule"
-  }
-
-  assert {
-    condition = anytrue([
-      for r in aws_security_group.nginx.ingress :
-      r.from_port == 2049 && r.to_port == 2049 && r.protocol == "UDP"
-    ])
-    error_message = "nginx SG missing legacy NFS UDP (2049) ingress rule"
-  }
-
-  assert {
-    condition     = aws_security_group.nginx.tags.Role == "nginx"
-    error_message = "nginx SG missing the new Role=nginx tag (intentional #275 addition, not in the legacy monolith)"
-  }
-}
-
-run "control_plane_sg_matches_legacy_ingress_rules" {
-  command = plan
-
-  # Legacy: K8S_CONTROL_PLANE_SECURITY_GROUP had exactly 12 ingress rules
-  # (SSH, ICMP, K8s API, RKE2 supervisor, Kubelet metrics, ETCD client/peer/
-  # metrics, NodePort range, Canal VXLAN, Canal health-check, PostgreSQL)
-  assert {
-    condition     = length(aws_security_group.k8s_control_plane.ingress) == 12
-    error_message = "control-plane SG ingress rule count changed from legacy's 12 rules"
-  }
-
-  assert {
-    condition = anytrue([
-      for r in aws_security_group.k8s_control_plane.ingress :
-      r.from_port == 6443 && r.to_port == 6443 && r.protocol == "TCP"
-    ])
-    error_message = "control-plane SG missing legacy Kubernetes API (6443) ingress rule"
-  }
-
-  assert {
-    condition = anytrue([
-      for r in aws_security_group.k8s_control_plane.ingress :
-      r.from_port == 9345 && r.to_port == 9345 && r.protocol == "TCP"
-    ])
-    error_message = "control-plane SG missing legacy RKE2 supervisor API (9345) ingress rule"
-  }
-
-  # Legacy quirk: control-plane's Canal CNI health-check rule uses network_cidr,
-  # NOT 0.0.0.0/0 (unlike ETCD's equivalent rule below) — must be preserved exactly.
-  assert {
-    condition = anytrue([
-      for r in aws_security_group.k8s_control_plane.ingress :
-      r.from_port == 9099 && r.to_port == 9099 && contains(r.cidr_blocks, "172.0.0.0/8") && !contains(r.cidr_blocks, "0.0.0.0/0")
-    ])
-    error_message = "control-plane SG's Canal CNI health-check rule must use network_cidr, not 0.0.0.0/0 (legacy behavior)"
-  }
-
-  assert {
-    condition     = aws_security_group.k8s_control_plane.tags.Role == "control-plane"
-    error_message = "control-plane SG missing the new Role=control-plane tag"
-  }
-}
-
-run "etcd_sg_matches_legacy_ingress_rules_including_quirk" {
-  command = plan
-
-  # Legacy: K8S_ETCD_SECURITY_GROUP had exactly 10 ingress rules
-  assert {
-    condition     = length(aws_security_group.k8s_etcd.ingress) == 10
-    error_message = "etcd SG ingress rule count changed from legacy's 10 rules"
-  }
-
-  # The exact legacy quirk this decoupling had to preserve deliberately:
-  # ETCD's Canal CNI health-check rule uses 0.0.0.0/0, NOT network_cidr —
-  # opposite of control-plane's equivalent rule. Confirmed against
-  # aws-main.tf's K8S_ETCD_SECURITY_GROUP definition.
-  assert {
-    condition = anytrue([
-      for r in aws_security_group.k8s_etcd.ingress :
-      r.from_port == 9099 && r.to_port == 9099 && contains(r.cidr_blocks, "0.0.0.0/0")
-    ])
-    error_message = "etcd SG's Canal CNI health-check rule must use 0.0.0.0/0 (legacy quirk, differs from control-plane's equivalent rule) — regression risk if this ever gets 'fixed' to match control-plane"
-  }
-
-  assert {
-    condition     = aws_security_group.k8s_etcd.tags.Role == "etcd"
-    error_message = "etcd SG missing the new Role=etcd tag"
-  }
-}
-
-run "worker_sg_matches_legacy_ingress_rules" {
-  command = plan
-
-  # Legacy: K8S_WORKER_SECURITY_GROUP had exactly 7 ingress rules
-  assert {
-    condition     = length(aws_security_group.k8s_worker.ingress) == 7
-    error_message = "worker SG ingress rule count changed from legacy's 7 rules"
-  }
-
-  assert {
-    condition = anytrue([
-      for r in aws_security_group.k8s_worker.ingress :
-      r.from_port == 8472 && r.to_port == 8472 && r.protocol == "UDP"
-    ])
-    error_message = "worker SG missing legacy Canal CNI VXLAN (8472/UDP) ingress rule"
-  }
-
-  assert {
-    condition     = aws_security_group.k8s_worker.tags.Role == "worker"
-    error_message = "worker SG missing the new Role=worker tag"
-  }
-}
-
-run "shared_egress_rules_match_legacy_on_every_group" {
-  command = plan
-
-  # Legacy: aws-resource-creation-main.tf's aws_security_group.security-group
-  # had exactly 6 egress blocks, shared identically across all 4 node types.
-  assert {
-    condition     = length(aws_security_group.nginx.egress) == 6
-    error_message = "nginx SG egress rule count changed from legacy's 6 shared rules"
-  }
-  assert {
-    condition     = length(aws_security_group.k8s_control_plane.egress) == 6
-    error_message = "control-plane SG egress rule count changed from legacy's 6 shared rules"
-  }
-  assert {
-    condition     = length(aws_security_group.k8s_etcd.egress) == 6
-    error_message = "etcd SG egress rule count changed from legacy's 6 shared rules"
-  }
-  assert {
-    condition     = length(aws_security_group.k8s_worker.egress) == 6
-    error_message = "worker SG egress rule count changed from legacy's 6 shared rules"
-  }
-
-  assert {
-    condition = anytrue([
-      for r in aws_security_group.nginx.egress :
-      r.from_port == 51820 && r.to_port == 51820 && r.protocol == "udp" && contains(r.cidr_blocks, "172.0.0.0/8")
-    ])
-    error_message = "nginx SG missing legacy WireGuard egress rule (51820/udp to wireguard_cidr)"
-  }
-
-  assert {
-    condition = anytrue([
-      for r in aws_security_group.nginx.egress :
-      r.protocol == "-1" && contains(r.cidr_blocks, "10.42.0.0/16") && contains(r.cidr_blocks, "10.43.0.0/16")
-    ])
-    error_message = "nginx SG missing legacy internal-communication egress rule (VPC + Pod networks, all protocols)"
-  }
+  egress_rules = [
+    { description = "Allow HTTP outbound to anywhere (for package downloads)", from_port = 80, to_port = 80, protocol = "tcp", cidr_blocks = ["0.0.0.0/0"] },
+    { description = "Allow HTTPS outbound to anywhere", from_port = 443, to_port = 443, protocol = "tcp", cidr_blocks = ["0.0.0.0/0"] },
+    { description = "Allow WireGuard VPN outbound to VPN CIDR", from_port = 51820, to_port = 51820, protocol = "udp", cidr_blocks = ["wireguard_cidr"] },
+    { description = "Allow DNS TCP outbound to anywhere (for public DNS resolution)", from_port = 53, to_port = 53, protocol = "tcp", cidr_blocks = ["0.0.0.0/0"] },
+    { description = "Allow DNS UDP outbound to anywhere (for public DNS resolution)", from_port = 53, to_port = 53, protocol = "udp", cidr_blocks = ["0.0.0.0/0"] },
+    { description = "Allow all required internal communication (VPC + Pod Networks)", from_port = 0, to_port = 0, protocol = "-1", cidr_blocks = ["network_cidr", "10.42.0.0/16", "10.43.0.0/16"] },
+  ]
 }
 
 run "all_groups_tagged_with_cluster_and_component" {
@@ -210,7 +108,7 @@ run "extra_ingress_rules_default_changes_nothing" {
   assert {
     condition = (
       length(aws_security_group.nginx.ingress) == 10 &&
-      length(aws_security_group.k8s_worker.ingress) == 7
+      length(aws_security_group.k8s_worker.ingress) == 9
     )
     error_message = "Without extra_ingress_rules the built-in rule counts must not change"
   }
@@ -240,7 +138,7 @@ run "extra_ingress_rules_are_added_to_the_right_group" {
   }
 
   assert {
-    condition = length(aws_security_group.k8s_worker.ingress) == 9 && anytrue([
+    condition = length(aws_security_group.k8s_worker.ingress) == 11 && anytrue([
       for r in aws_security_group.k8s_worker.ingress :
       r.from_port == 8443 && contains(r.ipv6_cidr_blocks, "2001:db8::/32")
     ])
@@ -249,8 +147,8 @@ run "extra_ingress_rules_are_added_to_the_right_group" {
 
   assert {
     condition = (
-      length(aws_security_group.k8s_control_plane.ingress) == 12 &&
-      length(aws_security_group.k8s_etcd.ingress) == 10
+      length(aws_security_group.k8s_control_plane.ingress) == 16 &&
+      length(aws_security_group.k8s_etcd.ingress) == 12
     )
     error_message = "groups without extra rules must keep their built-in rules only"
   }
@@ -356,4 +254,113 @@ run "extra_egress_rules_rejects_rule_without_destination" {
   }
 
   expect_failures = [var.extra_egress_rules]
+}
+
+# ── Prometheus metrics ports (#432) ─────────────────────────────────────────
+
+# ── ingress_rules / egress_rules from tfvars ─────────────────────────────────
+
+run "placeholders_are_replaced" {
+  command = plan
+
+  variables {
+    network_cidr   = "10.73.0.0/16"
+    wireguard_cidr = "10.15.0.0/16"
+  }
+
+  assert {
+    condition = alltrue(flatten([
+      for g in [aws_security_group.nginx, aws_security_group.k8s_control_plane, aws_security_group.k8s_etcd, aws_security_group.k8s_worker] : [
+        for r in setunion(g.ingress, g.egress) : !contains(r.cidr_blocks, "network_cidr") && !contains(r.cidr_blocks, "wireguard_cidr")
+      ]
+    ]))
+    error_message = "Placeholders must not reach AWS"
+  }
+
+  assert {
+    condition = (
+      anytrue([for r in aws_security_group.k8s_control_plane.ingress : r.from_port == 6443 && contains(r.cidr_blocks, "10.73.0.0/16")]) &&
+      anytrue([for r in aws_security_group.k8s_worker.egress : r.from_port == 51820 && contains(r.cidr_blocks, "10.15.0.0/16")])
+    )
+    error_message = "network_cidr / wireguard_cidr must be filled in from the variables"
+  }
+}
+
+run "row_added_in_tfvars_reaches_only_that_group" {
+  command = plan
+
+  variables {
+    ingress_rules = {
+      nginx         = [{ description = "SSH", from_port = 22, to_port = 22, protocol = "TCP", cidr_blocks = ["0.0.0.0/0"] }]
+      control_plane = [{ description = "SSH", from_port = 22, to_port = 22, protocol = "TCP", cidr_blocks = ["0.0.0.0/0"] }]
+      etcd          = [{ description = "SSH", from_port = 22, to_port = 22, protocol = "TCP", cidr_blocks = ["0.0.0.0/0"] }]
+      worker = [
+        { description = "SSH", from_port = 22, to_port = 22, protocol = "TCP", cidr_blocks = ["0.0.0.0/0"] },
+        { description = "App port", from_port = 8443, to_port = 8443, protocol = "TCP", cidr_blocks = ["network_cidr"] },
+      ]
+    }
+  }
+
+  assert {
+    condition = (
+      length(aws_security_group.k8s_worker.ingress) == 2 &&
+      length(aws_security_group.k8s_control_plane.ingress) == 1 &&
+      anytrue([for r in aws_security_group.k8s_worker.ingress : r.from_port == 8443 && contains(r.cidr_blocks, "172.0.0.0/8")])
+    )
+    error_message = "A row in ingress_rules.worker must reach the worker group only"
+  }
+}
+
+run "ingress_rules_missing_group_rejected" {
+  command = plan
+
+  variables {
+    ingress_rules = {
+      nginx         = [{ description = "SSH", from_port = 22, to_port = 22, protocol = "TCP", cidr_blocks = ["0.0.0.0/0"] }]
+      control_plane = [{ description = "SSH", from_port = 22, to_port = 22, protocol = "TCP", cidr_blocks = ["0.0.0.0/0"] }]
+      etcd          = [{ description = "SSH", from_port = 22, to_port = 22, protocol = "TCP", cidr_blocks = ["0.0.0.0/0"] }]
+    }
+  }
+
+  expect_failures = [var.ingress_rules]
+}
+
+run "ingress_rules_unknown_group_rejected" {
+  command = plan
+
+  variables {
+    ingress_rules = {
+      nginx         = [{ description = "SSH", from_port = 22, to_port = 22, protocol = "TCP", cidr_blocks = ["0.0.0.0/0"] }]
+      control_plane = [{ description = "SSH", from_port = 22, to_port = 22, protocol = "TCP", cidr_blocks = ["0.0.0.0/0"] }]
+      etcd          = [{ description = "SSH", from_port = 22, to_port = 22, protocol = "TCP", cidr_blocks = ["0.0.0.0/0"] }]
+      workers       = [{ description = "SSH", from_port = 22, to_port = 22, protocol = "TCP", cidr_blocks = ["0.0.0.0/0"] }]
+    }
+  }
+
+  expect_failures = [var.ingress_rules]
+}
+
+run "ingress_rule_without_source_rejected" {
+  command = plan
+
+  variables {
+    ingress_rules = {
+      nginx         = [{ description = "SSH", from_port = 22, to_port = 22, protocol = "TCP" }]
+      control_plane = [{ description = "SSH", from_port = 22, to_port = 22, protocol = "TCP", cidr_blocks = ["0.0.0.0/0"] }]
+      etcd          = [{ description = "SSH", from_port = 22, to_port = 22, protocol = "TCP", cidr_blocks = ["0.0.0.0/0"] }]
+      worker        = [{ description = "SSH", from_port = 22, to_port = 22, protocol = "TCP", cidr_blocks = ["0.0.0.0/0"] }]
+    }
+  }
+
+  expect_failures = [var.ingress_rules]
+}
+
+run "egress_rule_without_destination_rejected" {
+  command = plan
+
+  variables {
+    egress_rules = [{ description = "HTTPS", from_port = 443, to_port = 443, protocol = "tcp" }]
+  }
+
+  expect_failures = [var.egress_rules]
 }
