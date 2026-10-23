@@ -127,6 +127,19 @@ class TerraformMode(Fixture):
         rc, _ = self.from_terraform("--without", "dns")
         self.assertNotEqual(rc, 0)
 
+    def test_additional_subdomains_from_dns_tfvars(self):
+        self.compute()
+        dns = write(os.path.join(self.dir, "dns.tfvars"),
+                    'additional_subdomain_internal = ["grafana", "postgres"]\n'
+                    'additional_subdomain_public = ["portal"]\n')
+        _, inv = self.from_terraform("--tfvars", dns)
+        v = inv["all"]["vars"]
+        self.assertEqual(v["subdomain_internal"][-1], "grafana")
+        self.assertEqual(v["subdomain_internal"].count("postgres"), 1)  # already listed: no-op
+        self.assertEqual(v["subdomain_public"][-1], "portal")
+        self.assertTrue(v["public_domain_list"].endswith("portal.dev1.example.org"))
+        self.assertNotIn("additional_subdomain_internal", v)
+
     def test_node_numbering_sorts_numerically(self):
         self.compute(cp=11, etcd=0, workers=0)
         _, inv = self.from_terraform()
@@ -218,6 +231,19 @@ class HostsMode(Fixture):
         self.assertEqual(rc, 0)
         # hosts mode never gates on storage outputs
         self.assertIn("postgresql", inv["all"]["vars"]["configure_components"])
+
+    def test_additional_subdomains_in_hosts_mode(self):
+        hosts = write(os.path.join(self.dir, "hosts.yml"),
+                      self.HOSTS + "\n") 
+        import yaml as _y
+        doc = _y.safe_load(open(hosts))
+        doc.setdefault("vars", {})["additional_subdomain_internal"] = ["grafana"]
+        with open(hosts, "w") as fh:
+            _y.safe_dump(doc, fh)
+        rc, inv = self.run_gen("--from-hosts", hosts)
+        self.assertEqual(rc, 0)
+        self.assertEqual(inv["all"]["vars"]["subdomain_internal"][-1], "grafana")
+        self.assertNotIn("additional_subdomain_internal", inv["all"]["vars"])
 
     def test_without_in_hosts_mode(self):
         hosts = write(os.path.join(self.dir, "hosts.yml"), self.HOSTS)

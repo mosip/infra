@@ -241,6 +241,20 @@ options are optional — without them a VM is created exactly as before.
 Run **terraform plan / apply** with `COMPONENT=vm`. Outputs: `instances`,
 `instance_amis`, `data_volume_ids`, `security_group_ids`, `iam_role_arns`.
 
+### Adding a subdomain after deployment
+
+In `profiles/<profile>/aws/dns.tfvars` (this environment only):
+```hcl
+additional_subdomain_internal = ["grafana"]   # → api-internal.<domain>
+additional_subdomain_public   = ["portal"]    # → api.<domain>
+```
+Run `COMPONENT=dns` — the plan adds one record per new name and changes
+nothing else (a name already listed is ignored). Non-Route53 providers:
+`COMPONENT=configure`. The wildcard certificate already covers new names; the
+application still needs an istio Gateway/VirtualService for the host. Don't
+use `subdomain_public` / `subdomain_internal` for this — they replace the
+profile's whole list.
+
 ## Security & Access Control
 
 ### Required GitHub Secrets

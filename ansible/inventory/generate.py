@@ -242,18 +242,32 @@ def validate(nginx, nodes, all_vars):
         raise InventoryError(f"tls_mode={tls_mode} needs certbot_email")
 
 
-def render(profile, nginx, nodes, all_vars, components):
+ADDITIONAL_SUBDOMAIN_KEYS = ("additional_subdomain_public", "additional_subdomain_internal")
+
+
+def subdomains(profile, extra, kind):
+    """The profile's subdomain_<kind> plus additional_subdomain_<kind> from
+    dns.tfvars / hosts.yml (same as the Terraform dns component: appended,
+    duplicates dropped)."""
+    base = list(profile.get(f"subdomain_{kind}") or [])
+    return base + [s for s in extra.get(f"additional_subdomain_{kind}", []) if s not in base]
+
+
+def render(profile, nginx, nodes, all_vars, components, extra_subdomains=None):
     cluster = all_vars["cluster_name"]
     domain = all_vars["cluster_env_domain"]
 
-    public_domains = [f"api.{domain}"] + [f"{s}.{domain}" for s in profile.get("subdomain_public") or []]
+    extra = extra_subdomains or {}
+    sub_public = subdomains(profile, extra, "public")
+    sub_internal = subdomains(profile, extra, "internal")
+    public_domains = [f"api.{domain}"] + [f"{s}.{domain}" for s in sub_public]
     all_node_ips = [a for group, _, _ in NODE_GROUPS for a in nodes.get(group, [])]
 
     derived = {
         "nginx_type": profile["nginx_type"],
         "configure_components": components,
-        "subdomain_public": list(profile.get("subdomain_public") or []),
-        "subdomain_internal": list(profile.get("subdomain_internal") or []),
+        "subdomain_public": sub_public,
+        "subdomain_internal": sub_internal,
         "public_domain_list": ",".join(public_domains),
         "k8s_node_ips_joined": ",".join(all_node_ips),
         "k8s_primary_control_plane_ip": nodes["control_plane"][0],
@@ -308,22 +322,28 @@ def build(args):
     all_vars.setdefault("ansible_ssh_common_args", "-o StrictHostKeyChecking=no")
     components = list(profile.get("configure_components") or [])
 
+    extra_subdomains = {}
     if args.from_terraform:
         nginx, nodes, storage = hosts_from_terraform(args.from_terraform)
         for tfvars in args.tfvars or []:
             for tf_key, value in parse_tfvars(tfvars).items():
                 if tf_key in TFVARS_TO_ANSIBLE:
                     all_vars[TFVARS_TO_ANSIBLE[tf_key]] = value
+                elif tf_key in ADDITIONAL_SUBDOMAIN_KEYS and isinstance(value, list):
+                    extra_subdomains[tf_key] = value
         components = gate_components_on_storage(components, storage)
         all_vars.update(storage_device_vars(storage))
     else:
         nginx, nodes, file_vars = hosts_from_file(args.from_hosts)
+        for key in ADDITIONAL_SUBDOMAIN_KEYS:
+            if key in file_vars:
+                extra_subdomains[key] = list(file_vars.pop(key) or [])
         all_vars.update(file_vars)
 
     components = drop_components(components, args.without)
     all_vars.update(parse_set(args.set))
     validate(nginx, nodes, all_vars)
-    return render(profile, nginx, nodes, all_vars, components)
+    return render(profile, nginx, nodes, all_vars, components, extra_subdomains)
 
 
 def main(argv=None):

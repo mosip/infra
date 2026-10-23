@@ -410,6 +410,10 @@ jobs:
                 --tfvars "$PROFILE_DIR/$CLOUD/common.tfvars"
                 --set "ansible_ssh_private_key_file=$RUNNER_TEMP/ansible_ssh_key"
                 -o inventory.yml)
+          # additional_subdomain_* in dns.tfvars reach the Ansible dns role too
+          if [ -f "$PROFILE_DIR/$CLOUD/dns.tfvars" ]; then
+            args+=(--tfvars "$PROFILE_DIR/$CLOUD/dns.tfvars")
+          fi
           # "no DNS yet": build RKE2, NFS, PostgreSQL, ActiveMQ; TLS + nginx
           # proxy and the Rancher import come in a later run with a DNS provider.
           if [ "$DNS_PROVIDER" = "manual" ]; then
