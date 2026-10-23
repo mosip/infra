@@ -238,3 +238,168 @@ run "state_rejects_bad_value" {
 
   expect_failures = [var.groups]
 }
+
+run "egress_rules_per_destination" {
+  command = plan
+
+  variables {
+    groups = {
+      reports-db = {
+        instance_type = "t3a.large"
+        egress_all    = false
+        egress = [
+          { port = 443, cidrs = ["10.73.0.0/16", "203.0.113.0/24"], description = "HTTPS" },
+          { port = 5432, cidrs = ["10.73.3.0/24"] },
+        ]
+      }
+    }
+  }
+
+  assert {
+    condition = (
+      length(aws_vpc_security_group_egress_rule.cidr) == 3 &&
+      length(aws_vpc_security_group_egress_rule.all) == 0 &&
+      aws_vpc_security_group_egress_rule.cidr["reports-db/0/203.0.113.0/24"].from_port == 443 &&
+      aws_vpc_security_group_egress_rule.cidr["reports-db/1/10.73.3.0/24"].to_port == 5432
+    )
+    error_message = "egress rules must become one rule per destination, and egress_all=false must drop the allow-all rule"
+  }
+}
+
+run "egress_default_is_allow_all_only" {
+  command = plan
+
+  assert {
+    condition     = length(aws_vpc_security_group_egress_rule.cidr) == 0 && length(aws_vpc_security_group_egress_rule.all) == 2
+    error_message = "Without egress rules each group keeps only the allow-all egress"
+  }
+}
+
+run "egress_rule_without_cidrs_rejected" {
+  command = plan
+
+  variables {
+    groups = {
+      tools = { instance_type = "t3a.small", egress = [{ port = 443, cidrs = [] }] }
+    }
+  }
+
+  expect_failures = [var.groups]
+}
+
+# ── AMI lookup (ami_owner + ami_name) ────────────────────────────────────────
+
+run "ami_default_unchanged_without_lookup" {
+  command = plan
+
+  assert {
+    condition     = alltrue([for i in aws_instance.vm : i.ami == "ami-0ad21ae1d0696ad58"]) && length(data.aws_ami.lookup) == 0 && length(data.aws_ec2_instance_type.lookup) == 0
+    error_message = "Without ami_name every instance uses default_ami and no lookup happens"
+  }
+}
+
+run "ami_lookup_by_owner_and_name" {
+  command = plan
+
+  override_data {
+    target = data.aws_ec2_instance_type.lookup
+    values = { supported_architectures = ["arm64"] }
+  }
+  override_data {
+    target = data.aws_ami.lookup
+    values = { id = "ami-0lookup0000000000" }
+  }
+
+  variables {
+    groups = {
+      tools = {
+        instance_type = "t4g.large"
+        ami_owner     = "099720109477"
+        ami_name      = "ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-*-server-*"
+      }
+      pinned = { instance_type = "t3a.large", ami = "ami-0pinned000000000" }
+      plain  = { instance_type = "t3a.large" }
+    }
+  }
+
+  assert {
+    condition = (
+      aws_instance.vm["tools-1"].ami == "ami-0lookup0000000000" &&
+      aws_instance.vm["pinned-1"].ami == "ami-0pinned000000000" &&
+      aws_instance.vm["plain-1"].ami == "ami-0ad21ae1d0696ad58" &&
+      keys(data.aws_ami.lookup) == ["tools"]
+    )
+    error_message = "lookup only for groups with ami_name; explicit ami and default_ami unchanged"
+  }
+  assert {
+    condition     = contains(flatten([for f in data.aws_ami.lookup["tools"].filter : f.values if f.name == "architecture"]), "arm64")
+    error_message = "ARM instance types must look up arm64 images"
+  }
+}
+
+run "ami_name_without_owner_rejected" {
+  command = plan
+
+  variables {
+    groups = { tools = { instance_type = "t3a.large", ami_name = "ubuntu/*" } }
+  }
+
+  expect_failures = [var.groups]
+}
+
+run "ami_and_ami_name_together_rejected" {
+  command = plan
+
+  variables {
+    groups = { tools = { instance_type = "t3a.large", ami = "ami-0abc", ami_owner = "amazon", ami_name = "al2023-ami-*" } }
+  }
+
+  expect_failures = [var.groups]
+}
+
+# ── data disks (data_volumes) ────────────────────────────────────────────────
+
+run "data_volumes_default_none" {
+  command = plan
+
+  assert {
+    condition     = length(aws_ebs_volume.data) == 0 && length(aws_volume_attachment.data) == 0
+    error_message = "No data_volumes = no volumes"
+  }
+}
+
+run "data_volumes_per_instance" {
+  command = plan
+
+  variables {
+    groups = {
+      reports-db = {
+        count         = 2
+        instance_type = "t3a.large"
+        data_volumes  = [{ size_gb = 100 }, { size_gb = 50, type = "io2", iops = 3000 }]
+      }
+    }
+  }
+
+  assert {
+    condition = (
+      length(aws_ebs_volume.data) == 4 &&
+      aws_ebs_volume.data["reports-db-2/1"].size == 50 &&
+      aws_ebs_volume.data["reports-db-2/1"].type == "io2" &&
+      alltrue([for v in aws_ebs_volume.data : v.encrypted]) &&
+      aws_volume_attachment.data["reports-db-1/0"].device_name == "/dev/sdf" &&
+      aws_volume_attachment.data["reports-db-1/1"].device_name == "/dev/sdg"
+    )
+    error_message = "one encrypted volume per (instance, entry), attached at sdf, sdg, ..."
+  }
+}
+
+run "data_volumes_bad_type_rejected" {
+  command = plan
+
+  variables {
+    groups = { db = { instance_type = "t3a.large", data_volumes = [{ size_gb = 10, type = "ssd" }] } }
+  }
+
+  expect_failures = [var.groups]
+}
