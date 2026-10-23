@@ -29,6 +29,8 @@ module "security" {
   network_cidr   = var.network_cidr
   wireguard_cidr = var.WIREGUARD_CIDR
 
+  ingress_rules       = var.ingress_rules
+  egress_rules        = var.egress_rules
   extra_ingress_rules = var.extra_ingress_rules
   extra_egress_rules  = var.extra_egress_rules
 }
