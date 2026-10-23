@@ -293,6 +293,39 @@ resource "aws_security_group" "k8s_control_plane" {
     ipv6_cidr_blocks = ["::/0"]
   }
 
+  ingress {
+    description      = "node-exporter metrics"
+    from_port        = 9100
+    to_port          = 9100
+    protocol         = "TCP"
+    cidr_blocks      = [var.network_cidr]
+    ipv6_cidr_blocks = []
+  }
+  ingress {
+    description      = "kube-controller-manager metrics"
+    from_port        = 10257
+    to_port          = 10257
+    protocol         = "TCP"
+    cidr_blocks      = [var.network_cidr]
+    ipv6_cidr_blocks = []
+  }
+  ingress {
+    description      = "kube-scheduler metrics"
+    from_port        = 10259
+    to_port          = 10259
+    protocol         = "TCP"
+    cidr_blocks      = [var.network_cidr]
+    ipv6_cidr_blocks = []
+  }
+  ingress {
+    description      = "kube-proxy metrics"
+    from_port        = 10249
+    to_port          = 10249
+    protocol         = "TCP"
+    cidr_blocks      = [var.network_cidr]
+    ipv6_cidr_blocks = []
+  }
+
   # Per-environment additions (security.tfvars: extra_ingress_rules.control_plane).
   dynamic "ingress" {
     for_each = lookup(var.extra_ingress_rules, "control_plane", [])
@@ -417,6 +450,23 @@ resource "aws_security_group" "k8s_etcd" {
     ipv6_cidr_blocks = ["::/0"]
   }
 
+  ingress {
+    description      = "node-exporter metrics"
+    from_port        = 9100
+    to_port          = 9100
+    protocol         = "TCP"
+    cidr_blocks      = [var.network_cidr]
+    ipv6_cidr_blocks = []
+  }
+  ingress {
+    description      = "kube-proxy metrics"
+    from_port        = 10249
+    to_port          = 10249
+    protocol         = "TCP"
+    cidr_blocks      = [var.network_cidr]
+    ipv6_cidr_blocks = []
+  }
+
   # Per-environment additions (security.tfvars: extra_ingress_rules.etcd).
   dynamic "ingress" {
     for_each = lookup(var.extra_ingress_rules, "etcd", [])
@@ -512,6 +562,23 @@ resource "aws_security_group" "k8s_worker" {
     protocol         = "TCP"
     cidr_blocks      = [var.network_cidr]
     ipv6_cidr_blocks = ["::/0"]
+  }
+
+  ingress {
+    description      = "node-exporter metrics"
+    from_port        = 9100
+    to_port          = 9100
+    protocol         = "TCP"
+    cidr_blocks      = [var.network_cidr]
+    ipv6_cidr_blocks = []
+  }
+  ingress {
+    description      = "kube-proxy metrics"
+    from_port        = 10249
+    to_port          = 10249
+    protocol         = "TCP"
+    cidr_blocks      = [var.network_cidr]
+    ipv6_cidr_blocks = []
   }
 
   # Per-environment additions (security.tfvars: extra_ingress_rules.worker).

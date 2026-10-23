@@ -63,9 +63,10 @@ run "control_plane_sg_matches_legacy_ingress_rules" {
   # Legacy: K8S_CONTROL_PLANE_SECURITY_GROUP had exactly 12 ingress rules
   # (SSH, ICMP, K8s API, RKE2 supervisor, Kubelet metrics, ETCD client/peer/
   # metrics, NodePort range, Canal VXLAN, Canal health-check, PostgreSQL)
+  # + 4 Prometheus metrics ports (9100, 10249, 10257, 10259) from #432.
   assert {
-    condition     = length(aws_security_group.k8s_control_plane.ingress) == 12
-    error_message = "control-plane SG ingress rule count changed from legacy's 12 rules"
+    condition     = length(aws_security_group.k8s_control_plane.ingress) == 16
+    error_message = "control-plane SG ingress rule count changed (legacy 12 + 4 metrics)"
   }
 
   assert {
@@ -105,7 +106,7 @@ run "etcd_sg_matches_legacy_ingress_rules_including_quirk" {
 
   # Legacy: K8S_ETCD_SECURITY_GROUP had exactly 10 ingress rules
   assert {
-    condition     = length(aws_security_group.k8s_etcd.ingress) == 10
+    condition     = length(aws_security_group.k8s_etcd.ingress) == 12
     error_message = "etcd SG ingress rule count changed from legacy's 10 rules"
   }
 
@@ -132,7 +133,7 @@ run "worker_sg_matches_legacy_ingress_rules" {
 
   # Legacy: K8S_WORKER_SECURITY_GROUP had exactly 7 ingress rules
   assert {
-    condition     = length(aws_security_group.k8s_worker.ingress) == 7
+    condition     = length(aws_security_group.k8s_worker.ingress) == 9
     error_message = "worker SG ingress rule count changed from legacy's 7 rules"
   }
 
@@ -210,7 +211,7 @@ run "extra_ingress_rules_default_changes_nothing" {
   assert {
     condition = (
       length(aws_security_group.nginx.ingress) == 10 &&
-      length(aws_security_group.k8s_worker.ingress) == 7
+      length(aws_security_group.k8s_worker.ingress) == 9
     )
     error_message = "Without extra_ingress_rules the built-in rule counts must not change"
   }
@@ -240,7 +241,7 @@ run "extra_ingress_rules_are_added_to_the_right_group" {
   }
 
   assert {
-    condition = length(aws_security_group.k8s_worker.ingress) == 9 && anytrue([
+    condition = length(aws_security_group.k8s_worker.ingress) == 11 && anytrue([
       for r in aws_security_group.k8s_worker.ingress :
       r.from_port == 8443 && contains(r.ipv6_cidr_blocks, "2001:db8::/32")
     ])
@@ -249,8 +250,8 @@ run "extra_ingress_rules_are_added_to_the_right_group" {
 
   assert {
     condition = (
-      length(aws_security_group.k8s_control_plane.ingress) == 12 &&
-      length(aws_security_group.k8s_etcd.ingress) == 10
+      length(aws_security_group.k8s_control_plane.ingress) == 16 &&
+      length(aws_security_group.k8s_etcd.ingress) == 12
     )
     error_message = "groups without extra rules must keep their built-in rules only"
   }
@@ -356,4 +357,30 @@ run "extra_egress_rules_rejects_rule_without_destination" {
   }
 
   expect_failures = [var.extra_egress_rules]
+}
+
+# ── Prometheus metrics ports (#432) ─────────────────────────────────────────
+
+run "metrics_ports_vpc_only_ipv4_only" {
+  command = plan
+
+  assert {
+    condition = alltrue(flatten([
+      for g in [aws_security_group.k8s_control_plane, aws_security_group.k8s_etcd, aws_security_group.k8s_worker] : [
+        for r in g.ingress : length(r.cidr_blocks) == 1 && contains(r.cidr_blocks, "172.0.0.0/8") && length(r.ipv6_cidr_blocks) == 0 && r.protocol == "TCP"
+        if contains([9100, 10249, 10257, 10259], r.from_port)
+      ]
+    ]))
+    error_message = "Metrics ports must allow only the VPC CIDR over IPv4 (no ::/0)"
+  }
+
+  assert {
+    condition = (
+      length([for r in aws_security_group.k8s_control_plane.ingress : r if contains([9100, 10249, 10257, 10259], r.from_port)]) == 4 &&
+      length([for r in aws_security_group.k8s_etcd.ingress : r if contains([9100, 10249], r.from_port)]) == 2 &&
+      length([for r in aws_security_group.k8s_worker.ingress : r if contains([9100, 10249], r.from_port)]) == 2 &&
+      length([for r in aws_security_group.nginx.ingress : r if contains([9100, 10249, 10257, 10259], r.from_port)]) == 0
+    )
+    error_message = "control plane: 9100/10249/10257/10259; etcd + worker: 9100/10249; nginx: none"
+  }
 }
