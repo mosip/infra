@@ -1049,10 +1049,21 @@ fetch_and_transform() {
   transform_conf <<<"$raw"
 }
 
+# fetch_and_transform runs in a subshell, so its die only exits that subshell;
+# catch the failure here so recorded assignments are rolled back before exiting.
+fetch_failed() {
+  local peer="$1"
+  if [[ "$DRY_RUN" != "true" ]]; then
+    atomic_rollback_assignments "$RECORD_TF" "$RECORD_WG0" "$RECORD_WG1" \
+      || err "Rollback failed; fix $ASSIGNED_FILE manually for TF=$TF_PEER WG0=$WG0_PEER WG1=$WG1_PEER"
+  fi
+  die "Failed fetching peer config for $peer"
+}
+
 log "Fetching and transforming peer configs ..."
-TF_CONF="$(fetch_and_transform "$TF_PEER")"
-WG0_CONF="$(fetch_and_transform "$WG0_PEER")"
-WG1_CONF="$(fetch_and_transform "$WG1_PEER")"
+TF_CONF="$(fetch_and_transform "$TF_PEER")"   || fetch_failed "$TF_PEER"
+WG0_CONF="$(fetch_and_transform "$WG0_PEER")" || fetch_failed "$WG0_PEER"
+WG1_CONF="$(fetch_and_transform "$WG1_PEER")" || fetch_failed "$WG1_PEER"
 if [[ "$DRY_RUN" != "true" ]]; then
   log "Transformed: stripped DNS, set AllowedIPs=${ALLOWED_IPS} on all three confs."
 fi
