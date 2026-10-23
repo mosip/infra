@@ -6,6 +6,23 @@
 #
 # Everything below is optional.
 
+# ── Add a subdomain to THIS environment (optional) ────────────────────────────
+# Default (commented out): the subdomains in ../profile.yml.
+# Uncomment to add names without repeating the profile's list — only the new
+# names are written, everything else stays as it is:
+# additional_subdomain_internal = ["grafana"]   # CNAME -> api-internal.<domain> (VPN only)
+# additional_subdomain_public   = ["portal"]    # CNAME -> api.<domain> (internet)
+# Then run COMPONENT=dns (non-Route53 providers: COMPONENT=configure). Expect
+# "1 to add" per new name; the wildcard certificate already covers it, but
+# the app needs an istio Gateway/VirtualService for the new host.
+#   - A name that's already listed is ignored (no duplicate record).
+#   - A record that exists in Route53 but was made by hand is taken over with
+#     the planned value (allow_overwrite = true); set allow_overwrite = false
+#     to make the apply fail instead.
+#   - Back to default: remove the name and apply — only that record is deleted.
+# Careful: subdomain_public / subdomain_internal (below) REPLACE the profile's
+# list — a name left out of them is deleted.
+
 # Several hosted zones (same AWS account), by ID or by name. Without `zones`,
 # every record goes to zone_id from common.tfvars.
 # zones = {

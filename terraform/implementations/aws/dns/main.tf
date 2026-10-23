@@ -39,8 +39,16 @@ locals {
   manifest_public   = var.profile_manifest != null ? tolist(try(yamldecode(file(var.profile_manifest)).subdomain_public, [])) : []
   manifest_internal = var.profile_manifest != null ? tolist(try(yamldecode(file(var.profile_manifest)).subdomain_internal, [])) : []
 
-  subdomain_public   = var.subdomain_public != null ? var.subdomain_public : local.manifest_public
-  subdomain_internal = var.subdomain_internal != null ? var.subdomain_internal : local.manifest_internal
+  # additional_subdomain_* (dns.tfvars) are appended per environment; a name
+  # that's already in the list is a no-op (distinct).
+  subdomain_public = distinct(concat(
+    var.subdomain_public != null ? var.subdomain_public : local.manifest_public,
+    var.additional_subdomain_public,
+  ))
+  subdomain_internal = distinct(concat(
+    var.subdomain_internal != null ? var.subdomain_internal : local.manifest_internal,
+    var.additional_subdomain_internal,
+  ))
 
   # With explicit IPs and no private one, api-internal points at the same
   # address (a single-homed data-centre nginx).
