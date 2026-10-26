@@ -21,7 +21,7 @@ on:
       environments:
         description: |
           Environments to check (comma-separated). Leave BLANK to run ALL.
-          Valid values: qa-java21, esperf, dev-int-inji, dev, dev11, dev2, esdev, esqa2, qa11new, qainji, collab, released, synergy
+          Valid values: 131ga, dev-int-inji, dev1, dev2, esdev, esqa1, qa11new, qainji, collab, released, synergy, qadraft, cellbox-21
         required: false
         default: ''         # blank = ALL (same behaviour as the cron trigger)
       notify_slack:
@@ -56,18 +56,18 @@ jobs:
           #   postgres_mode  → "vm"        : postgres on vm_host, checked via SSH df
           #                    "incluster" : postgres in k8s, checked via kubectl exec
           ALL_ENVS='[
-            {"env":"qa-java21",  "channel":"#cluster_health",  "vm_host":"postgres.qajava21.mosip.net",  "postgres_mode":"vm"},
-            {"env":"esperf",  "channel":"#cluster_health",  "vm_host":"postgres.esperf.mosip.net",  "postgres_mode":"incluster"},
+            {"env":"131ga",  "channel":"#cluster_health",  "vm_host":"postgres.131ga.mosip.net",  "postgres_mode":"incluster"},
             {"env":"dev-int-inji",  "channel":"#cluster_health",  "vm_host":"postgres.dev-int-inji.mosip.net",  "postgres_mode":"incluster"},
-            {"env":"dev", "channel":"#cluster_health", "vm_host":"postgres.dev.mosip.net", "postgres_mode":"vm"},
-            {"env":"dev11", "channel":"#cluster_health", "vm_host":"postgres.dev11.mosip.net", "postgres_mode":"vm"},
+            {"env":"dev1", "channel":"#cluster_health", "vm_host":"postgres.dev1.mosip.net", "postgres_mode":"incluster"},
             {"env":"dev2",  "channel":"#cluster_health",  "vm_host":"postgres.dev2.mosip.net",  "postgres_mode":"vm"},
             {"env":"esdev",  "channel":"#cluster_health",  "vm_host":"postgres.esdev.mosip.net",  "postgres_mode":"incluster"},
-            {"env":"esqa2",  "channel":"#cluster_health",  "vm_host":"postgres.esqa2.mosip.net",  "postgres_mode":"incluster"},
+            {"env":"esqa1",  "channel":"#cluster_health",  "vm_host":"postgres.esqa1.mosip.net",  "postgres_mode":"incluster"},
             {"env":"qa11new",  "channel":"#cluster_health",  "vm_host":"postgres.qa11new.mosip.net",  "postgres_mode":"vm"},
             {"env":"qainji",  "channel":"#cluster_health",  "vm_host":"postgres.qainji.mosip.net",  "postgres_mode":"incluster"},
             {"env":"collab",  "channel":"#cluster_health",  "vm_host":"postgres.collab.mosip.net",  "postgres_mode":"vm"},
             {"env":"released",  "channel":"#cluster_health",  "vm_host":"postgres.released.mosip.net",  "postgres_mode":"vm"},
+            {"env":"qadraft",  "channel":"#cluster_health",  "vm_host":"postgres.qadraft.mosip.net",  "postgres_mode":"incluster"},
+            {"env":"cellbox-21",  "channel":"#cluster_health",  "vm_host":"postgres.cellbox21.mosip.net",  "postgres_mode":"incluster"},
             {"env":"synergy",  "channel":"#cluster_health",  "vm_host":"postgres.synergy.mosip.net",  "postgres_mode":"vm"}
           ]'
 
@@ -160,27 +160,46 @@ jobs:
           curl -sk --max-time 10 https://172.31.15.240/ping || true
 
       # ── Kubeconfig — environment secret ───────────────────────────────────
-      # Each GitHub Environment holds a `KUBECONFIG` secret containing the
-      # base64-encoded kubeconfig for that cluster. No per-env naming needed.
+      # Each GitHub Environment holds a `KUBECONFIG` secret. It's SUPPOSED to be
+      # base64-encoded, but some environments were seeded with the raw kubeconfig
+      # YAML instead. Detect which format we got and handle both, rather than
+      # failing outright on `base64 -d` errors.
       - name: Write kubeconfig
         run: |
           mkdir -p $HOME/.kube
-
+          
           KUBECONFIG_DATA="${{ secrets.KUBECONFIG }}"
-
+          
           if [ -z "$KUBECONFIG_DATA" ]; then
             echo "::error::KUBECONFIG secret is empty or not set for environment '${{ matrix.env }}'."
             echo "::error::Add a KUBECONFIG environment secret under Settings → Environments → ${{ matrix.env }}."
             exit 1
           fi
-
-          echo "$KUBECONFIG_DATA" | base64 -d > $HOME/.kube/config
+          
+          # Try treating it as base64 first. A successful decode isn't proof
+          # enough on its own (garbage can decode without erroring), so also
+          # confirm the decoded output looks like a real kubeconfig.
+          if echo "$KUBECONFIG_DATA" | base64 -d > $HOME/.kube/config 2>/dev/null \
+             && grep -q "apiVersion" $HOME/.kube/config; then
+            echo "✅ kubeconfig decoded from base64 for ${{ matrix.env }}"
+          else
+            echo "::warning::KUBECONFIG secret for '${{ matrix.env }}' was not valid base64 — treating it as raw kubeconfig YAML instead."
+            echo "$KUBECONFIG_DATA" > $HOME/.kube/config
+          
+            if ! grep -q "apiVersion" $HOME/.kube/config; then
+              echo "::error::KUBECONFIG secret for '${{ matrix.env }}' is neither valid base64 nor a raw kubeconfig (no 'apiVersion' found)."
+              echo "::error::Re-check the secret value under Settings → Environments → ${{ matrix.env }}."
+              exit 1
+            fi
+          
+            echo "✅ kubeconfig written as raw YAML for ${{ matrix.env }} (consider re-saving as base64 for consistency)"
+          fi
+          
           chmod 600 $HOME/.kube/config
-
-          # Verify the kubeconfig decoded correctly
-          echo "✅ kubeconfig written for ${{ matrix.env }}"
+          
+          # Verify the kubeconfig is actually usable
           kubectl config view --minify 2>/dev/null | grep server \
-            || { echo "::error::kubeconfig decoded but has no server entry — check the secret value"; exit 1; }
+            || { echo "::error::kubeconfig written but has no server entry — check the secret value"; exit 1; }
 
       # ── Compute restart lookback window ───────────────────────────────────
       - name: Compute restart window
@@ -448,7 +467,7 @@ jobs:
           if [ "$PG_MODE" = "vm" ]; then
             check_vm_disk "/srv/postgres" "Postgres Data"
           elif [ "$PG_MODE" = "incluster" ]; then
-            check_incluster_disk "app.kubernetes.io/name=postgresql" "mosip" \
+            check_incluster_disk "app.kubernetes.io/name=postgresql" "postgres" \
               "/bitnami/postgresql" "Postgres Data"
           else
             echo "| Postgres Data | - | - | - | - | ⚠️ postgres_mode not set for $ENV |" >> $GITHUB_STEP_SUMMARY

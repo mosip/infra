@@ -65,10 +65,13 @@ jobs:
     environment: ${{ inputs.ENV_NAME }}
     steps:
       - name: Validate required secrets
+        env:
+          ACTION_PAT: ${{ secrets.ACTION_PAT }}
+          MOSIP_AWS_PEM: ${{ secrets.MOSIP_AWS_PEM }}
         run: |
           missing=()
-          [[ -z "${{ secrets.ACTION_PAT }}" ]] && missing+=(ACTION_PAT)
-          [[ -z "${{ secrets.MOSIP_AWS_PEM }}" ]] && missing+=(MOSIP_AWS_PEM)
+          [[ -z "$ACTION_PAT" ]] && missing+=(ACTION_PAT)
+          [[ -z "$MOSIP_AWS_PEM" ]] && missing+=(MOSIP_AWS_PEM)
           if ((${#missing[@]})); then
             echo "ERROR: Missing repository secrets: ${missing[*]}"
             echo "Add them under Settings → Secrets and variables → Actions for ${GITHUB_REPOSITORY}"
@@ -163,7 +166,13 @@ jobs:
           if git diff --quiet -- "$tracker"; then
             echo "No allocation change to commit"
           else
-            remote_url="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+            remote_url="https://github.com/${GITHUB_REPOSITORY}.git"
+            # Credential helper reads GH_TOKEN from the environment, keeping it out of URLs and argv.
+            # The empty value resets any inherited (global/system) helpers so only this one is used.
+            git config --local credential.helper ''
+            # shellcheck disable=SC2016
+            git config --local --add credential.helper \
+              '!f() { echo username=x-access-token; echo "password=${GH_TOKEN}"; }; f'
             if ! git pull --rebase --autostash "$remote_url" "${GITHUB_REF_NAME}"; then
               echo "ERROR: Rebase failed (concurrent tracker update?). Resolve on ${GITHUB_REF_NAME} and re-run."
               exit 1
