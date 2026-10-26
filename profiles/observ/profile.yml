@@ -22,8 +22,8 @@ subdomain_public: []
 subdomain_internal: [rancher, iam]
 
 ansible_vars:
-  k8s_infra_repo_url: https://github.com/mosip/k8s-infra.git
-  k8s_infra_branch: release-1.2.1.x
+  k8s_infra_repo_url: https://github.com/Mohanraj209/k8s-infra.git
+  k8s_infra_branch: develop
   tls_mode: dns01
   dns01_provider: route53
   rancher_ui_version: "2.8.3"

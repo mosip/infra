@@ -28,7 +28,7 @@ subdomain_public:
 subdomain_internal: [iam, activemq, kafka, kibana, postgres, smtp, pmp, minio]
 
 ansible_vars:
-  k8s_infra_repo_url: https://github.com/mosip/k8s-infra.git
-  k8s_infra_branch: release-1.2.1.x
+  k8s_infra_repo_url: https://github.com/Mohanraj209/k8s-infra.git
+  k8s_infra_branch: develop
   tls_mode: dns01
   dns01_provider: route53
