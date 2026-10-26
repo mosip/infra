@@ -80,6 +80,7 @@ Helmsman/dsf/
 | `${slack_channel_name}` | Workflow input or `vars.SLACK_CHANNEL_NAME` | `#mosip-alerts` |
 | `${db_port}` | Workflow input or `vars.DB_PORT` | `5433` |
 | `${esignet_db_port}` | Workflow input or `vars.ESIGNET_DB_PORT` | `5432` |
+| `${KEYCLOAK_BUNDLED_DB}` / `${KEYCLOAK_EXTERNAL_DB}` | `vars.KEYCLOAK_DB` (`bundled` default / `external`) — see [Keycloak database](#keycloak-database-bundled-or-external-postgresql) | `true` / `false` |
 
 Configure these under: **Repository → Settings → Environments → `<branch-name>` → Variables**
 
@@ -405,6 +406,26 @@ apps:
  istio.hosts:
  - "iam.sandbox.xyz.net" # ← Replace with your domain
 ```
+
+#### Keycloak database: bundled or external PostgreSQL
+
+`mosip-platform-1.2.1.x/external-dsf.yaml` only. Set `vars.KEYCLOAK_DB` in the GitHub Environment:
+
+| `vars.KEYCLOAK_DB` | Keycloak database |
+|---|---|
+| unset or `bundled` (default) | The keycloak chart's own PostgreSQL. This is the same as before. |
+| `external` | The external PostgreSQL installed by the infra flow on the nginx node (`postgres.${domain_name}:${db_port}`). |
+
+With `external`, the keycloak chart runs with `postgresql.enabled=false`, so no Keycloak Postgres pod is created. The `keycloak-db-init` app (`Helmsman/utils/keycloak-db-init`, priority -15) runs first, in four steps:
+1. Its pre-hook copies `postgres-postgresql` and `postgres-setup-config` from the `postgres` namespace.
+2. It creates a dedicated `keycloak-db-credentials` Secret, once.
+3. A one-shot Job creates database `bitnami_keycloak`, role `bn_keycloak` and their grants. The Job is idempotent and also syncs the role password from that Secret.
+4. Its post-hook deletes the copied superuser Secret.
+
+If the Job fails, the release fails and keycloak is not installed. Read the error with `kubectl -n keycloak logs job/keycloak-db-init`. This is ported from [mosip/keycloak#215](https://github.com/mosip/keycloak/pull/215).
+
+- **Prerequisite:** the external PostgreSQL exists, i.e. `postgres-postgresql` and `postgres-setup-config` are in the `postgres` namespace. They're created by `terraform.yml` with `COMPONENT=configure` (postgresql).
+- **Choose at the first install.** Switching an existing Keycloak between `bundled` and `external` does not move its data (realms, users).
 
 ---
 
@@ -793,6 +814,7 @@ apps:
 | Slack channel | `vars.SLACK_CHANNEL_NAME` | GitHub Environment Variables | Alerting in prereq-dsf |
 | MOSIP postgres port | `vars.DB_PORT` | GitHub Environment Variables | MOSIP platform external postgres (5433) |
 | eSignet postgres port | `vars.ESIGNET_DB_PORT` | GitHub Environment Variables | eSignet container postgres (5432) |
+| Keycloak database | `vars.KEYCLOAK_DB` | GitHub Environment Variables | `bundled` (default) or `external` PostgreSQL for Keycloak (1.2.1.x external DSF) |
 | MOSIP-ID domain | `vars.MOSIPID_DOMAIN_NAME` | GitHub Environment Variables | esignet-standalone profile — MOSIP-ID testrig hosts |
 
 **DSF file manual edits (one-time per environment):**

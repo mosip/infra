@@ -107,6 +107,15 @@ jobs:
           echo "✓ db_port            = $DB_PORT"
           echo "✓ esignet_db_port    = $ESIGNET_DB_PORT"
 
+      - name: Validate KEYCLOAK_DB
+        env:
+          KEYCLOAK_DB: ${{ vars.KEYCLOAK_DB }}
+        run: |
+          case "${KEYCLOAK_DB:-bundled}" in
+            bundled|external) echo "✓ keycloak_db        = ${KEYCLOAK_DB:-bundled}" ;;
+            *) echo "❌ vars.KEYCLOAK_DB must be 'bundled' (default) or 'external'"; exit 1 ;;
+          esac
+
       - name: Persist workflow inputs as environment variables
         if: github.event_name == 'workflow_dispatch'
         env:
@@ -218,6 +227,10 @@ jobs:
       db_port:             ${{ github.event.inputs.db_port             || vars.DB_PORT }}
       esignet_db_port:     ${{ github.event.inputs.esignet_db_port     || vars.ESIGNET_DB_PORT }}
       env_name:            ${{ github.event.inputs.env_name            || vars.ENV_NAME }}
+      # Keycloak database: vars.KEYCLOAK_DB = bundled (default) | external.
+      # Used by the keycloak / keycloak-db-init apps of the 1.2.1.x external DSF.
+      KEYCLOAK_EXTERNAL_DB: ${{ vars.KEYCLOAK_DB == 'external' }}
+      KEYCLOAK_BUNDLED_DB:  ${{ vars.KEYCLOAK_DB != 'external' }}
       # Email alerting (kube-prometheus-stack, mosip-platform-1.2.1.x).
       # MAIL_ID is the legacy single-address variable, kept as a fallback.
       smtp_host:           ${{ vars.SMTP_HOST || 'smtp.gmail.com:587' }}
@@ -414,6 +427,7 @@ jobs:
         run: |
           echo "domain_name        = $domain_name"
           echo "env_name           = $env_name"
+          echo "keycloak bundled db = $KEYCLOAK_BUNDLED_DB (external = $KEYCLOAK_EXTERNAL_DB)"
           echo "smtp_host          = $smtp_host"
           echo "smtp_from          = $smtp_from"
           echo "alert_recipients   = $alert_recipients"

@@ -1,0 +1,89 @@
+# Ported from mosip/keycloak#215 deploy/keycloak-db-init-job.yaml. The SQL
+# script is unchanged; the __PLACEHOLDERS__ are chart values, and it runs as a
+# Helm hook so Helm waits for it and a failed init fails this release (Helmsman
+# then stops before installing keycloak). A failed Job is kept for
+# `kubectl -n keycloak logs job/keycloak-db-init`.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: keycloak-db-init
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: keycloak-db-init
+          image: {{ .Values.image | quote }}
+          env:
+            - name: DB_HOST
+              value: {{ required "db.host is required" .Values.db.host | quote }}
+            - name: DB_PORT
+              value: {{ .Values.db.port | quote }}
+            - name: DB_NAME
+              value: {{ .Values.db.name | quote }}
+            - name: DB_USER
+              value: {{ .Values.db.user | quote }}
+            - name: SU_USER
+              value: {{ .Values.suUser | quote }}
+            - name: SU_USER_PWD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.suSecret.name | quote }}
+                  key: {{ .Values.suSecret.key | quote }}
+            - name: DB_USER_PWD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.userSecret.name | quote }}
+                  key: {{ .Values.userSecret.key | quote }}
+          command: ["bash", "-c"]
+          args:
+            - |
+              set -e
+              export PGPASSWORD="$SU_USER_PWD"
+
+              DB_EXISTS=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$SU_USER" -d postgres -tAc \
+                "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'")
+              if [ "$DB_EXISTS" != "1" ]; then
+                echo "Creating database $DB_NAME"
+                psql -h "$DB_HOST" -p "$DB_PORT" -U "$SU_USER" -d postgres -v ON_ERROR_STOP=1 \
+                  -c "CREATE DATABASE \"$DB_NAME\" ENCODING 'UTF8'"
+              else
+                echo "Database $DB_NAME already exists, skipping"
+              fi
+
+              ROLE_EXISTS=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$SU_USER" -d postgres -tAc \
+                "SELECT 1 FROM pg_roles WHERE rolname='$DB_USER'")
+              # DB_USER_PWD comes from a Secret and must never be concatenated into a
+              # SQL string literal (a password containing a quote could otherwise
+              # terminate the literal and run arbitrary SQL as $SU_USER). psql's
+              # `:'var'`/`:"var"` interpolation handles quoting safely, but only when
+              # the SQL is read as a script/stdin -- `-c` does NOT perform this
+              # substitution, so these two statements are piped in via a heredoc
+              # instead of `-c`.
+              if [ "$ROLE_EXISTS" != "1" ]; then
+                echo "Creating role $DB_USER"
+                psql -h "$DB_HOST" -p "$DB_PORT" -U "$SU_USER" -d postgres -v ON_ERROR_STOP=1 \
+                  -v db_user="$DB_USER" -v db_user_pwd="$DB_USER_PWD" <<'SQL'
+              CREATE ROLE :"db_user" WITH LOGIN PASSWORD :'db_user_pwd';
+              SQL
+              else
+                # Role already exists, but DB_USER_PWD (from keycloak-db-credentials)
+                # may have been regenerated since it was created -- always sync the
+                # role's password to whatever the current Secret holds, so Helm's
+                # externalDatabase config and the actual DB role never drift apart.
+                echo "Role $DB_USER already exists, syncing password"
+                psql -h "$DB_HOST" -p "$DB_PORT" -U "$SU_USER" -d postgres -v ON_ERROR_STOP=1 \
+                  -v db_user="$DB_USER" -v db_user_pwd="$DB_USER_PWD" <<'SQL'
+              ALTER ROLE :"db_user" WITH LOGIN PASSWORD :'db_user_pwd';
+              SQL
+              fi
+
+              echo "Ensuring grants (idempotent, always re-applied)"
+              psql -h "$DB_HOST" -p "$DB_PORT" -U "$SU_USER" -d postgres -v ON_ERROR_STOP=1 \
+                -c "GRANT ALL PRIVILEGES ON DATABASE \"$DB_NAME\" TO \"$DB_USER\""
+              psql -h "$DB_HOST" -p "$DB_PORT" -U "$SU_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 \
+                -c "GRANT ALL ON SCHEMA public TO \"$DB_USER\""
