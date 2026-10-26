@@ -141,13 +141,12 @@ apps:
     timeout: 1200
     priority: -15
 
-  # Keycloak database — KEYCLOAK_DB (GitHub Environment variable):
+  # Keycloak database — keycloak_db input / vars.KEYCLOAK_DB:
   #   bundled  (default) : the keycloak chart's own PostgreSQL, as before.
   #   external           : the external PostgreSQL installed by the infra flow
-  #                        (postgres namespace: postgres-postgresql Secret,
-  #                        postgres-setup-config ConfigMap). keycloak-db-init
-  #                        creates the database/role first; the keycloak chart
-  #                        then runs with postgresql.enabled=false.
+  #                        (nginx node, postgres.<domain>:<db_port>).
+  #                        keycloak-db-init creates the database/role first;
+  #                        the keycloak chart then runs with postgresql.enabled=false.
   # Choose at the first install — switching later does not move existing data.
   keycloak-db-init:
     namespace: keycloak

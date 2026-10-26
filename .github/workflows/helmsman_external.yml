@@ -33,7 +33,7 @@ on:
         required: true
         type: string
       keycloak_db:
-        description: "Keycloak database for mosip-platform-1.2.1.x: bundled or external (empty = keep vars.KEYCLOAK_DB; unset = bundled)"
+        description: "Keycloak database: bundled or external (shared PostgreSQL). Empty = keep vars.KEYCLOAK_DB; unset = bundled"
         required: false
         type: string
       env_name:
@@ -234,7 +234,7 @@ jobs:
       esignet_db_port:     ${{ github.event.inputs.esignet_db_port     || vars.ESIGNET_DB_PORT }}
       env_name:            ${{ github.event.inputs.env_name            || vars.ENV_NAME }}
       # Keycloak database: keycloak_db input or vars.KEYCLOAK_DB = bundled (default) | external.
-      # Used by the keycloak / keycloak-db-init apps of the 1.2.1.x external DSF.
+      # Used by the keycloak / keycloak-db-init apps of the external DSFs.
       KEYCLOAK_EXTERNAL_DB: ${{ (github.event.inputs.keycloak_db || vars.KEYCLOAK_DB) == 'external' }}
       KEYCLOAK_BUNDLED_DB:  ${{ (github.event.inputs.keycloak_db || vars.KEYCLOAK_DB) != 'external' }}
       # Email alerting (kube-prometheus-stack, mosip-platform-1.2.1.x).
