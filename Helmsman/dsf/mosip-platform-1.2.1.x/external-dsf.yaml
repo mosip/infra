@@ -329,7 +329,7 @@ apps:
     enabled: true
     version: 18.3.1
     chart: bitnami/kafka
-    valuesFile: "$WORKDIR/utils/kafka-values.yaml"
+    valuesFile: "$WORKDIR/utils/Kafka-values.yaml"
     set:
       # Add these for image overrides
       image.repository: "mosipid/kafka"
@@ -345,7 +345,7 @@ apps:
       replicaCount: "5"
       autoCreateTopicsEnable: "true"
       deleteTopicEnable: "true"
-      persistence.enabled: "true"
+      persistence.enabled: "false"
       persistence.accessModes[0]: "ReadWriteOnce"
       persistence.size: "8Gi"
       zookeeper.enabled: "true"
@@ -354,7 +354,7 @@ apps:
       zookeeper.resources.requests.memory: "600Mi"
       zookeeper.resources.limits.cpu: "300m"
       zookeeper.resources.limits.memory: "1200Mi"
-      zookeeper.persistence.enabled: "true"
+      zookeeper.persistence.enabled: "false"
       zookeeper.persistence.size: "2Gi"
       resources.limits.cpu: "1000m"
       resources.limits.memory: "3500Mi"
