@@ -1,0 +1,119 @@
+# kube-prometheus-stack values (Prometheus + Alertmanager + exporters).
+# Rendered with `helmsman --subst-env-values`: the env_name / smtp_* /
+# alert_recipients placeholders come from the helmsman_external workflow env.
+# Write a literal dollar sign as two dollar signs.
+# Grafana is not deployed here; the standalone Grafana in the logging namespace
+# (grafana-values.yaml) has this Prometheus as a datasource.
+
+grafana:
+  enabled: false
+  forceDeployDashboards: true    # emit dashboard ConfigMaps even with chart-Grafana off
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+
+# ── Environment identity: this is the ONE block that differs per environment ──
+prometheus:
+  prometheusSpec:
+    externalLabels:
+      cluster: ${env_name}         # this environment's name (shown in every alert)
+      tier: nonprod                # prod | nonprod — label only; routing is by severity
+
+alertmanager:
+  alertmanagerSpec:
+    secrets:
+      - alertmanager-smtp            # created/updated by hooks/monitoring-preinstall.sh from secrets.SMTP_PASSWORD
+  config:
+    global:
+      resolve_timeout: 5m
+      # SMTP server, sender and login are separate settings (workflow vars
+      # SMTP_HOST, SMTP_FROM, SMTP_USERNAME), so non-Gmail relays such as AWS SES
+      # (whose SMTP username is not an email address) work too.
+      smtp_smarthost: '${smtp_host}'
+      smtp_from: '${smtp_from}'
+      smtp_auth_username: '${smtp_username}'
+      smtp_auth_password_file: /etc/alertmanager/secrets/alertmanager-smtp/password
+      smtp_require_tls: true
+    route:
+      group_by: ['alertname', 'namespace', 'cluster']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+      receiver: 'email-warning'
+      routes:
+        - matchers: ['alertname =~ "Watchdog|InfoInhibitor"']
+          receiver: 'null'
+        - matchers: ['severity = "critical"']
+          receiver: 'email-critical'
+        - matchers: ['severity = "warning"']
+          receiver: 'email-warning'
+    receivers:
+      - name: 'null'
+      - name: 'email-critical'
+        email_configs:
+          - to: '${alert_recipients}'         # comma-separated list of recipients
+            send_resolved: true
+            headers:
+              subject: '[{{ .CommonLabels.cluster }}] [{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
+            html: >-
+              {{ range .Alerts }}
+              <b>Environment:</b> {{ .Labels.cluster }}<br>
+              <b>Severity:</b> {{ .Labels.severity }}<br>
+              <b>Namespace:</b> {{ .Labels.namespace }}<br>
+              <b>Summary:</b> {{ .Annotations.summary }}<br>
+              <b>Description:</b> {{ .Annotations.description }}<br><br>
+              {{ end }}
+      - name: 'email-warning'
+        email_configs:
+          - to: '${alert_recipients}'         # comma-separated list of recipients
+            send_resolved: true
+            headers:
+              subject: '[{{ .CommonLabels.cluster }}] [{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
+            html: >-
+              {{ range .Alerts }}
+              <b>Environment:</b> {{ .Labels.cluster }}<br>
+              <b>Severity:</b> {{ .Labels.severity }}<br>
+              <b>Namespace:</b> {{ .Labels.namespace }}<br>
+              <b>Summary:</b> {{ .Annotations.summary }}<br>
+              <b>Description:</b> {{ .Annotations.description }}<br><br>
+              {{ end }}
+
+# ── Control-plane component scraping ──
+# These targets need the components to listen on the node IP. Clusters
+# provisioned by this repo get that from the mosip/k8s-infra RKE2 config
+# templates (kube-controller-manager/kube-scheduler bind-address=0.0.0.0,
+# kube-proxy metrics-bind-address=0.0.0.0 on every node, etcd-expose-metrics),
+# plus the security-group rules in terraform/modules/aws/aws-main.tf.
+# On a cluster without those settings, set the matching `enabled: false`
+# below, otherwise KubeControllerManagerDown / KubeSchedulerDown /
+# KubeProxyDown / etcd alerts will fire continuously.
+kubeControllerManager:
+  enabled: true
+  service:
+    port: 10257
+    targetPort: 10257
+  serviceMonitor:
+    https: true
+    insecureSkipVerify: true
+kubeScheduler:
+  enabled: true
+  service:
+    port: 10259
+    targetPort: 10259
+  serviceMonitor:
+    https: true
+    insecureSkipVerify: true
+kubeProxy:
+  enabled: true
+  service:
+    port: 10249
+    targetPort: 10249
+kubeEtcd:
+  enabled: true
+  service:
+    port: 2381
+    targetPort: 2381
+  serviceMonitor:
+    scheme: http        # etcd metrics on 2381 are plain HTTP
