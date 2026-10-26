@@ -410,6 +410,30 @@ apps:
   # ---------------------------------------------------------------------------
   # Keycloak is optional for eSignet standalone. Enable if you need
   # API access control for eSignet client management APIs.
+  # Keycloak database — keycloak_db input / vars.KEYCLOAK_DB:
+  #   bundled  (default) : the keycloak chart's own PostgreSQL, as before.
+  #   external           : the shared PostgreSQL of this DSF (postgres app,
+  #                        postgres.<domain>:<esignet_db_port>).
+  #                        keycloak-db-init creates the database/role first;
+  #                        the keycloak chart then runs with postgresql.enabled=false.
+  # Choose at the first install — switching later does not move existing data.
+  keycloak-db-init:
+    namespace: keycloak
+    enabled: ${KEYCLOAK_EXTERNAL_DB}
+    version: 0.1.0
+    chart: $WORKDIR/utils/keycloak-db-init
+    set:
+      db.host: "postgres.${domain_name}"
+      db.port: ${esignet_db_port}
+    wait: true
+    timeout: 600
+    priority: -13
+    hooks:
+      preInstall: "$WORKDIR/hooks/keycloak-db-init-preinstall.sh"
+      preUpgrade: "$WORKDIR/hooks/keycloak-db-init-preinstall.sh"
+      postInstall: "$WORKDIR/hooks/keycloak-db-init-postinstall.sh"
+      postUpgrade: "$WORKDIR/hooks/keycloak-db-init-postinstall.sh"
+
   keycloak:
     namespace: keycloak
     enabled: true
@@ -419,6 +443,15 @@ apps:
       image.repository: "mosipid/mosip-artemis-keycloak"
       image.tag: "1.2.0.2"
       image.pullPolicy: "Always"
+      # Bundled PostgreSQL unless KEYCLOAK_DB=external (see keycloak-db-init).
+      # The externalDatabase.* values are ignored while postgresql.enabled is true.
+      postgresql.enabled: ${KEYCLOAK_BUNDLED_DB}
+      externalDatabase.host: "postgres.${domain_name}"
+      externalDatabase.port: ${esignet_db_port}
+      externalDatabase.database: "bitnami_keycloak"
+      externalDatabase.user: "bn_keycloak"
+      externalDatabase.existingSecret: "keycloak-db-credentials"
+      externalDatabase.existingSecretPasswordKey: "password"
       postgresql.image.registry: "docker.io"
       postgresql.image.repository: "mosipid/postgresql"
       postgresql.image.tag: "14.2.0-debian-10-r70"

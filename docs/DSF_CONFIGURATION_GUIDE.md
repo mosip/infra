@@ -80,6 +80,7 @@ Helmsman/dsf/
 | `${slack_channel_name}` | Workflow input or `vars.SLACK_CHANNEL_NAME` | `#mosip-alerts` |
 | `${db_port}` | Workflow input or `vars.DB_PORT` | `5433` |
 | `${esignet_db_port}` | Workflow input or `vars.ESIGNET_DB_PORT` | `5432` |
+| `${KEYCLOAK_BUNDLED_DB}` / `${KEYCLOAK_EXTERNAL_DB}` | Workflow input `keycloak_db` or `vars.KEYCLOAK_DB` (`bundled` default / `external`) — see [Keycloak database](#keycloak-database-bundled-or-external-postgresql) | `true` / `false` |
 
 Configure these under: **Repository → Settings → Environments → `<branch-name>` → Variables**
 
@@ -405,6 +406,26 @@ apps:
  istio.hosts:
  - "iam.sandbox.xyz.net" # ← Replace with your domain
 ```
+
+#### Keycloak database: bundled or external PostgreSQL
+
+Available in the external DSF of `mosip-platform-1.2.1.x`, `mosip-platform-1.2.0.x` and `esignet-standalone`. It works like `db_port`: either use the `keycloak_db` input when running `helmsman_external.yml` (the value is saved to `vars.KEYCLOAK_DB`), or set `vars.KEYCLOAK_DB` in the GitHub Environment yourself. An empty input keeps the saved value; push-triggered runs use the saved value.
+
+| `keycloak_db` / `vars.KEYCLOAK_DB` | Keycloak database |
+|---|---|
+| unset or `bundled` (default) | The keycloak chart's own PostgreSQL. This is the same as before. |
+| `external` | The shared PostgreSQL. MOSIP platform: the external PostgreSQL installed by the infra flow on the nginx node (`postgres.${domain_name}:${db_port}`). esignet-standalone: the `postgres` app of the same DSF (`postgres.${domain_name}:${esignet_db_port}`). |
+
+With `external`, the keycloak chart runs with `postgresql.enabled=false`, so no Keycloak Postgres pod is created. The `keycloak-db-init` app (`Helmsman/utils/keycloak-db-init`; priority -15, or -13 in esignet-standalone) runs first, in four steps:
+1. Its pre-hook copies the superuser Secret `postgres-postgresql` from the `postgres` namespace. Host and port come from the DSF.
+2. It creates a dedicated `keycloak-db-credentials` Secret, once.
+3. A one-shot Job creates database `bitnami_keycloak`, role `bn_keycloak` and their grants. The Job is idempotent and also syncs the role password from that Secret.
+4. Its post-hook deletes the copied superuser Secret.
+
+If the Job fails, the release fails and keycloak is not installed. Read the error with `kubectl -n keycloak logs job/keycloak-db-init`. This is ported from [mosip/keycloak#215](https://github.com/mosip/keycloak/pull/215).
+
+- **Prerequisite:** `postgres-postgresql` exists in the `postgres` namespace. MOSIP platform: created by `terraform.yml` with `COMPONENT=configure` (postgresql). esignet-standalone: created by the DSF's own `postgres` app, which runs earlier.
+- **Choose at the first install.** Switching an existing Keycloak between `bundled` and `external` does not move its data (realms, users).
 
 ---
 
@@ -793,6 +814,7 @@ apps:
 | Slack channel | `vars.SLACK_CHANNEL_NAME` | GitHub Environment Variables | Alerting in prereq-dsf |
 | MOSIP postgres port | `vars.DB_PORT` | GitHub Environment Variables | MOSIP platform external postgres (5433) |
 | eSignet postgres port | `vars.ESIGNET_DB_PORT` | GitHub Environment Variables | eSignet container postgres (5432) |
+| Keycloak database | `vars.KEYCLOAK_DB` | GitHub Environment Variables | `bundled` (default) or `external` PostgreSQL for Keycloak (external DSFs) |
 | MOSIP-ID domain | `vars.MOSIPID_DOMAIN_NAME` | GitHub Environment Variables | esignet-standalone profile — MOSIP-ID testrig hosts |
 
 **DSF file manual edits (one-time per environment):**

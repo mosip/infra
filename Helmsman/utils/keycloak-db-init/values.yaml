@@ -1,0 +1,21 @@
+# Set from the DSF (keycloak-db-init app); defaults match mosip/keycloak#215.
+image: mosipid/postgresql:14.2.0-debian-10-r70
+
+db:
+  host: ""
+  port: 5432
+  name: bitnami_keycloak
+  user: bn_keycloak
+
+# Superuser used to create the DB/role. The Secret is copied into this
+# namespace by hooks/keycloak-db-init-preinstall.sh and removed again by
+# hooks/keycloak-db-init-postinstall.sh once the Job has succeeded.
+suUser: postgres
+suSecret:
+  name: postgres-postgresql
+  key: postgres-password
+
+# Keycloak's own DB password (dedicated, generated once by the preinstall hook).
+userSecret:
+  name: keycloak-db-credentials
+  key: password
