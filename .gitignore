@@ -120,6 +120,7 @@ kubeconfig
 
 # Helmsman specific
 helmsman_logs/
+.helmsman-tmp/
 *.log
 
 # Generated artifacts from Terraform provisioning - must NOT be committed
