@@ -80,7 +80,7 @@ Helmsman/dsf/
 | `${slack_channel_name}` | Workflow input or `vars.SLACK_CHANNEL_NAME` | `#mosip-alerts` |
 | `${db_port}` | Workflow input or `vars.DB_PORT` | `5433` |
 | `${esignet_db_port}` | Workflow input or `vars.ESIGNET_DB_PORT` | `5432` |
-| `${KEYCLOAK_BUNDLED_DB}` / `${KEYCLOAK_EXTERNAL_DB}` | `vars.KEYCLOAK_DB` (`bundled` default / `external`) — see [Keycloak database](#keycloak-database-bundled-or-external-postgresql) | `true` / `false` |
+| `${KEYCLOAK_BUNDLED_DB}` / `${KEYCLOAK_EXTERNAL_DB}` | Workflow input `keycloak_db` or `vars.KEYCLOAK_DB` (`bundled` default / `external`) — see [Keycloak database](#keycloak-database-bundled-or-external-postgresql) | `true` / `false` |
 
 Configure these under: **Repository → Settings → Environments → `<branch-name>` → Variables**
 
@@ -409,9 +409,9 @@ apps:
 
 #### Keycloak database: bundled or external PostgreSQL
 
-`mosip-platform-1.2.1.x/external-dsf.yaml` only. Set `vars.KEYCLOAK_DB` in the GitHub Environment:
+`mosip-platform-1.2.1.x/external-dsf.yaml` only. It works like `db_port`: either use the `keycloak_db` input when running `helmsman_external.yml` (the value is saved to `vars.KEYCLOAK_DB`), or set `vars.KEYCLOAK_DB` in the GitHub Environment yourself. An empty input keeps the saved value; push-triggered runs use the saved value.
 
-| `vars.KEYCLOAK_DB` | Keycloak database |
+| `keycloak_db` / `vars.KEYCLOAK_DB` | Keycloak database |
 |---|---|
 | unset or `bundled` (default) | The keycloak chart's own PostgreSQL. This is the same as before. |
 | `external` | The external PostgreSQL installed by the infra flow on the nginx node (`postgres.${domain_name}:${db_port}`). |
