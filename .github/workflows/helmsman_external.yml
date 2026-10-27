@@ -36,36 +36,40 @@ on:
         description: "Keycloak database: bundled or external (shared PostgreSQL). Empty = keep vars.KEYCLOAK_DB; unset = bundled"
         required: false
         type: string
+      monitoring_stack:
+        description: "Monitoring/logging stack (prereq DSF): standalone = Loki + Grafana + kube-prometheus-stack, Alertmanager email (default) | rancher = ELK + rancher-monitoring, Slack. Empty = vars.MONITORING_STACK, else standalone"
+        required: false
+        type: string
       env_name:
         description: "Environment name (e.g. sandbox, dev, staging)"
         required: false
         type: string
       alert_recipients:
-        description: "Organization mail id(s) for cluster alert notifications, comma-separated (e.g. xyz@gmail.com, abc@gmail.com). Needed for mosip-platform-1.2.1.x; empty = vars.ALERT_RECIPIENTS"
+        description: "Organization mail id(s) for cluster alert notifications, comma-separated (e.g. xyz@gmail.com, abc@gmail.com). Needed for monitoring_stack=standalone (default); empty = vars.ALERT_RECIPIENTS"
         required: false
         type: string
       smtp_from:
-        description: "Alertmanager sender address (mosip-platform-1.2.1.x), e.g. alerts@example.org; empty = vars.SMTP_FROM (legacy vars.MAIL_ID). Password: secrets.SMTP_PASSWORD"
+        description: "Alertmanager sender address (monitoring_stack=standalone), e.g. alerts@example.org; empty = vars.SMTP_FROM (legacy vars.MAIL_ID). Password: secrets.SMTP_PASSWORD"
         required: false
         type: string
       smtp_host:
-        description: "Alertmanager SMTP server host:port (mosip-platform-1.2.1.x); empty = vars.SMTP_HOST, else smtp.gmail.com:587"
+        description: "Alertmanager SMTP server host:port (monitoring_stack=standalone); empty = vars.SMTP_HOST, else smtp.gmail.com:587"
         required: false
         type: string
       smtp_username:
-        description: "Alertmanager SMTP login (mosip-platform-1.2.1.x); empty = vars.SMTP_USERNAME, else the sender address"
+        description: "Alertmanager SMTP login (monitoring_stack=standalone); empty = vars.SMTP_USERNAME, else the sender address"
         required: false
         type: string
       slack_channel_name:
-        description: "Optional, rancher-monitoring profiles only (1.2.0.x, esignet-standalone): Slack channel for alerting (e.g. #mosip-alerts); empty = vars.SLACK_CHANNEL_NAME"
+        description: "Optional, monitoring_stack=rancher only: Slack channel for alerting (e.g. #mosip-alerts); empty = vars.SLACK_CHANNEL_NAME"
         required: false
         type: string
       slack_webhook_url:
-        description: "Optional, rancher-monitoring profiles only: Slack webhook URL (prefer secrets.SLACK_WEBHOOK_URL); masked in logs"
+        description: "Optional, monitoring_stack=rancher only: Slack webhook URL (prefer secrets.SLACK_WEBHOOK_URL); masked in logs"
         required: false
         type: string
       clusterid:
-        description: "Rancher cluster ID (e.g. c-xxxxx): required for 1.2.0.x / esignet-standalone (rancher-monitoring), unused by 1.2.1.x; empty = vars.CLUSTER_ID"
+        description: "Rancher cluster ID (e.g. c-xxxxx): required only for monitoring_stack=rancher; empty = vars.CLUSTER_ID"
         required: false
         type: string
   push:
@@ -84,18 +88,17 @@ jobs:
       name: ${{ github.ref_name }}
     steps:
       - name: Validate required variables
-        # What is required depends on the selected profile:
-        #   all profiles                : domain_name, env_name, db_port
-        #   mosip-platform-1.2.1.x      : alert_recipients, smtp_from, secrets.SMTP_PASSWORD
-        #                                 (Loki/Grafana + kube-prometheus-stack, Alertmanager email)
-        #   mosip-platform-1.2.0.x,
-        #   esignet-standalone          : clusterid (rancher-monitoring); Slack only warns
-        # Push runs have no profile input: only the common checks fail here, the
-        # rest warn (the 1.2.1.x monitoring hook and the per-DSF CLUSTER_ID check
-        # in the deploy job still stop a run with missing settings).
+        # Required for every profile: domain_name, env_name, db_port. The rest
+        # depends on the monitoring stack (monitoring_stack / vars.MONITORING_STACK):
+        #   standalone (default): alert_recipients, smtp_from, secrets.SMTP_PASSWORD
+        #                         (Loki + Grafana + kube-prometheus-stack, Alertmanager email)
+        #   rancher             : clusterid (ELK + rancher-monitoring); Slack only warns
+        # The stack is known for push runs too (saved variable), so they are checked
+        # the same way.
         env:
           REF: ${{ github.ref_name }}
           PROFILE_INPUT: ${{ github.event.inputs.profile }}
+          STACK: ${{ github.event.inputs.monitoring_stack || vars.MONITORING_STACK || 'standalone' }}
           DOMAIN: ${{ github.event.inputs.domain_name || vars.DOMAIN_NAME }}
           ENV_NAME: ${{ github.event.inputs.env_name || vars.ENV_NAME }}
           DB_PORT: ${{ github.event.inputs.db_port || vars.DB_PORT }}
@@ -119,12 +122,12 @@ jobs:
           warn() {  # warn <value> <message>
             [ -n "$1" ] || warns+=("$2")
           }
-          email_alerting() {  # mosip-platform-1.2.1.x
+          email_alerting() {  # monitoring_stack=standalone
             "$1" "$ALERT_RECIPIENTS" "alert_recipients is empty — pass it or set vars.ALERT_RECIPIENTS (Alertmanager email)"
             "$1" "$SMTP_FROM" "SMTP sender is empty — pass smtp_from or set vars.SMTP_FROM (Alertmanager email)"
             [ "$SMTP_PASSWORD_SET" = "true" ] || "$1" "" "secrets.SMTP_PASSWORD is not set (Alertmanager email)"
           }
-          rancher_monitoring() {  # mosip-platform-1.2.0.x, esignet-standalone
+          rancher_monitoring() {  # monitoring_stack=rancher
             "$1" "$CLUSTER" "clusterid is empty — pass it or set vars.CLUSTER_ID (rancher-monitoring)"
             warn "$SLACK_CH" "slack_channel_name is empty — pass it or set vars.SLACK_CHANNEL_NAME (Slack alerting)"
             [ "$SLACK_WEBHOOK_SET" = "true" ] || warn "" "Slack webhook is not set — pass slack_webhook_url or set secrets.SLACK_WEBHOOK_URL (Slack alerting)"
@@ -133,11 +136,10 @@ jobs:
           need "$DOMAIN"   "domain_name is empty — pass it or set vars.DOMAIN_NAME"
           need "$ENV_NAME" "env_name is empty — pass it or set vars.ENV_NAME"
           need "$DB_PORT"  "db_port is empty — pass it or set vars.DB_PORT"
-          case "$PROFILE_INPUT" in
-            mosip-platform-1.2.1.x)                   email_alerting need ;;
-            mosip-platform-1.2.0.x|esignet-standalone) rancher_monitoring need ;;
-            *)  # push run: profile not known yet
-                email_alerting warn; rancher_monitoring warn ;;
+          case "$STACK" in
+            standalone) email_alerting need ;;
+            rancher)    rancher_monitoring need ;;
+            *) errors+=("monitoring_stack must be 'standalone' (default) or 'rancher', got '$STACK'") ;;
           esac
 
           # Typed SMTP values are saved as environment variables: check their format.
@@ -150,10 +152,10 @@ jobs:
             fi
           done
 
-          echo "Profile: ${PROFILE_INPUT:-<push run — profile from changed files>}"
+          echo "Profile: ${PROFILE_INPUT:-<push run — profile from changed files>} | monitoring_stack: $STACK"
           for w in "${warns[@]}"; do echo "⚠ $w"; done
           if [ ${#errors[@]} -gt 0 ]; then
-            echo "❌ Missing or invalid settings for ${PROFILE_INPUT:-this run}:"
+            echo "❌ Missing or invalid settings (monitoring_stack=$STACK):"
             printf '  - %s\n' "${errors[@]}"
             echo "Go to: Settings → Environments → $REF → Variables / Secrets"
             exit 1
@@ -161,12 +163,12 @@ jobs:
           echo "✓ domain_name        = $DOMAIN"
           echo "✓ env_name           = $ENV_NAME"
           echo "✓ db_port            = $DB_PORT"
-          case "$PROFILE_INPUT" in
-            mosip-platform-1.2.1.x)
+          case "$STACK" in
+            standalone)
               echo "✓ alert_recipients   = $ALERT_RECIPIENTS"
               echo "✓ smtp_from          = $SMTP_FROM"
               echo "✓ smtp_host          = $SMTP_HOST" ;;
-            mosip-platform-1.2.0.x|esignet-standalone)
+            rancher)
               echo "✓ clusterid          = $CLUSTER"
               echo "✓ slack_channel_name = $SLACK_CH" ;;
           esac
@@ -187,6 +189,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_INFRA_PAT }}
           KEYCLOAK_DB_INPUT: ${{ github.event.inputs.keycloak_db }}
+          IN_MONITORING_STACK: ${{ github.event.inputs.monitoring_stack }}
           IN_CLUSTER_ID: ${{ github.event.inputs.clusterid }}
           IN_SLACK_CHANNEL_NAME: ${{ github.event.inputs.slack_channel_name }}
           IN_ESIGNET_DB_PORT: ${{ github.event.inputs.esignet_db_port }}
@@ -217,6 +220,7 @@ jobs:
           save_var "DB_PORT"            "${{ github.event.inputs.db_port }}"
           save_var "ESIGNET_DB_PORT"    "$IN_ESIGNET_DB_PORT"
           save_var "KEYCLOAK_DB"        "$KEYCLOAK_DB_INPUT"   # validated above: bundled | external
+          save_var "MONITORING_STACK"   "$IN_MONITORING_STACK" # validated above: standalone | rancher
           save_var "ENV_NAME"           "${{ github.event.inputs.env_name }}"
           save_var "ALERT_RECIPIENTS"   "${{ github.event.inputs.alert_recipients }}"
           save_var "SMTP_FROM"          "$IN_SMTP_FROM"       # format validated above
@@ -308,6 +312,10 @@ jobs:
       # Used by the keycloak / keycloak-db-init apps of the external DSFs.
       KEYCLOAK_EXTERNAL_DB: ${{ (github.event.inputs.keycloak_db || vars.KEYCLOAK_DB) == 'external' }}
       KEYCLOAK_BUNDLED_DB:  ${{ (github.event.inputs.keycloak_db || vars.KEYCLOAK_DB) != 'external' }}
+      # Monitoring/logging stack of the prereq DSFs: monitoring_stack input or
+      # vars.MONITORING_STACK = standalone (default) | rancher. Exactly one is true.
+      MONITORING_STANDALONE: ${{ (github.event.inputs.monitoring_stack || vars.MONITORING_STACK || 'standalone') != 'rancher' }}
+      MONITORING_RANCHER:    ${{ (github.event.inputs.monitoring_stack || vars.MONITORING_STACK || 'standalone') == 'rancher' }}
       # Email alerting (kube-prometheus-stack, mosip-platform-1.2.1.x).
       # MAIL_ID is the legacy single-address variable, kept as a fallback.
       smtp_host:           ${{ github.event.inputs.smtp_host || vars.SMTP_HOST || 'smtp.gmail.com:587' }}
@@ -500,16 +508,14 @@ jobs:
             exit 1
           fi
           
-      - name: Check rancher-monitoring settings for this DSF
-        env:
-          DSF: Helmsman/dsf/${{ matrix.dsf_files }}
+      - name: Check monitoring stack settings
         run: |
           # A typed slack_webhook_url input is not a secret: mask it in the logs.
           if [ -n "$SLACK_WEBHOOK_URL" ]; then echo "::add-mask::$SLACK_WEBHOOK_URL"; fi
-          # rancher-monitoring DSFs (1.2.0.x, esignet-standalone prereq) need the
-          # Rancher cluster ID; 1.2.1.x has it commented out.
-          if grep -qE '^[^#]*[$][{]?CLUSTER_ID' "$DSF" && [ -z "$CLUSTER_ID" ]; then
-            echo "❌ $DSF uses CLUSTER_ID (rancher-monitoring): pass clusterid or set vars.CLUSTER_ID"
+          echo "Monitoring stack: standalone=$MONITORING_STANDALONE rancher=$MONITORING_RANCHER"
+          # rancher-monitoring needs the Rancher cluster ID.
+          if [ "$MONITORING_RANCHER" = "true" ] && [ -z "$CLUSTER_ID" ]; then
+            echo "❌ monitoring_stack=rancher needs the Rancher cluster ID: pass clusterid or set vars.CLUSTER_ID"
             exit 1
           fi
 
@@ -539,7 +545,9 @@ jobs:
       - name: Health Check External Pods
         run: |
           set -e
-          NAMESPACES=( cattle-logging-system istio-system istio-operator httpbin keycloak kafka minio softhsm clamav activemq landing-page)
+          # Logging/monitoring namespaces follow the selected stack.
+          if [ "$MONITORING_RANCHER" = "true" ]; then STACK_NS=( cattle-logging-system cattle-monitoring-system ); else STACK_NS=( logging monitoring ); fi
+          NAMESPACES=( "${STACK_NS[@]}" istio-system istio-operator httpbin keycloak kafka minio softhsm clamav activemq landing-page)
           for NS in "${NAMESPACES[@]}"; do
             echo "Checking health for namespace: $NS"
             for i in {1..30}; do

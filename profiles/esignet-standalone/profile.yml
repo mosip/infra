@@ -25,7 +25,7 @@ subdomain_public:
   - esignet-mosipid
   - pms-mosipid
   - signup-mosipid
-subdomain_internal: [iam, activemq, kafka, kibana, postgres, smtp, pmp, minio]
+subdomain_internal: [iam, activemq, kafka, kibana, grafana, postgres, smtp, pmp, minio]
 
 ansible_vars:
   k8s_infra_repo_url: https://github.com/Mohanraj209/k8s-infra.git
