@@ -76,10 +76,10 @@ Helmsman/dsf/
 |----------|--------------|---------|
 | `${domain_name}` | Workflow input or `vars.DOMAIN_NAME` | `sandbox.example.net` |
 | `${env_name}` | Workflow input or `vars.ENV_NAME` | `sandbox` |
-| `${clusterid}` | `vars.CLUSTER_ID` | `c-m-abc12xyz` |
-| `${slack_channel_name}` | `vars.SLACK_CHANNEL_NAME` (webhook: `secrets.SLACK_WEBHOOK_URL`) | `#mosip-alerts` |
+| `${clusterid}` | Workflow input or `vars.CLUSTER_ID` | `c-m-abc12xyz` |
+| `${slack_channel_name}` | Workflow input or `vars.SLACK_CHANNEL_NAME` | `#mosip-alerts` |
 | `${db_port}` | Workflow input or `vars.DB_PORT` | `5433` |
-| `${esignet_db_port}` | Optional workflow input, else `vars.ESIGNET_DB_PORT`, else `5432` | `5432` |
+| `${esignet_db_port}` | Workflow input or `vars.ESIGNET_DB_PORT`, else `5432` | `5432` |
 | `${KEYCLOAK_BUNDLED_DB}` / `${KEYCLOAK_EXTERNAL_DB}` | Workflow input `keycloak_db` or `vars.KEYCLOAK_DB` (`bundled` default / `external`) — see [Keycloak database](#keycloak-database-bundled-or-external-postgresql) | `true` / `false` |
 
 Configure these under: **Repository → Settings → Environments → `<branch-name>` → Variables**
@@ -164,7 +164,7 @@ curl -s -H "Authorization: Bearer $RANCHER_TOKEN" "$RANCHER_URL/v3/clusters?name
 1. Go to **Repository → Settings → Environments → `<branch-name>` → Variables**
 2. Add variable: `CLUSTER_ID` = your clusterid (e.g. `c-m-abc12xyz`)
 
-The DSF file reads it automatically via `${clusterid}` substitution at deploy time. (It is no longer a workflow input — set the variable.)
+The DSF file reads it automatically via `${clusterid}` substitution at deploy time. For manual `workflow_dispatch` runs, you can also pass it directly as the `clusterid` workflow input. It is required only for the rancher-monitoring profiles (`mosip-platform-1.2.0.x`, `esignet-standalone`); `mosip-platform-1.2.1.x` doesn't use it.
 
 **How the DSF uses it (no changes needed):**
 

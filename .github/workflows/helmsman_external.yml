@@ -29,7 +29,7 @@ on:
         required: true
         type: string
       esignet_db_port:
-        description: "Optional: PostgreSQL port for the eSignet standalone postgres (empty = keep vars.ESIGNET_DB_PORT; unset = 5432)"
+        description: "Optional: PostgreSQL port for the eSignet standalone postgres (empty = vars.ESIGNET_DB_PORT, else 5432)"
         required: false
         type: string
       keycloak_db:
@@ -42,6 +42,18 @@ on:
         type: string
       alert_recipients:
         description: "Organization mail id(s) for cluster alert notifications, comma-separated (e.g. xyz@gmail.com, abc@gmail.com). Needed for mosip-platform-1.2.1.x. SMTP host/sender/username come from vars.SMTP_HOST, vars.SMTP_FROM, vars.SMTP_USERNAME"
+        required: false
+        type: string
+      slack_channel_name:
+        description: "Optional, rancher-monitoring profiles only (1.2.0.x, esignet-standalone): Slack channel for alerting (e.g. #mosip-alerts); empty = vars.SLACK_CHANNEL_NAME"
+        required: false
+        type: string
+      slack_webhook_url:
+        description: "Optional, rancher-monitoring profiles only: Slack webhook URL (prefer secrets.SLACK_WEBHOOK_URL); masked in logs"
+        required: false
+        type: string
+      clusterid:
+        description: "Rancher cluster ID (e.g. c-xxxxx): required for 1.2.0.x / esignet-standalone (rancher-monitoring), unused by 1.2.1.x; empty = vars.CLUSTER_ID"
         required: false
         type: string
   push:
@@ -60,6 +72,11 @@ jobs:
       name: ${{ github.ref_name }}
     steps:
       - name: Validate required variables
+        env:
+          PROFILE_INPUT: ${{ github.event.inputs.profile }}
+          CLUSTER: ${{ github.event.inputs.clusterid || vars.CLUSTER_ID }}
+          SLACK_CH: ${{ github.event.inputs.slack_channel_name || vars.SLACK_CHANNEL_NAME }}
+          ESIGNET_DB_PORT: ${{ github.event.inputs.esignet_db_port || vars.ESIGNET_DB_PORT || '5432' }}
         run: |
           errors=()
           DOMAIN="${{ github.event.inputs.domain_name || vars.DOMAIN_NAME }}"
@@ -67,12 +84,15 @@ jobs:
           ALERT_RECIPIENTS="${{ github.event.inputs.alert_recipients || vars.ALERT_RECIPIENTS || vars.MAIL_ID }}"
           SMTP_FROM="${{ vars.SMTP_FROM || vars.MAIL_ID }}"
           SMTP_PASSWORD_SET="${{ secrets.SMTP_PASSWORD != '' }}"
-          CLUSTER="${{ vars.CLUSTER_ID }}"
-          SLACK_CH="${{ vars.SLACK_CHANNEL_NAME }}"
           DB_PORT="${{ github.event.inputs.db_port || vars.DB_PORT }}"
-          ESIGNET_DB_PORT="${{ github.event.inputs.esignet_db_port || vars.ESIGNET_DB_PORT || '5432' }}"
           [ -z "$DOMAIN" ]          && errors+=("domain_name is empty — set vars.DOMAIN_NAME under Environment '${{ github.ref_name }}'")
           [ -z "$ENV" ]             && errors+=("env_name is empty — set vars.ENV_NAME under Environment '${{ github.ref_name }}'")
+          # Rancher cluster ID: only rancher-monitoring profiles use it. Push runs
+          # (no profile input) are checked per DSF in the deploy job.
+          case "$PROFILE_INPUT" in
+            mosip-platform-1.2.0.x|esignet-standalone)
+              [ -z "$CLUSTER" ] && errors+=("clusterid is empty — required for $PROFILE_INPUT (rancher-monitoring); set vars.CLUSTER_ID under Environment '${{ github.ref_name }}'") ;;
+          esac
           [ -z "$DB_PORT" ]         && errors+=("db_port is empty — set vars.DB_PORT under Environment '${{ github.ref_name }}'")
           if [ ${#errors[@]} -gt 0 ]; then
             echo "❌ Required variables missing:"
@@ -88,7 +108,6 @@ jobs:
           [ -z "$SMTP_FROM" ]                 && echo "⚠ SMTP sender is empty — set vars.SMTP_FROM (required for mosip-platform-1.2.1.x email alerting)"
           [ "$SMTP_PASSWORD_SET" != "true" ]  && echo "⚠ secrets.SMTP_PASSWORD is not set (required for mosip-platform-1.2.1.x email alerting)"
           [ -z "$SLACK_CH" ]                  && echo "⚠ slack_channel_name is empty — set vars.SLACK_CHANNEL_NAME (only used by rancher-monitoring profiles: 1.2.0.x, esignet-standalone)"
-          [ -z "$CLUSTER" ]                   && echo "⚠ CLUSTER_ID is empty — set vars.CLUSTER_ID (Rancher cluster ID; only used by rancher-monitoring profiles: 1.2.0.x, esignet-standalone)"
           echo "✓ domain_name        = $DOMAIN"
           echo "✓ env_name           = $ENV"
           echo "✓ alert_recipients   = $ALERT_RECIPIENTS"
@@ -112,6 +131,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_INFRA_PAT }}
           KEYCLOAK_DB_INPUT: ${{ github.event.inputs.keycloak_db }}
+          IN_CLUSTER_ID: ${{ github.event.inputs.clusterid }}
+          IN_SLACK_CHANNEL_NAME: ${{ github.event.inputs.slack_channel_name }}
+          IN_ESIGNET_DB_PORT: ${{ github.event.inputs.esignet_db_port }}
         run: |
           REPO="${{ github.repository }}"
           ENVIRONMENT="${{ github.ref_name }}"
@@ -134,10 +156,12 @@ jobs:
           }
           save_var "DOMAIN_NAME"        "${{ github.event.inputs.domain_name }}"
           save_var "DB_PORT"            "${{ github.event.inputs.db_port }}"
-          save_var "ESIGNET_DB_PORT"    "${{ github.event.inputs.esignet_db_port }}"
+          save_var "ESIGNET_DB_PORT"    "$IN_ESIGNET_DB_PORT"
           save_var "KEYCLOAK_DB"        "$KEYCLOAK_DB_INPUT"   # validated above: bundled | external
           save_var "ENV_NAME"           "${{ github.event.inputs.env_name }}"
           save_var "ALERT_RECIPIENTS"   "${{ github.event.inputs.alert_recipients }}"
+          save_var "CLUSTER_ID"         "$IN_CLUSTER_ID"
+          save_var "SLACK_CHANNEL_NAME" "$IN_SLACK_CHANNEL_NAME"
 
   set-matrix:
     runs-on: ubuntu-latest
@@ -228,11 +252,9 @@ jobs:
       smtp_from:           ${{ vars.SMTP_FROM || vars.MAIL_ID }}
       smtp_username:       ${{ vars.SMTP_USERNAME || vars.SMTP_FROM || vars.MAIL_ID }}
       alert_recipients:    ${{ github.event.inputs.alert_recipients    || vars.ALERT_RECIPIENTS || vars.MAIL_ID }}
-      # Rancher-monitoring / Slack alerting (1.2.0.x, esignet-standalone prereq DSFs):
-      # set under the GitHub Environment, no workflow inputs.
-      slack_channel_name:  ${{ vars.SLACK_CHANNEL_NAME }}
-      SLACK_WEBHOOK_URL:   ${{ secrets.SLACK_WEBHOOK_URL }}
-      CLUSTER_ID:          ${{ vars.CLUSTER_ID }}
+      slack_channel_name:  ${{ github.event.inputs.slack_channel_name  || vars.SLACK_CHANNEL_NAME }}
+      SLACK_WEBHOOK_URL:   ${{ github.event.inputs.slack_webhook_url   || secrets.SLACK_WEBHOOK_URL }}
+      CLUSTER_ID:          ${{ github.event.inputs.clusterid           || vars.CLUSTER_ID }}
       SMTP_PASSWORD:       ${{ secrets.SMTP_PASSWORD }}
       GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
       ESIGNET_CAPTCHA_SITE_KEY: ${{ secrets.ESIGNET_CAPTCHA_SITE_KEY }}
@@ -416,6 +438,19 @@ jobs:
             exit 1
           fi
           
+      - name: Check rancher-monitoring settings for this DSF
+        env:
+          DSF: Helmsman/dsf/${{ matrix.dsf_files }}
+        run: |
+          # A typed slack_webhook_url input is not a secret: mask it in the logs.
+          if [ -n "$SLACK_WEBHOOK_URL" ]; then echo "::add-mask::$SLACK_WEBHOOK_URL"; fi
+          # rancher-monitoring DSFs (1.2.0.x, esignet-standalone prereq) need the
+          # Rancher cluster ID; 1.2.1.x has it commented out.
+          if grep -qE '^[^#]*[$][{]?CLUSTER_ID' "$DSF" && [ -z "$CLUSTER_ID" ]; then
+            echo "❌ $DSF uses CLUSTER_ID (rancher-monitoring): pass clusterid or set vars.CLUSTER_ID"
+            exit 1
+          fi
+
       - name: Show deployment variables
         run: |
           echo "domain_name        = $domain_name"
