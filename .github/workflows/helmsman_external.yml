@@ -41,7 +41,19 @@ on:
         required: false
         type: string
       alert_recipients:
-        description: "Organization mail id(s) for cluster alert notifications, comma-separated (e.g. xyz@gmail.com, abc@gmail.com). Needed for mosip-platform-1.2.1.x. SMTP host/sender/username come from vars.SMTP_HOST, vars.SMTP_FROM, vars.SMTP_USERNAME"
+        description: "Organization mail id(s) for cluster alert notifications, comma-separated (e.g. xyz@gmail.com, abc@gmail.com). Needed for mosip-platform-1.2.1.x; empty = vars.ALERT_RECIPIENTS"
+        required: false
+        type: string
+      smtp_from:
+        description: "Alertmanager sender address (mosip-platform-1.2.1.x), e.g. alerts@example.org; empty = vars.SMTP_FROM (legacy vars.MAIL_ID). Password: secrets.SMTP_PASSWORD"
+        required: false
+        type: string
+      smtp_host:
+        description: "Alertmanager SMTP server host:port (mosip-platform-1.2.1.x); empty = vars.SMTP_HOST, else smtp.gmail.com:587"
+        required: false
+        type: string
+      smtp_username:
+        description: "Alertmanager SMTP login (mosip-platform-1.2.1.x); empty = vars.SMTP_USERNAME, else the sender address"
         required: false
         type: string
       slack_channel_name:
@@ -74,6 +86,10 @@ jobs:
       - name: Validate required variables
         env:
           PROFILE_INPUT: ${{ github.event.inputs.profile }}
+          SMTP_FROM: ${{ github.event.inputs.smtp_from || vars.SMTP_FROM || vars.MAIL_ID }}
+          IN_SMTP_FROM: ${{ github.event.inputs.smtp_from }}
+          IN_SMTP_HOST: ${{ github.event.inputs.smtp_host }}
+          IN_SMTP_USERNAME: ${{ github.event.inputs.smtp_username }}
           CLUSTER: ${{ github.event.inputs.clusterid || vars.CLUSTER_ID }}
           SLACK_CH: ${{ github.event.inputs.slack_channel_name || vars.SLACK_CHANNEL_NAME }}
           ESIGNET_DB_PORT: ${{ github.event.inputs.esignet_db_port || vars.ESIGNET_DB_PORT || '5432' }}
@@ -82,7 +98,6 @@ jobs:
           DOMAIN="${{ github.event.inputs.domain_name || vars.DOMAIN_NAME }}"
           ENV="${{ github.event.inputs.env_name || vars.ENV_NAME }}"
           ALERT_RECIPIENTS="${{ github.event.inputs.alert_recipients || vars.ALERT_RECIPIENTS || vars.MAIL_ID }}"
-          SMTP_FROM="${{ vars.SMTP_FROM || vars.MAIL_ID }}"
           SMTP_PASSWORD_SET="${{ secrets.SMTP_PASSWORD != '' }}"
           DB_PORT="${{ github.event.inputs.db_port || vars.DB_PORT }}"
           [ -z "$DOMAIN" ]          && errors+=("domain_name is empty — set vars.DOMAIN_NAME under Environment '${{ github.ref_name }}'")
@@ -94,6 +109,15 @@ jobs:
               [ -z "$CLUSTER" ] && errors+=("clusterid is empty — required for $PROFILE_INPUT (rancher-monitoring); set vars.CLUSTER_ID under Environment '${{ github.ref_name }}'") ;;
           esac
           [ -z "$DB_PORT" ]         && errors+=("db_port is empty — set vars.DB_PORT under Environment '${{ github.ref_name }}'")
+          # Typed SMTP values are saved as environment variables: check their format.
+          if [ -n "$IN_SMTP_HOST" ] && ! [[ "$IN_SMTP_HOST" =~ ^[A-Za-z0-9.-]+:[0-9]{1,5}$ ]]; then
+            errors+=("smtp_host must be host:port (e.g. smtp.gmail.com:587)")
+          fi
+          for v in "$IN_SMTP_FROM" "$IN_SMTP_USERNAME"; do
+            if [ -n "$v" ] && ! [[ "$v" =~ ^[A-Za-z0-9._%+@-]+$ ]]; then
+              errors+=("smtp_from / smtp_username may only contain letters, digits and . _ % + @ -")
+            fi
+          done
           if [ ${#errors[@]} -gt 0 ]; then
             echo "❌ Required variables missing:"
             printf '  - %s\n' "${errors[@]}"
@@ -105,7 +129,7 @@ jobs:
           #  - mosip-platform-1.2.0.x / esignet-standalone (rancher-monitoring, Slack): SLACK_CHANNEL_NAME, SLACK_WEBHOOK_URL
           # The 1.2.1.x monitoring hook fails with a clear message if its settings are missing.
           [ -z "$ALERT_RECIPIENTS" ]          && echo "⚠ alert_recipients is empty — set vars.ALERT_RECIPIENTS (required for mosip-platform-1.2.1.x email alerting)"
-          [ -z "$SMTP_FROM" ]                 && echo "⚠ SMTP sender is empty — set vars.SMTP_FROM (required for mosip-platform-1.2.1.x email alerting)"
+          [ -z "$SMTP_FROM" ]                 && echo "⚠ SMTP sender is empty — pass smtp_from or set vars.SMTP_FROM (required for mosip-platform-1.2.1.x email alerting)"
           [ "$SMTP_PASSWORD_SET" != "true" ]  && echo "⚠ secrets.SMTP_PASSWORD is not set (required for mosip-platform-1.2.1.x email alerting)"
           [ -z "$SLACK_CH" ]                  && echo "⚠ slack_channel_name is empty — set vars.SLACK_CHANNEL_NAME (only used by rancher-monitoring profiles: 1.2.0.x, esignet-standalone)"
           echo "✓ domain_name        = $DOMAIN"
@@ -134,6 +158,9 @@ jobs:
           IN_CLUSTER_ID: ${{ github.event.inputs.clusterid }}
           IN_SLACK_CHANNEL_NAME: ${{ github.event.inputs.slack_channel_name }}
           IN_ESIGNET_DB_PORT: ${{ github.event.inputs.esignet_db_port }}
+          IN_SMTP_FROM: ${{ github.event.inputs.smtp_from }}
+          IN_SMTP_HOST: ${{ github.event.inputs.smtp_host }}
+          IN_SMTP_USERNAME: ${{ github.event.inputs.smtp_username }}
         run: |
           REPO="${{ github.repository }}"
           ENVIRONMENT="${{ github.ref_name }}"
@@ -160,6 +187,9 @@ jobs:
           save_var "KEYCLOAK_DB"        "$KEYCLOAK_DB_INPUT"   # validated above: bundled | external
           save_var "ENV_NAME"           "${{ github.event.inputs.env_name }}"
           save_var "ALERT_RECIPIENTS"   "${{ github.event.inputs.alert_recipients }}"
+          save_var "SMTP_FROM"          "$IN_SMTP_FROM"       # format validated above
+          save_var "SMTP_HOST"          "$IN_SMTP_HOST"
+          save_var "SMTP_USERNAME"      "$IN_SMTP_USERNAME"
           save_var "CLUSTER_ID"         "$IN_CLUSTER_ID"
           save_var "SLACK_CHANNEL_NAME" "$IN_SLACK_CHANNEL_NAME"
 
@@ -248,9 +278,9 @@ jobs:
       KEYCLOAK_BUNDLED_DB:  ${{ (github.event.inputs.keycloak_db || vars.KEYCLOAK_DB) != 'external' }}
       # Email alerting (kube-prometheus-stack, mosip-platform-1.2.1.x).
       # MAIL_ID is the legacy single-address variable, kept as a fallback.
-      smtp_host:           ${{ vars.SMTP_HOST || 'smtp.gmail.com:587' }}
-      smtp_from:           ${{ vars.SMTP_FROM || vars.MAIL_ID }}
-      smtp_username:       ${{ vars.SMTP_USERNAME || vars.SMTP_FROM || vars.MAIL_ID }}
+      smtp_host:           ${{ github.event.inputs.smtp_host || vars.SMTP_HOST || 'smtp.gmail.com:587' }}
+      smtp_from:           ${{ github.event.inputs.smtp_from || vars.SMTP_FROM || vars.MAIL_ID }}
+      smtp_username:       ${{ github.event.inputs.smtp_username || vars.SMTP_USERNAME || github.event.inputs.smtp_from || vars.SMTP_FROM || vars.MAIL_ID }}
       alert_recipients:    ${{ github.event.inputs.alert_recipients    || vars.ALERT_RECIPIENTS || vars.MAIL_ID }}
       slack_channel_name:  ${{ github.event.inputs.slack_channel_name  || vars.SLACK_CHANNEL_NAME }}
       SLACK_WEBHOOK_URL:   ${{ github.event.inputs.slack_webhook_url   || secrets.SLACK_WEBHOOK_URL }}
