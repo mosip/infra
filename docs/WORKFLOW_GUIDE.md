@@ -312,12 +312,12 @@ Mode: apply ✅
  | **mode** | `apply` | MUST be apply, not dry-run! |
  | **domain_name** | `sandbox.example.net` | Your deployment domain (or set `vars.DOMAIN_NAME`) |
  | **db_port** | `5433` | MOSIP platform external postgres port (or `vars.DB_PORT`) |
- | **esignet_db_port** | `5432` | eSignet container postgres port (or `vars.ESIGNET_DB_PORT`) |
+ | **esignet_db_port** | *(optional)* | eSignet postgres port; empty = `vars.ESIGNET_DB_PORT`, else `5432` |
  | **env_name** | `sandbox` | Environment display name (or `vars.ENV_NAME`) |
- | **clusterid** | `c-m-abc12xyz` | Rancher cluster ID for monitoring (or `vars.CLUSTER_ID`) |
- | **slack_channel_name** | `#mosip-alerts` | For alerting (or `vars.SLACK_CHANNEL_NAME`) |
 
  > **Tip**: If you configure GitHub Environment Variables (`vars.*`), you don't need to fill these in for each run — the workflow reads them automatically.
+ >
+ > Rancher-monitoring / Slack alerting (`mosip-platform-1.2.0.x`, `esignet-standalone` prereq DSFs) are not inputs: set `vars.CLUSTER_ID`, `vars.SLACK_CHANNEL_NAME` and `secrets.SLACK_WEBHOOK_URL` in the GitHub Environment.
 
 5. **What Happens** (20-40 minutes)
  
@@ -603,9 +603,8 @@ These inputs override the corresponding GitHub Environment Variables for a singl
 |-------|------------------|---------|
 | `domain_name` | `vars.DOMAIN_NAME` | Base domain for all services |
 | `env_name` | `vars.ENV_NAME` | Environment display name |
-| `clusterid` | `vars.CLUSTER_ID` | Rancher cluster ID |
 | `db_port` | `vars.DB_PORT` | MOSIP platform postgres port |
-| `esignet_db_port` | `vars.ESIGNET_DB_PORT` | eSignet postgres port |
+| `esignet_db_port` | `vars.ESIGNET_DB_PORT`, else `5432` | eSignet postgres port (optional) |
 | `mosipid_domain_name` | `vars.MOSIPID_DOMAIN_NAME` | MOSIP-ID environment base domain (esignet profile) |
 
 ---
