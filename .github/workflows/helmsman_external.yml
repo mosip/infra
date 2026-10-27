@@ -29,8 +29,8 @@ on:
         required: true
         type: string
       esignet_db_port:
-        description: "PostgreSQL port for eSignet standalone container postgres (e.g. 5432)"
-        required: true
+        description: "Optional: PostgreSQL port for the eSignet standalone postgres (empty = vars.ESIGNET_DB_PORT, else 5432)"
+        required: false
         type: string
       keycloak_db:
         description: "Keycloak database: bundled or external (shared PostgreSQL). Empty = keep vars.KEYCLOAK_DB; unset = bundled"
@@ -45,16 +45,16 @@ on:
         required: false
         type: string
       slack_channel_name:
-        description: "Slack channel name for alerting (e.g. #mosip-alerts)"
+        description: "Optional, rancher-monitoring profiles only (1.2.0.x, esignet-standalone): Slack channel for alerting (e.g. #mosip-alerts); empty = vars.SLACK_CHANNEL_NAME"
         required: false
         type: string
       slack_webhook_url:
-        description: "Slack webhook URL for alerting (configure as secrets.SLACK_WEBHOOK_URL in the environment)"
+        description: "Optional, rancher-monitoring profiles only: Slack webhook URL (prefer secrets.SLACK_WEBHOOK_URL); masked in logs"
         required: false
         type: string
       clusterid:
-        description: "Rancher cluster ID for rancher-monitoring (e.g. c-xxxxx)"
-        required: true
+        description: "Rancher cluster ID (e.g. c-xxxxx): required for 1.2.0.x / esignet-standalone (rancher-monitoring), unused by 1.2.1.x; empty = vars.CLUSTER_ID"
+        required: false
         type: string
   push:
     paths:
@@ -72,6 +72,11 @@ jobs:
       name: ${{ github.ref_name }}
     steps:
       - name: Validate required variables
+        env:
+          PROFILE_INPUT: ${{ github.event.inputs.profile }}
+          CLUSTER: ${{ github.event.inputs.clusterid || vars.CLUSTER_ID }}
+          SLACK_CH: ${{ github.event.inputs.slack_channel_name || vars.SLACK_CHANNEL_NAME }}
+          ESIGNET_DB_PORT: ${{ github.event.inputs.esignet_db_port || vars.ESIGNET_DB_PORT || '5432' }}
         run: |
           errors=()
           DOMAIN="${{ github.event.inputs.domain_name || vars.DOMAIN_NAME }}"
@@ -79,15 +84,16 @@ jobs:
           ALERT_RECIPIENTS="${{ github.event.inputs.alert_recipients || vars.ALERT_RECIPIENTS || vars.MAIL_ID }}"
           SMTP_FROM="${{ vars.SMTP_FROM || vars.MAIL_ID }}"
           SMTP_PASSWORD_SET="${{ secrets.SMTP_PASSWORD != '' }}"
-          CLUSTER="${{ github.event.inputs.clusterid || vars.CLUSTER_ID }}"
-          SLACK_CH="${{ github.event.inputs.slack_channel_name || vars.SLACK_CHANNEL_NAME }}"
           DB_PORT="${{ github.event.inputs.db_port || vars.DB_PORT }}"
-          ESIGNET_DB_PORT="${{ github.event.inputs.esignet_db_port || vars.ESIGNET_DB_PORT }}"
           [ -z "$DOMAIN" ]          && errors+=("domain_name is empty — set vars.DOMAIN_NAME under Environment '${{ github.ref_name }}'")
           [ -z "$ENV" ]             && errors+=("env_name is empty — set vars.ENV_NAME under Environment '${{ github.ref_name }}'")
-          [ -z "$CLUSTER" ]         && errors+=("clusterid is empty — set vars.CLUSTER_ID under Environment '${{ github.ref_name }}'")
+          # Rancher cluster ID: only rancher-monitoring profiles use it. Push runs
+          # (no profile input) are checked per DSF in the deploy job.
+          case "$PROFILE_INPUT" in
+            mosip-platform-1.2.0.x|esignet-standalone)
+              [ -z "$CLUSTER" ] && errors+=("clusterid is empty — required for $PROFILE_INPUT (rancher-monitoring); set vars.CLUSTER_ID under Environment '${{ github.ref_name }}'") ;;
+          esac
           [ -z "$DB_PORT" ]         && errors+=("db_port is empty — set vars.DB_PORT under Environment '${{ github.ref_name }}'")
-          [ -z "$ESIGNET_DB_PORT" ] && errors+=("esignet_db_port is empty — set vars.ESIGNET_DB_PORT under Environment '${{ github.ref_name }}'")
           if [ ${#errors[@]} -gt 0 ]; then
             echo "❌ Required variables missing:"
             printf '  - %s\n' "${errors[@]}"
@@ -125,6 +131,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_INFRA_PAT }}
           KEYCLOAK_DB_INPUT: ${{ github.event.inputs.keycloak_db }}
+          IN_CLUSTER_ID: ${{ github.event.inputs.clusterid }}
+          IN_SLACK_CHANNEL_NAME: ${{ github.event.inputs.slack_channel_name }}
+          IN_ESIGNET_DB_PORT: ${{ github.event.inputs.esignet_db_port }}
         run: |
           REPO="${{ github.repository }}"
           ENVIRONMENT="${{ github.ref_name }}"
@@ -147,12 +156,12 @@ jobs:
           }
           save_var "DOMAIN_NAME"        "${{ github.event.inputs.domain_name }}"
           save_var "DB_PORT"            "${{ github.event.inputs.db_port }}"
-          save_var "ESIGNET_DB_PORT"    "${{ github.event.inputs.esignet_db_port }}"
+          save_var "ESIGNET_DB_PORT"    "$IN_ESIGNET_DB_PORT"
           save_var "KEYCLOAK_DB"        "$KEYCLOAK_DB_INPUT"   # validated above: bundled | external
           save_var "ENV_NAME"           "${{ github.event.inputs.env_name }}"
           save_var "ALERT_RECIPIENTS"   "${{ github.event.inputs.alert_recipients }}"
-          save_var "CLUSTER_ID"         "${{ github.event.inputs.clusterid }}"
-          save_var "SLACK_CHANNEL_NAME" "${{ github.event.inputs.slack_channel_name }}"
+          save_var "CLUSTER_ID"         "$IN_CLUSTER_ID"
+          save_var "SLACK_CHANNEL_NAME" "$IN_SLACK_CHANNEL_NAME"
 
   set-matrix:
     runs-on: ubuntu-latest
@@ -231,7 +240,7 @@ jobs:
       KUBECTL_PATH: ${{ github.workspace }}/.local/bin/kubectl
       domain_name:         ${{ github.event.inputs.domain_name         || vars.DOMAIN_NAME }}
       db_port:             ${{ github.event.inputs.db_port             || vars.DB_PORT }}
-      esignet_db_port:     ${{ github.event.inputs.esignet_db_port     || vars.ESIGNET_DB_PORT }}
+      esignet_db_port:     ${{ github.event.inputs.esignet_db_port     || vars.ESIGNET_DB_PORT || '5432' }}
       env_name:            ${{ github.event.inputs.env_name            || vars.ENV_NAME }}
       # Keycloak database: keycloak_db input or vars.KEYCLOAK_DB = bundled (default) | external.
       # Used by the keycloak / keycloak-db-init apps of the external DSFs.
@@ -429,6 +438,19 @@ jobs:
             exit 1
           fi
           
+      - name: Check rancher-monitoring settings for this DSF
+        env:
+          DSF: Helmsman/dsf/${{ matrix.dsf_files }}
+        run: |
+          # A typed slack_webhook_url input is not a secret: mask it in the logs.
+          if [ -n "$SLACK_WEBHOOK_URL" ]; then echo "::add-mask::$SLACK_WEBHOOK_URL"; fi
+          # rancher-monitoring DSFs (1.2.0.x, esignet-standalone prereq) need the
+          # Rancher cluster ID; 1.2.1.x has it commented out.
+          if grep -qE '^[^#]*[$][{]?CLUSTER_ID' "$DSF" && [ -z "$CLUSTER_ID" ]; then
+            echo "❌ $DSF uses CLUSTER_ID (rancher-monitoring): pass clusterid or set vars.CLUSTER_ID"
+            exit 1
+          fi
+
       - name: Show deployment variables
         run: |
           echo "domain_name        = $domain_name"
