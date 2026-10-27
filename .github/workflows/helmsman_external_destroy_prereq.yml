@@ -16,7 +16,7 @@ on:
           - all
           - specific
       specific_namespaces:
-        description: "Specific namespaces (comma-separated, e.g., cattle-logging-system,istio-system). Only used if 'specific' is selected above."
+        description: "Specific namespaces (comma-separated, e.g., logging,monitoring,istio-system or cattle-logging-system). Only used if 'specific' is selected above."
         required: false
         type: string
 
@@ -155,7 +155,9 @@ jobs:
             echo "Mode: All prerequisite namespaces"
             echo "Uninstalling Istio using istioctl..."
             istioctl uninstall --purge -y || true
-            NAMESPACES=(cattle-logging-system istio-system istio-operator httpbin cattle-monitoring-system)
+            # Both monitoring stacks: standalone (logging, monitoring) and rancher (cattle-*);
+            # namespaces that don't exist are skipped.
+            NAMESPACES=(logging monitoring cattle-logging-system istio-system istio-operator httpbin cattle-monitoring-system)
           fi
           
           echo ""
@@ -203,7 +205,7 @@ jobs:
           if [ "${{ github.event.inputs.namespace_selection }}" == "specific" ]; then
             IFS=',' read -ra NAMESPACES <<< "${{ github.event.inputs.specific_namespaces }}"
           else
-            NAMESPACES=( cattle-logging-system istio-system istio-operator httpbin cattle-monitoring-system)
+            NAMESPACES=( logging monitoring cattle-logging-system istio-system istio-operator httpbin cattle-monitoring-system)
           fi
           
           for NS in "${NAMESPACES[@]}"; do

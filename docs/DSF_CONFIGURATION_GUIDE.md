@@ -90,6 +90,18 @@ For push-triggered runs (no `workflow_dispatch` inputs), the workflow reads thes
 
 ## Prerequisites DSF Configuration
 
+### Monitoring and logging stack (`monitoring_stack`)
+
+Every profile's `prereq-dsf.yaml` contains two stacks; the `monitoring_stack` workflow input (saved to `vars.MONITORING_STACK`) enables exactly one:
+
+| `monitoring_stack` | Monitoring | Logging | Alerts | Required settings |
+|---|---|---|---|---|
+| `standalone` (**default**) | kube-prometheus-stack (`monitoring` ns) | Loki + Alloy + Grafana (`logging` ns, `grafana.<domain>`) | Alertmanager email | `alert_recipients`, `smtp_from`, `secrets.SMTP_PASSWORD` |
+| `rancher` | rancher-monitoring (`cattle-monitoring-system`) | Elasticsearch + Kibana + rancher-logging (`cattle-logging-system`, `kibana.<domain>`) | Slack | `clusterid` (Slack channel/webhook recommended) |
+
+Istio and httpbin are installed by the first app of whichever stack is enabled. **Helmsman uninstalls the releases of the disabled stack** — an environment that runs ELK + rancher-monitoring today must set `monitoring_stack=rancher` (or `vars.MONITORING_STACK=rancher`) before its next prereq run, otherwise the run replaces it with the standalone stack.
+
+
 **File**: `Helmsman/dsf/prereq-dsf.yaml`
 
 **Purpose**: Deploys monitoring stack, Istio service mesh, and logging
@@ -164,7 +176,7 @@ curl -s -H "Authorization: Bearer $RANCHER_TOKEN" "$RANCHER_URL/v3/clusters?name
 1. Go to **Repository → Settings → Environments → `<branch-name>` → Variables**
 2. Add variable: `CLUSTER_ID` = your clusterid (e.g. `c-m-abc12xyz`)
 
-The DSF file reads it automatically via `${clusterid}` substitution at deploy time. For manual `workflow_dispatch` runs, you can also pass it directly as the `clusterid` workflow input. It is required only for the rancher-monitoring profiles (`mosip-platform-1.2.0.x`, `esignet-standalone`); `mosip-platform-1.2.1.x` doesn't use it.
+The DSF file reads it automatically via `${clusterid}` substitution at deploy time. For manual `workflow_dispatch` runs, you can also pass it directly as the `clusterid` workflow input. It is required only when `monitoring_stack=rancher`; the default standalone stack doesn't use it.
 
 **How the DSF uses it (no changes needed):**
 

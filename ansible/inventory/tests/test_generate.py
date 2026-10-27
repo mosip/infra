@@ -130,11 +130,11 @@ class TerraformMode(Fixture):
     def test_additional_subdomains_from_dns_tfvars(self):
         self.compute()
         dns = write(os.path.join(self.dir, "dns.tfvars"),
-                    'additional_subdomain_internal = ["grafana", "postgres"]\n'
+                    'additional_subdomain_internal = ["reports", "postgres"]\n'
                     'additional_subdomain_public = ["portal"]\n')
         _, inv = self.from_terraform("--tfvars", dns)
         v = inv["all"]["vars"]
-        self.assertEqual(v["subdomain_internal"][-1], "grafana")
+        self.assertEqual(v["subdomain_internal"][-1], "reports")
         self.assertEqual(v["subdomain_internal"].count("postgres"), 1)  # already listed: no-op
         self.assertEqual(v["subdomain_public"][-1], "portal")
         self.assertTrue(v["public_domain_list"].endswith("portal.dev1.example.org"))
@@ -237,12 +237,12 @@ class HostsMode(Fixture):
                       self.HOSTS + "\n") 
         import yaml as _y
         doc = _y.safe_load(open(hosts))
-        doc.setdefault("vars", {})["additional_subdomain_internal"] = ["grafana"]
+        doc.setdefault("vars", {})["additional_subdomain_internal"] = ["reports"]
         with open(hosts, "w") as fh:
             _y.safe_dump(doc, fh)
         rc, inv = self.run_gen("--from-hosts", hosts)
         self.assertEqual(rc, 0)
-        self.assertEqual(inv["all"]["vars"]["subdomain_internal"][-1], "grafana")
+        self.assertEqual(inv["all"]["vars"]["subdomain_internal"][-1], "reports")
         self.assertNotIn("additional_subdomain_internal", inv["all"]["vars"])
 
     def test_without_in_hosts_mode(self):
