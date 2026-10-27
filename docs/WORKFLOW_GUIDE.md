@@ -314,12 +314,13 @@ Mode: apply ✅
  | **db_port** | `5433` | MOSIP platform external postgres port (or `vars.DB_PORT`) |
  | **esignet_db_port** | *(optional)* | eSignet postgres port; empty = `vars.ESIGNET_DB_PORT`, else `5432` |
  | **env_name** | `sandbox` | Environment display name (or `vars.ENV_NAME`) |
- | **alert_recipients** | `ops@example.org,dev@example.org` | 1.2.1.x Alertmanager email recipients (or `vars.ALERT_RECIPIENTS`) |
- | **smtp_from** | `alerts@example.org` | 1.2.1.x Alertmanager sender (or `vars.SMTP_FROM`); password in `secrets.SMTP_PASSWORD` |
- | **smtp_host** | `smtp.gmail.com:587` | 1.2.1.x SMTP server `host:port` (or `vars.SMTP_HOST`, default `smtp.gmail.com:587`) |
- | **smtp_username** | | 1.2.1.x SMTP login (or `vars.SMTP_USERNAME`, default = sender) |
- | **clusterid** | `c-m-abc12xyz` | *Optional.* Rancher cluster ID (or `vars.CLUSTER_ID`): **required for `mosip-platform-1.2.0.x` / `esignet-standalone`** (rancher-monitoring), not used by 1.2.1.x |
- | **slack_channel_name** | `#mosip-alerts` | *Optional.* Slack alerting for rancher-monitoring profiles (or `vars.SLACK_CHANNEL_NAME`) |
+ | **monitoring_stack** | `standalone` | *Optional.* `standalone` (default: Loki + Grafana + kube-prometheus-stack, email alerts) or `rancher` (ELK + rancher-monitoring, Slack). Saved to `vars.MONITORING_STACK`. **Existing ELK/rancher environments: set `rancher` before the next prereq run.** |
+ | **alert_recipients** | `ops@example.org,dev@example.org` | Alertmanager email recipients — required for `standalone` (or `vars.ALERT_RECIPIENTS`) |
+ | **smtp_from** | `alerts@example.org` | Alertmanager sender — required for `standalone` (or `vars.SMTP_FROM`); password in `secrets.SMTP_PASSWORD` |
+ | **smtp_host** | `smtp.gmail.com:587` | SMTP server `host:port` for `standalone` (or `vars.SMTP_HOST`, default `smtp.gmail.com:587`) |
+ | **smtp_username** | | SMTP login for `standalone` (or `vars.SMTP_USERNAME`, default = sender) |
+ | **clusterid** | `c-m-abc12xyz` | *Optional.* Rancher cluster ID (or `vars.CLUSTER_ID`): **required for `monitoring_stack=rancher`**, unused otherwise |
+ | **slack_channel_name** | `#mosip-alerts` | *Optional.* Slack alerting for `monitoring_stack=rancher` (or `vars.SLACK_CHANNEL_NAME`) |
  | **slack_webhook_url** | | *Optional.* Prefer `secrets.SLACK_WEBHOOK_URL`; a typed value is masked in the logs |
 
  > **Tip**: If you configure GitHub Environment Variables (`vars.*`), you don't need to fill these in for each run — the workflow reads them automatically.
@@ -608,13 +609,14 @@ These inputs override the corresponding GitHub Environment Variables for a singl
 |-------|------------------|---------|
 | `domain_name` | `vars.DOMAIN_NAME` | Base domain for all services |
 | `env_name` | `vars.ENV_NAME` | Environment display name |
-| `clusterid` | `vars.CLUSTER_ID` | Rancher cluster ID (rancher-monitoring profiles: 1.2.0.x, esignet-standalone) |
+| `monitoring_stack` | `vars.MONITORING_STACK`, else `standalone` | Prereq monitoring/logging stack: `standalone` or `rancher` |
+| `clusterid` | `vars.CLUSTER_ID` | Rancher cluster ID (`monitoring_stack=rancher`) |
 | `db_port` | `vars.DB_PORT` | MOSIP platform postgres port |
 | `esignet_db_port` | `vars.ESIGNET_DB_PORT`, else `5432` | eSignet postgres port (optional) |
-| `alert_recipients` | `vars.ALERT_RECIPIENTS` | Alertmanager email recipients (1.2.1.x) |
-| `smtp_from` | `vars.SMTP_FROM` (legacy `vars.MAIL_ID`) | Alertmanager sender (1.2.1.x) |
-| `smtp_host` | `vars.SMTP_HOST`, else `smtp.gmail.com:587` | SMTP server (1.2.1.x) |
-| `smtp_username` | `vars.SMTP_USERNAME`, else the sender | SMTP login (1.2.1.x) |
+| `alert_recipients` | `vars.ALERT_RECIPIENTS` | Alertmanager email recipients (`standalone`) |
+| `smtp_from` | `vars.SMTP_FROM` (legacy `vars.MAIL_ID`) | Alertmanager sender (`standalone`) |
+| `smtp_host` | `vars.SMTP_HOST`, else `smtp.gmail.com:587` | SMTP server (`standalone`) |
+| `smtp_username` | `vars.SMTP_USERNAME`, else the sender | SMTP login (`standalone`) |
 | `mosipid_domain_name` | `vars.MOSIPID_DOMAIN_NAME` | MOSIP-ID environment base domain (esignet profile) |
 
 ---

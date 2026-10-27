@@ -248,7 +248,7 @@ Run **terraform plan / apply** with `COMPONENT=vm`. Outputs: `instances`,
 
 In `profiles/<profile>/aws/dns.tfvars` (this environment only):
 ```hcl
-additional_subdomain_internal = ["grafana"]   # → api-internal.<domain>
+additional_subdomain_internal = ["reports"]   # → api-internal.<domain>
 additional_subdomain_public   = ["portal"]    # → api.<domain>
 ```
 Run `COMPONENT=dns` — the plan adds one record per new name and changes

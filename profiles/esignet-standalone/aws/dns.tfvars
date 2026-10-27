@@ -10,7 +10,7 @@
 # Default (commented out): the subdomains in ../profile.yml.
 # Uncomment to add names without repeating the profile's list — only the new
 # names are written, everything else stays as it is:
-# additional_subdomain_internal = ["grafana"]   # CNAME -> api-internal.<domain> (VPN only)
+# additional_subdomain_internal = ["reports"]   # CNAME -> api-internal.<domain> (VPN only)
 # additional_subdomain_public   = ["portal"]    # CNAME -> api.<domain> (internet)
 # Then run COMPONENT=dns (non-Route53 providers: COMPONENT=configure). Expect
 # "1 to add" per new name; the wildcard certificate already covers it, but
