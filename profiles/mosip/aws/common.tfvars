@@ -9,10 +9,10 @@
 # ============================================================
 
 # Environment name — tags every resource and names the Ansible hosts
-cluster_name = "d273-mosip"
+cluster_name = "d273j21-mosip"
 
 # MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "d273-mosip.mosip.net"
+cluster_env_domain = "d273j21-mosip.mosip.net"
 
 # Email-ID used by certbot to notify SSL certificate expiry via email
 mosip_email_id = "thisisbn46@gmail.com"
