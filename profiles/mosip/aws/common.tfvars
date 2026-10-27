@@ -31,8 +31,8 @@ zone_id = "Z090954828SJIEL6P5406"
 ami = "ami-0ad21ae1d0696ad58"
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
-vpc_name = "decouple-273-vpc"
+vpc_name = "default"
 
 # Security group CIDRs
-network_cidr   = "10.73.0.0/16" # Use your actual VPC CIDR
-WIREGUARD_CIDR = "10.73.0.0/16" # Use your actual WireGuard VPN CIDR
+network_cidr   = "172.31.0.0/16" # Use your actual VPC CIDR
+WIREGUARD_CIDR = "172.31.0.0/16" # Use your actual WireGuard VPN CIDR
