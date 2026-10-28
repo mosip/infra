@@ -62,31 +62,17 @@ datasources:
         jsonData:
           timeInterval: 1m
 # --- Default Dashboards ---
-dashboardProviders:
-  dashboardproviders.yaml:
-    apiVersion: 1
-    providers:
-      - name: "loki-dashboards"
-        orgId: 1
-        folder: "Loki"
-        type: file
-        disableDeletion: false      # fixed: was "disableDelete" which Grafana ignores
-        editable: true
-        options:
-          path: /var/lib/grafana/dashboards/loki-dashboards
-# Import community dashboards
-dashboards:
-  loki-dashboards:
-    # Loki Dashboard - Quick Search
-    loki-logs:
-      gnetId: 12611
-      revision: 1
-      datasource: Loki
-    # Loki Operational Dashboard
-    # loki-operational:
-    #   gnetId: 14055
-    #   revision: 5
-    #   datasource: Prometheus
+# No grafana.com dashboards are imported. The former import, gnetId 12611
+# "Logging Dashboard via Loki" (uid fRIvzUZMz), was built for Promtail and
+# queries labels container_name / pod_name / stream; Alloy (alloy-values.yaml)
+# ships namespace / pod / container / app / level instead, so that dashboard
+# always showed "No data". The dashboards in Helmsman/utils/loki/dashboards
+# (loaded by hooks/import-dashboards.sh through the sidecar below) use the
+# Alloy labels, e.g. "Loki - Kubernetes Logs (RKE2)" (uid loki-rke2-logs).
+# To import a grafana.com dashboard again, add a file provider plus:
+#   dashboards:
+#     <provider-name>:
+#       <name>: { gnetId: <id>, revision: <n>, datasource: Loki }
 sidecar:
   dashboards:
     enabled: true
