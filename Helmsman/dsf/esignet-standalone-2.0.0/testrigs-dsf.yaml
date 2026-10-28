@@ -144,7 +144,7 @@ apps:
     chart: mosip/esignet-uitestrig
     set:
       uitestrig.extraEnvVars.ENV_ENDPOINT: "https://api-internal.${domain_name}"
-      uitestrig.extraEnvVars.ENV_USER: "api-internal.${env_name}"
+      uitestrig.extraEnvVars.ENV_USER: "api-internal.${TESTRIG_DOMAIN_LABEL}"
       uitestrig.configMap.baseurl: "https://healthservices.${domain_name}/"
       uitestrig.configMap.eSignetbaseurl: "https://esignet.${domain_name}"
       uitestrig.configMap.pluginToExecute: "mock"
@@ -171,7 +171,7 @@ apps:
     chart: mosip/esignet-uitestrig
     set:
       uitestrig.extraEnvVars.ENV_ENDPOINT: "https://api-internal.${mosipid_domain_name}"
-      uitestrig.extraEnvVars.ENV_USER: "api-internal.${env_name}"
+      uitestrig.extraEnvVars.ENV_USER: "api-internal.${TESTRIG_DOMAIN_LABEL}"
       uitestrig.configMap.baseurl: "https://healthservices-mosipid.${domain_name}/"
       uitestrig.configMap.eSignetbaseurl: "https://esignet-mosipid.${domain_name}"
       uitestrig.configMap.pluginToExecute: "mosip"
@@ -203,7 +203,7 @@ apps:
     chart: mosip/esignet-uitestrig
     set:
       uitestrig.extraEnvVars.ENV_ENDPOINT: "https://api-internal.${domain_name}"
-      uitestrig.extraEnvVars.ENV_USER: "api-internal.${env_name}"
+      uitestrig.extraEnvVars.ENV_USER: "api-internal.${TESTRIG_DOMAIN_LABEL}"
       uitestrig.configMap.baseurl: "https://healthservices-sunbird.${domain_name}/"
       uitestrig.configMap.eSignetbaseurl: "https://esignet-sunbird.${domain_name}"
       uitestrig.configMap.pluginToExecute: "sunbird"
@@ -239,7 +239,7 @@ apps:
       apitestrig.configmaps.db.db-server: "api-internal.${domain_name}"
       apitestrig.configmaps.db.db-su-user: "postgres"
       apitestrig.configmaps.db.db-port: "${esignet_db_port}"
-      apitestrig.configmaps.apitestrig.ENV_USER: "api-internal.${env_name}"
+      apitestrig.configmaps.apitestrig.ENV_USER: "api-internal.${TESTRIG_DOMAIN_LABEL}"
       apitestrig.configmaps.apitestrig.ENV_ENDPOINT: "https://api-internal.${domain_name}"
       apitestrig.configmaps.apitestrig.ENV_TESTLEVEL: "smokeAndRegression"
       apitestrig.configmaps.apitestrig.reportExpirationInDays: "3"
@@ -271,7 +271,7 @@ apps:
       uitestrig.configmaps.db.db-server: "api-internal.${domain_name}"
       uitestrig.configmaps.db.db-su-user: "postgres"
       uitestrig.configmaps.db.db-port: "${esignet_db_port}"
-      uitestrig.configmaps.uitestrig.ENV_USER: "api-internal.${env_name}"
+      uitestrig.configmaps.uitestrig.ENV_USER: "api-internal.${TESTRIG_DOMAIN_LABEL}"
       uitestrig.configmaps.uitestrig.ENV_ENDPOINT: "https://api-internal.${domain_name}"
       uitestrig.configmaps.uitestrig.reportExpirationInDays: "3"
       uitestrig.configmaps.uitestrig.slack-webhook-url: "${SLACK_WEBHOOK_URL}"
