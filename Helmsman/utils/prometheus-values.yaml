@@ -110,6 +110,11 @@ kubeProxy:
   service:
     port: 10249
     targetPort: 10249
+    # RKE2 runs kube-proxy as a static pod labelled component=kube-proxy; the
+    # chart's default selector (k8s-app=kube-proxy) matches nothing, which
+    # leaves the target missing and KubeProxyDown firing.
+    selector:
+      component: kube-proxy
 kubeEtcd:
   enabled: true
   service:
