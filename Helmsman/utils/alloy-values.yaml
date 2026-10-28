@@ -38,19 +38,13 @@ alloy:
           regex = "kube-system|cattle-system|cattle-monitoring-system|monitoring|nfs|cattle-fleet-system|cattle-logging-system|logging"
         }
 
-        // Only keep running pods
-        rule {
-          source_labels = ["__meta_kubernetes_pod_phase"]
-          action = "drop"
-          regex = "Pending|Succeeded|Failed|Completed"
-        }
-
-        // Drop init containers to prevent duplicate log collection
-        rule {
-          source_labels = ["__meta_kubernetes_pod_container_init"]
-          action = "drop"
-          regex = "true"
-        }
+        // Pods in every phase are collected, and init containers too: Job and
+        // CronJob pods (postgres-init, keycloak-init, keygen, salt, onboarders,
+        // testrigs) often finish within seconds or do their work in init
+        // containers. Dropping Pending/Succeeded/Failed pods lost those logs
+        // entirely and cut the last lines (result summary / error) of longer
+        // jobs at completion. A finished container's log stays readable through
+        // the Kubernetes API until the Job's pod is cleaned up.
 
         // Label mappings
         rule {
