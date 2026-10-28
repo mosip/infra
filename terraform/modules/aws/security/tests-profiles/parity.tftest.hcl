@@ -153,21 +153,22 @@ run "shared_egress_rules_match_legacy_on_every_group" {
 
   # Legacy: aws-resource-creation-main.tf's aws_security_group.security-group
   # had exactly 6 egress blocks, shared identically across all 4 node types.
+  # Profiles running Alertmanager email (standalone monitoring) add one more:
+  # SMTP submission 587/tcp. Nothing else may be added to the shared table.
   assert {
-    condition     = length(aws_security_group.nginx.egress) == 6
-    error_message = "nginx SG egress rule count changed from legacy's 6 shared rules"
+    condition = alltrue([
+      for g in [aws_security_group.nginx, aws_security_group.k8s_control_plane, aws_security_group.k8s_etcd, aws_security_group.k8s_worker] :
+      length([for r in g.egress : r if r.from_port != 587]) == 6
+    ])
+    error_message = "SG egress must be legacy's 6 shared rules (plus, optionally, SMTP 587/tcp)"
   }
   assert {
-    condition     = length(aws_security_group.k8s_control_plane.egress) == 6
-    error_message = "control-plane SG egress rule count changed from legacy's 6 shared rules"
-  }
-  assert {
-    condition     = length(aws_security_group.k8s_etcd.egress) == 6
-    error_message = "etcd SG egress rule count changed from legacy's 6 shared rules"
-  }
-  assert {
-    condition     = length(aws_security_group.k8s_worker.egress) == 6
-    error_message = "worker SG egress rule count changed from legacy's 6 shared rules"
+    condition = alltrue(flatten([
+      for g in [aws_security_group.nginx, aws_security_group.k8s_control_plane, aws_security_group.k8s_etcd, aws_security_group.k8s_worker] : [
+        for r in g.egress : r.to_port == 587 && r.protocol == "tcp" && length(r.ipv6_cidr_blocks) == 0 if r.from_port == 587
+      ]
+    ]))
+    error_message = "The SMTP egress rule must be 587/tcp, IPv4 only"
   }
 
   assert {
