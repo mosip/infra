@@ -380,6 +380,20 @@ jobs:
             exit 1
           fi
           echo "✅ eSignet DSF is completed. Proceeding with testrig deployment."
+      - name: Derive testrig ENV_USER from the domain
+        # The 1.3.x testrigs derive their cert directory and the mock-smtp OTP
+        # host from ENV_USER, which must be api-internal.<first label of the
+        # domain>: the same rule as MOSIP's ida-apitestrig install.sh
+        # (mosip-api-internal-host | awk -F. '{print $1"."$2}'). env_name is a
+        # display name and may differ from the domain.
+        run: |
+          first_label="${domain_name%%.*}"
+          if ! [[ "$first_label" =~ ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$ ]]; then
+            echo "❌ cannot derive ENV_USER from domain_name '$domain_name'"; exit 1
+          fi
+          echo "TESTRIG_ENV_USER=api-internal.$first_label" >> "$GITHUB_ENV"
+          echo "✓ testrig ENV_USER = api-internal.$first_label"
+
       - name: Show deployment variables
         run: |
           echo "domain_name        = $domain_name"
