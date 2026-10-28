@@ -141,7 +141,7 @@ apps:
       dslorchestrator.configmaps.db.db-server: "api-internal.${domain_name}"
       dslorchestrator.configmaps.db.db-su-user: "postgres"
       dslorchestrator.configmaps.db.db-port: "${db_port}"
-      dslorchestrator.configmaps.dslorchestrator.USER: "api-internal.${env_name}"
+      dslorchestrator.configmaps.dslorchestrator.USER: "api-internal.${domain_name}"
       dslorchestrator.configmaps.dslorchestrator.ENDPOINT: "https://api-internal.${domain_name}"
       dslorchestrator.configmaps.dslorchestrator.packetUtilityBaseUrl: "http://packetcreator.packetcreator:80/v1/packetcreator"
       dslorchestrator.configmaps.dslorchestrator.reportExpirationInDays: "3"
