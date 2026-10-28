@@ -75,6 +75,7 @@ egress_rules = [
   { description = "Allow WireGuard VPN outbound to VPN CIDR", from_port = 51820, to_port = 51820, protocol = "udp", cidr_blocks = ["wireguard_cidr"] },
   { description = "Allow DNS TCP outbound to anywhere (for public DNS resolution)", from_port = 53, to_port = 53, protocol = "tcp", cidr_blocks = ["0.0.0.0/0"] },
   { description = "Allow DNS UDP outbound to anywhere (for public DNS resolution)", from_port = 53, to_port = 53, protocol = "udp", cidr_blocks = ["0.0.0.0/0"] },
+  { description = "Allow SMTP submission outbound (Alertmanager email alerts)", from_port = 587, to_port = 587, protocol = "tcp", cidr_blocks = ["0.0.0.0/0"] },
   { description = "Allow all required internal communication (VPC + Pod Networks)", from_port = 0, to_port = 0, protocol = "-1", cidr_blocks = ["network_cidr", "10.42.0.0/16", "10.43.0.0/16"] },
 ]
 
