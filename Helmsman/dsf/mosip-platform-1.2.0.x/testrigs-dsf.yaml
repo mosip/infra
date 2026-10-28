@@ -55,7 +55,7 @@ apps:
       apitestrig.configmaps.db.db-server: "api-internal.${domain_name}"
       apitestrig.configmaps.db.db-su-user: "postgres"
       apitestrig.configmaps.db.db-port: "${db_port}"
-      apitestrig.configmaps.apitestrig.ENV_USER: "${TESTRIG_ENV_USER}"
+      apitestrig.configmaps.apitestrig.ENV_USER: "api-internal.${TESTRIG_DOMAIN_LABEL}"
       apitestrig.configmaps.apitestrig.ENV_ENDPOINT: "https://api-internal.${domain_name}"
       apitestrig.configmaps.apitestrig.ENV_TESTLEVEL: "smokeAndRegression"
       apitestrig.configmaps.apitestrig.reportExpirationInDays: "3"
