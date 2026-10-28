@@ -37,10 +37,6 @@ on:
         description: "PostgreSQL port for eSignet standalone container postgres (e.g. 5432)"
         required: true
         type: string
-      env_name:
-        description: "Environment name (e.g. sandbox, dev, staging)"
-        required: false
-        type: string
       slack_channel_name:
         description: "Slack channel name for alerting (e.g. #mosip-alerts)"
         required: false
@@ -71,12 +67,10 @@ jobs:
           errors=()
           PROFILE="${{ github.event.inputs.profile }}"
           DOMAIN="${{ github.event.inputs.domain_name || vars.DOMAIN_NAME }}"
-          ENV="${{ github.event.inputs.env_name || vars.ENV_NAME }}"
           SLACK_CH="${{ github.event.inputs.slack_channel_name || vars.SLACK_CHANNEL_NAME }}"
           DB_PORT="${{ github.event.inputs.db_port || vars.DB_PORT }}"
           ESIGNET_DB_PORT="${{ github.event.inputs.esignet_db_port || vars.ESIGNET_DB_PORT }}"
           [ -z "$DOMAIN" ]          && errors+=("domain_name is empty — set vars.DOMAIN_NAME under Environment '${{ github.ref_name }}'")
-          [ -z "$ENV" ]             && errors+=("env_name is empty — set vars.ENV_NAME under Environment '${{ github.ref_name }}'")
           [ -z "$SLACK_CH" ]        && errors+=("slack_channel_name is empty — set vars.SLACK_CHANNEL_NAME under Environment '${{ github.ref_name }}'")
           [ -z "$DB_PORT" ]         && errors+=("db_port is empty — set vars.DB_PORT under Environment '${{ github.ref_name }}'")
           [ -z "$ESIGNET_DB_PORT" ] && errors+=("esignet_db_port is empty — set vars.ESIGNET_DB_PORT under Environment '${{ github.ref_name }}'")
@@ -87,7 +81,6 @@ jobs:
             exit 1
           fi
           echo "✓ domain_name        = $DOMAIN"
-          echo "✓ env_name           = $ENV"
           echo "✓ slack_channel_name = $SLACK_CH"
           echo "✓ db_port            = $DB_PORT"
           echo "✓ esignet_db_port    = $ESIGNET_DB_PORT"
@@ -121,7 +114,6 @@ jobs:
       mosipid_domain_name: ${{ github.event.inputs.mosipid_domain_name || vars.MOSIPID_DOMAIN_NAME }}
       db_port:            ${{ github.event.inputs.db_port            || vars.DB_PORT }}
       esignet_db_port:    ${{ github.event.inputs.esignet_db_port    || vars.ESIGNET_DB_PORT }}
-      env_name:           ${{ github.event.inputs.env_name           || vars.ENV_NAME }}
       slack_channel_name: ${{ github.event.inputs.slack_channel_name || vars.SLACK_CHANNEL_NAME }}
       SLACK_WEBHOOK_URL:  ${{ github.event.inputs.slack_webhook_url  || secrets.SLACK_WEBHOOK_URL }}
       # esignet-standalone-2.0.0 only — esignet-apitestrig/esignet-uitestrig (the Go/Java
@@ -195,7 +187,6 @@ jobs:
           save_var "MOSIPID_DOMAIN_NAME" "${{ github.event.inputs.mosipid_domain_name }}"
           save_var "DB_PORT"            "${{ github.event.inputs.db_port }}"
           save_var "ESIGNET_DB_PORT"    "${{ github.event.inputs.esignet_db_port }}"
-          save_var "ENV_NAME"           "${{ github.event.inputs.env_name }}"
           save_var "SLACK_CHANNEL_NAME" "${{ github.event.inputs.slack_channel_name }}"
 
       - name: Setup kubectl and kubeconfig
@@ -380,24 +371,25 @@ jobs:
             exit 1
           fi
           echo "✅ eSignet DSF is completed. Proceeding with testrig deployment."
-      - name: Derive testrig ENV_USER from the domain
+      - name: Derive the domain label for testrig ENV_USER
         # The 1.3.x testrigs derive their cert directory and the mock-smtp OTP
         # host from ENV_USER, which must be api-internal.<first label of the
         # domain>: the same rule as MOSIP's ida-apitestrig install.sh
-        # (mosip-api-internal-host | awk -F. '{print $1"."$2}'). env_name is a
-        # display name and may differ from the domain.
+        # (mosip-api-internal-host | awk -F. '{print $1"."$2}'). The DSFs set
+        # ENV_USER: "api-internal.${TESTRIG_DOMAIN_LABEL}". The other testrig
+        # host settings use the full api-internal.${domain_name}, so this
+        # workflow needs no env_name.
         run: |
-          first_label="${domain_name%%.*}"
-          if ! [[ "$first_label" =~ ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$ ]]; then
-            echo "❌ cannot derive ENV_USER from domain_name '$domain_name'"; exit 1
+          label="${domain_name%%.*}"
+          if ! [[ "$label" =~ ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$ ]]; then
+            echo "❌ cannot derive the domain label from domain_name '$domain_name'"; exit 1
           fi
-          echo "TESTRIG_ENV_USER=api-internal.$first_label" >> "$GITHUB_ENV"
-          echo "✓ testrig ENV_USER = api-internal.$first_label"
+          echo "TESTRIG_DOMAIN_LABEL=$label" >> "$GITHUB_ENV"
+          echo "✓ testrig ENV_USER = api-internal.$label"
 
       - name: Show deployment variables
         run: |
           echo "domain_name        = $domain_name"
-          echo "env_name           = $env_name"
           echo "slack_channel_name = $slack_channel_name"
 
       - name: Initiate helmsman to apply the DSF configurations
