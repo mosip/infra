@@ -49,6 +49,46 @@ on:
         description: "Slack webhook URL for alerting (configure as secrets.SLACK_WEBHOOK_URL in the environment)"
         required: false
         type: string
+      esignet_uitestrig_oidc_client_id:
+        description: "esignet-standalone-2.0.0 testrig: OIDC client for the eSignet UI testrig (saved as vars.ESIGNET_UITESTRIG_OIDC_CLIENT_ID)"
+        required: false
+        type: string
+      mosipid_testrig_auth_partner_id:
+        description: "esignet-standalone-2.0.0 testrig: auth partner ID in the MOSIP-ID env (saved as vars.MOSIPID_TESTRIG_AUTH_PARTNER_ID)"
+        required: false
+        type: string
+      mosipid_testrig_auth_policy_id:
+        description: "esignet-standalone-2.0.0 testrig: auth policy ID in the MOSIP-ID env (saved as vars.MOSIPID_TESTRIG_AUTH_POLICY_ID)"
+        required: false
+        type: string
+      mosipid_testrig_uin:
+        description: "esignet-standalone-2.0.0 testrig: test UIN in the MOSIP-ID env (saved as vars.MOSIPID_TESTRIG_UIN)"
+        required: false
+        type: string
+      mosipid_testrig_vid:
+        description: "esignet-standalone-2.0.0 testrig: test VID in the MOSIP-ID env (saved as vars.MOSIPID_TESTRIG_VID)"
+        required: false
+        type: string
+      mosipid_testrig_individual_id:
+        description: "esignet-standalone-2.0.0 testrig: test individual ID in the MOSIP-ID env (saved as vars.MOSIPID_TESTRIG_INDIVIDUAL_ID)"
+        required: false
+        type: string
+      mosipid_testrig_password_login_uin:
+        description: "esignet-standalone-2.0.0 testrig: UIN used for password login (saved as vars.MOSIPID_TESTRIG_PASSWORD_LOGIN_UIN)"
+        required: false
+        type: string
+      mosipid_testrig_email_login_id:
+        description: "esignet-standalone-2.0.0 testrig: email used for email login (saved as vars.MOSIPID_TESTRIG_EMAIL_LOGIN_ID)"
+        required: false
+        type: string
+      mosipid_testrig_phone_number:
+        description: "esignet-standalone-2.0.0 testrig: phone number of the test identity (saved as vars.MOSIPID_TESTRIG_PHONE_NUMBER)"
+        required: false
+        type: string
+      mosipid_testrig_otp_recipient:
+        description: "esignet-standalone-2.0.0 testrig: OTP recipient (email/phone) of the test identity (saved as vars.MOSIPID_TESTRIG_OTP_RECIPIENT)"
+        required: false
+        type: string
   push:
     paths:
       - Helmsman/dsf/**/testrigs-dsf.yaml
@@ -67,8 +107,26 @@ jobs:
         env:
           IN_MOSIPID_DOMAIN: ${{ github.event.inputs.mosipid_domain_name }}
           VAR_MOSIPID_DOMAIN: ${{ vars.MOSIPID_DOMAIN_NAME }}
+          IN_ESIGNET_UITESTRIG_OIDC_CLIENT_ID: ${{ github.event.inputs.esignet_uitestrig_oidc_client_id }}
+          IN_MOSIPID_TESTRIG_AUTH_PARTNER_ID: ${{ github.event.inputs.mosipid_testrig_auth_partner_id }}
+          IN_MOSIPID_TESTRIG_AUTH_POLICY_ID: ${{ github.event.inputs.mosipid_testrig_auth_policy_id }}
+          IN_MOSIPID_TESTRIG_UIN: ${{ github.event.inputs.mosipid_testrig_uin }}
+          IN_MOSIPID_TESTRIG_VID: ${{ github.event.inputs.mosipid_testrig_vid }}
+          IN_MOSIPID_TESTRIG_INDIVIDUAL_ID: ${{ github.event.inputs.mosipid_testrig_individual_id }}
+          IN_MOSIPID_TESTRIG_PASSWORD_LOGIN_UIN: ${{ github.event.inputs.mosipid_testrig_password_login_uin }}
+          IN_MOSIPID_TESTRIG_EMAIL_LOGIN_ID: ${{ github.event.inputs.mosipid_testrig_email_login_id }}
+          IN_MOSIPID_TESTRIG_PHONE_NUMBER: ${{ github.event.inputs.mosipid_testrig_phone_number }}
+          IN_MOSIPID_TESTRIG_OTP_RECIPIENT: ${{ github.event.inputs.mosipid_testrig_otp_recipient }}
         run: |
           errors=()
+          # esignet testrig inputs: optional; restrict to ID/email/phone characters
+          # (they are written into a JSON payload and the Helmsman environment).
+          for name in ESIGNET_UITESTRIG_OIDC_CLIENT_ID MOSIPID_TESTRIG_AUTH_PARTNER_ID MOSIPID_TESTRIG_AUTH_POLICY_ID MOSIPID_TESTRIG_UIN MOSIPID_TESTRIG_VID MOSIPID_TESTRIG_INDIVIDUAL_ID MOSIPID_TESTRIG_PASSWORD_LOGIN_UIN MOSIPID_TESTRIG_EMAIL_LOGIN_ID MOSIPID_TESTRIG_PHONE_NUMBER MOSIPID_TESTRIG_OTP_RECIPIENT; do
+            ref="IN_$name"; value="${!ref}"
+            if [ -n "$value" ] && ! [[ "$value" =~ ^[A-Za-z0-9@._+:-]+$ ]]; then
+              errors+=("$name: only letters, digits and @ . _ + : - are allowed")
+            fi
+          done
           PROFILE="${{ github.event.inputs.profile }}"
           DOMAIN="${{ github.event.inputs.domain_name || vars.DOMAIN_NAME }}"
           ENV="${{ github.event.inputs.env_name || vars.ENV_NAME }}"
@@ -134,7 +192,7 @@ jobs:
       # These testrig-only values are optional for deployment: when unset they default to
       # the UPDATE_BEFORE_RUN placeholder so Helmsman can deploy the testrigs; set the real
       # values in the testrig configmaps/secrets before triggering the cronjobs.
-      ESIGNET_UITESTRIG_OIDC_CLIENT_ID: ${{ vars.ESIGNET_UITESTRIG_OIDC_CLIENT_ID || 'UPDATE_BEFORE_RUN' }}
+      ESIGNET_UITESTRIG_OIDC_CLIENT_ID: ${{ github.event.inputs.esignet_uitestrig_oidc_client_id || vars.ESIGNET_UITESTRIG_OIDC_CLIENT_ID || 'UPDATE_BEFORE_RUN' }}
       ESIGNET_UITESTRIG_CLIENT_SECRET:  ${{ secrets.ESIGNET_UITESTRIG_CLIENT_SECRET || 'UPDATE_BEFORE_RUN' }}
       # Single shared Keycloak admin password (one mosip/keycloak release for the whole
       # profile — see external-dsf.yaml) — already provisioned for the MISP onboarder, so
@@ -145,15 +203,15 @@ jobs:
       # MOSIP-ID plugin path (uitestrig) are the only ones backed by a real IDA identity, so
       # these are the only instance that needs real test-identity/onboarding values. esignet-mock
       # (config.mock.json) and esignet-sunbird (config.sunbird.json) need none of this.
-      MOSIPID_TESTRIG_INDIVIDUAL_ID:          ${{ vars.MOSIPID_TESTRIG_INDIVIDUAL_ID || 'UPDATE_BEFORE_RUN' }}
-      MOSIPID_TESTRIG_OTP_RECIPIENT:          ${{ vars.MOSIPID_TESTRIG_OTP_RECIPIENT || 'UPDATE_BEFORE_RUN' }}
-      MOSIPID_TESTRIG_AUTH_PARTNER_ID:        ${{ vars.MOSIPID_TESTRIG_AUTH_PARTNER_ID || 'UPDATE_BEFORE_RUN' }}
-      MOSIPID_TESTRIG_AUTH_POLICY_ID:         ${{ vars.MOSIPID_TESTRIG_AUTH_POLICY_ID || 'UPDATE_BEFORE_RUN' }}
-      MOSIPID_TESTRIG_UIN:                    ${{ vars.MOSIPID_TESTRIG_UIN || 'UPDATE_BEFORE_RUN' }}
-      MOSIPID_TESTRIG_VID:                    ${{ vars.MOSIPID_TESTRIG_VID || 'UPDATE_BEFORE_RUN' }}
-      MOSIPID_TESTRIG_PHONE_NUMBER:           ${{ vars.MOSIPID_TESTRIG_PHONE_NUMBER || 'UPDATE_BEFORE_RUN' }}
-      MOSIPID_TESTRIG_EMAIL_LOGIN_ID:         ${{ vars.MOSIPID_TESTRIG_EMAIL_LOGIN_ID || 'UPDATE_BEFORE_RUN' }}
-      MOSIPID_TESTRIG_PASSWORD_LOGIN_UIN:     ${{ vars.MOSIPID_TESTRIG_PASSWORD_LOGIN_UIN || 'UPDATE_BEFORE_RUN' }}
+      MOSIPID_TESTRIG_INDIVIDUAL_ID:          ${{ github.event.inputs.mosipid_testrig_individual_id || vars.MOSIPID_TESTRIG_INDIVIDUAL_ID || 'UPDATE_BEFORE_RUN' }}
+      MOSIPID_TESTRIG_OTP_RECIPIENT:          ${{ github.event.inputs.mosipid_testrig_otp_recipient || vars.MOSIPID_TESTRIG_OTP_RECIPIENT || 'UPDATE_BEFORE_RUN' }}
+      MOSIPID_TESTRIG_AUTH_PARTNER_ID:        ${{ github.event.inputs.mosipid_testrig_auth_partner_id || vars.MOSIPID_TESTRIG_AUTH_PARTNER_ID || 'UPDATE_BEFORE_RUN' }}
+      MOSIPID_TESTRIG_AUTH_POLICY_ID:         ${{ github.event.inputs.mosipid_testrig_auth_policy_id || vars.MOSIPID_TESTRIG_AUTH_POLICY_ID || 'UPDATE_BEFORE_RUN' }}
+      MOSIPID_TESTRIG_UIN:                    ${{ github.event.inputs.mosipid_testrig_uin || vars.MOSIPID_TESTRIG_UIN || 'UPDATE_BEFORE_RUN' }}
+      MOSIPID_TESTRIG_VID:                    ${{ github.event.inputs.mosipid_testrig_vid || vars.MOSIPID_TESTRIG_VID || 'UPDATE_BEFORE_RUN' }}
+      MOSIPID_TESTRIG_PHONE_NUMBER:           ${{ github.event.inputs.mosipid_testrig_phone_number || vars.MOSIPID_TESTRIG_PHONE_NUMBER || 'UPDATE_BEFORE_RUN' }}
+      MOSIPID_TESTRIG_EMAIL_LOGIN_ID:         ${{ github.event.inputs.mosipid_testrig_email_login_id || vars.MOSIPID_TESTRIG_EMAIL_LOGIN_ID || 'UPDATE_BEFORE_RUN' }}
+      MOSIPID_TESTRIG_PASSWORD_LOGIN_UIN:     ${{ github.event.inputs.mosipid_testrig_password_login_uin || vars.MOSIPID_TESTRIG_PASSWORD_LOGIN_UIN || 'UPDATE_BEFORE_RUN' }}
       MOSIPID_TESTRIG_PASSWORD_LOGIN_PASSWORD: ${{ secrets.MOSIPID_TESTRIG_PASSWORD_LOGIN_PASSWORD || 'UPDATE_BEFORE_RUN' }}
     steps:
       - name: Checkout repository
@@ -165,6 +223,16 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ secrets.GH_INFRA_PAT }}
+          IN_ESIGNET_UITESTRIG_OIDC_CLIENT_ID: ${{ github.event.inputs.esignet_uitestrig_oidc_client_id }}
+          IN_MOSIPID_TESTRIG_AUTH_PARTNER_ID: ${{ github.event.inputs.mosipid_testrig_auth_partner_id }}
+          IN_MOSIPID_TESTRIG_AUTH_POLICY_ID: ${{ github.event.inputs.mosipid_testrig_auth_policy_id }}
+          IN_MOSIPID_TESTRIG_UIN: ${{ github.event.inputs.mosipid_testrig_uin }}
+          IN_MOSIPID_TESTRIG_VID: ${{ github.event.inputs.mosipid_testrig_vid }}
+          IN_MOSIPID_TESTRIG_INDIVIDUAL_ID: ${{ github.event.inputs.mosipid_testrig_individual_id }}
+          IN_MOSIPID_TESTRIG_PASSWORD_LOGIN_UIN: ${{ github.event.inputs.mosipid_testrig_password_login_uin }}
+          IN_MOSIPID_TESTRIG_EMAIL_LOGIN_ID: ${{ github.event.inputs.mosipid_testrig_email_login_id }}
+          IN_MOSIPID_TESTRIG_PHONE_NUMBER: ${{ github.event.inputs.mosipid_testrig_phone_number }}
+          IN_MOSIPID_TESTRIG_OTP_RECIPIENT: ${{ github.event.inputs.mosipid_testrig_otp_recipient }}
         run: |
           REPO="${{ github.repository }}"
           ENVIRONMENT="${{ github.ref_name }}"
@@ -197,6 +265,17 @@ jobs:
           save_var "ESIGNET_DB_PORT"    "${{ github.event.inputs.esignet_db_port }}"
           save_var "ENV_NAME"           "${{ github.event.inputs.env_name }}"
           save_var "SLACK_CHANNEL_NAME" "${{ github.event.inputs.slack_channel_name }}"
+          # esignet-standalone-2.0.0 testrig values (validated in validate-inputs)
+          save_var "ESIGNET_UITESTRIG_OIDC_CLIENT_ID" "$IN_ESIGNET_UITESTRIG_OIDC_CLIENT_ID"
+          save_var "MOSIPID_TESTRIG_AUTH_PARTNER_ID" "$IN_MOSIPID_TESTRIG_AUTH_PARTNER_ID"
+          save_var "MOSIPID_TESTRIG_AUTH_POLICY_ID" "$IN_MOSIPID_TESTRIG_AUTH_POLICY_ID"
+          save_var "MOSIPID_TESTRIG_UIN" "$IN_MOSIPID_TESTRIG_UIN"
+          save_var "MOSIPID_TESTRIG_VID" "$IN_MOSIPID_TESTRIG_VID"
+          save_var "MOSIPID_TESTRIG_INDIVIDUAL_ID" "$IN_MOSIPID_TESTRIG_INDIVIDUAL_ID"
+          save_var "MOSIPID_TESTRIG_PASSWORD_LOGIN_UIN" "$IN_MOSIPID_TESTRIG_PASSWORD_LOGIN_UIN"
+          save_var "MOSIPID_TESTRIG_EMAIL_LOGIN_ID" "$IN_MOSIPID_TESTRIG_EMAIL_LOGIN_ID"
+          save_var "MOSIPID_TESTRIG_PHONE_NUMBER" "$IN_MOSIPID_TESTRIG_PHONE_NUMBER"
+          save_var "MOSIPID_TESTRIG_OTP_RECIPIENT" "$IN_MOSIPID_TESTRIG_OTP_RECIPIENT"
 
       - name: Setup kubectl and kubeconfig
         env:
