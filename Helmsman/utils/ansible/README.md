@@ -1,5 +1,11 @@
 # PostgreSQL Secure Setup - MOSIP Infrastructure
 
+> **Superseded.** The standard flow no longer uses these scripts. External PostgreSQL is now set up by the
+> Ansible role [`ansible/roles/postgresql`](../../../ansible/roles/postgresql) during the `configure` step
+> (`terraform plan / apply` with `COMPONENT=all` or `configure`, or `ansible/site.yml` for data-centre VMs) when
+> the profile lists `postgresql`. See [Deployment sequence](../../../docs/DEPLOYMENT_SEQUENCE.md). This directory
+> is kept only for existing environments that were set up with it.
+
 Production-grade PostgreSQL deployment with secure password generation, Kubernetes integration, and private subnet optimization.
 
 ## Quick Start (3 Simple Steps)

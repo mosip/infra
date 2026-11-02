@@ -20,14 +20,16 @@ The Instructions that include within DSF:
 * Helm repos [Optional] -- defines the repos where you want to get Helm charts from.
 * Apps -- defines the applications/charts you want to manage in your cluster.
 
+### Profiles
+
+DSFs live in one folder per profile — `mosip-platform-1.2.0.x`, `mosip-platform-1.2.1.x`, `esignet-standalone`, `esignet-standalone-2.0.0` — and every workflow takes a `profile` input. Domain, environment name, ports and secrets are substituted at deploy time (`${domain_name}`, `${env_name}`, ...) from workflow inputs / GitHub Environment variables and secrets, so **no per-environment DSF edits are needed**. See the [DSF Configuration Guide](../../docs/DSF_CONFIGURATION_GUIDE.md).
+
 ### Deploy Pre-requisites and External services of mosip
 
-To deploy Pre-requisites and External services of mosip we have two dsf files i,e 
+* `prereq-dsf.yaml`: monitoring and logging (`monitoring_stack`: standalone Loki + Grafana + kube-prometheus-stack by default, or rancher-monitoring + ELK), Istio, httpbin and the global configmap (generated from the domain by the Istio hook).
+* `external-dsf.yaml`: the external services of the profile (PostgreSQL init, Keycloak, Kafka, MinIO, ...).
 
-* `prereq-dsf.yaml`: Installs Pre-requisites such as monitoring, logging, alerting, istio, httpbin and global_configmap. 
-* `external-dsf.yaml`: Intsalls all the External services of mosip.
-
-Make sure to update the above two dsf files with the required configuration changes as per the environement and also update the `global_configmap.yaml` file with the required domain's then initiate the `helmsman_external.yml` workflow file.
+Both run from the `helmsman_external.yml` workflow — see the [External + Prereqs guide](../../docs/HELMSMAN_EXTERNAL_GUIDE.md).
 
 ### Deploy Mosip core services
 
@@ -49,6 +51,8 @@ To deploy the testing infrastructure we have below dsf file i,e
 ---
 
 ## Key Customization Areas In mosip-dsf To Deploy Mosip Core Service
+
+> Reference only — the values below are examples; the actual values are in `Helmsman/dsf/<profile>/mosip-dsf.yaml`.
 
 ### 1. Helm Configuration
 **Default Configuration** 

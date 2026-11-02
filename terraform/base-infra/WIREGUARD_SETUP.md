@@ -1,5 +1,7 @@
 # WireGuard VPN Setup Guide
 
+> **Automated option:** after base-infra, run **Actions → WireGuard environment onboard/offboard** (`.github/workflows/wg-onboard.yml`) with `ACTION=onboard`, `ENV_NAME=<branch>` and `JUMPSERVER_HOST=<jump server IP>`. It allocates free peers on the jump server and publishes `TF_WG_CONFIG`, `CLUSTER_WIREGUARD_WG0` and `CLUSTER_WIREGUARD_WG1` as environment secrets (repository secrets `ACTION_PAT` and `MOSIP_AWS_PEM` required); `ACTION=offboard` releases them. The manual steps below are still needed for your own laptop's peer.
+
 This guide explains how to set up WireGuard VPN client access after base infrastructure deployment. WireGuard provides secure access to your MOSIP infrastructure via private IPs.
 
 ## Prerequisites

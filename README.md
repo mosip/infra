@@ -368,13 +368,21 @@ TF_WG_CONFIG: |
 SLACK_WEBHOOK_URL: "https://hooks.slack.com/services/..." # Slack notifications
 ```
 
+**Optional secrets — only for the feature you use** (environment secrets unless noted):
+
+| Secret | Needed when |
+|--------|-------------|
+| `RANCHER_BOOTSTRAP_PASSWORD` | `observ` profile — initial Rancher `admin` password |
+| `RANCHER_API_URL`, `RANCHER_API_TOKEN` | `ENABLE_RANCHER_IMPORT` — register the cluster in the observ Rancher |
+| `KEYCLOAK_ADMIN_PASSWORD` | Keycloak ⇄ Rancher SAML integration workflow (observ) |
+| `GODADDY_API_KEY` + `GODADDY_API_SECRET` / `CLOUDFLARE_API_TOKEN` / `DNS_RFC2136_SERVER` + `DNS_RFC2136_KEY_NAME` + `DNS_RFC2136_KEY_SECRET` | `DNS_PROVIDER` other than `terraform-route53` (plus the `DNS_ZONE` variable) |
+| `ACTION_PAT`, `MOSIP_AWS_PEM` (repository) | `wg-onboard.yml` — automatic WireGuard peer allocation |
+
 #### Helmsman Secrets
 
 **Environment Secrets** (configured per deployment environment):
 
 > **Important**: These are generated AFTER infrastructure deployment, not before!
->
-> ## Next Steps & Detailed Documentation
 
 ```yaml
 # Kubernetes Access
@@ -413,6 +421,14 @@ CLUSTER_WIREGUARD_WG1: |
  Endpoint = cluster-server-2:51820
  AllowedIPs = 10.0.0.0/16
 ```
+
+**Monitoring / alerting (prereq DSF, default `monitoring_stack=standalone`):**
+
+| Secret | Purpose |
+|--------|---------|
+| `SMTP_PASSWORD` | **Required** — SMTP password / app password for Alertmanager alert e-mails |
+| `GRAFANA_ADMIN_PASSWORD` | Optional — Grafana `admin` password (random one generated and kept in the `grafana-admin` secret if unset) |
+| `SLACK_WEBHOOK_URL` | Only for `monitoring_stack=rancher` (Slack alerts) |
 
 **Deployment Order for Secrets:**
 
@@ -492,11 +508,17 @@ For detailed information about GitHub Actions workflow parameters, terraform mod
 2. **Configure base-infra variables:**
 
 ```hcl
- # Example for AWS
- region = "us-west-2" # Choose AWS region close to your users
- availability_zones = ["us-west-2a", "us-west-2b"] # Multiple zones for high availability
- vpc_cidr = "10.0.0.0/16" # Private IP address range for your network
- environment = "production" # Name your environment
+ # terraform/implementations/aws/base-infra/aws.tfvars (excerpt)
+ jumpserver_name     = "mosip-jump"                     # name of the jump/WireGuard server
+ mosip_email_id      = "ops@example.org"
+ ssh_key_name        = "mosip-aws"                      # existing EC2 key pair
+ aws_provider_region = "ap-south-1"                     # AWS region close to your users
+ availability_zones  = ["ap-south-1a", "ap-south-1b"]   # multiple zones for high availability
+ network_name        = "mosip-boxes"                    # VPC name — profiles use it as vpc_name
+ network_cidr        = "10.0.0.0/16"                    # private address range
+ public_subnets      = ["10.0.1.0/24", "10.0.2.0/24"]
+ private_subnets     = ["10.0.3.0/24", "10.0.4.0/24"]
+ environment         = "dev"
 ```
 
 3. **Run base-infra via GitHub Actions:**
@@ -505,13 +527,13 @@ For detailed information about GitHub Actions workflow parameters, terraform mod
 
 ![Base Infrastructure Terraform Apply](docs/_images/base-infra-terraform-apply.png)
 
-> Screenshot from the previous workflow version — the form now shows `COMPONENT` (pick `base-infra`) and `PROFILE` (ignored for base-infra) instead of `TERRAFORM_COMPONENT` / `INFRA_PROFILE`.
+> The screenshot shows an earlier form: pick `COMPONENT=base-infra` (`PROFILE` is ignored for base-infra).
 
 - **(1)** Go to **Actions** → **terraform plan/apply**
   - **Can't find it?** Look in the left sidebar under "All workflows"
   - Click **Run workflow** (green button on the right)
   - **Configure workflow parameters:**
-- **(2)** **Branch**: Select your deployment branch (e.g., `release-0.1.0`)
+- **(2)** **Branch**: Select your deployment branch (e.g., `release-0.x.x` or your own branch)
   - **What's this?** The branch of code to use for deployment
 - **(3)** **Cloud Provider**: Select `aws` (Azure/GCP are placeholder implementations)
   - **Important**: Only `aws` is fully functional
@@ -523,13 +545,12 @@ For detailed information about GitHub Actions workflow parameters, terraform mod
     - **WireGuard VPN**: Encrypted private network access
     - **Security Groups**: Network access controls
     - **Route Tables**: Network traffic routing
-- **Backend**: Choose backend configuration:
+- **BACKEND_TYPE**: Choose backend configuration:
   - **(5)** `local` - GPG-encrypted local state (recommended for development)
     - Stores state in your GitHub repository (encrypted)
-  - **(6)** `s3` - Remote S3 backend (If you want to store the state file in a S3 bucket, provide the bucket name. Otherwise, leave it empty to use the local backend)
-    - Stores state in AWS S3 bucket (centralized)
+  - **(6)** `remote` - state in a cloud bucket: set **REMOTE_BACKEND_CONFIG** (`aws:<bucket_base_name>:<region>`, `azure:<rg>:<storage_account>:<container>` or `gcp:<bucket>`) and, for teams, tick **ENABLE_STATE_LOCKING**
 - **(7)** **SSH_PRIVATE_KEY**: GitHub secret name containing SSH private key for instance access
-  - Must match the `ssh_key_name` in your terraform.tfvars
+  - Holds the private key of the `ssh_key_name` key pair (`aws.tfvars` for base-infra, `profiles/<profile>/aws/common.tfvars` for clusters)
 - **Terraform apply**:
   - **(8)** ☐ **Unchecked**  — Plan mode: runs terraform plan (shows changes without applying).
   - **(8)** ✅ **Checked**  — Apply mode: runs terraform apply (creates/updates infrastructure).
@@ -565,9 +586,11 @@ For detailed information about GitHub Actions workflow parameters, terraform mod
 
 > **Detailed Setup Guide:** [WireGuard Setup Documentation](terraform/base-infra/WIREGUARD_SETUP.md)
 >
-> **Secret Generation:** [How to generate WireGuard configs](docs/SECRET_GENERATION_GUIDE.md#4-wireguard-vpn-configuration)
+> **Secret Generation:** [How to generate WireGuard configs](docs/SECRET_GENERATION_GUIDE.md#5-wireguard-vpn-configuration)
 
-**Quick Setup Overview:**
+**Automated (recommended):** run **Actions → WireGuard environment onboard/offboard** (`wg-onboard.yml`) with `ACTION=onboard`, `ENV_NAME=<your branch>` and `JUMPSERVER_HOST=<jump server IP>`. It allocates free peers on the jump server and publishes `TF_WG_CONFIG`, `CLUSTER_WIREGUARD_WG0` and `CLUSTER_WIREGUARD_WG1` as environment secrets (needs the `ACTION_PAT` and `MOSIP_AWS_PEM` repository secrets). `ACTION=offboard` releases them again.
+
+**Manual setup overview:**
 
 1. **SSH to Jump Server:** Access the deployed jump server
 
@@ -591,7 +614,7 @@ For detailed information about GitHub Actions workflow parameters, terraform mod
 - `TF_WG_CONFIG` - For Terraform infrastructure deployments (peer1)
 - `CLUSTER_WIREGUARD_WG0` - For Helmsman cluster access (peer2)
 - `CLUSTER_WIREGUARD_WG1` - For Helmsman cluster access (peer3, optional)
-- [How to add secrets to GitHub](docs/SECRET_GENERATION_GUIDE.md#7-how-to-add-secrets-to-github)
+- [How to add secrets to GitHub](docs/SECRET_GENERATION_GUIDE.md#9-how-to-add-secrets-to-github)
 
 5. **Verify Connection:** Test private IP connectivity
 
@@ -711,23 +734,25 @@ For **push-triggered runs** (no workflow inputs), values fall back to GitHub Env
 |----------|--------------|---------|
 | `DOMAIN_NAME` | `soil38.mosip.net` | All DSFs — hostnames, Istio VS, DB hosts |
 | `ENV_NAME` | `soil38` | Landing page, testrig user |
-| `CLUSTER_ID` | `c-m-abc12xyz` | `prereq-dsf.yaml` — rancher-monitoring |
-| `SLACK_CHANNEL_NAME` | `#mosip-alerts` | `prereq-dsf.yaml` — alerting |
 | `DB_PORT` | `5433` | MOSIP platform external postgres port |
-| `ESIGNET_DB_PORT` | `5432` | eSignet container postgres port |
+| `ESIGNET_DB_PORT` | `5432` | eSignet standalone postgres port (default `5432`) |
+| `KEYCLOAK_DB` | `bundled` | `bundled` (default) or `external` — Keycloak on the shared PostgreSQL |
+| `MONITORING_STACK` | `standalone` | `standalone` (default) or `rancher` — see below |
+| `ALERT_RECIPIENTS` | `ops@example.org` | `standalone` — alert e-mail recipients (comma-separated) |
+| `SMTP_FROM` | `alerts@example.org` | `standalone` — Alertmanager sender (password: `SMTP_PASSWORD` secret) |
+| `SMTP_HOST` / `SMTP_USERNAME` | `smtp.gmail.com:587` / sender | `standalone` — optional, defaults shown |
+| `CLUSTER_ID` | `c-m-abc12xyz` | `rancher` only — rancher-monitoring |
+| `SLACK_CHANNEL_NAME` | `#mosip-alerts` | `rancher` only — Slack alerting |
+| `MOSIPID_DOMAIN_NAME` | `mosipid.example.org` | eSignet standalone — the MOSIP-ID environment |
 
-> **Domain consistency**: `DOMAIN_NAME` must match `cluster_env_domain` in `aws.tfvars`. `ENV_NAME` must match `cluster_name`. No in-file replacements needed.
+Values typed into a workflow form are saved to these variables automatically, so later runs (and push runs) reuse them.
 
-**Finding your clusterid (for `CLUSTER_ID`):**
-- **Rancher UI**: Open your cluster → the URL contains `c-m-xxxxx` — that's your clusterid
-- **kubectl**: `kubectl get setting cluster-id -n cattle-system -o jsonpath='{.value}'`
-- Only needed if `rancher_import = true` in your Terraform config
+> **Domain consistency**: `DOMAIN_NAME` must match `cluster_env_domain` in `profiles/<profile>/aws/common.tfvars`. `ENV_NAME` must match `cluster_name`. No in-file replacements needed.
 
-**Alerting (Slack) setup:**
-
-Create a Slack incoming webhook ([guide](https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks/)), then add:
-- `SLACK_CHANNEL_NAME` variable (e.g. `#mosip-alerts`)
-- `SLACK_WEBHOOK_URL` environment secret
+**Monitoring stack (`MONITORING_STACK`):**
+- `standalone` (default, all profiles): kube-prometheus-stack (Prometheus + Alertmanager e-mail) and Loki + Alloy + Grafana (`grafana.<domain>`). Needs `ALERT_RECIPIENTS`, `SMTP_FROM` and the `SMTP_PASSWORD` secret.
+- `rancher`: rancher-monitoring + ELK (Elasticsearch, Kibana) with Slack alerts. Needs `CLUSTER_ID` (Rancher UI cluster URL `c-m-xxxxx`, or `kubectl get setting cluster-id -n cattle-system -o jsonpath='{.value}'`); Slack (`SLACK_CHANNEL_NAME` + `SLACK_WEBHOOK_URL` secret) is optional.
+- Helmsman removes the releases of the stack that is not selected — set `MONITORING_STACK=rancher` before the next prereq run on an environment that uses the rancher stack today.
 
 **reCAPTCHA keys (MOSIP platform profiles):**
 
@@ -745,7 +770,7 @@ The `external-dsf.yaml` reads these via `${PREREG_CAPTCHA_SITE_KEY}` etc. — no
 
 **PostgreSQL configuration:**
 
-The only DSF setting that still requires a manual decision is `postgres.enabled` in `external-dsf.yaml`:
+`postgres.enabled` in `external-dsf.yaml` is already set per profile — `false` for `mosip-platform-*` (external PostgreSQL on the nginx node, created by the `configure` step) and `true` for `esignet-standalone` (container PostgreSQL). Change it only if your deployment differs:
 
 ```yaml
 apps:
@@ -756,12 +781,15 @@ apps:
 
 Set this to match your profile: `false` when `profiles/<profile>/profile.yml` lists `postgresql` (external PostgreSQL on the nginx node), `true` otherwise. Everything else (host, port, credentials) is resolved automatically from environment variables and hooks.
 
-**Database branch (MOSIP platform):**
+**Database branches (MOSIP platform):**
+
+The DB scripts version is set per database on the `postgres-init` app in `external-dsf.yaml` and already matches the profile's chart versions:
 
 ```yaml
-# In mosip-dsf.yaml — update to match your MOSIP version
-gitRepo:
-  dbBranch: "v1.2.0.2"   # must match your deployed MOSIP chart versions
+# Helmsman/dsf/<profile>/external-dsf.yaml — postgres-init
+databases.mosip_master.branch: "v1.2.1.4"
+databases.mosip_kernel.branch: "v1.2.0.2"
+# ... one line per database
 ```
 
 **What you should NOT edit manually in DSF files:**
@@ -798,7 +826,7 @@ scp -i <ssh-key> ubuntu@<k8s_primary_control_plane_ip>:/home/ubuntu/.kube/<clust
 > **Important:** KUBECONFIG must be provided as **raw YAML** (plain text), not base64 encoded.
 
 - Go to your GitHub repository → Settings → Environments
-- Select or create environment for your branch (e.g., `release-0.1.0`, `main`, `develop`)
+- Select or create environment for your branch (e.g., `release-0.x.x`, `develop`)
 - Click "Add secret" under Environment secrets
 - Name: `KUBECONFIG`
 - Value: Copy the **entire raw YAML contents** of that kubeconfig file
@@ -847,8 +875,8 @@ scp -i <ssh-key> ubuntu@<k8s_primary_control_plane_ip>:/home/ubuntu/.kube/<clust
  MOCK_RELYING_PARTY_JWE_PRIVATE_KEY: | # JWE userinfo encryption private key
    LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0t... # Base64 encoded PEM format
    
- ESIGNET_CAPTCHA_SITE_KEY: "6LfkAMwrAAAAAATB1WhkIhzuAVMtOs9VWabODoZ_" # Google reCAPTCHA site key (plain text)
- ESIGNET_CAPTCHA_SECRET_KEY: "6LfkAMwrAAAAAHQAT93nTGcLKa-h3XYhGoNSG-NL" # Google reCAPTCHA secret key (plain text)
+ ESIGNET_CAPTCHA_SITE_KEY: "<recaptcha-site-key>" # Google reCAPTCHA site key (plain text)
+ ESIGNET_CAPTCHA_SECRET_KEY: "<recaptcha-secret-key>" # Google reCAPTCHA secret key (plain text)
 ```
 
 > **For detailed eSignet secrets configuration and generation instructions**, see [eSignet Deployment Guide - Required Secrets](docs/esignet_README.md#required-secrets-environment-secrets)
@@ -863,7 +891,7 @@ scp -i <ssh-key> ubuntu@<k8s_primary_control_plane_ip>:/home/ubuntu/.kube/<clust
 > **Important:**
 >
 > - **KUBECONFIG**: Must be added as Environment Secret tied to your deployment branch name
-> - **Branch Environment**: Ensure environment name matches your branch (e.g., `release-0.1.0`)
+> - **Branch Environment**: Ensure environment name matches your branch (e.g., `release-0.x.x`)
 > - **File Source**: KUBECONFIG file is generated after successful Terraform infrastructure deployment
 
 #### Step 4c: Run Helmsman Deployments via GitHub Actions
@@ -892,7 +920,7 @@ External + Prereqs  →  MOSIP (auto)  →  eSignet (manual)  →  Testrigs (man
 
 Each guide covers: profile-specific secrets, workflow inputs, step-by-step run instructions, and verification commands.
 
-### 7. Verify Deployment
+### 5. Verify Deployment
 
 ```bash
 # Check cluster status
