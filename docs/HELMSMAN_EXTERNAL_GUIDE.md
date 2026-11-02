@@ -8,8 +8,8 @@ The `helmsman_external.yml` workflow runs **two DSFs in parallel**:
 
 | DSF | Deploys |
 |-----|---------|
-| `prereq-dsf.yaml` | Rancher monitoring, Elasticsearch, Kibana, Istio, httpbin, global configmap |
-| `external-dsf.yaml` | PostgreSQL, Redis, Kafka, SoftHSM, Keycloak, ClamAV, MinIO, ActiveMQ, Captcha |
+| `prereq-dsf.yaml` | Monitoring + logging (`monitoring_stack`: standalone Loki/Grafana/kube-prometheus-stack by default, or rancher-monitoring + ELK), Istio, httpbin |
+| `external-dsf.yaml` | PostgreSQL (init), Keycloak, Kafka, MinIO, plus per profile: SoftHSM, ClamAV, ActiveMQ, landing page (MOSIP) or Redis, captcha (eSignet standalone) |
 
 **Time required:** 20–40 minutes
 
@@ -41,7 +41,9 @@ All secrets are **Environment Secrets** — configure at **Repository → Settin
 |--------|-------------|
 | `KUBECONFIG` | Raw YAML kubeconfig (not base64 encoded) |
 | `CLUSTER_WIREGUARD_WG0` | WireGuard VPN config for cluster access |
-| `SLACK_WEBHOOK_URL` | Slack incoming webhook URL (optional — for alerting) |
+| `SMTP_PASSWORD` | **`monitoring_stack=standalone` (default)** — SMTP password for Alertmanager alert e-mails |
+| `GRAFANA_ADMIN_PASSWORD` | Optional — Grafana `admin` password (random one generated if unset) |
+| `SLACK_WEBHOOK_URL` | Optional, `monitoring_stack=rancher` only — Slack alerts |
 
 ### eSignet standalone profile only
 
@@ -68,18 +70,29 @@ reCAPTCHA v2 keys for each MOSIP service domain — add as **Environment Secrets
 
 ## Workflow Inputs
 
-| Input | Description | Example |
-|-------|-------------|---------|
-| `profile` | Deployment profile | `esignet-standalone` / `mosip-platform-1.2.0.x` / `mosip-platform-1.2.1.x` |
-| `mode` | Helmsman mode | Always `apply` — dry-run will fail |
-| `domain_name` | Base domain for this environment | `soil38.mosip.net` |
-| `env_name` | Environment name | `soil38` |
-| `clusterid` | Rancher cluster ID (for rancher-monitoring) | `c-m-abc12xyz` |
-| `slack_channel_name` | Slack channel for alerting (optional) | `#mosip-alerts` |
-| `db_port` | External postgres port — MOSIP platform only | `5433` |
-| `esignet_db_port` | eSignet container postgres port | `5432` |
+Every value you type is saved as a GitHub Environment variable, so later runs (and push-triggered runs) reuse it. Leave a field empty to keep the saved value.
 
-> If not provided as inputs, values fall back to GitHub Environment Variables (`vars.DOMAIN_NAME`, `vars.ENV_NAME`, etc.).
+| Input | Saved as | Required | Description / example |
+|-------|----------|----------|-----------------------|
+| `profile` | — | yes | `mosip-platform-1.2.0.x` / `mosip-platform-1.2.1.x` / `esignet-standalone` |
+| `mode` | — | yes | Always `apply` — dry-run fails (cross-namespace resources) |
+| `domain_name` | `DOMAIN_NAME` | yes | `soil38.mosip.net` |
+| `db_port` | `DB_PORT` | yes | External PostgreSQL port, MOSIP platform — `5433` |
+| `esignet_db_port` | `ESIGNET_DB_PORT` | no | eSignet standalone PostgreSQL port (default `5432`) |
+| `keycloak_db` | `KEYCLOAK_DB` | no | `bundled` (default) or `external` (Keycloak on the shared PostgreSQL) |
+| `monitoring_stack` | `MONITORING_STACK` | no | `standalone` (default) or `rancher` |
+| `env_name` | `ENV_NAME` | yes | `soil38` |
+| `alert_recipients` | `ALERT_RECIPIENTS` | standalone | Alert e-mail recipients, comma-separated |
+| `smtp_from` | `SMTP_FROM` | standalone | Alertmanager sender, e.g. `alerts@example.org` (password: `SMTP_PASSWORD` secret) |
+| `smtp_host` | `SMTP_HOST` | no | `host:port`, default `smtp.gmail.com:587` |
+| `smtp_username` | `SMTP_USERNAME` | no | SMTP login, default = sender |
+| `slack_channel_name` | `SLACK_CHANNEL_NAME` | no | rancher only — `#mosip-alerts` |
+| `slack_webhook_url` | — | no | rancher only — prefer the `SLACK_WEBHOOK_URL` secret |
+| `clusterid` | `CLUSTER_ID` | rancher | Rancher cluster ID `c-m-xxxxx` (Rancher UI URL, or `kubectl get setting cluster-id -n cattle-system -o jsonpath='{.value}'`) |
+
+The `validate-inputs` job checks exactly what the selected `monitoring_stack` needs and lists anything missing before deploying.
+
+> **Switching stacks:** Helmsman removes the releases of the stack that is not selected. An environment that runs rancher-monitoring/ELK today must set `monitoring_stack=rancher` before its next run.
 
 ---
 
@@ -87,44 +100,36 @@ reCAPTCHA v2 keys for each MOSIP service domain — add as **Environment Secrets
 
 ![Deploy External Services - Helmsman](_images/helmsman-external-services.png)
 
-- **(1)** Go to **Actions** (top of the repository page) → click **"Deploy External services of mosip using Helmsman"** in the list on the left.
-  > Can't find it? Search for "External" in the workflows list.
-- **(2)** Click the **Run workflow** dropdown button (top right) — this opens the form shown above.
-- **(3)** **Branch** — pick the branch you're deploying from (e.g., `MOSIP-44613`).
-- **(4)** **Deployment profile to use** — pick the profile you want (e.g., `mosip-platform-1.2.0.x` for full MOSIP, or `esignet-standalone` for eSignet standalone).
-- **(5)** **Choose Helmsman mode: dry-run or apply** — always pick **`apply`**. (`dry-run` is not a safe preview here — it will fail because required resources don't exist yet.)
-- **(6)** **Domain name for this environment** — type the web domain this environment should use (e.g., `example.xyz.net`).
-- **(7)** **PostgreSQL port for MOSIP platform external postgres** — only fill this in if you picked a `mosip-platform-*` profile in step 4. Type `5433` (or whatever port your external PostgreSQL uses).
-- **(8)** **PostgreSQL port for esignet standalone container postgres** — only fill this in if you picked the `esignet-standalone` profile in step 4. Type `5432`.
-- **(9)** **Environment name** — a short nickname for this environment (e.g., `sandbox`, `dev`, `staging`).
-- **(10)** **Slack channel name for alerting** (optional) — the Slack channel that should receive alerts (e.g., `#mosip-alerts`). Leave blank if you don't want Slack alerts.
-- **(11)** **Slack webhook URL for alerting** (optional) — leave this blank; it's normally already saved as the `SLACK_WEBHOOK_URL` secret in your GitHub environment.
-- **(12)** **Rancher cluster ID for rancher-monitoring** — only needed if your cluster is imported into Rancher (`rancher_import = true` in your Terraform config). Find it in the Rancher URL (looks like `c-m-xxxxx`) or run `kubectl get setting cluster-id -n cattle-system -o jsonpath='{.value}'`.
-- **(13)** Click the green **Run workflow** button to start the deployment.
+> The screenshot shows an earlier version of the form; the fields are listed in the table above.
 
-> **Note:** Steps 7 and 8 both always appear in the form regardless of which profile you picked — just fill in the one that matches your profile and leave the other blank.
+1. Go to **Actions** → **"Deploy External services of mosip using Helmsman"** → **Run workflow**.
+2. **Branch** — your deployment branch (the GitHub Environment of the same name holds the secrets).
+3. **profile** — the profile you deploy; **mode** — `apply`.
+4. **domain_name**, **env_name**, **db_port** — always (MOSIP: `5433`; eSignet standalone: any value, e.g. `5433`, plus **esignet_db_port** `5432`).
+5. **Monitoring:** leave **monitoring_stack** empty (standalone) and fill **alert_recipients** and **smtp_from** on the first run — or choose `rancher` and fill **clusterid** (Slack optional).
+6. Optional: **keycloak_db** = `external` to put Keycloak on the shared PostgreSQL.
+7. Click **Run workflow**.
 
 ---
 
 ## What Gets Deployed
 
-**prereq-dsf.yaml** (monitoring, mesh, logging):
-- ✅ Rancher monitoring stack (Prometheus, Grafana)
-- ✅ Istio service mesh
-- ✅ Elasticsearch + Kibana (logging)
-- ✅ httpbin (health check endpoint)
-- ✅ Global configmap
+**prereq-dsf.yaml** (monitoring, logging, mesh):
+- ✅ `monitoring_stack=standalone` (default): kube-prometheus-stack (Prometheus, Alertmanager e-mail) in `monitoring`; Loki, Alloy and Grafana (`grafana.<domain>`) in `logging`
+- ✅ `monitoring_stack=rancher`: rancher-monitoring in `cattle-monitoring-system`; Elasticsearch + Kibana (`kibana.<domain>`) and rancher-logging in `cattle-logging-system`
+- ✅ Istio service mesh and httpbin (installed by the first app of the selected stack)
 
 **external-dsf.yaml** (data layer):
-- ✅ PostgreSQL (container mode) or external Terraform-provisioned PostgreSQL
-- ✅ Redis
-- ✅ Kafka + Kafka UI
-- ✅ SoftHSM
-- ✅ Keycloak + Keycloak init
-- ✅ MinIO (object storage)
-- ✅ ActiveMQ
-- ✅ ClamAV (antivirus)
-- ✅ Captcha service
+
+| Component | MOSIP platform | eSignet standalone |
+|-----------|----------------|--------------------|
+| PostgreSQL | external (nginx node, `configure` step) + `postgres-init` | container + `postgres-init-esignet` |
+| Keycloak + init | ✅ (`keycloak_db`: bundled or external) | ✅ (`keycloak_db`: bundled or external) |
+| Kafka + Kafka UI | ✅ | ✅ |
+| MinIO | ✅ | ✅ |
+| SoftHSM (kernel, IDA) | ✅ | — |
+| ClamAV, ActiveMQ, landing page | ✅ | — |
+| Redis, captcha | — | ✅ |
 
 ---
 
@@ -140,14 +145,16 @@ reCAPTCHA v2 keys for each MOSIP service domain — add as **Environment Secrets
 ```bash
 # Check all external service pods
 kubectl get pods -n postgres
-kubectl get pods -n redis
+kubectl get pods -n redis      # eSignet standalone
 kubectl get pods -n kafka
 kubectl get pods -n keycloak
 kubectl get pods -n minio
-kubectl get pods -n softhsm
+kubectl get pods -n softhsm    # MOSIP platform
 
-# Check Istio
+# Check Istio and monitoring (standalone stack)
 kubectl get pods -n istio-system
+kubectl get pods -n monitoring
+kubectl get pods -n logging
 
 # Confirm namespace label set on success
 kubectl get ns default --show-labels | grep external-dsf

@@ -29,8 +29,8 @@ This directory contains GitHub Actions workflows for automated MOSIP deployment:
 | Provider | Status | Implementation |
 |----------|---------|----------------|
 | **AWS** | **Complete** | Full infrastructure, VPC, RKE2, PostgreSQL integration |
-| **Azure** | **Placeholder** | Basic structure - [community contributions welcome](../terraform/base-infra/azure/) |
-| **GCP** | **Placeholder** | Basic structure - [community contributions welcome](../terraform/base-infra/gcp/) |
+| **Azure** | **Placeholder** | Basic structure - [community contributions welcome](../../terraform/base-infra/azure/) |
+| **GCP** | **Placeholder** | Basic structure - [community contributions welcome](../../terraform/base-infra/gcp/) |
 
 ## Deployment Guide
 
@@ -466,8 +466,8 @@ graph TD
 ## Cloud Provider Contribution Guide
 
 - **AWS** - Production ready with full feature set 
-- **Azure** - [Placeholder implementation](../terraform/base-infra/azure/main.tf) - contributions welcome 
-- **GCP** - [Placeholder implementation](../terraform/base-infra/gcp/main.tf) - contributions welcome 
+- **Azure** - [Placeholder implementation](../../terraform/base-infra/azure/main.tf) - contributions welcome 
+- **GCP** - [Placeholder implementation](../../terraform/base-infra/gcp/main.tf) - contributions welcome 
 
 **Community contributions needed for Azure and GCP implementations**
 

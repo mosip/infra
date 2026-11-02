@@ -434,7 +434,7 @@ kubectl delete ns redis
 ## Related Documentation
 
 - [Helmsman DSF Guide](../README.md)
-- [Workflows README](../../.github/workflows/README.md)
+- [Workflows README](../.github/workflows/README.md)
 - [Secret Generation Guide](./SECRET_GENERATION_GUIDE.md)
 - [Onboarding Guide](./ONBOARDING_GUIDE.md)
 

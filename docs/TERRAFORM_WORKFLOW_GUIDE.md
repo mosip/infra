@@ -11,9 +11,10 @@
   - Data-centre VMs need no Terraform at all: see [Deployment sequence](DEPLOYMENT_SEQUENCE.md#data-centre)
 - **`COMPONENT`**: what to run — each component is its own Terraform root with its own state
   - **all**: every component in order, then `configure` (needs `TERRAFORM_APPLY`)
-  - **security** → **compute** → **iam** → **storage** → **dns**: one component (day-2 changes, e.g. `dns` to update only Route53)
-  - **configure**: Ansible only (nginx, RKE2, NFS, PostgreSQL, ActiveMQ, Rancher/Keycloak)
-  - **base-infra**: VPC, networking, jump server (deploy FIRST, once)
+  - **security** → **iam** → **compute** → **storage** → **dns**: one component (day-2 changes, e.g. `dns` to update only Route53, `compute` to resize or add nodes)
+  - **configure**: Ansible only (TLS + nginx, RKE2, Rancher import, NFS, PostgreSQL, ActiveMQ, Rancher/Keycloak)
+  - **vm**: standalone EC2 instances with their own security group and IAM (`profiles/<profile>/aws/vm.tfvars`) — not part of `all`
+  - **base-infra**: VPC, networking, jump server, WireGuard (deploy FIRST, once)
 - **`PROFILE`**: deployment shape — see [Profiles](PROFILES.md)
 
   | Profile | Values | Cluster size | Use for |
@@ -45,6 +46,8 @@
 → Cost: Billing starts
 ```
 
+- **`DNS_PROVIDER`**: who creates the DNS records — `terraform-route53` (default, `dns` component), `godaddy` / `cloudflare` / `rfc2136` (Ansible, provider secrets), or `manual` ("no DNS yet": builds the cluster, skips TLS, the nginx proxy and the Rancher import, and prints the records to create)
+- **`ENABLE_RANCHER_IMPORT`** / **`RANCHER_CLUSTER_NAME`** / **`PUBLISH_KUBECONFIG`** / **`GRANT_GROUP_ACCESS`**: register the cluster in the observ Rancher (needs `RANCHER_API_URL` + `RANCHER_API_TOKEN`), publish its kubeconfig as the `KUBECONFIG` environment secret, and grant team access
 - **Relationship with Rancher Import:**
 
 ```
@@ -67,12 +70,11 @@ If Terraform Apply = ☐ (unchecked - dry run, single component only)
   - Automatic encryption/decryption via GitHub Actions
   - **Best for**: Development, testing, small teams
   - **Requires**: GPG_PASSPHRASE secret
-- **`s3`**: Remote S3 backend storage (recommended for production and large teams)
-  - Centralized state storage in AWS S3
-  - DynamoDB state locking support
-  - Cross-team collaboration friendly
+- **`remote`**: state in a cloud bucket (recommended for production and large teams)
+  - Set **`REMOTE_BACKEND_CONFIG`**: `aws:<bucket_base_name>:<region>`, `azure:<resource_group>:<storage_account>:<container>` or `gcp:<bucket>` — the workflow creates the bucket if needed
+  - Tick **`ENABLE_STATE_LOCKING`** for locking (DynamoDB on AWS)
+  - State key per provider, component, profile and branch
   - **Best for**: Production, large teams, multiple environments
-  - **Requires**: S3 bucket and DynamoDB table setup
 
 ## Understanding Terraform Modes
 
@@ -91,7 +93,7 @@ Before running any Terraform workflow, understand these modes:
 2. **Consistent Naming**: Ensure `ssh_key_name` (profiles/<profile>/aws/common.tfvars) matches the GitHub secret
 3. **Secret Management**: Keep SSH private keys secure and never commit to repository
 4. **Environment Isolation**: Use separate branches/environments for different deployments
-5. **State Management**: Choose appropriate backend (local vs S3) based on team size and requirements
+5. **State Management**: Choose the backend (`local` vs `remote`) based on team size and requirements
 
 ## Troubleshooting Common Issues
 
@@ -110,3 +112,7 @@ Before running any Terraform workflow, understand these modes:
 ### Backend Configuration Errors
 **Error**: "Backend configuration changed"
 **Solution**: Run terraform init to reinitialize backend configuration
+
+## Destroying
+
+Use **Actions → terraform destroy** with the same `PROFILE`, `BACKEND_TYPE` and `SSH_PRIVATE_KEY`. `COMPONENT=all` destroys in reverse order (`dns → storage → compute → iam → security`, plus `vm` if it was applied); leave **`TERRAFORM_DESTROY`** unchecked for a `plan -destroy` preview. `base-infra` is destroyed separately and last. See the [Environment Destruction Guide](ENVIRONMENT_DESTRUCTION_GUIDE.md).

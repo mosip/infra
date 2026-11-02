@@ -44,7 +44,7 @@ Click **"Run workflow"** and configure:
 
 ```
 Parameters:
-├─ Branch: release-0.1.0 (or your deployment branch)
+├─ Branch: release-0.x.x (or your deployment branch)
 ├─ CLOUD_PROVIDER: aws
 ├─ COMPONENT: all        (dns → storage → compute → iam → security, + vm)
 ├─ PROFILE: mosip / esignet-standalone / observ
@@ -269,9 +269,9 @@ Destruction Order (Reverse of Deployment):
 **Time Required**: 5-10 minutes
 
 ```bash
-# Option A: Using Helmsman (Recommended)
-cd Helmsman/
-helmsman --destroy -f dsf/testrigs-dsf.yaml
+# Option A (recommended): GitHub Actions → "Destroy Testrigs using Helmsman" (helmsman_testrigs_destroy.yml)
+#   see docs/HELMSMAN_DESTROY_GUIDE.md for its inputs
+# Option A (CLI): helmsman --destroy -f Helmsman/dsf/<profile>/testrigs-dsf.yaml
 
 # Option B: Using Helm directly
 helm list -n apitestrig
@@ -302,9 +302,9 @@ kubectl get namespaces | grep testrig
 **Time Required**: 10-20 minutes
 
 ```bash
-# Option A: Using Helmsman (Recommended)
-cd Helmsman/
-helmsman --destroy -f dsf/mosip-dsf.yaml
+# Option A (recommended): GitHub Actions → "Destroy MOSIP services using Helmsman" (helmsman_mosip_destroy.yml)
+#   see docs/HELMSMAN_DESTROY_GUIDE.md for its inputs
+# Option A (CLI): helmsman --destroy -f Helmsman/dsf/<profile>/mosip-dsf.yaml
 
 # Option B: Delete namespace with all resources
 kubectl delete namespace mosip
@@ -330,9 +330,9 @@ kubectl get pvc -n mosip
 **Time Required**: 10-20 minutes
 
 ```bash
-# Option A: Using Helmsman (Recommended)
-cd Helmsman/
-helmsman --destroy -f dsf/external-dsf.yaml
+# Option A (recommended): GitHub Actions → "Destroy External services of MOSIP using Helmsman (external DSF)" (helmsman_external_destroy_external.yml)
+#   see docs/HELMSMAN_DESTROY_GUIDE.md for its inputs
+# Option A (CLI): helmsman --destroy -f Helmsman/dsf/<profile>/external-dsf.yaml
 
 # Option B: Delete namespaces one by one
 kubectl delete namespace postgres
@@ -370,13 +370,13 @@ kubectl delete pvc --all -n kafka
 **Time Required**: 5-10 minutes
 
 ```bash
-# Option A: Using Helmsman (Recommended)
-cd Helmsman/
-helmsman --destroy -f dsf/prereq-dsf.yaml
+# Option A (recommended): GitHub Actions → "Destroy Prerequisite services of MOSIP using Helm" (helmsman_external_destroy_prereq.yml)
+#   see docs/HELMSMAN_DESTROY_GUIDE.md for its inputs
+# Option A (CLI): helmsman --destroy -f Helmsman/dsf/<profile>/prereq-dsf.yaml
 
-# Option B: Delete monitoring and Istio
-kubectl delete namespace cattle-monitoring-system
-kubectl delete namespace cattle-logging-system
+# Option B: Delete monitoring/logging and Istio
+kubectl delete namespace monitoring logging                              # monitoring_stack=standalone (default)
+kubectl delete namespace cattle-monitoring-system cattle-logging-system  # monitoring_stack=rancher
 kubectl delete namespace istio-system
 kubectl delete namespace istio-operator
 
@@ -410,7 +410,7 @@ kubectl get namespaces | grep -E "cattle|istio"
  Click: "Run workflow"
  
  Parameters:
- - Branch: release-0.1.0 (your deployment branch)
+ - Branch: release-0.x.x (your deployment branch)
  - CLOUD_PROVIDER: aws
  - COMPONENT: all      (reverse order: dns → storage → compute → iam → security)
  - PROFILE: mosip / esignet-standalone
@@ -498,16 +498,17 @@ Parameters:
 ##### Using Terraform CLI
 
 ```bash
-cd terraform/base-infra/aws/
+cd terraform/implementations/aws/base-infra/
+# with the same backend.tf / decrypted state the workflow used
 
 # List resources to be destroyed
 terraform state list
 
 # Preview destruction
-terraform plan -destroy
+terraform plan -destroy -var-file=aws.tfvars
 
 # Destroy base infrastructure
-terraform destroy -auto-approve
+terraform destroy -auto-approve -var-file=aws.tfvars
 
 # This will delete:
 # - VPC

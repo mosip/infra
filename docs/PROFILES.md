@@ -22,9 +22,8 @@ profiles/<name>/
 | `esignet-standalone` | 1 / 1 / 2 | nginx, rke2, rancher_import, nfs | mosip |
 | `observ` | 1 / 0 / 0 | nginx, rke2, nfs, rancher_keycloak | observability |
 
-`observ` used to be a separate `observ-infra` tree whose Terraform was
-identical to `infra`; only its sizes and Layer-3 components differ, which is
-exactly what a profile expresses.
+`observ` uses the same Terraform components as the other profiles; only its
+sizes and Layer-3 components differ, which is exactly what a profile expresses.
 
 ## profile.yml
 
