@@ -8,7 +8,7 @@ This guide provides detailed instructions for handling partner onboarding proces
 - [Understanding MOSIP Onboarding](#understanding-mosip-onboarding)
 - [Identifying Failed Onboarding Processes](#identifying-failed-onboarding-processes)
 - [Manual Partner Re-onboarding Procedures](#manual-partner-re-onboarding-procedures)
-- [Verification Steps](#verification-steps)
+- [Getting Help](#getting-help)
 
 ## Overview
 
@@ -120,6 +120,14 @@ kubectl logs -n onboarder $POD_NAME | grep -i "error\|failed\|exception"
 # Check if reports were uploaded to MinIO
 kubectl logs -n onboarder $POD_NAME | grep -i "minio\|report uploaded"
 ```
+
+### Symptom: eSignet / resident fail with `IDA-MPA-009`
+
+If the onboarder jobs completed but eSignet login, resident apitestrig cases or `send-otp` fail with
+`IDA-MPA-009` (*Partner is not registered*), IDA has not received the partner data. IDA learns partners
+only from PMS WebSub events, so events missed while IDA or WebSub was not ready leave its
+`mosip_ida.partner_data` table without the `mpartner-default-*` partners. Re-run the partner onboarders
+(below) after PMS, WebSub and IDA are healthy, then re-run the affected tests.
 
 ## Manual Partner Re-onboarding Procedures
 

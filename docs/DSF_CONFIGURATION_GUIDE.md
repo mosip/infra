@@ -1,6 +1,6 @@
 # DSF Configuration Guide
 
-This guide explains how to configure Helmsman Desired State Files (DSF) for MOSIP and eSignet deployment, including the profile-based DSF structure, `clusterid` configuration, and domain/environment variable setup.
+This guide explains how to configure Helmsman Desired State Files (DSF) for MOSIP and eSignet deployment, including the profile-based DSF structure, the monitoring stack choice, and domain/environment variable setup.
 
 ## Table of Contents
 
@@ -102,11 +102,13 @@ Every profile's `prereq-dsf.yaml` contains two stacks; the `monitoring_stack` wo
 Istio and httpbin are installed by the first app of whichever stack is enabled. **Helmsman uninstalls the releases of the disabled stack** — an environment that runs ELK + rancher-monitoring today must set `monitoring_stack=rancher` (or `vars.MONITORING_STACK=rancher`) before its next prereq run, otherwise the run replaces it with the standalone stack.
 
 
-**File**: `Helmsman/dsf/prereq-dsf.yaml`
+**File**: `Helmsman/dsf/<profile>/prereq-dsf.yaml`
 
 **Purpose**: Deploys monitoring stack, Istio service mesh, and logging
 
-### Critical Configuration: clusterid
+### clusterid (`monitoring_stack=rancher` only)
+
+> Skip this section with the default `monitoring_stack=standalone` — `clusterid` is not used.
 
 #### What is clusterid?
 
@@ -215,49 +217,20 @@ The DSF files reference `${domain_name}` and `${env_name}` everywhere a domain o
 
 ```yaml
 hooks:
- postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh ${env_name} helmsman"
+ postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh ${domain_name} ${env_name}"
  # env_name is resolved from vars.ENV_NAME (e.g. "soil38")
 ```
 
-#### Monitoring Configuration Options
+#### Monitoring and logging apps
 
-```yaml
-apps:
- # CRDs (Custom Resource Definitions) - Always deploy first
- rancher-monitoring-crd:
- namespace: cattle-monitoring-system
- enabled: true # Keep enabled
- version: 103.1.1+up45.31.1
- chart: mosip/rancher-monitoring-crd
- priority: -6 # Highest priority (deploys first)
- 
- # Main monitoring stack
- rancher-monitoring:
- namespace: cattle-monitoring-system
- enabled: true # Set to false to disable monitoring
- # If disabled, Grafana and Prometheus won't be installed
-```
+No DSF edits are needed: every app of each stack carries `enabled: ${MONITORING_STANDALONE}` or `enabled: ${MONITORING_RANCHER}`, and the workflow sets exactly one of them to `true` from `monitoring_stack` (see [above](#monitoring-and-logging-stack-monitoring_stack)).
 
-#### Logging Configuration (Optional)
+| Stack | Apps (namespace) |
+|-------|------------------|
+| standalone | `kube-prometheus-stack` (`monitoring`), `loki`, `grafana`, `alloy`, `istio-addons-loki` (`logging`) |
+| rancher | `rancher-monitoring-crd`, `rancher-monitoring` (`cattle-monitoring-system`), `elasticsearch`, `istio-addons-logging`, `rancher-logging-crd`, `rancher-logging` (`cattle-logging-system`) |
 
-```yaml
-apps:
- logging:
- namespace: cattle-logging-system
- enabled: false # Set to true to enable logging
- # When enabled, installs Fluentd/Elasticsearch/Kibana stack
-```
-
-**When to enable logging:**
-- Need centralized log aggregation
-- Debugging complex issues
-- Compliance requirements
-- Performance analysis
-
-**Cost considerations:**
-- Logging consumes significant storage
-- Requires additional resources (CPU/memory)
-- Recommended for production, optional for development
+Values files: `Helmsman/utils/prometheus-values.yaml`, `loki-values.yaml`, `grafana-values.yaml`, `alloy-values.yaml` (standalone) and `monitoring_values.yaml`, `rancher-logging-values.yaml` (rancher). Grafana dashboards are loaded from `Helmsman/utils/loki/dashboards/` by the `import-dashboards.sh` hook.
 
 ---
 
@@ -318,34 +291,23 @@ apps:
 
 #### 3. reCAPTCHA Configuration
 
-**Location**: Around line 315
+**Purpose**: Protects the MOSIP web portals (pre-registration, admin, resident) from bots.
 
-**Purpose**: Protects MOSIP web portals from bots
-
-**Configuration**:
-```yaml
-apps:
- captcha:
- enabled: true
- hooks:
- postInstall: "$WORKDIR/hooks/captcha-setup.sh PREREG_SITE_KEY PREREG_SECRET_KEY ADMIN_SITE_KEY ADMIN_SECRET_KEY RESIDENT_SITE_KEY RESIDENT_SECRET_KEY"
-```
-
-**How to get keys**: See [Secret Generation Guide - reCAPTCHA](SECRET_GENERATION_GUIDE.md#6-recaptcha-keys)
-
-**Example with actual keys**:
+**Configuration** (`mosip-platform-*/external-dsf.yaml`, postInstall hook of the `activemq` app — already in place):
 ```yaml
 hooks:
- postInstall: "$WORKDIR/hooks/captcha-setup.sh 6LfkAMwrAAAAAATB1WhkIhzuAVMtOs9VWabODoZ_ 6LfkAMwrAAAAAHQAT93nTGcLKa-h3XYhGoNSG-NL 6LdNAcwrAAAAAETGWvz-3I12vZ5V8vPJLu2ct9CO 6LdNAcwrAAAAAE4iWGJ-g6Dc2HreeJdIwAl5h1iL 6LdRAcwrAAAAAFUEHHKK5D_bSrwAPqdqAJqo4mCk 6LdRAcwrAAAAAOeVl6yHGBCBA8ye9GsUOy4pi9s9"
+ postInstall: "$WORKDIR/hooks/captcha-setup.sh ${PREREG_CAPTCHA_SITE_KEY} ${PREREG_CAPTCHA_SECRET_KEY} ${ADMIN_CAPTCHA_SITE_KEY} ${ADMIN_CAPTCHA_SECRET_KEY} ${RESIDENT_CAPTCHA_SITE_KEY} ${RESIDENT_CAPTCHA_SECRET_KEY}"
 ```
 
-**Key Order (CRITICAL)**:
-1. PreReg Site Key
-2. PreReg Secret Key
-3. Admin Site Key
-4. Admin Secret Key
-5. Resident Site Key
-6. Resident Secret Key
+Do **not** edit the DSF: it already reads the keys from these **environment secrets** (Settings → Environments → `<branch>` → Secrets):
+
+| Secret | Domain |
+|--------|--------|
+| `PREREG_CAPTCHA_SITE_KEY` / `PREREG_CAPTCHA_SECRET_KEY` | `prereg.<domain>` |
+| `ADMIN_CAPTCHA_SITE_KEY` / `ADMIN_CAPTCHA_SECRET_KEY` | `admin.<domain>` |
+| `RESIDENT_CAPTCHA_SITE_KEY` / `RESIDENT_CAPTCHA_SECRET_KEY` | `resident.<domain>` |
+
+**How to get keys**: see the [reCAPTCHA Setup Guide](RECAPTCHA_SETUP_GUIDE.md) and [Secret Generation Guide - reCAPTCHA](SECRET_GENERATION_GUIDE.md#7-recaptcha-keys).
 
 #### 4. MinIO Configuration (Object Storage)
 
@@ -455,28 +417,18 @@ If the Job fails, the release fails and keycloak is not installed. Read the erro
 
 #### 2. Database Branch Configuration
 
-**Location**: Multiple locations, look for `dbBranch`
+**Location**: `external-dsf.yaml` → `postgres-init` app, one line per database. Each profile already pins the branches that match its chart versions:
 
 ```yaml
 apps:
- config-server:
+ postgres-init:
  set:
- # CRITICAL: Must match your MOSIP version
- gitRepo.dbBranch: "v1.2.0.2" # ← Update to your MOSIP version
+ databases.mosip_master.branch: "v1.2.1.4"
+ databases.mosip_kernel.branch: "v1.2.0.2"
+ # ... mosip_audit, mosip_keymgr, mosip_idmap, mosip_prereg, ...
 ```
 
-**How to determine correct branch:**
-
-| MOSIP Version | DB Branch |
-|---------------|-----------|
-| 1.2.0.2 | `v1.2.0.2` |
-| 1.2.0.3 | `v1.2.0.3` |
-| Latest | Check MOSIP releases |
-
-**Where to find your MOSIP version:**
-- Check Helm chart versions in DSF file
-- Refer to your deployment requirements
-- Match with MOSIP official releases
+Change a branch only when you change the matching service chart version in `mosip-dsf.yaml`.
 
 #### 3. Chart Versions
 
@@ -829,13 +781,13 @@ apps:
 | Keycloak database | `vars.KEYCLOAK_DB` | GitHub Environment Variables | `bundled` (default) or `external` PostgreSQL for Keycloak (external DSFs) |
 | MOSIP-ID domain | `vars.MOSIPID_DOMAIN_NAME` | GitHub Environment Variables | esignet-standalone profile — MOSIP-ID testrig hosts |
 
-**DSF file manual edits (one-time per environment):**
+**DSF settings already set per profile (change only if your deployment differs):**
 
 | Setting | File | Purpose |
 |---------|------|---------|
-| `postgres.enabled` | `external-dsf.yaml` | `true` = container PostgreSQL, `false` = external (Terraform-managed) |
-| `dbBranch` | `mosip-dsf.yaml` | DB scripts version — must match MOSIP version |
-| Domain values | `Helmsman/utils/global_configmap.yaml` | Shared ConfigMap consumed by all services |
+| `postgres.enabled` | `external-dsf.yaml` | `false` = external PostgreSQL (MOSIP platform), `true` = container PostgreSQL (eSignet standalone) |
+| `databases.<db>.branch` | `external-dsf.yaml` (`postgres-init`) | DB scripts version per database — matches the profile's chart versions |
+| Domain values | `Helmsman/utils/global_configmap.yaml` | Generated from `domain_name` by the Istio hook (`install-istio-and-httpbin.sh`) — no edits |
 
 ---
 
