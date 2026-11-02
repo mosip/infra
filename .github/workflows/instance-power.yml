@@ -24,7 +24,7 @@ on:
         required: true
         type: string
       VPC_NAME:
-        description: 'VPC Name tag, e.g. decouple-273-vpc'
+        description: 'VPC Name tag, e.g. mosip-boxes'
         required: true
         type: string
       REGION:
