@@ -36,9 +36,9 @@ Navigate to: **Repository → Actions → terraform destroy**
 
 #### 2. Run the Destroy Workflow
 
-![Infrastructure Terraform Destroy](\_images/infra-terraform-destroy.png)
+![terraform destroy — Run workflow form](_images/workflows/terraform-destroy.svg)
 
-> Screenshot from the previous workflow version — the form now shows `COMPONENT` and `PROFILE` (see parameters below).
+> Generated from the workflow definition — the numbers match the form fields in order.
 
 Click **"Run workflow"** and configure:
 
@@ -82,9 +82,7 @@ aws elb describe-load-balancers --output table | grep mosip
 
 If you also want to delete the VPC and networking (base-infra):
 
-![Base Infrastructure Terraform Destroy](\_images/base-infra-terraform-destroy.png)
-
-> Screenshot from the previous workflow version — select `COMPONENT: base-infra`.
+Same form as above (field 2: `COMPONENT = base-infra`).
 
 1. Go to **Actions → terraform destroy**
 2. Run workflow with:

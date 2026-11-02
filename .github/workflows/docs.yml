@@ -1,6 +1,7 @@
 # Documentation site (mkdocs.yml at the repo root).
 #
-# - Pull requests: strict build only (broken links or anchors fail the check).
+# - Pull requests: the workflow form images must match the workflows, then a
+#   strict build (broken links or anchors fail the check).
 # - Push to develop, or a manual run: build and publish to GitHub Pages.
 #
 # One-time setup (repository admin): Settings → Pages → Source: GitHub Actions,
@@ -13,7 +14,7 @@ on:
       - 'docs/**'
       - 'mkdocs.yml'
       - '.github/mkdocs/**'
-      - '.github/workflows/docs.yml'
+      - '.github/workflows/**'   # inputs drive docs/_images/workflows/*.svg
   push:
     branches:
       - develop
@@ -47,6 +48,9 @@ jobs:
 
       - name: Install MkDocs
         run: pip install -r docs/requirements.txt
+
+      - name: Workflow form images up to date
+        run: python .github/mkdocs/render_workflow_forms.py --check
 
       - name: Build (strict)
         run: mkdocs build --strict --site-dir site
