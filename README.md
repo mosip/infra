@@ -4,6 +4,17 @@
 
 # MOSIP Rapid Deployment
 
+[![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](LICENSE)
+[![Latest release](https://img.shields.io/github/v/release/mosip/infra?sort=semver)](https://github.com/mosip/infra/releases)
+[![infra checks](https://github.com/mosip/infra/actions/workflows/infra-checks.yml/badge.svg)](https://github.com/mosip/infra/actions/workflows/infra-checks.yml)
+[![GitHub stars](https://img.shields.io/github/stars/mosip/infra?style=social)](https://github.com/mosip/infra/stargazers)
+
+> **Deploy [MOSIP](https://www.mosip.io) — the open-source digital identity platform — on AWS or in your own data centre in 3 steps:** Terraform builds the infrastructure, Ansible configures the hosts, Helmsman deploys MOSIP.
+
+**Quick links:** [Deployment steps](#deployment-steps-guide) · [Prerequisites](#prerequisites) · [Profiles](docs/PROFILES.md) · [Data-centre deployment](docs/DATACENTRE_DEPLOYMENT.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Discussions](https://github.com/mosip/infra/discussions)
+
+⭐ **If this repository helps you deploy MOSIP, please star it** — it helps other countries and teams find it.
+
 This repository provides a **3-step rapid deployment model** for MOSIP (Modular Open Source Identity Platform) with enhanced security features including GPG (GNU Privacy Guard) encryption for local backends and integrated PostgreSQL setup via Terraform modules.
 
 ### Key Components:
