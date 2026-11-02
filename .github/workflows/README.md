@@ -159,7 +159,7 @@ Stop and start EC2 instances by **private IP** — cluster nodes, standalone VMs
 |---|---|---|
 | `ACTION` | `status` / `stop` / `start` | `status` only lists |
 | `INSTANCE_IPS` | `10.73.3.60,10.73.4.131` | comma-separated, max 20 |
-| `VPC_NAME` | `decouple-273-vpc` | VPC `Name` tag |
+| `VPC_NAME` | `mosip-boxes` | VPC `Name` tag |
 | `REGION` | `ap-south-1` | |
 | `MODE` | `dry-run` / `apply` | default `dry-run` shows what would happen |
 

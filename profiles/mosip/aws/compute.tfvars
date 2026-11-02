@@ -14,7 +14,7 @@ specific_availability_zones = []
 #                         after, so api.<domain> and the public subdomains
 #                         point to the new IP.
 #   Keep the AMI's CPU architecture (x86: t3a / m6a / m7a).
-k8s_instance_type   = "m6a.2xlarge" # #437 test: resize all nodes (revert before develop)
+k8s_instance_type   = "t3a.2xlarge"
 nginx_instance_type = "t3a.2xlarge"
 
 nginx_node_root_volume_size   = 24
@@ -31,8 +31,8 @@ k8s_instance_root_volume_size = 64
 #   worker         rke2-agent; kubelet only.
 # No template adds taints, so every node also runs workloads.
 k8s_control_plane_node_count = 3
-k8s_etcd_node_count          = 0
-k8s_worker_node_count        = 5
+k8s_etcd_node_count          = 3
+k8s_worker_node_count        = 1
 
 # nginx gets the certbot Route53 instance profile from the iam component.
 # Set false when profile.yml uses another TLS mode (byo, http01, dns01 with

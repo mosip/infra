@@ -9,30 +9,30 @@
 # ============================================================
 
 # Environment name — tags every resource and names the Ansible hosts
-cluster_name = "d273-mosip"
+cluster_name = "<cluster-name>"
 
 # MOSIP's domain (ex: sandbox.xyz.net)
-cluster_env_domain = "d273-mosip.mosip.net"
+cluster_env_domain = "<cluster-env-domain>"
 
 # Email-ID used by certbot to notify SSL certificate expiry via email
-mosip_email_id = "thisisbn46@gmail.com"
+mosip_email_id = "<email-id>"
 
 # SSH login key name for AWS node instances (ex: my-ssh-key)
-ssh_key_name = "mosip-aws"
+ssh_key_name = "<ssh-key-name>"
 
 # The AWS region for resource creation
 aws_provider_region = "ap-south-1"
 
 # The Route 53 hosted zone ID
-zone_id = "Z090954828SJIEL6P5406"
+zone_id = "<route53_zone_id>"
 
 ## UBUNTU 24.04
 # The Amazon Machine Image ID for the instances
 ami = "ami-0ad21ae1d0696ad58"
 
 # VPC Configuration - Existing VPC to use (discovered by Name tag)
-vpc_name = "default"
+vpc_name = "<vpc-name>"
 
 # Security group CIDRs
-network_cidr   = "172.31.0.0/16" # Use your actual VPC CIDR
-WIREGUARD_CIDR = "172.31.0.0/16" # Use your actual WireGuard VPN CIDR
+network_cidr   = "172.0.0.0/8" # Use your actual VPC CIDR
+WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
