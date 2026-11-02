@@ -287,6 +287,15 @@ Found something unclear? Want to add more examples? Contributions welcome!
 1. **Report issues**: Open a GitHub issue describing what's confusing
 2. **Suggest improvements**: What would make docs clearer?
 3. **Share your experience**: What worked? What didn't?
+4. **Preview the docs site locally** before opening a PR (the `docs` check runs the same strict build):
+
+```bash
+pip install -r docs/requirements.txt
+mkdocs serve                 # http://127.0.0.1:8000
+mkdocs build --strict        # fails on broken links or anchors
+```
+
+New pages must be added to `nav:` in `mkdocs.yml`.
 
 ---
 
