@@ -621,7 +621,7 @@ On your deployment branch, edit the files of the profile you'll use:
   mosip_email_id      = "ops@example.org"    # certbot expiry mails
   ssh_key_name        = "mosip-aws"          # AWS key pair; the SSH_PRIVATE_KEY secret must hold its private key
   aws_provider_region = "ap-south-1"
-  zone_id             = "Z090954828SJIEL6P5406"
+  zone_id             = "<route53_zone_id>"
   ami                 = "ami-0ad21ae1d0696ad58"  # Ubuntu 24.04
   vpc_name            = "mosip-boxes"        # created by base-infra
   network_cidr        = "10.0.0.0/8"
