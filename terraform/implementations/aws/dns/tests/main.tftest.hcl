@@ -149,5 +149,11 @@ run "same_subdomain_public_and_internal_rejected" {
     additional_subdomain_public = ["iam"]
   }
 
+  # The dns module itself also rejects the overlap at its records (tested in
+  # modules/aws/dns); mock it here to exercise this root's own output check.
+  override_module {
+    target = module.dns
+  }
+
   expect_failures = [output.record_names]
 }
