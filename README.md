@@ -658,18 +658,19 @@ On your deployment branch, edit the files of the profile you'll use:
 
 #### Step 3d: Deploy with one run
 
-- **(1)** Go to **Actions** → **terraform plan / apply** → **Run workflow**
-- **(2)** **Branch**: your deployment branch
-- **(3)** **CLOUD_PROVIDER**: `aws`
-- **(4)** **COMPONENT**: `all`
-- **(5)** **PROFILE**: `mosip`, `esignet-standalone` or `observ`
-- **(6)** **BACKEND_TYPE**: `local` (GPG-encrypted state committed to the branch) or `remote`
+Same form as in step 3a ([image](docs/_images/workflows/terraform.svg)); the numbers below are its field numbers.
+
+- Go to **Actions** → **terraform plan / apply** → **Run workflow**, and pick your deployment **Branch**
+- **(1)** **CLOUD_PROVIDER**: `aws`
+- **(2)** **COMPONENT**: `all`
+- **(3)** **PROFILE**: `mosip`, `esignet-standalone` or `observ`
+- **(4)** **BACKEND_TYPE**: `local` (GPG-encrypted state committed to the branch) or `remote` (then **(5)** REMOTE_BACKEND_CONFIG and **(6)** ENABLE_STATE_LOCKING)
 - **(7)** **SSH_PRIVATE_KEY**: name of the secret holding the private key for `ssh_key_name`
 - **(8)** ✅ **TERRAFORM_APPLY** (required for `all`)
-- **(9)** **ENABLE_RANCHER_IMPORT**: tick to register the cluster in Rancher (needs `RANCHER_API_URL` / `RANCHER_API_TOKEN` secrets and an `observ` cluster)
-- **(10)** **DNS_PROVIDER**: `terraform-route53` (default, Route53 zone in `zone_id`), or `godaddy` / `cloudflare` / `rfc2136` / `manual` to create the records with Ansible — set the provider's secrets first (`GODADDY_API_KEY` + `GODADDY_API_SECRET`, `CLOUDFLARE_API_TOKEN`, or `DNS_RFC2136_SERVER` + TSIG key). See [DNS providers](docs/DEPLOYMENT_SEQUENCE.md#dns-providers).
+- **(9)** **ENABLE_RANCHER_IMPORT**: tick to register the cluster in Rancher (needs `RANCHER_API_URL` / `RANCHER_API_TOKEN` secrets and an `observ` cluster); **(10)–(14)** optional cluster name, kubeconfig publishing and team access
+- **(15)** **DNS_PROVIDER**: `terraform-route53` (default, Route53 zone in `zone_id`), or `godaddy` / `cloudflare` / `rfc2136` / `manual` to create the records with Ansible — set the provider's secrets first (`GODADDY_API_KEY` + `GODADDY_API_SECRET`, `CLOUDFLARE_API_TOKEN`, or `DNS_RFC2136_SERVER` + TSIG key). See [DNS providers](docs/DEPLOYMENT_SEQUENCE.md#dns-providers).
 
-`all` runs the components in the legacy order, each with its own state, stopping at the first failure:
+`all` runs the components in dependency order, each with its own state, stopping at the first failure:
 
 ```
 security → iam → compute → storage → dns → configure (Ansible: nginx → rke2 → rancher import → nfs → postgresql → activemq)
