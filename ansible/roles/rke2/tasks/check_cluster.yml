@@ -14,8 +14,12 @@
   failed_when: false
   when: check_existing_config | bool
 
+# Runs as root: use RKE2's own kubectl and admin kubeconfig. Plain
+# `kubectl get nodes` has no KUBECONFIG for root and always failed, so an
+# existing cluster was never detected and every rerun repeated the install.
 - name: Check kubectl connectivity if service is active
-  ansible.builtin.command: kubectl get nodes
+  ansible.builtin.command: >-
+    /var/lib/rancher/rke2/bin/kubectl --kubeconfig {{ rke2_config_dir }}/rke2.yaml get nodes
   register: kubectl_test
   changed_when: false
   failed_when: false

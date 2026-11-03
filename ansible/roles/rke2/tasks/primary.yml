@@ -12,6 +12,12 @@
     msg: "Skipping primary install for '{{ cluster_name }}' — cluster already exists."
   when: rke2_cluster_exists | default(false)
 
+# The install is skipped, but keep the user kubeconfig in place (idempotent):
+# the Rancher import and the docs use /home/ubuntu/.kube/<node>.yaml.
+- name: Ensure kubeconfig on an existing primary
+  ansible.builtin.include_tasks: kubeconfig.yml
+  when: rke2_cluster_exists | default(false)
+
 - name: Install and configure primary node
   when: not (rke2_cluster_exists | default(false))
   become: true

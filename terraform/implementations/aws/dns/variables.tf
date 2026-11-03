@@ -71,7 +71,7 @@ variable "subdomain_internal" {
 }
 
 variable "nginx_public_ip" {
-  description = "Target of api.<domain>. Null = the running nginx instance tagged Cluster=<cluster_name>, Role=nginx."
+  description = "Target of api.<domain>. Null = the nginx instance tagged Cluster=<cluster_name>, Role=nginx (it needs a public IP, so it must be running for apply)."
   type        = string
   default     = null
 }
