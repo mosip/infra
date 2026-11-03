@@ -53,8 +53,9 @@ If COMPONENT = all/configure AND ENABLE_RANCHER_IMPORT = ✅
 If ENABLE_RANCHER_IMPORT = ☐
  → Cluster is deployed but NOT imported
 
-If TERRAFORM_APPLY = ☐ (single component, plan only)
- → Dry run only, nothing happens (Rancher import setting is ignored)
+If TERRAFORM_APPLY = ☐ (plan only)
+ → Nothing is applied or committed; COMPONENT=all plans every component of an existing
+   environment and skips configure (Rancher import setting is ignored)
 ```
 
 ---
@@ -164,7 +165,7 @@ If TERRAFORM_APPLY = ☐ (single component, plan only)
  | **COMPONENT** | `all` | `all` | Every component in order, then Ansible |
  | **PROFILE** | `mosip` or `esignet-standalone` | `mosip` | Deployment shape — see below |
  | **BACKEND_TYPE** | `local` or `remote` | `local` | State storage location |
- | **TERRAFORM_APPLY** | ✅ | ✅ | Required for `all` |
+ | **TERRAFORM_APPLY** | ✅ | ✅ | Required for a new environment (unchecked = preview of an existing one) |
 
  **Profiles:**
 

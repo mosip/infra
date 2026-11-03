@@ -666,7 +666,7 @@ Same form as in step 3a ([image](docs/_images/workflows/terraform.svg)); the num
 - **(3)** **PROFILE**: `mosip`, `esignet-standalone` or `observ`
 - **(4)** **BACKEND_TYPE**: `local` (GPG-encrypted state committed to the branch) or `remote` (then **(5)** REMOTE_BACKEND_CONFIG and **(6)** ENABLE_STATE_LOCKING)
 - **(7)** **SSH_PRIVATE_KEY**: name of the secret holding the private key for `ssh_key_name`
-- **(8)** ✅ **TERRAFORM_APPLY** (required for `all`)
+- **(8)** ✅ **TERRAFORM_APPLY** (required for a new environment; unchecked, `all` only previews an existing one)
 - **(9)** **ENABLE_RANCHER_IMPORT**: tick to register the cluster in Rancher (needs `RANCHER_API_URL` / `RANCHER_API_TOKEN` secrets and an `observ` cluster); **(10)–(14)** optional cluster name, kubeconfig publishing and team access
 - **(15)** **DNS_PROVIDER**: `terraform-route53` (default, Route53 zone in `zone_id`), or `godaddy` / `cloudflare` / `rfc2136` / `manual` to create the records with Ansible — set the provider's secrets first (`GODADDY_API_KEY` + `GODADDY_API_SECRET`, `CLOUDFLARE_API_TOKEN`, or `DNS_RFC2136_SERVER` + TSIG key). See [DNS providers](docs/DEPLOYMENT_SEQUENCE.md#dns-providers).
 
@@ -676,7 +676,7 @@ Same form as in step 3a ([image](docs/_images/workflows/terraform.svg)); the num
 security → iam → compute → storage → dns → configure (Ansible: nginx → rke2 → rancher import → nfs → postgresql → activemq)
 ```
 
-To preview without changing anything, run a single component with **TERRAFORM_APPLY** unchecked (plan only). Every component can also be re-run on its own later — e.g. `COMPONENT=dns` to change only Route53 records, or `COMPONENT=configure` to re-run Ansible. See [Deployment sequence](docs/DEPLOYMENT_SEQUENCE.md).
+To preview changes to an **existing** environment, run `COMPONENT=all` (or a single component) with **TERRAFORM_APPLY** unchecked: every component is planned in order, nothing is applied or committed, and configure is skipped. A brand-new environment can't be previewed this way — compute, storage and dns look up what the earlier components created in AWS — so deploy it with apply. Every component can also be re-run on its own later — e.g. `COMPONENT=dns` to change only Route53 records, or `COMPONENT=configure` to re-run Ansible. See [Deployment sequence](docs/DEPLOYMENT_SEQUENCE.md).
 
 **Observability cluster (`observ` profile):** deploy it before the clusters that import into its Rancher. Set the `RANCHER_BOOTSTRAP_PASSWORD` environment secret first — it's the initial `admin` password for Rancher UI (it's no longer kept in a tfvars file). Then run the Keycloak ⇄ Rancher SAML integration: see the **[Rancher-Keycloak Integration Guide](Rancher-keycloak-integration/README.md)**.
 
