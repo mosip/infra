@@ -21,11 +21,37 @@ variable "vpc_name" {
 variable "network_cidr" {
   description = "VPC CIDR block for internal communication and DNS rules"
   type        = string
+
+  # Private (RFC 1918) ranges only: these CIDRs open the cluster ports (RKE2
+  # 9345, Kubernetes API, etcd, kubelet ...) — a public range such as
+  # 172.0.0.0/8 would expose them to the internet.
+  validation {
+    condition = can(cidrhost(var.network_cidr, 0)) && try(
+      (startswith(var.network_cidr, "10.") && tonumber(split("/", var.network_cidr)[1]) >= 8) ||
+      (startswith(var.network_cidr, "192.168.") && tonumber(split("/", var.network_cidr)[1]) >= 16) ||
+      (startswith(var.network_cidr, "172.") && tonumber(split("/", var.network_cidr)[1]) >= 12 &&
+      tonumber(split(".", var.network_cidr)[1]) >= 16 && tonumber(split(".", var.network_cidr)[1]) <= 31)
+    , false)
+    error_message = "network_cidr must be a private (RFC 1918) range inside 10.0.0.0/8, 172.16.0.0/12 or 192.168.0.0/16, e.g. your VPC CIDR."
+  }
 }
 
 variable "WIREGUARD_CIDR" {
   description = "CIDR block for WireGuard VPN server(s)"
   type        = string
+
+  # Private (RFC 1918) ranges only: these CIDRs open the cluster ports (RKE2
+  # 9345, Kubernetes API, etcd, kubelet ...) — a public range such as
+  # 172.0.0.0/8 would expose them to the internet.
+  validation {
+    condition = can(cidrhost(var.WIREGUARD_CIDR, 0)) && try(
+      (startswith(var.WIREGUARD_CIDR, "10.") && tonumber(split("/", var.WIREGUARD_CIDR)[1]) >= 8) ||
+      (startswith(var.WIREGUARD_CIDR, "192.168.") && tonumber(split("/", var.WIREGUARD_CIDR)[1]) >= 16) ||
+      (startswith(var.WIREGUARD_CIDR, "172.") && tonumber(split("/", var.WIREGUARD_CIDR)[1]) >= 12 &&
+      tonumber(split(".", var.WIREGUARD_CIDR)[1]) >= 16 && tonumber(split(".", var.WIREGUARD_CIDR)[1]) <= 31)
+    , false)
+    error_message = "WIREGUARD_CIDR must be a private (RFC 1918) range inside 10.0.0.0/8, 172.16.0.0/12 or 192.168.0.0/16, e.g. your VPC CIDR."
+  }
 }
 
 variable "ingress_rules" {
