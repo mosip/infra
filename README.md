@@ -676,6 +676,8 @@ Same form as in step 3a ([image](docs/_images/workflows/terraform.svg)); the num
 security → iam → compute → storage → dns → configure (Ansible: nginx → rke2 → rancher import → nfs → postgresql → activemq)
 ```
 
+**After deployment** — add / remove / resize nodes, stop/start, add subdomains or ports: see the **[Day-2 Operations Guide](docs/OPERATIONS_GUIDE.md)**.
+
 To preview changes to an **existing** environment, run `COMPONENT=all` (or a single component) with **TERRAFORM_APPLY** unchecked: every component is planned in order, nothing is applied or committed, and configure is skipped. A brand-new environment can't be previewed this way — compute, storage and dns look up what the earlier components created in AWS — so deploy it with apply. Every component can also be re-run on its own later — e.g. `COMPONENT=dns` to change only Route53 records, or `COMPONENT=configure` to re-run Ansible. See [Deployment sequence](docs/DEPLOYMENT_SEQUENCE.md).
 
 **Observability cluster (`observ` profile):** deploy it before the clusters that import into its Rancher. Set the `RANCHER_BOOTSTRAP_PASSWORD` environment secret first — it's the initial `admin` password for Rancher UI (it's no longer kept in a tfvars file). Then run the Keycloak ⇄ Rancher SAML integration: see the **[Rancher-Keycloak Integration Guide](Rancher-keycloak-integration/README.md)**.

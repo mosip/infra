@@ -117,6 +117,7 @@ nav:
       - Testrigs: HELMSMAN_TESTRIGS_GUIDE.md
       - reCAPTCHA: RECAPTCHA_SETUP_GUIDE.md
   - Operations:
+      - Day-2 operations: OPERATIONS_GUIDE.md
       - Partner onboarding: ONBOARDING_GUIDE.md
       - Kubernetes health check: k8s-health-checker.md
       - Remove MOSIP services: HELMSMAN_DESTROY_GUIDE.md
