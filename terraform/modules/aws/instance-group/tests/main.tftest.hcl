@@ -140,6 +140,45 @@ run "ssh_from_anywhere_is_rejected" {
   expect_failures = [aws_vpc_security_group_ingress_rule.cidr]
 }
 
+run "all_protocols_from_anywhere_is_rejected" {
+  command = plan
+
+  variables {
+    groups = {
+      open = { instance_type = "t3a.small", subnet = "public", ingress = [{ port = 0, protocol = "-1", cidrs = ["0.0.0.0/0"] }] }
+    }
+  }
+
+  expect_failures = [aws_vpc_security_group_ingress_rule.cidr]
+}
+
+run "tcp_range_over_ssh_from_anywhere_is_rejected" {
+  command = plan
+
+  variables {
+    groups = {
+      open = { instance_type = "t3a.small", subnet = "public", ingress = [{ port = 1, to_port = 65535, cidrs = ["0.0.0.0/0"] }] }
+    }
+  }
+
+  expect_failures = [aws_vpc_security_group_ingress_rule.cidr]
+}
+
+run "udp_22_from_anywhere_is_not_ssh" {
+  command = plan
+
+  variables {
+    groups = {
+      open = { instance_type = "t3a.small", subnet = "public", ingress = [{ port = 22, protocol = "udp", cidrs = ["0.0.0.0/0"] }] }
+    }
+  }
+
+  assert {
+    condition     = length(aws_vpc_security_group_ingress_rule.cidr) == 1
+    error_message = "udp/22 is not SSH and must be allowed"
+  }
+}
+
 run "ssh_from_anywhere_allowed_when_opted_in" {
   command = plan
 

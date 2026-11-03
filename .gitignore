@@ -22,9 +22,12 @@ override.tf.json
 .terraformrc
 terraform.rc
 
-# Terraform plan files
+# Terraform plan files (never commit, encrypted or not)
 *.tfplan
 tf-plan
+tf-plan.gpg
+tfplan.out
+tfplan.out.gpg
 destroy.tfplan
 
 # Terraform backend files
@@ -131,3 +134,4 @@ helmsman_logs/
 # k8s-infra repo cloned during nginx/cluster provisioning
 # Contains third-party code and may include secrets (webhook URLs, tokens)
 **/k8s-infra/
+site/

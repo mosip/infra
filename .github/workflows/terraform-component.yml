@@ -202,8 +202,13 @@ jobs:
             --backend-type "${{ inputs.BACKEND_TYPE }}" \
             --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
             --operation "${{ inputs.ACTION }}"
+          # Fingerprint of the plaintext state: the commit step compares it, so
+          # a run that did not change the state (plan only, no-op apply)
+          # commits nothing — GPG output differs on every encryption.
+          echo "STATE_SHA_BEFORE=$(find . -path ./.terraform -prune -o -type f \( -name '*.tfstate' -o -name '*.tfstate.backup' \) -print | sort | xargs -r sha256sum | sha256sum | cut -d' ' -f1)" >> "$GITHUB_ENV"
 
       - name: Terraform init / validate
+        id: init
         if: ${{ steps.state_check.outputs.skip != 'true' }}
         run: |
           terraform fmt -check -recursive -diff
@@ -257,6 +262,7 @@ jobs:
           REF_NAME: ${{ github.ref_name }}
         run: |
           set -uo pipefail
+          STATE_SHA_AFTER=$(find . -path ./.terraform -prune -o -type f \( -name '*.tfstate' -o -name '*.tfstate.backup' \) -print | sort | xargs -r sha256sum | sha256sum | cut -d' ' -f1)
           if [ "${{ steps.destroy.outcome }}" != "success" ]; then
             "$GITHUB_WORKSPACE/.github/scripts/encrypt-state.sh" \
               --backend-type "${{ inputs.BACKEND_TYPE }}" \
@@ -264,17 +270,33 @@ jobs:
               --operation "${{ inputs.ACTION }}" \
               ${{ inputs.ACTION == 'destroy' && '--destroy-success false' || '' }}
           fi
-          rm -rf .terraform .terraform.lock.hcl tf-plan
+          rm -rf .terraform .terraform.lock.hcl tf-plan tf-plan.gpg tfplan.out tfplan.out.gpg
 
-          # Only this root's state artefacts are committed.
-          git add -A . 2>/dev/null || true
+          # Unchanged state: keep the committed ciphertext (re-encryption
+          # always produces different bytes, which would be a no-op commit).
+          if [ "${{ steps.destroy.outcome }}" != "success" ] && [ -n "${STATE_SHA_BEFORE:-}" ] \
+             && [ "$STATE_SHA_AFTER" = "$STATE_SHA_BEFORE" ]; then
+            echo "State unchanged — nothing to commit."
+            git ls-files -z -- ':(glob)**/*.tfstate.gpg' ':(glob)**/*.tfstate.backup.gpg' \
+              | xargs -0 -r git checkout -q --
+          fi
+
+          # Only this root's encrypted state and backend.tf are committed —
+          # never plans or any other file. -A stages updates and deletions
+          # (destroy) of tracked state; -f adds new state files (*.tfstate.*
+          # is gitignored).
+          git add -A -- ':(glob)**/*.tfstate.gpg' ':(glob)**/*.tfstate.backup.gpg' 2>/dev/null || true
           if [ -f backend.tf ]; then
             BACKEND_PATH=$(grep -A 5 'backend "local"' backend.tf | grep 'path' | sed 's/.*path = "\([^"]*\)".*/\1/' | head -1)
-            [ -n "$BACKEND_PATH" ] && git add -f "${BACKEND_PATH}"*.gpg 2>/dev/null || true
+            for f in "${BACKEND_PATH}.gpg" "${BACKEND_PATH}.backup.gpg"; do
+              [ -n "$BACKEND_PATH" ] && [ -f "$f" ] && git add -f -- "$f"
+            done
             git add -f backend.tf 2>/dev/null || true
           fi
-          git add -f ./*.gpg 2>/dev/null || true
-          git reset -q -- '*.tfstate' '*.tfstate.backup' 2>/dev/null || true
+          for f in terraform.tfstate.gpg terraform.tfstate.backup.gpg; do
+            [ -f "$f" ] && git add -f -- "$f"
+          done
+          git reset -q -- '*.tfstate' '*.tfstate.backup' ':(glob)**/tf-plan*' ':(glob)**/tfplan.out*' 2>/dev/null || true
 
           if git diff --cached --quiet; then
             echo "No state changes to commit (normal for remote backends)."
@@ -302,10 +324,14 @@ jobs:
         if: always()
         env:
           STATE_SKIP: ${{ steps.state_check.outputs.skip }}
+          # job.status is "failure" when a step without continue-on-error
+          # failed before this one (checkout, decrypt, init/validate, ...).
+          JOB_STATUS: ${{ job.status }}
         run: |
           OUTCOME=success
           [ "$STATE_SKIP" = "true" ] && OUTCOME=skipped
-          for o in "${{ steps.plan.outcome }}" "${{ steps.apply.outcome }}" "${{ steps.destroy_plan.outcome }}" "${{ steps.destroy.outcome }}"; do
+          [ "$JOB_STATUS" = "failure" ] && OUTCOME=failure
+          for o in "${{ steps.init.outcome }}" "${{ steps.plan.outcome }}" "${{ steps.apply.outcome }}" "${{ steps.destroy_plan.outcome }}" "${{ steps.destroy.outcome }}"; do
             [ "$o" = "failure" ] && OUTCOME=failure
           done
           echo "outcome=$OUTCOME" >> "$GITHUB_OUTPUT"

@@ -296,6 +296,9 @@ A visualization tool for searching and analyzing log data from applications and 
 
 **Example**: Like a search engine for application logs and error messages.
 
+### Loki
+The default log store of the standalone monitoring stack (`monitoring_stack=standalone`). Alloy collects pod logs into Loki, and Grafana (`grafana.<domain>`) is used to search them. Kibana/Elasticsearch are only used with `monitoring_stack=rancher`.
+
 ### Logging
 Recording events, errors, and activities that happen in applications and systems.
 

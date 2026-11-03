@@ -34,5 +34,5 @@ ami = "ami-0ad21ae1d0696ad58"
 vpc_name = "<vpc-name>"
 
 # Security group CIDRs
-network_cidr   = "172.0.0.0/8" # Use your actual VPC CIDR
-WIREGUARD_CIDR = "172.0.0.0/8" # Use your actual WireGuard VPN CIDR
+network_cidr   = "172.31.0.0/16" # Use your actual VPC CIDR (private range; AWS default VPC)
+WIREGUARD_CIDR = "172.31.0.0/16" # Use your actual WireGuard VPN CIDR (private range)

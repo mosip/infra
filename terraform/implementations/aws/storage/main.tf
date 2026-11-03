@@ -24,9 +24,11 @@ data "aws_instance" "nginx" {
     name   = "tag:Role"
     values = ["nginx"]
   }
+  # Not only running: a node stopped with instance-power.yml / *_state
+  # must not block plan or destroy. Terminated instances are excluded.
   filter {
     name   = "instance-state-name"
-    values = ["running"]
+    values = ["pending", "running", "stopping", "stopped"]
   }
 }
 

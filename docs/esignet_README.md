@@ -221,20 +221,22 @@ Custom Helm values are stored in:
 
 ### Deploy via GitHub Actions
 
-![Deploy eSignet - Helmsman](_images/esignet.png)
+![Deploy eSignet — Run workflow form](_images/workflows/helmsman_esignet.svg)
 
-- **(1)** Go to **Actions** (top of the repository page) → click **"Deploy eSignet using Helmsman"** in the list on the left.
-- **(2)** Click the **Run workflow** dropdown button (top right) — this opens the form shown above.
-- **(3)** **Branch** — pick the branch you're deploying from (e.g., `MOSIP-44613`).
-- **(4)** **Deployment profile to use** — pick the profile you want (e.g., `mosip-platform-1.2.0.x`, or `esignet-standalone` for standalone).
-- **(5)** **Choose Helmsman mode: dry-run or apply** — always pick **`apply`**.
-- **(6)** **Skip MOSIP DSF completion check** (checkbox) — for eSignet standalone deployments, tick this. For MOSIP platform profiles, leave it unticked (default) so the workflow waits for MOSIP to finish first.
-- **(7)** **Delete existing onboarder jobs before deploy** (checkbox) — only tick this when re-running after a failure. Leave unticked on a first-time deploy.
-- **(8)** **Domain name for this environment** — type the web domain this environment should use (e.g., `example.xyz.net`).
-- **(9)** **PostgreSQL port for esignet databases** — type `5432` for eSignet standalone, or `5433` if this is part of a MOSIP platform profile.
-- **(10)** **MOSIP-ID domain name** *(eSignet standalone only)* — base domain for the MOSIP-ID eSignet instance (e.g., `mosipid.xyz.net`). Leave blank if you're not deploying MOSIP-ID.
-- **(11)** **Environment name** — a short nickname for this environment (e.g., `sandbox`, `dev`, `staging`).
-- **(12)** Click the green **Run workflow** button to start the deployment.
+> Generated from the workflow definition — the numbers match the form fields in order.
+
+- Go to **Actions** (top of the repository page) → click **"Deploy eSignet using Helmsman"** in the list on the left.
+- Click the **Run workflow** dropdown button (top right) — this opens the form shown above.
+- **Branch** — pick the branch you're deploying from (e.g., `MOSIP-44613`).
+- **(1)** **Deployment profile to use** — pick the profile you want (e.g., `mosip-platform-1.2.0.x`, or `esignet-standalone` for standalone).
+- **(2)** **Choose Helmsman mode: dry-run or apply** — always pick **`apply`**.
+- **(3)** **Skip MOSIP DSF completion check** (checkbox) — for eSignet standalone deployments, tick this. For MOSIP platform profiles, leave it unticked (default) so the workflow waits for MOSIP to finish first.
+- **(4)** **Delete existing onboarder jobs before deploy** (checkbox) — only tick this when re-running after a failure. Leave unticked on a first-time deploy.
+- **(5)** **Domain name for this environment** — type the web domain this environment should use (e.g., `example.xyz.net`).
+- **(6)** **PostgreSQL port for esignet databases** — type `5432` for eSignet standalone, or `5433` if this is part of a MOSIP platform profile.
+- **(7)** **MOSIP-ID domain name** *(eSignet standalone only)* — base domain for the MOSIP-ID eSignet instance (e.g., `mosipid.xyz.net`). Leave blank if you're not deploying MOSIP-ID.
+- **(8)** **Environment name** — a short nickname for this environment (e.g., `sandbox`, `dev`, `staging`).
+- Click the green **Run workflow** button to start the deployment.
 
 ---
 
@@ -434,7 +436,7 @@ kubectl delete ns redis
 ## Related Documentation
 
 - [Helmsman DSF Guide](../README.md)
-- [Workflows README](../../.github/workflows/README.md)
+- [Workflows README](../.github/workflows/README.md)
 - [Secret Generation Guide](./SECRET_GENERATION_GUIDE.md)
 - [Onboarding Guide](./ONBOARDING_GUIDE.md)
 

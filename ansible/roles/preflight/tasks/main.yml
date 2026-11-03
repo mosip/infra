@@ -93,6 +93,10 @@
         or dns_expected_ip in (preflight_dns.stdout_lines | map('split') | map('first') | list))
       retries: "{{ preflight_dns_retries | int }}"
       delay: 10
+      # When the retries run out, some Ansible versions mark the task failed
+      # despite failed_when: false. Never stop here: the tasks below decide
+      # between a warning and a blocking failure (preflight_dns_check).
+      ignore_errors: true  # noqa: ignore-errors
 
     - name: Collect resolved addresses
       ansible.builtin.set_fact:

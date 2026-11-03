@@ -219,3 +219,14 @@ run "zone_needs_exactly_one_of_id_or_name" {
 
   expect_failures = [var.zones]
 }
+
+run "subdomain_in_both_lists_is_rejected" {
+  command = plan
+
+  variables {
+    subdomain_public   = ["resident", "admin"]
+    subdomain_internal = ["admin", "iam"]
+  }
+
+  expect_failures = [aws_route53_record.records]
+}

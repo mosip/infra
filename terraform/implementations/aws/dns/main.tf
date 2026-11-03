@@ -27,9 +27,11 @@ data "aws_instance" "nginx" {
     name   = "tag:Role"
     values = ["nginx"]
   }
+  # Not only running: a node stopped with instance-power.yml / *_state
+  # must not block plan or destroy. Terminated instances are excluded.
   filter {
     name   = "instance-state-name"
-    values = ["running"]
+    values = ["pending", "running", "stopping", "stopped"]
   }
 }
 
@@ -52,6 +54,10 @@ locals {
 
   # With explicit IPs and no private one, api-internal points at the same
   # address (a single-homed data-centre nginx).
+  # A stopped nginx has no public IP (no EIP): coalesce then fails with
+  # "no non-null, non-empty-string arguments" — start nginx first. Destroy
+  # does not look nginx up at all (terraform-destroy.yml passes a
+  # placeholder nginx_public_ip).
   nginx_public_ip  = coalesce(var.nginx_public_ip, try(data.aws_instance.nginx[0].public_ip, null))
   nginx_private_ip = coalesce(var.nginx_private_ip, try(data.aws_instance.nginx[0].private_ip, null), var.nginx_public_ip)
 }

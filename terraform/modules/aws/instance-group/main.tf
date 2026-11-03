@@ -89,8 +89,12 @@ resource "aws_vpc_security_group_ingress_rule" "cidr" {
 
   lifecycle {
     precondition {
-      condition     = var.allow_ssh_from_anywhere || !(each.value.cidr == "0.0.0.0/0" && each.value.port <= 22 && coalesce(each.value.to_port, each.value.port) >= 22)
-      error_message = "Group ${each.value.group} opens SSH (22) to 0.0.0.0/0. Restrict the CIDR or set allow_ssh_from_anywhere = true."
+      # All-protocol rules ("-1") open every port, SSH included.
+      condition = var.allow_ssh_from_anywhere || !(each.value.cidr == "0.0.0.0/0" && (
+        contains(["-1", "all"], lower(each.value.protocol)) ||
+        (contains(["tcp", "6"], lower(each.value.protocol)) && each.value.port <= 22 && coalesce(each.value.to_port, each.value.port) >= 22)
+      ))
+      error_message = "Group ${each.value.group} opens SSH (22) to 0.0.0.0/0 (a tcp range or an all-protocol rule). Restrict the CIDR or set allow_ssh_from_anywhere = true."
     }
   }
 }

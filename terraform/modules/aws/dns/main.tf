@@ -121,5 +121,11 @@ resource "aws_route53_record" "records" {
       condition     = contains(keys(local.zone_ids), each.value.zone)
       error_message = "Record ${each.value.name} targets zone '${each.value.zone}', which isn't in var.zones (${join(", ", keys(local.zone_ids))})."
     }
+    # Records are keyed by subdomain: a name in both lists would silently
+    # keep only one of its two records.
+    precondition {
+      condition     = length(setintersection(toset(var.subdomain_public), toset(var.subdomain_internal))) == 0
+      error_message = "Subdomains in both subdomain_public and subdomain_internal: ${join(", ", setintersection(toset(var.subdomain_public), toset(var.subdomain_internal)))}. Keep each in one list."
+    }
   }
 }

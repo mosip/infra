@@ -125,6 +125,9 @@ jobs:
       COMPONENT: dns
       PROFILE: ${{ inputs.PROFILE }}
       ACTION: destroy
+      # Destroy needs no record values: skip the nginx lookup, so a stopped
+      # or already-deleted nginx does not block it (192.0.2.1 = TEST-NET-1).
+      EXTRA_VARS: -var=nginx_public_ip=192.0.2.1
       CONFIRM: ${{ inputs.TERRAFORM_DESTROY }}
       BACKEND_TYPE: ${{ inputs.BACKEND_TYPE }}
       REMOTE_BACKEND_CONFIG: ${{ inputs.REMOTE_BACKEND_CONFIG }}
