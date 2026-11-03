@@ -264,17 +264,24 @@ jobs:
               --operation "${{ inputs.ACTION }}" \
               ${{ inputs.ACTION == 'destroy' && '--destroy-success false' || '' }}
           fi
-          rm -rf .terraform .terraform.lock.hcl tf-plan
+          rm -rf .terraform .terraform.lock.hcl tf-plan tf-plan.gpg tfplan.out tfplan.out.gpg
 
-          # Only this root's state artefacts are committed.
-          git add -A . 2>/dev/null || true
+          # Only this root's encrypted state and backend.tf are committed —
+          # never plans or any other file. -A stages updates and deletions
+          # (destroy) of tracked state; -f adds new state files (*.tfstate.*
+          # is gitignored).
+          git add -A -- ':(glob)**/*.tfstate.gpg' ':(glob)**/*.tfstate.backup.gpg' 2>/dev/null || true
           if [ -f backend.tf ]; then
             BACKEND_PATH=$(grep -A 5 'backend "local"' backend.tf | grep 'path' | sed 's/.*path = "\([^"]*\)".*/\1/' | head -1)
-            [ -n "$BACKEND_PATH" ] && git add -f "${BACKEND_PATH}"*.gpg 2>/dev/null || true
+            for f in "${BACKEND_PATH}.gpg" "${BACKEND_PATH}.backup.gpg"; do
+              [ -n "$BACKEND_PATH" ] && [ -f "$f" ] && git add -f -- "$f"
+            done
             git add -f backend.tf 2>/dev/null || true
           fi
-          git add -f ./*.gpg 2>/dev/null || true
-          git reset -q -- '*.tfstate' '*.tfstate.backup' 2>/dev/null || true
+          for f in terraform.tfstate.gpg terraform.tfstate.backup.gpg; do
+            [ -f "$f" ] && git add -f -- "$f"
+          done
+          git reset -q -- '*.tfstate' '*.tfstate.backup' ':(glob)**/tf-plan*' ':(glob)**/tfplan.out*' 2>/dev/null || true
 
           if git diff --cached --quiet; then
             echo "No state changes to commit (normal for remote backends)."

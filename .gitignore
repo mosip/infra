@@ -22,9 +22,12 @@ override.tf.json
 .terraformrc
 terraform.rc
 
-# Terraform plan files
+# Terraform plan files (never commit, encrypted or not)
 *.tfplan
 tf-plan
+tf-plan.gpg
+tfplan.out
+tfplan.out.gpg
 destroy.tfplan
 
 # Terraform backend files

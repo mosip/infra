@@ -464,6 +464,9 @@ jobs:
           set -euo pipefail
           EXTRA="$RUNNER_TEMP/extra-vars.json"
           CERT_INI="$RUNNER_TEMP/dns01-credentials.ini"
+          # Remove the secrets files however this step ends (set -e exits on
+          # an Ansible failure before a trailing rm would run).
+          trap 'rm -f "$EXTRA" "$CERT_INI"' EXIT
           install -m 600 /dev/null "$EXTRA"
           python3 - "$EXTRA" "$CERT_INI" <<'EOF'
           import json, os, sys
@@ -506,7 +509,6 @@ jobs:
               json.dump(extra, fh)
           EOF
           ansible-playbook -i inventory.yml ansible/site.yml -e "@$EXTRA"
-          rm -f "$EXTRA" "$CERT_INI"
 
       # ---- Rancher follow-ups (same as develop's legacy flow) ----------
       - name: Apply Rancher import on cluster (fresh token)
