@@ -55,7 +55,7 @@ The destroy workflows follow a **reusable workflow pattern**:
 | **Destroy MOSIP Services**    | `helmsman_mosip_destroy.yml`             | Removes core MOSIP services   | `admin`, `apitestrig`, `artifactory`, `config-server`, `dslrig`, `esignet`, `idrepo`, `kernel`, `masterdata`, `packet-manager`, `pmp`, `postgresdb`, `print`, `regproc`, `resident`, `uitestrig` |
 | **Destroy eSignet Services**  | (use `helmsman_esignet.yml` with `--destroy`) | Removes eSignet stack (esignet profile) | `esignet`, `esignet-mosipid`, `esignet-sunbird`, `signup`, `kernel` |
 | **Destroy External Services** | `helmsman_external_destroy_external.yml` | Removes external dependencies | `keycloak`, `kafka`, `minio`, `softhsm`, `clamav`, `activemq`, `captcha`, `redis`, `postgres`, `landing-page`                                                                                                       |
-| **Destroy Prerequisites**     | `helmsman_external_destroy_prereq.yml`   | Removes monitoring and Istio  | `cattle-logging-system`, `istio-system`, `monitoring`                                                                                                                                                                      |
+| **Destroy Prerequisites**     | `helmsman_external_destroy_prereq.yml`   | Removes monitoring and Istio  | `monitoring`, `logging` (standalone), `cattle-monitoring-system`, `cattle-logging-system` (rancher), `istio-system`, `istio-operator`, `httpbin` |
 
 ### Reusable Workflow: `destroy-resources.yml`
 

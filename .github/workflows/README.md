@@ -29,8 +29,8 @@ This directory contains GitHub Actions workflows for automated MOSIP deployment:
 | Provider | Status | Implementation |
 |----------|---------|----------------|
 | **AWS** | **Complete** | Full infrastructure, VPC, RKE2, PostgreSQL integration |
-| **Azure** | **Placeholder** | Basic structure - [community contributions welcome](../terraform/base-infra/azure/) |
-| **GCP** | **Placeholder** | Basic structure - [community contributions welcome](../terraform/base-infra/gcp/) |
+| **Azure** | **Placeholder** | Basic structure - [community contributions welcome](../../terraform/base-infra/azure/) |
+| **GCP** | **Placeholder** | Basic structure - [community contributions welcome](../../terraform/base-infra/gcp/) |
 
 ## Deployment Guide
 
@@ -144,11 +144,27 @@ terraform/implementations/aws/base-infra/aws-base-infra-<branch>-terraform.tfsta
 terraform/implementations/aws/compute/profiles/<profile>/aws-compute-<profile>-<branch>-terraform.tfstate.gpg
 ```
 
+### Workflow form images (docs)
+
+The "Run workflow" pictures in the docs (`docs/_images/workflows/<workflow>.svg`) are **generated** from each workflow's `workflow_dispatch` inputs by `.github/mkdocs/render_workflow_forms.py` — fields in input order with number badges, labels, required `*`, dropdown options and checkbox defaults. They are not screenshots, so never edit them by hand.
+
+When you add, remove, rename or reorder an input (or change its description, default or options):
+
+```bash
+pip install pyyaml                                       # or: pip install -r docs/requirements.txt
+python .github/mkdocs/render_workflow_forms.py           # rewrites docs/_images/workflows/*.svg
+git add docs/_images/workflows/
+```
+
+If a guide lists the form fields by number, update those numbers too — they follow the input order. The `docs` PR check runs `render_workflow_forms.py --check` and fails while an image is out of date; a new dispatchable workflow gets its image automatically.
+
 ### PR checks
 
 `infra-checks.yml` runs on pull requests: `terraform fmt -check`,
 `terraform test` for every module, `terraform validate` for every root, the
 inventory generator's unit tests and a `site.yml` syntax check per profile.
+
+`docs.yml` runs on pull requests that touch `docs/`, `mkdocs.yml` or any workflow: the workflow form images must match the workflows (`render_workflow_forms.py --check`), then `mkdocs build --strict`. On `develop` it publishes the site to GitHub Pages.
 
 ### Instances start / stop (`instance-power.yml`)
 
@@ -159,7 +175,7 @@ Stop and start EC2 instances by **private IP** — cluster nodes, standalone VMs
 |---|---|---|
 | `ACTION` | `status` / `stop` / `start` | `status` only lists |
 | `INSTANCE_IPS` | `10.73.3.60,10.73.4.131` | comma-separated, max 20 |
-| `VPC_NAME` | `decouple-273-vpc` | VPC `Name` tag |
+| `VPC_NAME` | `mosip-boxes` | VPC `Name` tag |
 | `REGION` | `ap-south-1` | |
 | `MODE` | `dry-run` / `apply` | default `dry-run` shows what would happen |
 
@@ -466,8 +482,8 @@ graph TD
 ## Cloud Provider Contribution Guide
 
 - **AWS** - Production ready with full feature set 
-- **Azure** - [Placeholder implementation](../terraform/base-infra/azure/main.tf) - contributions welcome 
-- **GCP** - [Placeholder implementation](../terraform/base-infra/gcp/main.tf) - contributions welcome 
+- **Azure** - [Placeholder implementation](../../terraform/base-infra/azure/main.tf) - contributions welcome 
+- **GCP** - [Placeholder implementation](../../terraform/base-infra/gcp/main.tf) - contributions welcome 
 
 **Community contributions needed for Azure and GCP implementations**
 

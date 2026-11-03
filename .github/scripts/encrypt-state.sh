@@ -133,16 +133,11 @@ done
 # Combine all state files, removing duplicates
 ALL_STATE_FILES=($(printf '%s\n' "${STANDARD_STATE_FILES[@]}" "${DYNAMIC_STATE_FILES[@]}" | sort -u))
 
-# Plan files
-PLAN_FILES=("tf-plan" "tfplan.out")
+# Plan files are never encrypted or committed: a plan holds every variable
+# value in clear (including TF_VAR_ssh_private_key). Remove them instead.
+rm -f tf-plan tfplan.out tf-plan.gpg tfplan.out.gpg
 ENCRYPTED_COUNT=0
-
-# Add plan files only for apply operations
-if [ "$OPERATION" = "apply" ]; then
-    FILES_TO_ENCRYPT=("${ALL_STATE_FILES[@]}" "${PLAN_FILES[@]}")
-else
-    FILES_TO_ENCRYPT=("${ALL_STATE_FILES[@]}")
-fi
+FILES_TO_ENCRYPT=("${ALL_STATE_FILES[@]}")
 
 echo "Looking for state files to encrypt..."
 echo "Files to check: ${FILES_TO_ENCRYPT[*]}"

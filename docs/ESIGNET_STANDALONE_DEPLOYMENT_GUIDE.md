@@ -132,6 +132,8 @@ Path to create `GH_INFRA_PAT`: `Your profile → Settings → Developer settings
 |---|---|
 | `ESIGNET_CAPTCHA_SITE_KEY` | reCAPTCHA **site** key for the main `esignet-mock` namespace |
 | `ESIGNET_CAPTCHA_SECRET_KEY` | reCAPTCHA **secret** key for the main `esignet-mock` namespace |
+| `SMTP_PASSWORD` | Alertmanager SMTP password (default `monitoring_stack=standalone`) |
+| `GRAFANA_ADMIN_PASSWORD` | Optional — Grafana `admin` password (random if unset) |
 
 > **`esignet-standalone-2.0.0` note:** `helmsman_external.yml` has no `esignet-standalone-2.0.0` option in its
 > `profile` dropdown — it only ever deploys as `esignet-standalone`. The 2.0.0 profile has no `external-dsf.yaml`
@@ -182,8 +184,12 @@ Navigate to: `Repository → Settings → Environments → <your-branch-name> �
 | `DOMAIN_NAME` | `sandbox.xyz.net` | **Yes** | Base domain — all service hostnames are built from this |
 | `ESIGNET_DB_PORT` | `5432` | **Yes** | Postgres port — always `5432` for standalone |
 | `ENV_NAME` | `sandbox` | **Yes** | Short environment label shown on the landing page |
-| `CLUSTER_ID` | `c-xxxxx` | **Yes** | Rancher cluster ID used by monitoring setup — see [Finding your clusterid](../README.md#step-4a-configure-github-environment-variables) in the root README |
-| `SLACK_CHANNEL_NAME` | `#mosip-alerts` | **Yes** | Slack channel name for alert notifications |
+| `ALERT_RECIPIENTS` | `ops@xyz.net` | **Yes** (standalone monitoring, default) | Alert e-mail recipients, comma-separated |
+| `SMTP_FROM` | `alerts@xyz.net` | **Yes** (standalone monitoring, default) | Alertmanager sender; its password goes in the `SMTP_PASSWORD` **secret** |
+| `SMTP_HOST` / `SMTP_USERNAME` | `smtp.gmail.com:587` | Optional | SMTP server and login (defaults: Gmail, the sender) |
+| `MONITORING_STACK` | `standalone` | Optional | `standalone` (default) or `rancher` (ELK + rancher-monitoring) — see the [root README](../README.md#step-4a-configure-github-environment-variables) |
+| `CLUSTER_ID` | `c-xxxxx` | Only `MONITORING_STACK=rancher` | Rancher cluster ID for rancher-monitoring |
+| `SLACK_CHANNEL_NAME` | `#mosip-alerts` | Optional, rancher only | Slack channel for alerts |
 | `MOSIPID_DOMAIN_NAME` | `mosipid.xyz.net` | **Yes** | Base domain of the MOSIP environment that `esignet-mosipid` connects to |
 | `ESIGNET_MOSIPID_SPRING_CONFIG_LABEL` | `develop` | Optional | Git branch/tag for MOSIP-ID config-server (defaults to `develop`) |
 | `ESIGNET_STANDALONE_MODE` | `true` | Optional | Set to `true` to skip the MOSIP DSF completion check |
@@ -313,17 +319,19 @@ Follow the root README: [Step 3d](../README.md#step-3d-deploy-with-one-run) with
 | `profile` | `esignet-standalone` |
 | `mode` | `apply` |
 | `domain_name` | your base domain — e.g. `sandbox.xyz.net` |
-| `db_port` *(MOSIP platform external postgres)* | leave blank — not used by the `esignet-standalone` profile |
-| `esignet_db_port` *(esignet container postgres)* | `5432` |
-| `clusterid` | your Rancher cluster ID — e.g. `c-xxxxx` |
+| `db_port` *(MOSIP platform external postgres)* | `5433` — the field is required by the form but not used by `esignet-standalone` |
+| `esignet_db_port` *(esignet postgres)* | `5432` |
 | `env_name` | a short label for your environment — e.g. `sandbox` |
-| `slack_channel_name` | your Slack channel — e.g. `#mosip-alerts` |
+| `alert_recipients` | alert e-mail recipients — e.g. `ops@xyz.net` (first run; saved afterwards) |
+| `smtp_from` | Alertmanager sender — e.g. `alerts@xyz.net` (password: `SMTP_PASSWORD` secret) |
+| `monitoring_stack`, `keycloak_db`, `smtp_host`, `smtp_username` | leave empty for the defaults (`standalone`, `bundled`, Gmail SMTP) |
+| `clusterid`, `slack_channel_name`, `slack_webhook_url` | only with `monitoring_stack=rancher` |
 
-> **Note:** The form always shows both `db_port` and `esignet_db_port` fields regardless of profile — for `esignet-standalone`, fill in only `esignet_db_port` and leave `db_port` blank.
+> **Note:** Values you type are saved as Environment variables, so later runs can leave them empty.
 
 6. Click the green **`Run workflow`** button
 
-![Deploy External Services - Helmsman](_images/helmsman-external-services.png)
+![Deploy External services — Run workflow form](_images/workflows/helmsman_external.svg)
 
 **How to know it succeeded:** Click into the running workflow. Wait for all jobs to show a green tick. Then run:
 
@@ -362,7 +370,7 @@ All pods should show `Running` or `Completed`.
 
 4. Click the green **`Run workflow`** button
 
-![Deploy eSignet - Helmsman](_images/esignet.png)
+![Deploy eSignet — Run workflow form](_images/workflows/helmsman_esignet.svg)
 
 > **`esignet-standalone-2.0.0` note:** Selecting `esignet-standalone-2.0.0` runs `Helmsman/dsf/esignet-standalone-2.0.0/esignet-dsf.yaml`
 > instead — it deploys the same 3 instances (main/mock, mosipid, sunbird) plus their OIDC UIs and mock relying
@@ -422,7 +430,7 @@ All pods should show `Running`.
 
 4. Click the green **`Run workflow`** button
 
-![Deploy Test Rigs - Helmsman](_images/helmsman-testrigs.png)
+![Deploy Testrigs — Run workflow form](_images/workflows/helmsman_testrigs.svg)
 
 **How to know it succeeded:** The workflow log should show all Helmsman releases applied without errors. Verify that test cronjobs were created:
 

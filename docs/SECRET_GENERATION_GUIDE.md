@@ -11,7 +11,8 @@ This guide provides step-by-step instructions for generating all required secret
 5. [WireGuard VPN Configuration](#5-wireguard-vpn-configuration)
 6. [Kubernetes Config (KUBECONFIG)](#6-kubernetes-config-kubeconfig)
 7. [reCAPTCHA Keys](#7-recaptcha-keys)
-8. [How to Add Secrets to GitHub](#8-how-to-add-secrets-to-github)
+8. [Monitoring, Rancher and DNS Secrets](#8-monitoring-rancher-and-dns-secrets)
+9. [How to Add Secrets to GitHub](#9-how-to-add-secrets-to-github)
 
 ---
 
@@ -555,8 +556,8 @@ You need **separate reCAPTCHA keys for each MOSIP portal**:
 5. **Save Keys**
  You will receive two keys:
  ```
- Site Key: 6LfkAMwrAAAAAATB1WhkIhzuAVMtOs9VWabODoZ_
- Secret Key: 6LfkAMwrAAAAAHQAT93nTGcLKa-h3XYhGoNSG-NL
+ Site Key: 6Lxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+ Secret Key: 6Lyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
  ```
 
 6. **Repeat for Other Domains**
@@ -569,28 +570,20 @@ You need **separate reCAPTCHA keys for each MOSIP portal**:
 
 ### Where to Use It
 
-Update in `Helmsman/dsf/external-dsf.yaml` file:
+Do **not** edit the DSF: it already reads the keys from these **environment secrets** (Settings → Environments → `<branch>` → Secrets):
+
+| Secret | Domain |
+|--------|--------|
+| `PREREG_CAPTCHA_SITE_KEY` / `PREREG_CAPTCHA_SECRET_KEY` | `prereg.<domain>` |
+| `ADMIN_CAPTCHA_SITE_KEY` / `ADMIN_CAPTCHA_SECRET_KEY` | `admin.<domain>` |
+| `RESIDENT_CAPTCHA_SITE_KEY` / `RESIDENT_CAPTCHA_SECRET_KEY` | `resident.<domain>` |
+
+The `activemq` app's postInstall hook in `Helmsman/dsf/mosip-platform-*/external-dsf.yaml` passes them to `captcha-setup.sh` — no DSF edits:
 
 ```yaml
-# Around line 315 in external-dsf.yaml
 hooks:
- postInstall: "$WORKDIR/hooks/captcha-setup.sh PREREG_SITE_KEY PREREG_SECRET_KEY ADMIN_SITE_KEY ADMIN_SECRET_KEY RESIDENT_SITE_KEY RESIDENT_SECRET_KEY"
+ postInstall: "$WORKDIR/hooks/captcha-setup.sh ${PREREG_CAPTCHA_SITE_KEY} ${PREREG_CAPTCHA_SECRET_KEY} ${ADMIN_CAPTCHA_SITE_KEY} ${ADMIN_CAPTCHA_SECRET_KEY} ${RESIDENT_CAPTCHA_SITE_KEY} ${RESIDENT_CAPTCHA_SECRET_KEY}"
 ```
-
-**Replace placeholders with actual keys:**
-
-```yaml
-hooks:
- postInstall: "$WORKDIR/hooks/captcha-setup.sh 6LfkAMwrAAAAAATB1WhkIhzuAVMtOs9VWabODoZ_ 6LfkAMwrAAAAAHQAT93nTGcLKa-h3XYhGoNSG-NL 6LdNAcwrAAAAAETGWvz-3I12vZ5V8vPJLu2ct9CO 6LdNAcwrAAAAAE4iWGJ-g6Dc2HreeJdIwAl5h1iL 6LdRAcwrAAAAAFUEHHKK5D_bSrwAPqdqAJqo4mCk 6LdRAcwrAAAAAOeVl6yHGBCBA8ye9GsUOy4pi9s9"
-```
-
-**Key Order:**
-1. PreReg Site Key
-2. PreReg Secret Key
-3. Admin Site Key
-4. Admin Secret Key
-5. Resident Site Key
-6. Resident Secret Key
 
 ### Common Pitfalls
 - ❌ Using the same reCAPTCHA for all three portals (need separate ones!)
@@ -601,7 +594,28 @@ hooks:
 
 ---
 
-## 8. How to Add Secrets to GitHub
+## 8. Monitoring, Rancher and DNS Secrets
+
+These are only needed for the feature that uses them. All are **environment secrets** (Settings → Environments → `<branch>` → Secrets) unless noted.
+
+| Secret | Needed when | How to get it |
+|--------|-------------|---------------|
+| `SMTP_PASSWORD` | Helmsman prereq with `monitoring_stack=standalone` (default) — Alertmanager alert e-mails | Password of the sender mailbox (`SMTP_FROM`). For Gmail, create an [App password](https://support.google.com/accounts/answer/185833) (requires 2-step verification) |
+| `GRAFANA_ADMIN_PASSWORD` | Optional — Grafana `admin` login | Any strong password (`openssl rand -base64 24`). If unset, a random one is generated into the `grafana-admin` secret in the `logging` namespace |
+| `SLACK_WEBHOOK_URL` | Only `monitoring_stack=rancher` | [Slack incoming webhook](https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks/) |
+| `RANCHER_BOOTSTRAP_PASSWORD` | `observ` profile — initial Rancher `admin` password | Any strong password |
+| `RANCHER_API_URL`, `RANCHER_API_TOKEN` | `ENABLE_RANCHER_IMPORT` on terraform plan / apply, and the Keycloak ⇄ Rancher integration | Rancher UI → your avatar → **Account & API Keys** → Create API key (no scope); URL is `https://rancher.<observ-domain>` |
+| `KEYCLOAK_ADMIN_PASSWORD` | Keycloak ⇄ Rancher SAML integration (observ) | The Keycloak `admin` password of the observ cluster |
+| `GODADDY_API_KEY`, `GODADDY_API_SECRET` | `DNS_PROVIDER=godaddy` | [GoDaddy developer keys](https://developer.godaddy.com/keys) (production) |
+| `CLOUDFLARE_API_TOKEN` | `DNS_PROVIDER=cloudflare` | Cloudflare → My Profile → API Tokens → *Edit zone DNS* for the zone |
+| `DNS_RFC2136_SERVER`, `DNS_RFC2136_KEY_NAME`, `DNS_RFC2136_KEY_SECRET` | `DNS_PROVIDER=rfc2136` | From your DNS team: server IP, TSIG key name and HMAC-SHA256 secret |
+| `ACTION_PAT`, `MOSIP_AWS_PEM` (repository secrets) | `wg-onboard.yml` (automatic WireGuard peers) | `ACTION_PAT`: fine-grained PAT with *Environments* and *Secrets* read/write on this repo. `MOSIP_AWS_PEM`: SSH private key of the jump server |
+
+Related **variables** (not secrets) are listed in the main README, step 4a: `ALERT_RECIPIENTS`, `SMTP_FROM`, `SMTP_HOST`, `SMTP_USERNAME`, `MONITORING_STACK`, `DNS_ZONE`.
+
+---
+
+## 9. How to Add Secrets to GitHub
 
 ### Understanding Secret Types
 
@@ -644,7 +658,7 @@ hooks:
  ```
  Settings > Environments > New environment
  ```
- - **Name**: Your branch name (e.g., `release-0.1.0`, `main`, `develop`)
+ - **Name**: Your branch name (e.g., `release-0.x.x`, `main`, `develop`)
  - Click "Configure environment"
 
 2. **Add Environment Secrets**
@@ -675,7 +689,7 @@ Repository Structure:
 │ └── mosip-aws (SSH private key)
 │
 └── Environments
- ├── release-0.1.0 (environment)
+ ├── release-0.x.x (environment)
  │ ├── KUBECONFIG
  │ ├── TF_WG_CONFIG
  │ ├── CLUSTER_WIREGUARD_WG0

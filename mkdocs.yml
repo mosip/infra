@@ -1,0 +1,123 @@
+# MOSIP Infra documentation site — published to GitHub Pages by
+# .github/workflows/docs.yml on pushes to develop.
+#   pip install -r docs/requirements.txt
+#   mkdocs serve          # http://127.0.0.1:8000
+#   mkdocs build --strict
+site_name: MOSIP Infra
+site_description: Deploy MOSIP infrastructure on AWS or on your own data-centre VMs
+site_url: https://mosip.github.io/infra/
+repo_url: https://github.com/mosip/infra
+repo_name: mosip/infra
+edit_uri: edit/develop/docs/
+docs_dir: docs
+copyright: MOSIP — Modular Open Source Identity Platform
+
+exclude_docs: |
+  /requirements.txt
+  *.drawio
+
+# Links to files outside docs/ (root README, terraform/, Helmsman/, ...) are
+# rewritten to GitHub URLs; links inside docs/ are validated by --strict.
+hooks:
+  - .github/mkdocs/hooks.py
+
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
+  anchors: warn
+
+theme:
+  name: material
+  logo: _images/MOSIP_Black.svg
+  favicon: _images/MOSIP_Black.svg
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - navigation.indexes
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+  icon:
+    repo: fontawesome/brands/github
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - def_list
+  - tables
+  - toc:
+      permalink: true
+      # GitHub-compatible heading anchors, so links work on GitHub and on the site
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+  - pymdownx.details
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/mosip/infra
+
+plugins:
+  - search
+
+nav:
+  - Home: README.md
+  - Getting started:
+      - Glossary: GLOSSARY.md
+      - Secrets: SECRET_GENERATION_GUIDE.md
+      - GitHub Actions workflows: WORKFLOW_GUIDE.md
+  - Infrastructure:
+      - Profiles: PROFILES.md
+      - Deployment sequence: DEPLOYMENT_SEQUENCE.md
+      - Terraform workflows: TERRAFORM_WORKFLOW_GUIDE.md
+      - Data-centre deployment: DATACENTRE_DEPLOYMENT.md
+      - Repository layout: TREE_STRUCTURE.md
+      - Architecture diagrams: _images/ARCHITECTURE_DIAGRAMS.md
+  - Deploy MOSIP:
+      - DSF configuration: DSF_CONFIGURATION_GUIDE.md
+      - External services & prereqs: HELMSMAN_EXTERNAL_GUIDE.md
+      - MOSIP services: HELMSMAN_MOSIP_GUIDE.md
+      - eSignet (with MOSIP): esignet_README.md
+      - eSignet standalone: ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md
+      - Testrigs: HELMSMAN_TESTRIGS_GUIDE.md
+      - reCAPTCHA: RECAPTCHA_SETUP_GUIDE.md
+  - Operations:
+      - Partner onboarding: ONBOARDING_GUIDE.md
+      - Kubernetes health check: k8s-health-checker.md
+      - Remove MOSIP services: HELMSMAN_DESTROY_GUIDE.md
+      - Destroy an environment: ENVIRONMENT_DESTRUCTION_GUIDE.md

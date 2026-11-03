@@ -63,6 +63,10 @@ If TERRAFORM_APPLY = ☐ (single component, plan only)
 
 ### Workflow 1: Base Infrastructure
 
+![terraform plan / apply — Run workflow form](_images/workflows/terraform.svg)
+
+> Generated from the workflow definition — the numbers match the form fields in order.
+
 **What it does**: Creates the foundation - VPC, networking, jump server, WireGuard VPN
 
 #### Step-by-Step Navigation
@@ -88,7 +92,7 @@ If TERRAFORM_APPLY = ☐ (single component, plan only)
 
  | Parameter | What to Select | Example | Notes |
  |-----------|---------------|---------|-------|
- | **Use workflow from** | `Branch: release-0.1.0` | Your deployment branch | Dropdown at top |
+ | **Use workflow from** | `Branch: release-0.x.x` | Your deployment branch | Dropdown at top |
  | **Cloud Provider** | `aws` | `aws` | Azure/GCP not fully implemented |
  | **COMPONENT** | `base-infra` | `base-infra` | Creates VPC & networking |
  | **BACKEND_TYPE** | `local` or `remote` | `local` for dev, `remote` for prod | Where Terraform stores state |
@@ -155,7 +159,7 @@ If TERRAFORM_APPLY = ☐ (single component, plan only)
 
  | Parameter | What to Select | Example | Why? |
  |-----------|---------------|---------|------|
- | **Use workflow from** | `Branch: release-0.1.0` | Your branch | Dropdown at top |
+ | **Use workflow from** | `Branch: release-0.x.x` | Your branch | Dropdown at top |
  | **CLOUD_PROVIDER** | `aws` | `aws` | Where to deploy |
  | **COMPONENT** | `all` | `all` | Every component in order, then Ansible |
  | **PROFILE** | `mosip` or `esignet-standalone` | `mosip` | Deployment shape — see below |
@@ -225,7 +229,7 @@ If TERRAFORM_APPLY = ☐ (single component, plan only)
 
  | Parameter | What to Select | Example |
  |-----------|---------------|---------|
- | **Branch** | `release-0.1.0` | Your deployment branch |
+ | **Branch** | `release-0.x.x` | Your deployment branch |
  | **Cloud Provider** | `aws` | `aws` |
  | **COMPONENT** | `all` | `all` |
  | **PROFILE** | `observ` | `observ` |
@@ -281,6 +285,10 @@ Mode: apply ✅
 ---
 
 ### Workflow 1: Prerequisites & External Dependencies
+
+![Deploy External services — Run workflow form](_images/workflows/helmsman_external.svg)
+
+> Generated from the workflow definition — the numbers match the form fields in order.
 
 **What it does**: Deploys monitoring, Istio, databases, message queues, storage, Keycloak
 
@@ -342,6 +350,10 @@ Mode: apply ✅
 
 ### Workflow 2: MOSIP Core Services (Auto-triggered)
 
+![Deploy MOSIP services — Run workflow form](_images/workflows/helmsman_mosip.svg)
+
+> Generated from the workflow definition — the numbers match the form fields in order.
+
 **What it does**: Deploys all MOSIP application services
 
 **Workflow Name**: `Deploy MOSIP services using Helmsman`
@@ -368,6 +380,10 @@ Mode: apply ✅
 ---
 
 ### Workflow 3: eSignet (Manual)
+
+![Deploy eSignet — Run workflow form](_images/workflows/helmsman_esignet.svg)
+
+> Generated from the workflow definition — the numbers match the form fields in order.
 
 **What it does**: Deploys eSignet authentication stack (1 instance for MOSIP platform profiles, 4 parallel instances for eSignet standalone)
 
@@ -420,6 +436,10 @@ kubectl get pods -n esignet-sunbird # esignet profile only
 ---
 
 ### Workflow 4: Test Rigs (Manual, Optional)
+
+![Deploy Testrigs — Run workflow form](_images/workflows/helmsman_testrigs.svg)
+
+> Generated from the workflow definition — the numbers match the form fields in order.
 
 **What it does**: Deploys automated testing infrastructure (API/UI test rigs as CronJobs)
 
@@ -477,7 +497,7 @@ Use workflow from: Branch [dropdown]
 **What it does**: Selects which branch's code to use
 
 **Choose**:
-- `release-0.1.0` - Stable release branch
+- `release-0.x.x` - Stable release branch
 - `main` - Main development branch
 - `develop` - Latest development
 
@@ -694,14 +714,14 @@ Updating existing deployment → ☐ Uncheck first to see changes
 **Solution**:
 1. **Verify environment name matches branch**
  ```
- Branch: release-0.1.0
- Environment name: release-0.1.0 (must match exactly!)
+ Branch: release-0.x.x
+ Environment name: release-0.x.x (must match exactly!)
  ```
 
 2. **Create environment if missing**
  ```
  Settings → Environments → New environment
- Name: release-0.1.0 (match your branch)
+ Name: release-0.x.x (match your branch)
  ```
 
 3. **Add secrets to environment**
@@ -750,7 +770,7 @@ Updating existing deployment → ☐ Uncheck first to see changes
 
 - [ ] KUBECONFIG secret added (raw YAML, not base64)
 - [ ] WireGuard secrets (`CLUSTER_WIREGUARD_WG0`, `CLUSTER_WIREGUARD_WG1`) configured
-- [ ] GitHub Environment Variables set (`DOMAIN_NAME`, `ENV_NAME`, `CLUSTER_ID`, `SLACK_CHANNEL_NAME`, `DB_PORT`, `ESIGNET_DB_PORT`)
+- [ ] GitHub Environment Variables set or typed in the form (`DOMAIN_NAME`, `ENV_NAME`, `DB_PORT`; standalone monitoring: `ALERT_RECIPIENTS`, `SMTP_FROM` + `SMTP_PASSWORD` secret; rancher monitoring: `CLUSTER_ID`)
 - [ ] Previous Helmsman steps completed and all pods Running
 - [ ] Mode set to `apply` (never dry-run — it will fail!)
 - [ ] Profile selected consistently across all workflow runs
