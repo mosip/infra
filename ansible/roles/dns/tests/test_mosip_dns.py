@@ -23,15 +23,22 @@ def by_fqdn(records):
 class RecordSet(unittest.TestCase):
     def test_same_records_as_the_terraform_module(self):
         recs = by_fqdn(mosip_dns_records(DOMAIN, "203.0.113.10", "10.0.0.10",
-                                         ["resident", "prereg"], ["admin", "postgres"]))
+                                         ["resident", "prereg"], ["admin", "postgres"], zone="mosip.net"))
         self.assertEqual(recs["api.soil38.mosip.net"], {
-            "fqdn": "api.soil38.mosip.net", "type": "A", "value": "203.0.113.10", "ttl": 300, "name": "api"})
+            "fqdn": "api.soil38.mosip.net", "type": "A", "value": "203.0.113.10", "ttl": 300, "name": "api.soil38"})
         self.assertEqual(recs["api-internal.soil38.mosip.net"]["value"], "10.0.0.10")
         self.assertEqual(recs[DOMAIN]["type"], "CNAME")
         self.assertEqual(recs[DOMAIN]["value"], "api-internal.soil38.mosip.net")
         self.assertEqual(recs["resident.soil38.mosip.net"]["value"], "api.soil38.mosip.net")
         self.assertEqual(recs["postgres.soil38.mosip.net"]["value"], "api-internal.soil38.mosip.net")
         self.assertEqual(len(recs), 3 + 2 + 2)
+
+    def test_domain_at_zone_apex_is_an_a_record(self):
+        # dns_zone defaults to the domain: no CNAME at the apex
+        recs = by_fqdn(mosip_dns_records(DOMAIN, "203.0.113.10", "10.0.0.10", ["resident"], ["admin"]))
+        self.assertEqual(recs[DOMAIN], {"fqdn": DOMAIN, "type": "A", "value": "10.0.0.10", "ttl": 300, "name": "@"})
+        self.assertEqual(recs["resident.soil38.mosip.net"]["type"], "CNAME")
+        self.assertEqual(recs["admin.soil38.mosip.net"]["name"], "admin")
 
     def test_names_are_relative_to_the_zone(self):
         recs = by_fqdn(mosip_dns_records(DOMAIN, "1.1.1.1", "10.0.0.1", ["resident"], [], zone="mosip.net"))

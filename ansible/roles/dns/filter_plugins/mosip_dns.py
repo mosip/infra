@@ -5,7 +5,9 @@ and the Ansible path (any provider) always agree:
 
   api.<domain>            A      nginx public IP
   api-internal.<domain>   A      nginx private IP
-  <domain>                CNAME  api-internal.<domain>
+  <domain>                CNAME  api-internal.<domain>   (A nginx private IP when
+                                                         <domain> is the zone apex:
+                                                         a CNAME is not allowed there)
   <public sub>.<domain>   CNAME  api.<domain>
   <internal sub>.<domain> CNAME  api-internal.<domain>
   + any extra records
@@ -35,10 +37,15 @@ def mosip_dns_records(domain, public_ip, private_ip, subdomain_public=None,
     api = f"api.{domain}"
     api_internal = f"api-internal.{domain}"
 
+    # DNS forbids a CNAME at the zone apex (GoDaddy, BIND, ... reject it), which
+    # is where <domain> lands when dns_zone is the domain itself. Point the
+    # apex at the same address with an A record instead.
+    domain_at_apex = domain.rstrip(".").lower() == zone.rstrip(".").lower()
     records = [
         {"fqdn": api, "type": "A", "value": public_ip},
         {"fqdn": api_internal, "type": "A", "value": private_ip},
-        {"fqdn": domain, "type": "CNAME", "value": api_internal},
+        {"fqdn": domain, "type": "A", "value": private_ip} if domain_at_apex
+        else {"fqdn": domain, "type": "CNAME", "value": api_internal},
     ]
     records += [{"fqdn": f"{s}.{domain}", "type": "CNAME", "value": api} for s in (subdomain_public or [])]
     records += [{"fqdn": f"{s}.{domain}", "type": "CNAME", "value": api_internal} for s in (subdomain_internal or [])]

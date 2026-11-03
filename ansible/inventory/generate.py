@@ -243,13 +243,18 @@ def validate(nginx, nodes, all_vars):
 
 
 ADDITIONAL_SUBDOMAIN_KEYS = ("additional_subdomain_public", "additional_subdomain_internal")
+# Full overrides of the profile's lists (dns.tfvars / hosts.yml), honoured the
+# same way as the Terraform dns component's subdomain_public / _internal.
+SUBDOMAIN_OVERRIDE_KEYS = ("subdomain_public", "subdomain_internal")
+SUBDOMAIN_KEYS = ADDITIONAL_SUBDOMAIN_KEYS + SUBDOMAIN_OVERRIDE_KEYS
 
 
 def subdomains(profile, extra, kind):
-    """The profile's subdomain_<kind> plus additional_subdomain_<kind> from
-    dns.tfvars / hosts.yml (same as the Terraform dns component: appended,
-    duplicates dropped)."""
-    base = list(profile.get(f"subdomain_{kind}") or [])
+    """subdomain_<kind> (dns.tfvars / hosts.yml override, else the profile's)
+    plus additional_subdomain_<kind> — same as the Terraform dns component:
+    appended, duplicates dropped — so nginx and DNS serve the same names."""
+    override = extra.get(f"subdomain_{kind}")
+    base = list(override if override is not None else (profile.get(f"subdomain_{kind}") or []))
     return base + [s for s in extra.get(f"additional_subdomain_{kind}", []) if s not in base]
 
 
@@ -329,13 +334,13 @@ def build(args):
             for tf_key, value in parse_tfvars(tfvars).items():
                 if tf_key in TFVARS_TO_ANSIBLE:
                     all_vars[TFVARS_TO_ANSIBLE[tf_key]] = value
-                elif tf_key in ADDITIONAL_SUBDOMAIN_KEYS and isinstance(value, list):
+                elif tf_key in SUBDOMAIN_KEYS and isinstance(value, list):
                     extra_subdomains[tf_key] = value
         components = gate_components_on_storage(components, storage)
         all_vars.update(storage_device_vars(storage))
     else:
         nginx, nodes, file_vars = hosts_from_file(args.from_hosts)
-        for key in ADDITIONAL_SUBDOMAIN_KEYS:
+        for key in SUBDOMAIN_KEYS:
             if key in file_vars:
                 extra_subdomains[key] = list(file_vars.pop(key) or [])
         all_vars.update(file_vars)
