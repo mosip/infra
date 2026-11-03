@@ -800,4 +800,4 @@ apps:
 
 ---
 
-**Navigation**: [Back to Main README](../README.md) | [View All Docs](.)
+**Navigation**: [Back to Main README](../README.md) | [View All Docs](README.md)

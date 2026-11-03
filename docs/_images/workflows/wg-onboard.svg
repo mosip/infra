@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="460" height="722" viewBox="0 0 460 722" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="WireGuard environment onboard/offboard — Run workflow form">
+<title>WireGuard environment onboard/offboard — Run workflow form</title>
+<rect x="0.5" y="0.5" width="459" height="695" rx="8" fill="#ffffff" stroke="#d0d7de"/>
+<text x="16" y="30" font-size="14" font-weight="600" fill="#1f2328" text-anchor="start">Run workflow</text>
+<text x="16" y="58" font-size="12" font-weight="600" fill="#1f2328" text-anchor="start">Use workflow from</text>
+<rect x="16" y="66" width="190" height="30" rx="6" fill="#f6f8fa" stroke="#d0d7de"/>
+<text x="26" y="85" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">Branch: &lt;your branch&gt; ▾</text>
+<circle cx="27" cy="122" r="10" fill="#0969da"/>
+<text x="27" y="126" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">1</text>
+<text x="46" y="126" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">Onboard (allocate peers + secrets) or offboard (release peers +</text>
+<text x="46" y="142" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">delete secrets)<tspan fill="#d1242f" font-weight="600"> *</tspan></text>
+<rect x="46" y="150" width="398" height="30" rx="6" fill="#f6f8fa" stroke="#d0d7de"/>
+<text x="56" y="169" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">onboard</text>
+<text x="434" y="169" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="end">▾</text>
+<text x="420" y="169" font-size="10" font-weight="normal" fill="#59636e" text-anchor="end">ACTION</text>
+<text x="46" y="193" font-size="10" font-weight="normal" fill="#59636e" text-anchor="start">other options: offboard</text>
+<circle cx="27" cy="216" r="10" fill="#0969da"/>
+<text x="27" y="220" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">2</text>
+<text x="46" y="220" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">Environment / branch name (GitHub environment name)<tspan fill="#d1242f" font-weight="600"> *</tspan></text>
+<rect x="46" y="228" width="398" height="30" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<text x="434" y="247" font-size="10" font-weight="normal" fill="#59636e" text-anchor="end">ENV_NAME</text>
+<circle cx="27" cy="280" r="10" fill="#0969da"/>
+<text x="27" y="284" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">3</text>
+<text x="46" y="284" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">Jumpserver / WireGuard VM public IP or DNS (SSH reachable)<tspan fill="#d1242f" font-weight="600"> *</tspan></text>
+<rect x="46" y="292" width="398" height="30" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<text x="434" y="311" font-size="10" font-weight="normal" fill="#59636e" text-anchor="end">JUMPSERVER_HOST</text>
+<circle cx="27" cy="344" r="10" fill="#0969da"/>
+<text x="27" y="348" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">4</text>
+<text x="46" y="348" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">Onboard only: ticket id to record in assigned.txt (e.g.</text>
+<text x="46" y="364" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">DSD-10264)</text>
+<rect x="46" y="372" width="398" height="30" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<text x="434" y="391" font-size="10" font-weight="normal" fill="#59636e" text-anchor="end">TICKET</text>
+<circle cx="27" cy="424" r="10" fill="#0969da"/>
+<text x="27" y="428" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">5</text>
+<text x="46" y="428" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">WireGuard env dir on the VM</text>
+<rect x="46" y="436" width="398" height="30" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<text x="56" y="455" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">/home/ubuntu/wireguard_env_2026</text>
+<text x="434" y="455" font-size="10" font-weight="normal" fill="#59636e" text-anchor="end">WG_DIR</text>
+<circle cx="27" cy="488" r="10" fill="#0969da"/>
+<text x="27" y="492" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">6</text>
+<text x="46" y="492" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">Onboard only: AllowedIPs to set in each conf</text>
+<rect x="46" y="500" width="398" height="30" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<text x="56" y="519" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">172.31.0.0/16</text>
+<text x="434" y="519" font-size="10" font-weight="normal" fill="#59636e" text-anchor="end">ALLOWED_IPS</text>
+<circle cx="27" cy="552" r="10" fill="#0969da"/>
+<text x="27" y="556" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">7</text>
+<rect x="46" y="544" width="14" height="14" rx="3" fill="#0969da" stroke="#0969da"/>
+<path d="M49 551 l3 3 l5 -6" stroke="#ffffff" stroke-width="2" fill="none"/>
+<text x="68" y="556" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">Offboard only: keep the GitHub environment object (WG</text>
+<text x="68" y="572" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">secrets are always removed on offboard)</text>
+<text x="68" y="586" font-size="10" font-weight="normal" fill="#59636e" text-anchor="start">KEEP_ENVIRONMENT</text>
+<circle cx="27" cy="612" r="10" fill="#0969da"/>
+<text x="27" y="616" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">8</text>
+<rect x="46" y="604" width="14" height="14" rx="3" fill="#0969da" stroke="#0969da"/>
+<path d="M49 611 l3 3 l5 -6" stroke="#ffffff" stroke-width="2" fill="none"/>
+<text x="68" y="616" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">Print actions without writing secrets or assigned.txt</text>
+<text x="68" y="630" font-size="10" font-weight="normal" fill="#59636e" text-anchor="start">DRY_RUN</text>
+<rect x="16" y="650" width="120" height="30" rx="6" fill="#1f883d"/>
+<text x="76" y="669" font-size="12" font-weight="600" fill="#ffffff" text-anchor="middle">Run workflow</text>
+<text x="230.0" y="713" font-size="10" font-weight="normal" fill="#59636e" text-anchor="middle">Generated from .github/workflows/wg-onboard.yml</text>
+</svg>

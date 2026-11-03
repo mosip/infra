@@ -331,7 +331,7 @@ Follow the root README: [Step 3d](../README.md#step-3d-deploy-with-one-run) with
 
 6. Click the green **`Run workflow`** button
 
-![Deploy External Services - Helmsman](_images/helmsman-external-services.png)
+![Deploy External services — Run workflow form](_images/workflows/helmsman_external.svg)
 
 **How to know it succeeded:** Click into the running workflow. Wait for all jobs to show a green tick. Then run:
 
@@ -370,7 +370,7 @@ All pods should show `Running` or `Completed`.
 
 4. Click the green **`Run workflow`** button
 
-![Deploy eSignet - Helmsman](_images/esignet.png)
+![Deploy eSignet — Run workflow form](_images/workflows/helmsman_esignet.svg)
 
 > **`esignet-standalone-2.0.0` note:** Selecting `esignet-standalone-2.0.0` runs `Helmsman/dsf/esignet-standalone-2.0.0/esignet-dsf.yaml`
 > instead — it deploys the same 3 instances (main/mock, mosipid, sunbird) plus their OIDC UIs and mock relying
@@ -430,7 +430,7 @@ All pods should show `Running`.
 
 4. Click the green **`Run workflow`** button
 
-![Deploy Test Rigs - Helmsman](_images/helmsman-testrigs.png)
+![Deploy Testrigs — Run workflow form](_images/workflows/helmsman_testrigs.svg)
 
 **How to know it succeeded:** The workflow log should show all Helmsman releases applied without errors. Verify that test cronjobs were created:
 
