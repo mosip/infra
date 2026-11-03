@@ -55,7 +55,7 @@ Through GitHub Actions (**terraform plan / apply**):
 |-------|--------|
 | `COMPONENT` | `all` (everything in order + Ansible), one component, `configure` (Ansible only), `base-infra` |
 | `PROFILE` | `mosip`, `esignet-standalone`, `observ` |
-| `TERRAFORM_APPLY` | unchecked = plan only; required for `all` / `configure` |
+| `TERRAFORM_APPLY` | unchecked = plan only (`all`: previews an existing environment, skips configure); required for `configure` and for a new environment |
 
 Locally, from a root:
 
