@@ -121,6 +121,19 @@ for group in "${order[@]}"; do
     continue
   fi
   log "${ACTION} ${group}: ${ids[*]}"
+  if [[ "$ACTION" == "stop" ]]; then
+    # AWS rejects stopping an instance that is still pending
+    # (IncorrectInstanceState): wait for those to reach running first.
+    pending=()
+    while IFS=$'\t' read -r _ip id state role _name; do
+      case "$role" in nginx|control-plane|etcd|worker) ;; *) role="other" ;; esac
+      [[ "$role" == "$group" && "$state" == "pending" ]] && pending+=("$id")
+    done <<<"$rows"
+    if [[ ${#pending[@]} -gt 0 ]]; then
+      log "waiting for pending ${group} instances to be running: ${pending[*]}"
+      aws ec2 wait instance-running --region "$REGION" --instance-ids "${pending[@]}"
+    fi
+  fi
   aws ec2 "$verb" --region "$REGION" --instance-ids "${ids[@]}" >/dev/null
   aws ec2 wait "$waiter" --region "$REGION" --instance-ids "${ids[@]}"
   log "${group}: done"
