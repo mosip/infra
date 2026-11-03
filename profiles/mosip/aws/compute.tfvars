@@ -20,7 +20,9 @@ nginx_instance_type = "t3a.2xlarge"
 nginx_node_root_volume_size   = 24
 k8s_instance_root_volume_size = 64
 
-# Control-plane, ETCD, Worker — production shape for 7 nodes: 3 / 0 / 4.
+# Control-plane, ETCD, Worker — defaults below: 3 / 3 / 1 (as in earlier
+# releases). Recommended production shape for 7 nodes: 3 / 0 / 4 (see etcd).
+# Adding / removing nodes: docs/OPERATIONS_GUIDE.md.
 # With the k8s-infra RKE2 templates (release-1.2.1.x):
 #   control-plane  rke2-server: API server, scheduler, controller-manager and
 #                  etcd. etcd members = control-plane count -> keep it odd

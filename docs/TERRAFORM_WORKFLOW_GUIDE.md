@@ -10,7 +10,7 @@
   - **Choose**: `aws` — Azure/GCP only have `base-infra`
   - Data-centre VMs need no Terraform at all: see [Deployment sequence](DEPLOYMENT_SEQUENCE.md#data-centre)
 - **`COMPONENT`**: what to run — each component is its own Terraform root with its own state
-  - **all**: every component in order, then `configure` (needs `TERRAFORM_APPLY`)
+  - **all**: every component in order, then `configure`. With `TERRAFORM_APPLY` unchecked it plans every component of an **existing** environment and skips `configure`; a new environment needs apply (each component looks up what the earlier ones created in AWS)
   - **security** → **iam** → **compute** → **storage** → **dns**: one component (day-2 changes, e.g. `dns` to update only Route53, `compute` to resize or add nodes)
   - **configure**: Ansible only (TLS + nginx, RKE2, Rancher import, NFS, PostgreSQL, ActiveMQ, Rancher/Keycloak)
   - **vm**: standalone EC2 instances with their own security group and IAM (`profiles/<profile>/aws/vm.tfvars`) — not part of `all`
@@ -57,8 +57,9 @@ If COMPONENT = all/configure AND ENABLE_RANCHER_IMPORT = ✅
 If ENABLE_RANCHER_IMPORT = ☐
 → Infrastructure deployed but cluster runs standalone
 
-If Terraform Apply = ☐ (unchecked - dry run, single component only)
-→ Nothing happens, just shows plan
+If Terraform Apply = ☐ (unchecked - plan only)
+→ Nothing is applied or committed, just shows plans
+→ COMPONENT=all: every component planned in order (existing environment), configure skipped
 → Rancher Import setting is ignored
 ```
 

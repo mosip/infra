@@ -6,9 +6,13 @@
 # Layer 3 (nginx, rke2, nfs, ...) is configured by Ansible (ansible/site.yml)
 # in the `configure` job.
 #
-# COMPONENT=all runs everything in the legacy order and requires
-# TERRAFORM_APPLY (later components look up what earlier ones created):
+# COMPONENT=all runs everything in dependency order:
 #   security → iam → compute → storage → dns → configure
+# With TERRAFORM_APPLY unchecked it plans every component of an EXISTING
+# environment (configure is skipped — Ansible has no plan mode). A brand-new
+# environment needs apply: each component looks up what the earlier ones
+# created in AWS (security groups, IAM profile, nginx), so their plans
+# cannot run before those exist.
 # Any single component can be run on its own for day-2 changes, e.g. dns
 # to update only Route53 records.
 #
@@ -67,7 +71,7 @@ on:
         required: true
         type: string
       TERRAFORM_APPLY:
-        description: 'Apply (unchecked = plan only). Required for all/configure.'
+        description: 'Apply (unchecked = plan only; with COMPONENT=all it previews an existing environment and skips configure). Required for configure.'
         required: false
         type: boolean
         default: false
@@ -126,9 +130,13 @@ jobs:
             echo "Data-centre VMs need no Terraform: see docs/DEPLOYMENT_SEQUENCE.md."
             exit 1
           fi
-          if { [ "$C" = "all" ] || [ "$C" = "configure" ]; } && [ "$APPLY" != "true" ]; then
-            echo "ERROR: COMPONENT=$C needs TERRAFORM_APPLY=true (later steps look up what earlier ones created)."
+          if [ "$C" = "configure" ] && [ "$APPLY" != "true" ]; then
+            echo "ERROR: COMPONENT=configure needs TERRAFORM_APPLY=true (Ansible has no plan mode)."
             exit 1
+          fi
+          if [ "$C" = "all" ] && [ "$APPLY" != "true" ]; then
+            echo "::notice::Plan only: every component is planned in order, nothing is applied or committed, and configure is skipped."
+            echo "::notice::This previews an EXISTING environment. On a brand-new one, compute/storage/dns cannot plan before security/iam/compute exist in AWS — run with TERRAFORM_APPLY."
           fi
           if { [ "$C" = "all" ] || [ "$C" = "configure" ]; } && [ "$DNS_PROVIDER" = "manual" ] && [ "$RANCHER_IMPORT" = "true" ]; then
             echo "ERROR: DNS_PROVIDER=manual is the 'no DNS yet' run — it skips TLS, the nginx proxy and the Rancher import."
@@ -268,7 +276,7 @@ jobs:
   # WireGuard — the Terraform jobs above only call cloud APIs.
   configure:
     needs: [validate, storage, dns]
-    if: ${{ always() && needs.validate.result == 'success' && (inputs.COMPONENT == 'configure' || (inputs.COMPONENT == 'all' && needs.storage.result == 'success' && (needs.dns.result == 'success' || (inputs.DNS_PROVIDER != 'terraform-route53' && needs.dns.result == 'skipped')))) }}
+    if: ${{ always() && needs.validate.result == 'success' && (inputs.COMPONENT == 'configure' || (inputs.COMPONENT == 'all' && inputs.TERRAFORM_APPLY && needs.storage.result == 'success' && (needs.dns.result == 'success' || (inputs.DNS_PROVIDER != 'terraform-route53' && needs.dns.result == 'skipped')))) }}
     runs-on: ubuntu-latest
     environment: ${{ github.ref_name }}
     concurrency:
