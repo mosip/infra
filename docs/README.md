@@ -297,6 +297,8 @@ mkdocs build --strict        # fails on broken links or anchors
 
 New pages must be added to `nav:` in `mkdocs.yml`.
 
+The "Run workflow" form pictures (`_images/workflows/*.svg`) are generated from the workflow files — after changing a workflow's inputs run `python .github/mkdocs/render_workflow_forms.py` and commit the result ([details](../.github/workflows/README.md#workflow-form-images-docs)).
+
 ---
 
 ## Quick Reference Cards

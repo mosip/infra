@@ -30,8 +30,12 @@ terraform fmt -check -recursive terraform
 terraform init -backend=false && terraform test
 actionlint .github/workflows/*.yml
 shellcheck .github/scripts/*.sh
+# changed a workflow's inputs? regenerate the docs form images
+python .github/mkdocs/render_workflow_forms.py
+# changed docs? strict site build
+pip install -r docs/requirements.txt && mkdocs build --strict
 ```
-The same checks run in CI (`infra checks`).
+The same checks run in CI (`infra checks`, `docs`). The workflow form images in `docs/_images/workflows/` are generated — see [Workflow form images](.github/workflows/README.md#workflow-form-images-docs).
 
 ## License
 By contributing, you agree that your contributions are licensed under the [Mozilla Public License 2.0](LICENSE).
