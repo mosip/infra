@@ -98,9 +98,9 @@ The `validate-inputs` job checks exactly what the selected `monitoring_stack` ne
 
 ## Step-by-Step: Run the Workflow
 
-![Deploy External Services - Helmsman](_images/helmsman-external-services.png)
+![Deploy External services — Run workflow form](_images/workflows/helmsman_external.svg)
 
-> The screenshot shows an earlier version of the form; the fields are listed in the table above.
+> Generated from the workflow definition — the numbers match the rows of the inputs table above.
 
 1. Go to **Actions** → **"Deploy External services of mosip using Helmsman"** → **Run workflow**.
 2. **Branch** — your deployment branch (the GitHub Environment of the same name holds the secrets).

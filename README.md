@@ -191,7 +191,7 @@ We've created comprehensive beginner-friendly guides to help you succeed:
 | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | --------------------------------------------------- |
 | **[Glossary](docs/GLOSSARY.md)**                                                                         | Plain-language explanations of all technical terms (AWS, Kubernetes, Terraform, VPN, etc.) | Before you start - understand the terminology            |
 | **[Secret Generation Guide](docs/SECRET_GENERATION_GUIDE.md)**                                           | Step-by-step instructions to generate SSH keys, AWS credentials, GPG passwords, and more   | Before deployment - setup required secrets               |
-| **[Workflow Guide](docs/WORKFLOW_GUIDE.md)**                                                             | Visual walkthrough of GitHub Actions workflows with screenshots and navigation help        | During deployment - run workflows correctly               |
+| **[Workflow Guide](docs/WORKFLOW_GUIDE.md)**                                                             | Walkthrough of the GitHub Actions workflows with their forms and navigation help        | During deployment - run workflows correctly               |
 | **[DSF Configuration Guide](docs/DSF_CONFIGURATION_GUIDE.md)**                                           | How to configure Helmsman files including clusterid and domain settings                    | Before Helmsman deployment - configure applications       |
 | **[eSignet Standalone Deployment Guide](docs/ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md)**                   | End-to-end guide for eSignet standalone — Terraform infra provisioning, required AWS/GitHub secrets, tfvars setup, and Helmsman workflow order | eSignet standalone deployment |
 | **[Environment Destruction Guide](docs/ENVIRONMENT_DESTRUCTION_GUIDE.md)**                               | Safe teardown procedures, backup steps, and cost monitoring                                | After deployment - clean up resources                    |
@@ -273,7 +273,7 @@ We've created comprehensive beginner-friendly guides to help you succeed:
 
 4. ### Secrets for Rapid Deployment (Required)
 
-> **Need help generating secrets?** See our comprehensive [Secret Generation Guide](docs/SECRET_GENERATION_GUIDE.md) for step-by-step instructions with screenshots and examples!
+> **Need help generating secrets?** See our comprehensive [Secret Generation Guide](docs/SECRET_GENERATION_GUIDE.md) for step-by-step instructions and examples!
 
 > **Secret Configuration Types:**
 >
@@ -523,39 +523,28 @@ For detailed information about GitHub Actions workflow parameters, terraform mod
 
 3. **Run base-infra via GitHub Actions:**
 
-> **Detailed Navigation Guide**: See [Workflow Guide - Terraform Workflows](docs/WORKFLOW_GUIDE.md#workflow-1-base-infrastructure) for step-by-step screenshots
+> **Detailed Navigation Guide**: See [Workflow Guide - Terraform Workflows](docs/WORKFLOW_GUIDE.md#workflow-1-base-infrastructure) for step-by-step navigation
 
-![Base Infrastructure Terraform Apply](docs/_images/base-infra-terraform-apply.png)
+![terraform plan / apply — Run workflow form](docs/_images/workflows/terraform.svg)
 
-> The screenshot shows an earlier form: pick `COMPONENT=base-infra` (`PROFILE` is ignored for base-infra).
+> Generated from the workflow definition — the numbers match the form fields in order.
 
-- **(1)** Go to **Actions** → **terraform plan/apply**
+- Go to **Actions** → **terraform plan / apply** → **Run workflow**
   - **Can't find it?** Look in the left sidebar under "All workflows"
-  - Click **Run workflow** (green button on the right)
-  - **Configure workflow parameters:**
-- **(2)** **Branch**: Select your deployment branch (e.g., `release-0.x.x` or your own branch)
-  - **What's this?** The branch of code to use for deployment
-- **(3)** **Cloud Provider**: Select `aws` (Azure/GCP are placeholder implementations)
-  - **Important**: Only `aws` is fully functional
-- **(4)** **COMPONENT**: Select `base-infra` (creates VPC, networking, jump server, WireGuard)
-  - **What's this?** Select which infrastructure component to build.
-  - Selecting `base-infra` triggers the creation of the core infrastructure components listed below:
-    - **VPC & Networking**: Secure network foundation
-    - **Jump Server**: Bastion host for secure access
-    - **WireGuard VPN**: Encrypted private network access
-    - **Security Groups**: Network access controls
-    - **Route Tables**: Network traffic routing
-- **BACKEND_TYPE**: Choose backend configuration:
-  - **(5)** `local` - GPG-encrypted local state (recommended for development)
-    - Stores state in your GitHub repository (encrypted)
-  - **(6)** `remote` - state in a cloud bucket: set **REMOTE_BACKEND_CONFIG** (`aws:<bucket_base_name>:<region>`, `azure:<rg>:<storage_account>:<container>` or `gcp:<bucket>`) and, for teams, tick **ENABLE_STATE_LOCKING**
-- **(7)** **SSH_PRIVATE_KEY**: GitHub secret name containing SSH private key for instance access
-  - Holds the private key of the `ssh_key_name` key pair (`aws.tfvars` for base-infra, `profiles/<profile>/aws/common.tfvars` for clusters)
-- **Terraform apply**:
-  - **(8)** ☐ **Unchecked**  — Plan mode: runs terraform plan (shows changes without applying).
-  - **(8)** ✅ **Checked**  — Apply mode: runs terraform apply (creates/updates infrastructure).
-  - Tip: For your first deployment, run in plan mode first to review changes. If the plan looks correct, re-run the workflow with Apply checked.
-- **(9)** **Run Workflow**
+- **Branch**: your deployment branch (e.g., `release-0.x.x` or your own branch) — the code and the GitHub Environment to use
+- **(1)** **CLOUD_PROVIDER**: `aws` (Azure/GCP have base-infra only)
+- **(2)** **COMPONENT**: `base-infra` — creates the VPC & networking, jump server, WireGuard VPN, security groups and route tables
+- **(3)** **PROFILE**: ignored for base-infra (leave the default)
+- **(4)** **BACKEND_TYPE**:
+  - `local` — GPG-encrypted state committed to your branch (recommended for development)
+  - `remote` — state in a cloud bucket: set **(5) REMOTE_BACKEND_CONFIG** (`aws:<bucket_base_name>:<region>`, `azure:<rg>:<storage_account>:<container>` or `gcp:<bucket>`) and, for teams, tick **(6) ENABLE_STATE_LOCKING**
+- **(7)** **SSH_PRIVATE_KEY**: name of the GitHub secret holding the private key of the `ssh_key_name` key pair (`aws.tfvars` for base-infra, `profiles/<profile>/aws/common.tfvars` for clusters)
+- **(8)** **TERRAFORM_APPLY**:
+  - ☐ unchecked — plan only (shows changes without applying)
+  - ✅ checked — apply (creates/updates infrastructure)
+  - Tip: run plan first; if it looks right, re-run with apply checked
+- Fields 9–14 (Rancher import) and **(15) DNS_PROVIDER** are not used for base-infra — leave the defaults
+- Click **Run workflow**
 
  **What You Should See:**
 
@@ -633,7 +622,7 @@ For detailed information about GitHub Actions workflow parameters, terraform mod
 
 > **Important:** Complete WireGuard setup and configure `TF_WG_CONFIG` environment secret before proceeding to MOSIP infrastructure deployment.
 >
-> **Need help?** Check the [detailed WireGuard guide](terraform/base-infra/WIREGUARD_SETUP.md) with screenshots!
+> **Need help?** Check the [detailed WireGuard guide](terraform/base-infra/WIREGUARD_SETUP.md).
 
 #### Step 3c: Fill in a profile
 
@@ -669,18 +658,19 @@ On your deployment branch, edit the files of the profile you'll use:
 
 #### Step 3d: Deploy with one run
 
-- **(1)** Go to **Actions** → **terraform plan / apply** → **Run workflow**
-- **(2)** **Branch**: your deployment branch
-- **(3)** **CLOUD_PROVIDER**: `aws`
-- **(4)** **COMPONENT**: `all`
-- **(5)** **PROFILE**: `mosip`, `esignet-standalone` or `observ`
-- **(6)** **BACKEND_TYPE**: `local` (GPG-encrypted state committed to the branch) or `remote`
+Same form as in step 3a ([image](docs/_images/workflows/terraform.svg)); the numbers below are its field numbers.
+
+- Go to **Actions** → **terraform plan / apply** → **Run workflow**, and pick your deployment **Branch**
+- **(1)** **CLOUD_PROVIDER**: `aws`
+- **(2)** **COMPONENT**: `all`
+- **(3)** **PROFILE**: `mosip`, `esignet-standalone` or `observ`
+- **(4)** **BACKEND_TYPE**: `local` (GPG-encrypted state committed to the branch) or `remote` (then **(5)** REMOTE_BACKEND_CONFIG and **(6)** ENABLE_STATE_LOCKING)
 - **(7)** **SSH_PRIVATE_KEY**: name of the secret holding the private key for `ssh_key_name`
 - **(8)** ✅ **TERRAFORM_APPLY** (required for `all`)
-- **(9)** **ENABLE_RANCHER_IMPORT**: tick to register the cluster in Rancher (needs `RANCHER_API_URL` / `RANCHER_API_TOKEN` secrets and an `observ` cluster)
-- **(10)** **DNS_PROVIDER**: `terraform-route53` (default, Route53 zone in `zone_id`), or `godaddy` / `cloudflare` / `rfc2136` / `manual` to create the records with Ansible — set the provider's secrets first (`GODADDY_API_KEY` + `GODADDY_API_SECRET`, `CLOUDFLARE_API_TOKEN`, or `DNS_RFC2136_SERVER` + TSIG key). See [DNS providers](docs/DEPLOYMENT_SEQUENCE.md#dns-providers).
+- **(9)** **ENABLE_RANCHER_IMPORT**: tick to register the cluster in Rancher (needs `RANCHER_API_URL` / `RANCHER_API_TOKEN` secrets and an `observ` cluster); **(10)–(14)** optional cluster name, kubeconfig publishing and team access
+- **(15)** **DNS_PROVIDER**: `terraform-route53` (default, Route53 zone in `zone_id`), or `godaddy` / `cloudflare` / `rfc2136` / `manual` to create the records with Ansible — set the provider's secrets first (`GODADDY_API_KEY` + `GODADDY_API_SECRET`, `CLOUDFLARE_API_TOKEN`, or `DNS_RFC2136_SERVER` + TSIG key). See [DNS providers](docs/DEPLOYMENT_SEQUENCE.md#dns-providers).
 
-`all` runs the components in the legacy order, each with its own state, stopping at the first failure:
+`all` runs the components in dependency order, each with its own state, stopping at the first failure:
 
 ```
 security → iam → compute → storage → dns → configure (Ansible: nginx → rke2 → rancher import → nfs → postgresql → activemq)

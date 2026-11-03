@@ -63,6 +63,10 @@ If TERRAFORM_APPLY = ☐ (single component, plan only)
 
 ### Workflow 1: Base Infrastructure
 
+![terraform plan / apply — Run workflow form](_images/workflows/terraform.svg)
+
+> Generated from the workflow definition — the numbers match the form fields in order.
+
 **What it does**: Creates the foundation - VPC, networking, jump server, WireGuard VPN
 
 #### Step-by-Step Navigation
@@ -282,6 +286,10 @@ Mode: apply ✅
 
 ### Workflow 1: Prerequisites & External Dependencies
 
+![Deploy External services — Run workflow form](_images/workflows/helmsman_external.svg)
+
+> Generated from the workflow definition — the numbers match the form fields in order.
+
 **What it does**: Deploys monitoring, Istio, databases, message queues, storage, Keycloak
 
 **Workflow Name in GitHub**: `Deploy External services of mosip using Helmsman`
@@ -342,6 +350,10 @@ Mode: apply ✅
 
 ### Workflow 2: MOSIP Core Services (Auto-triggered)
 
+![Deploy MOSIP services — Run workflow form](_images/workflows/helmsman_mosip.svg)
+
+> Generated from the workflow definition — the numbers match the form fields in order.
+
 **What it does**: Deploys all MOSIP application services
 
 **Workflow Name**: `Deploy MOSIP services using Helmsman`
@@ -368,6 +380,10 @@ Mode: apply ✅
 ---
 
 ### Workflow 3: eSignet (Manual)
+
+![Deploy eSignet — Run workflow form](_images/workflows/helmsman_esignet.svg)
+
+> Generated from the workflow definition — the numbers match the form fields in order.
 
 **What it does**: Deploys eSignet authentication stack (1 instance for MOSIP platform profiles, 4 parallel instances for eSignet standalone)
 
@@ -420,6 +436,10 @@ kubectl get pods -n esignet-sunbird # esignet profile only
 ---
 
 ### Workflow 4: Test Rigs (Manual, Optional)
+
+![Deploy Testrigs — Run workflow form](_images/workflows/helmsman_testrigs.svg)
+
+> Generated from the workflow definition — the numbers match the form fields in order.
 
 **What it does**: Deploys automated testing infrastructure (API/UI test rigs as CronJobs)
 

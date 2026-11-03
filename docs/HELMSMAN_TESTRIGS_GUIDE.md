@@ -126,24 +126,26 @@ No additional secrets required — MinIO root password is read automatically fro
 
 ## Step-by-Step: Run the Workflow
 
-![Deploy Test Rigs - Helmsman](_images/helmsman-testrigs.png)
+![Deploy Testrigs — Run workflow form](_images/workflows/helmsman_testrigs.svg)
 
-- **(1)** Go to **Actions** (top of the repository page) → click **"Deploy Testrigs of mosip using Helmsman"** in the list on the left.
+> Generated from the workflow definition — the numbers match the form fields in order.
+
+- Go to **Actions** (top of the repository page) → click **"Deploy Testrigs of mosip using Helmsman"** in the list on the left.
   > Can't find it? Search for "Testrig" or "Testrigs" in the workflows list.
-- **(2)** Click the **Run workflow** dropdown button (top right) — this opens the form shown above.
-- **(3)** **Branch** — pick the branch you're deploying from (e.g., `MOSIP-44613`).
-- **(4)** **Deployment profile to use** — pick the profile you want (e.g., `mosip-platform-1.2.0.x`, `esignet-standalone`, or `esignet-standalone-2.0.0` for the Go rewrite).
-- **(5)** **Choose Helmsman mode: dry-run or apply** — always pick **`apply`**.
-- **(6)** **Domain name for this environment** — type the web domain this environment should use (e.g., `example.xyz.net`).
-- **(7)** **MOSIP-ID domain name** *(eSignet profile only)* — type the base domain used by the MOSIP-ID eSignet instance (e.g., `mosipid.xyz.net`). Leave blank for MOSIP platform profiles.
-- **(8)** **PostgreSQL port for MOSIP platform external postgres** — only fill this in if you picked a `mosip-platform-*` profile in step 4. Type `5433` (or whatever port your external PostgreSQL uses).
-- **(9)** **PostgreSQL port for esignet standalone container postgres** — only fill this in if you picked the `esignet-standalone` profile in step 4. Type `5432`.
-- **(10)** **Environment name** — a short nickname for this environment (e.g., `sandbox`, `dev`, `staging`).
-- **(11)** **Slack channel name for alerting** (optional) — the Slack channel that should receive test result notifications (e.g., `#mosip-alerts`). Leave blank if you don't want Slack alerts.
-- **(12)** **Slack webhook URL for alerting** (optional) — leave this blank; it's normally already saved as the `SLACK_WEBHOOK_URL` secret in your GitHub environment.
-- **(13)** Click the green **Run workflow** button to start the deployment.
+- Click the **Run workflow** dropdown button (top right) — this opens the form shown above.
+- **Branch** — pick the branch you're deploying from (e.g., `MOSIP-44613`).
+- **(1)** **Deployment profile to use** — pick the profile you want (e.g., `mosip-platform-1.2.0.x`, `esignet-standalone`, or `esignet-standalone-2.0.0` for the Go rewrite).
+- **(2)** **Choose Helmsman mode: dry-run or apply** — always pick **`apply`**.
+- **(3)** **Domain name for this environment** — type the web domain this environment should use (e.g., `example.xyz.net`).
+- **(4)** **MOSIP-ID domain name** *(eSignet profile only)* — type the base domain used by the MOSIP-ID eSignet instance (e.g., `mosipid.xyz.net`). Leave blank for MOSIP platform profiles.
+- **(5)** **PostgreSQL port for MOSIP platform external postgres** — only fill this in if you picked a `mosip-platform-*` profile in field 1. Type `5433` (or whatever port your external PostgreSQL uses).
+- **(6)** **PostgreSQL port for esignet standalone container postgres** — only fill this in if you picked the `esignet-standalone` profile in field 1. Type `5432`.
+- **(7)** **Environment name** — a short nickname for this environment (e.g., `sandbox`, `dev`, `staging`).
+- **(8)** **Slack channel name for alerting** (optional) — the Slack channel that should receive test result notifications (e.g., `#mosip-alerts`). Leave blank if you don't want Slack alerts.
+- **(9)** **Slack webhook URL for alerting** (optional) — leave this blank; it's normally already saved as the `SLACK_WEBHOOK_URL` secret in your GitHub environment.
+- Click the green **Run workflow** button to start the deployment.
 
-> **Note:** Steps 7–9 all appear in the form regardless of which profile you picked — fill in only the ones that match your profile (MOSIP-ID domain for `esignet-standalone`, PostgreSQL port for `mosip-platform-*`) and leave the rest blank.
+> **Note:** Fields 4–6 all appear in the form regardless of which profile you picked — fill in only the ones that match your profile (MOSIP-ID domain for `esignet-standalone`, PostgreSQL port for `mosip-platform-*`) and leave the rest blank.
 
 > **Important:** Always pass `--keep-untracked-releases` — without it Helmsman will delete releases from previous DSFs (esignet, oidc-ui, etc.) that aren't listed in `testrigs-dsf.yaml`. The workflow handles this automatically.
 

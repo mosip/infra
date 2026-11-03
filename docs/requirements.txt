@@ -1,0 +1,4 @@
+# Documentation site build (mkdocs.yml at the repo root)
+# MkDocs 2.0 is incompatible with Material and its plugins — stay on 1.x.
+mkdocs==1.6.1
+mkdocs-material==9.7.7
