@@ -56,7 +56,7 @@ Actions → **terraform plan / apply**:
 - `COMPONENT=<one>` — just that component. With `TERRAFORM_APPLY` unchecked it
   only plans. Use this for day-2 changes:
   - DNS records only → `COMPONENT=dns`
-  - resize / add nodes → `COMPONENT=compute`, then `COMPONENT=configure`
+  - resize / add nodes → `COMPONENT=compute`, then `COMPONENT=configure` (step by step: [Day-2 operations](OPERATIONS_GUIDE.md))
   - re-run Ansible → `COMPONENT=configure`
 
 Each Terraform component only calls AWS APIs; only `configure` needs

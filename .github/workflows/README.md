@@ -44,7 +44,7 @@ This directory contains GitHub Actions workflows for automated MOSIP deployment:
  PROFILE: mosip              # mosip | esignet-standalone | observ
  BACKEND_TYPE: local         # GPG-encrypted state committed to the branch
  SSH_PRIVATE_KEY: mosip-aws  # name of the secret with the node SSH key
- TERRAFORM_APPLY: true       # required for all / configure
+ TERRAFORM_APPLY: true       # unchecked: all = plan only of an existing env; configure needs it
  ```
 3. **Execute**: Click "Run workflow"
 4. **PostgreSQL / ActiveMQ**: controlled by the profile — `profiles/<profile>/profile.yml`
@@ -108,7 +108,7 @@ terraform.yml (dispatch)                 terraform-destroy.yml (dispatch)
 | `REMOTE_BACKEND_CONFIG` | `aws:bucket:region` … | remote only |
 | `ENABLE_STATE_LOCKING` | bool | remote only |
 | `SSH_PRIVATE_KEY` | secret name | key for `ssh_key_name` |
-| `TERRAFORM_APPLY` | bool | unchecked = plan only; required for `all` / `configure` |
+| `TERRAFORM_APPLY` | bool | unchecked = plan only (`all`: previews an existing environment, skips configure); required for `configure` and for a new environment |
 | `ENABLE_RANCHER_IMPORT` | bool | register in Rancher via API during configure |
 | `DNS_PROVIDER` | `terraform-route53` \| `godaddy` \| `cloudflare` \| `rfc2136` \| `manual` | who creates DNS records; non-Route53 skips the Terraform `iam` + `dns` steps and uses the Ansible `dns` role (secrets: `GODADDY_API_KEY`/`_SECRET`, `CLOUDFLARE_API_TOKEN`, `DNS_RFC2136_SERVER`/`_KEY_NAME`/`_KEY_SECRET`; optional variable `DNS_ZONE`) |
 | `RANCHER_CLUSTER_NAME`, `PUBLISH_KUBECONFIG`, `GRANT_GROUP_ACCESS`, `RANCHER_CLUSTER_OWNER_GROUP*` | | Rancher follow-ups, as before |
