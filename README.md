@@ -647,7 +647,7 @@ On your deployment branch, edit the files of the profile you'll use:
   zone_id             = "<route53_zone_id>"
   ami                 = "ami-0ad21ae1d0696ad58"  # Ubuntu 24.04
   vpc_name            = "mosip-boxes"        # created by base-infra
-  network_cidr        = "10.0.0.0/8"
+  network_cidr        = "10.0.0.0/8"         # private (RFC 1918) range only — public ranges are rejected
   WIREGUARD_CIDR      = "10.0.0.0/8"
   ```
 

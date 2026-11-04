@@ -2,10 +2,14 @@
 #
 # - Pull requests: the workflow form images must match the workflows, then a
 #   strict build (broken links or anchors fail the check).
-# - Push to develop, or a manual run: build and publish to GitHub Pages.
+# - Push to develop, or a manual run on develop: build and publish to GitHub Pages.
+# - A fork: a manual run from any branch publishes a preview to the fork's
+#   Pages (https://<user>.github.io/infra/) — mosip/infra itself only
+#   publishes develop.
 #
-# One-time setup (repository admin): Settings → Pages → Source: GitHub Actions,
-# and allow the develop branch under Settings → Environments → github-pages.
+# One-time setup (repository admin, or the fork owner for a preview):
+# Settings → Pages → Source: GitHub Actions, and allow the branch under
+# Settings → Environments → github-pages.
 name: docs
 
 on:
@@ -62,7 +66,8 @@ jobs:
           path: site
 
   deploy:
-    if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/develop' }}
+    # mosip/infra: develop only. Forks: any branch on a manual run (preview).
+    if: ${{ github.event_name != 'pull_request' && (github.ref == 'refs/heads/develop' || (github.repository != 'mosip/infra' && github.event_name == 'workflow_dispatch')) }}
     needs: build
     runs-on: ubuntu-latest
     permissions:

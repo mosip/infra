@@ -53,6 +53,11 @@ Actions → **terraform plan / apply**:
 - `COMPONENT=all` + `TERRAFORM_APPLY` — everything above, in order, stopping at
   the first failure. Destroy is **terraform destroy** with `COMPONENT=all`
   (reverse order: dns → storage → compute → iam → security).
+- `COMPONENT=all` with `TERRAFORM_APPLY` **unchecked** — plans every component
+  of an **existing** environment in order, applies and commits nothing, skips
+  `configure` ([preview](OPERATIONS_GUIDE.md#preview-before-you-change-anything)).
+  A new environment needs apply: later components look up what the earlier
+  ones created in AWS.
 - `COMPONENT=<one>` — just that component. With `TERRAFORM_APPLY` unchecked it
   only plans. Use this for day-2 changes:
   - DNS records only → `COMPONENT=dns`
@@ -86,7 +91,8 @@ WireGuard (it SSHes into the private nodes).
 - **Any other record** (TXT, MX, CAA, A to another host):
   `extra_records = { verify = { name = "...", type = "TXT", records = ["..."], zone = "partner" } }`.
   These default to `allow_overwrite = false`.
-- **Targets:** the running nginx instance by tag, or `nginx_public_ip` /
+- **Targets:** the nginx instance by tag (it must be running for apply — a
+  stopped one has no public IP; destroy doesn't look it up), or `nginx_public_ip` /
   `nginx_private_ip` — e.g. a data-centre nginx whose domain is in Route53.
 - **Certbot:** the `iam` component only lets nginx change records in
   `zone_id` (or `certbot_zone_ids`) — list the zone that holds
@@ -123,7 +129,9 @@ Who creates the records is one setting — `DNS_PROVIDER` in the workflow, or
   preflight then waits (up to ~5 min) for the records to resolve.
 - Same records as the Terraform module (api, api-internal, bare domain,
   subdomains from `profile.yml`), plus `dns_extra_records`. Set `dns_zone`
-  when the zone apex differs from `cluster_env_domain`.
+  when the zone apex differs from `cluster_env_domain`. When `dns_zone` is
+  `cluster_env_domain` itself, the bare domain is an **A** record to the nginx
+  private IP — a CNAME is not allowed at a zone apex.
 - On AWS with a non-Route53 provider, `COMPONENT=all` skips the Route53-only
   `iam` and `dns` components and nginx gets no certbot Route53 profile. With
   the profile's default `tls_mode: dns01` the certificate is issued through

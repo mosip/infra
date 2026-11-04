@@ -692,9 +692,9 @@ sudo wg-quick down wg-mosip
 #### Immediate Check (5 minutes after destruction)
 
 ```bash
-# Check for running instances
+# Check for instances left behind (stopped ones still bill for their EBS volumes)
 aws ec2 describe-instances \
- --filters "Name=instance-state-name,Values=running" \
+ --filters "Name=instance-state-name,Values=pending,running,stopping,stopped" \
  --query 'Reservations[].Instances[].[InstanceId,InstanceType,LaunchTime]'
 
 # If any instances are running that shouldn't be, investigate immediately
