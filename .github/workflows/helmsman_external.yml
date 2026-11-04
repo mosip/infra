@@ -81,6 +81,13 @@ permissions:
   actions: write
   contents: read
 
+# One Helmsman run per branch (= per cluster) at a time: deploy and destroy
+# workflows share this group, so runs queue instead of overlapping, and a new
+# run never cancels one that is mid-helm (that leaves releases "pending-*").
+concurrency:
+  group: helmsman-${{ github.ref_name }}
+  cancel-in-progress: false
+
 jobs:
   validate-inputs:
     runs-on: ubuntu-latest
