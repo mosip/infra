@@ -298,6 +298,8 @@ mkdocs build --strict        # fails on broken links or anchors
 
 New pages must be added to `nav:` in `mkdocs.yml`.
 
+**Preview the site on your fork:** Settings → Pages → Source **GitHub Actions**; Settings → Environments → `github-pages` → allow your branch; then **Actions → docs → Run workflow** on that branch. The site is published to `https://<your-user>.github.io/infra/`.
+
 The "Run workflow" form pictures (`_images/workflows/*.svg`) are generated from the workflow files — after changing a workflow's inputs run `python .github/mkdocs/render_workflow_forms.py` and commit the result ([details](../.github/workflows/README.md#workflow-form-images-docs)).
 
 ---

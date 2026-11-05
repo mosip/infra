@@ -136,8 +136,10 @@ graph TD
 ### State files
 
 `{provider}-{component}-{profile}-{branch}-terraform.tfstate` per root
-(`base-infra` has no profile). With the local backend only the `.gpg` file is
-committed, e.g.
+(`base-infra` has no profile). With the local backend only the encrypted `.gpg`
+state (and the generated `backend.tf`) is committed — and only when the state
+actually changed: plan-only and no-op runs commit nothing. Plan files are never
+encrypted or committed (they contain every variable value). E.g.
 
 ```
 terraform/implementations/aws/base-infra/aws-base-infra-<branch>-terraform.tfstate.gpg
