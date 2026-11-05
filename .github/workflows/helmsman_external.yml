@@ -24,6 +24,10 @@ on:
         description: "Domain name for this environment (e.g. example.xyz.net)"
         required: false
         type: string
+      db_port:
+        description: "PostgreSQL port for external postgres (terraform postgresql_port, e.g. 5433)"
+        required: false
+        type: string
       env_name:
         description: "Environment name (e.g. sandbox, dev, staging)"
         required: false
@@ -62,10 +66,12 @@ jobs:
           ENV="${{ github.event.inputs.env_name || vars.ENV_NAME }}"
           CLUSTER="${{ github.event.inputs.clusterid || vars.CLUSTER_ID }}"
           SLACK_CH="${{ github.event.inputs.slack_channel_name || vars.SLACK_CHANNEL_NAME }}"
+          DB_PORT="${{ github.event.inputs.db_port || vars.DB_PORT }}"
           [ -z "$DOMAIN" ]    && errors+=("domain_name is empty — set vars.DOMAIN_NAME under Environment '${{ github.ref_name }}'")
           [ -z "$ENV" ]       && errors+=("env_name is empty — set vars.ENV_NAME under Environment '${{ github.ref_name }}'")
           [ -z "$CLUSTER" ]   && errors+=("clusterid is empty — set vars.CLUSTER_ID under Environment '${{ github.ref_name }}'")
           [ -z "$SLACK_CH" ]  && errors+=("slack_channel_name is empty — set vars.SLACK_CHANNEL_NAME under Environment '${{ github.ref_name }}'")
+          [ -z "$DB_PORT" ]   && errors+=("db_port is empty — set vars.DB_PORT under Environment '${{ github.ref_name }}' (use terraform postgresql_port, e.g. 5433)")
           if [ ${#errors[@]} -gt 0 ]; then
             echo "❌ Required variables missing:"
             printf '  - %s\n' "${errors[@]}"
@@ -76,6 +82,7 @@ jobs:
           echo "✓ env_name           = $ENV"
           echo "✓ clusterid          = $CLUSTER"
           echo "✓ slack_channel_name = $SLACK_CH"
+          echo "✓ db_port            = $DB_PORT"
 
       - name: Persist workflow inputs as environment variables
         if: github.event_name == 'workflow_dispatch'
@@ -102,6 +109,7 @@ jobs:
             fi
           }
           save_var "DOMAIN_NAME"        "${{ github.event.inputs.domain_name }}"
+          save_var "DB_PORT"            "${{ github.event.inputs.db_port }}"
           save_var "ENV_NAME"           "${{ github.event.inputs.env_name }}"
           save_var "CLUSTER_ID"         "${{ github.event.inputs.clusterid }}"
           save_var "SLACK_CHANNEL_NAME" "${{ github.event.inputs.slack_channel_name }}"
@@ -182,6 +190,7 @@ jobs:
       ISTIOCTL_PATH: ${{ github.workspace }}/istio-1.22.0/bin/istioctl
       KUBECTL_PATH: ${{ github.workspace }}/.local/bin/kubectl
       domain_name:         ${{ github.event.inputs.domain_name         || vars.DOMAIN_NAME }}
+      db_port:             ${{ github.event.inputs.db_port             || vars.DB_PORT }}
       env_name:            ${{ github.event.inputs.env_name            || vars.ENV_NAME }}
       slack_channel_name:  ${{ github.event.inputs.slack_channel_name  || vars.SLACK_CHANNEL_NAME }}
       SLACK_WEBHOOK_URL:   ${{ github.event.inputs.slack_webhook_url   || secrets.SLACK_WEBHOOK_URL }}
@@ -326,6 +335,7 @@ jobs:
       - name: Show deployment variables
         run: |
           echo "domain_name        = $domain_name"
+          echo "db_port            = $db_port"
           echo "env_name           = $env_name"
           echo "slack_channel_name = $slack_channel_name"
           echo "CLUSTER_ID         = $CLUSTER_ID"
