@@ -152,6 +152,21 @@ class TerraformMode(Fixture):
         self.assertEqual(v["public_domain_list"],
                          "api.dev1.example.org,resident.dev1.example.org,portal.dev1.example.org")
 
+    def test_multiline_lists_in_dns_tfvars(self):
+        # lists spread over several lines (as terraform fmt allows) are read too
+        self.compute()
+        dns = write(os.path.join(self.dir, "dns.tfvars"),
+                    'additional_subdomain_public = [\n'
+                    '  "portal",   # comment\n'
+                    '  "reports",\n'
+                    ']\n'
+                    'additional_subdomain_internal = ["metrics"]\n')
+        _, inv = self.from_terraform("--tfvars", dns)
+        v = inv["all"]["vars"]
+        self.assertEqual(v["subdomain_public"][-2:], ["portal", "reports"])
+        self.assertEqual(v["subdomain_internal"][-1], "metrics")
+        self.assertTrue(v["public_domain_list"].endswith("portal.dev1.example.org,reports.dev1.example.org"))
+
     def test_node_numbering_sorts_numerically(self):
         self.compute(cp=11, etcd=0, workers=0)
         _, inv = self.from_terraform()

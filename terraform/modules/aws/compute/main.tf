@@ -167,8 +167,6 @@ locals {
   }
 }
 
-# Fail the plan when k8s_node_state names a node that isn't in the current
-# node counts (it would otherwise be silently ignored).
 # Fail the plan when k8s_node_instance_type names a node that isn't in the
 # current node counts (it would otherwise be silently ignored).
 resource "terraform_data" "instance_type_check" {
@@ -180,6 +178,8 @@ resource "terraform_data" "instance_type_check" {
   }
 }
 
+# Fail the plan when k8s_node_state names a node that isn't in the current
+# node counts (it would otherwise be silently ignored).
 resource "terraform_data" "power_state_check" {
   lifecycle {
     precondition {
