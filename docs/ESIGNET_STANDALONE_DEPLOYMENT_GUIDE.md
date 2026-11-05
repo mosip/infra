@@ -291,7 +291,7 @@ Follow the root README: [Step 3d](../README.md#step-3d-deploy-with-one-run) with
 | `PROFILE` | `esignet-standalone` |
 | `BACKEND_TYPE` | `local` *(or `remote`)* |
 | `SSH_PRIVATE_KEY` | Name of your SSH private key secret |
-| `TERRAFORM_APPLY` | Tick (required for `all`) |
+| `TERRAFORM_APPLY` | Tick (required for a new environment; unticked only previews an existing one) |
 | `ENABLE_RANCHER_IMPORT` | Tick to register in Rancher (publishes `KUBECONFIG` too) |
 
 2. **After apply completes (~20 min):** With Rancher import + `PUBLISH_KUBECONFIG`, the `KUBECONFIG` environment secret is already set. Otherwise copy `/home/ubuntu/.kube/<cluster_name>-CONTROL-PLANE-NODE-1.yaml` from the primary control-plane node and add it as `KUBECONFIG` (Section 2B) before proceeding to Step 1.

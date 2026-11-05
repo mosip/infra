@@ -87,6 +87,7 @@ Welcome to the MOSIP Infrastructure documentation! This index helps you find exa
 
 | Document | What It Covers | Who Should Read |
 |----------|----------------|-----------------|
+| **[Day-2 Operations](OPERATIONS_GUIDE.md)** | Add / remove / resize nodes, stop/start, subdomains, firewall rules, standalone VMs, DNS later | Operators |
 | **[Partner Onboarding](ONBOARDING_GUIDE.md)** | Diagnose and re-run partner onboarding (e.g. `IDA-MPA-009`) | Operators |
 | **[Kubernetes Health Checker](k8s-health-checker.md)** | Scheduled cluster health check workflow | Operators |
 

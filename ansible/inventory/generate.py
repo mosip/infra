@@ -105,19 +105,38 @@ def strip_comment(line):
 
 def parse_tfvars(path):
     """Parse the simple subset of HCL our tfvars use: `key = "string"`,
-    numbers, booleans and single-line lists of strings. Anything else is
-    ignored (it's Terraform-only and never needed by Ansible)."""
+    numbers, booleans and lists of strings (on one line or spread over
+    several lines). Anything else is ignored (it's Terraform-only and never
+    needed by Ansible)."""
     values = {}
     try:
         with open(path) as fh:
             lines = fh.readlines()
     except OSError as exc:
         raise InventoryError(f"cannot read {path}: {exc}") from exc
+    # A list spread over several lines is collected until its brackets
+    # balance. Only lists of plain strings are kept; lists of objects
+    # (security.tfvars rules) stay ignored, as before.
+    pending_key, pending, depth = None, [], 0
     for raw in lines:
-        m = _TFVAR_LINE.match(strip_comment(raw))
+        line = strip_comment(raw)
+        if pending_key is not None:
+            pending.append(line)
+            depth += line.count("[") + line.count("{") - line.count("]") - line.count("}")
+            if depth <= 0:
+                body = " ".join(pending)
+                if "{" not in body:
+                    values[pending_key] = re.findall(r'"([^"]*)"', body)
+                pending_key, pending, depth = None, [], 0
+            continue
+        m = _TFVAR_LINE.match(line)
         if not m:
             continue
         key, val = m.group(1), m.group(2).strip()
+        opened = val.count("[") + val.count("{") - val.count("]") - val.count("}")
+        if val.startswith(("[", "{")) and opened > 0:
+            pending_key, pending, depth = key, [val], opened
+            continue
         if val.startswith('"') and val.endswith('"'):
             values[key] = val[1:-1]
         elif val.startswith("[") and val.endswith("]"):
