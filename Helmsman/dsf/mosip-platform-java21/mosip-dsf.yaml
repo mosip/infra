@@ -225,7 +225,7 @@ apps:
   masterdata-loader:
     namespace: masterdata-loader
     enabled: true
-    version: 1.3.0
+    version: 1.3.2
     chart: mosip/masterdata-loader
     set:
       # image.repository: "mosipdev/masterdata-loader"
@@ -996,7 +996,7 @@ apps:
   resident:
     namespace: resident
     enabled: true
-    version: 1.3.0
+    version: 1.3.2
     chart: mosip/resident
     set:
       # image.repository: "mosipdev/resident-service"
