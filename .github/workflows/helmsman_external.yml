@@ -341,11 +341,26 @@ jobs:
           echo "slack_channel_name = $slack_channel_name"
           echo "CLUSTER_ID         = $CLUSTER_ID"
 
+      - name: Ensure Istio is installed
+        if: contains(matrix.dsf_files, 'prereq-dsf.yaml')
+        run: |
+          export HOME="${{ github.workspace }}"
+          export WORKDIR="$HOME/Helmsman"
+          if kubectl get crd gateways.networking.istio.io virtualservices.networking.istio.io >/dev/null 2>&1; then
+            echo "Istio networking CRDs already present"
+            exit 0
+          fi
+          echo "Istio CRDs are missing."
+          echo "rancher-monitoring-crd postInstall/postUpgrade will not run again when that"
+          echo "release already exists in a protected namespace (cattle-monitoring-system)."
+          echo "Installing Istio now so logging/external DSFs can create Gateway/VirtualService."
+          "$WORKDIR/hooks/install-istio-and-httpbin.sh" "$domain_name" "$env_name"
+
       - name: Wait for Istio CRDs before external DSF
         if: contains(matrix.dsf_files, 'external-dsf.yaml')
         run: |
           echo "external-dsf charts (activemq, kafka, minio, ...) create Istio Gateway/VirtualService."
-          echo "Those CRDs come from prereq-dsf (rancher-monitoring-crd postInstall installs Istio)."
+          echo "Those CRDs come from the prereq job (Ensure Istio / rancher-monitoring-crd hook)."
           echo "Waiting until gateways.networking.istio.io and virtualservices.networking.istio.io exist..."
           for i in $(seq 1 120); do
             if kubectl get crd gateways.networking.istio.io virtualservices.networking.istio.io >/dev/null 2>&1; then
@@ -358,7 +373,7 @@ jobs:
             sleep 15
           done
           echo "ERROR: Istio Gateway/VirtualService CRDs never appeared after ~30 minutes."
-          echo "Check the prereq-dsf job: rancher-monitoring-crd postInstall (install-istio-and-httpbin.sh)."
+          echo "Check the prereq-dsf job step 'Ensure Istio is installed'."
           kubectl get crd | grep -i istio || true
           exit 1
 
