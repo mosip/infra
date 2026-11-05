@@ -181,6 +181,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: set-matrix
     strategy:
+      fail-fast: false
       matrix: ${{ fromJson(needs.set-matrix.outputs.matrix) }}
     environment: 
       name: ${{ github.ref_name }}  # Dynamic environment based on branch name
@@ -339,6 +340,27 @@ jobs:
           echo "env_name           = $env_name"
           echo "slack_channel_name = $slack_channel_name"
           echo "CLUSTER_ID         = $CLUSTER_ID"
+
+      - name: Wait for Istio CRDs before external DSF
+        if: contains(matrix.dsf_files, 'external-dsf.yaml')
+        run: |
+          echo "external-dsf charts (activemq, kafka, minio, ...) create Istio Gateway/VirtualService."
+          echo "Those CRDs come from prereq-dsf (rancher-monitoring-crd postInstall installs Istio)."
+          echo "Waiting until gateways.networking.istio.io and virtualservices.networking.istio.io exist..."
+          for i in $(seq 1 120); do
+            if kubectl get crd gateways.networking.istio.io virtualservices.networking.istio.io >/dev/null 2>&1; then
+              kubectl wait --for=condition=Established crd/gateways.networking.istio.io --timeout=90s
+              kubectl wait --for=condition=Established crd/virtualservices.networking.istio.io --timeout=90s
+              echo "Istio networking CRDs are ready"
+              exit 0
+            fi
+            echo "attempt $i/120: Istio CRDs not present yet (prereq-dsf still installing Istio?)"
+            sleep 15
+          done
+          echo "ERROR: Istio Gateway/VirtualService CRDs never appeared after ~30 minutes."
+          echo "Check the prereq-dsf job: rancher-monitoring-crd postInstall (install-istio-and-httpbin.sh)."
+          kubectl get crd | grep -i istio || true
+          exit 1
 
       - name: Initiate helmsman to apply the DSF configurations.
         run: |
