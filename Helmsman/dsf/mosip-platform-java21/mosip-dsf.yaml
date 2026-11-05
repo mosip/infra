@@ -550,11 +550,11 @@ apps:
   pms-partner:
     namespace: pms
     enabled: true
-    version: 12.2.3
+    version: 12.2.4
     chart: mosip/pms-partner
     set:
       # image.repository: "mosipid/partner-management-service"
-      # image.tag: "1.2.2.3"
+      # image.tag: "1.2.2.4
       istio.corsPolicy.allowOrigins[0].prefix: "https://pmp.${domain_name}"
     priority: -9
     timeout: 1200
@@ -562,11 +562,11 @@ apps:
   pms-policy:
     namespace: pms
     enabled: true
-    version: 12.2.3
+    version: 12.2.4
     chart: mosip/pms-policy
     set:
       # image.repository: "mosipid/policy-management-service"
-      # image.tag: "1.2.2.2"
+      # image.tag: "1.2.2.4"
       istio.corsPolicy.allowOrigins[0].prefix: "https://pmp.${domain_name}"
     priority: -9
     timeout: 1200
