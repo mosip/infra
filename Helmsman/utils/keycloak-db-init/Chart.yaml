@@ -1,0 +1,9 @@
+apiVersion: v2
+name: keycloak-db-init
+description: >-
+  One-shot, idempotent Job that creates Keycloak's database, role and grants on
+  an external PostgreSQL (KEYCLOAK_DB=external). Ported from mosip/keycloak#215
+  (deploy/keycloak-db-init-job.yaml).
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
