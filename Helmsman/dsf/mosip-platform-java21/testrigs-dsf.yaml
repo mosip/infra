@@ -46,7 +46,7 @@ apps:
   apitestrig:
     namespace: apitestrig
     enabled: true
-    version: 1.6.0
+    version: 1.7.0
     chart: mosip/apitestrig
     set:
       crontime: "0 2 * * *"
@@ -152,7 +152,7 @@ apps:
   uitestrig:
     namespace: uitestrig
     enabled: true
-    version: 1.6.0
+    version: 1.7.0
     chart: mosip/uitestrig
     set:
       # image.repository: ""

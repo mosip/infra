@@ -69,7 +69,7 @@ apps:
       databases.mosip_master.port: 5433
 
       databases.mosip_audit.enabled: "true"
-      databases.mosip_audit.branch: "v1.3.2-rc.1"
+      databases.mosip_audit.branch: "v1.3.2"
       databases.mosip_audit.host: "postgres.${domain_name}"
       databases.mosip_audit.port: 5433
 
@@ -114,7 +114,7 @@ apps:
       databases.mosip_regprc.port: 5433
 
       databases.mosip_pms.enabled: "true"
-      databases.mosip_pms.branch: "v1.2.2.3"
+      databases.mosip_pms.branch: "v1.2.2.4"
       databases.mosip_pms.host: "postgres.${domain_name}"
       databases.mosip_pms.port: 5433
 
@@ -124,7 +124,7 @@ apps:
       databases.mosip_hotlist.port: 5433
 
       databases.mosip_resident.enabled: "true"
-      databases.mosip_resident.branch: "v1.3.0"
+      databases.mosip_resident.branch: "v1.3.2"
       databases.mosip_resident.host: "postgres.${domain_name}"
       databases.mosip_resident.port: 5433
 
