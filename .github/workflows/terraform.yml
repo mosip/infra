@@ -400,7 +400,11 @@ jobs:
               --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
               --operation apply > /dev/null
             terraform init -input=false > /dev/null
-            if ! terraform output -json > "$RUNNER_TEMP/tf-outputs/$component.json"; then
+            # `terraform output -json` prints {} and exits 0 when there is no
+            # state, so check the content too (an empty storage output would
+            # otherwise silently drop postgresql/activemq from the inventory).
+            if ! terraform output -json > "$RUNNER_TEMP/tf-outputs/$component.json" \
+               || ! jq -e 'length > 0' "$RUNNER_TEMP/tf-outputs/$component.json" > /dev/null; then
               echo "ERROR: no outputs for '$component' — apply it first (COMPONENT=$component, TERRAFORM_APPLY=true)."
               exit 1
             fi
