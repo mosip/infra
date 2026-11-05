@@ -150,7 +150,7 @@ apps:
   # Choose at the first install — switching later does not move existing data.
   keycloak-db-init:
     namespace: keycloak
-    enabled: ${KEYCLOAK_EXTERNAL_DB}
+    enabled: yes
     version: 0.1.0
     chart: $WORKDIR/utils/keycloak-db-init
     set:
@@ -176,7 +176,7 @@ apps:
       image.pullPolicy: "Always"
       # Bundled PostgreSQL unless KEYCLOAK_DB=external (see keycloak-db-init).
       # The externalDatabase.* values are ignored while postgresql.enabled is true.
-      postgresql.enabled: ${KEYCLOAK_BUNDLED_DB}
+      postgresql.enabled: false
       externalDatabase.host: "postgres.${domain_name}"
       externalDatabase.port: ${db_port}
       externalDatabase.database: "bitnami_keycloak"
