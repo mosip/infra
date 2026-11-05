@@ -176,10 +176,14 @@
       shell: |
         {{ bash_opts }}
         export INSTALL_RKE2_VERSION="{{ rke2_version }}"
-        curl -sfL https://get.rke2.io | sh -
+        curl -sfL --retry 5 --retry-delay 10 --retry-all-errors https://get.rke2.io | sh -
       args:
         executable: /bin/bash
         creates: /usr/local/bin/rke2
+      register: rke2_download
+      retries: 5
+      delay: 20
+      until: rke2_download.rc == 0
 
     - name: Clone k8s-infra repository
       git:
@@ -399,10 +403,14 @@
       shell: |
         {{ bash_opts }}
         export INSTALL_RKE2_VERSION="{{ rke2_version }}"
-        curl -sfL https://get.rke2.io | sh -
+        curl -sfL --retry 5 --retry-delay 10 --retry-all-errors https://get.rke2.io | sh -
       args:
         executable: /bin/bash
         creates: /usr/local/bin/rke2
+      register: rke2_download
+      retries: 5
+      delay: 20
+      until: rke2_download.rc == 0
 
     - name: Clone k8s-infra repository
       git:
