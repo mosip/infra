@@ -553,8 +553,8 @@ apps:
     version: 12.2.4
     chart: mosip/pms-partner
     set:
-      # image.repository: "mosipid/partner-management-service"
-      # image.tag: "1.2.2.4
+      image.repository: "mosipid/partner-management-service"
+      image.tag: "1.2.2.4
       istio.corsPolicy.allowOrigins[0].prefix: "https://pmp.${domain_name}"
     priority: -9
     timeout: 1200
@@ -565,8 +565,8 @@ apps:
     version: 12.2.4
     chart: mosip/pms-policy
     set:
-      # image.repository: "mosipid/policy-management-service"
-      # image.tag: "1.2.2.4"
+      image.repository: "mosipid/policy-management-service"
+      image.tag: "1.2.2.4"
       istio.corsPolicy.allowOrigins[0].prefix: "https://pmp.${domain_name}"
     priority: -9
     timeout: 1200
@@ -1047,11 +1047,11 @@ apps:
       extraEnvVarsCM[1]: "keycloak-env-vars"
       extraEnvVarsCM[2]: "keycloak-host"
       onboarding.modules[0].name: "ida"
-      onboarding.modules[0].enabled: false
+      onboarding.modules[0].enabled: true
       onboarding.modules[1].name: "print"
       onboarding.modules[1].enabled: true
       onboarding.modules[2].name: "abis"
-      onboarding.modules[2].enabled: false
+      onboarding.modules[2].enabled: true
       onboarding.modules[3].name: "resident"
       onboarding.modules[3].enabled: true
       onboarding.modules[4].name: "mobileid"
