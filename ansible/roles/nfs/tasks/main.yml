@@ -78,11 +78,21 @@
     update: true
   become_user: ubuntu
 
+# Idempotent: one line, updated in place (an `echo >>` added a duplicate on
+# every configure run).
+- name: Record NFS_SERVER_LOCATION in /etc/environment
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/environment
+    regexp: '^export NFS_SERVER_LOCATION='
+    line: "export NFS_SERVER_LOCATION={{ nfs_server_location }}"
+    create: true
+    mode: "0644"
+
 - name: Run install-nfs-server.sh
   become: true
   ansible.builtin.shell: |
     set -e
-    echo "export NFS_SERVER_LOCATION={{ nfs_server_location }}" >> /etc/environment
     bash install-nfs-server.sh | tee -a /tmp/nfs-server-log-$(date +"%d-%h-%Y-%H-%M").log
   args:
     executable: /bin/bash
