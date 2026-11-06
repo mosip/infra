@@ -4,22 +4,107 @@
 
 # MOSIP Rapid Deployment
 
+[![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](LICENSE)
+[![Latest release](https://img.shields.io/github/v/release/mosip/infra?sort=semver)](https://github.com/mosip/infra/releases)
+[![infra checks](https://github.com/mosip/infra/actions/workflows/infra-checks.yml/badge.svg)](https://github.com/mosip/infra/actions/workflows/infra-checks.yml)
+[![GitHub stars](https://img.shields.io/github/stars/mosip/infra?style=social)](https://github.com/mosip/infra/stargazers)
+
+> **Deploy [MOSIP](https://www.mosip.io) — the open-source digital identity platform — on AWS or in your own data centre in 3 steps:** Terraform builds the infrastructure, Ansible configures the hosts, Helmsman deploys MOSIP.
+
+**Quick links:** [Deployment steps](#deployment-steps-guide) · [Prerequisites](#prerequisites) · [Profiles](docs/PROFILES.md) · [Data-centre deployment](docs/DATACENTRE_DEPLOYMENT.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Discussions](https://github.com/mosip/infra/discussions)
+
+⭐ **If this repository helps you deploy MOSIP, please star it** — it helps other countries and teams find it.
+
 This repository provides a **3-step rapid deployment model** for MOSIP (Modular Open Source Identity Platform) with enhanced security features including GPG (GNU Privacy Guard) encryption for local backends and integrated PostgreSQL setup via Terraform modules.
 
 ### Key Components:
 
-- **Terraform** provisions the complete cloud infrastructure including VPCs, RKE2 Kubernetes clusters, databases, and networking components with a high-level declarative approach.
+- **Terraform** provisions cloud infrastructure on AWS — VPC, security groups, IAM, EC2, EBS, Route53 — one independent component (and state) at a time.
+- **Ansible** configures the hosts — TLS + nginx, RKE2 Kubernetes, NFS, PostgreSQL, ActiveMQ, Rancher — identically on Terraform-provisioned AWS hosts and on pre-created data-centre VMs (no Terraform needed there).
 - **Helmsman** deploys and manages all MOSIP services and applications on Kubernetes using Helm charts, providing centralized control through Desired State Files (DSF).
 
 ## Architecture Overview
 
 For detailed MOSIP platform architecture Diagram, visit: [MOSIP Platform Architecture](https://docs.mosip.io/1.2.0/setup/deploymentnew/v3-installation/1.2.0.2/overview-and-architecture#architecture-diagram)
 
-**Terraform Architecture:**
-[View Terraform Architecture Diagram](docs/_images/terraform-light.draw.io.png)
+**Terraform Architecture (AWS):**
+One root and one state per component, applied in order by `terraform.yml` (`COMPONENT=all`); each finds the previous layer by AWS tags, never shared state. More diagrams: [Architecture diagrams](docs/_images/ARCHITECTURE_DIAGRAMS.md).
+
+```mermaid
+%%{init: {'theme': 'neutral'}}%%
+graph LR
+    BI["base-infra<br/>VPC · subnets · WireGuard<br/>(once per account)"]
+    PROF["profiles/&lt;profile&gt;/aws/*.tfvars"]
+    subgraph ROOTS["terraform/implementations/aws/* — one state each"]
+        direction LR
+        SEC[security<br/>4 SGs] --> IAM["iam<br/>certbot role<br/>(zone-scoped)"] --> COMP["compute<br/>nginx + RKE2 EC2"] --> STO["storage<br/>EBS volumes"] --> DNS["dns<br/>Route53<br/>multi-zone"]
+    end
+    VM["vm<br/>standalone EC2 + SG + IAM<br/>(on demand)"]
+    BI --> SEC
+    BI --> VM
+    PROF --> ROOTS
+    PROF --> VM
+    DNS --> CFG["configure<br/>Ansible site.yml"]
+    STATE[("state per component · profile · branch<br/>GPG in git or S3")]
+    ROOTS -.-> STATE
+
+    classDef tf fill:none,stroke:#1976d2,stroke-width:2px
+    classDef side fill:none,stroke:#ff8f00,stroke-width:2px
+    classDef ans fill:none,stroke:#388e3c,stroke-width:2px
+    class BI,SEC,IAM,COMP,STO,DNS,VM tf
+    class PROF,STATE side
+    class CFG ans
+```
 
 **Helmsman Architecture:**
 [View Helmsman Architecture Diagram](docs/_images/updated-Helmsman.drawio.png)
+
+**Ansible Architecture (AWS and data centre):**
+Layer 3 is the same Ansible on both paths — only where the inventory comes from differs. Data-centre steps: [Data-centre deployment](docs/DATACENTRE_DEPLOYMENT.md).
+
+```mermaid
+%%{init: {'theme': 'neutral'}}%%
+graph LR
+    %% Where the hosts come from
+    subgraph SRC["Hosts"]
+        direction TB
+        TF["AWS: Terraform<br/>security → iam → compute<br/>→ storage → dns"]
+        DC["Data centre: pre-created VMs<br/>+ hosts.yml<br/>(DNS by DNS team)"]
+    end
+
+    PROF["profiles/&lt;profile&gt;/profile.yml<br/>components · subdomains · TLS mode"]
+
+    TF -->|"terraform output<br/>compute + storage"| GEN
+    DC -->|"generate.py --from-hosts"| GEN
+    PROF --> GEN
+    GEN["ansible/inventory/generate.py<br/>one inventory format"] --> INV[inventory.yml]
+
+    %% site.yml — fixed legacy order; the profile only selects components
+    INV --> SITE
+    subgraph SITE["ansible/site.yml"]
+        direction TB
+        DNSR["dns (optional)<br/>godaddy · rfc2136 · cloudflare<br/>route53 · manual"] --> PF
+        PF["preflight<br/>SSH · vars · disks · DNS check"] --> TLS["tls<br/>byo · http01 · dns01"]
+        TLS --> NG[nginx]
+        NG --> RK[rke2]
+        RK --> RI["rancher import<br/>(optional)"]
+        RI --> NFS[nfs]
+        NFS --> PG["postgresql<br/>(profile)"]
+        PG --> AMQ["activemq<br/>(profile)"]
+        AMQ --> RKC["rancher + keycloak<br/>(observ profile)"]
+    end
+
+    SITE --> K8S["RKE2 cluster ready<br/>→ Helmsman"]
+
+    classDef src fill:none,stroke:#1976d2,stroke-width:2px
+    classDef gen fill:none,stroke:#ff8f00,stroke-width:2px
+    classDef step fill:none,stroke:#388e3c,stroke-width:1px
+    classDef done fill:none,stroke:#7b1fa2,stroke-width:2px
+    class TF,DC src
+    class PROF,GEN,INV gen
+    class DNSR,PF,TLS,NG,RK,RI,NFS,PG,AMQ,RKC step
+    class K8S done
+```
 
 ---
 
@@ -30,19 +115,21 @@ For detailed MOSIP platform architecture Diagram, visit: [MOSIP Platform Archite
 graph TB
     %% Prerequisites
     A[Fork Repository] --> B[Configure Secrets]
-    B --> C[Select Cloud Provider]
+    B --> C{Where do the<br/>hosts come from?}
 
     %% Infrastructure Phase
-    C --> D[Terraform: base-infra<br/>VPC, Networking, WireGuard]
+    C -->|AWS| D[Terraform: base-infra<br/>VPC, Networking, WireGuard]
+    C -->|Data centre / any VMs| DCV[Pre-created VMs + hosts.yml<br/>DNS by DNS team<br/>Ansible only - no Terraform]
+    DCV --> PS
     D --> OBS{Deploy<br/>Observability?}
-    OBS -->|Yes| F[Terraform: observ-infra<br/>Rancher UI + Keycloak]
+    OBS -->|Yes| F[Terraform + Ansible<br/>profile: observ<br/>Rancher UI + Keycloak]
     OBS -->|No| PS
     F --> PS
 
-    %% Terraform Profile Selection
-    PS{Select Terraform<br/>Profile}
-    PS -->|esignet-standalone| TF_ES[Terraform: infra<br/>profile: esignet-standalone]
-    PS -->|mosip| TF_MP[Terraform: infra<br/>profile: mosip]
+    %% Profile selection (same profiles on AWS and data centre)
+    PS{Select<br/>Profile}
+    PS -->|esignet-standalone| TF_ES[Terraform + Ansible<br/>profile: esignet-standalone]
+    PS -->|mosip| TF_MP[Terraform + Ansible<br/>profile: mosip]
 
     %% ── eSignet Standalone Flow — Helmsman profile: esignet ─────
     TF_ES --> ES_EXT[Helmsman: Prereqs + External<br/>profile: esignet-standalone]
@@ -78,18 +165,21 @@ graph TB
     classDef success fill:none,stroke:#388e3c,stroke-width:2px
     classDef decision fill:none,stroke:#c2185b,stroke-width:2px
 
-    class A,B,C prereq
+    class A,B prereq
+    class DCV terraform
     class D,F,TF_ES,TF_MP terraform
     class ES_EXT,ES_ESIGNET,ES_TRIGS helmsman
     class MP_EXT,MP_MOSIP,MP_ESIGNET,MP_TRIGS mosip
     class NS1,NS2,NS3,NS4 ns
     class V,DONE success
-    class OBS,PS,MP_VER decision
+    class C,OBS,PS,MP_VER decision
 ```
 
-> **Note:** Complete Terraform scripts are available only for **AWS**. For **Azure and GCP**, only placeholder structures are configured - community contributions are welcome to implement full functionality.
+> **Note:** Terraform provisioning is implemented for **AWS**. Azure and GCP have `base-infra` only. Any other environment — including data-centre VMs — is supported by the provider-agnostic Ansible layer without Terraform.
 
-**Important:** If you deploy `observ-infra` (Rancher + Keycloak for platform management), you **must** run the Keycloak–Rancher SAML integration workflow after `observ-infra` deployment completes and before deploying MOSIP infra. This configures Keycloak as the identity provider for Rancher operator access. See [Step 3cb: Keycloak ⇄ Rancher integration (CI)](#step-3cb-keycloak--rancher-integration-ci--if-using-observ-infra) section below for workflow details and how to trigger it.
+**Important:** If you deploy the `observ` profile (Rancher + Keycloak for platform management), you **must** run the Keycloak–Rancher SAML integration workflow after it completes and before deploying MOSIP clusters. This configures Keycloak as the identity provider for Rancher operator access. See [Step 3d](#step-3d-deploy-with-one-run).
+
+**Data centres:** VMs you already have (no cloud API) use the same Ansible with no Terraform — see [Step 3e](#step-3e-data-centre-deployment-pre-created-vms-no-terraform).
 
 ## Prerequisites
 
@@ -101,7 +191,7 @@ We've created comprehensive beginner-friendly guides to help you succeed:
 | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | --------------------------------------------------- |
 | **[Glossary](docs/GLOSSARY.md)**                                                                         | Plain-language explanations of all technical terms (AWS, Kubernetes, Terraform, VPN, etc.) | Before you start - understand the terminology            |
 | **[Secret Generation Guide](docs/SECRET_GENERATION_GUIDE.md)**                                           | Step-by-step instructions to generate SSH keys, AWS credentials, GPG passwords, and more   | Before deployment - setup required secrets               |
-| **[Workflow Guide](docs/WORKFLOW_GUIDE.md)**                                                             | Visual walkthrough of GitHub Actions workflows with screenshots and navigation help        | During deployment - run workflows correctly               |
+| **[Workflow Guide](docs/WORKFLOW_GUIDE.md)**                                                             | Walkthrough of the GitHub Actions workflows with their forms and navigation help        | During deployment - run workflows correctly               |
 | **[DSF Configuration Guide](docs/DSF_CONFIGURATION_GUIDE.md)**                                           | How to configure Helmsman files including clusterid and domain settings                    | Before Helmsman deployment - configure applications       |
 | **[eSignet Standalone Deployment Guide](docs/ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md)**                   | End-to-end guide for eSignet standalone — Terraform infra provisioning, required AWS/GitHub secrets, tfvars setup, and Helmsman workflow order | eSignet standalone deployment |
 | **[Environment Destruction Guide](docs/ENVIRONMENT_DESTRUCTION_GUIDE.md)**                               | Safe teardown procedures, backup steps, and cost monitoring                                | After deployment - clean up resources                    |
@@ -179,11 +269,11 @@ We've created comprehensive beginner-friendly guides to help you succeed:
 - **With External PostgreSQL**: `t3a.2xlarge` (recommended for PostgreSQL hosting)
 - **Without External PostgreSQL**: `t3a.xlarge` or `t3a.medium` (sufficient for load balancing only)
 
-> **Configuration Note:** Instance types can be customized in `terraform/implementations/aws/infra/aws.tfvars` by modifying `k8s_instance_type` and `nginx_instance_type` variables.
+> **Configuration Note:** Instance types are set per profile in `profiles/<profile>/aws/compute.tfvars` (`k8s_instance_type`, `nginx_instance_type`).
 
 4. ### Secrets for Rapid Deployment (Required)
 
-> **Need help generating secrets?** See our comprehensive [Secret Generation Guide](docs/SECRET_GENERATION_GUIDE.md) for step-by-step instructions with screenshots and examples!
+> **Need help generating secrets?** See our comprehensive [Secret Generation Guide](docs/SECRET_GENERATION_GUIDE.md) for step-by-step instructions and examples!
 
 > **Secret Configuration Types:**
 >
@@ -278,20 +368,29 @@ TF_WG_CONFIG: |
 SLACK_WEBHOOK_URL: "https://hooks.slack.com/services/..." # Slack notifications
 ```
 
+**Optional secrets — only for the feature you use** (environment secrets unless noted):
+
+| Secret | Needed when |
+|--------|-------------|
+| `RANCHER_BOOTSTRAP_PASSWORD` | `observ` profile — initial Rancher `admin` password |
+| `RANCHER_API_URL`, `RANCHER_API_TOKEN` | `ENABLE_RANCHER_IMPORT` — register the cluster in the observ Rancher |
+| `KEYCLOAK_ADMIN_PASSWORD` | Keycloak ⇄ Rancher SAML integration workflow (observ) |
+| `GODADDY_API_KEY` + `GODADDY_API_SECRET` / `CLOUDFLARE_API_TOKEN` / `DNS_RFC2136_SERVER` + `DNS_RFC2136_KEY_NAME` + `DNS_RFC2136_KEY_SECRET` | `DNS_PROVIDER` other than `terraform-route53` (plus the `DNS_ZONE` variable) |
+| `ACTION_PAT`, `MOSIP_AWS_PEM` (repository) | `wg-onboard.yml` — automatic WireGuard peer allocation |
+
 #### Helmsman Secrets
 
 **Environment Secrets** (configured per deployment environment):
 
 > **Important**: These are generated AFTER infrastructure deployment, not before!
->
-> ## Next Steps & Detailed Documentation
 
 ```yaml
 # Kubernetes Access
 KUBECONFIG: "apiVersion: v1..." 
 # What it's for: Allows Helmsman to deploy applications to your Kubernetes cluster
 # When available: After Terraform infra deployment completes
-# Where to find: terraform/implementations/aws/infra/kubeconfig_<cluster-name>
+# Where to find: published automatically as this secret when ENABLE_RANCHER_IMPORT + PUBLISH_KUBECONFIG are set;
+#   otherwise copy /home/ubuntu/.kube/<cluster_name>-CONTROL-PLANE-NODE-1.yaml from the primary control-plane node
 # Guide: See "Kubernetes Config" section in Secret Generation Guide
 
 # WireGuard VPN Access (for cluster access)
@@ -323,6 +422,14 @@ CLUSTER_WIREGUARD_WG1: |
  AllowedIPs = 10.0.0.0/16
 ```
 
+**Monitoring / alerting (prereq DSF, default `monitoring_stack=standalone`):**
+
+| Secret | Purpose |
+|--------|---------|
+| `SMTP_PASSWORD` | **Required** — SMTP password / app password for Alertmanager alert e-mails |
+| `GRAFANA_ADMIN_PASSWORD` | Optional — Grafana `admin` password (random one generated and kept in the `grafana-admin` secret if unset) |
+| `SLACK_WEBHOOK_URL` | Only for `monitoring_stack=rancher` (Slack alerts) |
+
 **Deployment Order for Secrets:**
 
 1. **Before starting**: Add Repository Secrets (GPG, AWS, SSH)
@@ -331,7 +438,7 @@ CLUSTER_WIREGUARD_WG1: |
 
 **Need step-by-step help?** [Secret Generation Guide](docs/SECRET_GENERATION_GUIDE.md)
 
-> **Note**: PostgreSQL secrets are no longer required! PostgreSQL setup is handled automatically by Terraform modules and Ansible scripts based on your `enable_postgresql_setup` configuration.
+> **Note**: PostgreSQL secrets are no longer required! External PostgreSQL is set up automatically by Ansible when the profile lists `postgresql` in `configure_components` (and, on AWS, `nginx_node_ebs_volume_size_2 > 0` in `storage.tfvars`).
 
 ## Deployment Steps Guide
 
@@ -361,7 +468,7 @@ Add the required secrets as follows:
 - **Environment Secrets** (Settings → Secrets and variables → Actions → Environment secrets):
 - All other secrets mentioned in the Prerequisites section above (KUBECONFIG, WireGuard configs, etc.)
 
-### 3. Terraform Infrastructure Deployment
+### 3. Infrastructure Deployment (Terraform on AWS, or Ansible on your VMs)
 
 > **New to Terraform workflows?** Check our [Workflow Guide](docs/WORKFLOW_GUIDE.md) for visual step-by-step instructions on navigating GitHub Actions!
 
@@ -395,53 +502,49 @@ For detailed information about GitHub Actions workflow parameters, terraform mod
 1. **Update terraform variables:**
 
 ```bash
- # Edit terraform/implementations/aws/base-infra/aws.tfvars (or azure/gcp)
+ # Edit terraform/implementations/aws/base-infra/aws.tfvars (azure/gcp base-infra are placeholders)
 ```
 
 2. **Configure base-infra variables:**
 
 ```hcl
- # Example for AWS
- region = "us-west-2" # Choose AWS region close to your users
- availability_zones = ["us-west-2a", "us-west-2b"] # Multiple zones for high availability
- vpc_cidr = "10.0.0.0/16" # Private IP address range for your network
- environment = "production" # Name your environment
+ # terraform/implementations/aws/base-infra/aws.tfvars (excerpt)
+ jumpserver_name     = "mosip-jump"                     # name of the jump/WireGuard server
+ mosip_email_id      = "ops@example.org"
+ ssh_key_name        = "mosip-aws"                      # existing EC2 key pair
+ aws_provider_region = "ap-south-1"                     # AWS region close to your users
+ availability_zones  = ["ap-south-1a", "ap-south-1b"]   # multiple zones for high availability
+ network_name        = "mosip-boxes"                    # VPC name — profiles use it as vpc_name
+ network_cidr        = "10.0.0.0/16"                    # private address range
+ public_subnets      = ["10.0.1.0/24", "10.0.2.0/24"]
+ private_subnets     = ["10.0.3.0/24", "10.0.4.0/24"]
+ environment         = "dev"
 ```
 
 3. **Run base-infra via GitHub Actions:**
 
-> **Detailed Navigation Guide**: See [Workflow Guide - Terraform Workflows](docs/WORKFLOW_GUIDE.md#workflow-1-base-infrastructure) for step-by-step screenshots
+> **Detailed Navigation Guide**: See [Workflow Guide - Terraform Workflows](docs/WORKFLOW_GUIDE.md#workflow-1-base-infrastructure) for step-by-step navigation
 
-![Base Infrastructure Terraform Apply](docs/_images/base-infra-terraform-apply.png)
+![terraform plan / apply — Run workflow form](docs/_images/workflows/terraform.svg)
 
-- **(1)** Go to **Actions** → **terraform plan/apply**
+> Generated from the workflow definition — the numbers match the form fields in order.
+
+- Go to **Actions** → **terraform plan / apply** → **Run workflow**
   - **Can't find it?** Look in the left sidebar under "All workflows"
-  - Click **Run workflow** (green button on the right)
-  - **Configure workflow parameters:**
-- **(2)** **Branch**: Select your deployment branch (e.g., `release-0.1.0`)
-  - **What's this?** The branch of code to use for deployment
-- **(3)** **Cloud Provider**: Select `aws` (Azure/GCP are placeholder implementations)
-  - **Important**: Only `aws` is fully functional
-- **(4)** **Component**: Select `base-infra` (creates VPC, networking, jump server, WireGuard)
-  - **What's this?** Select which infrastructure component to build.
-  - Selecting `base-infra` triggers the creation of the core infrastructure components listed below:
-    - **VPC & Networking**: Secure network foundation
-    - **Jump Server**: Bastion host for secure access
-    - **WireGuard VPN**: Encrypted private network access
-    - **Security Groups**: Network access controls
-    - **Route Tables**: Network traffic routing
-- **Backend**: Choose backend configuration:
-  - **(5)** `local` - GPG-encrypted local state (recommended for development)
-    - Stores state in your GitHub repository (encrypted)
-  - **(6)** `s3` - Remote S3 backend (If you want to store the state file in a S3 bucket, provide the bucket name. Otherwise, leave it empty to use the local backend)
-    - Stores state in AWS S3 bucket (centralized)
-- **(7)** **SSH_PRIVATE_KEY**: GitHub secret name containing SSH private key for instance access
-  - Must match the `ssh_key_name` in your terraform.tfvars
-- **Terraform apply**:
-  - **(8)** ☐ **Unchecked**  — Plan mode: runs terraform plan (shows changes without applying).
-  - **(8)** ✅ **Checked**  — Apply mode: runs terraform apply (creates/updates infrastructure).
-  - Tip: For your first deployment, run in plan mode first to review changes. If the plan looks correct, re-run the workflow with Apply checked.
-- **(9)** **Run Workflow**
+- **Branch**: your deployment branch (e.g., `release-0.x.x` or your own branch) — the code and the GitHub Environment to use
+- **(1)** **CLOUD_PROVIDER**: `aws` (Azure/GCP have base-infra only)
+- **(2)** **COMPONENT**: `base-infra` — creates the VPC & networking, jump server, WireGuard VPN, security groups and route tables
+- **(3)** **PROFILE**: ignored for base-infra (leave the default)
+- **(4)** **BACKEND_TYPE**:
+  - `local` — GPG-encrypted state committed to your branch (recommended for development)
+  - `remote` — state in a cloud bucket: set **(5) REMOTE_BACKEND_CONFIG** (`aws:<bucket_base_name>:<region>`, `azure:<rg>:<storage_account>:<container>` or `gcp:<bucket>`) and, for teams, tick **(6) ENABLE_STATE_LOCKING**
+- **(7)** **SSH_PRIVATE_KEY**: name of the GitHub secret holding the private key of the `ssh_key_name` key pair (`aws.tfvars` for base-infra, `profiles/<profile>/aws/common.tfvars` for clusters)
+- **(8)** **TERRAFORM_APPLY**:
+  - ☐ unchecked — plan only (shows changes without applying)
+  - ✅ checked — apply (creates/updates infrastructure)
+  - Tip: run plan first; if it looks right, re-run with apply checked
+- Fields 9–14 (Rancher import) and **(15) DNS_PROVIDER** are not used for base-infra — leave the defaults
+- Click **Run workflow**
 
  **What You Should See:**
 
@@ -472,9 +575,11 @@ For detailed information about GitHub Actions workflow parameters, terraform mod
 
 > **Detailed Setup Guide:** [WireGuard Setup Documentation](terraform/base-infra/WIREGUARD_SETUP.md)
 >
-> **Secret Generation:** [How to generate WireGuard configs](docs/SECRET_GENERATION_GUIDE.md#4-wireguard-vpn-configuration)
+> **Secret Generation:** [How to generate WireGuard configs](docs/SECRET_GENERATION_GUIDE.md#5-wireguard-vpn-configuration)
 
-**Quick Setup Overview:**
+**Automated (recommended):** run **Actions → WireGuard environment onboard/offboard** (`wg-onboard.yml`) with `ACTION=onboard`, `ENV_NAME=<your branch>` and `JUMPSERVER_HOST=<jump server IP>`. It allocates free peers on the jump server and publishes `TF_WG_CONFIG`, `CLUSTER_WIREGUARD_WG0` and `CLUSTER_WIREGUARD_WG1` as environment secrets (needs the `ACTION_PAT` and `MOSIP_AWS_PEM` repository secrets). `ACTION=offboard` releases them again.
+
+**Manual setup overview:**
 
 1. **SSH to Jump Server:** Access the deployed jump server
 
@@ -498,7 +603,7 @@ For detailed information about GitHub Actions workflow parameters, terraform mod
 - `TF_WG_CONFIG` - For Terraform infrastructure deployments (peer1)
 - `CLUSTER_WIREGUARD_WG0` - For Helmsman cluster access (peer2)
 - `CLUSTER_WIREGUARD_WG1` - For Helmsman cluster access (peer3, optional)
-- [How to add secrets to GitHub](docs/SECRET_GENERATION_GUIDE.md#7-how-to-add-secrets-to-github)
+- [How to add secrets to GitHub](docs/SECRET_GENERATION_GUIDE.md#9-how-to-add-secrets-to-github)
 
 5. **Verify Connection:** Test private IP connectivity
 
@@ -517,430 +622,89 @@ For detailed information about GitHub Actions workflow parameters, terraform mod
 
 > **Important:** Complete WireGuard setup and configure `TF_WG_CONFIG` environment secret before proceeding to MOSIP infrastructure deployment.
 >
-> **Need help?** Check the [detailed WireGuard guide](terraform/base-infra/WIREGUARD_SETUP.md) with screenshots!
+> **Need help?** Check the [detailed WireGuard guide](terraform/base-infra/WIREGUARD_SETUP.md).
 
-#### Step 3ca: Observation Infrastructure (observ-infra) — Optional
+#### Step 3c: Fill in a profile
 
-This step creates the optional Rancher + Keycloak management cluster for observability, monitoring, and operator identity management. **Skip this step if you don't need a separate observation plane.**
+Every deployment shape is a **profile** under [`profiles/`](profiles/) — see the [Profiles guide](docs/PROFILES.md):
 
-1. **Update observ-infra variables in `terraform/implementations/aws/observ-infra/aws.tfvars`:**
+| Profile | What it is |
+|---------|------------|
+| `mosip` | Full MOSIP platform (3 control-plane, 3 etcd, 1 worker; postgres + activemq volumes) |
+| `esignet-standalone` | Standalone eSignet (1/1/2 nodes, no postgres/activemq volumes) |
+| `observ` | Observability cluster: Rancher UI + Keycloak (1 node) — optional, deploy it first |
 
- Complete configuration example with detailed explanations:
+On your deployment branch, edit the files of the profile you'll use:
 
-```hcl
- # Environment name (observ-infra component)
- cluster_name = "soil38-observ"
- # Observation infrastructure domain (ex: sandbox-observ.xyz.net)
- cluster_env_domain = "soil38-observ.mosip.net"
- # Email-ID will be used by certbot to notify SSL certificate expiry via email
- mosip_email_id = "chandra.mishra@technoforte.co.in"
- # SSH login key name for AWS node instances (ex: my-ssh-key)
- ssh_key_name = "mosip-aws"
- # The AWS region for resource creation
- aws_provider_region = "ap-south-1"
+- `profiles/<profile>/aws/common.tfvars` — values every component shares:
 
- # Specific availability zones for VM deployment (optional)
- specific_availability_zones = ["ap-south-1b"]
+  ```hcl
+  cluster_name        = "soil38"             # must match ENV_NAME (GitHub environment variable)
+  cluster_env_domain  = "soil38.mosip.net"   # must match DOMAIN_NAME
+  mosip_email_id      = "ops@example.org"    # certbot expiry mails
+  ssh_key_name        = "mosip-aws"          # AWS key pair; the SSH_PRIVATE_KEY secret must hold its private key
+  aws_provider_region = "ap-south-1"
+  zone_id             = "<route53_zone_id>"
+  ami                 = "ami-0ad21ae1d0696ad58"  # Ubuntu 24.04
+  vpc_name            = "mosip-boxes"        # created by base-infra
+  network_cidr        = "10.0.0.0/8"
+  WIREGUARD_CIDR      = "10.0.0.0/8"
+  ```
 
- # The instance type for Kubernetes nodes (typically smaller for observ-infra)
- k8s_instance_type = "t3a.xlarge"
- # The instance type for Nginx server (load balancer)
- nginx_instance_type = "t3a.xlarge"
- # The Route 53 hosted zone ID
- zone_id = "Z090954828SJIEL6P5406"
+- `profiles/<profile>/aws/compute.tfvars` — instance types and node counts.
+- `profiles/<profile>/aws/storage.tfvars` — data volumes on the nginx node. `nginx_node_ebs_volume_size_2 = 0` skips PostgreSQL, `nginx_node_ebs_volume_size_3 = 0` (or `enable_activemq_setup = false`) skips ActiveMQ.
+- `profiles/<profile>/aws/dns.tfvars` — optional: extra hosted zones, extra records.
+- `profiles/<profile>/profile.yml` — public / internal subdomains, which Layer-3 components run, the `k8s_infra_branch`, and the TLS mode.
 
- ## UBUNTU 24.04
- # The Amazon Machine Image ID for the instances
- ami = "ami-0ad21ae1d0696ad58"
+#### Step 3d: Deploy with one run
 
- # Repo K8S-INFRA URL
- k8s_infra_repo_url = "https://github.com/mosip/k8s-infra.git"
- # Repo K8S-INFRA branch
- k8s_infra_branch = "v1.2.1.0"
- # NGINX Node's Root volume size
- nginx_node_root_volume_size = 24
- # NGINX node's EBS volume size
- nginx_node_ebs_volume_size = 200
+Same form as in step 3a ([image](docs/_images/workflows/terraform.svg)); the numbers below are its field numbers.
 
- # Control-plane, ETCD, Worker (smaller cluster for observ-infra)
- k8s_control_plane_node_count = 2
- # ETCD, Worker
- k8s_etcd_node_count = 2
- # Worker
- k8s_worker_node_count = 1
+- Go to **Actions** → **terraform plan / apply** → **Run workflow**, and pick your deployment **Branch**
+- **(1)** **CLOUD_PROVIDER**: `aws`
+- **(2)** **COMPONENT**: `all`
+- **(3)** **PROFILE**: `mosip`, `esignet-standalone` or `observ`
+- **(4)** **BACKEND_TYPE**: `local` (GPG-encrypted state committed to the branch) or `remote` (then **(5)** REMOTE_BACKEND_CONFIG and **(6)** ENABLE_STATE_LOCKING)
+- **(7)** **SSH_PRIVATE_KEY**: name of the secret holding the private key for `ssh_key_name`
+- **(8)** ✅ **TERRAFORM_APPLY** (required for a new environment; unchecked, `all` only previews an existing one)
+- **(9)** **ENABLE_RANCHER_IMPORT**: tick to register the cluster in Rancher (needs `RANCHER_API_URL` / `RANCHER_API_TOKEN` secrets and an `observ` cluster); **(10)–(14)** optional cluster name, kubeconfig publishing and team access
+- **(15)** **DNS_PROVIDER**: `terraform-route53` (default, Route53 zone in `zone_id`), or `godaddy` / `cloudflare` / `rfc2136` / `manual` to create the records with Ansible — set the provider's secrets first (`GODADDY_API_KEY` + `GODADDY_API_SECRET`, `CLOUDFLARE_API_TOKEN`, or `DNS_RFC2136_SERVER` + TSIG key). See [DNS providers](docs/DEPLOYMENT_SEQUENCE.md#dns-providers).
 
- # RKE2 Version Configuration
- rke2_version = "v1.28.9+rke2r1"
+`all` runs the components in dependency order, each with its own state, stopping at the first failure:
 
- # Rancher Import Configuration (optional)
- enable_rancher_import = false
-
- # Security group CIDRs
- network_cidr = "10.0.0.0/8"
- WIREGUARD_CIDR = "10.0.0.0/8"
-
- # DNS Records to map
- subdomain_public = ["rancher", "keycloak"]
- subdomain_internal = ["admin", "monitoring", "logging"]
-
- # VPC Configuration - Existing VPC to use (discovered by Name tag)
- vpc_name = "mosip-boxes"
+```
+security → iam → compute → storage → dns → configure (Ansible: nginx → rke2 → rancher import → nfs → postgresql → activemq)
 ```
 
-2. **Run observ-infra via GitHub Actions:**
+**After deployment** — add / remove / resize nodes, stop/start, add subdomains or ports: see the **[Day-2 Operations Guide](docs/OPERATIONS_GUIDE.md)**.
 
-- **(1)** Go to **Actions** → **terraform plan/apply**
-- **(2)** Click **Run workflow**
-- **(3)** **Branch**: Select your deployment branch (e.g., `release-0.2.0`)
-- **(4)** **Cloud Provider**: Select `aws`
-- **(5)** **Component**: Select `observ-infra` (creates Rancher management cluster + Keycloak)
-- **(6)** **Backend**: Choose backend configuration:
-  - `local` - GPG-encrypted local state (recommended for development)
-  - `s3` - Remote S3 backend (recommended for production)
-- **(7)** **SSH_PRIVATE_KEY**: GitHub secret name containing SSH private key for instance access
-- **Terraform apply**:
-  - **(8)** ☐ **Unchecked**  — Plan mode: runs terraform plan (shows changes without applying).
-  - **(8)** ✅ **Checked**  — Apply mode: runs terraform apply (creates/updates infrastructure).
-- **(9)** **Run Workflow**
+To preview changes to an **existing** environment, run `COMPONENT=all` (or a single component) with **TERRAFORM_APPLY** unchecked: every component is planned in order, nothing is applied or committed, and configure is skipped. A brand-new environment can't be previewed this way — compute, storage and dns look up what the earlier components created in AWS — so deploy it with apply. Every component can also be re-run on its own later — e.g. `COMPONENT=dns` to change only Route53 records, or `COMPONENT=configure` to re-run Ansible. See [Deployment sequence](docs/DEPLOYMENT_SEQUENCE.md).
 
-**What You Should See:**
+**Observability cluster (`observ` profile):** deploy it before the clusters that import into its Rancher. Set the `RANCHER_BOOTSTRAP_PASSWORD` environment secret first — it's the initial `admin` password for Rancher UI (it's no longer kept in a tfvars file). Then run the Keycloak ⇄ Rancher SAML integration: see the **[Rancher-Keycloak Integration Guide](Rancher-keycloak-integration/README.md)**.
 
-- ✅ Workflow running (yellow circle icon)
-- ✅ Steps completing one by one
-- ✅ Green checkmark when complete
-- ✅ Observation infrastructure created in AWS with Rancher and Keycloak
+**Rancher import:** with **ENABLE_RANCHER_IMPORT** ticked, the workflow registers the cluster through the Rancher API, applies the import on the cluster, grants team access and (with **PUBLISH_KUBECONFIG**) stores the kubeconfig as the `KUBECONFIG` environment secret. No import URL goes into tfvars anymore.
 
-**If Workflow Fails - How to View Error Logs:**
+**If a run fails:** open the failed job (each component is its own job), expand the red step, and fix the cause. Re-running the same dispatch is safe — components that already applied show no changes.
 
-1. Click on the **failed workflow run** (red ❌ icon)
-2. Click on the **failed job** in the left sidebar
-3. Expand the **failed step** (look for red ❌) to see detailed error logs
-4. Common steps to check:
-   - `Terraform Init` - Backend/provider issues
-   - `Terraform Plan` - Configuration or syntax errors
-   - `Terraform Apply` - Resource creation failures
-5. Scroll through the logs to find the error message (usually highlighted in red)
-6. For full logs, click **View raw logs** (gear icon → "View raw logs")
-
-**Post-Deployment: Rancher UI Initial Setup**
-
-After `observ-infra` deployment completes, perform the initial Rancher UI setup:
-
-1. **Access Rancher UI:**
-   - Open your browser and navigate to the Rancher domain configured in `aws.tfvars`
-   - Example: `https://rancher.soil38-observ.mosip.net`
-
-2. **Bootstrap Login:**
-   - Enter the default bootstrap password: `admin`
-   - Click **Log in**
-
-3. **Set New Password:**
-   - You will be prompted to set a new password
-   - Enter a strong password and confirm
-   - Click **Continue**
-
-4. **Complete Setup:**
-   - Accept the terms and conditions
-   - Rancher UI is now ready for use
-
-> **Important:** Save this new password securely. This password is used for **local user login** to Rancher UI (the `admin` account). After Keycloak-Rancher SAML integration is configured, operators can also login via Keycloak authentication.
-
-> **Important Notes:**
->
-> - `observ-infra` is optional and intended for production deployments requiring separate management/monitoring infrastructure
-> - Recommended node sizes are smaller than main infra (t3a.xlarge vs t3a.2xlarge) to reduce costs
-> - Keycloak in this cluster hosts operator/admin identities; back up before destructive operations
-> - Rancher manages clusters; ensure main infra is properly configured before registering with Rancher
-
-#### Step 3cb: Keycloak ⇄ Rancher integration (CI) — If using `observ-infra`
-
-If you deployed `observ-infra` (Rancher + Keycloak for platform management), run the automated Keycloak–Rancher SAML integration workflow **after `observ-infra` deployment completes and before deploying MOSIP infra**. This configures Keycloak as the identity provider for Rancher operator access.
-
-For complete workflow usage instructions, inputs, secrets configuration, and troubleshooting, see **[Rancher-Keycloak Integration Guide](Rancher-keycloak-integration/README.md)**.
-
-#### Step 3d: MOSIP Infrastructure
-
-This step creates MOSIP Kubernetes cluster, PostgreSQL (if enabled), ActiveMQ (if enabled), networking, and application infrastructure
-
-1. **Update infra variables in `terraform/implementations/aws/infra/aws.tfvars`:**
-
- Complete configuration example with detailed explanations:
-
-```hcl
- # Environment name (infra component)
- cluster_name = "soil38"
- # MOSIP's domain (ex: sandbox.xyz.net)
- cluster_env_domain = "soil38.mosip.net"
- # Email-ID will be used by certbot to notify SSL certificate expiry via email
- mosip_email_id = "chandra.mishra@technoforte.co.in"
- # SSH login key name for AWS node instances (ex: my-ssh-key)
- ssh_key_name = "mosip-aws"
- # The AWS region for resource creation
- aws_provider_region = "ap-south-1"
-
- # Specific availability zones for VM deployment (optional)
- # If empty, uses all available AZs in the region
- # Example: ["ap-south-1a", "ap-south-1b"] for specific AZs
- # Example: [] for all available AZs in the region
- specific_availability_zones = []
-
- # The instance type for Kubernetes nodes (control plane, worker, etcd)
- k8s_instance_type = "t3a.2xlarge"
- # The instance type for Nginx server (load balancer)
- nginx_instance_type = "t3a.2xlarge"
- # The Route 53 hosted zone ID
- zone_id = "Z090954828SJIEL6P5406"
-
- ## UBUNTU 24.04
- # The Amazon Machine Image ID for the instances
- ami = "ami-0ad21ae1d0696ad58"
-
- # Repo K8S-INFRA URL
- k8s_infra_repo_url = "https://github.com/mosip/k8s-infra.git"
- # Repo K8S-INFRA branch
- k8s_infra_branch = "MOSIP-42914"
- # NGINX Node's Root volume size
- nginx_node_root_volume_size = 24
- # NGINX node's EBS volume size
- nginx_node_ebs_volume_size = 300
- # NGINX node's second EBS volume size (optional - set to 0 to disable)
- nginx_node_ebs_volume_size_2 = 200 # Enable second EBS volume for PostgreSQL testing
- # NGINX node's third EBS volume size (optional - set to 0 to disable)
- nginx_node_ebs_volume_size_3 = 100 # Enable third EBS volume for ActiveMQ storage
- # Kubernetes nodes Root volume size
- k8s_instance_root_volume_size = 64
-
- # Control-plane, ETCD, Worker
- k8s_control_plane_node_count = 3
- # ETCD, Worker
- k8s_etcd_node_count = 3
- # Worker
- k8s_worker_node_count = 2
-
- # RKE2 Version Configuration
- rke2_version = "v1.28.9+rke2r1"
-
- # Rancher Import Configuration
- enable_rancher_import = false
-
- # Security group CIDRs
- network_cidr = "10.0.0.0/8" # Use your actual VPC CIDR
- WIREGUARD_CIDR = "10.0.0.0/8" # Use your actual WireGuard VPN CIDR
-
- # Rancher Import URL
- rancher_import_url = "\"kubectl apply -f https://rancher.mosip.net/v3/import/dzshvnb6br7qtf267zsrr9xsw6tnb2vt4x68g79r2wzsnfgvkjq2jk_c-m-b5249w76.yaml\""
- # DNS Records to map
- subdomain_public = ["resident", "prereg", "esignet", "healthservices", "signup"]
- subdomain_internal = ["admin", "iam", "activemq", "kafka", "kibana", "postgres", "smtp", "pmp", "minio", "regclient", "compliance"]
-
- # PostgreSQL Configuration (used when second EBS volume is enabled)
- enable_postgresql_setup = true # Enable PostgreSQL setup for main infra
- postgresql_version = "15"
- storage_device = "/dev/nvme2n1"
- mount_point = "/srv/postgres"
- postgresql_port = "5433"
-
- # ActiveMQ Configuration (optional, used when third EBS volume is enabled)
- enable_activemq_setup = true # Enable ActiveMQ persistent storage for main infra
- activemq_storage_device = "/dev/nvme3n1"
- activemq_mount_point = "/srv/activemq"
- activemq_nfs_allowed_hosts = "*" # Hosts allowed to mount NFS export (use CIDR/IP range for production, e.g., "10.0.0.0/8")
-
- # MOSIP Infrastructure Repository Configuration
- mosip_infra_repo_url = "https://github.com/mosip/mosip-infra.git"
- mosip_infra_branch = "develop"
-
- # VPC Configuration - Existing VPC to use (discovered by Name tag)
- vpc_name = "mosip-boxes"
-```
-
- **Key Configuration Variables Explained:**
-
-| Variable                         | Description                                | Example Value                               |
-| -------------------------------- | ------------------------------------------ | ------------------------------------------- |
-| `cluster_name`                 | Unique identifier for your MOSIP cluster   | `"soil38"`                                |
-| `cluster_env_domain`           | Domain name for MOSIP services access      | `"soil38.mosip.net"`                      |
-| `mosip_email_id`               | Email for SSL certificate notifications    | `"admin@example.com"`                     |
-| `ssh_key_name`                 | AWS EC2 key pair name for SSH access       | `"mosip-aws"`                             |
-| `aws_provider_region`          | AWS region for resource deployment         | `"ap-south-1"`                            |
-| `zone_id`                      | Route 53 hosted zone ID for DNS management | `"Z090954828SJIEL6P5406"`                 |
-| `k8s_instance_type`            | EC2 instance type for Kubernetes nodes     | `"t3a.2xlarge"`                           |
-| `nginx_instance_type`          | EC2 instance type for load balancer        | `"t3a.2xlarge"`                           |
-| `ami`                          | Amazon Machine Image ID (Ubuntu 24.04)     | `"ami-0ad21ae1d0696ad58"`                 |
-| `enable_postgresql_setup`      | External PostgreSQL setup via Terraform    | `true` (external) / `false` (container) |
-| `nginx_node_ebs_volume_size_2` | EBS volume size for PostgreSQL data (GB)   | `200`                                     |
-| `postgresql_version`           | PostgreSQL version to install              | `"15"`                                    |
-| `postgresql_port`              | PostgreSQL service port                    | `"5433"`                                  |
-| `enable_activemq_setup`        | ActiveMQ persistent storage setup          | `true` (provisioned) / `false` (skipped) |
-| `nginx_node_ebs_volume_size_3` | EBS volume size for ActiveMQ data (GB)     | `100`                                     |
-| `vpc_name`                     | Existing VPC name tag to use               | `"mosip-boxes"`                           |
-
-> **Important Notes:**
->
-> - Ensure `cluster_name` and `cluster_env_domain` match `ENV_NAME` and `DOMAIN_NAME` set as GitHub Environment Variables — these drive all Helmsman DSF domain substitution
-> - Set `enable_postgresql_setup = true` for production deployments with external PostgreSQL,If enable_postgresql_setup = true, Terraform will automatically:
->   - Provision dedicated EBS volume for PostgreSQL on nginx node
->   - Install and configure PostgreSQL 15 via Ansible playbooks
->   - Setup security configurations and user access controls
->   - Configure backup and recovery mechanisms
->   - Make PostgreSQL ready for MOSIP services connectivity
->   - No manual PostgreSQL secret management required!
-
-> - Set `enable_postgresql_setup = false` for development deployments with containerized PostgreSQL
-> - The `nginx_node_ebs_volume_size_2` is required when `enable_postgresql_setup = true`
-> - **ActiveMQ Setup**: ActiveMQ installation is optional. To enable it, set `enable_activemq_setup = true` and ensure `nginx_node_ebs_volume_size_3 > 0` in `aws.tfvars`. It automatically provisions durable NFS-backed persistent storage via a dedicated EBS volume on the NGINX node.
-> - **SSH Key Configuration**: The `ssh_key_name` value must match the repository secret name containing your SSH private key (e.g., if `ssh_key_name = "mosip-aws"`, create repository secret named `mosip-aws` with your SSH private key content)
-
-#### Rancher Import Configuration (Optional)
-
-If you have deployed **observ-infra** (Rancher management cluster), you can import your main infra cluster into Rancher for centralized monitoring and management.
-
-**Step 1: Generate Rancher Import URL**
-
-1. **Access Rancher UI:**
-
-   ```
-   https://rancher.your-domain.net
-   ```
-
-   Login with credentials from observ-infra deployment.
-2. **Navigate to Cluster Import:**
-
-   ```
-   Rancher UI → Cluster Management → Import Existing
-   ```
-3. **Select Import Method:**
-
-   ```
-   Click: "Import any Kubernetes cluster" → Generic
-   ```
-4. **Configure Cluster Import:**
-
-   ```
-   Cluster Name: soil38 (use your cluster_name from aws.tfvars)
-
-   Click: "Create"
-   ```
-5. **Copy the kubectl apply command:**
-
-   Rancher will generate a command like:
-
-   ```bash
-   kubectl apply -f https://rancher.mosip.net/v3/import/dzshvnb6br7qtf267zsrr9xsw6tnb2vt4x68g79r2wzsnfgvkjq2jk_c-m-b5249w76.yaml
-   ```
-
-**Step 2: Update aws.tfvars**
-
-Add the generated command to your `aws.tfvars` file:
-
-```hcl
-# Enable Rancher import
-enable_rancher_import = true
-
-# Paste the kubectl apply command from Rancher UI
-# IMPORTANT: Use proper escaping - wrap the entire command in quotes with escaped inner quotes
-rancher_import_url = "\"kubectl apply -f https://rancher.mosip.net/v3/import/dzshvnb6br7qtf267zsrr9xsw6tnb2vt4x68g79r2wzsnfgvkjq2jk_c-m-b5249w76.yaml\""
-```
-
-**⚠️ Critical: Proper String Escaping**
-
-The `rancher_import_url` requires special escaping to avoid Terraform indentation errors:
-
-✅ **Correct format:**
-
-```hcl
-rancher_import_url = "\"kubectl apply -f https://rancher.example.com/v3/import/TOKEN.yaml\""
-```
-
-❌ **Wrong format (will cause errors):**
-
-```hcl
-rancher_import_url = "kubectl apply -f https://rancher.example.com/v3/import/TOKEN.yaml"
-```
-
-**Step 3: Deploy/Update Main Infra**
-
-After updating `aws.tfvars`, deploy or update your main infra cluster:
-
-2. **Run main infra via GitHub Actions:**
-
-![Infrastructure Terraform Apply](docs/_images/infra-terraform-apply.png)
-
-- **(1)** Go to **Actions** → **terraform plan/apply**
-- **(2)** Click **Run workflow**
-- **(3)** **Branch**: Select your deployment branch (e.g., `release-0.1.0`)
-- **(4)** **Cloud Provider**: Select `aws` (Azure/GCP are placeholder implementations)
-- **(5)** **Component**: Select `infra` (MOSIP application infrastructure)
-- **(6)** **Profile**: Select `mosip`/`esignet` (Select profile which you want to use for deployment)
-- **Backend**: Choose backend configuration:
-  - **(7)** `local` - GPG-encrypted local state (recommended for development)
-  - **(8)** `s3` - Remote S3 backend (If you want to store the state file in a S3 bucket, provide the bucket name. Otherwise, leave it empty to use the local backend)
-- **(9)** **SSH_PRIVATE_KEY**: GitHub secret name containing SSH private key for instance access
-  - Must match the `ssh_key_name` in your terraform.tfvars
-- **(10)** **☐ Terraform apply**:
-  - ☐ **Unchecked**  — Plan mode: runs terraform plan (shows changes without applying).
-  - ✅ **Checked**  — Apply mode: runs terraform apply (creates/updates infrastructure).
-  - Tip: For your first deployment, run in plan mode first to review changes. If the plan looks correct, re-run the workflow with Apply checked.
-- **(11)** **Run Workflow**
-
-**If Workflow Fails - How to View Error Logs:**
-
-1. Click on the **failed workflow run** (red ❌ icon)
-2. Click on the **failed job** in the left sidebar
-3. Expand the **failed step** (look for red ❌) to see detailed error logs
-4. Common steps to check:
-   - `Terraform Init` - Backend/provider issues
-   - `Terraform Plan` - Configuration or syntax errors
-   - `Terraform Apply` - Resource creation failures
-5. Scroll through the logs to find the error message (usually highlighted in red)
-6. For full logs, click **View raw logs** (gear icon → "View raw logs")
-
-**Verify Rancher Import (Only if rancher_import = true):**
-
-> **Note:** Skip this entire section if you deployed without Rancher UI (`rancher_import = false`)
-
-After deployment completes:
-
-1. Go to Rancher UI: `https://rancher.your-domain.net`
-2. Navigate to: **Cluster Management**
-3. Your cluster should appear in the list with status: **Active**
-4. Click on the cluster name to view:
-   - Node status
-   - Pod metrics
-   - Resource utilization
-   - Monitoring dashboards
-
-**Troubleshooting Rancher Import:**
-
-If import fails, check:
+**Troubleshooting Rancher import:**
 
 ```bash
-# Verify cluster is accessible
-kubectl get nodes
-
-# Check if rancher-agent pods are running
 kubectl get pods -n cattle-system
-
-# View rancher-agent logs
 kubectl logs -n cattle-system -l app=cattle-cluster-agent
-
-# Common issues:
-# 1. Network connectivity between clusters
-# 2. Firewall rules blocking Rancher server access
-# 3. Incorrect import URL or expired token
+# Common causes: no network path from the cluster to Rancher, firewall rules, expired import token
 ```
 
-To regenerate import URL if needed:
+#### Step 3e: Data-centre deployment (pre-created VMs, no Terraform)
 
-1. Go to Rancher UI → Cluster Management
-2. Find your cluster (it may show as "Unavailable")
-3. Click ⋮ (three dots) → Edit Config
-4. Copy the new registration command
+For VMs you already have (e.g. a country data centre), skip Terraform entirely. The same Ansible runs against them:
 
-   ```
-   Cluster Name: soil38 (use your cluster_name from aws.tfvars)
+```bash
+cp ansible/inventory/hosts.example.yml my-hosts.yml     # fill in IPs, disks, TLS mode
+python3 ansible/inventory/generate.py --profile profiles/mosip --from-hosts my-hosts.yml -o inventory.yml
+ansible-playbook -i inventory.yml ansible/site.yml
+```
 
-   ```
+Create the DNS records first (your DNS team, or `COMPONENT=dns` if the domain is in Route53). TLS can be your own certificate, Let's Encrypt HTTP-01, or Let's Encrypt DNS-01 through any provider. Full guide — VM prerequisites, firewall ports, TLS options, troubleshooting: **[Data-centre deployment](docs/DATACENTRE_DEPLOYMENT.md)**.
 
 ### 4. Helmsman Deployment
 
@@ -962,23 +726,25 @@ For **push-triggered runs** (no workflow inputs), values fall back to GitHub Env
 |----------|--------------|---------|
 | `DOMAIN_NAME` | `soil38.mosip.net` | All DSFs — hostnames, Istio VS, DB hosts |
 | `ENV_NAME` | `soil38` | Landing page, testrig user |
-| `CLUSTER_ID` | `c-m-abc12xyz` | `prereq-dsf.yaml` — rancher-monitoring |
-| `SLACK_CHANNEL_NAME` | `#mosip-alerts` | `prereq-dsf.yaml` — alerting |
 | `DB_PORT` | `5433` | MOSIP platform external postgres port |
-| `ESIGNET_DB_PORT` | `5432` | eSignet container postgres port |
+| `ESIGNET_DB_PORT` | `5432` | eSignet standalone postgres port (default `5432`) |
+| `KEYCLOAK_DB` | `bundled` | `bundled` (default) or `external` — Keycloak on the shared PostgreSQL |
+| `MONITORING_STACK` | `standalone` | `standalone` (default) or `rancher` — see below |
+| `ALERT_RECIPIENTS` | `ops@example.org` | `standalone` — alert e-mail recipients (comma-separated) |
+| `SMTP_FROM` | `alerts@example.org` | `standalone` — Alertmanager sender (password: `SMTP_PASSWORD` secret) |
+| `SMTP_HOST` / `SMTP_USERNAME` | `smtp.gmail.com:587` / sender | `standalone` — optional, defaults shown |
+| `CLUSTER_ID` | `c-m-abc12xyz` | `rancher` only — rancher-monitoring |
+| `SLACK_CHANNEL_NAME` | `#mosip-alerts` | `rancher` only — Slack alerting |
+| `MOSIPID_DOMAIN_NAME` | `mosipid.example.org` | eSignet standalone — the MOSIP-ID environment |
 
-> **Domain consistency**: `DOMAIN_NAME` must match `cluster_env_domain` in `aws.tfvars`. `ENV_NAME` must match `cluster_name`. No in-file replacements needed.
+Values typed into a workflow form are saved to these variables automatically, so later runs (and push runs) reuse them.
 
-**Finding your clusterid (for `CLUSTER_ID`):**
-- **Rancher UI**: Open your cluster → the URL contains `c-m-xxxxx` — that's your clusterid
-- **kubectl**: `kubectl get setting cluster-id -n cattle-system -o jsonpath='{.value}'`
-- Only needed if `rancher_import = true` in your Terraform config
+> **Domain consistency**: `DOMAIN_NAME` must match `cluster_env_domain` in `profiles/<profile>/aws/common.tfvars`. `ENV_NAME` must match `cluster_name`. No in-file replacements needed.
 
-**Alerting (Slack) setup:**
-
-Create a Slack incoming webhook ([guide](https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks/)), then add:
-- `SLACK_CHANNEL_NAME` variable (e.g. `#mosip-alerts`)
-- `SLACK_WEBHOOK_URL` environment secret
+**Monitoring stack (`MONITORING_STACK`):**
+- `standalone` (default, all profiles): kube-prometheus-stack (Prometheus + Alertmanager e-mail) and Loki + Alloy + Grafana (`grafana.<domain>`). Needs `ALERT_RECIPIENTS`, `SMTP_FROM` and the `SMTP_PASSWORD` secret.
+- `rancher`: rancher-monitoring + ELK (Elasticsearch, Kibana) with Slack alerts. Needs `CLUSTER_ID` (Rancher UI cluster URL `c-m-xxxxx`, or `kubectl get setting cluster-id -n cattle-system -o jsonpath='{.value}'`); Slack (`SLACK_CHANNEL_NAME` + `SLACK_WEBHOOK_URL` secret) is optional.
+- Helmsman removes the releases of the stack that is not selected — set `MONITORING_STACK=rancher` before the next prereq run on an environment that uses the rancher stack today.
 
 **reCAPTCHA keys (MOSIP platform profiles):**
 
@@ -996,7 +762,7 @@ The `external-dsf.yaml` reads these via `${PREREG_CAPTCHA_SITE_KEY}` etc. — no
 
 **PostgreSQL configuration:**
 
-The only DSF setting that still requires a manual decision is `postgres.enabled` in `external-dsf.yaml`:
+`postgres.enabled` in `external-dsf.yaml` is already set per profile — `false` for `mosip-platform-*` (external PostgreSQL on the nginx node, created by the `configure` step) and `true` for `esignet-standalone` (container PostgreSQL). Change it only if your deployment differs:
 
 ```yaml
 apps:
@@ -1005,14 +771,17 @@ apps:
                     # true  = deploy container PostgreSQL (for dev/test)
 ```
 
-Set this to match your Terraform `enable_postgresql_setup` value. Everything else (host, port, credentials) is resolved automatically from environment variables and hooks.
+Set this to match your profile: `false` when `profiles/<profile>/profile.yml` lists `postgresql` (external PostgreSQL on the nginx node), `true` otherwise. Everything else (host, port, credentials) is resolved automatically from environment variables and hooks.
 
-**Database branch (MOSIP platform):**
+**Database branches (MOSIP platform):**
+
+The DB scripts version is set per database on the `postgres-init` app in `external-dsf.yaml` and already matches the profile's chart versions:
 
 ```yaml
-# In mosip-dsf.yaml — update to match your MOSIP version
-gitRepo:
-  dbBranch: "v1.2.0.2"   # must match your deployed MOSIP chart versions
+# Helmsman/dsf/<profile>/external-dsf.yaml — postgres-init
+databases.mosip_master.branch: "v1.2.1.4"
+databases.mosip_kernel.branch: "v1.2.0.2"
+# ... one line per database
 ```
 
 **What you should NOT edit manually in DSF files:**
@@ -1035,18 +804,13 @@ Configure the required secrets for Helmsman deployments in **Repository → Sett
 
 2. **Configure KUBECONFIG Secret:**
 
- **Locate the Kubernetes config file:**
+ **Get the kubeconfig:**
+
+- With **ENABLE_RANCHER_IMPORT** + **PUBLISH_KUBECONFIG** ticked, the deployment already stored it as the `KUBECONFIG` environment secret — nothing to do.
+- Otherwise copy it from the primary control-plane node (over WireGuard). The server address in it is the node's private IP:
 
 ```bash
- # After Terraform infrastructure deployment completes, find the kubeconfig file in:
- terraform/implementations/aws/infra/
-```
-
-**Example kubeconfig file location:**
-
-```
- terraform/implementations/aws/infra/kubeconfig_<cluster-name>
- terraform/implementations/aws/infra/<cluster-name>-role.yaml
+scp -i <ssh-key> ubuntu@<k8s_primary_control_plane_ip>:/home/ubuntu/.kube/<cluster_name>-CONTROL-PLANE-NODE-1.yaml kubeconfig
 ```
 
  **Add KUBECONFIG as Environment Secret:**
@@ -1054,10 +818,10 @@ Configure the required secrets for Helmsman deployments in **Repository → Sett
 > **Important:** KUBECONFIG must be provided as **raw YAML** (plain text), not base64 encoded.
 
 - Go to your GitHub repository → Settings → Environments
-- Select or create environment for your branch (e.g., `release-0.1.0`, `main`, `develop`)
+- Select or create environment for your branch (e.g., `release-0.x.x`, `develop`)
 - Click "Add secret" under Environment secrets
 - Name: `KUBECONFIG`
-- Value: Copy the **entire raw YAML contents** of the kubeconfig file from `terraform/implementations/aws/infra/kubeconfig_<cluster-name>`
+- Value: Copy the **entire raw YAML contents** of that kubeconfig file
 
  **Branch Environment Configuration:- Ensure the environment name matches your deployment branch
 
@@ -1103,8 +867,8 @@ Configure the required secrets for Helmsman deployments in **Repository → Sett
  MOCK_RELYING_PARTY_JWE_PRIVATE_KEY: | # JWE userinfo encryption private key
    LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0t... # Base64 encoded PEM format
    
- ESIGNET_CAPTCHA_SITE_KEY: "6LfkAMwrAAAAAATB1WhkIhzuAVMtOs9VWabODoZ_" # Google reCAPTCHA site key (plain text)
- ESIGNET_CAPTCHA_SECRET_KEY: "6LfkAMwrAAAAAHQAT93nTGcLKa-h3XYhGoNSG-NL" # Google reCAPTCHA secret key (plain text)
+ ESIGNET_CAPTCHA_SITE_KEY: "<recaptcha-site-key>" # Google reCAPTCHA site key (plain text)
+ ESIGNET_CAPTCHA_SECRET_KEY: "<recaptcha-secret-key>" # Google reCAPTCHA secret key (plain text)
 ```
 
 > **For detailed eSignet secrets configuration and generation instructions**, see [eSignet Deployment Guide - Required Secrets](docs/esignet_README.md#required-secrets-environment-secrets)
@@ -1119,7 +883,7 @@ Configure the required secrets for Helmsman deployments in **Repository → Sett
 > **Important:**
 >
 > - **KUBECONFIG**: Must be added as Environment Secret tied to your deployment branch name
-> - **Branch Environment**: Ensure environment name matches your branch (e.g., `release-0.1.0`)
+> - **Branch Environment**: Ensure environment name matches your branch (e.g., `release-0.x.x`)
 > - **File Source**: KUBECONFIG file is generated after successful Terraform infrastructure deployment
 
 #### Step 4c: Run Helmsman Deployments via GitHub Actions
@@ -1148,7 +912,7 @@ External + Prereqs  →  MOSIP (auto)  →  eSignet (manual)  →  Testrigs (man
 
 Each guide covers: profile-specific secrets, workflow inputs, step-by-step run instructions, and verification commands.
 
-### 7. Verify Deployment
+### 5. Verify Deployment
 
 ```bash
 # Check cluster status

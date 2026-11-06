@@ -61,31 +61,19 @@ This guide provides step-by-step instructions for creating and configuring Googl
 
 ## Configuration in MOSIP
 
-After obtaining all six keys (Site Key and Secret Key for each domain), update the `external-dsf.yaml` file:
+After obtaining all six keys (site key and secret key for each domain), add them as GitHub environment secrets. Do **not** edit the DSF: it already reads the keys from these **environment secrets** (Settings → Environments → `<branch>` → Secrets):
 
-### Update captcha-setup.sh arguments (around line 315):
+| Secret | Domain |
+|--------|--------|
+| `PREREG_CAPTCHA_SITE_KEY` / `PREREG_CAPTCHA_SECRET_KEY` | `prereg.<domain>` |
+| `ADMIN_CAPTCHA_SITE_KEY` / `ADMIN_CAPTCHA_SECRET_KEY` | `admin.<domain>` |
+| `RESIDENT_CAPTCHA_SITE_KEY` / `RESIDENT_CAPTCHA_SECRET_KEY` | `resident.<domain>` |
 
-```yaml
-hooks:
-  postInstall: "$WORKDIR/hooks/captcha-setup.sh PREREG_SITE_KEY PREREG_SECRET_KEY ADMIN_SITE_KEY ADMIN_SECRET_KEY RESIDENT_SITE_KEY RESIDENT_SECRET_KEY"
-```
-
-### Arguments Order:
-
-| Argument | Description |
-|----------|-------------|
-| Argument 1 | PreReg Site Key |
-| Argument 2 | PreReg Secret Key |
-| Argument 3 | Admin Site Key |
-| Argument 4 | Admin Secret Key |
-| Argument 5 | Resident Site Key |
-| Argument 6 | Resident Secret Key |
-
-### Example Configuration:
+The `activemq` app's postInstall hook in `Helmsman/dsf/mosip-platform-*/external-dsf.yaml` passes them to `captcha-setup.sh` in this order (PreReg site, PreReg secret, Admin site, Admin secret, Resident site, Resident secret):
 
 ```yaml
 hooks:
-  postInstall: "$WORKDIR/hooks/captcha-setup.sh 6LfkAMwrAAAAAATB1WhkIhzuAVMtOs9VWabODoZ_ 6LfkAMwrAAAAAHQAT93nTGcLKa-h3XYhGoNSG-NL 6LdNAcwrAAAAAETGWvz-3I12vZ5V8vPJLu2ct9CO 6LdNAcwrAAAAAE4iWGJ-g6Dc2HreeJdIwAl5h1iL 6LdRAcwrAAAAAFUEHHKK5D_bSrwAPqdqAJqo4mCk 6LdRAcwrAAAAAOeVl6yHGBCBA8ye9GsUOy4pi9s9"
+  postInstall: "$WORKDIR/hooks/captcha-setup.sh ${PREREG_CAPTCHA_SITE_KEY} ${PREREG_CAPTCHA_SECRET_KEY} ${ADMIN_CAPTCHA_SITE_KEY} ${ADMIN_CAPTCHA_SECRET_KEY} ${RESIDENT_CAPTCHA_SITE_KEY} ${RESIDENT_CAPTCHA_SECRET_KEY}"
 ```
 
 ---

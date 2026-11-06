@@ -1,0 +1,10 @@
+---
+# Run: ansible-playbook -i <inventory> ansible/playbooks/dns.yml [-e dns_state=absent]
+# First play of site.yml when dns_provider isn't "none". Targets the nginx
+# host only to have the inventory in scope; every API call runs once from
+# the controller. See roles/dns/defaults/main.yml for providers.
+- name: DNS records
+  hosts: nginx
+  gather_facts: false
+  roles:
+    - dns

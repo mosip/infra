@@ -1,0 +1,20 @@
+---
+# Cloudflare. proxied: false — nginx terminates TLS itself; solo replaces any
+# other value for the same name and type, so re-runs are idempotent.
+- name: Cloudflare records ({{ dns_state }})
+  community.general.cloudflare_dns:
+    api_token: "{{ dns_cloudflare_api_token }}"
+    zone: "{{ dns_zone }}"
+    record: "{{ item.name }}"
+    type: "{{ item.type }}"
+    value: "{{ item.value }}"
+    ttl: "{{ item.ttl }}"
+    proxied: false
+    solo: "{{ dns_state == 'present' }}"
+    state: "{{ dns_state }}"
+  loop: "{{ dns_records }}"
+  loop_control:
+    label: "{{ item.fqdn }} {{ item.type }}"
+  delegate_to: localhost
+  run_once: true
+  no_log: "{{ dns_no_log | bool }}"

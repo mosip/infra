@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="460" height="552" viewBox="0 0 460 552" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="instances start / stop — Run workflow form">
+<title>instances start / stop — Run workflow form</title>
+<rect x="0.5" y="0.5" width="459" height="525" rx="8" fill="#ffffff" stroke="#d0d7de"/>
+<text x="16" y="30" font-size="14" font-weight="600" fill="#1f2328" text-anchor="start">Run workflow</text>
+<text x="16" y="58" font-size="12" font-weight="600" fill="#1f2328" text-anchor="start">Use workflow from</text>
+<rect x="16" y="66" width="190" height="30" rx="6" fill="#f6f8fa" stroke="#d0d7de"/>
+<text x="26" y="85" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">Branch: &lt;your branch&gt; ▾</text>
+<circle cx="27" cy="122" r="10" fill="#0969da"/>
+<text x="27" y="126" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">1</text>
+<text x="46" y="126" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">status / stop / start<tspan fill="#d1242f" font-weight="600"> *</tspan></text>
+<rect x="46" y="134" width="398" height="30" rx="6" fill="#f6f8fa" stroke="#d0d7de"/>
+<text x="56" y="153" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">status</text>
+<text x="434" y="153" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="end">▾</text>
+<text x="420" y="153" font-size="10" font-weight="normal" fill="#59636e" text-anchor="end">ACTION</text>
+<text x="46" y="177" font-size="10" font-weight="normal" fill="#59636e" text-anchor="start">other options: stop | start</text>
+<circle cx="27" cy="200" r="10" fill="#0969da"/>
+<text x="27" y="204" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">2</text>
+<text x="46" y="204" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">Private IPs, comma-separated (max 20), e.g.</text>
+<text x="46" y="220" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">10.73.3.60,10.73.4.131<tspan fill="#d1242f" font-weight="600"> *</tspan></text>
+<rect x="46" y="228" width="398" height="30" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<text x="434" y="247" font-size="10" font-weight="normal" fill="#59636e" text-anchor="end">INSTANCE_IPS</text>
+<circle cx="27" cy="280" r="10" fill="#0969da"/>
+<text x="27" y="284" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">3</text>
+<text x="46" y="284" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">VPC Name tag, e.g. mosip-boxes<tspan fill="#d1242f" font-weight="600"> *</tspan></text>
+<rect x="46" y="292" width="398" height="30" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<text x="434" y="311" font-size="10" font-weight="normal" fill="#59636e" text-anchor="end">VPC_NAME</text>
+<circle cx="27" cy="344" r="10" fill="#0969da"/>
+<text x="27" y="348" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">4</text>
+<text x="46" y="348" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">AWS region<tspan fill="#d1242f" font-weight="600"> *</tspan></text>
+<rect x="46" y="356" width="398" height="30" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<text x="56" y="375" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">ap-south-1</text>
+<text x="434" y="375" font-size="10" font-weight="normal" fill="#59636e" text-anchor="end">REGION</text>
+<circle cx="27" cy="408" r="10" fill="#0969da"/>
+<text x="27" y="412" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">5</text>
+<text x="46" y="412" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">dry-run = show only; apply = stop/start<tspan fill="#d1242f" font-weight="600"> *</tspan></text>
+<rect x="46" y="420" width="398" height="30" rx="6" fill="#f6f8fa" stroke="#d0d7de"/>
+<text x="56" y="439" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">dry-run</text>
+<text x="434" y="439" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="end">▾</text>
+<text x="420" y="439" font-size="10" font-weight="normal" fill="#59636e" text-anchor="end">MODE</text>
+<text x="46" y="463" font-size="10" font-weight="normal" fill="#59636e" text-anchor="start">other options: apply</text>
+<rect x="16" y="480" width="120" height="30" rx="6" fill="#1f883d"/>
+<text x="76" y="499" font-size="12" font-weight="600" fill="#ffffff" text-anchor="middle">Run workflow</text>
+<text x="230.0" y="543" font-size="10" font-weight="normal" fill="#59636e" text-anchor="middle">Generated from .github/workflows/instance-power.yml</text>
+</svg>

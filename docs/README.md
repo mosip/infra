@@ -62,6 +62,35 @@ Welcome to the MOSIP Infrastructure documentation! This index helps you find exa
 | **[Environment Destruction Guide](ENVIRONMENT_DESTRUCTION_GUIDE.md)** | Safe resource cleanup and cost management | Everyone when decommissioning |
 | **[Helmsman Destroy Guide](HELMSMAN_DESTROY_GUIDE.md)** | How to safely undeploy MOSIP services from Kubernetes | Everyone when removing services |
 
+### Infrastructure (Terraform + Ansible)
+
+| Document | What It Covers | Who Should Read |
+|----------|----------------|-----------------|
+| **[Profiles](PROFILES.md)** | `mosip`, `esignet-standalone`, `observ` — sizes, components, `profile.yml` | Everyone before Terraform |
+| **[Deployment Sequence](DEPLOYMENT_SEQUENCE.md)** | Component order, day-2 runs, DNS providers, checks | Operators |
+| **[Terraform Workflow Guide](TERRAFORM_WORKFLOW_GUIDE.md)** | `terraform plan / apply` and `terraform destroy` inputs | Everyone running Terraform |
+| **[Data-centre Deployment](DATACENTRE_DEPLOYMENT.md)** | Pre-created VMs, no Terraform — Ansible only | Data-centre / on-prem teams |
+| **[Repository Structure](TREE_STRUCTURE.md)** | Where everything lives | Contributors |
+
+### Helmsman Deployment (in run order)
+
+| Document | What It Covers | Who Should Read |
+|----------|----------------|-----------------|
+| **[External + Prereqs](HELMSMAN_EXTERNAL_GUIDE.md)** | Monitoring/logging stack, PostgreSQL, Keycloak, Kafka, MinIO … | All profiles |
+| **[MOSIP Services](HELMSMAN_MOSIP_GUIDE.md)** | MOSIP core services (auto-triggered) | MOSIP platform |
+| **[eSignet (with MOSIP)](esignet_README.md)** | eSignet on a MOSIP platform cluster | MOSIP platform |
+| **[eSignet Standalone](ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md)** | eSignet standalone (incl. `esignet-standalone-2.0.0`) end to end | eSignet standalone |
+| **[Testrigs](HELMSMAN_TESTRIGS_GUIDE.md)** | API, UI and DSL testrigs | All profiles |
+| **[reCAPTCHA Setup](RECAPTCHA_SETUP_GUIDE.md)** | reCAPTCHA keys as environment secrets | MOSIP platform, eSignet |
+
+### Operations
+
+| Document | What It Covers | Who Should Read |
+|----------|----------------|-----------------|
+| **[Day-2 Operations](OPERATIONS_GUIDE.md)** | Add / remove / resize nodes, stop/start, subdomains, firewall rules, standalone VMs, DNS later | Operators |
+| **[Partner Onboarding](ONBOARDING_GUIDE.md)** | Diagnose and re-run partner onboarding (e.g. `IDA-MPA-009`) | Operators |
+| **[Kubernetes Health Checker](k8s-health-checker.md)** | Scheduled cluster health check workflow | Operators |
+
 ### Component-Specific Documentation
 
 | Component | Document | What It Covers |
@@ -108,12 +137,12 @@ Welcome to the MOSIP Infrastructure documentation! This index helps you find exa
  - [ ] Check [Secret Generation Guide](SECRET_GENERATION_GUIDE.md) - What secrets are needed
 
 2. **Infrastructure (2 hours)**
- - [ ] Configure terraform.tfvars files
+ - [ ] Fill in `profiles/<profile>/aws/*.tfvars` (and `base-infra/aws.tfvars`)
  - [ ] Run Terraform workflows
  - [ ] Set up WireGuard VPN
 
 3. **Applications (2-3 hours)**
- - [ ] Update DSF files using [DSF Configuration Guide](DSF_CONFIGURATION_GUIDE.md)
+ - [ ] Set Helmsman environment variables/secrets ([DSF Configuration Guide](DSF_CONFIGURATION_GUIDE.md))
  - [ ] Run Helmsman workflows
  - [ ] Verify deployment
 
@@ -139,12 +168,12 @@ Welcome to the MOSIP Infrastructure documentation! This index helps you find exa
 | Get AWS credentials | [Secret Generation Guide - AWS Credentials](SECRET_GENERATION_GUIDE.md#3-aws-credentials) |
 | Run my first workflow | [Workflow Guide - Base Infrastructure](WORKFLOW_GUIDE.md#workflow-1-base-infrastructure) |
 | Understand dry-run vs apply | [Workflow Guide - Parameters](WORKFLOW_GUIDE.md#terraform-apply-checkbox) |
-| Fix "clusterid not found" error | [DSF Configuration Guide - clusterid](DSF_CONFIGURATION_GUIDE.md#critical-configuration-clusterid) |
+| Fix "clusterid not found" error | [DSF Configuration Guide - clusterid](DSF_CONFIGURATION_GUIDE.md#clusterid-monitoring_stackrancher-only) |
 | Configure PostgreSQL | [DSF Configuration Guide - PostgreSQL](DSF_CONFIGURATION_GUIDE.md#2-postgresql-configuration) |
 | Add reCAPTCHA keys | [DSF Configuration Guide - reCAPTCHA](DSF_CONFIGURATION_GUIDE.md#3-recaptcha-configuration) |
 | Delete my environment | [Environment Destruction Guide](ENVIRONMENT_DESTRUCTION_GUIDE.md) |
 | Check costs after deletion | [Environment Destruction Guide - Cost Monitoring](ENVIRONMENT_DESTRUCTION_GUIDE.md#cost-monitoring) |
-| Understand workflow names | [Workflow Guide - Understanding Workflow Names](WORKFLOW_GUIDE.md#understanding-workflow-names) |
+| Understand workflows | [Workflow Guide - Understanding Workflow Basics](WORKFLOW_GUIDE.md#understanding-workflow-basics) |
 
 ### By Technology
 
@@ -161,7 +190,7 @@ Welcome to the MOSIP Infrastructure documentation! This index helps you find exa
 
 | Error | Solution |
 |-------|----------|
-| "clusterid not found" | [DSF Configuration Guide - clusterid](DSF_CONFIGURATION_GUIDE.md#critical-configuration-clusterid) |
+| "clusterid not found" | [DSF Configuration Guide - clusterid](DSF_CONFIGURATION_GUIDE.md#clusterid-monitoring_stackrancher-only) |
 | "Authentication failed" | [Secret Generation Guide - AWS Credentials](SECRET_GENERATION_GUIDE.md#3-aws-credentials) |
 | "InsufficientInstanceCapacity" | [Main README - AWS Capacity Issues](../README.md#aws-capacity-issues) |
 | "Namespace stuck in Terminating" | [Environment Destruction Guide - Troubleshooting](ENVIRONMENT_DESTRUCTION_GUIDE.md#issue-2-namespace-stuck-in-terminating-state) |
@@ -259,6 +288,17 @@ Found something unclear? Want to add more examples? Contributions welcome!
 1. **Report issues**: Open a GitHub issue describing what's confusing
 2. **Suggest improvements**: What would make docs clearer?
 3. **Share your experience**: What worked? What didn't?
+4. **Preview the docs site locally** before opening a PR (the `docs` check runs the same strict build):
+
+```bash
+pip install -r docs/requirements.txt
+mkdocs serve                 # http://127.0.0.1:8000
+mkdocs build --strict        # fails on broken links or anchors
+```
+
+New pages must be added to `nav:` in `mkdocs.yml`.
+
+The "Run workflow" form pictures (`_images/workflows/*.svg`) are generated from the workflow files — after changing a workflow's inputs run `python .github/mkdocs/render_workflow_forms.py` and commit the result ([details](../.github/workflows/README.md#workflow-form-images-docs)).
 
 ---
 
@@ -290,11 +330,11 @@ kubectl describe svc <service-name> -n <namespace>
 
 - [ ] Read [Glossary](GLOSSARY.md) if new to cloud
 - [ ] Generate all secrets ([Guide](SECRET_GENERATION_GUIDE.md))
-- [ ] Configure terraform.tfvars files
+- [ ] Fill in `profiles/<profile>/aws/*.tfvars` (and `base-infra/aws.tfvars`)
 - [ ] Deploy base infrastructure ([Workflow Guide](WORKFLOW_GUIDE.md))
 - [ ] Set up WireGuard VPN ([Setup Guide](../terraform/base-infra/WIREGUARD_SETUP.md))
 - [ ] Deploy main infrastructure ([Workflow Guide](WORKFLOW_GUIDE.md))
-- [ ] Update DSF files ([DSF Guide](DSF_CONFIGURATION_GUIDE.md))
+- [ ] Set Helmsman environment variables/secrets ([DSF Guide](DSF_CONFIGURATION_GUIDE.md))
 - [ ] Deploy prerequisites & external services
 - [ ] Deploy MOSIP core services
 - [ ] Deploy test rigs (optional)

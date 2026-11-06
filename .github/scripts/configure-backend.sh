@@ -2,7 +2,7 @@
 
 # MOSIP Terraform Backend Configuration Script
 # This script generates appropriate backend.tf files based on provider and configuration
-# Supports all workflow inputs: providers (aws, azure, gcp), components (base-infra, infra, observ-infra), and backend types (local, remote)
+# Supports all workflow inputs: providers (aws, azure, gcp), components (base-infra, security, iam, compute, storage, dns, vm), and backend types (local, remote)
 
 set -e  # Exit on any error
 
@@ -12,7 +12,7 @@ usage() {
     echo "Options:"
     echo "  -t, --type            Backend type: local or remote (required)"
     echo "  -p, --provider        Cloud provider: aws, azure, gcp (required)"
-    echo "  -c, --component       Component: base-infra, infra, observ-infra (required)"
+    echo "  -c, --component       Component: base-infra, security, iam, compute, storage, dns, vm (required)"
     echo "  -b, --branch          Branch name for state key (required for remote)"
     echo "  -r, --remote-config   Remote backend config string (required for remote)"
     echo "  --profile             Infrastructure profile (e.g., mosip, esignet-standalone) - included in state key"
@@ -21,7 +21,7 @@ usage() {
     echo ""
     echo "Supported combinations:"
     echo "  Providers: aws, azure, gcp"
-    echo "  Components: base-infra (one-time), infra (can be destroyed/recreated), observ-infra (can be destroyed/recreated)"
+    echo "  Components: base-infra (one-time), security/iam/compute/storage/dns/vm (terraform/implementations/{provider}/{component}, destroyable)"
     echo "  Backends: local, remote"
     echo ""
     echo "Remote config formats:"
@@ -31,12 +31,12 @@ usage() {
     echo ""
     echo "Examples:"
     echo "  Local backend:"
-    echo "    $0 --type local --provider aws --component infra"
+    echo "    $0 --type local --provider aws --component compute"
     echo ""
     echo "  Remote backends:"
-    echo "    $0 --type remote --provider aws --component infra --branch main --remote-config 'aws:mybucket:us-east-1'"
+    echo "    $0 --type remote --provider aws --component compute --branch main --remote-config 'aws:mybucket:us-east-1'"
     echo "    $0 --type remote --provider azure --component base-infra --branch main --remote-config 'azure:myRG:mystorageacct:terraform-state'"
-    echo "    $0 --type remote --provider gcp --component observ-infra --branch main --remote-config 'gcp:mybucket'"
+    echo "    $0 --type remote --provider gcp --component compute --branch main --remote-config 'gcp:mybucket'"
 }
 
 # Default values
@@ -109,10 +109,13 @@ if [[ ! "$CLOUD_PROVIDER" =~ ^(aws|azure|gcp)$ ]]; then
     exit 1
 fi
 
-# Validate component
-if [[ ! "$COMPONENT" =~ ^(base-infra|infra|observ-infra)$ ]]; then
+# Validate component — one Terraform root per component under
+# terraform/implementations/{provider}/{component}. The profile (--profile)
+# keeps same-named components of different deployment shapes apart in the
+# state key. "configure" (Ansible) has no state and never reaches this script.
+if [[ ! "$COMPONENT" =~ ^(base-infra|security|iam|compute|storage|dns|vm)$ ]]; then
     echo "Error: Invalid component '$COMPONENT'"
-    echo "Valid components: base-infra, infra, observ-infra"
+    echo "Valid components: base-infra, security, iam, compute, storage, dns, vm"
     exit 1
 fi
 
@@ -187,7 +190,7 @@ create_aws_backend() {
         # Already component-specific: mosip-base-infra -> mosip-base-infra-main
         bucket_name="${bucket_base_name}-${branch}"
     else
-        # Add component for security: mosip-terraform-state -> mosip-terraform-state-observ-infra-main
+        # Add component for security: mosip-terraform-state -> mosip-terraform-state-compute-main
         bucket_name="${bucket_base_name}-${component}-${branch}"
     fi
     

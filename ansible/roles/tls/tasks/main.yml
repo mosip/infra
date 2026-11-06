@@ -1,0 +1,47 @@
+---
+- name: Validate TLS settings
+  ansible.builtin.assert:
+    that:
+      - tls_mode in ['dns01', 'http01', 'byo']
+      - tls_mode == 'byo' or (certbot_email is defined and certbot_email | length > 0)
+      - tls_mode != 'byo' or (tls_cert_file | length > 0 and tls_key_file | length > 0)
+      - tls_mode != 'dns01' or dns01_provider == 'route53' or dns01_credentials_file | length > 0
+      - dns01_plugin_install in ['apt', 'pip']
+    fail_msg: >-
+      Invalid TLS settings. tls_mode must be dns01|http01|byo; certbot_email is
+      required for dns01/http01; byo needs tls_cert_file + tls_key_file;
+      dns01 with a provider other than route53 needs dns01_credentials_file.
+    quiet: true
+
+- name: Check whether a certificate is already installed
+  become: true
+  ansible.builtin.stat:
+    path: "{{ tls_live_dir }}/fullchain.pem"
+  register: tls_existing_cert
+
+- name: Obtain certificate via DNS-01
+  ansible.builtin.include_tasks: dns01.yml
+  when:
+    - tls_mode == 'dns01'
+    - not tls_existing_cert.stat.exists
+
+- name: Obtain certificate via HTTP-01
+  ansible.builtin.include_tasks: http01.yml
+  when:
+    - tls_mode == 'http01'
+    - not tls_existing_cert.stat.exists
+
+# byo always re-copies, so rotating a certificate is just re-running nginx.
+- name: Install bring-your-own certificate
+  ansible.builtin.include_tasks: byo.yml
+  when: tls_mode == 'byo'
+
+- name: Verify certificate and key are in place
+  become: true
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop:
+    - "{{ tls_live_dir }}/fullchain.pem"
+    - "{{ tls_live_dir }}/privkey.pem"
+  register: tls_files
+  failed_when: not tls_files.stat.exists

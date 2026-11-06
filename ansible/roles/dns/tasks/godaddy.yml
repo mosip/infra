@@ -1,0 +1,21 @@
+---
+# GoDaddy REST API (there is no Ansible module). PUT replaces the record of
+# that name and type, so re-runs are idempotent.
+#   PUT    /v1/domains/{zone}/records/{type}/{name}   [{"data": ..., "ttl": ...}]
+#   DELETE /v1/domains/{zone}/records/{type}/{name}
+- name: GoDaddy records ({{ dns_state }})
+  ansible.builtin.uri:
+    url: "{{ dns_godaddy_api_url }}/v1/domains/{{ dns_zone }}/records/{{ item.type }}/{{ item.name }}"
+    method: "{{ 'PUT' if dns_state == 'present' else 'DELETE' }}"
+    headers:
+      Authorization: "sso-key {{ dns_godaddy_key }}:{{ dns_godaddy_secret }}"
+      Accept: application/json
+    body_format: json
+    body: "{{ [{'data': item.value, 'ttl': [item.ttl | int, dns_godaddy_min_ttl | int] | max}] if dns_state == 'present' else omit }}"
+    status_code: "{{ [200] if dns_state == 'present' else [200, 204, 404] }}"
+  loop: "{{ dns_records }}"
+  loop_control:
+    label: "{{ item.fqdn }} {{ item.type }}"
+  delegate_to: localhost
+  run_once: true
+  no_log: "{{ dns_no_log | bool }}"

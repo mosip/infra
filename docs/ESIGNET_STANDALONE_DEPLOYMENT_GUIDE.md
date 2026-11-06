@@ -132,6 +132,8 @@ Path to create `GH_INFRA_PAT`: `Your profile → Settings → Developer settings
 |---|---|
 | `ESIGNET_CAPTCHA_SITE_KEY` | reCAPTCHA **site** key for the main `esignet-mock` namespace |
 | `ESIGNET_CAPTCHA_SECRET_KEY` | reCAPTCHA **secret** key for the main `esignet-mock` namespace |
+| `SMTP_PASSWORD` | Alertmanager SMTP password (default `monitoring_stack=standalone`) |
+| `GRAFANA_ADMIN_PASSWORD` | Optional — Grafana `admin` password (random if unset) |
 
 > **`esignet-standalone-2.0.0` note:** `helmsman_external.yml` has no `esignet-standalone-2.0.0` option in its
 > `profile` dropdown — it only ever deploys as `esignet-standalone`. The 2.0.0 profile has no `external-dsf.yaml`
@@ -182,8 +184,12 @@ Navigate to: `Repository → Settings → Environments → <your-branch-name> �
 | `DOMAIN_NAME` | `sandbox.xyz.net` | **Yes** | Base domain — all service hostnames are built from this |
 | `ESIGNET_DB_PORT` | `5432` | **Yes** | Postgres port — always `5432` for standalone |
 | `ENV_NAME` | `sandbox` | **Yes** | Short environment label shown on the landing page |
-| `CLUSTER_ID` | `c-xxxxx` | **Yes** | Rancher cluster ID used by monitoring setup — see [Finding your clusterid](../README.md#step-4a-configure-github-environment-variables) in the root README |
-| `SLACK_CHANNEL_NAME` | `#mosip-alerts` | **Yes** | Slack channel name for alert notifications |
+| `ALERT_RECIPIENTS` | `ops@xyz.net` | **Yes** (standalone monitoring, default) | Alert e-mail recipients, comma-separated |
+| `SMTP_FROM` | `alerts@xyz.net` | **Yes** (standalone monitoring, default) | Alertmanager sender; its password goes in the `SMTP_PASSWORD` **secret** |
+| `SMTP_HOST` / `SMTP_USERNAME` | `smtp.gmail.com:587` | Optional | SMTP server and login (defaults: Gmail, the sender) |
+| `MONITORING_STACK` | `standalone` | Optional | `standalone` (default) or `rancher` (ELK + rancher-monitoring) — see the [root README](../README.md#step-4a-configure-github-environment-variables) |
+| `CLUSTER_ID` | `c-xxxxx` | Only `MONITORING_STACK=rancher` | Rancher cluster ID for rancher-monitoring |
+| `SLACK_CHANNEL_NAME` | `#mosip-alerts` | Optional, rancher only | Slack channel for alerts |
 | `MOSIPID_DOMAIN_NAME` | `mosipid.xyz.net` | **Yes** | Base domain of the MOSIP environment that `esignet-mosipid` connects to |
 | `ESIGNET_MOSIPID_SPRING_CONFIG_LABEL` | `develop` | Optional | Git branch/tag for MOSIP-ID config-server (defaults to `develop`) |
 | `ESIGNET_STANDALONE_MODE` | `true` | Optional | Set to `true` to skip the MOSIP DSF completion check |
@@ -197,8 +203,8 @@ There are **5 steps** in total. Run them in the order shown below. **Do not star
 ```
 Step 0 → Provision Infrastructure   (terraform plan / apply)
   ├── 0b  base-infra      ~10 min   ← once per AWS account; skip if already done
-  ├── 0c  observ-infra    ~15 min   ← optional monitoring cluster
-  └── 0d  infra           ~20 min   profile: esignet-standalone  ← the main cluster
+  ├── 0c  profile observ  ~15 min   ← optional Rancher/Keycloak cluster
+  └── 0d  COMPONENT=all   ~20 min   profile: esignet-standalone  ← the main cluster
 Step 1 → Deploy External Services   (helmsman_external.yml)   ~20 min   profile: esignet-standalone (always)
 Step 2 → Deploy eSignet             (helmsman_esignet.yml)    ~25 min   profile: esignet-standalone or esignet-standalone-2.0.0
 Step 3 → Deploy Signup              (helmsman_signup.yml)     ⚠️  IN PROGRESS — not ready yet
@@ -217,26 +223,26 @@ Step 4 → Deploy Testrigs (optional) (helmsman_testrigs.yml)   ~10 min   profil
 > **What this does:** Creates the AWS infrastructure your cluster will run on — VPC, networking, EC2 nodes, WireGuard jump server, and the RKE2 Kubernetes cluster itself.
 > **Skip this step** if your cluster already exists. Jump straight to Step 1.
 
-The Terraform workflow has three separate components. Run them in this order:
+Run the Terraform workflow in this order:
 
 ```
 0b → base-infra     (once per AWS account — skip if already done)
-0c → observ-infra   (optional — skip if not needed or already done)
-0d → infra          (profile: esignet-standalone — always required)
+0c → COMPONENT=all, PROFILE=observ              (optional — skip if not needed or already done)
+0d → COMPONENT=all, PROFILE=esignet-standalone  (always required)
 ```
 
 > **Already have `base-infra` deployed?** Skip `0b` entirely — go straight to `0c` or `0d`.
-> **Already have `observ-infra` deployed (or don't need it)?** Skip `0c` — go straight to `0d`.
+> **Already have the `observ` cluster deployed (or don't need it)?** Skip `0c` — go straight to `0d`.
 
 **Terraform workflow name:** `terraform plan / apply`
 
 ---
 
-#### 0a — Update the tfvars file
+#### 0a — Update the profile
 
-Before running the workflow, fill in the placeholders in the `esignet-standalone` tfvars file:
+Before running the workflow, fill in the placeholders of the `esignet-standalone` profile:
 
-**File:** `terraform/implementations/aws/infra/profiles/esignet-standalone/aws.tfvars`
+**File:** `profiles/esignet-standalone/aws/common.tfvars` (sizes: `compute.tfvars`, `storage.tfvars`; subdomains: `dns.tfvars`)
 
 | Field | What to set |
 |---|---|
@@ -246,10 +252,9 @@ Before running the workflow, fill in the placeholders in the `esignet-standalone
 | `ssh_key_name` | Name of the AWS key pair to use for SSH access to nodes |
 | `zone_id` | Your Route 53 hosted zone ID for this domain |
 | `vpc_name` | Name of your existing VPC (looked up by `Name` tag) |
-| `rancher_import_url` | Rancher import URL for this cluster — see [Rancher Import Configuration](../README.md#rancher-import-configuration-optional) in the root README for where to find this URL and how to escape it correctly |
 | `aws_provider_region` | AWS region to deploy into (default: `ap-south-1`) |
 
-All other fields (node counts, instance types, volume sizes) are already set to sensible defaults for eSignet standalone. Review and adjust if needed.
+All other fields (node counts, instance types, volume sizes) are already set to sensible defaults for eSignet standalone. Review and adjust if needed. Rancher import needs no tfvars value anymore — tick **ENABLE_RANCHER_IMPORT** when running the workflow.
 
 Commit the updated file on your branch before triggering the workflow.
 
@@ -267,30 +272,31 @@ After `base-infra` completes, configure `TF_WG_CONFIG` (repository secret) with 
 
 #### 0c — Run: Observability Infrastructure (optional)
 
-> **Optional.** Creates a separate lightweight Kubernetes cluster for monitoring and observability tooling (Rancher, Keycloak, logging). eSignet standalone works without it — skip if you don't need a dedicated monitoring cluster.
+> **Optional.** Creates a separate lightweight Kubernetes cluster for Rancher and Keycloak. eSignet standalone works without it — skip if you don't need a dedicated management cluster.
 
-Follow the full instructions in the root README: [Step 3ca: Observation Infrastructure](../README.md#step-3ca-observation-infrastructure-observ-infra--optional)
+Follow the root README: [Step 3d](../README.md#step-3d-deploy-with-one-run) with `PROFILE=observ`.
 
 ---
 
 #### 0d — Run: Main Infrastructure
 
-> Creates the Kubernetes nodes and cluster for eSignet standalone. Run this after `base-infra` (and optionally `observ-infra`) are complete.
+> Creates the Kubernetes nodes and cluster for eSignet standalone. Run this after `base-infra` (and optionally the `observ` cluster) are complete.
 
 1. Trigger **`terraform plan / apply`** with:
 
 | Field | Value |
 |---|---|
-| `cloud_provider` | `aws` |
-| `component` | `infra` |
-| `profile` | `esignet-standalone` |
-| `backend` | `local` *(or `s3`)* |
+| `CLOUD_PROVIDER` | `aws` |
+| `COMPONENT` | `all` |
+| `PROFILE` | `esignet-standalone` |
+| `BACKEND_TYPE` | `local` *(or `remote`)* |
 | `SSH_PRIVATE_KEY` | Name of your SSH private key secret |
-| `terraform_apply` | Tick to apply |
+| `TERRAFORM_APPLY` | Tick (required for a new environment; unticked only previews an existing one) |
+| `ENABLE_RANCHER_IMPORT` | Tick to register in Rancher (publishes `KUBECONFIG` too) |
 
-2. **After apply completes (~20 min):** Retrieve the kubeconfig from the cluster and add it as the `KUBECONFIG` environment secret (Section 2B) before proceeding to Step 1.
+2. **After apply completes (~20 min):** With Rancher import + `PUBLISH_KUBECONFIG`, the `KUBECONFIG` environment secret is already set. Otherwise copy `/home/ubuntu/.kube/<cluster_name>-CONTROL-PLANE-NODE-1.yaml` from the primary control-plane node and add it as `KUBECONFIG` (Section 2B) before proceeding to Step 1.
 
-> **Note on WireGuard:** The Terraform runner connects to the nginx node via `TF_WG_CONFIG` (repository secret) to run post-provisioning scripts. `CLUSTER_WIREGUARD_WG0` and `CLUSTER_WIREGUARD_WG1` (environment secrets) are separate — they are used by Helmsman workflows to reach the cluster API. All three must be configured before their respective workflows run.
+> **Note on WireGuard:** The `configure` job connects to the nodes via `TF_WG_CONFIG` to run Ansible. `CLUSTER_WIREGUARD_WG0` and `CLUSTER_WIREGUARD_WG1` (environment secrets) are separate — they are used by Helmsman workflows to reach the cluster API. All three must be configured before their respective workflows run.
 
 ---
 
@@ -313,17 +319,19 @@ Follow the full instructions in the root README: [Step 3ca: Observation Infrastr
 | `profile` | `esignet-standalone` |
 | `mode` | `apply` |
 | `domain_name` | your base domain — e.g. `sandbox.xyz.net` |
-| `db_port` *(MOSIP platform external postgres)* | leave blank — not used by the `esignet-standalone` profile |
-| `esignet_db_port` *(esignet container postgres)* | `5432` |
-| `clusterid` | your Rancher cluster ID — e.g. `c-xxxxx` |
+| `db_port` *(MOSIP platform external postgres)* | `5433` — the field is required by the form but not used by `esignet-standalone` |
+| `esignet_db_port` *(esignet postgres)* | `5432` |
 | `env_name` | a short label for your environment — e.g. `sandbox` |
-| `slack_channel_name` | your Slack channel — e.g. `#mosip-alerts` |
+| `alert_recipients` | alert e-mail recipients — e.g. `ops@xyz.net` (first run; saved afterwards) |
+| `smtp_from` | Alertmanager sender — e.g. `alerts@xyz.net` (password: `SMTP_PASSWORD` secret) |
+| `monitoring_stack`, `keycloak_db`, `smtp_host`, `smtp_username` | leave empty for the defaults (`standalone`, `bundled`, Gmail SMTP) |
+| `clusterid`, `slack_channel_name`, `slack_webhook_url` | only with `monitoring_stack=rancher` |
 
-> **Note:** The form always shows both `db_port` and `esignet_db_port` fields regardless of profile — for `esignet-standalone`, fill in only `esignet_db_port` and leave `db_port` blank.
+> **Note:** Values you type are saved as Environment variables, so later runs can leave them empty.
 
 6. Click the green **`Run workflow`** button
 
-![Deploy External Services - Helmsman](_images/helmsman-external-services.png)
+![Deploy External services — Run workflow form](_images/workflows/helmsman_external.svg)
 
 **How to know it succeeded:** Click into the running workflow. Wait for all jobs to show a green tick. Then run:
 
@@ -362,7 +370,7 @@ All pods should show `Running` or `Completed`.
 
 4. Click the green **`Run workflow`** button
 
-![Deploy eSignet - Helmsman](_images/esignet.png)
+![Deploy eSignet — Run workflow form](_images/workflows/helmsman_esignet.svg)
 
 > **`esignet-standalone-2.0.0` note:** Selecting `esignet-standalone-2.0.0` runs `Helmsman/dsf/esignet-standalone-2.0.0/esignet-dsf.yaml`
 > instead — it deploys the same 3 instances (main/mock, mosipid, sunbird) plus their OIDC UIs and mock relying
@@ -422,7 +430,7 @@ All pods should show `Running`.
 
 4. Click the green **`Run workflow`** button
 
-![Deploy Test Rigs - Helmsman](_images/helmsman-testrigs.png)
+![Deploy Testrigs — Run workflow form](_images/workflows/helmsman_testrigs.svg)
 
 **How to know it succeeded:** The workflow log should show all Helmsman releases applied without errors. Verify that test cronjobs were created:
 

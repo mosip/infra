@@ -1,0 +1,23 @@
+---
+# Report Rancher status — converted from a standalone play into a role task file.
+# Play-level vars moved to ../defaults/main.yml.
+
+- name: Get Rancher pod status
+  shell: "{{ kubectl_path }} get pods -n cattle-system | grep rancher || echo 'Rancher pods not found'"
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  register: rancher_pods
+
+- name: Display Rancher status
+  debug:
+    msg: "{{ rancher_pods.stdout_lines }}"
+
+- name: Display Rancher URL
+  debug:
+    msg: "Rancher URL: https://{{ rancher_hostname }}"
+
+- name: Display bootstrap password
+  debug:
+    msg: "Bootstrap Password: {{ rancher_bootstrap_password }}"
+  when: debug_rancher | bool
+  no_log: true

@@ -1,0 +1,54 @@
+---
+# Cluster join token.
+#
+# - A cluster that already has a primary server: always use the token from
+#   that node (/var/lib/rancher/rke2/server/token). This keeps existing
+#   clusters (including ones bootstrapped with the old md5(cluster_name)
+#   token) joining exactly as before.
+# - A brand-new cluster (no token on the primary yet): generate a random
+#   48-character token. It is not derived from anything public, so knowing
+#   the cluster name is not enough to join a node. Subsequent nodes join
+#   after the primary is up and read the token from it.
+
+- name: Check for existing RKE2 server token on primary node
+  ansible.builtin.stat:
+    path: /var/lib/rancher/rke2/server/token
+  register: rke2_primary_token_stat
+  delegate_to: "{{ groups['control_plane'][0] }}"
+  become: true
+  failed_when: false
+
+- name: Read existing RKE2 server token from primary node
+  ansible.builtin.slurp:
+    src: /var/lib/rancher/rke2/server/token
+  register: rke2_primary_token_slurp
+  delegate_to: "{{ groups['control_plane'][0] }}"
+  become: true
+  when: rke2_primary_token_stat.stat.exists | default(false)
+  no_log: true
+
+- name: Use the token of the running cluster
+  ansible.builtin.set_fact:
+    cluster_token: "{{ rke2_primary_token_slurp.content | b64decode | trim }}"
+  when:
+    - rke2_primary_token_stat.stat.exists | default(false)
+    - rke2_primary_token_slurp.content is defined
+  no_log: true
+
+- name: Generate a random token for a new cluster
+  ansible.builtin.set_fact:
+    cluster_token: "{{ lookup('ansible.builtin.password', '/dev/null', length=48, chars=['ascii_letters', 'digits']) }}"
+  when:
+    - cluster_token is not defined or (cluster_token | length == 0)
+    - inventory_hostname == groups['control_plane'][0]
+  no_log: true
+
+- name: A joining node needs the primary's token
+  ansible.builtin.fail:
+    msg: >-
+      No RKE2 token on the primary ({{ groups['control_plane'][0] }}):
+      /var/lib/rancher/rke2/server/token is missing. Install the primary
+      control-plane node first (it runs before the other nodes in site.yml).
+  when:
+    - inventory_hostname != groups['control_plane'][0]
+    - cluster_token is not defined or (cluster_token | length == 0)

@@ -1,6 +1,6 @@
 # DSF Configuration Guide
 
-This guide explains how to configure Helmsman Desired State Files (DSF) for MOSIP and eSignet deployment, including the profile-based DSF structure, `clusterid` configuration, and domain/environment variable setup.
+This guide explains how to configure Helmsman Desired State Files (DSF) for MOSIP and eSignet deployment, including the profile-based DSF structure, the monitoring stack choice, and domain/environment variable setup.
 
 ## Table of Contents
 
@@ -79,7 +79,8 @@ Helmsman/dsf/
 | `${clusterid}` | Workflow input or `vars.CLUSTER_ID` | `c-m-abc12xyz` |
 | `${slack_channel_name}` | Workflow input or `vars.SLACK_CHANNEL_NAME` | `#mosip-alerts` |
 | `${db_port}` | Workflow input or `vars.DB_PORT` | `5433` |
-| `${esignet_db_port}` | Workflow input or `vars.ESIGNET_DB_PORT` | `5432` |
+| `${esignet_db_port}` | Workflow input or `vars.ESIGNET_DB_PORT`, else `5432` | `5432` |
+| `${KEYCLOAK_BUNDLED_DB}` / `${KEYCLOAK_EXTERNAL_DB}` | Workflow input `keycloak_db` or `vars.KEYCLOAK_DB` (`bundled` default / `external`) — see [Keycloak database](#keycloak-database-bundled-or-external-postgresql) | `true` / `false` |
 
 Configure these under: **Repository → Settings → Environments → `<branch-name>` → Variables**
 
@@ -89,11 +90,25 @@ For push-triggered runs (no `workflow_dispatch` inputs), the workflow reads thes
 
 ## Prerequisites DSF Configuration
 
-**File**: `Helmsman/dsf/prereq-dsf.yaml`
+### Monitoring and logging stack (`monitoring_stack`)
+
+Every profile's `prereq-dsf.yaml` contains two stacks; the `monitoring_stack` workflow input (saved to `vars.MONITORING_STACK`) enables exactly one:
+
+| `monitoring_stack` | Monitoring | Logging | Alerts | Required settings |
+|---|---|---|---|---|
+| `standalone` (**default**) | kube-prometheus-stack (`monitoring` ns) | Loki + Alloy + Grafana (`logging` ns, `grafana.<domain>`) | Alertmanager email | `alert_recipients`, `smtp_from`, `secrets.SMTP_PASSWORD` |
+| `rancher` | rancher-monitoring (`cattle-monitoring-system`) | Elasticsearch + Kibana + rancher-logging (`cattle-logging-system`, `kibana.<domain>`) | Slack | `clusterid` (Slack channel/webhook recommended) |
+
+Istio and httpbin are installed by the first app of whichever stack is enabled. **Helmsman uninstalls the releases of the disabled stack** — an environment that runs ELK + rancher-monitoring today must set `monitoring_stack=rancher` (or `vars.MONITORING_STACK=rancher`) before its next prereq run, otherwise the run replaces it with the standalone stack.
+
+
+**File**: `Helmsman/dsf/<profile>/prereq-dsf.yaml`
 
 **Purpose**: Deploys monitoring stack, Istio service mesh, and logging
 
-### Critical Configuration: clusterid
+### clusterid (`monitoring_stack=rancher` only)
+
+> Skip this section with the default `monitoring_stack=standalone` — `clusterid` is not used.
 
 #### What is clusterid?
 
@@ -147,12 +162,11 @@ kubectl get setting cluster-id -n cattle-system -o jsonpath='{.value}'
 # c-m-pbrcfglw
 ```
 
-**Option 3: From Terraform Outputs**
+**Option 3: From the Rancher API**
 
 ```bash
-# If Rancher import was enabled during Terraform deployment
-cd terraform/implementations/aws/infra/
-terraform output rancher_cluster_id
+# If Rancher import was enabled during deployment
+curl -s -H "Authorization: Bearer $RANCHER_TOKEN" "$RANCHER_URL/v3/clusters?name=<cluster-name>" | jq -r '.data[0].id'
 ```
 
 #### How to Set clusterid for Deployment
@@ -164,7 +178,7 @@ terraform output rancher_cluster_id
 1. Go to **Repository → Settings → Environments → `<branch-name>` → Variables**
 2. Add variable: `CLUSTER_ID` = your clusterid (e.g. `c-m-abc12xyz`)
 
-The DSF file reads it automatically via `${clusterid}` substitution at deploy time. For manual `workflow_dispatch` runs, you can also pass it directly as the `clusterid` workflow input.
+The DSF file reads it automatically via `${clusterid}` substitution at deploy time. For manual `workflow_dispatch` runs, you can also pass it directly as the `clusterid` workflow input. It is required only when `monitoring_stack=rancher`; the default standalone stack doesn't use it.
 
 **How the DSF uses it (no changes needed):**
 
@@ -203,49 +217,20 @@ The DSF files reference `${domain_name}` and `${env_name}` everywhere a domain o
 
 ```yaml
 hooks:
- postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh ${env_name} helmsman"
+ postInstall: "$WORKDIR/hooks/install-istio-and-httpbin.sh ${domain_name} ${env_name}"
  # env_name is resolved from vars.ENV_NAME (e.g. "soil38")
 ```
 
-#### Monitoring Configuration Options
+#### Monitoring and logging apps
 
-```yaml
-apps:
- # CRDs (Custom Resource Definitions) - Always deploy first
- rancher-monitoring-crd:
- namespace: cattle-monitoring-system
- enabled: true # Keep enabled
- version: 103.1.1+up45.31.1
- chart: mosip/rancher-monitoring-crd
- priority: -6 # Highest priority (deploys first)
- 
- # Main monitoring stack
- rancher-monitoring:
- namespace: cattle-monitoring-system
- enabled: true # Set to false to disable monitoring
- # If disabled, Grafana and Prometheus won't be installed
-```
+No DSF edits are needed: every app of each stack carries `enabled: ${MONITORING_STANDALONE}` or `enabled: ${MONITORING_RANCHER}`, and the workflow sets exactly one of them to `true` from `monitoring_stack` (see [above](#monitoring-and-logging-stack-monitoring_stack)).
 
-#### Logging Configuration (Optional)
+| Stack | Apps (namespace) |
+|-------|------------------|
+| standalone | `kube-prometheus-stack` (`monitoring`), `loki`, `grafana`, `alloy`, `istio-addons-loki` (`logging`) |
+| rancher | `rancher-monitoring-crd`, `rancher-monitoring` (`cattle-monitoring-system`), `elasticsearch`, `istio-addons-logging`, `rancher-logging-crd`, `rancher-logging` (`cattle-logging-system`) |
 
-```yaml
-apps:
- logging:
- namespace: cattle-logging-system
- enabled: false # Set to true to enable logging
- # When enabled, installs Fluentd/Elasticsearch/Kibana stack
-```
-
-**When to enable logging:**
-- Need centralized log aggregation
-- Debugging complex issues
-- Compliance requirements
-- Performance analysis
-
-**Cost considerations:**
-- Logging consumes significant storage
-- Requires additional resources (CPU/memory)
-- Recommended for production, optional for development
+Values files: `Helmsman/utils/prometheus-values.yaml`, `loki-values.yaml`, `grafana-values.yaml`, `alloy-values.yaml` (standalone) and `monitoring_values.yaml`, `rancher-logging-values.yaml` (rancher). Grafana dashboards are loaded from `Helmsman/utils/loki/dashboards/` by the `import-dashboards.sh` hook.
 
 ---
 
@@ -297,43 +282,32 @@ apps:
  # External PostgreSQL connection details are in terraform outputs
 ```
 
-**Important**: This setting must match your Terraform configuration:
-```hcl
-# In terraform/implementations/aws/infra/aws.tfvars
-enable_postgresql_setup = true # External → postgres.enabled = false
-enable_postgresql_setup = false # Container → postgres.enabled = true
+**Important**: This setting must match your profile:
+```yaml
+# profiles/<profile>/profile.yml — configure_components
+- postgresql      # listed (and storage volume_size_2 > 0) → external → postgres.enabled = false
+                  # not listed                              → container → postgres.enabled = true
 ```
 
 #### 3. reCAPTCHA Configuration
 
-**Location**: Around line 315
+**Purpose**: Protects the MOSIP web portals (pre-registration, admin, resident) from bots.
 
-**Purpose**: Protects MOSIP web portals from bots
-
-**Configuration**:
-```yaml
-apps:
- captcha:
- enabled: true
- hooks:
- postInstall: "$WORKDIR/hooks/captcha-setup.sh PREREG_SITE_KEY PREREG_SECRET_KEY ADMIN_SITE_KEY ADMIN_SECRET_KEY RESIDENT_SITE_KEY RESIDENT_SECRET_KEY"
-```
-
-**How to get keys**: See [Secret Generation Guide - reCAPTCHA](SECRET_GENERATION_GUIDE.md#6-recaptcha-keys)
-
-**Example with actual keys**:
+**Configuration** (`mosip-platform-*/external-dsf.yaml`, postInstall hook of the `activemq` app — already in place):
 ```yaml
 hooks:
- postInstall: "$WORKDIR/hooks/captcha-setup.sh 6LfkAMwrAAAAAATB1WhkIhzuAVMtOs9VWabODoZ_ 6LfkAMwrAAAAAHQAT93nTGcLKa-h3XYhGoNSG-NL 6LdNAcwrAAAAAETGWvz-3I12vZ5V8vPJLu2ct9CO 6LdNAcwrAAAAAE4iWGJ-g6Dc2HreeJdIwAl5h1iL 6LdRAcwrAAAAAFUEHHKK5D_bSrwAPqdqAJqo4mCk 6LdRAcwrAAAAAOeVl6yHGBCBA8ye9GsUOy4pi9s9"
+ postInstall: "$WORKDIR/hooks/captcha-setup.sh ${PREREG_CAPTCHA_SITE_KEY} ${PREREG_CAPTCHA_SECRET_KEY} ${ADMIN_CAPTCHA_SITE_KEY} ${ADMIN_CAPTCHA_SECRET_KEY} ${RESIDENT_CAPTCHA_SITE_KEY} ${RESIDENT_CAPTCHA_SECRET_KEY}"
 ```
 
-**Key Order (CRITICAL)**:
-1. PreReg Site Key
-2. PreReg Secret Key
-3. Admin Site Key
-4. Admin Secret Key
-5. Resident Site Key
-6. Resident Secret Key
+Do **not** edit the DSF: it already reads the keys from these **environment secrets** (Settings → Environments → `<branch>` → Secrets):
+
+| Secret | Domain |
+|--------|--------|
+| `PREREG_CAPTCHA_SITE_KEY` / `PREREG_CAPTCHA_SECRET_KEY` | `prereg.<domain>` |
+| `ADMIN_CAPTCHA_SITE_KEY` / `ADMIN_CAPTCHA_SECRET_KEY` | `admin.<domain>` |
+| `RESIDENT_CAPTCHA_SITE_KEY` / `RESIDENT_CAPTCHA_SECRET_KEY` | `resident.<domain>` |
+
+**How to get keys**: see the [reCAPTCHA Setup Guide](RECAPTCHA_SETUP_GUIDE.md) and [Secret Generation Guide - reCAPTCHA](SECRET_GENERATION_GUIDE.md#7-recaptcha-keys).
 
 #### 4. MinIO Configuration (Object Storage)
 
@@ -407,6 +381,26 @@ apps:
  - "iam.sandbox.xyz.net" # ← Replace with your domain
 ```
 
+#### Keycloak database: bundled or external PostgreSQL
+
+Available in the external DSF of `mosip-platform-1.2.1.x`, `mosip-platform-1.2.0.x` and `esignet-standalone`. It works like `db_port`: either use the `keycloak_db` input when running `helmsman_external.yml` (the value is saved to `vars.KEYCLOAK_DB`), or set `vars.KEYCLOAK_DB` in the GitHub Environment yourself. An empty input keeps the saved value; push-triggered runs use the saved value.
+
+| `keycloak_db` / `vars.KEYCLOAK_DB` | Keycloak database |
+|---|---|
+| unset or `bundled` (default) | The keycloak chart's own PostgreSQL. This is the same as before. |
+| `external` | The shared PostgreSQL. MOSIP platform: the external PostgreSQL installed by the infra flow on the nginx node (`postgres.${domain_name}:${db_port}`). esignet-standalone: the `postgres` app of the same DSF (`postgres.${domain_name}:${esignet_db_port}`). |
+
+With `external`, the keycloak chart runs with `postgresql.enabled=false`, so no Keycloak Postgres pod is created. The `keycloak-db-init` app (`Helmsman/utils/keycloak-db-init`; priority -15, or -13 in esignet-standalone) runs first, in four steps:
+1. Its pre-hook copies the superuser Secret `postgres-postgresql` from the `postgres` namespace. Host and port come from the DSF.
+2. It creates a dedicated `keycloak-db-credentials` Secret, once.
+3. A one-shot Job creates database `bitnami_keycloak`, role `bn_keycloak` and their grants. The Job is idempotent and also syncs the role password from that Secret.
+4. Its post-hook deletes the copied superuser Secret.
+
+If the Job fails, the release fails and keycloak is not installed. Read the error with `kubectl -n keycloak logs job/keycloak-db-init`. This is ported from [mosip/keycloak#215](https://github.com/mosip/keycloak/pull/215).
+
+- **Prerequisite:** `postgres-postgresql` exists in the `postgres` namespace. MOSIP platform: created by `terraform.yml` with `COMPONENT=configure` (postgresql). esignet-standalone: created by the DSF's own `postgres` app, which runs earlier.
+- **Choose at the first install.** Switching an existing Keycloak between `bundled` and `external` does not move its data (realms, users).
+
 ---
 
 ## MOSIP Services DSF Configuration
@@ -423,28 +417,18 @@ apps:
 
 #### 2. Database Branch Configuration
 
-**Location**: Multiple locations, look for `dbBranch`
+**Location**: `external-dsf.yaml` → `postgres-init` app, one line per database. Each profile already pins the branches that match its chart versions:
 
 ```yaml
 apps:
- config-server:
+ postgres-init:
  set:
- # CRITICAL: Must match your MOSIP version
- gitRepo.dbBranch: "v1.2.0.2" # ← Update to your MOSIP version
+ databases.mosip_master.branch: "v1.2.1.4"
+ databases.mosip_kernel.branch: "v1.2.0.2"
+ # ... mosip_audit, mosip_keymgr, mosip_idmap, mosip_prereg, ...
 ```
 
-**How to determine correct branch:**
-
-| MOSIP Version | DB Branch |
-|---------------|-----------|
-| 1.2.0.2 | `v1.2.0.2` |
-| 1.2.0.3 | `v1.2.0.3` |
-| Latest | Check MOSIP releases |
-
-**Where to find your MOSIP version:**
-- Check Helm chart versions in DSF file
-- Refer to your deployment requirements
-- Match with MOSIP official releases
+Change a branch only when you change the matching service chart version in `mosip-dsf.yaml`.
 
 #### 3. Chart Versions
 
@@ -755,13 +739,13 @@ apps:
 **Symptom**: Services can't connect to database
 
 **Solution**:
-1. Verify PostgreSQL enabled setting matches Terraform:
+1. Verify the PostgreSQL setting matches your profile:
  ```yaml
- # If Terraform enable_postgresql_setup = true
+ # profile.yml lists `postgresql` (external PostgreSQL on the nginx node)
  postgres:
  enabled: false # Use external
  
- # If Terraform enable_postgresql_setup = false
+ # profile.yml doesn't list `postgresql`
  postgres:
  enabled: true # Use container
  ```
@@ -794,15 +778,16 @@ apps:
 | Slack channel | `vars.SLACK_CHANNEL_NAME` | GitHub Environment Variables | Alerting in prereq-dsf |
 | MOSIP postgres port | `vars.DB_PORT` | GitHub Environment Variables | MOSIP platform external postgres (5433) |
 | eSignet postgres port | `vars.ESIGNET_DB_PORT` | GitHub Environment Variables | eSignet container postgres (5432) |
+| Keycloak database | `vars.KEYCLOAK_DB` | GitHub Environment Variables | `bundled` (default) or `external` PostgreSQL for Keycloak (external DSFs) |
 | MOSIP-ID domain | `vars.MOSIPID_DOMAIN_NAME` | GitHub Environment Variables | esignet-standalone profile — MOSIP-ID testrig hosts |
 
-**DSF file manual edits (one-time per environment):**
+**DSF settings already set per profile (change only if your deployment differs):**
 
 | Setting | File | Purpose |
 |---------|------|---------|
-| `postgres.enabled` | `external-dsf.yaml` | `true` = container PostgreSQL, `false` = external (Terraform-managed) |
-| `dbBranch` | `mosip-dsf.yaml` | DB scripts version — must match MOSIP version |
-| Domain values | `Helmsman/utils/global_configmap.yaml` | Shared ConfigMap consumed by all services |
+| `postgres.enabled` | `external-dsf.yaml` | `false` = external PostgreSQL (MOSIP platform), `true` = container PostgreSQL (eSignet standalone) |
+| `databases.<db>.branch` | `external-dsf.yaml` (`postgres-init`) | DB scripts version per database — matches the profile's chart versions |
+| Domain values | `Helmsman/utils/global_configmap.yaml` | Generated from `domain_name` by the Istio hook (`install-istio-and-httpbin.sh`) — no edits |
 
 ---
 
@@ -815,4 +800,4 @@ apps:
 
 ---
 
-**Navigation**: [Back to Main README](../README.md) | [View All Docs](.)
+**Navigation**: [Back to Main README](../README.md) | [View All Docs](README.md)

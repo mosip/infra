@@ -1,0 +1,11 @@
+---
+# No API access: print exactly what the DNS team must create. The preflight
+# play that follows waits for api.<domain> to resolve before nginx.
+- name: Records to create by hand
+  ansible.builtin.debug:
+    msg: |
+      Create these records in zone {{ dns_zone }} ({{ 'create' if dns_state == 'present' else 'remove' }}):
+      {% for r in dns_records %}
+        {{ '%-45s' | format(r.fqdn) }} {{ '%-6s' | format(r.type) }} {{ r.value }}   (TTL {{ r.ttl }})
+      {% endfor %}
+  run_once: true

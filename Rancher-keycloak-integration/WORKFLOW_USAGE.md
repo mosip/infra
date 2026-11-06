@@ -91,13 +91,13 @@ For better security, you can modify the workflow to use GitHub Secrets instead o
 1. Go to **Settings** → **Secrets and variables** → **Actions**
 2. Add secrets for sensitive values:
    - `KEYCLOAK_ADMIN_PASSWORD`
-   - `RANCHER_TOKEN`
+   - `RANCHER_API_TOKEN`
 3. Update the workflow to use: `${{ secrets.SECRET_NAME }}`
 
 Example:
 ```yaml
 KEYCLOAK_ADMIN_PASSWORD: ${{ secrets.KEYCLOAK_ADMIN_PASSWORD }}
-RANCHER_TOKEN: ${{ secrets.RANCHER_TOKEN }}
+RANCHER_TOKEN: ${{ secrets.RANCHER_API_TOKEN }}
 ```
 
 ## Troubleshooting

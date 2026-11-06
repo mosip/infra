@@ -55,7 +55,7 @@ The destroy workflows follow a **reusable workflow pattern**:
 | **Destroy MOSIP Services**    | `helmsman_mosip_destroy.yml`             | Removes core MOSIP services   | `admin`, `apitestrig`, `artifactory`, `config-server`, `dslrig`, `esignet`, `idrepo`, `kernel`, `masterdata`, `packet-manager`, `pmp`, `postgresdb`, `print`, `regproc`, `resident`, `uitestrig` |
 | **Destroy eSignet Services**  | (use `helmsman_esignet.yml` with `--destroy`) | Removes eSignet stack (esignet profile) | `esignet`, `esignet-mosipid`, `esignet-sunbird`, `signup`, `kernel` |
 | **Destroy External Services** | `helmsman_external_destroy_external.yml` | Removes external dependencies | `keycloak`, `kafka`, `minio`, `softhsm`, `clamav`, `activemq`, `captcha`, `redis`, `postgres`, `landing-page`                                                                                                       |
-| **Destroy Prerequisites**     | `helmsman_external_destroy_prereq.yml`   | Removes monitoring and Istio  | `cattle-logging-system`, `istio-system`, `monitoring`                                                                                                                                                                      |
+| **Destroy Prerequisites**     | `helmsman_external_destroy_prereq.yml`   | Removes monitoring and Istio  | `monitoring`, `logging` (standalone), `cattle-monitoring-system`, `cattle-logging-system` (rancher), `istio-system`, `istio-operator`, `httpbin` |
 
 ### Reusable Workflow: `destroy-resources.yml`
 
@@ -600,10 +600,8 @@ After running destruction, verify everything is cleaned up:
 
 **To fully stop costs, you must also run:**
 
-```bash
-# Terraform destroy for full cleanup
-terraform destroy -var-file=implementations/aws/infra/aws.tfvars
-```
+Run **Actions → terraform destroy** with `COMPONENT=all`, your `PROFILE`, and `TERRAFORM_DESTROY` ticked
+(see [Environment Destruction Guide](ENVIRONMENT_DESTRUCTION_GUIDE.md)).
 
 See [Environment Destruction Guide](ENVIRONMENT_DESTRUCTION_GUIDE.md) for complete infrastructure teardown.
 

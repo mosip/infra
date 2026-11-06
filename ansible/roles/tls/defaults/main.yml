@@ -1,0 +1,41 @@
+---
+# How the nginx host gets its TLS certificate. The certificate always ends up
+# at /etc/letsencrypt/live/<cluster_env_domain>/{fullchain,privkey}.pem,
+# which is where the nginx role (k8s-infra install.sh) reads it from, so the
+# mode never changes anything downstream.
+#
+#   dns01  Let's Encrypt, DNS-01 challenge through a DNS provider API.
+#          Wildcard cert (*.<domain> + <domain>). Works for internal names
+#          too. Needs the provider's certbot plugin + credentials.
+#   http01 Let's Encrypt, HTTP-01 challenge on port 80. No wildcard: one
+#          name per entry in public_domain_list. Every name must already
+#          resolve publicly to this host (DNS before nginx), and internal
+#          names can't be validated this way.
+#   byo    Bring your own certificate (national CA, purchased cert, ...).
+#          Copies tls_cert_file / tls_key_file from the controller.
+tls_mode: dns01
+
+# ---- dns01 ----
+# Any certbot DNS plugin: route53, cloudflare, google, digitalocean, ovh,
+# rfc2136, linode, godaddy, ...  The authenticator is "dns-<provider>".
+dns01_provider: route53
+# How to install the plugin: "apt" (python3-certbot-dns-<provider>, the
+# Ubuntu package) or "pip" (for plugins Ubuntu doesn't package, e.g.
+# godaddy → certbot-dns-godaddy).
+dns01_plugin_install: apt
+dns01_plugin_package: "{{ 'python3-certbot-dns-' ~ dns01_provider if dns01_plugin_install == 'apt' else 'certbot-dns-' ~ dns01_provider }}"
+# Controller-side path to the plugin's credentials .ini (API token etc.).
+# Not needed for route53 on AWS, where the nginx instance profile (iam
+# component) grants access. For route53 outside AWS, point this at an AWS
+# shared-credentials file and it's installed as /root/.aws/credentials.
+dns01_credentials_file: ""
+dns01_propagation_seconds: 60
+
+# ---- byo ----
+# Controller-side paths. fullchain = leaf cert followed by intermediates.
+tls_cert_file: ""
+tls_key_file: ""
+
+# ---- common ----
+tls_live_dir: "/etc/letsencrypt/live/{{ cluster_env_domain }}"
+tls_dns01_credentials_path: "/etc/letsencrypt/dns01-credentials.ini"

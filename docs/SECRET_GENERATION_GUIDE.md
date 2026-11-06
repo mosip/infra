@@ -11,7 +11,8 @@ This guide provides step-by-step instructions for generating all required secret
 5. [WireGuard VPN Configuration](#5-wireguard-vpn-configuration)
 6. [Kubernetes Config (KUBECONFIG)](#6-kubernetes-config-kubeconfig)
 7. [reCAPTCHA Keys](#7-recaptcha-keys)
-8. [How to Add Secrets to GitHub](#8-how-to-add-secrets-to-github)
+8. [Monitoring, Rancher and DNS Secrets](#8-monitoring-rancher-and-dns-secrets)
+9. [How to Add Secrets to GitHub](#9-how-to-add-secrets-to-github)
 
 ---
 
@@ -61,7 +62,7 @@ This is the easiest approach - AWS creates the key pair for you.
 
 3. **Update Terraform Configuration**
    ```hcl
-   # In terraform/implementations/aws/infra/aws.tfvars
+   # In profiles/<profile>/aws/common.tfvars
    ssh_key_name = "mosip-aws" # Must match the AWS key pair name
    ```
 
@@ -119,13 +120,13 @@ ssh-keygen -t rsa -b 4096 -C "your-email@example.com" -f ~/.ssh/mosip-aws
 cat ~/.ssh/mosip-aws
 
 # Add as Repository Secret in GitHub:
-# Name: mosip-aws (must match ssh_key_name in terraform.tfvars)
+# Name: mosip-aws (must match ssh_key_name in profiles/<profile>/aws/common.tfvars)
 # Value: (paste the entire private key including BEGIN and END lines)
 ```
 
 #### Update Terraform Configuration:
 ```hcl
-# In terraform/implementations/aws/infra/aws.tfvars
+# In profiles/<profile>/aws/common.tfvars
 ssh_key_name = "mosip-aws" # Must match the name in AWS and GitHub secret
 ```
 
@@ -439,41 +440,25 @@ KUBECONFIG is a configuration file that contains credentials and connection deta
 
 ### How to Get KUBECONFIG
 
-KUBECONFIG is **automatically generated** by Terraform after deploying infrastructure.
+KUBECONFIG comes from the RKE2 cluster the `configure` step builds.
 
-#### Step 1: Deploy Infrastructure First
+#### Option 1: Published automatically
+
+Run the deployment with **ENABLE_RANCHER_IMPORT** and **PUBLISH_KUBECONFIG**
+ticked: the workflow fetches the kubeconfig from Rancher and stores it as the
+`KUBECONFIG` environment secret. Nothing else to do.
+
+#### Option 2: Copy it from the primary control-plane node
+
+The rke2 role writes a kubeconfig pointing at the node's private IP (reachable
+over WireGuard):
+
 ```bash
-# Complete Terraform infra deployment
-# Wait for workflow to complete successfully
+scp -i <ssh-key> ubuntu@<k8s_primary_control_plane_ip>:/home/ubuntu/.kube/<cluster_name>-CONTROL-PLANE-NODE-1.yaml kubeconfig_<cluster_name>
 ```
 
-#### Step 2: Locate KUBECONFIG File
-
-The file is created in your Terraform outputs:
-
-```bash
-# Location in repository:
-terraform/implementations/aws/infra/kubeconfig_<cluster-name>
-
-# Example:
-terraform/implementations/aws/infra/kubeconfig_soil38
-```
-
-#### Step 3: Download KUBECONFIG
-
-**Option 1: From GitHub Actions Artifacts**
-1. Go to your GitHub repository
-2. Click "Actions" tab
-3. Find the completed "Terraform Infrastructure" workflow
-4. Scroll to "Artifacts" section at the bottom
-5. Download artifact containing kubeconfig
-
-**Option 2: From Terraform Outputs**
-```bash
-# View kubeconfig content
-cd terraform/implementations/aws/infra/
-cat kubeconfig_<your-cluster-name>
-```
+`k8s_primary_control_plane_ip` is in the `configure` job log (rendered
+inventory) or `terraform output` of the compute component.
 
 #### Step 4: Test KUBECONFIG Locally (Optional)
 
@@ -571,8 +556,8 @@ You need **separate reCAPTCHA keys for each MOSIP portal**:
 5. **Save Keys**
  You will receive two keys:
  ```
- Site Key: 6LfkAMwrAAAAAATB1WhkIhzuAVMtOs9VWabODoZ_
- Secret Key: 6LfkAMwrAAAAAHQAT93nTGcLKa-h3XYhGoNSG-NL
+ Site Key: 6Lxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+ Secret Key: 6Lyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
  ```
 
 6. **Repeat for Other Domains**
@@ -585,28 +570,20 @@ You need **separate reCAPTCHA keys for each MOSIP portal**:
 
 ### Where to Use It
 
-Update in `Helmsman/dsf/external-dsf.yaml` file:
+Do **not** edit the DSF: it already reads the keys from these **environment secrets** (Settings → Environments → `<branch>` → Secrets):
+
+| Secret | Domain |
+|--------|--------|
+| `PREREG_CAPTCHA_SITE_KEY` / `PREREG_CAPTCHA_SECRET_KEY` | `prereg.<domain>` |
+| `ADMIN_CAPTCHA_SITE_KEY` / `ADMIN_CAPTCHA_SECRET_KEY` | `admin.<domain>` |
+| `RESIDENT_CAPTCHA_SITE_KEY` / `RESIDENT_CAPTCHA_SECRET_KEY` | `resident.<domain>` |
+
+The `activemq` app's postInstall hook in `Helmsman/dsf/mosip-platform-*/external-dsf.yaml` passes them to `captcha-setup.sh` — no DSF edits:
 
 ```yaml
-# Around line 315 in external-dsf.yaml
 hooks:
- postInstall: "$WORKDIR/hooks/captcha-setup.sh PREREG_SITE_KEY PREREG_SECRET_KEY ADMIN_SITE_KEY ADMIN_SECRET_KEY RESIDENT_SITE_KEY RESIDENT_SECRET_KEY"
+ postInstall: "$WORKDIR/hooks/captcha-setup.sh ${PREREG_CAPTCHA_SITE_KEY} ${PREREG_CAPTCHA_SECRET_KEY} ${ADMIN_CAPTCHA_SITE_KEY} ${ADMIN_CAPTCHA_SECRET_KEY} ${RESIDENT_CAPTCHA_SITE_KEY} ${RESIDENT_CAPTCHA_SECRET_KEY}"
 ```
-
-**Replace placeholders with actual keys:**
-
-```yaml
-hooks:
- postInstall: "$WORKDIR/hooks/captcha-setup.sh 6LfkAMwrAAAAAATB1WhkIhzuAVMtOs9VWabODoZ_ 6LfkAMwrAAAAAHQAT93nTGcLKa-h3XYhGoNSG-NL 6LdNAcwrAAAAAETGWvz-3I12vZ5V8vPJLu2ct9CO 6LdNAcwrAAAAAE4iWGJ-g6Dc2HreeJdIwAl5h1iL 6LdRAcwrAAAAAFUEHHKK5D_bSrwAPqdqAJqo4mCk 6LdRAcwrAAAAAOeVl6yHGBCBA8ye9GsUOy4pi9s9"
-```
-
-**Key Order:**
-1. PreReg Site Key
-2. PreReg Secret Key
-3. Admin Site Key
-4. Admin Secret Key
-5. Resident Site Key
-6. Resident Secret Key
 
 ### Common Pitfalls
 - ❌ Using the same reCAPTCHA for all three portals (need separate ones!)
@@ -617,7 +594,28 @@ hooks:
 
 ---
 
-## 8. How to Add Secrets to GitHub
+## 8. Monitoring, Rancher and DNS Secrets
+
+These are only needed for the feature that uses them. All are **environment secrets** (Settings → Environments → `<branch>` → Secrets) unless noted.
+
+| Secret | Needed when | How to get it |
+|--------|-------------|---------------|
+| `SMTP_PASSWORD` | Helmsman prereq with `monitoring_stack=standalone` (default) — Alertmanager alert e-mails | Password of the sender mailbox (`SMTP_FROM`). For Gmail, create an [App password](https://support.google.com/accounts/answer/185833) (requires 2-step verification) |
+| `GRAFANA_ADMIN_PASSWORD` | Optional — Grafana `admin` login | Any strong password (`openssl rand -base64 24`). If unset, a random one is generated into the `grafana-admin` secret in the `logging` namespace |
+| `SLACK_WEBHOOK_URL` | Only `monitoring_stack=rancher` | [Slack incoming webhook](https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks/) |
+| `RANCHER_BOOTSTRAP_PASSWORD` | `observ` profile — initial Rancher `admin` password | Any strong password |
+| `RANCHER_API_URL`, `RANCHER_API_TOKEN` | `ENABLE_RANCHER_IMPORT` on terraform plan / apply, and the Keycloak ⇄ Rancher integration | Rancher UI → your avatar → **Account & API Keys** → Create API key (no scope); URL is `https://rancher.<observ-domain>` |
+| `KEYCLOAK_ADMIN_PASSWORD` | Keycloak ⇄ Rancher SAML integration (observ) | The Keycloak `admin` password of the observ cluster |
+| `GODADDY_API_KEY`, `GODADDY_API_SECRET` | `DNS_PROVIDER=godaddy` | [GoDaddy developer keys](https://developer.godaddy.com/keys) (production) |
+| `CLOUDFLARE_API_TOKEN` | `DNS_PROVIDER=cloudflare` | Cloudflare → My Profile → API Tokens → *Edit zone DNS* for the zone |
+| `DNS_RFC2136_SERVER`, `DNS_RFC2136_KEY_NAME`, `DNS_RFC2136_KEY_SECRET` | `DNS_PROVIDER=rfc2136` | From your DNS team: server IP, TSIG key name and HMAC-SHA256 secret |
+| `ACTION_PAT`, `MOSIP_AWS_PEM` (repository secrets) | `wg-onboard.yml` (automatic WireGuard peers) | `ACTION_PAT`: fine-grained PAT with *Environments* and *Secrets* read/write on this repo. `MOSIP_AWS_PEM`: SSH private key of the jump server |
+
+Related **variables** (not secrets) are listed in the main README, step 4a: `ALERT_RECIPIENTS`, `SMTP_FROM`, `SMTP_HOST`, `SMTP_USERNAME`, `MONITORING_STACK`, `DNS_ZONE`.
+
+---
+
+## 9. How to Add Secrets to GitHub
 
 ### Understanding Secret Types
 
@@ -660,7 +658,7 @@ hooks:
  ```
  Settings > Environments > New environment
  ```
- - **Name**: Your branch name (e.g., `release-0.1.0`, `main`, `develop`)
+ - **Name**: Your branch name (e.g., `release-0.x.x`, `main`, `develop`)
  - Click "Configure environment"
 
 2. **Add Environment Secrets**
@@ -691,7 +689,7 @@ Repository Structure:
 │ └── mosip-aws (SSH private key)
 │
 └── Environments
- ├── release-0.1.0 (environment)
+ ├── release-0.x.x (environment)
  │ ├── KUBECONFIG
  │ ├── TF_WG_CONFIG
  │ ├── CLUSTER_WIREGUARD_WG0

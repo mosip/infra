@@ -29,24 +29,48 @@ on:
         required: true
         type: string
       esignet_db_port:
-        description: "PostgreSQL port for eSignet standalone container postgres (e.g. 5432)"
-        required: true
+        description: "Optional: PostgreSQL port for the eSignet standalone postgres (empty = vars.ESIGNET_DB_PORT, else 5432)"
+        required: false
+        type: string
+      keycloak_db:
+        description: "Keycloak database: bundled or external (shared PostgreSQL). Empty = keep vars.KEYCLOAK_DB; unset = bundled"
+        required: false
+        type: string
+      monitoring_stack:
+        description: "Monitoring/logging stack (prereq DSF): standalone = Loki + Grafana + kube-prometheus-stack, Alertmanager email (default) | rancher = ELK + rancher-monitoring, Slack. Empty = vars.MONITORING_STACK, else standalone"
+        required: false
         type: string
       env_name:
         description: "Environment name (e.g. sandbox, dev, staging)"
         required: false
         type: string
+      alert_recipients:
+        description: "Organization mail id(s) for cluster alert notifications, comma-separated (e.g. xyz@gmail.com, abc@gmail.com). Needed for monitoring_stack=standalone (default); empty = vars.ALERT_RECIPIENTS"
+        required: false
+        type: string
+      smtp_from:
+        description: "Alertmanager sender address (monitoring_stack=standalone), e.g. alerts@example.org; empty = vars.SMTP_FROM (legacy vars.MAIL_ID). Password: secrets.SMTP_PASSWORD"
+        required: false
+        type: string
+      smtp_host:
+        description: "Alertmanager SMTP server host:port (monitoring_stack=standalone); empty = vars.SMTP_HOST, else smtp.gmail.com:587"
+        required: false
+        type: string
+      smtp_username:
+        description: "Alertmanager SMTP login (monitoring_stack=standalone); empty = vars.SMTP_USERNAME, else the sender address"
+        required: false
+        type: string
       slack_channel_name:
-        description: "Slack channel name for alerting (e.g. #mosip-alerts)"
+        description: "Optional, monitoring_stack=rancher only: Slack channel for alerting (e.g. #mosip-alerts); empty = vars.SLACK_CHANNEL_NAME"
         required: false
         type: string
       slack_webhook_url:
-        description: "Slack webhook URL for alerting (configure as secrets.SLACK_WEBHOOK_URL in the environment)"
+        description: "Optional, monitoring_stack=rancher only: Slack webhook URL (prefer secrets.SLACK_WEBHOOK_URL); masked in logs"
         required: false
         type: string
       clusterid:
-        description: "Rancher cluster ID for rancher-monitoring (e.g. c-xxxxx)"
-        required: true
+        description: "Rancher cluster ID (e.g. c-xxxxx): required only for monitoring_stack=rancher; empty = vars.CLUSTER_ID"
+        required: false
         type: string
   push:
     paths:
@@ -64,37 +88,114 @@ jobs:
       name: ${{ github.ref_name }}
     steps:
       - name: Validate required variables
+        # Required for every profile: domain_name, env_name, db_port. The rest
+        # depends on the monitoring stack (monitoring_stack / vars.MONITORING_STACK):
+        #   standalone (default): alert_recipients, smtp_from, secrets.SMTP_PASSWORD
+        #                         (Loki + Grafana + kube-prometheus-stack, Alertmanager email)
+        #   rancher             : clusterid (ELK + rancher-monitoring); Slack only warns
+        # The stack is known for push runs too (saved variable), so they are checked
+        # the same way.
+        env:
+          REF: ${{ github.ref_name }}
+          PROFILE_INPUT: ${{ github.event.inputs.profile }}
+          STACK: ${{ github.event.inputs.monitoring_stack || vars.MONITORING_STACK || 'standalone' }}
+          DOMAIN: ${{ github.event.inputs.domain_name || vars.DOMAIN_NAME }}
+          ENV_NAME: ${{ github.event.inputs.env_name || vars.ENV_NAME }}
+          DB_PORT: ${{ github.event.inputs.db_port || vars.DB_PORT }}
+          ALERT_RECIPIENTS: ${{ github.event.inputs.alert_recipients || vars.ALERT_RECIPIENTS || vars.MAIL_ID }}
+          SMTP_FROM: ${{ github.event.inputs.smtp_from || vars.SMTP_FROM || vars.MAIL_ID }}
+          SMTP_HOST: ${{ github.event.inputs.smtp_host || vars.SMTP_HOST || 'smtp.gmail.com:587' }}
+          SMTP_PASSWORD_SET: ${{ secrets.SMTP_PASSWORD != '' }}
+          IN_SMTP_FROM: ${{ github.event.inputs.smtp_from }}
+          IN_SMTP_HOST: ${{ github.event.inputs.smtp_host }}
+          IN_SMTP_USERNAME: ${{ github.event.inputs.smtp_username }}
+          CLUSTER: ${{ github.event.inputs.clusterid || vars.CLUSTER_ID }}
+          SLACK_CH: ${{ github.event.inputs.slack_channel_name || vars.SLACK_CHANNEL_NAME }}
+          SLACK_WEBHOOK_SET: ${{ github.event.inputs.slack_webhook_url != '' || secrets.SLACK_WEBHOOK_URL != '' }}
+          ESIGNET_DB_PORT: ${{ github.event.inputs.esignet_db_port || vars.ESIGNET_DB_PORT || '5432' }}
         run: |
           errors=()
-          DOMAIN="${{ github.event.inputs.domain_name || vars.DOMAIN_NAME }}"
-          ENV="${{ github.event.inputs.env_name || vars.ENV_NAME }}"
-          CLUSTER="${{ github.event.inputs.clusterid || vars.CLUSTER_ID }}"
-          SLACK_CH="${{ github.event.inputs.slack_channel_name || vars.SLACK_CHANNEL_NAME }}"
-          DB_PORT="${{ github.event.inputs.db_port || vars.DB_PORT }}"
-          ESIGNET_DB_PORT="${{ github.event.inputs.esignet_db_port || vars.ESIGNET_DB_PORT }}"
-          [ -z "$DOMAIN" ]          && errors+=("domain_name is empty — set vars.DOMAIN_NAME under Environment '${{ github.ref_name }}'")
-          [ -z "$ENV" ]             && errors+=("env_name is empty — set vars.ENV_NAME under Environment '${{ github.ref_name }}'")
-          [ -z "$CLUSTER" ]         && errors+=("clusterid is empty — set vars.CLUSTER_ID under Environment '${{ github.ref_name }}'")
-          [ -z "$SLACK_CH" ]        && errors+=("slack_channel_name is empty — set vars.SLACK_CHANNEL_NAME under Environment '${{ github.ref_name }}'")
-          [ -z "$DB_PORT" ]         && errors+=("db_port is empty — set vars.DB_PORT under Environment '${{ github.ref_name }}'")
-          [ -z "$ESIGNET_DB_PORT" ] && errors+=("esignet_db_port is empty — set vars.ESIGNET_DB_PORT under Environment '${{ github.ref_name }}'")
+          warns=()
+          need() {  # need <value> <message>: error for this profile
+            [ -n "$1" ] || errors+=("$2")
+          }
+          warn() {  # warn <value> <message>
+            [ -n "$1" ] || warns+=("$2")
+          }
+          email_alerting() {  # monitoring_stack=standalone
+            "$1" "$ALERT_RECIPIENTS" "alert_recipients is empty — pass it or set vars.ALERT_RECIPIENTS (Alertmanager email)"
+            "$1" "$SMTP_FROM" "SMTP sender is empty — pass smtp_from or set vars.SMTP_FROM (Alertmanager email)"
+            [ "$SMTP_PASSWORD_SET" = "true" ] || "$1" "" "secrets.SMTP_PASSWORD is not set (Alertmanager email)"
+          }
+          rancher_monitoring() {  # monitoring_stack=rancher
+            "$1" "$CLUSTER" "clusterid is empty — pass it or set vars.CLUSTER_ID (rancher-monitoring)"
+            warn "$SLACK_CH" "slack_channel_name is empty — pass it or set vars.SLACK_CHANNEL_NAME (Slack alerting)"
+            [ "$SLACK_WEBHOOK_SET" = "true" ] || warn "" "Slack webhook is not set — pass slack_webhook_url or set secrets.SLACK_WEBHOOK_URL (Slack alerting)"
+          }
+
+          need "$DOMAIN"   "domain_name is empty — pass it or set vars.DOMAIN_NAME"
+          need "$ENV_NAME" "env_name is empty — pass it or set vars.ENV_NAME"
+          need "$DB_PORT"  "db_port is empty — pass it or set vars.DB_PORT"
+          case "$STACK" in
+            standalone) email_alerting need ;;
+            rancher)    rancher_monitoring need ;;
+            *) errors+=("monitoring_stack must be 'standalone' (default) or 'rancher', got '$STACK'") ;;
+          esac
+
+          # Typed SMTP values are saved as environment variables: check their format.
+          if [ -n "$IN_SMTP_HOST" ] && ! [[ "$IN_SMTP_HOST" =~ ^[A-Za-z0-9.-]+:[0-9]{1,5}$ ]]; then
+            errors+=("smtp_host must be host:port (e.g. smtp.gmail.com:587)")
+          fi
+          for v in "$IN_SMTP_FROM" "$IN_SMTP_USERNAME"; do
+            if [ -n "$v" ] && ! [[ "$v" =~ ^[A-Za-z0-9._%+@-]+$ ]]; then
+              errors+=("smtp_from / smtp_username may only contain letters, digits and . _ % + @ -")
+            fi
+          done
+
+          echo "Profile: ${PROFILE_INPUT:-<push run — profile from changed files>} | monitoring_stack: $STACK"
+          for w in "${warns[@]}"; do echo "⚠ $w"; done
           if [ ${#errors[@]} -gt 0 ]; then
-            echo "❌ Required variables missing:"
+            echo "❌ Missing or invalid settings (monitoring_stack=$STACK):"
             printf '  - %s\n' "${errors[@]}"
-            echo "Go to: Settings → Environments → ${{ github.ref_name }} → Variables"
+            echo "Go to: Settings → Environments → $REF → Variables / Secrets"
             exit 1
           fi
           echo "✓ domain_name        = $DOMAIN"
-          echo "✓ env_name           = $ENV"
-          echo "✓ clusterid          = $CLUSTER"
-          echo "✓ slack_channel_name = $SLACK_CH"
+          echo "✓ env_name           = $ENV_NAME"
           echo "✓ db_port            = $DB_PORT"
-          echo "✓ esignet_db_port    = $ESIGNET_DB_PORT"
+          case "$STACK" in
+            standalone)
+              echo "✓ alert_recipients   = $ALERT_RECIPIENTS"
+              echo "✓ smtp_from          = $SMTP_FROM"
+              echo "✓ smtp_host          = $SMTP_HOST" ;;
+            rancher)
+              echo "✓ clusterid          = $CLUSTER"
+              echo "✓ slack_channel_name = $SLACK_CH" ;;
+          esac
+          [ "$PROFILE_INPUT" = "esignet-standalone" ] && echo "✓ esignet_db_port    = $ESIGNET_DB_PORT"
+          exit 0
+
+      - name: Validate KEYCLOAK_DB
+        env:
+          KEYCLOAK_DB: ${{ github.event.inputs.keycloak_db || vars.KEYCLOAK_DB }}
+        run: |
+          case "${KEYCLOAK_DB:-bundled}" in
+            bundled|external) echo "✓ keycloak_db        = ${KEYCLOAK_DB:-bundled}" ;;
+            *) echo "❌ keycloak_db / vars.KEYCLOAK_DB must be 'bundled' (default) or 'external'"; exit 1 ;;
+          esac
 
       - name: Persist workflow inputs as environment variables
         if: github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ secrets.GH_INFRA_PAT }}
+          KEYCLOAK_DB_INPUT: ${{ github.event.inputs.keycloak_db }}
+          IN_MONITORING_STACK: ${{ github.event.inputs.monitoring_stack }}
+          IN_CLUSTER_ID: ${{ github.event.inputs.clusterid }}
+          IN_SLACK_CHANNEL_NAME: ${{ github.event.inputs.slack_channel_name }}
+          IN_ESIGNET_DB_PORT: ${{ github.event.inputs.esignet_db_port }}
+          IN_SMTP_FROM: ${{ github.event.inputs.smtp_from }}
+          IN_SMTP_HOST: ${{ github.event.inputs.smtp_host }}
+          IN_SMTP_USERNAME: ${{ github.event.inputs.smtp_username }}
         run: |
           REPO="${{ github.repository }}"
           ENVIRONMENT="${{ github.ref_name }}"
@@ -117,10 +218,16 @@ jobs:
           }
           save_var "DOMAIN_NAME"        "${{ github.event.inputs.domain_name }}"
           save_var "DB_PORT"            "${{ github.event.inputs.db_port }}"
-          save_var "ESIGNET_DB_PORT"    "${{ github.event.inputs.esignet_db_port }}"
+          save_var "ESIGNET_DB_PORT"    "$IN_ESIGNET_DB_PORT"
+          save_var "KEYCLOAK_DB"        "$KEYCLOAK_DB_INPUT"   # validated above: bundled | external
+          save_var "MONITORING_STACK"   "$IN_MONITORING_STACK" # validated above: standalone | rancher
           save_var "ENV_NAME"           "${{ github.event.inputs.env_name }}"
-          save_var "CLUSTER_ID"         "${{ github.event.inputs.clusterid }}"
-          save_var "SLACK_CHANNEL_NAME" "${{ github.event.inputs.slack_channel_name }}"
+          save_var "ALERT_RECIPIENTS"   "${{ github.event.inputs.alert_recipients }}"
+          save_var "SMTP_FROM"          "$IN_SMTP_FROM"       # format validated above
+          save_var "SMTP_HOST"          "$IN_SMTP_HOST"
+          save_var "SMTP_USERNAME"      "$IN_SMTP_USERNAME"
+          save_var "CLUSTER_ID"         "$IN_CLUSTER_ID"
+          save_var "SLACK_CHANNEL_NAME" "$IN_SLACK_CHANNEL_NAME"
 
   set-matrix:
     runs-on: ubuntu-latest
@@ -199,11 +306,27 @@ jobs:
       KUBECTL_PATH: ${{ github.workspace }}/.local/bin/kubectl
       domain_name:         ${{ github.event.inputs.domain_name         || vars.DOMAIN_NAME }}
       db_port:             ${{ github.event.inputs.db_port             || vars.DB_PORT }}
-      esignet_db_port:     ${{ github.event.inputs.esignet_db_port     || vars.ESIGNET_DB_PORT }}
+      esignet_db_port:     ${{ github.event.inputs.esignet_db_port     || vars.ESIGNET_DB_PORT || '5432' }}
       env_name:            ${{ github.event.inputs.env_name            || vars.ENV_NAME }}
+      # Keycloak database: keycloak_db input or vars.KEYCLOAK_DB = bundled (default) | external.
+      # Used by the keycloak / keycloak-db-init apps of the external DSFs.
+      KEYCLOAK_EXTERNAL_DB: ${{ (github.event.inputs.keycloak_db || vars.KEYCLOAK_DB) == 'external' }}
+      KEYCLOAK_BUNDLED_DB:  ${{ (github.event.inputs.keycloak_db || vars.KEYCLOAK_DB) != 'external' }}
+      # Monitoring/logging stack of the prereq DSFs: monitoring_stack input or
+      # vars.MONITORING_STACK = standalone (default) | rancher. Exactly one is true.
+      MONITORING_STANDALONE: ${{ (github.event.inputs.monitoring_stack || vars.MONITORING_STACK || 'standalone') != 'rancher' }}
+      MONITORING_RANCHER:    ${{ (github.event.inputs.monitoring_stack || vars.MONITORING_STACK || 'standalone') == 'rancher' }}
+      # Email alerting (kube-prometheus-stack, mosip-platform-1.2.1.x).
+      # MAIL_ID is the legacy single-address variable, kept as a fallback.
+      smtp_host:           ${{ github.event.inputs.smtp_host || vars.SMTP_HOST || 'smtp.gmail.com:587' }}
+      smtp_from:           ${{ github.event.inputs.smtp_from || vars.SMTP_FROM || vars.MAIL_ID }}
+      smtp_username:       ${{ github.event.inputs.smtp_username || vars.SMTP_USERNAME || github.event.inputs.smtp_from || vars.SMTP_FROM || vars.MAIL_ID }}
+      alert_recipients:    ${{ github.event.inputs.alert_recipients    || vars.ALERT_RECIPIENTS || vars.MAIL_ID }}
       slack_channel_name:  ${{ github.event.inputs.slack_channel_name  || vars.SLACK_CHANNEL_NAME }}
       SLACK_WEBHOOK_URL:   ${{ github.event.inputs.slack_webhook_url   || secrets.SLACK_WEBHOOK_URL }}
       CLUSTER_ID:          ${{ github.event.inputs.clusterid           || vars.CLUSTER_ID }}
+      SMTP_PASSWORD:       ${{ secrets.SMTP_PASSWORD }}
+      GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
       ESIGNET_CAPTCHA_SITE_KEY: ${{ secrets.ESIGNET_CAPTCHA_SITE_KEY }}
       ESIGNET_CAPTCHA_SECRET_KEY: ${{ secrets.ESIGNET_CAPTCHA_SECRET_KEY }}
       PREREG_CAPTCHA_SITE_KEY: ${{ secrets.PREREG_CAPTCHA_SITE_KEY }}
@@ -224,6 +347,8 @@ jobs:
 
       - name: Mask sensitive secrets
         run: |
+          echo "::add-mask::${{ secrets.SMTP_PASSWORD }}"
+          echo "::add-mask::${{ secrets.GRAFANA_ADMIN_PASSWORD }}"
           echo "::add-mask::${{ secrets.ESIGNET_CAPTCHA_SITE_KEY }}"
           echo "::add-mask::${{ secrets.ESIGNET_CAPTCHA_SECRET_KEY }}"
           echo "::add-mask::${{ secrets.PREREG_CAPTCHA_SITE_KEY }}"
@@ -383,10 +508,25 @@ jobs:
             exit 1
           fi
           
+      - name: Check monitoring stack settings
+        run: |
+          # A typed slack_webhook_url input is not a secret: mask it in the logs.
+          if [ -n "$SLACK_WEBHOOK_URL" ]; then echo "::add-mask::$SLACK_WEBHOOK_URL"; fi
+          echo "Monitoring stack: standalone=$MONITORING_STANDALONE rancher=$MONITORING_RANCHER"
+          # rancher-monitoring needs the Rancher cluster ID.
+          if [ "$MONITORING_RANCHER" = "true" ] && [ -z "$CLUSTER_ID" ]; then
+            echo "❌ monitoring_stack=rancher needs the Rancher cluster ID: pass clusterid or set vars.CLUSTER_ID"
+            exit 1
+          fi
+
       - name: Show deployment variables
         run: |
           echo "domain_name        = $domain_name"
           echo "env_name           = $env_name"
+          echo "keycloak bundled db = $KEYCLOAK_BUNDLED_DB (external = $KEYCLOAK_EXTERNAL_DB)"
+          echo "smtp_host          = $smtp_host"
+          echo "smtp_from          = $smtp_from"
+          echo "alert_recipients   = $alert_recipients"
           echo "slack_channel_name = $slack_channel_name"
           echo "CLUSTER_ID         = $CLUSTER_ID"
 
@@ -401,11 +541,13 @@ jobs:
           echo "Using kubeconfig: $KUBECONFIG"
           
           # Run helmsman with the determined mode
-          helmsman --${HELMSMAN_MODE} -f $WORKDIR/dsf/${{ matrix.dsf_files }}
+          helmsman --subst-env-values --${HELMSMAN_MODE} -f $WORKDIR/dsf/${{ matrix.dsf_files }}
       - name: Health Check External Pods
         run: |
           set -e
-          NAMESPACES=( cattle-logging-system istio-system istio-operator httpbin keycloak kafka minio softhsm clamav activemq landing-page)
+          # Logging/monitoring namespaces follow the selected stack.
+          if [ "$MONITORING_RANCHER" = "true" ]; then STACK_NS=( cattle-logging-system cattle-monitoring-system ); else STACK_NS=( logging monitoring ); fi
+          NAMESPACES=( "${STACK_NS[@]}" istio-system istio-operator httpbin keycloak kafka minio softhsm clamav activemq landing-page)
           for NS in "${NAMESPACES[@]}"; do
             echo "Checking health for namespace: $NS"
             for i in {1..30}; do
@@ -440,10 +582,21 @@ jobs:
           MODE: ${{ github.event.inputs.mode }}
           DOMAIN_NAME: ${{ github.event.inputs.domain_name || vars.DOMAIN_NAME }}
           ENV_NAME: ${{ github.event.inputs.env_name || vars.ENV_NAME }}
+          # helmsman_mosip.yml requires db_port (profile, mode, domain_name, db_port;
+          # env_name optional) — send every required input or the dispatch is a 422.
+          DB_PORT: ${{ github.event.inputs.db_port || vars.DB_PORT }}
+          PROFILE: ${{ needs.set-matrix.outputs.profile }}
         run: |
-          curl -X POST \
+          # Build the JSON with jq (values are data, never spliced into the body).
+          BODY=$(jq -n --arg ref "$BRANCH" --arg mode "${MODE:-apply}" --arg profile "$PROFILE" \
+            --arg domain "$DOMAIN_NAME" --arg port "$DB_PORT" --arg env "$ENV_NAME" \
+            '{ref: $ref, inputs: {mode: $mode, profile: $profile, domain_name: $domain, db_port: $port, env_name: $env}}')
+          echo "Dispatching helmsman_mosip.yml: $(jq -c .inputs <<<"$BODY")"
+          # --fail-with-body: a rejected dispatch (e.g. 422 unexpected/missing inputs)
+          # must fail this step instead of silently looking green.
+          curl --fail-with-body -sS -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $GITHUB_TOKEN" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
-            https://api.github.com/repos/$GITHUB_REPO/actions/workflows/helmsman_mosip.yml/dispatches \
-            -d '{"ref":"'"$BRANCH"'","inputs":{"mode":"'"${MODE:-apply}"'","profile":"'"${{ needs.set-matrix.outputs.profile }}"'","domain_name":"'"$DOMAIN_NAME"'","env_name":"'"$ENV_NAME"'"}}'
+            "https://api.github.com/repos/$GITHUB_REPO/actions/workflows/helmsman_mosip.yml/dispatches" \
+            -d "$BODY"

@@ -101,8 +101,9 @@ command -v jq   >/dev/null 2>&1 || die "jq is required"
 RANCHER_URL="${RANCHER_URL%/}"
 [[ "$RANCHER_URL" =~ ^https:// ]] \
   || die "RANCHER_URL must begin with https:// (got: $RANCHER_URL)"
-[[ "$CLUSTER_NAME" =~ ^[a-zA-Z0-9._-]+$ ]] \
-  || die "CLUSTER_NAME must contain only [a-zA-Z0-9._-] (got: $CLUSTER_NAME)"
+# Rancher rejects anything but a lowercase RFC 1123 label (HTTP 422).
+[[ "$CLUSTER_NAME" =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$ && ${#CLUSTER_NAME} -le 63 ]] \
+  || die "CLUSTER_NAME must be a lowercase RFC 1123 label: a-z, 0-9, '-', starting and ending alphanumeric, max 63 chars (got: $CLUSTER_NAME)"
 [[ "$MAX_ATTEMPTS" =~ ^[0-9]+$ && "$MAX_ATTEMPTS" -gt 0 ]] \
   || die "MAX_ATTEMPTS must be a positive integer (got: $MAX_ATTEMPTS)"
 [[ "$SLEEP_SECONDS" =~ ^[0-9]+$ && "$SLEEP_SECONDS" -gt 0 ]] \
@@ -161,7 +162,15 @@ apply_import_on_host() {
     remote_kubectl delete namespace cattle-system --ignore-not-found --wait=true || true
   fi
 
-  ssh_cmd "bash -lc $(printf '%q' "$import_cmd")"
+  # Same KUBECONFIG as remote_kubectl: the node may have no default
+  # kubeconfig, and a bare kubectl then talks to localhost:8080. Check the
+  # result explicitly — this function runs under `|| die`, where set -e is off.
+  remote_cmd="$import_cmd"
+  [[ -n "$KUBECONFIG_REMOTE" ]] && remote_cmd="KUBECONFIG=$KUBECONFIG_REMOTE $remote_cmd"
+  if ! ssh_cmd "bash -lc $(printf '%q' "$remote_cmd")"; then
+    err "kubectl apply of the Rancher import manifest failed on ${SSH_HOST}"
+    return 1
+  fi
   log "Rancher import manifest applied"
 
   for ((attempt = 1; attempt <= MAX_AGENT_WAIT; attempt++)); do

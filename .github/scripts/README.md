@@ -15,12 +15,12 @@ These scripts handle complex operations that would otherwise make workflow files
 | `encrypt-state.sh` | Encrypt Terraform state files with GPG | terraform.yml, terraform-destroy.yml | Active |
 | `decrypt-state.sh` | Decrypt Terraform state files with GPG | terraform.yml, terraform-destroy.yml | Active |
 | `setup-gpg.sh` | Configure GPG environment for encryption | terraform.yml, terraform-destroy.yml | Active |
-| `generate-pg-secrets.sh` | Generate PostgreSQL secrets (legacy) | N/A | Legacy |
 | `cleanup-state-locking.sh` | Clean up DynamoDB state locks | terraform-destroy.yml | Active |
-| `test-*.sh` | Various testing and validation scripts | Manual testing | Active |
-| `validate-workflow-integration.sh` | Validate workflow integration | Manual testing | Active |
-| `setup-s3-backend.sh` | Empty placeholder | N/A | Placeholder |
-| `setup-remote-storage.sh` | Empty placeholder | N/A | Placeholder |
+| `rancher-register-cluster.sh` | Register a cluster in Rancher / apply the import on a host | terraform.yml (configure) | Active |
+| `rancher-grant-cluster-access.sh` | Grant team access to an imported cluster | terraform.yml (configure) | Active |
+| `rancher-fetch-kubeconfig.sh` | Fetch kubeconfig from Rancher | terraform.yml (configure) | Active |
+| `wg-env.sh` | WireGuard peer onboarding | wg-onboard.yml | Active |
+| `test-state-locking.sh`, `test-cleanup-state-locking.sh` | Tests for the state-locking scripts | Manual testing | Active |
 
 ## Core Scripts
 
@@ -86,31 +86,12 @@ These scripts handle complex operations that would otherwise make workflow files
 - Batch mode setup for automation
 - Trust database initialization
 
-## Testing and Validation Scripts
+## Testing and Validation
 
-### test-infrastructure.sh
-
-**Purpose**: Comprehensive testing of all scripts and workflow combinations.
-
-**Usage**:
-```bash
-./test-infrastructure.sh [--test-type <scripts|paths|all>] [--provider <provider>]
-```
-
-**Test Coverage**:
-- Script functionality validation
-- Path resolution testing
-- Workflow integration testing
-- Error handling verification
-
-### validate-workflow-integration.sh
-
-**Purpose**: Validates integration between scripts and GitHub Actions workflows.
-
-**Usage**:
-```bash
-./validate-workflow-integration.sh [options]
-```
+The `infra checks` workflow (`.github/workflows/infra-checks.yml`) runs
+`terraform fmt`/`validate`/`test`, the inventory generator's unit tests and an
+Ansible syntax check on every pull request. `test-state-locking.sh` and
+`test-cleanup-state-locking.sh` exercise the state-locking scripts manually.
 
 ## Utility Scripts
 
@@ -123,31 +104,18 @@ These scripts handle complex operations that would otherwise make workflow files
 ./cleanup-state-locking.sh --provider <provider> --table-name <dynamodb-table>
 ```
 
-## Legacy Scripts
-
-### generate-pg-secrets.sh
-
-**Status**: Legacy - No longer used 
-**Reason**: PostgreSQL configuration now handled via Terraform variables (`enable_postgresql_setup`) 
-**Replacement**: Configure PostgreSQL in `terraform/implementations/{cloud}/{component}/{cloud}.tfvars`
-
-## Placeholder Scripts
-
-Some scripts are empty placeholders for future functionality:
-- `setup-s3-backend.sh` - Functionality moved to `setup-cloud-storage.sh`
-- `setup-remote-storage.sh` - Functionality moved to `setup-cloud-storage.sh`
 ## Script Integration with Workflows
 
 ### Terraform Workflows Integration
 
-**terraform.yml workflow uses these scripts**:
+**terraform-component.yml (called by terraform.yml and terraform-destroy.yml) uses these scripts**:
 1. `setup-gpg.sh` - Configure GPG for state encryption
 2. `decrypt-state.sh` - Decrypt existing state files
 3. `configure-backend.sh` - Generate backend configuration
 4. `setup-cloud-storage.sh` - Create remote storage (if remote backend)
 5. `encrypt-state.sh` - Encrypt state files after operations
 
-**terraform-destroy.yml workflow uses these scripts**:
+**On destroy it additionally uses**:
 1. `setup-gpg.sh` - Configure GPG for state decryption
 2. `decrypt-state.sh` - Decrypt state files for destroy operation
 3. `configure-backend.sh` - Generate backend configuration
@@ -181,12 +149,11 @@ graph TD
 ├── decrypt-state.sh # GPG state decryption
 ├── setup-gpg.sh # GPG environment setup
 ├── cleanup-state-locking.sh # State lock cleanup
-├── generate-pg-secrets.sh # Legacy PostgreSQL secrets
-├── test-infrastructure.sh # Comprehensive testing
-├── validate-workflow-integration.sh # Workflow validation
-├── test-*.sh # Various test scripts
-├── setup-s3-backend.sh # Empty placeholder
-└── setup-remote-storage.sh # Empty placeholder
+├── rancher-register-cluster.sh # Rancher registration / import
+├── rancher-grant-cluster-access.sh # Rancher team access
+├── rancher-fetch-kubeconfig.sh # kubeconfig from Rancher
+├── wg-env.sh, wg-peer-allocation.tsv # WireGuard onboarding
+└── test-state-locking.sh, test-cleanup-state-locking.sh
 ```
 
 ## Usage from Workflows
@@ -213,21 +180,6 @@ Scripts are called from GitHub Actions workflows with proper error handling:
 4. **Help Usage**: All scripts include `--help` option with usage information
 5. **Validation**: Input validation and sanity checks
 6. **Cloud Agnostic**: Support multiple cloud providers where applicable
-
-## Testing Scripts
-
-Run the comprehensive test suite to validate all scripts:
-
-```bash
-# Test all scripts and combinations
-.github/scripts/test-infrastructure.sh
-
-# Test specific functionality
-.github/scripts/test-infrastructure.sh --test-type scripts
-
-# Validate workflow integration
-.github/scripts/validate-workflow-integration.sh
-```
 
 ---
 

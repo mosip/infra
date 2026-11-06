@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="460" height="858" viewBox="0 0 460 858" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="terraform destroy — Run workflow form">
+<title>terraform destroy — Run workflow form</title>
+<rect x="0.5" y="0.5" width="459" height="831" rx="8" fill="#ffffff" stroke="#d0d7de"/>
+<text x="16" y="30" font-size="14" font-weight="600" fill="#1f2328" text-anchor="start">Run workflow</text>
+<text x="16" y="58" font-size="12" font-weight="600" fill="#1f2328" text-anchor="start">Use workflow from</text>
+<rect x="16" y="66" width="190" height="30" rx="6" fill="#f6f8fa" stroke="#d0d7de"/>
+<text x="26" y="85" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">Branch: &lt;your branch&gt; ▾</text>
+<circle cx="27" cy="122" r="10" fill="#0969da"/>
+<text x="27" y="126" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">1</text>
+<text x="46" y="126" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">Cloud provider (azure/gcp: base-infra only)<tspan fill="#d1242f" font-weight="600"> *</tspan></text>
+<rect x="46" y="134" width="398" height="30" rx="6" fill="#f6f8fa" stroke="#d0d7de"/>
+<text x="56" y="153" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">aws</text>
+<text x="434" y="153" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="end">▾</text>
+<text x="420" y="153" font-size="10" font-weight="normal" fill="#59636e" text-anchor="end">CLOUD_PROVIDER</text>
+<text x="46" y="177" font-size="10" font-weight="normal" fill="#59636e" text-anchor="start">other options: azure | gcp</text>
+<circle cx="27" cy="200" r="10" fill="#0969da"/>
+<text x="27" y="204" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">2</text>
+<text x="46" y="204" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">What to destroy. all = every component, reverse order. base-</text>
+<text x="46" y="220" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">infra removes the VPC/WireGuard!<tspan fill="#d1242f" font-weight="600"> *</tspan></text>
+<rect x="46" y="228" width="398" height="30" rx="6" fill="#f6f8fa" stroke="#d0d7de"/>
+<text x="56" y="247" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">all</text>
+<text x="434" y="247" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="end">▾</text>
+<text x="420" y="247" font-size="10" font-weight="normal" fill="#59636e" text-anchor="end">COMPONENT</text>
+<text x="46" y="271" font-size="10" font-weight="normal" fill="#59636e" text-anchor="start">other options: dns | storage | compute | iam | security | vm | base…</text>
+<circle cx="27" cy="294" r="10" fill="#0969da"/>
+<text x="27" y="298" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">3</text>
+<text x="46" y="298" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">Deployment shape (profiles/&lt;name&gt;) — ignored for base-infra<tspan fill="#d1242f" font-weight="600"> *</tspan></text>
+<rect x="46" y="306" width="398" height="30" rx="6" fill="#f6f8fa" stroke="#d0d7de"/>
+<text x="56" y="325" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">mosip</text>
+<text x="434" y="325" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="end">▾</text>
+<text x="420" y="325" font-size="10" font-weight="normal" fill="#59636e" text-anchor="end">PROFILE</text>
+<text x="46" y="349" font-size="10" font-weight="normal" fill="#59636e" text-anchor="start">other options: esignet-standalone | observ</text>
+<circle cx="27" cy="372" r="10" fill="#0969da"/>
+<text x="27" y="376" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">4</text>
+<text x="46" y="376" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">Terraform backend type (must match the one used to create)<tspan fill="#d1242f" font-weight="600"> *</tspan></text>
+<rect x="46" y="384" width="398" height="30" rx="6" fill="#f6f8fa" stroke="#d0d7de"/>
+<text x="56" y="403" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">local</text>
+<text x="434" y="403" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="end">▾</text>
+<text x="420" y="403" font-size="10" font-weight="normal" fill="#59636e" text-anchor="end">BACKEND_TYPE</text>
+<text x="46" y="427" font-size="10" font-weight="normal" fill="#59636e" text-anchor="start">other options: remote</text>
+<circle cx="27" cy="450" r="10" fill="#0969da"/>
+<text x="27" y="454" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">5</text>
+<text x="46" y="454" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">Remote backend config (aws:bucket_base_name:region |</text>
+<text x="46" y="470" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">azure:rg:storage_account:container | gcp:bucket)</text>
+<rect x="46" y="478" width="398" height="30" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<text x="434" y="497" font-size="10" font-weight="normal" fill="#59636e" text-anchor="end">REMOTE_BACKEND_CONFIG</text>
+<circle cx="27" cy="530" r="10" fill="#0969da"/>
+<text x="27" y="534" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">6</text>
+<rect x="46" y="522" width="14" height="14" rx="3" fill="#ffffff" stroke="#59636e"/>
+<text x="68" y="534" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">State locking (must match the setting used to create)</text>
+<text x="68" y="548" font-size="10" font-weight="normal" fill="#59636e" text-anchor="start">ENABLE_STATE_LOCKING</text>
+<circle cx="27" cy="574" r="10" fill="#0969da"/>
+<text x="27" y="578" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">7</text>
+<text x="46" y="578" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">Name of the GitHub secret holding the SSH private key (base-</text>
+<text x="46" y="594" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">infra only)</text>
+<rect x="46" y="602" width="398" height="30" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<text x="434" y="621" font-size="10" font-weight="normal" fill="#59636e" text-anchor="end">SSH_PRIVATE_KEY</text>
+<circle cx="27" cy="654" r="10" fill="#0969da"/>
+<text x="27" y="658" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">8</text>
+<rect x="46" y="646" width="14" height="14" rx="3" fill="#ffffff" stroke="#59636e"/>
+<text x="68" y="658" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">CONFIRM DESTRUCTION (unchecked = plan -destroy only)</text>
+<text x="68" y="672" font-size="10" font-weight="normal" fill="#59636e" text-anchor="start">TERRAFORM_DESTROY</text>
+<circle cx="27" cy="698" r="10" fill="#0969da"/>
+<text x="27" y="702" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">9</text>
+<text x="46" y="702" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">Must match the deploy. Non-Route53 providers skip the Terraform</text>
+<text x="46" y="718" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">dns + iam components.</text>
+<rect x="46" y="726" width="398" height="30" rx="6" fill="#f6f8fa" stroke="#d0d7de"/>
+<text x="56" y="745" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">terraform-route53</text>
+<text x="434" y="745" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="end">▾</text>
+<text x="420" y="745" font-size="10" font-weight="normal" fill="#59636e" text-anchor="end">DNS_PROVIDER</text>
+<text x="46" y="769" font-size="10" font-weight="normal" fill="#59636e" text-anchor="start">other options: godaddy | cloudflare | rfc2136 | manual</text>
+<rect x="16" y="786" width="120" height="30" rx="6" fill="#1f883d"/>
+<text x="76" y="805" font-size="12" font-weight="600" fill="#ffffff" text-anchor="middle">Run workflow</text>
+<text x="230.0" y="849" font-size="10" font-weight="normal" fill="#59636e" text-anchor="middle">Generated from .github/workflows/terraform-destroy.yml</text>
+</svg>

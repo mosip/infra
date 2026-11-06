@@ -32,21 +32,24 @@ If you **don't need to backup any data** and want to destroy everything quickly,
 
 #### 1. Go to GitHub Actions
 
-Navigate to: **Repository → Actions → Terraform Infrastructure Destroy**
+Navigate to: **Repository → Actions → terraform destroy**
 
 #### 2. Run the Destroy Workflow
 
-![Infrastructure Terraform Destroy](\_images/infra-terraform-destroy.png)
+![terraform destroy — Run workflow form](_images/workflows/terraform-destroy.svg)
+
+> Generated from the workflow definition — the numbers match the form fields in order.
 
 Click **"Run workflow"** and configure:
 
 ```
 Parameters:
-├─ Branch: release-0.1.0 (or your deployment branch)
-├─ Cloud Provider: aws
-├─ Component: infra
-├─ Profile: mosip/esignet
-└─ Backend: local (or s3, match your deployment configuration)
+├─ Branch: release-0.x.x (or your deployment branch)
+├─ CLOUD_PROVIDER: aws
+├─ COMPONENT: all        (dns → storage → compute → iam → security, + vm)
+├─ PROFILE: mosip / esignet-standalone / observ
+├─ BACKEND_TYPE: local (or remote, match your deployment)
+└─ TERRAFORM_DESTROY: ✅  (unchecked = plan -destroy only)
 ```
 
 #### 3. Wait for Completion
@@ -79,12 +82,13 @@ aws elb describe-load-balancers --output table | grep mosip
 
 If you also want to delete the VPC and networking (base-infra):
 
-![Base Infrastructure Terraform Destroy](\_images/base-infra-terraform-destroy.png)
+Same form as above (field 2: `COMPONENT = base-infra`).
 
-1. Go to **Actions → Terraform Infrastructure Destroy**
+1. Go to **Actions → terraform destroy**
 2. Run workflow with:
    ```
-   Component: base-infra
+   COMPONENT: base-infra
+   TERRAFORM_DESTROY: ✅
    ```
 3. Wait 5-8 minutes for completion
 
@@ -170,10 +174,9 @@ kubectl exec -n keycloak keycloak-0 -- /opt/jboss/keycloak/bin/standalone.sh \
 #### 2. Export Configurations
 
 ```bash
-# Export Terraform state (if using local backend)
-cd terraform/implementations/aws/infra/
-# For profile-isolated deployments, check the profiles/ directory:
-tar -czf terraform-state-backup-$(date +%Y%m%d).tar.gz profiles/<profile>/terraform.tfstate*
+# Export Terraform state (if using local backend) — one encrypted state per component
+tar -czf terraform-state-backup-$(date +%Y%m%d).tar.gz \
+  terraform/implementations/aws/*/profiles/<profile>/*.tfstate.gpg
 
 # Export Kubernetes configurations
 kubectl get all --all-namespaces -o yaml > k8s-resources-backup.yaml
@@ -264,9 +267,9 @@ Destruction Order (Reverse of Deployment):
 **Time Required**: 5-10 minutes
 
 ```bash
-# Option A: Using Helmsman (Recommended)
-cd Helmsman/
-helmsman --destroy -f dsf/testrigs-dsf.yaml
+# Option A (recommended): GitHub Actions → "Destroy Testrigs using Helmsman" (helmsman_testrigs_destroy.yml)
+#   see docs/HELMSMAN_DESTROY_GUIDE.md for its inputs
+# Option A (CLI): helmsman --destroy -f Helmsman/dsf/<profile>/testrigs-dsf.yaml
 
 # Option B: Using Helm directly
 helm list -n apitestrig
@@ -297,9 +300,9 @@ kubectl get namespaces | grep testrig
 **Time Required**: 10-20 minutes
 
 ```bash
-# Option A: Using Helmsman (Recommended)
-cd Helmsman/
-helmsman --destroy -f dsf/mosip-dsf.yaml
+# Option A (recommended): GitHub Actions → "Destroy MOSIP services using Helmsman" (helmsman_mosip_destroy.yml)
+#   see docs/HELMSMAN_DESTROY_GUIDE.md for its inputs
+# Option A (CLI): helmsman --destroy -f Helmsman/dsf/<profile>/mosip-dsf.yaml
 
 # Option B: Delete namespace with all resources
 kubectl delete namespace mosip
@@ -325,9 +328,9 @@ kubectl get pvc -n mosip
 **Time Required**: 10-20 minutes
 
 ```bash
-# Option A: Using Helmsman (Recommended)
-cd Helmsman/
-helmsman --destroy -f dsf/external-dsf.yaml
+# Option A (recommended): GitHub Actions → "Destroy External services of MOSIP using Helmsman (external DSF)" (helmsman_external_destroy_external.yml)
+#   see docs/HELMSMAN_DESTROY_GUIDE.md for its inputs
+# Option A (CLI): helmsman --destroy -f Helmsman/dsf/<profile>/external-dsf.yaml
 
 # Option B: Delete namespaces one by one
 kubectl delete namespace postgres
@@ -365,13 +368,13 @@ kubectl delete pvc --all -n kafka
 **Time Required**: 5-10 minutes
 
 ```bash
-# Option A: Using Helmsman (Recommended)
-cd Helmsman/
-helmsman --destroy -f dsf/prereq-dsf.yaml
+# Option A (recommended): GitHub Actions → "Destroy Prerequisite services of MOSIP using Helm" (helmsman_external_destroy_prereq.yml)
+#   see docs/HELMSMAN_DESTROY_GUIDE.md for its inputs
+# Option A (CLI): helmsman --destroy -f Helmsman/dsf/<profile>/prereq-dsf.yaml
 
-# Option B: Delete monitoring and Istio
-kubectl delete namespace cattle-monitoring-system
-kubectl delete namespace cattle-logging-system
+# Option B: Delete monitoring/logging and Istio
+kubectl delete namespace monitoring logging                              # monitoring_stack=standalone (default)
+kubectl delete namespace cattle-monitoring-system cattle-logging-system  # monitoring_stack=rancher
 kubectl delete namespace istio-system
 kubectl delete namespace istio-operator
 
@@ -397,7 +400,7 @@ kubectl get namespaces | grep -E "cattle|istio"
 
 1. **Navigate to GitHub Actions**
  ```
- Repository → Actions → Terraform Infrastructure Destroy
+ Repository → Actions → terraform destroy
  ```
 
 2. **Run Workflow**
@@ -405,11 +408,12 @@ kubectl get namespaces | grep -E "cattle|istio"
  Click: "Run workflow"
  
  Parameters:
- - Branch: release-0.1.0 (your deployment branch)
- - Cloud Provider: aws
- - Component: infra
- - Profile: mosip/esignet
- - Backend: local (or s3, match your deployment)
+ - Branch: release-0.x.x (your deployment branch)
+ - CLOUD_PROVIDER: aws
+ - COMPONENT: all      (reverse order: dns → storage → compute → iam → security)
+ - PROFILE: mosip / esignet-standalone
+ - BACKEND_TYPE: local (or remote, match your deployment)
+ - TERRAFORM_DESTROY: ✅ (unchecked = plan -destroy only)
  ```
 
 3. **Monitor Progress**
@@ -425,17 +429,14 @@ kubectl get namespaces | grep -E "cattle|istio"
 - Terraform state accessible
 
 ```bash
-# Navigate to infra directory
-cd terraform/implementations/aws/infra/
-
-# Verify Terraform state
-terraform state list
-
-# Preview destruction
-terraform plan -destroy
-
-# Destroy infrastructure
-terraform destroy -auto-approve
+# One root per component — destroy in reverse order
+P=mosip
+for c in dns storage compute iam security; do
+  (cd terraform/implementations/aws/$c && terraform init && \
+   terraform destroy -auto-approve \
+     -var-file=../../../../profiles/$P/aws/common.tfvars \
+     -var-file=../../../../profiles/$P/aws/$c.tfvars)
+done
 
 # Watch for completion
 # This will delete:
@@ -464,20 +465,16 @@ Status: Should all be "terminated"
 ##### Using GitHub Actions
 
 ```
-Actions → Terraform Observability Infrastructure Destroy
+Actions → terraform destroy
 Parameters:
-- Component: observ-infra
-- Others: same as infra destroy
+- COMPONENT: all
+- PROFILE: observ
+- Others: same as the MOSIP cluster destroy
 ```
 
 ##### Using Terraform CLI
 
-```bash
-cd terraform/observ-infra/aws/
-
-terraform plan -destroy
-terraform destroy -auto-approve
-```
+Same loop as above with `P=observ`.
 
 ---
 
@@ -490,25 +487,26 @@ terraform destroy -auto-approve
 ##### Using GitHub Actions
 
 ```
-Actions → Terraform Base Infrastructure Destroy
+Actions → terraform destroy
 Parameters:
-- Component: base-infra
-- Others: same as previous destroys
+- COMPONENT: base-infra
+- TERRAFORM_DESTROY: ✅
 ```
 
 ##### Using Terraform CLI
 
 ```bash
-cd terraform/base-infra/aws/
+cd terraform/implementations/aws/base-infra/
+# with the same backend.tf / decrypted state the workflow used
 
 # List resources to be destroyed
 terraform state list
 
 # Preview destruction
-terraform plan -destroy
+terraform plan -destroy -var-file=aws.tfvars
 
 # Destroy base infrastructure
-terraform destroy -auto-approve
+terraform destroy -auto-approve -var-file=aws.tfvars
 
 # This will delete:
 # - VPC
@@ -895,12 +893,14 @@ echo "Step 5/7: Waiting for namespace deletion..."
 sleep 60
 
 echo "Step 6/7: Destroying Kubernetes Infrastructure..."
-cd terraform/implementations/aws/infra/
-terraform destroy -auto-approve
+for c in dns storage compute iam security; do
+  (cd terraform/implementations/aws/$c && terraform destroy -auto-approve \
+    -var-file=../../../../profiles/mosip/aws/common.tfvars \
+    -var-file=../../../../profiles/mosip/aws/$c.tfvars)
+done
 
 echo "Step 7/7: Destroying Base Infrastructure..."
-cd ../../base-infra/aws/
-terraform destroy -auto-approve
+(cd terraform/implementations/aws/base-infra && terraform destroy -auto-approve -var-file=aws.tfvars)
 
 echo "✅ Destruction complete!"
 echo "Please verify manually that all resources are deleted."
@@ -986,4 +986,4 @@ mc mirror ./minio-backup/ mosip/mosip
 
 ---
 
-**Navigation**: [Back to Main README](../README.md) | [View All Docs](.)
+**Navigation**: [Back to Main README](../README.md) | [View All Docs](README.md)

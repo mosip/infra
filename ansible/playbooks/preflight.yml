@@ -1,0 +1,17 @@
+---
+# Run: ansible-playbook -i <inventory> ansible/playbooks/preflight.yml
+# First play of site.yml. Pings every host (SSH reachability), then checks
+# the inventory, required variables, data disks and the DNS gate on the
+# nginx host. Changes nothing.
+- name: Check every host is reachable over SSH
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Ping
+      ansible.builtin.ping:
+
+- name: Preflight checks
+  hosts: nginx
+  gather_facts: false
+  roles:
+    - preflight

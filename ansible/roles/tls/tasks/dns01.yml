@@ -1,0 +1,74 @@
+---
+- name: Install certbot
+  become: true
+  ansible.builtin.apt:
+    name: [certbot]
+    state: present
+    update_cache: true
+
+- name: Install certbot DNS plugin from apt
+  become: true
+  ansible.builtin.apt:
+    name: "{{ dns01_plugin_package }}"
+    state: present
+  when: dns01_plugin_install == 'apt'
+
+- name: Install pip for the certbot DNS plugin
+  become: true
+  ansible.builtin.apt:
+    name: [python3-pip]
+    state: present
+  when: dns01_plugin_install == 'pip'
+
+# Ubuntu's certbot runs on the system interpreter, so the plugin must land
+# there too (PEP 668 needs --break-system-packages on 24.04).
+- name: Install certbot DNS plugin from pip
+  become: true
+  ansible.builtin.pip:
+    name: "{{ dns01_plugin_package }}"
+    executable: pip3
+    extra_args: --break-system-packages
+  when: dns01_plugin_install == 'pip'
+
+- name: Install AWS credentials for route53 outside AWS
+  become: true
+  when:
+    - dns01_provider == 'route53'
+    - dns01_credentials_file | length > 0
+  block:
+    - name: Create /root/.aws
+      ansible.builtin.file:
+        path: /root/.aws
+        state: directory
+        mode: "0700"
+
+    - name: Copy AWS shared credentials
+      ansible.builtin.copy:
+        src: "{{ dns01_credentials_file }}"
+        dest: /root/.aws/credentials
+        mode: "0600"
+
+- name: Copy DNS provider credentials
+  become: true
+  ansible.builtin.copy:
+    src: "{{ dns01_credentials_file }}"
+    dest: "{{ tls_dns01_credentials_path }}"
+    mode: "0600"
+  when: dns01_provider != 'route53'
+
+- name: Build certbot DNS-01 arguments
+  ansible.builtin.set_fact:
+    tls_dns01_args: >-
+      --authenticator dns-{{ dns01_provider }}
+      --dns-{{ dns01_provider }}-propagation-seconds {{ dns01_propagation_seconds }}
+      {{ ('--dns-' ~ dns01_provider ~ '-credentials ' ~ tls_dns01_credentials_path) if dns01_provider != 'route53' else '' }}
+
+- name: Request wildcard certificate via DNS-01 ({{ dns01_provider }})
+  become: true
+  ansible.builtin.command:
+    cmd: >-
+      certbot certonly {{ tls_dns01_args }}
+      --cert-name {{ cluster_env_domain }}
+      -d *.{{ cluster_env_domain }} -d {{ cluster_env_domain }}
+      --non-interactive --agree-tos --email {{ certbot_email }}
+    creates: "{{ tls_live_dir }}/fullchain.pem"

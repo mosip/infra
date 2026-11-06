@@ -1,0 +1,33 @@
+---
+# Standalone mode binds port 80 itself. On a first run nginx isn't installed
+# yet, so the port is free. The pre/post hooks stop nginx around the request
+# and are saved in the renewal config, so automatic renewals free port 80
+# the same way.
+- name: Install certbot
+  become: true
+  ansible.builtin.apt:
+    name: [certbot]
+    state: present
+    update_cache: true
+
+- name: Build the list of names to certify
+  ansible.builtin.set_fact:
+    tls_http01_domains: "{{ public_domain_list.split(',') | map('trim') | reject('equalto', '') | list }}"
+
+- name: Require at least one public name
+  ansible.builtin.assert:
+    that: tls_http01_domains | length > 0
+    fail_msg: "http01 needs public_domain_list (comma-separated public FQDNs)"
+    quiet: true
+
+- name: Request certificate via HTTP-01
+  become: true
+  ansible.builtin.command:
+    cmd: >-
+      certbot certonly --standalone
+      --cert-name {{ cluster_env_domain }}
+      {{ tls_http01_domains | map('regex_replace', '^', '-d ') | join(' ') }}
+      --non-interactive --agree-tos --email {{ certbot_email }}
+      --pre-hook "systemctl stop nginx || true"
+      --post-hook "systemctl start nginx || true"
+    creates: "{{ tls_live_dir }}/fullchain.pem"

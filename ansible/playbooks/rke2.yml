@@ -1,0 +1,45 @@
+---
+# Run: ansible-playbook -i <inventory> ansible/playbooks/rke2.yml
+# Inventory groups "control_plane" (index 0 = primary), "etcd", "workers".
+# Each host carries a node_role hostvar ("control-plane"|"etcd"|"worker").
+# The inventory comes from ansible/inventory/generate.py (Terraform outputs
+# on cloud, hosts.yml on a data centre) — this play never knows which.
+#
+# Rancher import is a separate playbook (rancher_import.yml) so it can be
+# re-run on its own, e.g. after Rancher token rotation.
+
+- name: Install primary RKE2 control-plane node
+  hosts: control_plane[0]
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Check whether the cluster already exists
+      ansible.builtin.include_role:
+        name: rke2
+        tasks_from: check_cluster
+
+    - name: Determine cluster join token
+      ansible.builtin.include_role:
+        name: rke2
+        tasks_from: token
+
+    - name: Install and configure the primary node
+      ansible.builtin.include_role:
+        name: rke2
+        tasks_from: primary
+
+- name: Install all other RKE2 nodes in parallel
+  hosts: control_plane[1:],etcd,workers
+  become: true
+  gather_facts: true
+  strategy: free
+  tasks:
+    - name: Determine cluster join token
+      ansible.builtin.include_role:
+        name: rke2
+        tasks_from: token
+
+    - name: Install and join this node
+      ansible.builtin.include_role:
+        name: rke2
+        tasks_from: subsequent

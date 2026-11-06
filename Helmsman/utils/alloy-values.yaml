@@ -1,0 +1,253 @@
+# Grafana Alloy Values for MOSIP Cluster
+# Chart: grafana/alloy v1.6.2 (app v1.14.0)
+# Loki endpoint: http://loki.logging.svc.cluster.local:3100
+# Deploy to: logging namespace
+#
+# NOTE: this file is rendered with `helmsman --subst-env-values`, so every
+# dollar sign (comments included) is expanded as an environment variable.
+# Write a literal dollar sign as two dollar signs (Helmsman's escape).
+#
+# Uses loki.source.kubernetes which fetches logs via Kubernetes API
+# (no hostPath volume mounts needed, no path building required)
+
+alloy:
+  configMap:
+    create: true
+    content: |
+      // ==========================================================================
+      // POD DISCOVERY — NODE LOCAL (Major CPU optimization)
+      // ==========================================================================
+      discovery.kubernetes "pods" {
+        role = "pod"
+
+        // Only discover pods on the same node as this Alloy instance.
+        // NODE_NAME is injected from the Downward API in `extraEnv` below.
+        selectors {
+          role  = "pod"
+          field = "spec.nodeName=" + coalesce(sys.env("NODE_NAME"), constants.hostname)
+        }
+      }
+
+      discovery.relabel "pods" {
+        targets = discovery.kubernetes.pods.targets
+
+        // Drop system/infra namespaces including Loki itself
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          action = "drop"
+          regex = "kube-system|cattle-system|cattle-monitoring-system|monitoring|nfs|cattle-fleet-system|cattle-logging-system|logging"
+        }
+
+        // Only keep running pods
+        rule {
+          source_labels = ["__meta_kubernetes_pod_phase"]
+          action = "drop"
+          regex = "Pending|Succeeded|Failed|Completed"
+        }
+
+        // Drop init containers to prevent duplicate log collection
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_init"]
+          action = "drop"
+          regex = "true"
+        }
+
+        // Label mappings
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          target_label = "namespace"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_name"]
+          target_label = "pod"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_name"]
+          target_label = "container"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_node_name"]
+          target_label = "host"
+        }
+        // Short container ID makes each stream unique.
+        // `replacement` is omitted on purpose: it defaults to the first capture
+        // group, and a backreference would be wiped by --subst-env-values.
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_id"]
+          target_label = "container_id"
+          regex = ".*://(.{12}).*"
+        }
+        // app label: prefer app label, fall back to app.kubernetes.io/name
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_app"]
+          target_label = "app"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
+          target_label = "app"
+          regex = "(.+)"
+        }
+      }
+
+      // ==========================================================================
+      // LOG INGESTION
+      // ==========================================================================
+      loki.source.kubernetes "pods" {
+        targets = discovery.relabel.pods.output
+        forward_to = [loki.process.drop_noise.receiver]
+      }
+
+      // ==========================================================================
+      // STAGE 1: Drop noise early (before expensive processing)
+      // ==========================================================================
+      loki.process "drop_noise" {
+        forward_to = [loki.process.main_logs.receiver]
+
+        // Drop very old logs
+        stage.drop {
+          older_than = "1h"
+          drop_counter_reason = "too_old"
+        }
+
+        // Drop health-check / scrape noise. Anchored to probe request paths and
+        // the kube-probe user agent only, so ordinary log lines that merely
+        // contain words like "already", "mapping" or "delivered" are kept.
+        stage.drop {
+          expression = ".*(kube-probe/|/actuator/(health|prometheus|info)|/(healthz|livez|readyz)([?\" ]|$$)).*"
+          drop_counter_reason = "health_noise"
+        }
+      }
+
+      // ==========================================================================
+      // MAIN PIPELINE: logs → Loki
+      // ==========================================================================
+      loki.process "main_logs" {
+        forward_to = [loki.write.loki.receiver]
+
+        // Parse JSON FIRST so downstream stage.match selectors can use `level`
+        stage.json {
+          expressions = {
+            level      = "level",
+            statusCode = "statusCode",
+            timeTaken  = "timeTaken",
+            requestURI = "req.requestURI",
+            appName    = "appName",
+          }
+        }
+
+        // Promote `level` to a stream label before any stage.match that uses it
+        stage.labels {
+          values = {
+            level = "level",
+          }
+        }
+
+        // Drop DEBUG completely (now actually works — level is a label)
+        stage.match {
+          selector = "{level=~\"(?i)debug\"}"
+          action = "drop"
+        }
+
+        // ACCESS, INFO, WARN and ERROR are all kept at 100%. The response-time
+        // dashboards count ACCESS lines, so ACCESS must never be sampled.
+        // Sampling INFO logs is a retention-policy decision; if it is ever
+        // approved, add a stage.match on {level=~"(?i)info"} with
+        // stage.sampling here and document it.
+
+        stage.labels {
+          values = {
+            statusCode = "statusCode",
+          }
+        }
+
+        stage.static_labels {
+          values = {
+            cluster     = "${env_name}",
+            environment = "${env_name}",
+          }
+        }
+      }
+
+      // ==========================================================================
+      // LOKI WRITE
+      // ==========================================================================
+      loki.write "loki" {
+        endpoint {
+          url = "http://loki.logging.svc.cluster.local:3100/loki/api/v1/push"
+          batch_size = "1MiB"
+          batch_wait = "3s"
+          min_backoff_period = "500ms"
+          max_backoff_period = "5m"
+          max_backoff_retries = 10
+        }
+        external_labels = {
+          cluster     = "${env_name}",
+          environment = "${env_name}",
+          log_source  = "alloy",
+        }
+      }
+
+  extraArgs:
+    - --stability.level=generally-available
+
+  listenPort: 12345
+
+  # --- Environment variables injected into each Alloy container ---
+  # NODE_NAME is required by the field selector in discovery.kubernetes "pods"
+  # so each DaemonSet replica only tails pods on its own node.
+  extraEnv:
+    - name: NODE_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: spec.nodeName
+
+  # Resources and probes must live under `alloy:` — the grafana/alloy chart
+  # ignores them at the top level. Readiness is built into the chart
+  # (alloy.initialDelaySeconds / alloy.timeoutSeconds).
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  livenessProbe:
+    httpGet:
+      path: /-/healthy
+      port: 12345
+    initialDelaySeconds: 30
+    periodSeconds: 15
+
+# ============================================================
+# DAEMONSET: Run on every node
+# No volume mounts needed - uses Kubernetes API
+# ============================================================
+controller:
+  type: daemonset
+
+  tolerations:
+    - operator: Exists
+      effect: NoSchedule
+    - operator: Exists
+      effect: NoExecute
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule
+    - key: node-role.kubernetes.io/etcd
+      operator: Exists
+      effect: NoSchedule
+
+# ============================================================
+# RBAC — the chart's default rbac.rules already grant what
+# discovery.kubernetes and loki.source.kubernetes need.
+# ============================================================
+rbac:
+  create: true
+
+serviceAccount:
+  create: true
+  name: alloy-loki
+
+serviceMonitor:
+  enabled: false

@@ -1,0 +1,21 @@
+---
+- name: Create certificate directory
+  become: true
+  ansible.builtin.file:
+    path: "{{ tls_live_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Copy certificate chain
+  become: true
+  ansible.builtin.copy:
+    src: "{{ tls_cert_file }}"
+    dest: "{{ tls_live_dir }}/fullchain.pem"
+    mode: "0644"
+
+- name: Copy private key
+  become: true
+  ansible.builtin.copy:
+    src: "{{ tls_key_file }}"
+    dest: "{{ tls_live_dir }}/privkey.pem"
+    mode: "0600"

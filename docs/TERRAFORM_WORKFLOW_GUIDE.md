@@ -7,23 +7,26 @@
 ## Common Parameters for All Terraform Workflows
 
 - **`CLOUD_PROVIDER`**: `aws` | `azure` | `gcp` (cloud platform selection)
-  - **Choose**: `aws` (only fully functional option)
-  - Azure/GCP are placeholder implementations
-- **`TERRAFORM_COMPONENT`**: `base-infra` | `infra` | `observ-infra` (infrastructure component)
-  - **base-infra**: VPC, networking, jump server (deploy FIRST)
-  - **observ-infra**: Rancher management cluster (optional)
-  - **infra**: MOSIP Kubernetes cluster (main deployment)
-- **`INFRA_PROFILE`**: Deployment profile — only applies to the `infra` component (`base-infra` and `observ-infra` ignore this field)
+  - **Choose**: `aws` — Azure/GCP only have `base-infra`
+  - Data-centre VMs need no Terraform at all: see [Deployment sequence](DEPLOYMENT_SEQUENCE.md#data-centre)
+- **`COMPONENT`**: what to run — each component is its own Terraform root with its own state
+  - **all**: every component in order, then `configure`. With `TERRAFORM_APPLY` unchecked it plans every component of an **existing** environment and skips `configure`; a new environment needs apply (each component looks up what the earlier ones created in AWS)
+  - **security** → **iam** → **compute** → **storage** → **dns**: one component (day-2 changes, e.g. `dns` to update only Route53, `compute` to resize or add nodes)
+  - **configure**: Ansible only (TLS + nginx, RKE2, Rancher import, NFS, PostgreSQL, ActiveMQ, Rancher/Keycloak)
+  - **vm**: standalone EC2 instances with their own security group and IAM (`profiles/<profile>/aws/vm.tfvars`) — not part of `all`
+  - **base-infra**: VPC, networking, jump server, WireGuard (deploy FIRST, once)
+- **`PROFILE`**: deployment shape — see [Profiles](PROFILES.md)
 
-  | Profile | tfvars file | Cluster size | Use for |
-  |---------|-------------|--------------|---------|
-  | `esignet` | `profiles/esignet/aws.tfvars` | 4-node K8s cluster | eSignet standalone deployment |
-  | `mosip` | `profiles/mosip/aws.tfvars` | 7-node K8s cluster | Full MOSIP platform deployment |
+  | Profile | Values | Cluster size | Use for |
+  |---------|--------|--------------|---------|
+  | `mosip` | `profiles/mosip/` | 7 nodes (3/3/1) | Full MOSIP platform |
+  | `esignet-standalone` | `profiles/esignet-standalone/` | 4 nodes (1/1/2) | eSignet standalone |
+  | `observ` | `profiles/observ/` | 1 node | Rancher UI + Keycloak (optional) |
 
-  - Selecting the profile determines which `aws.tfvars` is loaded and therefore the cluster node count, instance types, and DNS subdomains provisioned
-  - The Terraform state file is also scoped per profile so both can coexist on the same branch without conflicting state
+  - The profile decides the tfvars (`profiles/<profile>/aws/*.tfvars`), the Layer-3 components and the DNS subdomains
+  - State is scoped per component and profile, so profiles coexist on the same branch
 - **`SSH_PRIVATE_KEY`**: GitHub secret name containing SSH private key for instance access
-  - Must match the `ssh_key_name` in your terraform.tfvars
+  - Must match `ssh_key_name` in `profiles/<profile>/aws/common.tfvars`
   - [How to create SSH keys](SECRET_GENERATION_GUIDE.md#1-ssh-keys)
 - **`TERRAFORM_APPLY`**: Checkbox ☐ or ✅ (apply changes or plan-only mode)
   - ☐ **Unchecked** = Dry run (preview only, **no infrastructure changes**)
@@ -43,17 +46,20 @@
 → Cost: Billing starts
 ```
 
+- **`DNS_PROVIDER`**: who creates the DNS records — `terraform-route53` (default, `dns` component), `godaddy` / `cloudflare` / `rfc2136` (Ansible, provider secrets), or `manual` ("no DNS yet": builds the cluster, skips TLS, the nginx proxy and the Rancher import, and prints the records to create)
+- **`ENABLE_RANCHER_IMPORT`** / **`RANCHER_CLUSTER_NAME`** / **`PUBLISH_KUBECONFIG`** / **`GRANT_GROUP_ACCESS`**: register the cluster in the observ Rancher (needs `RANCHER_API_URL` + `RANCHER_API_TOKEN`), publish its kubeconfig as the `KUBECONFIG` environment secret, and grant team access
 - **Relationship with Rancher Import:**
 
 ```
-If Terraform Apply = ✅ AND Rancher Import = True
-→ Infrastructure deployed AND cluster imported to Rancher UI
+If COMPONENT = all/configure AND ENABLE_RANCHER_IMPORT = ✅
+→ Infrastructure deployed AND cluster imported to Rancher UI (during configure)
 
-If Terraform Apply = ✅ AND Rancher Import = False 
+If ENABLE_RANCHER_IMPORT = ☐
 → Infrastructure deployed but cluster runs standalone
 
-If Terraform Apply = ☐ (unchecked - dry run)
-→ Nothing happens, just shows plan
+If Terraform Apply = ☐ (unchecked - plan only)
+→ Nothing is applied or committed, just shows plans
+→ COMPONENT=all: every component planned in order (existing environment), configure skipped
 → Rancher Import setting is ignored
 ```
 
@@ -65,12 +71,11 @@ If Terraform Apply = ☐ (unchecked - dry run)
   - Automatic encryption/decryption via GitHub Actions
   - **Best for**: Development, testing, small teams
   - **Requires**: GPG_PASSPHRASE secret
-- **`s3`**: Remote S3 backend storage (recommended for production and large teams)
-  - Centralized state storage in AWS S3
-  - DynamoDB state locking support
-  - Cross-team collaboration friendly
+- **`remote`**: state in a cloud bucket (recommended for production and large teams)
+  - Set **`REMOTE_BACKEND_CONFIG`**: `aws:<bucket_base_name>:<region>`, `azure:<resource_group>:<storage_account>:<container>` or `gcp:<bucket>` — the workflow creates the bucket if needed
+  - Tick **`ENABLE_STATE_LOCKING`** for locking (DynamoDB on AWS)
+  - State key per provider, component, profile and branch
   - **Best for**: Production, large teams, multiple environments
-  - **Requires**: S3 bucket and DynamoDB table setup
 
 ## Understanding Terraform Modes
 
@@ -86,16 +91,16 @@ Before running any Terraform workflow, understand these modes:
 ## Best Practices
 
 1. **Always Plan First**: Use unchecked mode (☐) to preview changes before applying
-2. **Consistent Naming**: Ensure `ssh_key_name` matches across terraform.tfvars and GitHub secrets
+2. **Consistent Naming**: Ensure `ssh_key_name` (profiles/<profile>/aws/common.tfvars) matches the GitHub secret
 3. **Secret Management**: Keep SSH private keys secure and never commit to repository
 4. **Environment Isolation**: Use separate branches/environments for different deployments
-5. **State Management**: Choose appropriate backend (local vs S3) based on team size and requirements
+5. **State Management**: Choose the backend (`local` vs `remote`) based on team size and requirements
 
 ## Troubleshooting Common Issues
 
 ### SSH Key Mismatch
 **Error**: "Key pair 'xxx' does not exist"
-**Solution**: Ensure the `ssh_key_name` value in terraform.tfvars matches the GitHub secret name exactly (case-sensitive)
+**Solution**: Ensure `ssh_key_name` in `profiles/<profile>/aws/common.tfvars` matches the GitHub secret name exactly (case-sensitive)
 
 ### State Lock Issues
 **Error**: "Error locking state: ConditionalCheckFailedException"
@@ -108,3 +113,7 @@ Before running any Terraform workflow, understand these modes:
 ### Backend Configuration Errors
 **Error**: "Backend configuration changed"
 **Solution**: Run terraform init to reinitialize backend configuration
+
+## Destroying
+
+Use **Actions → terraform destroy** with the same `PROFILE`, `BACKEND_TYPE` and `SSH_PRIVATE_KEY`. `COMPONENT=all` destroys in reverse order (`dns → storage → compute → iam → security`, plus `vm` if it was applied); leave **`TERRAFORM_DESTROY`** unchecked for a `plan -destroy` preview. `base-infra` is destroyed separately and last. See the [Environment Destruction Guide](ENVIRONMENT_DESTRUCTION_GUIDE.md).

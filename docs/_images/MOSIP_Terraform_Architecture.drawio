@@ -11,7 +11,7 @@
         <mxCell id="gha-box" value="GitHub Actions&#xa;Central Deployment Control" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1976D2;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;" parent="gha-container" vertex="1">
           <mxGeometry x="35" y="30" width="200" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="multicloud-container" value="Multi-Cloud Infrastructure" style="swimlane;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=2;fontStyle=1;" parent="1" vertex="1">
+        <mxCell id="multicloud-container" value="Cloud / Data-centre Infrastructure" style="swimlane;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=2;fontStyle=1;" parent="1" vertex="1">
           <mxGeometry x="20" y="200" width="1300" height="480" as="geometry" />
         </mxCell>
         <mxCell id="aws-container" value="AWS Cloud" style="swimlane;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#F57C00;strokeWidth=2;fontStyle=1;" parent="multicloud-container" vertex="1">
@@ -20,43 +20,43 @@
         <mxCell id="aws-base" value="base-infra&#xa;VPC + WireGuard" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1F5FE;strokeColor=#01579B;strokeWidth=2;" parent="aws-container" vertex="1">
           <mxGeometry x="130" y="40" width="140" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="aws-obs" value="observ-infra&#xa;Rancher + Keycloak" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#F57C00;strokeWidth=2;" parent="aws-container" vertex="1">
+        <mxCell id="aws-obs" value="profile: observ&#xa;Terraform + Ansible&#xa;Rancher + Keycloak" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#F57C00;strokeWidth=2;" parent="aws-container" vertex="1">
           <mxGeometry x="10" y="140" width="140" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="aws-infra" value="infra&#xa;MOSIP K8s Cluster" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#4A148C;strokeWidth=2;" parent="aws-container" vertex="1">
+        <mxCell id="aws-infra" value="profile: mosip / esignet&#xa;security·iam·compute·storage·dns&#xa;+ Ansible → RKE2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#4A148C;strokeWidth=2;" parent="aws-container" vertex="1">
           <mxGeometry x="230" y="140" width="140" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="aws-state" value="S3 Bucket&#xa;Remote State" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#FFE0B2;strokeColor=#FF8F00;strokeWidth=2;" parent="aws-container" vertex="1">
+        <mxCell id="aws-state" value="S3 Bucket&#xa;state per component" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#FFE0B2;strokeColor=#FF8F00;strokeWidth=2;" parent="aws-container" vertex="1">
           <mxGeometry x="130" y="280" width="140" height="90" as="geometry" />
         </mxCell>
-        <mxCell id="azure-container" value="Azure Cloud" style="swimlane;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;strokeWidth=2;fontStyle=1;" parent="multicloud-container" vertex="1">
+        <mxCell id="azure-container" value="Azure (VMs you create)" style="swimlane;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;strokeWidth=2;fontStyle=1;" parent="multicloud-container" vertex="1">
           <mxGeometry x="460" y="50" width="380" height="400" as="geometry" />
         </mxCell>
-        <mxCell id="azure-base" value="base-infra&#xa;VNet + WireGuard" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1F5FE;strokeColor=#01579B;strokeWidth=2;" parent="azure-container" vertex="1">
+        <mxCell id="azure-base" value="base-infra&#xa;(placeholder)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1F5FE;strokeColor=#01579B;strokeWidth=2;" parent="azure-container" vertex="1">
           <mxGeometry x="130" y="40" width="140" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="azure-obs" value="observ-infra&#xa;Rancher + Keycloak" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#F57C00;strokeWidth=2;" parent="azure-container" vertex="1">
+        <mxCell id="azure-obs" value="profile: observ&#xa;Ansible on your VMs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#F57C00;strokeWidth=2;" parent="azure-container" vertex="1">
           <mxGeometry x="10" y="140" width="140" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="azure-infra" value="infra&#xa;MOSIP RKE2 Cluster" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#4A148C;strokeWidth=2;" parent="azure-container" vertex="1">
+        <mxCell id="azure-infra" value="profile: mosip / esignet&#xa;Ansible on your VMs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#4A148C;strokeWidth=2;" parent="azure-container" vertex="1">
           <mxGeometry x="230" y="140" width="140" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="azure-state" value="Storage Account&#xa;Remote State" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#E1F5FE;strokeColor=#0288D1;strokeWidth=2;" parent="azure-container" vertex="1">
+        <mxCell id="azure-state" value="No Terraform state&#xa;(Ansible only)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#E1F5FE;strokeColor=#0288D1;strokeWidth=2;" parent="azure-container" vertex="1">
           <mxGeometry x="130" y="280" width="140" height="90" as="geometry" />
         </mxCell>
-        <mxCell id="gcp-container" value="GCP Cloud" style="swimlane;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#7B1FA2;strokeWidth=2;fontStyle=1;" parent="multicloud-container" vertex="1">
+        <mxCell id="gcp-container" value="GCP (VMs you create)" style="swimlane;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#7B1FA2;strokeWidth=2;fontStyle=1;" parent="multicloud-container" vertex="1">
           <mxGeometry x="880" y="50" width="380" height="400" as="geometry" />
         </mxCell>
-        <mxCell id="gcp-base" value="base-infra&#xa;VPC + WireGuard" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1F5FE;strokeColor=#01579B;strokeWidth=2;" parent="gcp-container" vertex="1">
+        <mxCell id="gcp-base" value="base-infra&#xa;(placeholder)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1F5FE;strokeColor=#01579B;strokeWidth=2;" parent="gcp-container" vertex="1">
           <mxGeometry x="130" y="40" width="140" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="gcp-obs" value="observ-infra&#xa;Rancher + Keycloak" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#F57C00;strokeWidth=2;" parent="gcp-container" vertex="1">
+        <mxCell id="gcp-obs" value="profile: observ&#xa;Ansible on your VMs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#F57C00;strokeWidth=2;" parent="gcp-container" vertex="1">
           <mxGeometry x="10" y="140" width="140" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="gcp-infra" value="infra&#xa;MOSIP RKE2 Cluster" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#4A148C;strokeWidth=2;" parent="gcp-container" vertex="1">
+        <mxCell id="gcp-infra" value="profile: mosip / esignet&#xa;Ansible on your VMs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#4A148C;strokeWidth=2;" parent="gcp-container" vertex="1">
           <mxGeometry x="230" y="140" width="140" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="gcp-state" value="Cloud Storage&#xa;Remote State" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#F3E5F5;strokeColor=#8E24AA;strokeWidth=2;" parent="gcp-container" vertex="1">
+        <mxCell id="gcp-state" value="No Terraform state&#xa;(Ansible only)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#F3E5F5;strokeColor=#8E24AA;strokeWidth=2;" parent="gcp-container" vertex="1">
           <mxGeometry x="130" y="280" width="140" height="90" as="geometry" />
         </mxCell>
         <mxCell id="gha-to-aws" value="Deploy AWS" style="endArrow=classic;html=1;rounded=0;strokeWidth=3;strokeColor=#1976D2;endSize=10;fontColor=#1976D2;fontStyle=1;fontSize=10;entryX=0.689;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" target="aws-container" edge="1">
@@ -66,14 +66,14 @@
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="gha-to-azure" value="Deploy Azure" style="endArrow=classic;html=1;rounded=0;strokeWidth=3;strokeColor=#1976D2;endSize=10;fontColor=#1976D2;fontStyle=1;fontSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.779;entryY=-0.007;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="gha-container" target="azure-container" edge="1">
+        <mxCell id="gha-to-azure" value="configure: hosts.yml" style="endArrow=classic;html=1;rounded=0;strokeWidth=3;strokeColor=#1976D2;endSize=10;fontColor=#1976D2;fontStyle=1;fontSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.779;entryY=-0.007;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="gha-container" target="azure-container" edge="1">
           <mxGeometry y="5" width="50" height="50" relative="1" as="geometry">
             <mxPoint x="590" y="110" as="sourcePoint" />
             <mxPoint x="640" y="60" as="targetPoint" />
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="gha-to-gcp" value="Deploy GCP" style="endArrow=classic;html=1;rounded=0;strokeWidth=3;strokeColor=#1976D2;endSize=10;fontColor=#1976D2;fontStyle=1;fontSize=10;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.429;entryY=-0.007;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="gha-container" target="gcp-container" edge="1">
+        <mxCell id="gha-to-gcp" value="configure: hosts.yml" style="endArrow=classic;html=1;rounded=0;strokeWidth=3;strokeColor=#1976D2;endSize=10;fontColor=#1976D2;fontStyle=1;fontSize=10;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.429;entryY=-0.007;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="gha-container" target="gcp-container" edge="1">
           <mxGeometry x="-0.1" y="5" width="50" height="50" relative="1" as="geometry">
             <mxPoint x="660" y="110" as="sourcePoint" />
             <mxPoint x="710" y="60" as="targetPoint" />
@@ -127,14 +127,14 @@
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="azure-base-to-obs" value="Provisions" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#F57C00;endSize=8;fontColor=#F57C00;fontStyle=1;fontSize=9;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="azure-base" target="azure-obs" edge="1">
+        <mxCell id="azure-base-to-obs" value="hosts.yml" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#F57C00;endSize=8;fontColor=#F57C00;fontStyle=1;fontSize=9;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="azure-base" target="azure-obs" edge="1">
           <mxGeometry x="0.15" y="-10" width="50" height="50" relative="1" as="geometry">
             <mxPoint x="500" y="290" as="sourcePoint" />
             <mxPoint x="450" y="340" as="targetPoint" />
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="azure-base-to-infra" value="Provisions" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#4A148C;endSize=8;fontColor=#4A148C;fontStyle=1;fontSize=9;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="azure-base" target="azure-infra" edge="1">
+        <mxCell id="azure-base-to-infra" value="hosts.yml" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#4A148C;endSize=8;fontColor=#4A148C;fontStyle=1;fontSize=9;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="azure-base" target="azure-infra" edge="1">
           <mxGeometry x="-0.15" y="-10" width="50" height="50" relative="1" as="geometry">
             <mxPoint x="620" y="290" as="sourcePoint" />
             <mxPoint x="670" y="340" as="targetPoint" />
@@ -148,7 +148,7 @@
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="azure-base-to-state" value="Remote State" style="endArrow=classic;html=1;rounded=0;strokeWidth=1;strokeColor=#0288D1;dashed=1;dashPattern=5 3;endSize=6;fontColor=#0288D1;fontSize=8;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="azure-base" target="azure-state" edge="1">
+        <mxCell id="azure-base-to-state" value="—" style="endArrow=classic;html=1;rounded=0;strokeWidth=1;strokeColor=#0288D1;dashed=1;dashPattern=5 3;endSize=6;fontColor=#0288D1;fontSize=8;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="azure-base" target="azure-state" edge="1">
           <mxGeometry x="0.1" y="-5" width="50" height="50" relative="1" as="geometry">
             <mxPoint x="530" y="300" as="sourcePoint" />
             <mxPoint x="580" y="250" as="targetPoint" />
@@ -173,14 +173,14 @@
             <mxPoint x="170" y="720" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="gcp-base-to-obs" value="Provisions" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#F57C00;endSize=8;fontColor=#F57C00;fontStyle=1;fontSize=9;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="gcp-base" target="gcp-obs" edge="1">
+        <mxCell id="gcp-base-to-obs" value="hosts.yml" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#F57C00;endSize=8;fontColor=#F57C00;fontStyle=1;fontSize=9;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="gcp-base" target="gcp-obs" edge="1">
           <mxGeometry x="0.15" y="-10" width="50" height="50" relative="1" as="geometry">
             <mxPoint x="870" y="290" as="sourcePoint" />
             <mxPoint x="820" y="340" as="targetPoint" />
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="gcp-base-to-infra" value="Provisions" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#4A148C;endSize=8;fontColor=#4A148C;fontStyle=1;fontSize=9;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="gcp-base" target="gcp-infra" edge="1">
+        <mxCell id="gcp-base-to-infra" value="hosts.yml" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#4A148C;endSize=8;fontColor=#4A148C;fontStyle=1;fontSize=9;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="gcp-base" target="gcp-infra" edge="1">
           <mxGeometry x="-0.15" y="-10" width="50" height="50" relative="1" as="geometry">
             <mxPoint x="990" y="290" as="sourcePoint" />
             <mxPoint x="1040" y="340" as="targetPoint" />
@@ -194,7 +194,7 @@
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="gcp-base-to-state" value="Remote State" style="endArrow=classic;html=1;rounded=0;strokeWidth=1;strokeColor=#8E24AA;dashed=1;dashPattern=5 3;endSize=6;fontColor=#8E24AA;fontSize=8;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="gcp-base" target="gcp-state" edge="1">
+        <mxCell id="gcp-base-to-state" value="—" style="endArrow=classic;html=1;rounded=0;strokeWidth=1;strokeColor=#8E24AA;dashed=1;dashPattern=5 3;endSize=6;fontColor=#8E24AA;fontSize=8;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="gcp-base" target="gcp-state" edge="1">
           <mxGeometry x="0.1" y="-5" width="50" height="50" relative="1" as="geometry">
             <mxPoint x="900" y="300" as="sourcePoint" />
             <mxPoint x="950" y="250" as="targetPoint" />
@@ -222,7 +222,7 @@
         <mxCell id="local-state-container" value="Local State Management" style="swimlane;whiteSpace=wrap;html=1;fillColor=#E8F5E8;strokeColor=#388E3C;strokeWidth=2;fontStyle=1;" parent="1" vertex="1">
           <mxGeometry x="520" y="740" width="300" height="120" as="geometry" />
         </mxCell>
-        <mxCell id="local-state" value="GitHub Repository&#xa;Encrypted State Files&#xa;(Local Backup)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#E8F5E8;strokeColor=#388E3C;strokeWidth=2;" parent="local-state-container" vertex="1">
+        <mxCell id="local-state" value="GitHub Repository&#xa;GPG state per component&#xa;·profile·branch" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#E8F5E8;strokeColor=#388E3C;strokeWidth=2;" parent="local-state-container" vertex="1">
           <mxGeometry x="80" y="30" width="140" height="80" as="geometry" />
         </mxCell>
         <mxCell id="legend-container" value="Legend" style="swimlane;whiteSpace=wrap;html=1;fillColor=#F0F0F0;strokeColor=#666666;strokeWidth=1;fontStyle=1;fontSize=10;" parent="1" vertex="1">

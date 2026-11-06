@@ -1,0 +1,12 @@
+---
+# Run: ansible-playbook -i <inventory> ansible/playbooks/rancher_keycloak.yml \
+#        -e rancher_password=<from a secret>
+# Installs Rancher UI + Keycloak on the observability (management) cluster.
+# Same target as the legacy rancher-keycloak-setup module: the first
+# control-plane node only.
+- name: Install Rancher UI and Keycloak
+  hosts: control_plane[0]
+  become: true
+  gather_facts: true
+  roles:
+    - rancher_keycloak

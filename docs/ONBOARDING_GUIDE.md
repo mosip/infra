@@ -8,7 +8,7 @@ This guide provides detailed instructions for handling partner onboarding proces
 - [Understanding MOSIP Onboarding](#understanding-mosip-onboarding)
 - [Identifying Failed Onboarding Processes](#identifying-failed-onboarding-processes)
 - [Manual Partner Re-onboarding Procedures](#manual-partner-re-onboarding-procedures)
-- [Verification Steps](#verification-steps)
+- [Getting Help](#getting-help)
 
 ## Overview
 
@@ -76,7 +76,7 @@ Onboarding reports are stored in MinIO and contain detailed success/failure info
 # 4. Select s3 secret to find credentials
 ```
 
-**If deployed without observ-infra:**
+**If deployed without the observ cluster (no Rancher UI):**
 
 ```bash
 # Get MinIO password using kubectl
@@ -121,6 +121,14 @@ kubectl logs -n onboarder $POD_NAME | grep -i "error\|failed\|exception"
 kubectl logs -n onboarder $POD_NAME | grep -i "minio\|report uploaded"
 ```
 
+### Symptom: eSignet / resident fail with `IDA-MPA-009`
+
+If the onboarder jobs completed but eSignet login, resident apitestrig cases or `send-otp` fail with
+`IDA-MPA-009` (*Partner is not registered*), IDA has not received the partner data. IDA learns partners
+only from PMS WebSub events, so events missed while IDA or WebSub was not ready leave its
+`mosip_ida.partner_data` table without the `mpartner-default-*` partners. Re-run the partner onboarders
+(below) after PMS, WebSub and IDA are healthy, then re-run the affected tests.
+
 ## Manual Partner Re-onboarding Procedures
 
 ### Method 1: Rerun Partner-Onboarder Job (Recommended)
@@ -129,7 +137,7 @@ This is the primary method to retry failed onboarding after reviewing MinIO repo
 
 #### Step 1: Delete the Completed Partner-Onboarder Job
 
-**Option 1: If deployed with observ-infra (Rancher UI available)**
+**Option 1: If deployed with the observ cluster (Rancher UI available)**
 
 1. **Access Rancher UI**
 2. **Navigate to your cluster**

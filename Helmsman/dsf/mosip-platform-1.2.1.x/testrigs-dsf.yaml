@@ -22,7 +22,7 @@ apps:
   packetcreator:
     namespace: packetcreator
     enabled: true
-    version: 1.3.0
+    version: 1.4.0
     chart: mosip/packetcreator
     set:
       # image.repository: "mosipqa/dsl-packetcreator"
@@ -46,7 +46,7 @@ apps:
   apitestrig:
     namespace: apitestrig
     enabled: true
-    version: 1.3.5
+    version: 1.6.0
     chart: mosip/apitestrig
     set:
       crontime: "0 2 * * *"
@@ -74,12 +74,12 @@ apps:
 
       modules.masterdata.enabled: true
       modules.masterdata.image.repository: mosipid/apitest-masterdata
-      modules.masterdata.image.tag: 1.3.0
+      modules.masterdata.image.tag: 1.3.1
       modules.masterdata.image.pullPolicy: Always
 
       modules.idrepo.enabled: true
       modules.idrepo.image.repository: mosipid/apitest-idrepo
-      modules.idrepo.image.tag: 1.3.0
+      modules.idrepo.image.tag: 1.3.1-rc.1
       modules.idrepo.image.pullPolicy: Always
 
       modules.partner.enabled: true
@@ -99,7 +99,7 @@ apps:
 
       modules.auth.enabled: true
       modules.auth.image.repository: mosipid/apitest-auth
-      modules.auth.image.tag: 1.2.1.3
+      modules.auth.image.tag: 1.3.1-rc.1
       modules.auth.image.pullPolicy: Always
 
       modules.esignet.enabled: false
@@ -109,12 +109,12 @@ apps:
 
       modules.mimoto.enabled: false
       modules.mimoto.image.repository: mosipid/apitest-mimoto
-      modules.mimoto.image.tag: 0.20.0
+      modules.mimoto.image.tag: 0.22.0
       modules.mimoto.image.pullPolicy: Always
 
       modules.injicertify.enabled: false
       modules.injicertify.image.repository: mosipid/apitest-injicertify
-      modules.injicertify.image.tag: 0.13.0
+      modules.injicertify.image.tag: 0.14.0
       modules.injicertify.image.pullPolicy: Always
 
       modules.esignet-signup.enabled: false
@@ -129,7 +129,7 @@ apps:
   dslorchestrator:
     namespace: dslrig
     enabled: true
-    version: 1.3.0
+    version: 1.4.0
     chart: mosip/dslorchestrator
     set:
       # image.repository: "mosipqa/dsl-orchestrator"
@@ -157,7 +157,7 @@ apps:
   uitestrig:
     namespace: uitestrig
     enabled: true
-    version: 1.3.5
+    version: 1.6.0
     chart: mosip/uitestrig
     set:
       # image.repository: ""

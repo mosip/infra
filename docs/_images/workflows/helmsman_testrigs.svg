@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="460" height="840" viewBox="0 0 460 840" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="Deploy Testrigs of mosip using Helmsman — Run workflow form">
+<title>Deploy Testrigs of mosip using Helmsman — Run workflow form</title>
+<rect x="0.5" y="0.5" width="459" height="813" rx="8" fill="#ffffff" stroke="#d0d7de"/>
+<text x="16" y="30" font-size="14" font-weight="600" fill="#1f2328" text-anchor="start">Run workflow</text>
+<text x="16" y="58" font-size="12" font-weight="600" fill="#1f2328" text-anchor="start">Use workflow from</text>
+<rect x="16" y="66" width="190" height="30" rx="6" fill="#f6f8fa" stroke="#d0d7de"/>
+<text x="26" y="85" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">Branch: &lt;your branch&gt; ▾</text>
+<circle cx="27" cy="122" r="10" fill="#0969da"/>
+<text x="27" y="126" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">1</text>
+<text x="46" y="126" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">Choose deployment profile<tspan fill="#d1242f" font-weight="600"> *</tspan></text>
+<rect x="46" y="134" width="398" height="30" rx="6" fill="#f6f8fa" stroke="#d0d7de"/>
+<text x="56" y="153" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">mosip-platform-1.2.0.x</text>
+<text x="434" y="153" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="end">▾</text>
+<text x="420" y="153" font-size="10" font-weight="normal" fill="#59636e" text-anchor="end">profile</text>
+<text x="46" y="177" font-size="10" font-weight="normal" fill="#59636e" text-anchor="start">other options: mosip-platform-1.2.1.x | esignet-standalone | esigne…</text>
+<circle cx="27" cy="200" r="10" fill="#0969da"/>
+<text x="27" y="204" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">2</text>
+<text x="46" y="204" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">Choose Helmsman mode: dry-run or apply<tspan fill="#d1242f" font-weight="600"> *</tspan></text>
+<rect x="46" y="212" width="398" height="30" rx="6" fill="#f6f8fa" stroke="#d0d7de"/>
+<text x="56" y="231" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">dry-run</text>
+<text x="434" y="231" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="end">▾</text>
+<text x="420" y="231" font-size="10" font-weight="normal" fill="#59636e" text-anchor="end">mode</text>
+<text x="46" y="255" font-size="10" font-weight="normal" fill="#59636e" text-anchor="start">other options: apply</text>
+<circle cx="27" cy="278" r="10" fill="#0969da"/>
+<text x="27" y="282" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">3</text>
+<text x="46" y="282" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">Domain name for this environment (e.g. example.xyz.net)<tspan fill="#d1242f" font-weight="600"> *</tspan></text>
+<rect x="46" y="290" width="398" height="30" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<text x="434" y="309" font-size="10" font-weight="normal" fill="#59636e" text-anchor="end">domain_name</text>
+<circle cx="27" cy="342" r="10" fill="#0969da"/>
+<text x="27" y="346" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">4</text>
+<text x="46" y="346" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">MOSIP-ID domain name (e.g. mosipenv.xyz.net) — required for</text>
+<text x="46" y="362" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">esignet standalone profiles</text>
+<rect x="46" y="370" width="398" height="30" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<text x="434" y="389" font-size="10" font-weight="normal" fill="#59636e" text-anchor="end">mosipid_domain_name</text>
+<circle cx="27" cy="422" r="10" fill="#0969da"/>
+<text x="27" y="426" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">5</text>
+<text x="46" y="426" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">PostgreSQL port for MOSIP platform external postgres (e.g. 5433)<tspan fill="#d1242f" font-weight="600"> *</tspan></text>
+<rect x="46" y="434" width="398" height="30" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<text x="434" y="453" font-size="10" font-weight="normal" fill="#59636e" text-anchor="end">db_port</text>
+<circle cx="27" cy="486" r="10" fill="#0969da"/>
+<text x="27" y="490" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">6</text>
+<text x="46" y="490" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">PostgreSQL port for eSignet standalone container postgres (e.g.</text>
+<text x="46" y="506" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">5432)<tspan fill="#d1242f" font-weight="600"> *</tspan></text>
+<rect x="46" y="514" width="398" height="30" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<text x="434" y="533" font-size="10" font-weight="normal" fill="#59636e" text-anchor="end">esignet_db_port</text>
+<circle cx="27" cy="566" r="10" fill="#0969da"/>
+<text x="27" y="570" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">7</text>
+<text x="46" y="570" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">Environment name (e.g. sandbox, dev, staging)</text>
+<rect x="46" y="578" width="398" height="30" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<text x="434" y="597" font-size="10" font-weight="normal" fill="#59636e" text-anchor="end">env_name</text>
+<circle cx="27" cy="630" r="10" fill="#0969da"/>
+<text x="27" y="634" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">8</text>
+<text x="46" y="634" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">Slack channel name for alerting (e.g. #mosip-alerts)</text>
+<rect x="46" y="642" width="398" height="30" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<text x="434" y="661" font-size="10" font-weight="normal" fill="#59636e" text-anchor="end">slack_channel_name</text>
+<circle cx="27" cy="694" r="10" fill="#0969da"/>
+<text x="27" y="698" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">9</text>
+<text x="46" y="698" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">Slack webhook URL for alerting (configure as</text>
+<text x="46" y="714" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">secrets.SLACK_WEBHOOK_URL in the environment)</text>
+<rect x="46" y="722" width="398" height="30" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<text x="434" y="741" font-size="10" font-weight="normal" fill="#59636e" text-anchor="end">slack_webhook_url</text>
+<rect x="16" y="768" width="120" height="30" rx="6" fill="#1f883d"/>
+<text x="76" y="787" font-size="12" font-weight="600" fill="#ffffff" text-anchor="middle">Run workflow</text>
+<text x="230.0" y="831" font-size="10" font-weight="normal" fill="#59636e" text-anchor="middle">Generated from .github/workflows/helmsman_testrigs.yml</text>
+</svg>
