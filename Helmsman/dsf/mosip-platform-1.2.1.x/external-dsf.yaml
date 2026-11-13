@@ -53,6 +53,8 @@ apps:
     set:
       postgresHost: "postgres.${domain_name}"
     wait: true
+    hooks:
+      preInstall: "$WORKDIR/hooks/wait-for-istio-crds.sh"  # Istio comes from the parallel prereq DSF (#549)
     priority: -4
     timeout: 1200
 
@@ -233,6 +235,8 @@ apps:
       service: "keycloak"
     wait: true
     timeout: 1200
+    hooks:
+      preInstall: "$WORKDIR/hooks/wait-for-istio-crds.sh"  # Istio comes from the parallel prereq DSF (#549)
     priority: -3
 
   keycloak-init:
@@ -315,6 +319,7 @@ apps:
     wait: true
     timeout: 1200
     hooks:
+      preInstall: "$WORKDIR/hooks/wait-for-istio-crds.sh"  # Istio comes from the parallel prereq DSF (#549)
       postInstall: "$WORKDIR/hooks/s3-setup.sh "
     priority: -2
 
@@ -351,6 +356,7 @@ apps:
     timeout: 1200
     priority: -8
     hooks:
+      preInstall: "$WORKDIR/hooks/wait-for-istio-crds.sh"  # Istio comes from the parallel prereq DSF (#549)
       postInstall: "$WORKDIR/hooks/captcha-setup.sh ${PREREG_CAPTCHA_SITE_KEY} ${PREREG_CAPTCHA_SECRET_KEY} ${ADMIN_CAPTCHA_SITE_KEY} ${ADMIN_CAPTCHA_SECRET_KEY} ${RESIDENT_CAPTCHA_SITE_KEY} ${RESIDENT_CAPTCHA_SECRET_KEY}"
   # Note: Create a google recaptcha v2 ("I am not a Robot") from Google Recaptcha Admin.
   # Pass the captcha site and secret key in the above post install script as an argument.To create site and secret key below is the link:
@@ -435,6 +441,7 @@ apps:
     wait: true
     timeout: 1200
     hooks:
+      preInstall: "$WORKDIR/hooks/wait-for-istio-crds.sh"  # Istio comes from the parallel prereq DSF (#549)
       postInstall: "$WORKDIR/hooks/msg-gateways-setup.sh"
     priority: -1
 
