@@ -18,7 +18,7 @@
 #        wait-for-istio-crds.sh --check    exit 0 if ready now, 1 if not (no wait)
 set -euo pipefail
 
-TIMEOUT="${ISTIO_WAIT_TIMEOUT:-300}"
+TIMEOUT="${ISTIO_WAIT_TIMEOUT:-1800}"
 INTERVAL="${ISTIO_WAIT_INTERVAL:-15}"
 ISTIO_NS="istio-system"
 CRDS=(virtualservices.networking.istio.io gateways.networking.istio.io)
