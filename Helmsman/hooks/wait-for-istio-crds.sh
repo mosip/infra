@@ -12,10 +12,10 @@
 # ingress gateways are Available (same deployments the Istio hook waits for;
 # istiod also serves the validation webhook used when Istio objects are created).
 #
-# Env: ISTIO_WAIT_TIMEOUT (seconds, default 1200), ISTIO_WAIT_INTERVAL (default 15).
+# Env: ISTIO_WAIT_TIMEOUT (seconds, default 300), ISTIO_WAIT_INTERVAL (default 15).
 set -euo pipefail
 
-TIMEOUT="${ISTIO_WAIT_TIMEOUT:-1200}"
+TIMEOUT="${ISTIO_WAIT_TIMEOUT:-300}"
 INTERVAL="${ISTIO_WAIT_INTERVAL:-15}"
 ISTIO_NS="istio-system"
 CRDS=(virtualservices.networking.istio.io gateways.networking.istio.io)
