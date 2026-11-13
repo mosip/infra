@@ -72,6 +72,10 @@ on:
         description: "Rancher cluster ID (e.g. c-xxxxx): required only for monitoring_stack=rancher; empty = vars.CLUSTER_ID"
         required: false
         type: string
+      rerun_hooks_for:
+        description: "Optional recovery: app name (e.g. kube-prometheus-stack) to force-upgrade so its pre/postUpgrade hooks run again (helmsman --always-upgrade --target). Empty = normal run"
+        required: false
+        type: string
   push:
     paths:
       - Helmsman/dsf/**/prereq-dsf.yaml
@@ -292,6 +296,30 @@ jobs:
           echo "Using profile: $PROFILE"
           echo "matrix=$matrix_json" >> $GITHUB_OUTPUT
           echo "PROFILE=$PROFILE" >> $GITHUB_OUTPUT
+
+      # rerun_hooks_for must name an app of the selected profile's prereq or
+      # external DSF (checked before anything is deployed).
+      - name: Validate rerun_hooks_for
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.rerun_hooks_for != '' }}
+        env:
+          RERUN_APP: ${{ github.event.inputs.rerun_hooks_for }}
+          PROFILE_IN: ${{ github.event.inputs.profile }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$RERUN_APP" =~ ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$ ]]; then
+            echo "❌ rerun_hooks_for must be an app name (lowercase letters, digits, -), got '$RERUN_APP'"; exit 1
+          fi
+          found=""
+          for dsf in prereq external; do
+            f="Helmsman/dsf/$PROFILE_IN/$dsf-dsf.yaml"
+            if awk '/^apps:/{a=1;next} a && /^[^ #]/{a=0} a' "$f" | grep -qE "^  ${RERUN_APP}:[[:space:]]*$"; then
+              found="$dsf-dsf.yaml"
+            fi
+          done
+          if [ -z "$found" ]; then
+            echo "❌ rerun_hooks_for: '$RERUN_APP' is not an app in $PROFILE_IN/prereq-dsf.yaml or external-dsf.yaml"; exit 1
+          fi
+          echo "✓ rerun_hooks_for = $RERUN_APP ($PROFILE_IN/$found): it will be force-upgraded so its pre/postUpgrade hooks run; the other DSF runs normally"
   deploy:
     runs-on: ubuntu-latest
     needs: set-matrix
@@ -534,6 +562,9 @@ jobs:
           echo "CLUSTER_ID         = $CLUSTER_ID"
 
       - name: Initiate helmsman to apply the DSF configurations.
+        env:
+          DSF_FILE: ${{ matrix.dsf_files }}
+          RERUN_APP: ${{ github.event.inputs.rerun_hooks_for }}
         run: |
           export HOME="${{ github.workspace }}"
           export WORKDIR="$HOME/Helmsman"
@@ -543,8 +574,19 @@ jobs:
           echo "Using istioctl: $(which istioctl)"
           echo "Using kubeconfig: $KUBECONFIG"
           
+          # rerun_hooks_for (validated in set-matrix): only in the DSF that
+          # contains the app, force-upgrade just that release so its
+          # preUpgrade/postUpgrade hooks run again; every other release and the
+          # other DSF are untouched / run normally.
+          EXTRA_ARGS=()
+          if [ -n "${RERUN_APP:-}" ] && awk '/^apps:/{a=1;next} a && /^[^ #]/{a=0} a' "$WORKDIR/dsf/$DSF_FILE" \
+               | grep -qE "^  ${RERUN_APP}:[[:space:]]*$"; then
+            EXTRA_ARGS=(--always-upgrade --target "$RERUN_APP")
+            echo "::notice::rerun_hooks_for: force-upgrading only '$RERUN_APP' in $DSF_FILE (its upgrade hooks run again)"
+          fi
+          
           # Run helmsman with the determined mode
-          helmsman --subst-env-values --${HELMSMAN_MODE} -f $WORKDIR/dsf/${{ matrix.dsf_files }}
+          helmsman --subst-env-values --${HELMSMAN_MODE} "${EXTRA_ARGS[@]}" -f "$WORKDIR/dsf/$DSF_FILE"
       - name: Health Check External Pods
         run: |
           set -e

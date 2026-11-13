@@ -13,6 +13,9 @@
 # istiod also serves the validation webhook used when Istio objects are created).
 #
 # Env: ISTIO_WAIT_TIMEOUT (seconds, default 300), ISTIO_WAIT_INTERVAL (default 15).
+#
+# Usage: wait-for-istio-crds.sh            wait until ready (or time out)
+#        wait-for-istio-crds.sh --check    exit 0 if ready now, 1 if not (no wait)
 set -euo pipefail
 
 TIMEOUT="${ISTIO_WAIT_TIMEOUT:-300}"
@@ -36,6 +39,11 @@ missing() {
 
 elapsed=0
 todo=$(missing)
+if [ "${1:-}" = "--check" ]; then
+  [ -z "$todo" ] && { echo "Istio is ready."; exit 0; }
+  echo "Istio not ready: ${todo}"
+  exit 1
+fi
 if [ -z "$todo" ]; then
   echo "Istio is ready (CRDs + istiod + ingress gateways)."
   exit 0
