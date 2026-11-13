@@ -89,8 +89,11 @@ Every value you type is saved as a GitHub Environment variable, so later runs (a
 | `slack_channel_name` | `SLACK_CHANNEL_NAME` | no | rancher only — `#mosip-alerts` |
 | `slack_webhook_url` | — | no | rancher only — prefer the `SLACK_WEBHOOK_URL` secret |
 | `clusterid` | `CLUSTER_ID` | rancher | Rancher cluster ID `c-m-xxxxx` (Rancher UI URL, or `kubectl get setting cluster-id -n cattle-system -o jsonpath='{.value}'`) |
+| `rerun_hooks_for` | — | no | **Recovery only.** An app name (e.g. `kube-prometheus-stack`): only that release is force-upgraded (`helmsman --always-upgrade --target`), so its pre/postUpgrade hooks run again. The other DSF runs normally. Leave empty for normal runs. |
 
 The `validate-inputs` job checks exactly what the selected `monitoring_stack` needs and lists anything missing before deploying.
+
+> **Istio on a new cluster:** the prereq and external DSFs run in parallel. The external DSF's Istio-dependent releases (`activemq`, `istio-addons-*`) wait until Istio, installed by the prereq DSF, is up (`wait-for-istio-crds.sh`, default 300 s, `ISTIO_WAIT_TIMEOUT`). Every other release deploys immediately. If an earlier run was interrupted while Istio was being installed, the prereq DSF re-installs it on the next run (`ensure-istio.sh`).
 
 > **Switching stacks:** Helmsman removes the releases of the stack that is not selected. An environment that runs rancher-monitoring/ELK today must set `monitoring_stack=rancher` before its next run.
 

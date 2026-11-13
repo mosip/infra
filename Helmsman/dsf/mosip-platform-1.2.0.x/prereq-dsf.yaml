@@ -115,6 +115,8 @@ apps:
       istio.serviceHost: "grafana"
       istio.servicePort: "80"
     wait: true
+    hooks:
+      preInstall: "$WORKDIR/hooks/ensure-istio.sh ${domain_name} ${env_name}"  # re-installs Istio if an earlier run was interrupted (#549)
     priority: -1
 
   # ── rancher stack (monitoring_stack=rancher) ───────────────────────────────
@@ -182,6 +184,8 @@ apps:
       kibanaHost: "kibana.${domain_name}"
       installName: "elasticsearch-kibana"
     wait: true
+    hooks:
+      preInstall: "$WORKDIR/hooks/ensure-istio.sh ${domain_name} ${env_name}"  # re-installs Istio if an earlier run was interrupted (#549)
     priority: -3
 
   rancher-logging-crd:
