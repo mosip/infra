@@ -24,6 +24,7 @@ commit the tfvars change to the branch first.
 | [Add a standalone VM](#add-a-standalone-vm) | `vm.tfvars` | `vm` |
 | [Set up DNS later](#deploy-now-dns-later) | — | `DNS_PROVIDER=manual`, later a provider |
 | [Re-run the configuration](#re-run-configure) | — | `configure` |
+| [Re-run a release's hooks](#re-run-a-releases-helmsman-hooks) | — | external workflow with `rerun_hooks_for` |
 | [(Re)import into Rancher](#rancher-import-and-kubeconfig) | — | `configure` + `ENABLE_RANCHER_IMPORT` |
 
 ---
@@ -173,6 +174,19 @@ instance](../.github/workflows/README.md#standalone-instance--any-type-ami-vpc-d
    are configured now; the rest is already in place.
 
 Details: [workflow README — no DNS yet](../.github/workflows/README.md#no-dns-yet-dns_providermanual).
+
+## Re-run a release's Helmsman hooks
+
+Helmsman runs a release's hooks only when it **installs** or **upgrades** that
+release. If a hook was interrupted (a cancelled run, a timeout), a normal
+re-run won't retry it, because the release is installed and unchanged.
+
+Run **Deploy External services** with **`rerun_hooks_for`** = the app name,
+e.g. `kube-prometheus-stack`. Only that release is force-upgraded
+(`--always-upgrade --target`), so its `preUpgrade` / `postUpgrade` hooks run
+again; nothing else is touched, and the other DSF runs normally. For Istio
+this is automatic: the prereq DSF re-installs a missing Istio
+(`ensure-istio.sh`).
 
 ## Re-run configure
 
