@@ -16,7 +16,8 @@ set -euo pipefail
 
 HOOKS_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-if "$HOOKS_DIR/wait-for-istio-crds.sh" --check; then
+if "$HOOKS_DIR/wait-for-istio-crds.sh" --check &&
+   kubectl -n istio-system get gateways.networking.istio.io public internal >/dev/null 2>&1; then
   exit 0
 fi
 
