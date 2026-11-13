@@ -89,7 +89,6 @@ Every value you type is saved as a GitHub Environment variable, so later runs (a
 | `slack_channel_name` | `SLACK_CHANNEL_NAME` | no | rancher only — `#mosip-alerts` |
 | `slack_webhook_url` | — | no | rancher only — prefer the `SLACK_WEBHOOK_URL` secret |
 | `clusterid` | `CLUSTER_ID` | rancher | Rancher cluster ID `c-m-xxxxx` (Rancher UI URL, or `kubectl get setting cluster-id -n cattle-system -o jsonpath='{.value}'`) |
-| `rerun_hooks_for` | — | no | **Recovery only.** An app name (e.g. `kube-prometheus-stack`): only that release is force-upgraded (`helmsman --always-upgrade --target`), so its pre/postUpgrade hooks run again. The other DSF runs normally. Leave empty for normal runs. |
 
 The `validate-inputs` job checks exactly what the selected `monitoring_stack` needs and lists anything missing before deploying.
 
