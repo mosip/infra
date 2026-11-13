@@ -296,6 +296,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: set-matrix
     strategy:
+      # prereq and external DSFs run in parallel: one failing must never cancel
+      # the other mid-install (e.g. the Istio install in the prereq DSF, #549).
+      fail-fast: false
       matrix: ${{ fromJson(needs.set-matrix.outputs.matrix) }}
     environment: 
       name: ${{ github.ref_name }}  # Dynamic environment based on branch name
