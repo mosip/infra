@@ -137,6 +137,31 @@
     chdir: "{{ working_dir }}/{{ nginx_config.nginx_location }}"
   environment: "{{ nginx_install_env }}"
 
+# install.sh fills the public block's server_name from its own hard-coded list
+# (api prereg resident esignet healthservices signup) and ignores
+# cluster_public_domains, so any other subdomain_public name fell into the
+# default (internal) block. Set it to the same list the dns component used
+# (api + subdomain_public + additional_subdomain_public). For the mosip
+# profile the set is unchanged.
+- name: Count server_name lines in nginx.conf (mosip only)
+  become: true
+  ansible.builtin.command:
+    cmd: grep -c '^[[:space:]]*server_name[[:space:]]' /etc/nginx/nginx.conf
+  register: nginx_server_name_count
+  changed_when: false
+  failed_when: nginx_server_name_count.stdout | trim != "1"
+  when: nginx_type == "mosip"
+
+- name: Serve every public subdomain from the public block (mosip only)
+  become: true
+  ansible.builtin.replace:
+    path: /etc/nginx/nginx.conf
+    regexp: '^(\s*)server_name\s+[^;]*;'
+    replace: '\1server_name {{ public_domain_list.split(",") | unique | join(" ") }};'
+  when: nginx_type == "mosip"
+  # install.sh already restarted nginx with its own list
+  notify: Reload nginx
+
 - name: Verify nginx configuration
   become: true
   ansible.builtin.command:
