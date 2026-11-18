@@ -4,6 +4,9 @@
 # before this one) and the host address from gathered facts, so the same
 # tasks work on AWS and on data-centre VMs.
 
+# mosip and esignet are the same k8s-infra install.sh / template shape (public +
+# internal blocks to the Istio gateways); only the folder differs. esignet has
+# no activemq stream or packetcreator route and its own default public list.
 - name: Select config for this nginx type
   ansible.builtin.set_fact:
     nginx_config: >-
@@ -15,7 +18,7 @@
           "k8s_infra_repo_url": k8s_infra_repo_url,
           "k8s_infra_branch": k8s_infra_branch,
           "working_dir": working_dir,
-          "nginx_location": "./k8s-infra/nginx/mosip/",
+          "nginx_location": "./k8s-infra/nginx/" + nginx_type + "/",
           "cluster_nginx_certs": "/etc/letsencrypt/live/" + cluster_env_domain + "/fullchain.pem",
           "cluster_nginx_cert_key": "/etc/letsencrypt/live/" + cluster_env_domain + "/privkey.pem",
           "cluster_node_ips": k8s_node_ips_joined,
@@ -26,7 +29,7 @@
           "cluster_ingress_minio_nodeport": cluster_ingress_minio_nodeport,
           "cluster_ingress_activemq_nodeport": cluster_ingress_activemq_nodeport,
         }
-        if nginx_type == "mosip" else
+        if nginx_type in ["mosip", "esignet"] else
         {
           "cluster_env_domain": cluster_env_domain,
           "env_var_file": env_var_file,
@@ -67,7 +70,7 @@
   ansible.builtin.set_fact:
     nginx_internal_ip_value: "{{ nginx_internal_ip | default(ansible_default_ipv4.address) }}"
 
-- name: Record cluster_nginx_internal_ip / cluster_nginx_public_ip (mosip only)
+- name: Record cluster_nginx_internal_ip / cluster_nginx_public_ip (mosip / esignet)
   become: true
   ansible.builtin.lineinfile:
     path: "{{ env_var_file }}"
@@ -80,7 +83,7 @@
     # original nginx-setup.sh applied. On-prem has no separate public IP
     # either, so the same value is correct there too.
     - { key: "cluster_nginx_public_ip", value: "{{ nginx_internal_ip_value }}" }
-  when: nginx_type == "mosip"
+  when: nginx_type in ["mosip", "esignet"]
 
 - name: Record observation_nginx_ip (observability only)
   become: true
@@ -121,7 +124,7 @@
             "cluster_nginx_internal_ip": nginx_internal_ip_value,
             "cluster_nginx_public_ip": nginx_internal_ip_value,
           }
-          if nginx_type == "mosip" else
+          if nginx_type in ["mosip", "esignet"] else
           {
             "observation_nginx_ip": nginx_internal_ip_value,
             "observation_nginx_certs": nginx_config.observation_nginx_certs | replace("/", "\/"),
@@ -136,6 +139,32 @@
     cmd: "./install.sh"
     chdir: "{{ working_dir }}/{{ nginx_config.nginx_location }}"
   environment: "{{ nginx_install_env }}"
+
+# install.sh fills the public block's server_name from its own hard-coded list
+# (api prereg resident esignet healthservices signup) and ignores
+# cluster_public_domains, so any other subdomain_public name fell into the
+# default (internal) block. Set it to the same list the dns component used
+# (api + subdomain_public + additional_subdomain_public). For the mosip
+# profile the set is unchanged. Same for nginx/esignet (its own list is
+# api esignet healthservices signup).
+- name: Count server_name lines in nginx.conf (mosip / esignet)
+  become: true
+  ansible.builtin.command:
+    cmd: grep -c '^[[:space:]]*server_name[[:space:]]' /etc/nginx/nginx.conf
+  register: nginx_server_name_count
+  changed_when: false
+  failed_when: nginx_server_name_count.stdout | trim != "1"
+  when: nginx_type in ["mosip", "esignet"]
+
+- name: Serve every public subdomain from the public block (mosip / esignet)
+  become: true
+  ansible.builtin.replace:
+    path: /etc/nginx/nginx.conf
+    regexp: '^(\s*)server_name\s+[^;]*;'
+    replace: '\1server_name {{ public_domain_list.split(",") | unique | join(" ") }};'
+  when: nginx_type in ["mosip", "esignet"]
+  # install.sh already restarted nginx with its own list
+  notify: Reload nginx
 
 - name: Verify nginx configuration
   become: true
