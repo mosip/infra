@@ -139,8 +139,10 @@ additional_subdomain_public   = ["portal"]    # → api.<domain>
 1. **`COMPONENT=dns`** — adds one record per new name, nothing else changes.
    With another DNS provider (GoDaddy, Cloudflare, RFC 2136) use
    **`COMPONENT=configure`** instead.
-2. For a **public** subdomain, also run **`COMPONENT=configure`**: nginx's list
-   of public domains is regenerated.
+2. For a **public** subdomain, also run **`COMPONENT=configure`**: nginx's public
+   block (`server_name`) is regenerated from `api` + `subdomain_public` +
+   `additional_subdomain_public`, so the name is served by the public Istio
+   gateway (otherwise it would fall into the internal block).
 3. The wildcard certificate already covers the new name; the application still
    needs an Istio Gateway / VirtualService for the host.
 
