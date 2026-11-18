@@ -209,6 +209,22 @@ class TerraformMode(Fixture):
         self.assertEqual(inv["all"]["vars"]["nginx_type"], "observability")
         self.assertIn("rancher_keycloak", inv["all"]["vars"]["configure_components"])
 
+    def test_esignet_standalone_uses_esignet_nginx(self):
+        self.compute()
+        _, inv = self.from_terraform(profile="esignet-standalone")
+        v = inv["all"]["vars"]
+        self.assertEqual(v["nginx_type"], "esignet")
+        # every subdomain_public is in nginx's public list (#557)
+        self.assertIn("esignet-sunbird.dev1.example.org", v["public_domain_list"].split(","))
+
+    def test_unknown_nginx_type_fails(self):
+        profile = os.path.join(self.dir, "badprofile")
+        os.makedirs(profile)
+        with open(os.path.join(profile, "profile.yml"), "w") as fh:
+            fh.write("name: bad\nnginx_type: apache\nconfigure_components: [nginx]\n")
+        with self.assertRaises(generate.InventoryError):
+            generate.load_profile(profile)
+
     def test_missing_compute_output_fails(self):
         rc, _ = self.from_terraform()
         self.assertEqual(rc, 1)

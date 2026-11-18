@@ -29,7 +29,7 @@ sizes and Layer-3 components differ, which is exactly what a profile expresses.
 
 ```yaml
 name: mosip
-nginx_type: mosip                 # mosip | observability (k8s-infra nginx flavour)
+nginx_type: mosip                 # mosip | esignet | observability (k8s-infra nginx/<folder>)
 configure_components: [nginx, rke2, rancher_import, nfs, postgresql, activemq]
 subdomain_public: [resident, prereg, ...]
 subdomain_internal: [admin, iam, ...]

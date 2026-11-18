@@ -77,6 +77,10 @@ def load_yaml(path):
         raise InventoryError(f"cannot read {path}: {exc}") from exc
 
 
+# k8s-infra nginx/<folder> flavours the nginx role knows
+NGINX_TYPES = ("mosip", "esignet", "observability")
+
+
 def load_profile(profile_dir):
     path = os.path.join(profile_dir, "profile.yml")
     profile = load_yaml(path)
@@ -84,8 +88,8 @@ def load_profile(profile_dir):
     unknown = [c for c in comps if c not in VALID_COMPONENTS]
     if unknown:
         raise InventoryError(f"{path}: unknown configure_components {unknown}; valid: {VALID_COMPONENTS}")
-    if profile.get("nginx_type") not in ("mosip", "observability"):
-        raise InventoryError(f"{path}: nginx_type must be 'mosip' or 'observability'")
+    if profile.get("nginx_type") not in NGINX_TYPES:
+        raise InventoryError(f"{path}: nginx_type must be one of {NGINX_TYPES}")
     return profile
 
 
