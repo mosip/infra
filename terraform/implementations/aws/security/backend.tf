@@ -1,5 +1,5 @@
 terraform {
   backend "local" {
-    path = "profiles/esignet-standalone/aws-security-esignet-standalone-soil-terraform.tfstate"
+    path = "profiles/mosip/aws-security-mosip-soil-terraform.tfstate"
   }
 }
