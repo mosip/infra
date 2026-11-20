@@ -2,6 +2,8 @@
 
 Deploy prerequisites and external dependencies (databases, queues, storage, monitoring) before any MOSIP or eSignet services.
 
+> **Which workflow?** In the **Actions** tab this is **Deploy External services of mosip using Helmsman** (`.github/workflows/helmsman_external.yml`). The docs call it **External + Prereqs** because one run deploys both `prereq-dsf.yaml` and `external-dsf.yaml`.
+
 ## Overview
 
 The `helmsman_external.yml` workflow runs **two DSFs in parallel**:
