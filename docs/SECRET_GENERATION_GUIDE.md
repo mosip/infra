@@ -288,7 +288,7 @@ A Fine-grained Personal Access Token (PAT) that allows GitHub Actions workflows 
 
 `GH_INFRA_PAT` is used in two places inside `helmsman_esignet.yml`:
 
-1. **Auto-trigger `helmsman_signup.yml`** — after a successful eSignet standalone deployment (`profile=esignet-standalone`), the `workflow-caller` job calls the GitHub Actions API to dispatch the signup workflow automatically. This requires `Actions: Read and write` on the PAT. Without it, the signup workflow will never be triggered even if eSignet deploys successfully.
+1. **Auto-trigger `helmsman_signup.yml`** *(currently disabled — the `workflow-caller` job in `helmsman_esignet.yml` is commented out; run signup manually)* — after a successful eSignet standalone deployment (`profile=esignet-standalone`), the `workflow-caller` job calls the GitHub Actions API to dispatch the signup workflow automatically. This requires `Actions: Read and write` on the PAT. Without it, the signup workflow will never be triggered even if eSignet deploys successfully.
 2. **Repository operations during deploy** — used as `GH_TOKEN` override for authenticated GitHub API calls within the deploy job.
 
 ### How to Generate GH_INFRA_PAT
