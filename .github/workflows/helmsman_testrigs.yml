@@ -42,7 +42,7 @@ on:
         required: false
         type: string
       slack_channel_name:
-        description: "Slack channel name for alerting (e.g. #mosip-alerts)"
+        description: "Optional: Slack channel name for alerting (e.g. #mosip-alerts); empty = vars.SLACK_CHANNEL_NAME"
         required: false
         type: string
       slack_webhook_url:
@@ -77,7 +77,6 @@ jobs:
           ESIGNET_DB_PORT="${{ github.event.inputs.esignet_db_port || vars.ESIGNET_DB_PORT }}"
           [ -z "$DOMAIN" ]          && errors+=("domain_name is empty — set vars.DOMAIN_NAME under Environment '${{ github.ref_name }}'")
           [ -z "$ENV" ]             && errors+=("env_name is empty — set vars.ENV_NAME under Environment '${{ github.ref_name }}'")
-          [ -z "$SLACK_CH" ]        && errors+=("slack_channel_name is empty — set vars.SLACK_CHANNEL_NAME under Environment '${{ github.ref_name }}'")
           [ -z "$DB_PORT" ]         && errors+=("db_port is empty — set vars.DB_PORT under Environment '${{ github.ref_name }}'")
           [ -z "$ESIGNET_DB_PORT" ] && errors+=("esignet_db_port is empty — set vars.ESIGNET_DB_PORT under Environment '${{ github.ref_name }}'")
           if [ ${#errors[@]} -gt 0 ]; then
@@ -88,7 +87,12 @@ jobs:
           fi
           echo "✓ domain_name        = $DOMAIN"
           echo "✓ env_name           = $ENV"
-          echo "✓ slack_channel_name = $SLACK_CH"
+          # Optional: no testrigs DSF uses the channel name (only SLACK_WEBHOOK_URL).
+          if [ -n "$SLACK_CH" ]; then
+            echo "✓ slack_channel_name = $SLACK_CH"
+          else
+            echo "::warning::slack_channel_name is empty — optional, testrigs only use the SLACK_WEBHOOK_URL secret"
+          fi
           echo "✓ db_port            = $DB_PORT"
           echo "✓ esignet_db_port    = $ESIGNET_DB_PORT"
           # mosipid_domain_name is esignet standalone only (both esignet-standalone
