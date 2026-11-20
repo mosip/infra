@@ -34,8 +34,8 @@ on:
         required: true
         type: string
       esignet_db_port:
-        description: "PostgreSQL port for eSignet standalone container postgres (e.g. 5432)"
-        required: true
+        description: "esignet-standalone* only: PostgreSQL port for the eSignet container postgres (e.g. 5432); empty = vars.ESIGNET_DB_PORT"
+        required: false
         type: string
       env_name:
         description: "Environment name (e.g. sandbox, dev, staging)"
@@ -78,7 +78,11 @@ jobs:
           [ -z "$DOMAIN" ]          && errors+=("domain_name is empty — set vars.DOMAIN_NAME under Environment '${{ github.ref_name }}'")
           [ -z "$ENV" ]             && errors+=("env_name is empty — set vars.ENV_NAME under Environment '${{ github.ref_name }}'")
           [ -z "$DB_PORT" ]         && errors+=("db_port is empty — set vars.DB_PORT under Environment '${{ github.ref_name }}'")
-          [ -z "$ESIGNET_DB_PORT" ] && errors+=("esignet_db_port is empty — set vars.ESIGNET_DB_PORT under Environment '${{ github.ref_name }}'")
+          # esignet_db_port is used only by the esignet-standalone* testrigs DSFs.
+          # Push events always target the esignet profile (empty PROFILE).
+          if [ -z "$PROFILE" ] || [[ "$PROFILE" == esignet-standalone* ]]; then
+            [ -z "$ESIGNET_DB_PORT" ] && errors+=("esignet_db_port is empty — set vars.ESIGNET_DB_PORT under Environment '${{ github.ref_name }}'")
+          fi
           if [ ${#errors[@]} -gt 0 ]; then
             echo "❌ Required variables missing:"
             printf '  - %s\n' "${errors[@]}"
@@ -94,7 +98,7 @@ jobs:
             echo "::warning::slack_channel_name is empty — optional, testrigs only use the SLACK_WEBHOOK_URL secret"
           fi
           echo "✓ db_port            = $DB_PORT"
-          echo "✓ esignet_db_port    = $ESIGNET_DB_PORT"
+          [ -n "$ESIGNET_DB_PORT" ] && echo "✓ esignet_db_port    = $ESIGNET_DB_PORT"
           # mosipid_domain_name is esignet standalone only (both esignet-standalone
           # and esignet-standalone-2.0.0 each run a single consolidated mosipid instance).
           # Push events always target the esignet profile (path filter); dispatch uses explicit profile input.
