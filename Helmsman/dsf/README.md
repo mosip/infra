@@ -29,7 +29,7 @@ DSFs live in one folder per profile — `mosip-platform-1.2.0.x`, `mosip-platfor
 * `prereq-dsf.yaml`: monitoring and logging (`monitoring_stack`: standalone Loki + Grafana + kube-prometheus-stack by default, or rancher-monitoring + ELK), Istio, httpbin and the global configmap (generated from the domain by the Istio hook).
 * `external-dsf.yaml`: the external services of the profile (PostgreSQL init, Keycloak, Kafka, MinIO, ...).
 
-Both run from the `helmsman_external.yml` workflow — see the [External + Prereqs guide](../../docs/HELMSMAN_EXTERNAL_GUIDE.md).
+Both run from the `helmsman_external.yml` workflow (Actions tab: **Deploy External services of mosip using Helmsman**; called *External + Prereqs* in the docs) — see the [External + Prereqs guide](../../docs/HELMSMAN_EXTERNAL_GUIDE.md).
 
 ### Deploy Mosip core services
 

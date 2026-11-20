@@ -890,11 +890,11 @@ scp -i <ssh-key> ubuntu@<k8s_primary_control_plane_ip>:/home/ubuntu/.kube/<clust
 
 > **Always use `apply` mode.** The `dry-run` mode will fail because MOSIP services reference ConfigMaps and Secrets from other namespaces that don't exist at dry-run time.
 
-Follow the sequence below. The flow differs by profile:
+Follow the sequence below. The flow differs by profile. The short names are the ones used in these docs; the table maps each to the name shown in the **Actions** tab and its workflow file.
 
 **eSignet standalone:**
 ```
-External + Prereqs  →  eSignet (manual)  →  Signup (auto)  →  Testrigs (manual)
+External + Prereqs  →  eSignet (manual)  →  Signup (manual)  →  Testrigs (manual)
 ```
 
 **MOSIP platform:**
@@ -902,13 +902,14 @@ External + Prereqs  →  eSignet (manual)  →  Signup (auto)  →  Testrigs (ma
 External + Prereqs  →  MOSIP (auto)  →  eSignet (manual)  →  Testrigs (manual)
 ```
 
-| Step | Workflow | Trigger | Profile | Guide |
-|------|----------|---------|---------|-------|
-| 1 | External + Prereqs | Manual | All profiles | [HELMSMAN_EXTERNAL_GUIDE.md](docs/HELMSMAN_EXTERNAL_GUIDE.md) |
-| 2 | MOSIP services | Auto (from step 1) | MOSIP platform only | [HELMSMAN_MOSIP_GUIDE.md](docs/HELMSMAN_MOSIP_GUIDE.md) |
-| 3 | eSignet | Manual | MOSIP platform | [esignet_README.md](docs/esignet_README.md) |
-| | | | Standalone (4 instances) | [ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md](docs/ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md) |
-| 4 | Testrigs | Manual | All profiles | [HELMSMAN_TESTRIGS_GUIDE.md](docs/HELMSMAN_TESTRIGS_GUIDE.md) |
+| Step | Short name | Actions tab name (workflow file) | Trigger | Profile | Guide |
+|------|------------|----------------------------------|---------|---------|-------|
+| 1 | External + Prereqs | **Deploy External services of mosip using Helmsman** (`helmsman_external.yml`) — runs `prereq-dsf.yaml` and `external-dsf.yaml` | Manual | All profiles | [HELMSMAN_EXTERNAL_GUIDE.md](docs/HELMSMAN_EXTERNAL_GUIDE.md) |
+| 2 | MOSIP services | **Deploy Mosip services of mosip using Helmsman** (`helmsman_mosip.yml`) | Auto (from step 1) | MOSIP platform only | [HELMSMAN_MOSIP_GUIDE.md](docs/HELMSMAN_MOSIP_GUIDE.md) |
+| 3 | eSignet | **Deploy eSignet using Helmsman** (`helmsman_esignet.yml`) | Manual | MOSIP platform | [esignet_README.md](docs/esignet_README.md) |
+| | | | | Standalone (4 instances) | [ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md](docs/ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md) |
+| | Signup | **Deploy Signup services using Helmsman** (`helmsman_signup.yml`) | Manual (auto-trigger from eSignet temporarily disabled) | eSignet standalone | [ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md](docs/ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md) |
+| 4 | Testrigs | **Deploy Testrigs of mosip using Helmsman** (`helmsman_testrigs.yml`) | Manual | All profiles | [HELMSMAN_TESTRIGS_GUIDE.md](docs/HELMSMAN_TESTRIGS_GUIDE.md) |
 
 Each guide covers: profile-specific secrets, workflow inputs, step-by-step run instructions, and verification commands.
 
