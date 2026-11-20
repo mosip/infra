@@ -122,7 +122,7 @@ Path to create `GH_INFRA_PAT`: `Your profile → Settings → Developer settings
 
 | Secret Name | What it is | Notes |
 |---|---|---|
-| `KUBECONFIG` | Raw kubeconfig YAML for your cluster | Paste the raw YAML — **do not** base64 encode it. Generated after Terraform apply completes. |
+| `KUBECONFIG` | Raw kubeconfig YAML for your cluster | **Check first** — with Rancher import + `PUBLISH_KUBECONFIG` it is already set; add it only if missing. Paste the raw YAML — **do not** base64 encode it. Generated after Terraform apply completes. |
 | `CLUSTER_WIREGUARD_WG0` | WireGuard VPN client config for Helmsman runner (interface 0) | Different from `TF_WG_CONFIG` — this is the Helmsman runner's peer config. See [Secret Generation Guide](SECRET_GENERATION_GUIDE.md). |
 | `CLUSTER_WIREGUARD_WG1` | WireGuard VPN client config for Helmsman runner (interface 1) | Second WireGuard interface — required alongside `WG0`. See [Secret Generation Guide](SECRET_GENERATION_GUIDE.md). |
 

@@ -76,7 +76,7 @@ Welcome to the MOSIP Infrastructure documentation! This index helps you find exa
 
 | Document | What It Covers | Who Should Read |
 |----------|----------------|-----------------|
-| **[External + Prereqs](HELMSMAN_EXTERNAL_GUIDE.md)** | Monitoring/logging stack, PostgreSQL, Keycloak, Kafka, MinIO … | All profiles |
+| **[External + Prereqs](HELMSMAN_EXTERNAL_GUIDE.md)** | Workflow **Deploy External services of mosip using Helmsman** (`helmsman_external.yml`): monitoring/logging stack, PostgreSQL, Keycloak, Kafka, MinIO … | All profiles |
 | **[MOSIP Services](HELMSMAN_MOSIP_GUIDE.md)** | MOSIP core services (auto-triggered) | MOSIP platform |
 | **[eSignet (with MOSIP)](esignet_README.md)** | eSignet on a MOSIP platform cluster | MOSIP platform |
 | **[eSignet Standalone](ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md)** | eSignet standalone (incl. `esignet-standalone-2.0.0`) end to end | eSignet standalone |
