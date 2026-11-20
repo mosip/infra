@@ -122,7 +122,7 @@ Use `skip_mosip_dsf_check=false` (default) — the workflow checks for the `mosi
 
 Set `skip_mosip_dsf_check=true` only if you need to re-run eSignet independently after it has already been deployed once.
 
-> **For eSignet standalone** (no full MOSIP, 4 parallel instances): see [ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md](ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md).
+> **For eSignet standalone** (no full MOSIP, 3 parallel instances): see [ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md](ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md).
 
 ---
 
