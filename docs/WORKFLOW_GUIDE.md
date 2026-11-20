@@ -251,7 +251,7 @@ If TERRAFORM_APPLY = ☐ (plan only)
 
 **eSignet standalone profile** (`profile=esignet-standalone`):
 ```
-External (prereq + external-dsf, parallel) → eSignet (4 parallel instances) → Testrigs
+External (prereq + external-dsf, parallel) → eSignet (3 parallel instances) → Testrigs
 ```
 
 **MOSIP platform profiles** (`profile=mosip-platform-1.2.0.x` or `mosip-platform-1.2.1.x`):
@@ -386,7 +386,7 @@ Mode: apply ✅
 
 > Generated from the workflow definition — the numbers match the form fields in order.
 
-**What it does**: Deploys eSignet authentication stack (1 instance for MOSIP platform profiles, 4 parallel instances for eSignet standalone)
+**What it does**: Deploys eSignet authentication stack (1 instance for MOSIP platform profiles, 3 parallel instances for eSignet standalone: esignet-mock, esignet-mosipid, esignet-sunbird)
 
 **Workflow Name**: `Deploy eSignet using Helmsman`
 

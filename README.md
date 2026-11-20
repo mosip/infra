@@ -133,7 +133,7 @@ graph TB
 
     %% ── eSignet Standalone Flow — Helmsman profile: esignet ─────
     TF_ES --> ES_EXT[Helmsman: Prereqs + External<br/>profile: esignet-standalone]
-    ES_EXT --> ES_ESIGNET[Helmsman: eSignet Standalone<br/>4 parallel namespaces]
+    ES_EXT --> ES_ESIGNET[Helmsman: eSignet Standalone<br/>3 parallel namespaces:<br/>esignet-mock, esignet-mosipid, esignet-sunbird]
 
     ES_ESIGNET --> NS1[esignet mock plugin]
     ES_ESIGNET --> NS2[mosip-identity plugin]
@@ -909,7 +909,7 @@ External + Prereqs  →  MOSIP (auto)  →  eSignet (manual)  →  Testrigs (man
 | 1 | External + Prereqs | **Deploy External services of mosip using Helmsman** (`helmsman_external.yml`) — runs `prereq-dsf.yaml` and `external-dsf.yaml` | Manual | All profiles | [HELMSMAN_EXTERNAL_GUIDE.md](docs/HELMSMAN_EXTERNAL_GUIDE.md) |
 | 2 | MOSIP services | **Deploy Mosip services of mosip using Helmsman** (`helmsman_mosip.yml`) | Auto (from step 1) | MOSIP platform only | [HELMSMAN_MOSIP_GUIDE.md](docs/HELMSMAN_MOSIP_GUIDE.md) |
 | 3 | eSignet | **Deploy eSignet using Helmsman** (`helmsman_esignet.yml`) | Manual | MOSIP platform | [esignet_README.md](docs/esignet_README.md) |
-| | | | | Standalone (4 instances) | [ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md](docs/ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md) |
+| | | | | Standalone (3 instances) | [ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md](docs/ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md) |
 | | Signup | **Deploy Signup services using Helmsman** (`helmsman_signup.yml`) | Manual (auto-trigger from eSignet temporarily disabled) | eSignet standalone | [ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md](docs/ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md) |
 | 4 | Testrigs | **Deploy Testrigs of mosip using Helmsman** (`helmsman_testrigs.yml`) | Manual | All profiles | [HELMSMAN_TESTRIGS_GUIDE.md](docs/HELMSMAN_TESTRIGS_GUIDE.md) |
 
@@ -955,7 +955,7 @@ The Deployment Steps Guide provides the essential deployment flow. For comprehen
 | [HELMSMAN_EXTERNAL_GUIDE.md](docs/HELMSMAN_EXTERNAL_GUIDE.md) | Deploy prereqs + external services (step 1 for all profiles) |
 | [HELMSMAN_MOSIP_GUIDE.md](docs/HELMSMAN_MOSIP_GUIDE.md) | Deploy MOSIP core services + partner onboarding (MOSIP platform profiles) |
 | [esignet_README.md](docs/esignet_README.md) | Deploy eSignet with MOSIP platform |
-| [ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md](docs/ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md) | Deploy eSignet standalone (4 parallel instances) |
+| [ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md](docs/ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md) | Deploy eSignet standalone (3 parallel instances: esignet-mock, esignet-mosipid, esignet-sunbird) |
 | [HELMSMAN_TESTRIGS_GUIDE.md](docs/HELMSMAN_TESTRIGS_GUIDE.md) | Deploy API/UI/DSL testrigs (all profiles) |
 | [DSF_CONFIGURATION_GUIDE.md](docs/DSF_CONFIGURATION_GUIDE.md) | DSF structure, profile selection, variable substitution reference |
 | [HELMSMAN_DESTROY_GUIDE.md](docs/HELMSMAN_DESTROY_GUIDE.md) | Safe removal of deployed services |
