@@ -852,7 +852,7 @@ apps:
       onboarding.variables.mosipid: "false"
       onboarding.variables.push_reports_to_s3: "true"
       # Properties-driven values for the mock-rp-oidc module, adapted to this instance
-      # (esignet-go-mock / healthservices-go-mock). KEYCLOAK_ADMIN_PASSWORD,
+      # (esignet / healthservices). KEYCLOAK_ADMIN_PASSWORD,
       # KEYCLOAK_CLIENT_SECRET and mosip_pms_client_secret are intentionally not set here:
       # propertiesOverride renders into a plain ConfigMap, and the job already gets them
       # from the keycloak / keycloak-client-secrets Secrets (chart-default
@@ -865,13 +865,13 @@ apps:
       onboarding.propertiesOverride.mock-rp-oidc.OIDC_CLIENTID: "default-non-mosipid-oidc-client"
       onboarding.propertiesOverride.mock-rp-oidc.OIDC_CLIENT_NAME: "Health service OIDC Client"
       onboarding.propertiesOverride.mock-rp-oidc.MOSIP_ID: "false"
-      onboarding.propertiesOverride.mock-rp-oidc.LOGO_URI: "https://healthservices-go-mock.${domain_name}/logo.png"
-      onboarding.propertiesOverride.mock-rp-oidc.REDIRECT_URIS: "https://healthservices-go-mock.${domain_name}/userprofile"
+      onboarding.propertiesOverride.mock-rp-oidc.LOGO_URI: "https://healthservices.${domain_name}/logo.png"
+      onboarding.propertiesOverride.mock-rp-oidc.REDIRECT_URIS: "https://healthservices.${domain_name}/userprofile"
       onboarding.propertiesOverride.mock-rp-oidc.URL: "https://api-internal.${domain_name}"
       onboarding.propertiesOverride.mock-rp-oidc.AUTHMANAGER_URL: "https://api-internal.${domain_name}"
       onboarding.propertiesOverride.mock-rp-oidc.PMS_URL: "https://api-internal.${domain_name}"
       onboarding.propertiesOverride.mock-rp-oidc.KEYCLOAK_URL: "https://iam.${domain_name}"
-      onboarding.propertiesOverride.mock-rp-oidc.EXTERNAL_URL: "https://esignet-go-mock.${domain_name}"
+      onboarding.propertiesOverride.mock-rp-oidc.EXTERNAL_URL: "https://esignet.${domain_name}"
       onboarding.propertiesOverride.mock-rp-oidc.KEYCLOAK_ADMIN_USERNAME: "admin"
       extraEnvVarsCM[0]: "keycloak-env-vars"
       extraEnvVarsCM[1]: "keycloak-host"
