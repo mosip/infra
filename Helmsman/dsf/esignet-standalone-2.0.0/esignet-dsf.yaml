@@ -82,11 +82,11 @@ apps:
   esignet-mock:
     namespace: esignet-mock
     enabled: true
-    version: 2.0.0-develop
+    version: 2.0.0
     chart: mosip/esignet
     set:
-      image.repository: "mosipqa/esignet"
-      image.tag: "2.0.x"
+      # image.repository: "mosipqa/esignet"
+      # image.tag: "2.0.x"
       enable_insecure: "false"
       springConfigNameEnv: ""
       activeProfileEnv: ""
@@ -194,11 +194,11 @@ apps:
   esignet-mosipid:
     namespace: esignet-mosipid
     enabled: true
-    version: 2.0.0-develop
+    version: 2.0.0
     chart: mosip/esignet
     set:
-      image.repository: "mosipqa/esignet"
-      image.tag: "2.0.x"
+      # image.repository: "mosipqa/esignet"
+      # image.tag: "2.0.x"
       enable_insecure: "false"
       springConfigNameEnv: ""
       activeProfileEnv: ""
@@ -313,11 +313,11 @@ apps:
   esignet-sunbird:
     namespace: esignet-sunbird
     enabled: true
-    version: 2.0.0-develop
+    version: 2.0.0
     chart: mosip/esignet
     set:
-      image.repository: "mosipqa/esignet"
-      image.tag: "2.0.x"
+      # image.repository: "mosipqa/esignet"
+      # image.tag: "2.0.x"
       enable_insecure: "false"
       springConfigNameEnv: ""
       activeProfileEnv: ""
@@ -420,11 +420,11 @@ apps:
   oidc-ui:
     namespace: esignet-mock
     enabled: true
-    version: 2.0.0-develop
+    version: 2.0.0
     chart: mosip/oidc-ui
     set:
-      image.repository: "mosipqa/oidc-ui"
-      image.tag: "2.0.x"    
+      # image.repository: "mosipqa/oidc-ui"
+      # image.tag: "2.0.x"    
       istio.hosts[0]: "esignet.${domain_name}"
       oidc_ui.oidc_service_host: "esignet-mock.esignet-mock"
       oidc_ui.configmaps.oidc-ui.REACT_APP_API_BASE_URL: "http://esignet-mock.esignet-mock/v1/esignet"
@@ -438,11 +438,11 @@ apps:
   oidc-ui-mosipid:
     namespace: esignet-mosipid
     enabled: true
-    version: 2.0.0-develop
+    version: 2.0.0
     chart: mosip/oidc-ui
     set:
-      image.repository: "mosipqa/oidc-ui"
-      image.tag: "2.0.x"
+      # image.repository: "mosipqa/oidc-ui"
+      # image.tag: "2.0.x"
       istio.hosts[0]: "esignet-mosipid.${domain_name}"
       oidc_ui.oidc_service_host: "esignet-mosipid.esignet-mosipid"
       oidc_ui.configmaps.oidc-ui.REACT_APP_API_BASE_URL: "http://esignet-mosipid.esignet-mosipid/v1/esignet"
@@ -455,11 +455,11 @@ apps:
   oidc-ui-sunbird:
     namespace: esignet-sunbird
     enabled: true
-    version: 2.0.0-develop
+    version: 2.0.0
     chart: mosip/oidc-ui
     set:
-      image.repository: "mosipqa/oidc-ui"
-      image.tag: "2.0.x"
+      # image.repository: "mosipqa/oidc-ui"
+      # image.tag: "2.0.x"
       istio.hosts[0]: "esignet-sunbird.${domain_name}"
       oidc_ui.oidc_service_host: "esignet-sunbird.esignet-sunbird"
       oidc_ui.configmaps.oidc-ui.REACT_APP_API_BASE_URL: "http://esignet-sunbird.esignet-sunbird/v1/esignet"
@@ -491,11 +491,11 @@ apps:
   mock-identity-system:
     namespace: esignet-mock
     enabled: true
-    version: 0.14.0-develop
+    version: 0.14.0
     chart: mosip/mock-identity-system
     set:
-      image.repository: "mosipqa/mock-identity-system"
-      image.tag: "0.14.x"
+      # image.repository: "mosipqa/mock-identity-system"
+      # image.tag: "0.14.x"
       enable_insecure: "false"
       extraEnvVarsCM[0]: "softhsm-mock-identity-system-share"
       domainConfig.MOSIP_ESIGNET_HOST: "esignet.${domain_name}"
@@ -546,11 +546,11 @@ apps:
   mock-relying-party-service:
     namespace: esignet-mock
     enabled: true
-    version: 0.14.0-develop
+    version: 0.14.0
     chart: mosip/mock-relying-party-service
     set:
-      image.repository: "mosipqa/mock-relying-party-service"
-      image.tag: "0.14.x"
+      # image.repository: "mosipqa/mock-relying-party-service"
+      # image.tag: "0.14.x"
       mock_relying_party_service.ESIGNET_SERVICE_URL: "https://esignet.${domain_name}/v1/esignet"
       mock_relying_party_service.ESIGNET_AUD_URL: "https://esignet.${domain_name}"
       mock_relying_party_service.ESIGNET_PAR_ENDPOINT: "https://esignet.${domain_name}/v1/esignet/oauth2/par"
@@ -582,11 +582,11 @@ apps:
   mock-relying-party-service-mosipid:
     namespace: esignet-mosipid
     enabled: true
-    version: 0.14.0-develop
+    version: 0.14.0
     chart: mosip/mock-relying-party-service
     set:
-      image.repository: "mosipqa/mock-relying-party-service"
-      image.tag: "0.14.x"
+      # image.repository: "mosipqa/mock-relying-party-service"
+      # image.tag: "0.14.x"
       mock_relying_party_service.ESIGNET_SERVICE_URL: "https://esignet-mosipid.${domain_name}/v1/esignet"
       mock_relying_party_service.ESIGNET_AUD_URL: "https://esignet-mosipid.${domain_name}"
       mock_relying_party_service.ESIGNET_PAR_ENDPOINT: "https://esignet-mosipid.${domain_name}/v1/esignet/oauth2/par"
@@ -618,11 +618,11 @@ apps:
   mock-relying-party-service-sunbird:
     namespace: esignet-sunbird
     enabled: true
-    version: 0.14.0-develop
+    version: 0.14.0
     chart: mosip/mock-relying-party-service
     set:
-      image.repository: "mosipqa/mock-relying-party-service"
-      image.tag: "0.14.x"    
+      # image.repository: "mosipqa/mock-relying-party-service"
+      # image.tag: "0.14.x"    
       mock_relying_party_service.ESIGNET_SERVICE_URL: "https://esignet-sunbird.${domain_name}/v1/esignet"
       mock_relying_party_service.ESIGNET_AUD_URL: "https://esignet-sunbird.${domain_name}"
       mock_relying_party_service.ESIGNET_PAR_ENDPOINT: "https://esignet-sunbird.${domain_name}/v1/esignet/oauth2/par"
@@ -654,11 +654,11 @@ apps:
   mock-relying-party-ui:
     namespace: esignet-mock
     enabled: true
-    version: 0.14.0-develop
+    version: 0.14.0
     chart: mosip/mock-relying-party-ui
     set:
-      image.repository: "mosipqa/mock-relying-party-ui"
-      image.tag: "0.14.x"    
+      # image.repository: "mosipqa/mock-relying-party-ui"
+      # image.tag: "0.14.x"    
       mock_relying_party_ui.mock_relying_party_ui_service_host: "healthservices.${domain_name}"
       mock_relying_party_ui.MOCK_RELYING_PARTY_SERVICE_INTERNAL_URL: "http://mock-relying-party-service.esignet-mock"
       mock_relying_party_ui.ESIGNET_UI_BASE_URL: "https://esignet.${domain_name}"
@@ -690,11 +690,11 @@ apps:
   mock-relying-party-ui-mosipid:
     namespace: esignet-mosipid
     enabled: true
-    version: 0.14.0-develop
+    version: 0.14.0
     chart: mosip/mock-relying-party-ui
     set:
-      image.repository: "mosipqa/mock-relying-party-ui"
-      image.tag: "0.14.x"    
+      # image.repository: "mosipqa/mock-relying-party-ui"
+      # image.tag: "0.14.x"    
       mock_relying_party_ui.mock_relying_party_ui_service_host: "healthservices-mosipid.${domain_name}"
       mock_relying_party_ui.MOCK_RELYING_PARTY_SERVICE_INTERNAL_URL: "http://mock-relying-party-service-mosipid.esignet-mosipid"
       mock_relying_party_ui.ESIGNET_UI_BASE_URL: "https://esignet-mosipid.${domain_name}"
@@ -726,11 +726,11 @@ apps:
   mock-relying-party-ui-sunbird:
     namespace: esignet-sunbird
     enabled: true
-    version: 0.14.0-develop
+    version: 0.14.0
     chart: mosip/mock-relying-party-ui
     set:
-      image.repository: "mosipqa/mock-relying-party-ui"
-      image.tag: "0.14.x"    
+      # image.repository: "mosipqa/mock-relying-party-ui"
+      # image.tag: "0.14.x"    
       mock_relying_party_ui.mock_relying_party_ui_service_host: "healthservices-sunbird.${domain_name}"
       mock_relying_party_ui.MOCK_RELYING_PARTY_SERVICE_INTERNAL_URL: "http://mock-relying-party-service-sunbird.esignet-sunbird"
       mock_relying_party_ui.ESIGNET_UI_BASE_URL: "https://esignet-sunbird.${domain_name}"
@@ -774,12 +774,12 @@ apps:
   esignet-misp-onboarder:
     namespace: esignet-mosipid
     enabled: true
-    version: 0.0.1-develop
+    version: 1.4.0
     chart: mosip/partner-onboarder
     set:
       image.registry: "docker.io"
-      image.repository: "mosipdev/partner-onboarder"
-      image.tag: "develop"
+      # image.repository: "mosipdev/partner-onboarder"
+      # image.tag: "develop"
       onboarding.modules[0].name: "esignet"
       onboarding.modules[0].enabled: "true"
       onboarding.configmaps.s3.s3-host: "http://minio.minio:9000"
@@ -852,7 +852,7 @@ apps:
       onboarding.variables.mosipid: "false"
       onboarding.variables.push_reports_to_s3: "true"
       # Properties-driven values for the mock-rp-oidc module, adapted to this instance
-      # (esignet-go-mock / healthservices-go-mock). KEYCLOAK_ADMIN_PASSWORD,
+      # (esignet / healthservices). KEYCLOAK_ADMIN_PASSWORD,
       # KEYCLOAK_CLIENT_SECRET and mosip_pms_client_secret are intentionally not set here:
       # propertiesOverride renders into a plain ConfigMap, and the job already gets them
       # from the keycloak / keycloak-client-secrets Secrets (chart-default
@@ -865,13 +865,13 @@ apps:
       onboarding.propertiesOverride.mock-rp-oidc.OIDC_CLIENTID: "default-non-mosipid-oidc-client"
       onboarding.propertiesOverride.mock-rp-oidc.OIDC_CLIENT_NAME: "Health service OIDC Client"
       onboarding.propertiesOverride.mock-rp-oidc.MOSIP_ID: "false"
-      onboarding.propertiesOverride.mock-rp-oidc.LOGO_URI: "https://healthservices-go-mock.${domain_name}/logo.png"
-      onboarding.propertiesOverride.mock-rp-oidc.REDIRECT_URIS: "https://healthservices-go-mock.${domain_name}/userprofile"
+      onboarding.propertiesOverride.mock-rp-oidc.LOGO_URI: "https://healthservices.${domain_name}/logo.png"
+      onboarding.propertiesOverride.mock-rp-oidc.REDIRECT_URIS: "https://healthservices.${domain_name}/userprofile"
       onboarding.propertiesOverride.mock-rp-oidc.URL: "https://api-internal.${domain_name}"
       onboarding.propertiesOverride.mock-rp-oidc.AUTHMANAGER_URL: "https://api-internal.${domain_name}"
       onboarding.propertiesOverride.mock-rp-oidc.PMS_URL: "https://api-internal.${domain_name}"
       onboarding.propertiesOverride.mock-rp-oidc.KEYCLOAK_URL: "https://iam.${domain_name}"
-      onboarding.propertiesOverride.mock-rp-oidc.EXTERNAL_URL: "https://esignet-go-mock.${domain_name}"
+      onboarding.propertiesOverride.mock-rp-oidc.EXTERNAL_URL: "https://esignet.${domain_name}"
       onboarding.propertiesOverride.mock-rp-oidc.KEYCLOAK_ADMIN_USERNAME: "admin"
       extraEnvVarsCM[0]: "keycloak-env-vars"
       extraEnvVarsCM[1]: "keycloak-host"
