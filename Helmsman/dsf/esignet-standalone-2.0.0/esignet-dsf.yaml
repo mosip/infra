@@ -773,7 +773,7 @@ apps:
   # After completion, restarts the esignet deployment to pick up the new MISP license key.
   esignet-misp-onboarder:
     namespace: esignet-mosipid
-    enabled: true
+    enabled: false
     version: 1.4.0
     chart: mosip/partner-onboarder
     set:
