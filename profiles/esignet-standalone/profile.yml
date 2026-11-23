@@ -23,7 +23,8 @@ subdomain_public:
   - healthservices-sunbird
   - healthservices-mosipid
   - esignet-mosipid
-  - pms-mosipid
+  - pms-partner
+  - pms-policy
   - signup-mosipid
 subdomain_internal: [iam, activemq, kafka, kibana, grafana, postgres, smtp, pmp, minio]
 
