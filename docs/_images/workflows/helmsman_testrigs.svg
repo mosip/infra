@@ -34,13 +34,13 @@
 <text x="434" y="389" font-size="10" font-weight="normal" fill="#59636e" text-anchor="end">mosipid_domain_name</text>
 <circle cx="27" cy="422" r="10" fill="#0969da"/>
 <text x="27" y="426" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">5</text>
-<text x="46" y="426" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">PostgreSQL port for MOSIP platform external postgres (e.g. 5433)<tspan fill="#d1242f" font-weight="600"> *</tspan></text>
+<text x="46" y="426" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">PostgreSQL port for MOSIP platform external postgres (e.g. 5433)</text>
 <rect x="46" y="434" width="398" height="30" rx="6" fill="#ffffff" stroke="#d0d7de"/>
 <text x="434" y="453" font-size="10" font-weight="normal" fill="#59636e" text-anchor="end">db_port</text>
 <circle cx="27" cy="486" r="10" fill="#0969da"/>
 <text x="27" y="490" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">6</text>
 <text x="46" y="490" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">PostgreSQL port for eSignet standalone container postgres (e.g.</text>
-<text x="46" y="506" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">5432)<tspan fill="#d1242f" font-weight="600"> *</tspan></text>
+<text x="46" y="506" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">5432)</text>
 <rect x="46" y="514" width="398" height="30" rx="6" fill="#ffffff" stroke="#d0d7de"/>
 <text x="434" y="533" font-size="10" font-weight="normal" fill="#59636e" text-anchor="end">esignet_db_port</text>
 <circle cx="27" cy="566" r="10" fill="#0969da"/>
@@ -50,7 +50,7 @@
 <text x="434" y="597" font-size="10" font-weight="normal" fill="#59636e" text-anchor="end">env_name</text>
 <circle cx="27" cy="630" r="10" fill="#0969da"/>
 <text x="27" y="634" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">8</text>
-<text x="46" y="634" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">Slack channel name for alerting (e.g. #mosip-alerts)</text>
+<text x="46" y="634" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="start">Optional: Slack channel name for alerting (e.g. #mosip-alerts)</text>
 <rect x="46" y="642" width="398" height="30" rx="6" fill="#ffffff" stroke="#d0d7de"/>
 <text x="434" y="661" font-size="10" font-weight="normal" fill="#59636e" text-anchor="end">slack_channel_name</text>
 <circle cx="27" cy="694" r="10" fill="#0969da"/>

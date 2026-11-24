@@ -133,15 +133,15 @@ graph TB
 
     %% ── eSignet Standalone Flow — Helmsman profile: esignet ─────
     TF_ES --> ES_EXT[Helmsman: Prereqs + External<br/>profile: esignet-standalone]
-    ES_EXT --> ES_ESIGNET[Helmsman: eSignet Standalone<br/>4 parallel namespaces]
+    ES_EXT --> ES_ESIGNET[Helmsman: eSignet Standalone<br/>3 parallel namespaces:<br/>esignet-mock, esignet-mosipid, esignet-sunbird]
 
     ES_ESIGNET --> NS1[esignet mock plugin]
     ES_ESIGNET --> NS2[mosip-identity plugin]
-    ES_ESIGNET --> NS4[sunbird-rc plugin]
+    ES_ESIGNET --> NS3[sunbird-rc plugin]
 
     NS1 --> ES_TRIGS[Helmsman: Testrigs]
     NS2 --> ES_TRIGS
-    NS4 --> ES_TRIGS
+    NS3 --> ES_TRIGS
 
     %% ── MOSIP Platform Flow — Helmsman profile selection ────────
     TF_MP --> MP_VER{Helmsman<br/>Profile}
@@ -170,7 +170,7 @@ graph TB
     class D,F,TF_ES,TF_MP terraform
     class ES_EXT,ES_ESIGNET,ES_TRIGS helmsman
     class MP_EXT,MP_MOSIP,MP_ESIGNET,MP_TRIGS mosip
-    class NS1,NS2,NS3,NS4 ns
+    class NS1,NS2,NS3 ns
     class V,DONE success
     class C,OBS,PS,MP_VER decision
 ```
@@ -434,7 +434,7 @@ CLUSTER_WIREGUARD_WG1: |
 
 1. **Before starting**: Add Repository Secrets (GPG, AWS, SSH)
 2. **After base-infra**: Add TF_WG_CONFIG environment secret
-3. **After main infra**: Add KUBECONFIG, CLUSTER_WIREGUARD_WG0/WG1 environment secrets
+3. **After main infra**: Add CLUSTER_WIREGUARD_WG0/WG1 environment secrets; check KUBECONFIG and add it only if it is missing (Rancher import + PUBLISH_KUBECONFIG already stores it)
 
 **Need step-by-step help?** [Secret Generation Guide](docs/SECRET_GENERATION_GUIDE.md)
 
@@ -802,18 +802,20 @@ Configure the required secrets for Helmsman deployments in **Repository → Sett
 - Ensure your repository is configured to use the correct branch for Helmsman workflows
 - Verify GitHub Actions have access to your deployment branch
 
-2. **Configure KUBECONFIG Secret:**
+2. **Check the KUBECONFIG Secret (add it only if missing):**
 
- **Get the kubeconfig:**
+ **First check whether it is already set:** GitHub repository → Settings → Environments → *your branch* → **Environment secrets**.
 
-- With **ENABLE_RANCHER_IMPORT** + **PUBLISH_KUBECONFIG** ticked, the deployment already stored it as the `KUBECONFIG` environment secret — nothing to do.
-- Otherwise copy it from the primary control-plane node (over WireGuard). The server address in it is the node's private IP:
+- **`KUBECONFIG` is listed** → nothing to do; skip to step 3. This is the case when the deployment ran with **ENABLE_RANCHER_IMPORT** + **PUBLISH_KUBECONFIG** ticked (it stores the secret for you). Update it only if the cluster was rebuilt.
+- **`KUBECONFIG` is not listed** → get the kubeconfig and add it as below.
+
+ **Get the kubeconfig (only if missing):** copy it from the primary control-plane node (over WireGuard). The server address in it is the node's private IP:
 
 ```bash
 scp -i <ssh-key> ubuntu@<k8s_primary_control_plane_ip>:/home/ubuntu/.kube/<cluster_name>-CONTROL-PLANE-NODE-1.yaml kubeconfig
 ```
 
- **Add KUBECONFIG as Environment Secret:**
+ **Add KUBECONFIG as Environment Secret (only if missing):**
 
 > **Important:** KUBECONFIG must be provided as **raw YAML** (plain text), not base64 encoded.
 
@@ -875,7 +877,7 @@ scp -i <ssh-key> ubuntu@<k8s_primary_control_plane_ip>:/home/ubuntu/.kube/<clust
 
 4. **Verify Secret Configuration:**
 
-- Ensure KUBECONFIG is configured as environment secret for your branch
+- Ensure KUBECONFIG is listed as an environment secret for your branch (it may already be there from the deployment — see step 2)
 - Verify repository secrets are properly configured
 - Test repository access from GitHub Actions
 - Verify KUBECONFIG provides cluster access
@@ -890,11 +892,11 @@ scp -i <ssh-key> ubuntu@<k8s_primary_control_plane_ip>:/home/ubuntu/.kube/<clust
 
 > **Always use `apply` mode.** The `dry-run` mode will fail because MOSIP services reference ConfigMaps and Secrets from other namespaces that don't exist at dry-run time.
 
-Follow the sequence below. The flow differs by profile:
+Follow the sequence below. The flow differs by profile. The short names are the ones used in these docs; the table maps each to the name shown in the **Actions** tab and its workflow file.
 
 **eSignet standalone:**
 ```
-External + Prereqs  →  eSignet (manual)  →  Signup (auto)  →  Testrigs (manual)
+External + Prereqs  →  eSignet (manual)  →  Signup (manual)  →  Testrigs (manual)
 ```
 
 **MOSIP platform:**
@@ -902,13 +904,14 @@ External + Prereqs  →  eSignet (manual)  →  Signup (auto)  →  Testrigs (ma
 External + Prereqs  →  MOSIP (auto)  →  eSignet (manual)  →  Testrigs (manual)
 ```
 
-| Step | Workflow | Trigger | Profile | Guide |
-|------|----------|---------|---------|-------|
-| 1 | External + Prereqs | Manual | All profiles | [HELMSMAN_EXTERNAL_GUIDE.md](docs/HELMSMAN_EXTERNAL_GUIDE.md) |
-| 2 | MOSIP services | Auto (from step 1) | MOSIP platform only | [HELMSMAN_MOSIP_GUIDE.md](docs/HELMSMAN_MOSIP_GUIDE.md) |
-| 3 | eSignet | Manual | MOSIP platform | [esignet_README.md](docs/esignet_README.md) |
-| | | | Standalone (4 instances) | [ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md](docs/ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md) |
-| 4 | Testrigs | Manual | All profiles | [HELMSMAN_TESTRIGS_GUIDE.md](docs/HELMSMAN_TESTRIGS_GUIDE.md) |
+| Step | Short name | Actions tab name (workflow file) | Trigger | Profile | Guide |
+|------|------------|----------------------------------|---------|---------|-------|
+| 1 | External + Prereqs | **Deploy External services of mosip using Helmsman** (`helmsman_external.yml`) — runs `prereq-dsf.yaml` and `external-dsf.yaml` | Manual | All profiles | [HELMSMAN_EXTERNAL_GUIDE.md](docs/HELMSMAN_EXTERNAL_GUIDE.md) |
+| 2 | MOSIP services | **Deploy Mosip services of mosip using Helmsman** (`helmsman_mosip.yml`) | Auto (from step 1) | MOSIP platform only | [HELMSMAN_MOSIP_GUIDE.md](docs/HELMSMAN_MOSIP_GUIDE.md) |
+| 3 | eSignet | **Deploy eSignet using Helmsman** (`helmsman_esignet.yml`) | Manual | MOSIP platform | [esignet_README.md](docs/esignet_README.md) |
+| | | | | Standalone (3 instances) | [ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md](docs/ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md) |
+| | Signup | **Deploy Signup services using Helmsman** (`helmsman_signup.yml`) | Manual (auto-trigger from eSignet temporarily disabled) | eSignet standalone | [ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md](docs/ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md) |
+| 4 | Testrigs | **Deploy Testrigs of mosip using Helmsman** (`helmsman_testrigs.yml`) | Manual | All profiles | [HELMSMAN_TESTRIGS_GUIDE.md](docs/HELMSMAN_TESTRIGS_GUIDE.md) |
 
 Each guide covers: profile-specific secrets, workflow inputs, step-by-step run instructions, and verification commands.
 
@@ -952,7 +955,7 @@ The Deployment Steps Guide provides the essential deployment flow. For comprehen
 | [HELMSMAN_EXTERNAL_GUIDE.md](docs/HELMSMAN_EXTERNAL_GUIDE.md) | Deploy prereqs + external services (step 1 for all profiles) |
 | [HELMSMAN_MOSIP_GUIDE.md](docs/HELMSMAN_MOSIP_GUIDE.md) | Deploy MOSIP core services + partner onboarding (MOSIP platform profiles) |
 | [esignet_README.md](docs/esignet_README.md) | Deploy eSignet with MOSIP platform |
-| [ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md](docs/ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md) | Deploy eSignet standalone (4 parallel instances) |
+| [ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md](docs/ESIGNET_STANDALONE_DEPLOYMENT_GUIDE.md) | Deploy eSignet standalone (3 parallel instances: esignet-mock, esignet-mosipid, esignet-sunbird) |
 | [HELMSMAN_TESTRIGS_GUIDE.md](docs/HELMSMAN_TESTRIGS_GUIDE.md) | Deploy API/UI/DSL testrigs (all profiles) |
 | [DSF_CONFIGURATION_GUIDE.md](docs/DSF_CONFIGURATION_GUIDE.md) | DSF structure, profile selection, variable substitution reference |
 | [HELMSMAN_DESTROY_GUIDE.md](docs/HELMSMAN_DESTROY_GUIDE.md) | Safe removal of deployed services |

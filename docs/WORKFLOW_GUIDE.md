@@ -251,7 +251,7 @@ If TERRAFORM_APPLY = ☐ (plan only)
 
 **eSignet standalone profile** (`profile=esignet-standalone`):
 ```
-External (prereq + external-dsf, parallel) → eSignet (4 parallel instances) → Testrigs
+External (prereq + external-dsf, parallel) → eSignet (3 parallel instances) → Signup (manual) → Testrigs
 ```
 
 **MOSIP platform profiles** (`profile=mosip-platform-1.2.0.x` or `mosip-platform-1.2.1.x`):
@@ -386,7 +386,7 @@ Mode: apply ✅
 
 > Generated from the workflow definition — the numbers match the form fields in order.
 
-**What it does**: Deploys eSignet authentication stack (1 instance for MOSIP platform profiles, 4 parallel instances for eSignet standalone)
+**What it does**: Deploys eSignet authentication stack (1 instance for MOSIP platform profiles, 3 parallel instances for eSignet standalone: esignet-mock, esignet-mosipid, esignet-sunbird)
 
 **Workflow Name**: `Deploy eSignet using Helmsman`
 
@@ -468,8 +468,8 @@ kubectl get pods -n esignet-sunbird # esignet profile only
  | **mode** | `apply` | |
  | **domain_name** | `sandbox.example.net` | Or `vars.DOMAIN_NAME` |
  | **mosipid_domain_name** | `mosipid.example.net` | esignet-standalone profile only |
- | **db_port** | `5433` | MOSIP platform only |
- | **esignet_db_port** | `5432` | eSignet profile |
+ | **db_port** | `5433` | `mosip-platform-*` only — optional, leave blank for `esignet-standalone*` (or `vars.DB_PORT`) |
+ | **esignet_db_port** | `5432` | `esignet-standalone*` only — optional, leave blank for `mosip-platform-*` (or `vars.ESIGNET_DB_PORT`) |
 
 4. **Monitor Progress** (10-20 minutes)
  ```
@@ -480,9 +480,9 @@ kubectl get pods -n esignet-sunbird # esignet profile only
 
 5. **Verify CronJobs Created**
  ```bash
- kubectl get cronjobs -n esignet
- kubectl get cronjobs -n esignet-mosipid   # esignet profile
- kubectl get cronjobs -n esignet-sunbird # esignet profile
+ kubectl get cronjobs -n esignet-mock      # esignet-standalone profiles
+ kubectl get cronjobs -n esignet-mosipid   # esignet-standalone profiles
+ kubectl get cronjobs -n esignet-sunbird   # esignet-standalone profiles
  ```
 
 ---

@@ -31,18 +31,18 @@ on:
         type: string
       db_port:
         description: "PostgreSQL port for MOSIP platform external postgres (e.g. 5433)"
-        required: true
+        required: false
         type: string
       esignet_db_port:
         description: "PostgreSQL port for eSignet standalone container postgres (e.g. 5432)"
-        required: true
+        required: false
         type: string
       env_name:
         description: "Environment name (e.g. sandbox, dev, staging)"
         required: false
         type: string
       slack_channel_name:
-        description: "Slack channel name for alerting (e.g. #mosip-alerts)"
+        description: "Optional: Slack channel name for alerting (e.g. #mosip-alerts)"
         required: false
         type: string
       slack_webhook_url:
@@ -62,50 +62,104 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: ${{ github.ref_name }}
+    outputs:
+      profile: ${{ steps.profile.outputs.profile }}
     steps:
+      # Push runs carry no profile input: it is resolved from the changed
+      # testrigs DSF path here, once, and the deploy job reuses this output.
+      - name: Checkout repository
+        if: github.event_name == 'push'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Resolve profile
+        id: profile
+        env:
+          IN_PROFILE: ${{ github.event.inputs.profile }}
+          EV_BEFORE: ${{ github.event.before }}
+          EV_SHA: ${{ github.sha }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          if [ -n "$IN_PROFILE" ]; then
+            PROFILE="$IN_PROFILE"
+          else
+            BASE="$EV_BEFORE"
+            # New branch (before = 0000…) or force push (before not in history):
+            # GitHub's paths filter compares with the default branch, so diff
+            # everything this branch added since it left the default branch.
+            if [[ -z "$BASE" || "$BASE" =~ ^0+$ ]] || ! git cat-file -e "${BASE}^{commit}" 2>/dev/null; then
+              BASE=$(git merge-base "origin/$DEFAULT_BRANCH" "$EV_SHA" 2>/dev/null || true)
+              [ -n "$BASE" ] || BASE="${EV_SHA}~1"
+              echo "New branch or force push: comparing with $BASE (merge-base with origin/$DEFAULT_BRANCH)"
+            fi
+            mapfile -t PROFILES < <(git diff --name-only "$BASE" "$EV_SHA" -- 'Helmsman/dsf/' \
+              | sed -n 's|^Helmsman/dsf/\([^/]*\)/testrigs-dsf\.yaml$|\1|p' | sort -u)
+            case ${#PROFILES[@]} in
+              0) echo "❌ could not detect the profile: no Helmsman/dsf/<profile>/testrigs-dsf.yaml changed between $BASE and $EV_SHA"
+                 exit 1 ;;
+              1) PROFILE="${PROFILES[0]}" ;;
+              *) echo "❌ this push changes the testrigs DSF of more than one profile: ${PROFILES[*]}"
+                 echo "   Deploy them one at a time: Actions → this workflow → Run workflow, once per profile."
+                 exit 1 ;;
+            esac
+          fi
+          echo "Profile: $PROFILE"
+          echo "profile=$PROFILE" >> "$GITHUB_OUTPUT"
+
+      # Every input reaches the script through env: (never as ${{ }} in the
+      # script text), so quotes or $(...) in a value are data, not shell code.
       - name: Validate required variables
         env:
+          PROFILE: ${{ steps.profile.outputs.profile }}
+          ENV_REF: ${{ github.ref_name }}
+          DOMAIN: ${{ github.event.inputs.domain_name || vars.DOMAIN_NAME }}
+          ENV_NAME_VAL: ${{ github.event.inputs.env_name || vars.ENV_NAME }}
+          SLACK_CH: ${{ github.event.inputs.slack_channel_name || vars.SLACK_CHANNEL_NAME }}
+          DB_PORT: ${{ github.event.inputs.db_port || vars.DB_PORT }}
+          ESIGNET_DB_PORT: ${{ github.event.inputs.esignet_db_port || vars.ESIGNET_DB_PORT }}
           IN_MOSIPID_DOMAIN: ${{ github.event.inputs.mosipid_domain_name }}
           VAR_MOSIPID_DOMAIN: ${{ vars.MOSIPID_DOMAIN_NAME }}
         run: |
           errors=()
-          PROFILE="${{ github.event.inputs.profile }}"
-          DOMAIN="${{ github.event.inputs.domain_name || vars.DOMAIN_NAME }}"
-          ENV="${{ github.event.inputs.env_name || vars.ENV_NAME }}"
-          SLACK_CH="${{ github.event.inputs.slack_channel_name || vars.SLACK_CHANNEL_NAME }}"
-          DB_PORT="${{ github.event.inputs.db_port || vars.DB_PORT }}"
-          ESIGNET_DB_PORT="${{ github.event.inputs.esignet_db_port || vars.ESIGNET_DB_PORT }}"
-          [ -z "$DOMAIN" ]          && errors+=("domain_name is empty — set vars.DOMAIN_NAME under Environment '${{ github.ref_name }}'")
-          [ -z "$ENV" ]             && errors+=("env_name is empty — set vars.ENV_NAME under Environment '${{ github.ref_name }}'")
-          [ -z "$SLACK_CH" ]        && errors+=("slack_channel_name is empty — set vars.SLACK_CHANNEL_NAME under Environment '${{ github.ref_name }}'")
-          [ -z "$DB_PORT" ]         && errors+=("db_port is empty — set vars.DB_PORT under Environment '${{ github.ref_name }}'")
-          [ -z "$ESIGNET_DB_PORT" ] && errors+=("esignet_db_port is empty — set vars.ESIGNET_DB_PORT under Environment '${{ github.ref_name }}'")
+          [ -z "$DOMAIN" ]       && errors+=("domain_name is empty — set vars.DOMAIN_NAME under Environment '$ENV_REF'")
+          [ -z "$ENV_NAME_VAL" ] && errors+=("env_name is empty — set vars.ENV_NAME under Environment '$ENV_REF'")
+          # db_port is used only by the mosip-platform-* testrigs DSFs,
+          # esignet_db_port only by the esignet-standalone* ones.
+          if [[ "$PROFILE" == esignet-standalone* ]]; then
+            [ -z "$ESIGNET_DB_PORT" ] && errors+=("esignet_db_port is empty — set vars.ESIGNET_DB_PORT under Environment '$ENV_REF'")
+          else
+            [ -z "$DB_PORT" ] && errors+=("db_port is empty — set vars.DB_PORT under Environment '$ENV_REF'")
+          fi
           if [ ${#errors[@]} -gt 0 ]; then
             echo "❌ Required variables missing:"
             printf '  - %s\n' "${errors[@]}"
-            echo "Go to: Settings → Environments → ${{ github.ref_name }} → Variables"
+            echo "Go to: Settings → Environments → $ENV_REF → Variables"
             exit 1
           fi
           echo "✓ domain_name        = $DOMAIN"
-          echo "✓ env_name           = $ENV"
-          echo "✓ slack_channel_name = $SLACK_CH"
-          echo "✓ db_port            = $DB_PORT"
-          echo "✓ esignet_db_port    = $ESIGNET_DB_PORT"
+          echo "✓ env_name           = $ENV_NAME_VAL"
+          # Optional: no testrigs DSF uses the channel name (only SLACK_WEBHOOK_URL).
+          if [ -n "$SLACK_CH" ]; then
+            echo "✓ slack_channel_name = $SLACK_CH"
+          else
+            echo "::warning::slack_channel_name is empty — optional, testrigs only use the SLACK_WEBHOOK_URL secret"
+          fi
+          [ -n "$DB_PORT" ]         && echo "✓ db_port            = $DB_PORT"
+          [ -n "$ESIGNET_DB_PORT" ] && echo "✓ esignet_db_port    = $ESIGNET_DB_PORT"
           # mosipid_domain_name is esignet standalone only (both esignet-standalone
           # and esignet-standalone-2.0.0 each run a single consolidated mosipid instance).
-          # Push events always target the esignet profile (path filter); dispatch uses explicit profile input.
-          if [ -z "$PROFILE" ] || [[ "$PROFILE" == esignet-standalone* ]]; then
+          if [[ "$PROFILE" == esignet-standalone* ]]; then
             MOSIPID_DOMAIN="${IN_MOSIPID_DOMAIN:-$VAR_MOSIPID_DOMAIN}"
             if [ -z "$MOSIPID_DOMAIN" ]; then
               echo "❌ mosipid_domain_name is required for standalone profiles"
               exit 1
             fi
             echo "✓ mosipid_domain_name = $MOSIPID_DOMAIN (esignet standalone)"
-          else
-            MOSIPID_PROVIDED="$IN_MOSIPID_DOMAIN"
-            if [ -n "$MOSIPID_PROVIDED" ]; then
-              echo "⚠ mosipid_domain_name is only used for esignet standalone profiles — ignoring for profile=$PROFILE"
-            fi
+          elif [ -n "$IN_MOSIPID_DOMAIN" ]; then
+            echo "⚠ mosipid_domain_name is only used for esignet standalone profiles — ignoring for profile=$PROFILE"
           fi
 
   deploy:
@@ -165,21 +219,29 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ secrets.GH_INFRA_PAT }}
+          REPO: ${{ github.repository }}
+          ENVIRONMENT: ${{ github.ref_name }}
+          IN_DOMAIN_NAME: ${{ github.event.inputs.domain_name }}
+          IN_MOSIPID_DOMAIN_NAME: ${{ github.event.inputs.mosipid_domain_name }}
+          IN_DB_PORT: ${{ github.event.inputs.db_port }}
+          IN_ESIGNET_DB_PORT: ${{ github.event.inputs.esignet_db_port }}
+          IN_ENV_NAME: ${{ github.event.inputs.env_name }}
+          IN_SLACK_CHANNEL_NAME: ${{ github.event.inputs.slack_channel_name }}
         run: |
-          REPO="${{ github.repository }}"
-          ENVIRONMENT="${{ github.ref_name }}"
           save_var() {
-            local name=$1 value=$2
+            local name=$1 value=$2 body
             if [ -z "$value" ]; then echo "⏭  Skipping $name — no input provided, existing value preserved"; return; fi
+            # jq builds the JSON, so the value is data (no hand-built quoting).
+            body=$(jq -n --arg name "$name" --arg value "$value" '{name: $name, value: $value}')
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
               -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
               "https://api.github.com/repos/$REPO/environments/$ENVIRONMENT/variables/$name" \
-              -d "{\"name\":\"$name\",\"value\":\"$value\"}")
+              -d "$body")
             if [ "$STATUS" = "404" ]; then
               STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
                 -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
                 "https://api.github.com/repos/$REPO/environments/$ENVIRONMENT/variables" \
-                -d "{\"name\":\"$name\",\"value\":\"$value\"}")
+                -d "$body")
               if [ "$STATUS" = "201" ] || [ "$STATUS" = "200" ]; then
                 echo "✓ Created $name"
               else
@@ -191,12 +253,12 @@ jobs:
               echo "✗ Failed to save $name (HTTP $STATUS)"; exit 1
             fi
           }
-          save_var "DOMAIN_NAME"        "${{ github.event.inputs.domain_name }}"
-          save_var "MOSIPID_DOMAIN_NAME" "${{ github.event.inputs.mosipid_domain_name }}"
-          save_var "DB_PORT"            "${{ github.event.inputs.db_port }}"
-          save_var "ESIGNET_DB_PORT"    "${{ github.event.inputs.esignet_db_port }}"
-          save_var "ENV_NAME"           "${{ github.event.inputs.env_name }}"
-          save_var "SLACK_CHANNEL_NAME" "${{ github.event.inputs.slack_channel_name }}"
+          save_var "DOMAIN_NAME"         "$IN_DOMAIN_NAME"
+          save_var "MOSIPID_DOMAIN_NAME" "$IN_MOSIPID_DOMAIN_NAME"
+          save_var "DB_PORT"             "$IN_DB_PORT"
+          save_var "ESIGNET_DB_PORT"     "$IN_ESIGNET_DB_PORT"
+          save_var "ENV_NAME"            "$IN_ENV_NAME"
+          save_var "SLACK_CHANNEL_NAME"  "$IN_SLACK_CHANNEL_NAME"
 
       - name: Setup kubectl and kubeconfig
         env:
@@ -226,32 +288,16 @@ jobs:
           ${{ github.workspace }}/.local/bin/kubectl config view
 
       - name: Set Default Mode
+        env:
+          IN_MODE: ${{ github.event.inputs.mode }}
         run: |
-          if [ -z "${{ github.event.inputs.mode }}" ]; then
-            echo "HELMSMAN_MODE=apply" >> $GITHUB_ENV
-          else
-            echo "HELMSMAN_MODE=${{ github.event.inputs.mode }}" >> $GITHUB_ENV
-          fi        
+          echo "HELMSMAN_MODE=${IN_MODE:-apply}" >> "$GITHUB_ENV"
 
       - name: Set Profile
+        env:
+          # resolved once in validate-inputs (input, or the changed testrigs DSF on push)
+          PROFILE: ${{ needs.validate-inputs.outputs.profile }}
         run: |
-          if [ -n "${{ github.event.inputs.profile }}" ]; then
-            PROFILE="${{ github.event.inputs.profile }}"
-          else
-            # Auto-detect profile from push trigger — extract profile dir name from changed files
-            BEFORE="${{ github.event.before }}"
-            SHA="${{ github.sha }}"
-            if [[ -z "$BEFORE" || "$BEFORE" == "0000000000000000000000000000000000000000" ]]; then
-              BEFORE="HEAD~1"
-            fi
-            CHANGED_FILES=$(git diff --name-only "$BEFORE" "$SHA" -- 'Helmsman/dsf/' 2>/dev/null || \
-                            git diff --name-only HEAD~1 HEAD -- 'Helmsman/dsf/' 2>/dev/null || echo "")
-            PROFILE=$(echo "$CHANGED_FILES" | grep 'testrigs-dsf\.yaml' | head -1 | sed 's|Helmsman/dsf/\([^/]*\)/.*|\1|')
-            if [[ -z "$PROFILE" ]]; then
-              echo "Error: could not detect profile from changed DSF files."
-              exit 1
-            fi
-          fi
           echo "PROFILE=$PROFILE" >> "$GITHUB_ENV"
           echo "Using profile: $PROFILE"
 
@@ -266,8 +312,12 @@ jobs:
         run: sudo apt-get install -y wireguard
 
       - name: Configure WireGuard
+        env:
+          WG0_CONF: ${{ secrets.CLUSTER_WIREGUARD_WG0 }}
         run: |
-          echo "${{ secrets.CLUSTER_WIREGUARD_WG0 }}" | sudo tee /etc/wireguard/wg0.conf
+          # via env: (not pasted into the script); tee to /dev/null so the config
+          # is not echoed into the job log
+          printf '%s\n' "$WG0_CONF" | sudo tee /etc/wireguard/wg0.conf > /dev/null
 
       - name: Start WireGuard
         run: |

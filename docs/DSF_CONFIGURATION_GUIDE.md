@@ -65,7 +65,7 @@ Helmsman/dsf/
 | `external-dsf.yaml` | Databases, queues, storage, Keycloak | 2nd |
 | `mosip-dsf.yaml` | MOSIP core services (MOSIP platform profiles only) | 3rd |
 | `esignet-dsf.yaml` | eSignet stack + OIDC UI + Mock RP | 4th (or 3rd for esignet-standalone profile) |
-| `signup-dsf.yaml` | Signup stack (esignet-standalone profile only) | 5th (auto-triggered) |
+| `signup-dsf.yaml` | Signup stack (esignet-standalone profile only) | 5th (manual — auto-trigger from eSignet temporarily disabled) |
 | `testrigs-dsf.yaml` | Testing infrastructure | Last (optional) |
 
 ### Environment Variable Substitution
