@@ -30,11 +30,11 @@ on:
         required: false
         type: string
       db_port:
-        description: "mosip-platform-* only: PostgreSQL port for the MOSIP platform external postgres (e.g. 5433); empty = vars.DB_PORT"
+        description: "PostgreSQL port for MOSIP platform external postgres (e.g. 5433)"
         required: false
         type: string
       esignet_db_port:
-        description: "esignet-standalone* only: PostgreSQL port for the eSignet container postgres (e.g. 5432); empty = vars.ESIGNET_DB_PORT"
+        description: "PostgreSQL port for eSignet standalone container postgres (e.g. 5432)"
         required: false
         type: string
       env_name:
