@@ -156,15 +156,63 @@
   failed_when: nginx_server_name_count.stdout | trim != "1"
   when: nginx_type in ["mosip", "esignet"]
 
-- name: Serve every public subdomain from the public block (mosip / esignet)
-  become: true
-  ansible.builtin.replace:
-    path: /etc/nginx/nginx.conf
-    regexp: '^(\s*)server_name\s+[^;]*;'
-    replace: '\1server_name {{ public_domain_list.split(",") | unique | join(" ") }};'
+# install.sh writes nginx.conf and restarts nginx on every configure run, so
+# the edits below always report "changed" and reload nginx once per run (not
+# idempotent by design). Until that reload, the extra public names are served
+# by the default (internal) block. Rendering nginx.conf from a template instead
+# of patching it after install.sh would remove both; tracked as a follow-up.
+- name: Patch nginx.conf for the public subdomains (mosip / esignet)
   when: nginx_type in ["mosip", "esignet"]
-  # install.sh already restarted nginx with its own list
-  notify: Reload nginx
+  become: true
+  block:
+    # Keep install.sh's (already validated) nginx.conf, to restore it if the
+    # patched file fails `nginx -t` — never leave a broken file on disk.
+    - name: Save install.sh's nginx.conf
+      ansible.builtin.copy:
+        src: /etc/nginx/nginx.conf
+        dest: /etc/nginx/nginx.conf.install-sh
+        remote_src: true
+        mode: preserve
+
+    # Longer public names (e.g. healthservices-mosipid.<env domain>, 55+ chars)
+    # overflow the default 64-byte bucket: "could not build server_names_hash".
+    # nginx.conf.sample leaves the directive commented out, so set it in http {}.
+    - name: Set server_names_hash_bucket_size
+      ansible.builtin.lineinfile:
+        path: /etc/nginx/nginx.conf
+        regexp: '^\s*#?\s*server_names_hash_bucket_size\s'
+        line: "    server_names_hash_bucket_size {{ nginx_server_names_hash_bucket_size }};"
+        insertafter: '^\s*http\s*\{'
+        firstmatch: true
+      notify: Reload nginx
+
+    - name: Serve every public subdomain from the public block
+      ansible.builtin.replace:
+        path: /etc/nginx/nginx.conf
+        regexp: '^(\s*)server_name\s+[^;]*;'
+        replace: '\1server_name {{ public_domain_list.split(",") | unique | join(" ") }};'
+      notify: Reload nginx
+
+    - name: Validate the patched nginx.conf
+      ansible.builtin.command:
+        cmd: nginx -t
+      changed_when: false
+
+  rescue:
+    - name: Restore install.sh's nginx.conf
+      ansible.builtin.copy:
+        src: /etc/nginx/nginx.conf.install-sh
+        dest: /etc/nginx/nginx.conf
+        remote_src: true
+        mode: preserve
+
+    - name: Fail — patched nginx.conf did not validate
+      ansible.builtin.fail:
+        msg: >-
+          nginx -t failed after setting the public server_name / hash bucket size,
+          so /etc/nginx/nginx.conf was restored to install.sh's version (nginx keeps
+          serving it). Check public_domain_list, or raise
+          nginx_server_names_hash_bucket_size (now {{ nginx_server_names_hash_bucket_size }}).
 
 - name: Verify nginx configuration
   become: true
