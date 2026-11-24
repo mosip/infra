@@ -137,11 +137,11 @@ graph TB
 
     ES_ESIGNET --> NS1[esignet mock plugin]
     ES_ESIGNET --> NS2[mosip-identity plugin]
-    ES_ESIGNET --> NS4[sunbird-rc plugin]
+    ES_ESIGNET --> NS3[sunbird-rc plugin]
 
     NS1 --> ES_TRIGS[Helmsman: Testrigs]
     NS2 --> ES_TRIGS
-    NS4 --> ES_TRIGS
+    NS3 --> ES_TRIGS
 
     %% ── MOSIP Platform Flow — Helmsman profile selection ────────
     TF_MP --> MP_VER{Helmsman<br/>Profile}
@@ -170,7 +170,7 @@ graph TB
     class D,F,TF_ES,TF_MP terraform
     class ES_EXT,ES_ESIGNET,ES_TRIGS helmsman
     class MP_EXT,MP_MOSIP,MP_ESIGNET,MP_TRIGS mosip
-    class NS1,NS2,NS3,NS4 ns
+    class NS1,NS2,NS3 ns
     class V,DONE success
     class C,OBS,PS,MP_VER decision
 ```
