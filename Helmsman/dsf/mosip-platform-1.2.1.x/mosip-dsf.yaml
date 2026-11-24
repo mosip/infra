@@ -14,6 +14,8 @@ namespaces:
     protected: false
   artifactory:
     protected: false
+  artifactory-1202:
+    protected: false
   captcha:
     protected: false
   keymanager:
@@ -100,6 +102,25 @@ apps:
       # For upgrades/retries
       preUpgrade: "kubectl label ns artifactory istio-injection=enabled --overwrite"
       postUpgrade: "$WORKDIR/hooks/common-labeling-istio-and-sharing-cm-secrets-among-ns.sh"
+
+  # Artifactory 1.2.0.2 for regclient (artifactory-1202-share). Must be up before
+  # regclient (priority -1). esignet-dsf also defines it (for eSignet without
+  # MOSIP); helmsman_esignet.yml skips it there when it is already installed.
+  # Keep version/values in sync with esignet-dsf.yaml.
+  artifactory-1202:
+    namespace: artifactory-1202
+    enabled: true
+    version: 12.0.2
+    chart: mosip/artifactory
+    # set:
+    #   image.repository: "mosipid/artifactory-server"
+    #   image.tag: "1.4.1-ES"
+    wait: true
+    timeout: 1200
+    priority: -26
+    hooks:
+      preInstall: "kubectl label ns artifactory-1202 istio-injection=enabled --overwrite"
+      preUpgrade: "kubectl label ns artifactory-1202 istio-injection=enabled --overwrite"
 
   captcha:
     namespace: captcha
@@ -1108,5 +1129,12 @@ apps:
       regclient.healthCheckUrl: "https://api-internal.${domain_name}/v1/syncdata/actuator/health"
       regclient.hostName: "api-internal.${domain_name}"
       istio.host: "regclient.${domain_name}"
+      # regclient needs Artifactory 1.2.0.2: envFrom artifactory-1202-share instead of
+      # the chart default artifactory-share (an indexed set replaces the default list).
+      extraEnvVarsCM[0]: "artifactory-1202-share"
     priority: -1
     timeout: 1200
+    hooks:
+      # copy artifactory-1202-share into the regclient namespace before the pod starts
+      preInstall: "$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh configmap artifactory-1202-share artifactory-1202 regclient"
+      preUpgrade: "$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh configmap artifactory-1202-share artifactory-1202 regclient"

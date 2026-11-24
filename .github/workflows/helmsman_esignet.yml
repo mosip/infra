@@ -560,6 +560,14 @@ jobs:
             fi
           fi
 
+          # mosip-platform profiles: artifactory-1202 is also deployed by mosip-dsf
+          # (regclient needs it). Skip it here when it is already installed, so
+          # esignet-dsf never touches the release mosip-dsf manages.
+          if [[ "$PROFILE" == mosip-platform-* ]] && helm status artifactory-1202 -n artifactory-1202 &>/dev/null; then
+            echo "✓ artifactory-1202 already installed (mosip-dsf) — skipping it in esignet-dsf"
+            SKIP_RELEASES_ARG="$SKIP_RELEASES_ARG -exclude-target artifactory-1202"
+          fi
+
           # Run helmsman with the determined mode
           # --keep-untracked-releases prevents deletion of releases managed by other DSF files (e.g., postgres-init from external-dsf)
           echo "Using DSF: $WORKDIR/dsf/$PROFILE/esignet-dsf.yaml"
