@@ -1137,6 +1137,7 @@ apps:
     priority: 0
     timeout: 1200
     hooks:
-      # copy artifactory-1202-share into the regclient namespace before the pod starts
-      preInstall: "$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh configmap artifactory-1202-share artifactory-1202 regclient"
-      preUpgrade: "$WORKDIR/utils/copy-cm-and-secrets/copy_cm_func.sh configmap artifactory-1202-share artifactory-1202 regclient"
+      # copy artifactory-1202-share into the regclient namespace before the pod
+      # starts (fails without touching regclient if the source is missing)
+      preInstall: "$WORKDIR/hooks/regclient-setup.sh"
+      preUpgrade: "$WORKDIR/hooks/regclient-setup.sh"
