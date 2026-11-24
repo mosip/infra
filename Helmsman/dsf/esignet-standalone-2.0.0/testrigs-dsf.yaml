@@ -17,16 +17,18 @@
 # conventions or sourced from a required GitHub Environment secret/variable (see
 # docs/HELMSMAN_TESTRIGS_GUIDE.md).
 #
-# Only esignet-mosipid gets real test-identity/onboarding values (INDIVIDUAL_ID,
-# OTP recipient, auth partner/policy ID, UIN/VID/etc.) — it's the only instance
-# backed by a real IDA identity (config.mosip.json / the "mosip" plugin). esignet-mock
-# (config.mock.json / "mock" plugin) and esignet-sunbird (config.sunbird.json /
-# "sunbird" plugin) need none of that.
+# apitestrig settings match the reference eSignet 2.0.0 QA environment:
+#   - surfaces "conformance,api,e2e": the OpenID Conformance Suite runs inside the
+#     testrig pod (apitestrig.conformanceSuite). Its per-instance plan files (private
+#     JWKS) come from GitHub Environment Secrets via apitestrig-conformance-plan.sh,
+#     which creates the `esignet-conformance-plan` Secret before install/upgrade.
+#   - reports go to the in-cluster MinIO (bucket = instance namespace, created by the
+#     uploader if missing) instead of a PVC.
+#   - cronjobs are staggered 01:00 / 02:00 / 03:00 (mock / mosipid / sunbird).
 #
-# Report storage: reports.persistence (PVC) is used instead of reports.s3 — the S3
-# path needs a pre-existing bucket this repo has no established convention for yet.
-# Switch to reports.s3.enabled once one exists (reuse the ${MINIO_ROOT_PASSWORD}
-# pattern from esignet-signup-apitestrig/signup-uitestrig below).
+# Test identities: esignet-mosipid uses a real IDA identity (config.mosip.json) and
+# the MOSIP-ID environment's PMS/Keycloak; esignet-sunbird uses a Sunbird registry
+# identity for KBI login (config.sunbird.json); esignet-mock needs none.
 # =============================================================================
 
 helmDefaults:
@@ -72,17 +74,34 @@ apps:
     chart: mosip/esignet-apitestrig
     set:
       apitestrig.configFile: /app/data/config/config.mock.json
-      # No plan JSON files provisioned for this profile — see header comment.
-      apitestrig.surfaces: "api,e2e"
+      apitestrig.surfaces: "conformance,api,e2e"
       apitestrig.extraEnvVars.MOSIP_ESIGNET_BASE_URL: "https://esignet.${domain_name}/v1/esignet"
       apitestrig.extraEnvVars.KEYCLOAK_TOKEN_URL: "https://iam.${domain_name}/auth/realms/mosip/protocol/openid-connect/token"
       apitestrig.extraEnvVars.KEYCLOAK_CLIENT_ID: "mosip-pms-client"
+      apitestrig.extraEnvVars.ID_TYPE: "uin"
       apitestrig.extraEnvVarsSecret.KEYCLOAK_CLIENT_SECRET: "${PMS_CLIENT_SECRET_VALUE}"
-      reports.persistence.enabled: "true"
+      apitestrig.extraEnvVars.CONFORMANCE_BASE_URL: "https://localhost.emobix.co.uk:8443"
+      apitestrig.extraEnvVars.CONFORMANCE_TLS_VERIFY: "false"
+      apitestrig.conformanceSuite.enabled: "true"
+      apitestrig.conformancePlanConfig.enabled: "true"
+      apitestrig.conformancePlanConfig.existingSecret: "esignet-conformance-plan"
+      crontime: "0 1 * * *"
+      resources.limits.memory: "1Gi"
+      reports.persistence.enabled: "false"
+      reports.s3.enabled: "true"
+      reports.s3.endpoint: "http://minio.minio:9000"
+      reports.s3.insecure: "true"
+      reports.s3.bucket: "esignet-mock"
+      reports.s3.accessKey: "admin"
+      reports.s3.secretKey: "${MINIO_ROOT_PASSWORD}"
+      reports.s3.image.registry: "docker.io"
+      reports.s3.image.repository: "bitnamilegacy/minio-client"
+      reports.s3.image.tag: "2025.7.21-debian-12-r3"
     timeout: 900
     priority: -8
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-standalone-2.0.0/apitestrig-esignet-setup.sh"
+      preUpgrade: "$WORKDIR/hooks/esignet-standalone-2.0.0/apitestrig-esignet-setup.sh"
 
   # ---------------------------------------------------------------------------
   # eSignet-MOSIPID API Testrig (Go harness) — esignet-mosipid namespace
@@ -95,9 +114,10 @@ apps:
     chart: mosip/esignet-apitestrig
     set:
       apitestrig.configFile: /app/data/config/config.mosip.json
-      apitestrig.surfaces: "api,e2e"
+      apitestrig.surfaces: "conformance,api,e2e"
       apitestrig.extraEnvVars.MOSIP_ESIGNET_BASE_URL: "https://esignet-mosipid.${domain_name}/v1/esignet"
-      apitestrig.extraEnvVars.KEYCLOAK_TOKEN_URL: "https://iam.${domain_name}/auth/realms/mosip/protocol/openid-connect/token"
+      # PMS lives on the MOSIP-ID environment, so the token comes from its Keycloak.
+      apitestrig.extraEnvVars.KEYCLOAK_TOKEN_URL: "https://iam.${mosipid_domain_name}/auth/realms/mosip/protocol/openid-connect/token"
       apitestrig.extraEnvVars.KEYCLOAK_CLIENT_ID: "mosip-pms-client"
       apitestrig.extraEnvVars.ID_TYPE: "uin"
       apitestrig.extraEnvVars.OTP_WS_URL: "https://smtp.${domain_name}"
@@ -105,13 +125,33 @@ apps:
       apitestrig.extraEnvVars.PMS_BASE_URL: "https://api-internal.${mosipid_domain_name}/v1/partnermanager"
       apitestrig.extraEnvVars.AUTH_PARTNER_ID: "${MOSIPID_TESTRIG_AUTH_PARTNER_ID}"
       apitestrig.extraEnvVars.AUTH_POLICY_ID: "${MOSIPID_TESTRIG_AUTH_POLICY_ID}"
-      apitestrig.extraEnvVarsSecret.KEYCLOAK_CLIENT_SECRET: "${PMS_CLIENT_SECRET_VALUE}"
+      apitestrig.extraEnvVars.FLOW_CLIENT_ID: "${MOSIPID_TESTRIG_FLOW_CLIENT_ID}"
+      apitestrig.extraEnvVars.PMS_CLIENT_API: "oauth-client"
+      apitestrig.extraEnvVarsSecret.KEYCLOAK_CLIENT_SECRET: "${MOSIPID_TESTRIG_KEYCLOAK_CLIENT_SECRET}"
       apitestrig.extraEnvVarsSecret.INDIVIDUAL_ID: "${MOSIPID_TESTRIG_INDIVIDUAL_ID}"
-      reports.persistence.enabled: "true"
+      apitestrig.extraEnvVarsSecret.TEST_PASSWORD: "${MOSIPID_TESTRIG_TEST_PASSWORD}"
+      apitestrig.extraEnvVars.CONFORMANCE_BASE_URL: "https://localhost.emobix.co.uk:8443"
+      apitestrig.extraEnvVars.CONFORMANCE_TLS_VERIFY: "true"
+      apitestrig.conformanceSuite.enabled: "true"
+      apitestrig.conformancePlanConfig.enabled: "true"
+      apitestrig.conformancePlanConfig.existingSecret: "esignet-conformance-plan"
+      crontime: "0 2 * * *"
+      resources.limits.memory: "1Gi"
+      reports.persistence.enabled: "false"
+      reports.s3.enabled: "true"
+      reports.s3.endpoint: "http://minio.minio:9000"
+      reports.s3.insecure: "true"
+      reports.s3.bucket: "esignet-mosipid"
+      reports.s3.accessKey: "admin"
+      reports.s3.secretKey: "${MINIO_ROOT_PASSWORD}"
+      reports.s3.image.registry: "docker.io"
+      reports.s3.image.repository: "bitnamilegacy/minio-client"
+      reports.s3.image.tag: "2025.7.21-debian-12-r3"
     timeout: 900
     priority: -7
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-standalone-2.0.0/apitestrig-esignet-mosipid-setup.sh"
+      preUpgrade: "$WORKDIR/hooks/esignet-standalone-2.0.0/apitestrig-esignet-mosipid-setup.sh"
 
   # ---------------------------------------------------------------------------
   # eSignet-Sunbird API Testrig (Go harness) — esignet-sunbird namespace
@@ -123,16 +163,38 @@ apps:
     chart: mosip/esignet-apitestrig
     set:
       apitestrig.configFile: /app/data/config/config.sunbird.json
-      apitestrig.surfaces: "api,e2e"
+      apitestrig.surfaces: "conformance,api,e2e"
       apitestrig.extraEnvVars.MOSIP_ESIGNET_BASE_URL: "https://esignet-sunbird.${domain_name}/v1/esignet"
       apitestrig.extraEnvVars.KEYCLOAK_TOKEN_URL: "https://iam.${domain_name}/auth/realms/mosip/protocol/openid-connect/token"
       apitestrig.extraEnvVars.KEYCLOAK_CLIENT_ID: "mosip-pms-client"
+      apitestrig.extraEnvVars.ID_TYPE: "uin"
       apitestrig.extraEnvVarsSecret.KEYCLOAK_CLIENT_SECRET: "${PMS_CLIENT_SECRET_VALUE}"
-      reports.persistence.enabled: "true"
+      # Sunbird registry test identity for knowledge-based (KBI) login.
+      apitestrig.extraEnvVarsSecret.INDIVIDUAL_ID: "${SUNBIRD_TESTRIG_INDIVIDUAL_ID}"
+      apitestrig.extraEnvVarsSecret.KBI_FULL_NAME: "${SUNBIRD_TESTRIG_KBI_FULL_NAME}"
+      apitestrig.extraEnvVarsSecret.KBI_DOB: "${SUNBIRD_TESTRIG_KBI_DOB}"
+      apitestrig.extraEnvVars.CONFORMANCE_BASE_URL: "https://localhost.emobix.co.uk:8443"
+      apitestrig.extraEnvVars.CONFORMANCE_TLS_VERIFY: "false"
+      apitestrig.conformanceSuite.enabled: "true"
+      apitestrig.conformancePlanConfig.enabled: "true"
+      apitestrig.conformancePlanConfig.existingSecret: "esignet-conformance-plan"
+      crontime: "0 3 * * *"
+      resources.limits.memory: "1Gi"
+      reports.persistence.enabled: "false"
+      reports.s3.enabled: "true"
+      reports.s3.endpoint: "http://minio.minio:9000"
+      reports.s3.insecure: "true"
+      reports.s3.bucket: "esignet-sunbird"
+      reports.s3.accessKey: "admin"
+      reports.s3.secretKey: "${MINIO_ROOT_PASSWORD}"
+      reports.s3.image.registry: "docker.io"
+      reports.s3.image.repository: "bitnamilegacy/minio-client"
+      reports.s3.image.tag: "2025.7.21-debian-12-r3"
     timeout: 900
     priority: -6
     hooks:
       preInstall: "$WORKDIR/hooks/esignet-standalone-2.0.0/apitestrig-esignet-sunbird-setup.sh"
+      preUpgrade: "$WORKDIR/hooks/esignet-standalone-2.0.0/apitestrig-esignet-sunbird-setup.sh"
 
   # ---------------------------------------------------------------------------
   # eSignet UI Testrig (Java harness, uitest-esignet image) — own namespace
