@@ -4,7 +4,8 @@
 name: esignet-standalone
 description: Standalone eSignet (eSignet, OIDC UI, Postgres, Redis, Kafka, Keycloak)
 
-nginx_type: mosip
+# k8s-infra nginx/esignet: no activemq stream / packetcreator route
+nginx_type: esignet
 
 # No postgresql/activemq host volumes: eSignet runs its datastores in-cluster.
 configure_components:

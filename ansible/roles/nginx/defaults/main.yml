@@ -1,5 +1,6 @@
 ---
-# nginx_type selects which of the two configs below applies — "mosip" or "observability"
+# nginx_type selects the k8s-infra nginx folder: "mosip", "esignet" (both use the
+# mosip settings below) or "observability"
 nginx_type: "mosip"
 
 env_var_file: "/etc/environment"
@@ -7,7 +8,8 @@ k8s_infra_branch: "main"
 # Only used for certbot's expiry mails; empty is fine with tls_mode=byo.
 certbot_email: ""
 
-# mosip-specific nodeports (unused when nginx_type == observability)
+# mosip / esignet nodeports (unused when nginx_type == observability; esignet
+# ignores the activemq one)
 cluster_ingress_public_nodeport: "30080"
 cluster_ingress_internal_nodeport: "31080"
 cluster_ingress_postgres_nodeport: "31432"
@@ -16,5 +18,10 @@ cluster_ingress_activemq_nodeport: "31616"
 
 # observability-specific nodeport (unused when nginx_type == mosip)
 observation_ingress_nodeport: "30080"
+
+# http { server_names_hash_bucket_size } for the public server_name (mosip /
+# esignet). 128 fits names up to ~127 chars; nginx's default of 64 is too small
+# for names like healthservices-mosipid.<env domain>.
+nginx_server_names_hash_bucket_size: 128
 
 working_dir: "/home/ubuntu/"
