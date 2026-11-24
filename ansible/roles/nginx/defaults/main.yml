@@ -19,4 +19,9 @@ cluster_ingress_activemq_nodeport: "31616"
 # observability-specific nodeport (unused when nginx_type == mosip)
 observation_ingress_nodeport: "30080"
 
+# http { server_names_hash_bucket_size } for the public server_name (mosip /
+# esignet). 128 fits names up to ~127 chars; nginx's default of 64 is too small
+# for names like healthservices-mosipid.<env domain>.
+nginx_server_names_hash_bucket_size: 128
+
 working_dir: "/home/ubuntu/"
