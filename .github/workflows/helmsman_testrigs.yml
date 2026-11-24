@@ -312,8 +312,12 @@ jobs:
         run: sudo apt-get install -y wireguard
 
       - name: Configure WireGuard
+        env:
+          WG0_CONF: ${{ secrets.CLUSTER_WIREGUARD_WG0 }}
         run: |
-          echo "${{ secrets.CLUSTER_WIREGUARD_WG0 }}" | sudo tee /etc/wireguard/wg0.conf
+          # via env: (not pasted into the script); tee to /dev/null so the config
+          # is not echoed into the job log
+          printf '%s\n' "$WG0_CONF" | sudo tee /etc/wireguard/wg0.conf > /dev/null
 
       - name: Start WireGuard
         run: |
