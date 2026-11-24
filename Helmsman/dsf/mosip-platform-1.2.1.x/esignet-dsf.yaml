@@ -184,6 +184,9 @@ apps:
       preInstall: "$WORKDIR/hooks/esignet-preinstall-keycloak-init.sh"
       postInstall: "$WORKDIR/hooks/esignet-postinstall-keycloak-init.sh"
 
+  # Also deployed by mosip-dsf (needed by regclient). helmsman_esignet.yml skips it
+  # here (-exclude-target) when it is already installed; this entry installs it
+  # only for eSignet runs without MOSIP. Keep version/values in sync with mosip-dsf.yaml.
   artifactory-1202:
     namespace: artifactory-1202
     enabled: true
