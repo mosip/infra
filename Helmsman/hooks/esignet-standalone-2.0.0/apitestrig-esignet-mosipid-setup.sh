@@ -11,6 +11,9 @@
 # s3-esignet-mosipid-apitestrig/apitestrig-esignet-mosipid-apitestrig Secrets the OLD
 # chart's own preInstall hook used to create directly via kubectl (Helm never owned
 # them, so switching charts under the same release name won't clean them up on its own).
+#
+# Also creates the `esignet-conformance-plan` Secret for the conformance surface
+# (see apitestrig-conformance-plan.sh). Runs on preInstall and preUpgrade.
 # =============================================================================
 set -euo pipefail
 
@@ -23,5 +26,7 @@ echo "================================================"
 echo "Deleting stale testrig resources from the old mosip/apitestrig-based release in $NS"
 kubectl -n "$NS" delete --ignore-not-found=true configmap s3 db apitestrig
 kubectl -n "$NS" delete --ignore-not-found=true secret s3-esignet-mosipid-apitestrig apitestrig-esignet-mosipid-apitestrig
+
+"$WORKDIR/hooks/esignet-standalone-2.0.0/apitestrig-conformance-plan.sh" "$NS" ESIGNET_MOSIPID
 
 echo "eSignet-MOSIPID API Testrig pre-install setup completed."

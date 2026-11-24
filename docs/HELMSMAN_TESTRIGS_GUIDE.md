@@ -63,7 +63,7 @@ No additional secrets required for testrigs — captcha and keycloak secrets wer
 
 | Value | Source |
 |-------|--------|
-| `KEYCLOAK_CLIENT_SECRET` (apitestrig, all 3 instances) | `keycloak-client-secrets` secret in the `keycloak` namespace — the same `mosip_pms_client_secret` key `esignet-preinstall-keycloak-init.sh` already uses |
+| `KEYCLOAK_CLIENT_SECRET` (apitestrig, `esignet-mock` and `esignet-sunbird`; mosipid uses `MOSIPID_TESTRIG_KEYCLOAK_CLIENT_SECRET` below) | `keycloak-client-secrets` secret in the `keycloak` namespace — the same `mosip_pms_client_secret` key `esignet-preinstall-keycloak-init.sh` already uses |
 | `esignetDbPassword` (uitestrig, all 3 instances) | `db-common-secrets` secret in the `postgres` namespace |
 
 **Optional Environment Secrets/Variables** (Settings → Environments → `<branch-name>`):
@@ -87,12 +87,25 @@ Only actual credentials (passwords, client secrets) are **Secrets** below — ev
 | `MOSIPID_TESTRIG_EMAIL_LOGIN_ID` | Variable | uitestrig, `esignet-mosipid` only | Test identity for email-OTP login scenarios |
 | `MOSIPID_TESTRIG_PASSWORD_LOGIN_UIN` | Variable | uitestrig, `esignet-mosipid` only | Test identity for password-login scenarios |
 | `MOSIPID_TESTRIG_PASSWORD_LOGIN_PASSWORD` | Secret | uitestrig, `esignet-mosipid` only | Password for the identity above |
+| `MOSIPID_TESTRIG_KEYCLOAK_CLIENT_SECRET` | Secret | apitestrig, `esignet-mosipid` only | `mosip-pms-client` secret on the MOSIP-ID environment's Keycloak (`iam.<mosipid_domain_name>`), where its PMS lives |
+| `MOSIPID_TESTRIG_FLOW_CLIENT_ID` | Variable | apitestrig, `esignet-mosipid` only | OIDC client ID used by the flow tests |
+| `MOSIPID_TESTRIG_TEST_PASSWORD` | Secret | apitestrig, `esignet-mosipid` only | Password for the test identity's password-login flows |
+| `SUNBIRD_TESTRIG_INDIVIDUAL_ID` | Variable | apitestrig, `esignet-sunbird` only | Sunbird registry test identity |
+| `SUNBIRD_TESTRIG_KBI_FULL_NAME` | Variable | apitestrig, `esignet-sunbird` only | Full name of that identity (knowledge-based login) |
+| `SUNBIRD_TESTRIG_KBI_DOB` | Variable | apitestrig, `esignet-sunbird` only | Date of birth of that identity, `YYYY-MM-DD` |
+| `ESIGNET_<INSTANCE>_CONFORMANCE_PLAN` | Secret | apitestrig, per instance | OpenID Conformance Suite plan JSON → `esignet-config.json` |
+| `ESIGNET_<INSTANCE>_CONFORMANCE_PLAN_FAPI2` | Secret | apitestrig, per instance | FAPI2 plan JSON → `esignet-fapi2-config.json` |
 
-Only `esignet-mosipid` needs real test-identity/onboarding values — it's the only instance backed by a real IDA identity (`config.mosip.json`/the `mosip` plugin). `esignet-mock` (`config.mock.json`/`mock` plugin) and `esignet-sunbird` (`config.sunbird.json`/`sunbird` plugin) need none of the `MOSIPID_TESTRIG_*` values above.
+`<INSTANCE>` is `MOCK`, `MOSIPID` or `SUNBIRD`. Each plan is a JSON object with the instance's `discoveryUrl` (`https://esignet[-mosipid|-sunbird].<domain>/.well-known/openid-configuration`), its registered client IDs and their **private JWKS**, so it is always a Secret. The apitestrig pre-install/pre-upgrade hook (`apitestrig-conformance-plan.sh`) writes both into the `esignet-conformance-plan` Secret in the instance namespace. If a plan is unset, an empty `{}` is written with a warning: the deployment still succeeds and only the `conformance` surface fails. Invalid JSON fails the hook.
+
+`esignet-mosipid` uses a real IDA identity (`config.mosip.json`/the `mosip` plugin) and `esignet-sunbird` a Sunbird registry identity (`config.sunbird.json`); `esignet-mock` (`config.mock.json`) needs no test identity.
 
 There is no validation step for these values; the placeholder defaults let the deployment succeed.
 
-Report storage uses a PVC (`reports.persistence.enabled: true`), not S3 — there's no established MinIO bucket convention for these charts yet in this repo. Switch to `reports.s3.*` once one exists.
+**apitestrig runtime (all 3 instances):**
+- Surfaces `conformance,api,e2e`. The OpenID Conformance Suite (mongodb, server, nginx) runs as extra containers in the testrig pod at `https://localhost.emobix.co.uk:8443`.
+- Reports are uploaded to the in-cluster MinIO (`http://minio.minio:9000`, user `admin`, password read from the `minio` secret) in buckets `esignet-mock`, `esignet-mosipid` and `esignet-sunbird`, created on first upload. No PVC is used.
+- Schedules: mock 01:00, mosipid 02:00, sunbird 03:00 (cluster time).
 
 ### MOSIP platform profiles only
 

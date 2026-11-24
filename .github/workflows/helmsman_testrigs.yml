@@ -188,6 +188,24 @@ jobs:
       MOSIPID_TESTRIG_EMAIL_LOGIN_ID:         ${{ vars.MOSIPID_TESTRIG_EMAIL_LOGIN_ID || 'UPDATE_BEFORE_RUN' }}
       MOSIPID_TESTRIG_PASSWORD_LOGIN_UIN:     ${{ vars.MOSIPID_TESTRIG_PASSWORD_LOGIN_UIN || 'UPDATE_BEFORE_RUN' }}
       MOSIPID_TESTRIG_PASSWORD_LOGIN_PASSWORD: ${{ secrets.MOSIPID_TESTRIG_PASSWORD_LOGIN_PASSWORD || 'UPDATE_BEFORE_RUN' }}
+      # esignet-mosipid apitestrig: PMS client on the MOSIP-ID environment's Keycloak
+      # (iam.<mosipid_domain_name>), and the extra values its flows need.
+      MOSIPID_TESTRIG_KEYCLOAK_CLIENT_SECRET: ${{ secrets.MOSIPID_TESTRIG_KEYCLOAK_CLIENT_SECRET || 'UPDATE_BEFORE_RUN' }}
+      MOSIPID_TESTRIG_FLOW_CLIENT_ID:         ${{ vars.MOSIPID_TESTRIG_FLOW_CLIENT_ID || 'UPDATE_BEFORE_RUN' }}
+      MOSIPID_TESTRIG_TEST_PASSWORD:          ${{ secrets.MOSIPID_TESTRIG_TEST_PASSWORD || 'UPDATE_BEFORE_RUN' }}
+      # esignet-sunbird apitestrig: Sunbird registry test identity for KBI login.
+      SUNBIRD_TESTRIG_INDIVIDUAL_ID:          ${{ vars.SUNBIRD_TESTRIG_INDIVIDUAL_ID || 'UPDATE_BEFORE_RUN' }}
+      SUNBIRD_TESTRIG_KBI_FULL_NAME:          ${{ vars.SUNBIRD_TESTRIG_KBI_FULL_NAME || 'UPDATE_BEFORE_RUN' }}
+      SUNBIRD_TESTRIG_KBI_DOB:                ${{ vars.SUNBIRD_TESTRIG_KBI_DOB || 'UPDATE_BEFORE_RUN' }}
+      # esignet apitestrig conformance surface: per-instance OpenID Conformance Suite
+      # plan JSON (contains a private JWKS). Read by apitestrig-conformance-plan.sh;
+      # unset = empty plan, only the conformance surface fails.
+      ESIGNET_MOCK_CONFORMANCE_PLAN:            ${{ secrets.ESIGNET_MOCK_CONFORMANCE_PLAN }}
+      ESIGNET_MOCK_CONFORMANCE_PLAN_FAPI2:      ${{ secrets.ESIGNET_MOCK_CONFORMANCE_PLAN_FAPI2 }}
+      ESIGNET_MOSIPID_CONFORMANCE_PLAN:         ${{ secrets.ESIGNET_MOSIPID_CONFORMANCE_PLAN }}
+      ESIGNET_MOSIPID_CONFORMANCE_PLAN_FAPI2:   ${{ secrets.ESIGNET_MOSIPID_CONFORMANCE_PLAN_FAPI2 }}
+      ESIGNET_SUNBIRD_CONFORMANCE_PLAN:         ${{ secrets.ESIGNET_SUNBIRD_CONFORMANCE_PLAN }}
+      ESIGNET_SUNBIRD_CONFORMANCE_PLAN_FAPI2:   ${{ secrets.ESIGNET_SUNBIRD_CONFORMANCE_PLAN_FAPI2 }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
