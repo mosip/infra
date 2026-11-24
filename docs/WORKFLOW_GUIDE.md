@@ -251,7 +251,7 @@ If TERRAFORM_APPLY = ☐ (plan only)
 
 **eSignet standalone profile** (`profile=esignet-standalone`):
 ```
-External (prereq + external-dsf, parallel) → eSignet (3 parallel instances) → Testrigs
+External (prereq + external-dsf, parallel) → eSignet (3 parallel instances) → Signup (manual) → Testrigs
 ```
 
 **MOSIP platform profiles** (`profile=mosip-platform-1.2.0.x` or `mosip-platform-1.2.1.x`):
