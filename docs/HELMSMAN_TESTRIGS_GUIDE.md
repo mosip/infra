@@ -68,7 +68,7 @@ No additional secrets required for testrigs — captcha and keycloak secrets wer
 
 **Optional Environment Secrets/Variables** (Settings → Environments → `<branch-name>`):
 
-Except `MOSIPID_KEYCLOAK_ADMIN_PASSWORD` (already required by the eSignet deployment), each of these defaults to the placeholder `UPDATE_BEFORE_RUN` when unset, so Helmsman can deploy the testrigs without them. Update the real values in the testrig configmaps/secrets before triggering the test cronjobs.
+Except `MOSIPID_KEYCLOAK_ADMIN_PASSWORD` (already required by the eSignet deployment), each of these defaults to the dummy value `UPDATE_BEFORE_RUN` when unset, so Helmsman can deploy the testrigs without them. Update the real values in the testrig configmaps/secrets before triggering the test cronjobs.
 
 Only actual credentials (passwords, client secrets) are **Secrets** below — everything else (IDs, test identities) is a plain **Variable**, even where it's technically PII, to keep the GitHub Environment setup simple.
 
@@ -96,7 +96,7 @@ Only actual credentials (passwords, client secrets) are **Secrets** below — ev
 | `ESIGNET_<INSTANCE>_CONFORMANCE_PLAN` | Secret | apitestrig, per instance | OpenID Conformance Suite plan JSON → `esignet-config.json` |
 | `ESIGNET_<INSTANCE>_CONFORMANCE_PLAN_FAPI2` | Secret | apitestrig, per instance | FAPI2 plan JSON → `esignet-fapi2-config.json` |
 
-`<INSTANCE>` is `MOCK`, `MOSIPID` or `SUNBIRD`. Each plan is a JSON object with the instance's `discoveryUrl` (`https://esignet[-mosipid|-sunbird].<domain>/.well-known/openid-configuration`), its registered client IDs and their **private JWKS**, so it is always a Secret. The apitestrig pre-install/pre-upgrade hook (`apitestrig-conformance-plan.sh`) writes both into the `esignet-conformance-plan` Secret in the instance namespace. If a plan is unset, an empty `{}` is written with a warning: the deployment still succeeds and only the `conformance` surface fails. Invalid JSON fails the hook.
+`<INSTANCE>` is `MOCK`, `MOSIPID` or `SUNBIRD`. Each plan is a JSON object with the instance's `discoveryUrl` (`https://esignet[-mosipid|-sunbird].<domain>/.well-known/openid-configuration`), its registered client IDs and their **private JWKS**, so it is always a Secret. The apitestrig pre-install/pre-upgrade hook (`apitestrig-conformance-plan.sh`) writes both into the `esignet-conformance-plan` Secret in the instance namespace. If a plan is unset, the hook keeps the value already in that Secret (so a plan the team updated on the cluster survives re-deploys); if there is none yet, it writes the dummy plan `{"alias":"UPDATE_BEFORE_RUN"}`. The deployment still succeeds and only the `conformance` surface fails until the real plan is set. Invalid JSON fails the hook.
 
 `esignet-mosipid` uses a real IDA identity (`config.mosip.json`/the `mosip` plugin) and `esignet-sunbird` a Sunbird registry identity (`config.sunbird.json`); `esignet-mock` (`config.mock.json`) needs no test identity.
 

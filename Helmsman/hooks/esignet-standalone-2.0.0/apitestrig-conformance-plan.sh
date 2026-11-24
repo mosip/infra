@@ -15,9 +15,11 @@
 # so it is a per-instance GitHub Environment Secret, never a DSF value.
 # Values are written via temp files (not argv) and never echoed.
 #
-# Unset -> the key is written as `{}` with a warning, so the testrig still
-# deploys (same as the UPDATE_BEFORE_RUN placeholders); only the conformance
-# surface fails until the real plan is set and the workflow is re-run.
+# Unset (or UPDATE_BEFORE_RUN) -> the value already in the cluster Secret is
+# kept, so a plan the team updated directly on the cluster survives re-deploys.
+# If there is none yet, a dummy plan {"alias":"UPDATE_BEFORE_RUN"} is written so
+# the testrig still deploys; only the conformance surface fails until the team
+# replaces it (in the cluster Secret, or via the GitHub secret + re-deploy).
 # =============================================================================
 set -euo pipefail
 
@@ -33,9 +35,15 @@ write_plan() {
   local var="$1" file="$2" value
   value="${!var:-}"
   if [ -z "$value" ] || [ "$value" = "UPDATE_BEFORE_RUN" ]; then
-    echo "WARNING: $var is not set - writing an empty plan to $NS/$SECRET:$file." >&2
-    echo "         The conformance surface will fail until it is set and testrigs are re-deployed." >&2
-    value='{}'
+    # jsonpath needs the dot in the key escaped
+    value=$(kubectl -n "$NS" get secret "$SECRET" -o jsonpath="{.data.${file//./\\.}}" 2>/dev/null | base64 -d 2>/dev/null || true)
+    if [ -n "$value" ]; then
+      echo "$var is not set - keeping the existing $NS/$SECRET:$file." >&2
+    else
+      echo "WARNING: $var is not set - writing a dummy plan to $NS/$SECRET:$file." >&2
+      echo "         Update it before running the conformance surface." >&2
+      value='{"alias":"UPDATE_BEFORE_RUN"}'
+    fi
   fi
   if ! printf '%s' "$value" | jq -e 'type == "object"' >/dev/null 2>&1; then
     echo "ERROR: $var is not a JSON object - refusing to create $NS/$SECRET." >&2
