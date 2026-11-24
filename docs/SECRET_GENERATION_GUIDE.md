@@ -7,7 +7,7 @@ This guide provides step-by-step instructions for generating all required secret
 1. [SSH Keys](#1-ssh-keys)
 2. [GPG Passphrase](#2-gpg-passphrase)
 3. [AWS Credentials](#3-aws-credentials)
-4. [GitHub Personal Access Token (GH_INFRA_PAT)](#4-github-personal-access-token-gh_infra_pat) — required for signup workflow auto-trigger and repository operations
+4. [GitHub Personal Access Token (GH_INFRA_PAT)](#4-github-personal-access-token-gh_infra_pat) — required for the signup workflow auto-trigger (currently disabled) and repository operations
 5. [WireGuard VPN Configuration](#5-wireguard-vpn-configuration)
 6. [Kubernetes Config (KUBECONFIG)](#6-kubernetes-config-kubeconfig)
 7. [reCAPTCHA Keys](#7-recaptcha-keys)
@@ -330,7 +330,7 @@ Add as **Repository Secret** in GitHub:
 - **Value**: `github_pat_...` (your generated token)
 
 ### Common Pitfalls
-- ❌ **`Actions: Read-only`** — workflow dispatch requires write; signup auto-trigger will silently fail even though eSignet deployed successfully
+- ❌ **`Actions: Read-only`** — workflow dispatch requires write; once the signup auto-trigger is re-enabled (currently disabled — run signup manually), it would silently fail even though eSignet deployed successfully
 - ❌ **`Contents: Read-only`** — causes 403 error on push operations during deploy
 - ❌ Adding **Secrets** permission — not needed, violates least-privilege
 - ❌ Selecting **All repositories** instead of only the infra repository

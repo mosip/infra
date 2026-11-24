@@ -468,8 +468,8 @@ kubectl get pods -n esignet-sunbird # esignet profile only
  | **mode** | `apply` | |
  | **domain_name** | `sandbox.example.net` | Or `vars.DOMAIN_NAME` |
  | **mosipid_domain_name** | `mosipid.example.net` | esignet-standalone profile only |
- | **db_port** | `5433` | MOSIP platform only |
- | **esignet_db_port** | `5432` | eSignet profile |
+ | **db_port** | `5433` | `mosip-platform-*` only — optional, leave blank for `esignet-standalone*` (or `vars.DB_PORT`) |
+ | **esignet_db_port** | `5432` | `esignet-standalone*` only — optional, leave blank for `mosip-platform-*` (or `vars.ESIGNET_DB_PORT`) |
 
 4. **Monitor Progress** (10-20 minutes)
  ```
@@ -480,9 +480,9 @@ kubectl get pods -n esignet-sunbird # esignet profile only
 
 5. **Verify CronJobs Created**
  ```bash
- kubectl get cronjobs -n esignet
- kubectl get cronjobs -n esignet-mosipid   # esignet profile
- kubectl get cronjobs -n esignet-sunbird # esignet profile
+ kubectl get cronjobs -n esignet-mock      # esignet-standalone profiles
+ kubectl get cronjobs -n esignet-mosipid   # esignet-standalone profiles
+ kubectl get cronjobs -n esignet-sunbird   # esignet-standalone profiles
  ```
 
 ---

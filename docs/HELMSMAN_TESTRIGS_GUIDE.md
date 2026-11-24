@@ -109,8 +109,8 @@ No additional secrets required — MinIO root password is read automatically fro
 | `profile` | Deployment profile | `esignet-standalone` / `esignet-standalone-2.0.0` / `mosip-platform-1.2.0.x` / `mosip-platform-1.2.1.x` |
 | `mode` | Helmsman mode | Always `apply` — dry-run will fail |
 | `domain_name` | Base domain for this environment | `soil38.mosip.net` |
-| `db_port` | External postgres port — MOSIP platform only | `5433` |
-| `esignet_db_port` | eSignet container postgres port — eSignet profile only | `5432` |
+| `db_port` | External postgres port — `mosip-platform-*` only; optional, leave blank for `esignet-standalone*` | `5433` |
+| `esignet_db_port` | eSignet container postgres port — `esignet-standalone*` only; optional, leave blank for `mosip-platform-*` | `5432` |
 | `env_name` | Environment name | `soil38` |
 | `slack_channel_name` | Slack channel for alerting (optional) | `#mosip-alerts` |
 
