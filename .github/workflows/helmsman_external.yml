@@ -25,7 +25,11 @@ on:
         required: false
         type: string
       db_port:
-        description: "PostgreSQL port for external postgres (terraform postgresql_port, e.g. 5433)"
+        description: "PostgreSQL port for external postgres (terraform postgresql_port, e.g. 5433). Needed when keycloak_db = external"
+        required: false
+        type: string
+      keycloak_db:
+        description: "Keycloak database: bundled or external (shared PostgreSQL). Empty = keep vars.KEYCLOAK_DB; unset = bundled"
         required: false
         type: string
       env_name:
@@ -60,6 +64,8 @@ jobs:
       name: ${{ github.ref_name }}
     steps:
       - name: Validate required variables
+        env:
+          KEYCLOAK_DB: ${{ github.event.inputs.keycloak_db || vars.KEYCLOAK_DB }}
         run: |
           errors=()
           DOMAIN="${{ github.event.inputs.domain_name || vars.DOMAIN_NAME }}"
@@ -71,7 +77,12 @@ jobs:
           [ -z "$ENV" ]       && errors+=("env_name is empty — set vars.ENV_NAME under Environment '${{ github.ref_name }}'")
           [ -z "$CLUSTER" ]   && errors+=("clusterid is empty — set vars.CLUSTER_ID under Environment '${{ github.ref_name }}'")
           [ -z "$SLACK_CH" ]  && errors+=("slack_channel_name is empty — set vars.SLACK_CHANNEL_NAME under Environment '${{ github.ref_name }}'")
-          [ -z "$DB_PORT" ]   && errors+=("db_port is empty — set vars.DB_PORT under Environment '${{ github.ref_name }}' (use terraform postgresql_port, e.g. 5433)")
+          case "${KEYCLOAK_DB:-bundled}" in
+            bundled) ;;
+            external)
+              [ -z "$DB_PORT" ] && errors+=("db_port is empty — keycloak_db=external needs it: set vars.DB_PORT under Environment '${{ github.ref_name }}' (use terraform postgresql_port, e.g. 5433)") ;;
+            *) errors+=("keycloak_db / vars.KEYCLOAK_DB must be 'bundled' (default) or 'external'") ;;
+          esac
           if [ ${#errors[@]} -gt 0 ]; then
             echo "❌ Required variables missing:"
             printf '  - %s\n' "${errors[@]}"
@@ -82,12 +93,15 @@ jobs:
           echo "✓ env_name           = $ENV"
           echo "✓ clusterid          = $CLUSTER"
           echo "✓ slack_channel_name = $SLACK_CH"
-          echo "✓ db_port            = $DB_PORT"
+          echo "✓ keycloak_db        = ${KEYCLOAK_DB:-bundled}"
+          [ "$KEYCLOAK_DB" = "external" ] && echo "✓ db_port            = $DB_PORT"
+          exit 0
 
       - name: Persist workflow inputs as environment variables
         if: github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ secrets.GH_INFRA_PAT }}
+          KEYCLOAK_DB_INPUT: ${{ github.event.inputs.keycloak_db }}
         run: |
           REPO="${{ github.repository }}"
           ENVIRONMENT="${{ github.ref_name }}"
@@ -110,6 +124,7 @@ jobs:
           }
           save_var "DOMAIN_NAME"        "${{ github.event.inputs.domain_name }}"
           save_var "DB_PORT"            "${{ github.event.inputs.db_port }}"
+          save_var "KEYCLOAK_DB"        "$KEYCLOAK_DB_INPUT"   # validated above: bundled | external
           save_var "ENV_NAME"           "${{ github.event.inputs.env_name }}"
           save_var "CLUSTER_ID"         "${{ github.event.inputs.clusterid }}"
           save_var "SLACK_CHANNEL_NAME" "${{ github.event.inputs.slack_channel_name }}"
@@ -192,6 +207,10 @@ jobs:
       domain_name:         ${{ github.event.inputs.domain_name         || vars.DOMAIN_NAME }}
       db_port:             ${{ github.event.inputs.db_port             || vars.DB_PORT }}
       env_name:            ${{ github.event.inputs.env_name            || vars.ENV_NAME }}
+      # Keycloak database: keycloak_db input or vars.KEYCLOAK_DB = bundled (default) | external.
+      # Used by the keycloak / keycloak-db-init apps of the external DSFs.
+      KEYCLOAK_EXTERNAL_DB: ${{ (github.event.inputs.keycloak_db || vars.KEYCLOAK_DB) == 'external' }}
+      KEYCLOAK_BUNDLED_DB:  ${{ (github.event.inputs.keycloak_db || vars.KEYCLOAK_DB) != 'external' }}
       slack_channel_name:  ${{ github.event.inputs.slack_channel_name  || vars.SLACK_CHANNEL_NAME }}
       SLACK_WEBHOOK_URL:   ${{ github.event.inputs.slack_webhook_url   || secrets.SLACK_WEBHOOK_URL }}
       CLUSTER_ID:          ${{ github.event.inputs.clusterid           || vars.CLUSTER_ID }}
@@ -336,6 +355,7 @@ jobs:
         run: |
           echo "domain_name        = $domain_name"
           echo "db_port            = $db_port"
+          echo "keycloak external  = $KEYCLOAK_EXTERNAL_DB"
           echo "env_name           = $env_name"
           echo "slack_channel_name = $slack_channel_name"
           echo "CLUSTER_ID         = $CLUSTER_ID"
