@@ -186,7 +186,8 @@ apps:
 
   # Also deployed by mosip-dsf (needed by regclient). helmsman_esignet.yml skips it
   # here (-exclude-target) when it is already deployed; this entry installs it for
-  # eSignet runs without MOSIP, or repairs it when the release is failed / pending-*.
+  # eSignet runs without MOSIP, or repairs it when the release is failed (a pending-*
+  # release stops the eSignet run with recovery instructions instead).
   # Keep version/hooks/values in sync with mosip-dsf.yaml (priority differs by group).
   artifactory-1202:
     namespace: artifactory-1202
