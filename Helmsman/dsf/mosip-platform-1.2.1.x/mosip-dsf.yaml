@@ -588,7 +588,8 @@ apps:
 
   pmp-revamp-ui:
     namespace: pms
-    enabled: true
+    # Replaced by pmp-ui-v2 below (same host pmp.<domain>).
+    enabled: false
     version: 12.2.2
     chart: mosip/pmp-revamp-ui
     set:
@@ -598,6 +599,20 @@ apps:
       pmp_revamp.react_app_policy_manager_api_base_url: "https://api-internal.${domain_name}/v1/policymanager"
       pmp_revamp.pms_partner_manager_internal_service_url: "http://pms-partner.pms/v1/partnermanager"
       pmp_revamp.pms_policy_manager_internal_service_url: "http://pms-policy.pms/v1/policymanager"
+      istio.hosts[0]: "pmp.${domain_name}"
+    priority: -9
+    timeout: 1200
+
+  pmp-ui-v2:
+    namespace: pms
+    enabled: true
+    version: 1.3.0
+    chart: mosip/pmp-ui-v2
+    set:
+      pmp_uiv2.react_app_partner_manager_api_base_url: "https://api-internal.${domain_name}/v1/partnermanager"
+      pmp_uiv2.react_app_policy_manager_api_base_url: "https://api-internal.${domain_name}/v1/policymanager"
+      pmp_uiv2.pms_partner_manager_internal_service_url: "http://pms-partner.pms/v1/partnermanager"
+      pmp_uiv2.pms_policy_manager_internal_service_url: "http://pms-policy.pms/v1/policymanager"
       istio.hosts[0]: "pmp.${domain_name}"
     priority: -9
     timeout: 1200
