@@ -560,11 +560,12 @@ jobs:
             fi
           fi
 
-          # mosip-platform profiles: artifactory-1202 is also deployed by mosip-dsf
-          # (regclient needs it). Skip it here only when it is deployed, so
-          # esignet-dsf never touches a healthy release mosip-dsf manages; a
-          # failed / pending release is left in so this run repairs it.
-          if [[ "$PROFILE" == mosip-platform-* ]]; then
+          # mosip-platform-1.2.1.x only: artifactory-1202 is also deployed by
+          # mosip-dsf there (regclient needs it). Skip it here only when it is
+          # deployed, so esignet-dsf never touches a healthy release mosip-dsf
+          # manages; a failed / pending release is left in so this run repairs it.
+          # Other profiles (e.g. 1.2.0.x) manage it only in esignet-dsf.
+          if [[ "$PROFILE" == mosip-platform-1.2.1.x ]]; then
             A1202_STATUS=$(helm status artifactory-1202 -n artifactory-1202 -o json 2>/dev/null | jq -r '.info.status // empty' || true)
             if [ "$A1202_STATUS" = "deployed" ]; then
               echo "✓ artifactory-1202 already deployed (mosip-dsf) — skipping it in esignet-dsf"
