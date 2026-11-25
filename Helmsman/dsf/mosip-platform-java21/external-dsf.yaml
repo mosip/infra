@@ -141,6 +141,27 @@ apps:
     timeout: 1200
     priority: -15
 
+  # Keycloak database: always the external PostgreSQL installed by the infra flow
+  # (nginx node, postgres.<domain>:<db_port>, vars.DB_PORT required).
+  # keycloak-db-init creates the database/role first; the keycloak chart then runs
+  # with postgresql.enabled=false.
+  keycloak-db-init:
+    namespace: keycloak
+    enabled: yes
+    version: 0.1.0
+    chart: $WORKDIR/utils/keycloak-db-init
+    set:
+      db.host: "postgres.${domain_name}"
+      db.port: ${db_port}
+    wait: true
+    timeout: 600
+    priority: -15
+    hooks:
+      preInstall: "$WORKDIR/hooks/keycloak-db-init-preinstall.sh"
+      preUpgrade: "$WORKDIR/hooks/keycloak-db-init-preinstall.sh"
+      postInstall: "$WORKDIR/hooks/keycloak-db-init-postinstall.sh"
+      postUpgrade: "$WORKDIR/hooks/keycloak-db-init-postinstall.sh"
+  
   keycloak:
     namespace: keycloak
     enabled: true
@@ -150,14 +171,22 @@ apps:
       image.repository: "mosipid/mosip-artemis-keycloak"
       image.tag: "1.3.0"
       image.pullPolicy: "Always"
+      # External PostgreSQL (see keycloak-db-init above).
+      postgresql.enabled: false
+      externalDatabase.host: "postgres.${domain_name}"
+      externalDatabase.port: ${db_port}
+      externalDatabase.database: "bitnami_keycloak"
+      externalDatabase.user: "bn_keycloak"
+      externalDatabase.existingSecret: "keycloak-db-credentials"
+      externalDatabase.existingSecretPasswordKey: "password"
       # Override Postgres image
       postgresql.image.registry: "docker.io"
       postgresql.image.repository: "mosipid/postgresql"
       postgresql.image.tag: "14.2.0-debian-10-r70"
       # postgresql.primary.limits.requests.cpu: 250m
       # postgresql.primary.limits.requests.memory: 256Mi      
-      postgresql.primary.resources.requests.cpu: 250m
-      postgresql.primary.resources.requests.memory: 256Mi
+      postgresql.primary.resources.requests.cpu: 512m
+      postgresql.primary.resources.requests.memory: 512Mi
       # postgresql.architecture: replication
       # postgresql.primary.replicaCount: 1
       # postgresql.primary.persistence.enabled: true
