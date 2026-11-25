@@ -185,8 +185,9 @@ apps:
       postInstall: "$WORKDIR/hooks/esignet-postinstall-keycloak-init.sh"
 
   # Also deployed by mosip-dsf (needed by regclient). helmsman_esignet.yml skips it
-  # here (-exclude-target) when it is already installed; this entry installs it
-  # only for eSignet runs without MOSIP. Keep version/values in sync with mosip-dsf.yaml.
+  # here (-exclude-target) when it is already deployed; this entry installs it for
+  # eSignet runs without MOSIP, or repairs it when the release is failed / pending-*.
+  # Keep version/hooks/values in sync with mosip-dsf.yaml (priority differs by group).
   artifactory-1202:
     namespace: artifactory-1202
     enabled: true
@@ -201,6 +202,7 @@ apps:
     hooks:
       # For fresh installations
       preInstall: "kubectl label ns artifactory-1202 istio-injection=enabled --overwrite"
+      preUpgrade: "kubectl label ns artifactory-1202 istio-injection=enabled --overwrite"
 
   esignet:
     namespace: esignet
