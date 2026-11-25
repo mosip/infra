@@ -19,7 +19,13 @@
 # kept, so a plan the team updated directly on the cluster survives re-deploys.
 # If there is none yet, a dummy plan {"alias":"UPDATE_BEFORE_RUN"} is written so
 # the testrig still deploys; only the conformance surface fails until the team
-# replaces it (in the cluster Secret, or via the GitHub secret + re-deploy).
+# replaces it. If the Secret cannot be read, the hook fails without writing.
+#
+# When does a plan change reach the cluster? This runs as preInstall /
+# preUpgrade, i.e. only when Helmsman installs or upgrades the apitestrig
+# release (new install, chart version or values change). Changing only the
+# GitHub secret and re-running Helmsman does NOT trigger it. To refresh a plan
+# without a chart change, edit the cluster Secret directly.
 # =============================================================================
 set -euo pipefail
 
@@ -35,8 +41,18 @@ write_plan() {
   local var="$1" file="$2" value
   value="${!var:-}"
   if [ -z "$value" ] || [ "$value" = "UPDATE_BEFORE_RUN" ]; then
-    # jsonpath needs the dot in the key escaped
-    value=$(kubectl -n "$NS" get secret "$SECRET" -o jsonpath="{.data.${file//./\\.}}" 2>/dev/null | base64 -d 2>/dev/null || true)
+    # A read / decode failure must not fall through to the dummy plan, or a
+    # transient API error would overwrite the in-cluster plan (private JWKS).
+    # Only a missing Secret or a missing key selects the dummy.
+    local stored
+    if ! stored=$(kubectl -n "$NS" get secret "$SECRET" --ignore-not-found -o json); then
+      echo "ERROR: cannot read $NS/$SECRET - leaving it unchanged." >&2
+      exit 1
+    fi
+    if ! value=$(printf '%s' "$stored" | jq -r --arg key "$file" 'if . == null then empty else (.data[$key] // empty) end' | base64 -d); then
+      echo "ERROR: cannot decode $NS/$SECRET:$file - leaving it unchanged." >&2
+      exit 1
+    fi
     if [ -n "$value" ]; then
       echo "$var is not set - keeping the existing $NS/$SECRET:$file." >&2
     else
@@ -45,8 +61,8 @@ write_plan() {
       value='{"alias":"UPDATE_BEFORE_RUN"}'
     fi
   fi
-  if ! printf '%s' "$value" | jq -e 'type == "object"' >/dev/null 2>&1; then
-    echo "ERROR: $var is not a JSON object - refusing to create $NS/$SECRET." >&2
+  if ! printf '%s' "$value" | jq -se 'length == 1 and (.[0] | type == "object")' >/dev/null 2>&1; then
+    echo "ERROR: $var is not a single JSON object - refusing to create $NS/$SECRET." >&2
     exit 1
   fi
   printf '%s' "$value" > "$TMP/$file"

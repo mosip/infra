@@ -385,6 +385,11 @@ jobs:
             MINIO_ROOT_PASSWORD=$(kubectl -n minio get secret minio -o jsonpath='{.data.root-password}' | base64 -d)
             if [ -n "$MINIO_ROOT_PASSWORD" ]; then
               echo "::add-mask::$MINIO_ROOT_PASSWORD"
+              # 2.0.0 apitestrig puts it into the uploader's MC_HOST_target URL
+              # unencoded, so URL-reserved characters would break report upload.
+              if [ "$PROFILE" = "esignet-standalone-2.0.0" ] && [[ "$MINIO_ROOT_PASSWORD" == *[@:/#]* ]]; then
+                echo "❌ minio root-password contains @, :, / or # - apitestrig S3 report upload cannot use it. Set an alphanumeric root-password."; exit 1
+              fi
               echo "MINIO_ROOT_PASSWORD=$MINIO_ROOT_PASSWORD" >> $GITHUB_ENV
               echo "✅ MINIO_ROOT_PASSWORD retrieved"
             else
