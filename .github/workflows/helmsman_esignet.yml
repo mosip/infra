@@ -563,13 +563,20 @@ jobs:
           # mosip-platform-1.2.1.x only: artifactory-1202 is also deployed by
           # mosip-dsf there (regclient needs it). Skip it here only when it is
           # deployed, so esignet-dsf never touches a healthy release mosip-dsf
-          # manages; a failed / pending release is left in so this run repairs it.
+          # manages; a failed release is left in so this run repairs it. Helmsman
+          # cannot repair a pending-* release, so the run stops with instructions.
           # Other profiles (e.g. 1.2.0.x) manage it only in esignet-dsf.
           if [[ "$PROFILE" == mosip-platform-1.2.1.x ]]; then
             A1202_STATUS=$(helm status artifactory-1202 -n artifactory-1202 -o json 2>/dev/null | jq -r '.info.status // empty' || true)
             if [ "$A1202_STATUS" = "deployed" ]; then
               echo "✓ artifactory-1202 already deployed (mosip-dsf) — skipping it in esignet-dsf"
               SKIP_RELEASES_ARG="$SKIP_RELEASES_ARG -exclude-target artifactory-1202"
+            elif [[ "$A1202_STATUS" == pending-* ]]; then
+              echo "ERROR: artifactory-1202 is '$A1202_STATUS' — Helmsman cannot repair a pending release." >&2
+              echo "       Wait for the active Helm operation to finish. If it was interrupted, check" >&2
+              echo "       'helm history artifactory-1202 -n artifactory-1202' and roll back (or uninstall)" >&2
+              echo "       the release, then re-run." >&2
+              exit 1
             elif [ -n "$A1202_STATUS" ]; then
               echo "⚠ artifactory-1202 is '$A1202_STATUS' — deploying it from esignet-dsf to repair it"
             fi
