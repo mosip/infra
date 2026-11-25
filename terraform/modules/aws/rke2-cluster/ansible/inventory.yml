@@ -1,0 +1,59 @@
+---
+all:
+  vars:
+    cluster_name: "qadraft"
+    cluster_env_domain: "mosip.local"
+    k8s_infra_repo_url: "https://github.com/mosip/k8s-infra.git"
+    k8s_infra_branch: "release-1.2.1.x"
+    install_rke2_version: "v1.28.9+rke2r1"
+    enable_rancher_import: true
+    rancher_import_url: "kubectl apply -f https://rancher.mosip.net/v3/import/zxxbf57fccs452qf2m5hwfsjgrdjgw72hkzdz725pvqd7v87f2rwd6_c-m-qqm6cw2j.yaml"
+    ansible_user: ubuntu
+    ansible_ssh_private_key_file: ./ssh_key
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+    
+  children:
+    control_plane:
+      hosts:
+        qadraft-CONTROL-PLANE-NODE-1:
+          ansible_host: 172.31.64.75
+          node_role: control_plane
+          is_primary: true
+          node_index: 0
+        qadraft-CONTROL-PLANE-NODE-2:
+          ansible_host: 172.31.73.82
+          node_role: control_plane
+          is_primary: false
+          node_index: 1
+        qadraft-CONTROL-PLANE-NODE-3:
+          ansible_host: 172.31.65.230
+          node_role: control_plane
+          is_primary: false
+          node_index: 2
+    
+    etcd:
+      hosts:
+        qadraft-ETCD-NODE-1:
+          ansible_host: 172.31.72.200
+          node_role: etcd
+        qadraft-ETCD-NODE-2:
+          ansible_host: 172.31.64.207
+          node_role: etcd
+        qadraft-ETCD-NODE-3:
+          ansible_host: 172.31.75.188
+          node_role: etcd
+    
+    workers:
+      hosts:
+        qadraft-WORKER-NODE-1:
+          ansible_host: 172.31.70.152
+          node_role: worker
+        qadraft-WORKER-NODE-2:
+          ansible_host: 172.31.77.209
+          node_role: worker
+
+    rke2_cluster:
+      children:
+        control_plane:
+        etcd:
+        workers:
