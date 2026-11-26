@@ -15,52 +15,64 @@
 # so it is a per-instance GitHub Environment Secret, never a DSF value.
 # Values are written via temp files (not argv) and never echoed.
 #
-# Unset (or UPDATE_BEFORE_RUN) -> the value already in the cluster Secret is
-# kept, so a plan the team updated directly on the cluster survives re-deploys.
-# If there is none yet, a dummy plan {"alias":"UPDATE_BEFORE_RUN"} is written so
-# the testrig still deploys; only the conformance surface fails until the team
-# replaces it. If the Secret cannot be read, the hook fails without writing.
+# The cluster Secret is the source of truth once it holds a real plan:
+#   1. cluster has a real plan          -> kept (a differing GitHub value is
+#                                          ignored, with a warning)
+#   2. else GitHub secret is set        -> written (seeds the cluster)
+#   3. else                             -> dummy {"alias":"UPDATE_BEFORE_RUN"},
+#                                          so the testrig still deploys and only
+#                                          the conformance surface fails
+# So a plan edited on the cluster is never overwritten. To re-seed from GitHub,
+# delete that key (or the Secret) and re-deploy. If the Secret cannot be read,
+# the hook fails without writing.
 #
-# When does a plan change reach the cluster? This runs as preInstall /
-# preUpgrade, i.e. only when Helmsman installs or upgrades the apitestrig
-# release (new install, chart version or values change). Changing only the
-# GitHub secret and re-running Helmsman does NOT trigger it. To refresh a plan
-# without a chart change, edit the cluster Secret directly.
+# This runs as preInstall / preUpgrade, i.e. only when Helmsman installs or
+# upgrades the apitestrig release (new install, chart version or values change).
 # =============================================================================
 set -euo pipefail
 
 NS="${1:?namespace required}"
 PREFIX="${2:?env prefix required}"
 SECRET=esignet-conformance-plan
+DUMMY='{"alias":"UPDATE_BEFORE_RUN"}'
 
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 chmod 700 "$TMP"
 
+# Read once. A read failure must not fall through to the dummy plan, or a
+# transient API error would overwrite the in-cluster plan (private JWKS).
+if ! STORED=$(kubectl -n "$NS" get secret "$SECRET" --ignore-not-found -o json); then
+  echo "ERROR: cannot read $NS/$SECRET - leaving it unchanged." >&2
+  exit 1
+fi
+
 write_plan() {
-  local var="$1" file="$2" value
-  value="${!var:-}"
-  if [ -z "$value" ] || [ "$value" = "UPDATE_BEFORE_RUN" ]; then
-    # A read / decode failure must not fall through to the dummy plan, or a
-    # transient API error would overwrite the in-cluster plan (private JWKS).
-    # Only a missing Secret or a missing key selects the dummy.
-    local stored
-    if ! stored=$(kubectl -n "$NS" get secret "$SECRET" --ignore-not-found -o json); then
-      echo "ERROR: cannot read $NS/$SECRET - leaving it unchanged." >&2
-      exit 1
-    fi
-    if ! value=$(printf '%s' "$stored" | jq -r --arg key "$file" 'if . == null then empty else (.data[$key] // empty) end' | base64 -d); then
-      echo "ERROR: cannot decode $NS/$SECRET:$file - leaving it unchanged." >&2
-      exit 1
-    fi
-    if [ -n "$value" ]; then
-      echo "$var is not set - keeping the existing $NS/$SECRET:$file." >&2
-    else
-      echo "WARNING: $var is not set - writing a dummy plan to $NS/$SECRET:$file." >&2
-      echo "         Update it before running the conformance surface." >&2
-      value='{"alias":"UPDATE_BEFORE_RUN"}'
-    fi
+  local var="$1" file="$2" gh cluster value
+  gh="${!var:-}"
+  [ "$gh" = "UPDATE_BEFORE_RUN" ] && gh=""
+  if ! cluster=$(printf '%s' "$STORED" | jq -r --arg key "$file" 'if . == null then empty else (.data[$key] // empty) end' | base64 -d); then
+    echo "ERROR: cannot decode $NS/$SECRET:$file - leaving it unchanged." >&2
+    exit 1
   fi
+
+  if [ -n "$cluster" ] && [ "$cluster" != "$DUMMY" ]; then
+    value="$cluster"
+    if [ -n "$gh" ] && [ "$gh" != "$cluster" ]; then
+      echo "WARNING: $var differs from $NS/$SECRET:$file - keeping the cluster plan." >&2
+      echo "         To use the GitHub value, delete that key (or the Secret) and re-deploy." >&2
+    else
+      echo "Keeping the existing $NS/$SECRET:$file." >&2
+    fi
+  elif [ -n "$gh" ]; then
+    value="$gh"
+    echo "Writing $NS/$SECRET:$file from $var." >&2
+  else
+    value="$DUMMY"
+    echo "WARNING: $var is not set - writing a dummy plan to $NS/$SECRET:$file." >&2
+    echo "         Update it before running the conformance surface." >&2
+  fi
+
   if ! printf '%s' "$value" | jq -se 'length == 1 and (.[0] | type == "object")' >/dev/null 2>&1; then
     echo "ERROR: $var is not a single JSON object - refusing to create $NS/$SECRET." >&2
     exit 1
@@ -74,6 +86,16 @@ write_plan "${PREFIX}_CONFORMANCE_PLAN_FAPI2" esignet-fapi2-config.json
 kubectl -n "$NS" create secret generic "$SECRET" \
   --from-file=esignet-config.json="$TMP/esignet-config.json" \
   --from-file=esignet-fapi2-config.json="$TMP/esignet-fapi2-config.json" \
-  --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+  --dry-run=client -o yaml > "$TMP/secret.yaml"
+
+# create / replace, not `kubectl apply`: apply would copy the whole Secret,
+# private JWKS included, into the last-applied-configuration annotation that
+# `kubectl describe` prints. replace also drops that annotation if an earlier
+# apply left it behind.
+if [ -n "$STORED" ]; then
+  kubectl -n "$NS" replace -f "$TMP/secret.yaml" >/dev/null
+else
+  kubectl -n "$NS" create -f "$TMP/secret.yaml" >/dev/null
+fi
 
 echo "Secret $NS/$SECRET is up to date"
