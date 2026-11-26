@@ -386,9 +386,10 @@ jobs:
             if [ -n "$MINIO_ROOT_PASSWORD" ]; then
               echo "::add-mask::$MINIO_ROOT_PASSWORD"
               # 2.0.0 apitestrig puts it into the uploader's MC_HOST_target URL
-              # unencoded, so URL-reserved characters would break report upload.
-              if [ "$PROFILE" = "esignet-standalone-2.0.0" ] && [[ "$MINIO_ROOT_PASSWORD" == *[@:/#]* ]]; then
-                echo "❌ minio root-password contains @, :, / or # - apitestrig S3 report upload cannot use it. Set an alphanumeric root-password."; exit 1
+              # (scheme://user:pass@host) unencoded, so anything but [A-Za-z0-9]
+              # (@ : / # % ? space ...) can break report upload.
+              if [ "$PROFILE" = "esignet-standalone-2.0.0" ] && [[ ! "$MINIO_ROOT_PASSWORD" =~ ^[A-Za-z0-9]+$ ]]; then
+                echo "❌ minio root-password is not alphanumeric - apitestrig S3 report upload cannot use it. Set an alphanumeric root-password."; exit 1
               fi
               echo "MINIO_ROOT_PASSWORD=$MINIO_ROOT_PASSWORD" >> $GITHUB_ENV
               echo "✅ MINIO_ROOT_PASSWORD retrieved"
@@ -471,3 +472,11 @@ jobs:
           # Run helmsman with the determined mode and profile
           echo "Using profile: $PROFILE"
           helmsman --${HELMSMAN_MODE} --keep-untracked-releases -f $WORKDIR/dsf/${PROFILE}/testrigs-dsf.yaml
+
+          if [ "$PROFILE" = "esignet-standalone-2.0.0" ]; then
+            {
+              echo "### eSignet apitestrig conformance plans"
+              echo "The \`esignet-conformance-plan\` Secret is written only when Helmsman installs or upgrades an apitestrig release."
+              echo "A change to the \`ESIGNET_*_CONFORMANCE_PLAN*\` GitHub secrets alone does **not** reach the cluster: edit the Secret in the instance namespace instead."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
