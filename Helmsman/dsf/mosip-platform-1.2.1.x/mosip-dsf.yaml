@@ -1063,6 +1063,12 @@ apps:
       extraEnvVarsCM[0]: "global"
       extraEnvVarsCM[1]: "keycloak-env-vars"
       extraEnvVarsCM[2]: "keycloak-host"
+      # s3 is copied from ns s3 by hooks/partner-onboarder-setup.sh (MinIO root
+      # password, or external S3 creds); listed last so it overrides the chart's
+      # default s3-user-secret "password". Keep keycloak* — a [n] set replaces the list.
+      extraEnvVarsSecret[0]: "keycloak"
+      extraEnvVarsSecret[1]: "keycloak-client-secrets"
+      extraEnvVarsSecret[2]: "s3"
       onboarding.modules[0].name: "ida"
       onboarding.modules[0].enabled: true
       onboarding.modules[1].name: "print"
