@@ -209,24 +209,18 @@ jobs:
       MOSIPID_TESTRIG_EMAIL_LOGIN_ID:         ${{ vars.MOSIPID_TESTRIG_EMAIL_LOGIN_ID || 'UPDATE_BEFORE_RUN' }}
       MOSIPID_TESTRIG_PASSWORD_LOGIN_UIN:     ${{ vars.MOSIPID_TESTRIG_PASSWORD_LOGIN_UIN || 'UPDATE_BEFORE_RUN' }}
       MOSIPID_TESTRIG_PASSWORD_LOGIN_PASSWORD: ${{ secrets.MOSIPID_TESTRIG_PASSWORD_LOGIN_PASSWORD || 'UPDATE_BEFORE_RUN' }}
-      # esignet-mosipid apitestrig: PMS client on the MOSIP-ID environment's Keycloak
-      # (iam.<mosipid_domain_name>), and the extra values its flows need.
-      MOSIPID_TESTRIG_KEYCLOAK_CLIENT_SECRET: ${{ secrets.MOSIPID_TESTRIG_KEYCLOAK_CLIENT_SECRET || 'UPDATE_BEFORE_RUN' }}
-      MOSIPID_TESTRIG_FLOW_CLIENT_ID:         ${{ vars.MOSIPID_TESTRIG_FLOW_CLIENT_ID || 'UPDATE_BEFORE_RUN' }}
-      MOSIPID_TESTRIG_TEST_PASSWORD:          ${{ secrets.MOSIPID_TESTRIG_TEST_PASSWORD || 'UPDATE_BEFORE_RUN' }}
-      # esignet-sunbird apitestrig: Sunbird registry test identity for KBI login.
-      SUNBIRD_TESTRIG_INDIVIDUAL_ID:          ${{ vars.SUNBIRD_TESTRIG_INDIVIDUAL_ID || 'UPDATE_BEFORE_RUN' }}
-      SUNBIRD_TESTRIG_KBI_FULL_NAME:          ${{ vars.SUNBIRD_TESTRIG_KBI_FULL_NAME || 'UPDATE_BEFORE_RUN' }}
-      SUNBIRD_TESTRIG_KBI_DOB:                ${{ vars.SUNBIRD_TESTRIG_KBI_DOB || 'UPDATE_BEFORE_RUN' }}
-      # esignet apitestrig conformance surface: per-instance OpenID Conformance Suite
-      # plan JSON (contains a private JWKS). Read by apitestrig-conformance-plan.sh;
-      # unset = keep the plan already in the cluster, else a dummy plan.
-      ESIGNET_MOCK_CONFORMANCE_PLAN:            ${{ secrets.ESIGNET_MOCK_CONFORMANCE_PLAN || 'UPDATE_BEFORE_RUN' }}
-      ESIGNET_MOCK_CONFORMANCE_PLAN_FAPI2:      ${{ secrets.ESIGNET_MOCK_CONFORMANCE_PLAN_FAPI2 || 'UPDATE_BEFORE_RUN' }}
-      ESIGNET_MOSIPID_CONFORMANCE_PLAN:         ${{ secrets.ESIGNET_MOSIPID_CONFORMANCE_PLAN || 'UPDATE_BEFORE_RUN' }}
-      ESIGNET_MOSIPID_CONFORMANCE_PLAN_FAPI2:   ${{ secrets.ESIGNET_MOSIPID_CONFORMANCE_PLAN_FAPI2 || 'UPDATE_BEFORE_RUN' }}
-      ESIGNET_SUNBIRD_CONFORMANCE_PLAN:         ${{ secrets.ESIGNET_SUNBIRD_CONFORMANCE_PLAN || 'UPDATE_BEFORE_RUN' }}
-      ESIGNET_SUNBIRD_CONFORMANCE_PLAN_FAPI2:   ${{ secrets.ESIGNET_SUNBIRD_CONFORMANCE_PLAN_FAPI2 || 'UPDATE_BEFORE_RUN' }}
+      # esignet-mosipid / esignet-sunbird apitestrig values added for the 2.0.0
+      # testrig. Unset = empty (not UPDATE_BEFORE_RUN): the chart renders an env
+      # var only when it is non-empty, so the defaults in the image's
+      # config.{mosip,sunbird}.json apply instead of a placeholder.
+      # mosipid: PMS client on the MOSIP-ID environment's Keycloak (iam.<mosipid_domain_name>).
+      MOSIPID_TESTRIG_KEYCLOAK_CLIENT_SECRET: ${{ secrets.MOSIPID_TESTRIG_KEYCLOAK_CLIENT_SECRET || '' }}
+      MOSIPID_TESTRIG_FLOW_CLIENT_ID:         ${{ vars.MOSIPID_TESTRIG_FLOW_CLIENT_ID || '' }}
+      MOSIPID_TESTRIG_TEST_PASSWORD:          ${{ secrets.MOSIPID_TESTRIG_TEST_PASSWORD || '' }}
+      # sunbird: Sunbird registry test identity for KBI login.
+      SUNBIRD_TESTRIG_INDIVIDUAL_ID:          ${{ vars.SUNBIRD_TESTRIG_INDIVIDUAL_ID || '' }}
+      SUNBIRD_TESTRIG_KBI_FULL_NAME:          ${{ vars.SUNBIRD_TESTRIG_KBI_FULL_NAME || '' }}
+      SUNBIRD_TESTRIG_KBI_DOB:                ${{ vars.SUNBIRD_TESTRIG_KBI_DOB || '' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -382,14 +376,18 @@ jobs:
         if: startsWith(env.PROFILE, 'esignet-standalone')
         run: |
           if kubectl -n minio get secret minio &>/dev/null; then
+            MINIO_ROOT_USER=$(kubectl -n minio get secret minio -o jsonpath='{.data.root-user}' | base64 -d)
             MINIO_ROOT_PASSWORD=$(kubectl -n minio get secret minio -o jsonpath='{.data.root-password}' | base64 -d)
             if [ -n "$MINIO_ROOT_PASSWORD" ]; then
               echo "::add-mask::$MINIO_ROOT_PASSWORD"
-              # 2.0.0 apitestrig puts it into the uploader's MC_HOST_target URL
-              # (scheme://user:pass@host) unencoded, so anything but [A-Za-z0-9]
-              # (@ : / # % ? space ...) can break report upload.
-              if [ "$PROFILE" = "esignet-standalone-2.0.0" ] && [[ ! "$MINIO_ROOT_PASSWORD" =~ ^[A-Za-z0-9]+$ ]]; then
-                echo "❌ minio root-password is not alphanumeric - apitestrig S3 report upload cannot use it. Set an alphanumeric root-password."; exit 1
+              # 2.0.0 apitestrig puts user and password into the uploader's
+              # MC_HOST_target URL (scheme://user:pass@host) unencoded, so anything
+              # but [A-Za-z0-9] (@ : / # % ? space ...) can break report upload.
+              if [ "$PROFILE" = "esignet-standalone-2.0.0" ]; then
+                if [[ ! "$MINIO_ROOT_USER" =~ ^[A-Za-z0-9]+$ ]] || [[ ! "$MINIO_ROOT_PASSWORD" =~ ^[A-Za-z0-9]+$ ]]; then
+                  echo "❌ minio root-user / root-password must be alphanumeric (and set) - apitestrig S3 report upload cannot use them."; exit 1
+                fi
+                echo "MINIO_ROOT_USER=$MINIO_ROOT_USER" >> "$GITHUB_ENV"
               fi
               echo "MINIO_ROOT_PASSWORD=$MINIO_ROOT_PASSWORD" >> $GITHUB_ENV
               echo "✅ MINIO_ROOT_PASSWORD retrieved"
@@ -463,6 +461,9 @@ jobs:
       - name: Conformance plan notes (esignet-standalone-2.0.0)
         if: env.PROFILE == 'esignet-standalone-2.0.0'
         run: |
+          if [ -z "$MOSIPID_TESTRIG_KEYCLOAK_CLIENT_SECRET" ]; then
+            echo "::warning::MOSIPID_TESTRIG_KEYCLOAK_CLIENT_SECRET is not set - esignet-mosipid apitestrig deploys, but its PMS logins fail until it is set."
+          fi
           {
             echo "### eSignet apitestrig conformance plans"
             echo "- The \`esignet-conformance-plan\` Secret is written only when Helmsman installs or upgrades an apitestrig release."
@@ -471,6 +472,16 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Initiate helmsman to apply the DSF configurations
+        env:
+          # esignet apitestrig conformance plans (contain a private JWKS); only this
+          # step needs them (read by apitestrig-conformance-plan.sh). Unset = keep
+          # the plan already in the cluster, else a dummy plan.
+          ESIGNET_MOCK_CONFORMANCE_PLAN:          ${{ secrets.ESIGNET_MOCK_CONFORMANCE_PLAN }}
+          ESIGNET_MOCK_CONFORMANCE_PLAN_FAPI2:    ${{ secrets.ESIGNET_MOCK_CONFORMANCE_PLAN_FAPI2 }}
+          ESIGNET_MOSIPID_CONFORMANCE_PLAN:       ${{ secrets.ESIGNET_MOSIPID_CONFORMANCE_PLAN }}
+          ESIGNET_MOSIPID_CONFORMANCE_PLAN_FAPI2: ${{ secrets.ESIGNET_MOSIPID_CONFORMANCE_PLAN_FAPI2 }}
+          ESIGNET_SUNBIRD_CONFORMANCE_PLAN:       ${{ secrets.ESIGNET_SUNBIRD_CONFORMANCE_PLAN }}
+          ESIGNET_SUNBIRD_CONFORMANCE_PLAN_FAPI2: ${{ secrets.ESIGNET_SUNBIRD_CONFORMANCE_PLAN_FAPI2 }}
         run: |
           export HOME="${{ github.workspace }}"
           export WORKDIR="$HOME/Helmsman"
@@ -478,6 +489,15 @@ jobs:
           # Verify tools are available
           echo "Using kubectl: $(which kubectl)"
           echo "Using kubeconfig: $KUBECONFIG"
+
+          # Helmsman fails on an unset env var the DSF references; an empty one is
+          # fine (and the chart then omits it). Make sure these optional values exist.
+          export MOSIPID_TESTRIG_KEYCLOAK_CLIENT_SECRET="${MOSIPID_TESTRIG_KEYCLOAK_CLIENT_SECRET:-}" \
+                 MOSIPID_TESTRIG_FLOW_CLIENT_ID="${MOSIPID_TESTRIG_FLOW_CLIENT_ID:-}" \
+                 MOSIPID_TESTRIG_TEST_PASSWORD="${MOSIPID_TESTRIG_TEST_PASSWORD:-}" \
+                 SUNBIRD_TESTRIG_INDIVIDUAL_ID="${SUNBIRD_TESTRIG_INDIVIDUAL_ID:-}" \
+                 SUNBIRD_TESTRIG_KBI_FULL_NAME="${SUNBIRD_TESTRIG_KBI_FULL_NAME:-}" \
+                 SUNBIRD_TESTRIG_KBI_DOB="${SUNBIRD_TESTRIG_KBI_DOB:-}"
 
           # Run helmsman with the determined mode and profile
           echo "Using profile: $PROFILE"

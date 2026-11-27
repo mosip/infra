@@ -17,7 +17,8 @@
 #
 # The cluster Secret is the source of truth once it holds a real plan:
 #   1. cluster has a real plan          -> kept (a differing GitHub value is
-#                                          ignored, with a warning)
+#                                          ignored, with a warning; an invalid
+#                                          cluster value is replaced)
 #   2. else GitHub secret is set        -> written (seeds the cluster)
 #   3. else                             -> dummy {"alias":"UPDATE_BEFORE_RUN"},
 #                                          so the testrig still deploys and only
@@ -47,55 +48,82 @@ if ! STORED=$(kubectl -n "$NS" get secret "$SECRET" --ignore-not-found -o json);
   exit 1
 fi
 
+# Single JSON object -> its canonical form (jq -cS), so formatting / trailing
+# newline differences don't count as a change. Fails on anything else.
+canon() { printf '%s' "$1" | jq -cSe -s 'if length == 1 and (.[0] | type == "object") then .[0] else error("not a single object") end' 2>/dev/null; }
+
+CHANGED=false
 write_plan() {
-  local var="$1" file="$2" gh cluster value
+  local var="$1" file="$2" gh cluster ccl cgh value
   gh="${!var:-}"
   [ "$gh" = "UPDATE_BEFORE_RUN" ] && gh=""
   if ! cluster=$(printf '%s' "$STORED" | jq -r --arg key "$file" 'if . == null then empty else (.data[$key] // empty) end' | base64 -d); then
     echo "ERROR: cannot decode $NS/$SECRET:$file - leaving it unchanged." >&2
     exit 1
   fi
+  ccl=""; cgh=""
+  if [ -n "$cluster" ] && ! ccl=$(canon "$cluster"); then
+    echo "WARNING: $NS/$SECRET:$file on the cluster is not a single JSON object - replacing it." >&2
+    ccl=""
+  fi
+  if [ -n "$gh" ] && ! cgh=$(canon "$gh"); then
+    echo "ERROR: GitHub secret $var is not a single JSON object - refusing to update $NS/$SECRET." >&2
+    exit 1
+  fi
 
-  if [ -n "$cluster" ] && [ "$cluster" != "$DUMMY" ]; then
-    value="$cluster"
-    if [ -n "$gh" ] && [ "$gh" != "$cluster" ]; then
+  if [ -n "$ccl" ] && [ "$ccl" != "$(canon "$DUMMY")" ]; then
+    value="$ccl"
+    if [ -n "$cgh" ] && [ "$cgh" != "$ccl" ]; then
       echo "WARNING: $var differs from $NS/$SECRET:$file - keeping the cluster plan." >&2
       echo "         To use the GitHub value, delete that key (or the Secret) and re-deploy." >&2
     else
       echo "Keeping the existing $NS/$SECRET:$file." >&2
     fi
-  elif [ -n "$gh" ]; then
-    value="$gh"
+  elif [ -n "$cgh" ]; then
+    value="$cgh"
     echo "Writing $NS/$SECRET:$file from $var." >&2
   else
-    value="$DUMMY"
+    value=$(canon "$DUMMY")
     echo "WARNING: $var is not set - writing a dummy plan to $NS/$SECRET:$file." >&2
     echo "         Update it before running the conformance surface." >&2
   fi
 
-  if ! printf '%s' "$value" | jq -se 'length == 1 and (.[0] | type == "object")' >/dev/null 2>&1; then
-    echo "ERROR: $var is not a single JSON object - refusing to create $NS/$SECRET." >&2
-    exit 1
+  # Keep the stored bytes when the plan is unchanged.
+  if [ -n "$ccl" ] && [ "$value" = "$ccl" ]; then
+    printf '%s' "$cluster" > "$TMP/$file"
+  else
+    printf '%s' "$value" > "$TMP/$file"
+    CHANGED=true
   fi
-  printf '%s' "$value" > "$TMP/$file"
 }
 
 write_plan "${PREFIX}_CONFORMANCE_PLAN"       esignet-config.json
 write_plan "${PREFIX}_CONFORMANCE_PLAN_FAPI2" esignet-fapi2-config.json
 
+if [ -n "$STORED" ] && [ "$CHANGED" = false ]; then
+  echo "Secret $NS/$SECRET is unchanged"
+  exit 0
+fi
+
 kubectl -n "$NS" create secret generic "$SECRET" \
   --from-file=esignet-config.json="$TMP/esignet-config.json" \
   --from-file=esignet-fapi2-config.json="$TMP/esignet-fapi2-config.json" \
-  --dry-run=client -o yaml > "$TMP/secret.yaml"
+  --dry-run=client -o json > "$TMP/new.json"
 
 # create / replace, not `kubectl apply`: apply would copy the whole Secret,
 # private JWKS included, into the last-applied-configuration annotation that
-# `kubectl describe` prints. replace also drops that annotation if an earlier
-# apply left it behind.
+# `kubectl describe` prints. On replace, labels and annotations added outside
+# this hook are carried over (minus any last-applied annotation an earlier
+# apply left behind).
 if [ -n "$STORED" ]; then
-  kubectl -n "$NS" replace -f "$TMP/secret.yaml" >/dev/null
+  jq --argjson old "$STORED" '
+    .metadata.labels = ($old.metadata.labels // {})
+    | .metadata.annotations = (($old.metadata.annotations // {})
+        | del(.["kubectl.kubernetes.io/last-applied-configuration"]))
+  ' "$TMP/new.json" > "$TMP/secret.json"
+  kubectl -n "$NS" replace -f "$TMP/secret.json" >/dev/null
 else
-  kubectl -n "$NS" create -f "$TMP/secret.yaml" >/dev/null
+  kubectl -n "$NS" create -f "$TMP/new.json" >/dev/null
 fi
 
 echo "Secret $NS/$SECRET is up to date"
