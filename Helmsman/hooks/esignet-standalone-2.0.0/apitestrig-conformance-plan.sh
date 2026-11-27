@@ -23,9 +23,11 @@
 #   3. else                             -> dummy {"alias":"UPDATE_BEFORE_RUN"},
 #                                          so the testrig still deploys and only
 #                                          the conformance surface fails
-# So a plan edited on the cluster is never overwritten. To re-seed from GitHub,
-# delete that key (or the Secret) and re-deploy. If the Secret cannot be read,
-# the hook fails without writing.
+# So a plan edited on the cluster is never overwritten. To change a plan,
+# replace the Secret by hand (see docs/HELMSMAN_TESTRIGS_GUIDE.md); deleting it
+# and re-deploying does NOT work, because Helmsman skips an unchanged release
+# and this hook then never runs. If the Secret cannot be read, the hook fails
+# without writing.
 #
 # This runs as preInstall / preUpgrade, i.e. only when Helmsman installs or
 # upgrades the apitestrig release (new install, chart version or values change).
@@ -43,10 +45,12 @@ chmod 700 "$TMP"
 
 # Read once. A read failure must not fall through to the dummy plan, or a
 # transient API error would overwrite the in-cluster plan (private JWKS).
+# Kept in a 0600 file under $TMP so it never goes on a command line.
 if ! STORED=$(kubectl -n "$NS" get secret "$SECRET" --ignore-not-found -o json); then
   echo "ERROR: cannot read $NS/$SECRET - leaving it unchanged." >&2
   exit 1
 fi
+(umask 077; printf '%s' "${STORED:-null}" > "$TMP/old.json")
 
 # Single JSON object -> its canonical form (jq -cS), so formatting / trailing
 # newline differences don't count as a change. Fails on anything else.
@@ -75,7 +79,7 @@ write_plan() {
     value="$ccl"
     if [ -n "$cgh" ] && [ "$cgh" != "$ccl" ]; then
       echo "WARNING: $var differs from $NS/$SECRET:$file - keeping the cluster plan." >&2
-      echo "         To use the GitHub value, delete that key (or the Secret) and re-deploy." >&2
+      echo "         To use the GitHub value, replace the Secret by hand (see docs/HELMSMAN_TESTRIGS_GUIDE.md)." >&2
     else
       echo "Keeping the existing $NS/$SECRET:$file." >&2
     fi
@@ -100,6 +104,14 @@ write_plan() {
 write_plan "${PREFIX}_CONFORMANCE_PLAN"       esignet-config.json
 write_plan "${PREFIX}_CONFORMANCE_PLAN_FAPI2" esignet-fapi2-config.json
 
+# Earlier versions of this hook used `kubectl apply`, which left both plans
+# (private JWKS included) in the last-applied-configuration annotation. Rewrite
+# the Secret once so the replace below drops it, even if the plans are unchanged.
+if jq -e '.metadata.annotations["kubectl.kubernetes.io/last-applied-configuration"] != null' "$TMP/old.json" >/dev/null 2>&1; then
+  echo "Removing the last-applied-configuration annotation from $NS/$SECRET." >&2
+  CHANGED=true
+fi
+
 if [ -n "$STORED" ] && [ "$CHANGED" = false ]; then
   echo "Secret $NS/$SECRET is unchanged"
   exit 0
@@ -114,14 +126,20 @@ kubectl -n "$NS" create secret generic "$SECRET" \
 # private JWKS included, into the last-applied-configuration annotation that
 # `kubectl describe` prints. On replace, labels and annotations added outside
 # this hook are carried over (minus any last-applied annotation an earlier
-# apply left behind).
+# apply left behind), and the resourceVersion that was read is sent, so a
+# Secret edited while this hook ran is not overwritten (the replace fails).
 if [ -n "$STORED" ]; then
-  jq --argjson old "$STORED" '
-    .metadata.labels = ($old.metadata.labels // {})
-    | .metadata.annotations = (($old.metadata.annotations // {})
+  jq --slurpfile old "$TMP/old.json" '
+    $old[0] as $o
+    | .metadata.resourceVersion = $o.metadata.resourceVersion
+    | .metadata.labels = ($o.metadata.labels // {})
+    | .metadata.annotations = (($o.metadata.annotations // {})
         | del(.["kubectl.kubernetes.io/last-applied-configuration"]))
   ' "$TMP/new.json" > "$TMP/secret.json"
-  kubectl -n "$NS" replace -f "$TMP/secret.json" >/dev/null
+  if ! kubectl -n "$NS" replace -f "$TMP/secret.json" >/dev/null; then
+    echo "ERROR: could not replace $NS/$SECRET (changed while this hook ran?) - re-run the deployment." >&2
+    exit 1
+  fi
 else
   kubectl -n "$NS" create -f "$TMP/new.json" >/dev/null
 fi

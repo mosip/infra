@@ -468,7 +468,7 @@ jobs:
             echo "### eSignet apitestrig conformance plans"
             echo "- The \`esignet-conformance-plan\` Secret is written only when Helmsman installs or upgrades an apitestrig release."
             echo "- A real plan already on the cluster is **kept**; the \`ESIGNET_*_CONFORMANCE_PLAN*\` GitHub secrets only seed an empty or dummy plan."
-            echo "- To change a plan, edit the Secret in the instance namespace. To re-seed from GitHub, delete that key (or the Secret) and re-deploy."
+            echo "- To change a plan, replace the Secret by hand (see *Changing a plan on the cluster* in docs/HELMSMAN_TESTRIGS_GUIDE.md). Do not delete it and re-deploy: Helmsman skips an unchanged release, so the hook does not run and the Secret stays missing."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Initiate helmsman to apply the DSF configurations
