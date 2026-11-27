@@ -63,12 +63,12 @@ No additional secrets required for testrigs — captcha and keycloak secrets wer
 
 | Value | Source |
 |-------|--------|
-| `KEYCLOAK_CLIENT_SECRET` (apitestrig, all 3 instances) | `keycloak-client-secrets` secret in the `keycloak` namespace — the same `mosip_pms_client_secret` key `esignet-preinstall-keycloak-init.sh` already uses |
+| `KEYCLOAK_CLIENT_SECRET` (apitestrig, `esignet-mock` and `esignet-sunbird`; mosipid uses `MOSIPID_TESTRIG_KEYCLOAK_CLIENT_SECRET` below) | `keycloak-client-secrets` secret in the `keycloak` namespace — the same `mosip_pms_client_secret` key `esignet-preinstall-keycloak-init.sh` already uses |
 | `esignetDbPassword` (uitestrig, all 3 instances) | `db-common-secrets` secret in the `postgres` namespace |
 
 **Optional Environment Secrets/Variables** (Settings → Environments → `<branch-name>`):
 
-Except `MOSIPID_KEYCLOAK_ADMIN_PASSWORD` (already required by the eSignet deployment), each of these defaults to the placeholder `UPDATE_BEFORE_RUN` when unset, so Helmsman can deploy the testrigs without them. Update the real values in the testrig configmaps/secrets before triggering the test cronjobs.
+Except `MOSIPID_KEYCLOAK_ADMIN_PASSWORD` (already required by the eSignet deployment), each of these defaults to the dummy value `UPDATE_BEFORE_RUN` when unset, so Helmsman can deploy the testrigs without them. Update the real values in the testrig configmaps/secrets before triggering the test cronjobs.
 
 Only actual credentials (passwords, client secrets) are **Secrets** below — everything else (IDs, test identities) is a plain **Variable**, even where it's technically PII, to keep the GitHub Environment setup simple.
 
@@ -87,12 +87,39 @@ Only actual credentials (passwords, client secrets) are **Secrets** below — ev
 | `MOSIPID_TESTRIG_EMAIL_LOGIN_ID` | Variable | uitestrig, `esignet-mosipid` only | Test identity for email-OTP login scenarios |
 | `MOSIPID_TESTRIG_PASSWORD_LOGIN_UIN` | Variable | uitestrig, `esignet-mosipid` only | Test identity for password-login scenarios |
 | `MOSIPID_TESTRIG_PASSWORD_LOGIN_PASSWORD` | Secret | uitestrig, `esignet-mosipid` only | Password for the identity above |
+| `MOSIPID_TESTRIG_KEYCLOAK_CLIENT_SECRET` | Secret | apitestrig, `esignet-mosipid` only | `mosip-pms-client` secret on the MOSIP-ID environment's Keycloak (`iam.<mosipid_domain_name>`), where its PMS lives. **Needed for the mosipid tests to pass**: the deploy works without it, but the run shows a warning and PMS logins fail. |
+| `MOSIPID_TESTRIG_FLOW_CLIENT_ID` | Variable | apitestrig, `esignet-mosipid` only | OIDC client ID used by the flow tests |
+| `MOSIPID_TESTRIG_TEST_PASSWORD` | Secret | apitestrig, `esignet-mosipid` only | Password for the test identity's password-login flows |
+| `SUNBIRD_TESTRIG_INDIVIDUAL_ID` | Variable | apitestrig, `esignet-sunbird` only | Sunbird registry test identity |
+| `SUNBIRD_TESTRIG_KBI_FULL_NAME` | Variable | apitestrig, `esignet-sunbird` only | Full name of that identity (knowledge-based login) |
+| `SUNBIRD_TESTRIG_KBI_DOB` | Variable | apitestrig, `esignet-sunbird` only | Date of birth of that identity, `YYYY-MM-DD` |
 
-Only `esignet-mosipid` needs real test-identity/onboarding values — it's the only instance backed by a real IDA identity (`config.mosip.json`/the `mosip` plugin). `esignet-mock` (`config.mock.json`/`mock` plugin) and `esignet-sunbird` (`config.sunbird.json`/`sunbird` plugin) need none of the `MOSIPID_TESTRIG_*` values above.
+The six apitestrig values above (`MOSIPID_TESTRIG_KEYCLOAK_CLIENT_SECRET`, `_FLOW_CLIENT_ID`, `_TEST_PASSWORD`, `SUNBIRD_TESTRIG_*`) default to **empty**, not `UPDATE_BEFORE_RUN`. The chart only sets an env var that has a value, so when one is unset the default from the image's `config.mosip.json` / `config.sunbird.json` applies.
+| `ESIGNET_<INSTANCE>_CONFORMANCE_PLAN` | Secret | apitestrig, per instance | OpenID Conformance Suite plan JSON → `esignet-config.json` |
+| `ESIGNET_<INSTANCE>_CONFORMANCE_PLAN_FAPI2` | Secret | apitestrig, per instance | FAPI2 plan JSON → `esignet-fapi2-config.json` |
+
+`<INSTANCE>` is `MOCK`, `MOSIPID` or `SUNBIRD`. Each plan is a JSON object with the instance's `discoveryUrl` (`https://esignet[-mosipid|-sunbird].<domain>/.well-known/openid-configuration`), its registered client IDs and their **private JWKS**, so it is always a Secret. The apitestrig pre-install/pre-upgrade hook (`apitestrig-conformance-plan.sh`) writes both into the `esignet-conformance-plan` Secret in the instance namespace. Once that Secret holds a real plan, the **cluster value is kept**: the GitHub secret only seeds an empty or dummy plan, and a differing GitHub value is ignored with a warning. So a plan edited on the cluster is never overwritten. Plans are compared as JSON, so formatting differences don't count. A cluster value that isn't valid JSON is replaced. An unchanged Secret is not rewritten, and labels and annotations added outside the hook are kept. If neither has a plan, the hook writes the dummy `{"alias":"UPDATE_BEFORE_RUN"}`; the deployment still succeeds and only the `conformance` surface fails until a real plan is set. Invalid JSON (anything but a single JSON object) fails the hook, and so does a failed read of the existing Secret. The hook runs only when Helmsman installs or upgrades the apitestrig release (new install, chart version or values change); it also removes a `last-applied-configuration` annotation left by earlier versions that used `kubectl apply`. The MinIO `root-user` and `root-password` must be alphanumeric (`A-Z`, `a-z`, `0-9`), because the report uploader puts them into a URL unencoded; the workflow checks this (the chart-generated password already is).
+
+**Changing a plan on the cluster.** Do **not** delete the Secret (or a key) and re-deploy: with unchanged chart and values, Helmsman skips the apitestrig release, the hook never runs, and the Secret stays missing, so restarted testrig pods can't mount it. Replace both keys in place instead (namespace `esignet-mock`, `esignet-mosipid` or `esignet-sunbird`):
+
+```bash
+NS=esignet-mock
+kubectl -n "$NS" create secret generic esignet-conformance-plan \
+  --from-file=esignet-config.json=./esignet-config.json \
+  --from-file=esignet-fapi2-config.json=./esignet-fapi2-config.json \
+  --dry-run=client -o json | kubectl -n "$NS" replace -f -
+```
+
+Use `kubectl replace`, not `kubectl apply`, so the plans don't end up in the `last-applied-configuration` annotation. The next upgrade keeps this plan.
+
+`esignet-mosipid` uses a real IDA identity (`config.mosip.json`/the `mosip` plugin) and `esignet-sunbird` a Sunbird registry identity (`config.sunbird.json`); `esignet-mock` (`config.mock.json`) needs no test identity.
 
 There is no validation step for these values; the placeholder defaults let the deployment succeed.
 
-Report storage uses a PVC (`reports.persistence.enabled: true`), not S3 — there's no established MinIO bucket convention for these charts yet in this repo. Switch to `reports.s3.*` once one exists.
+**apitestrig runtime (all 3 instances):**
+- Surfaces `conformance,api,e2e`. The OpenID Conformance Suite (mongodb, server, nginx) runs as extra containers in the testrig pod at `https://localhost.emobix.co.uk:8443`.
+- Reports are uploaded to the in-cluster MinIO (`http://minio.minio:9000`, user and password read from the `minio` secret's `root-user` / `root-password`, both must be alphanumeric) in buckets `esignet-mock`, `esignet-mosipid` and `esignet-sunbird`, created on first upload. No PVC is used: reports sit in an `emptyDir` until uploaded, so **if an upload fails, that run's reports are lost** (the next run produces new ones).
+- Schedules: mock 01:00, mosipid 02:00, sunbird 03:00 (cluster time).
 
 ### MOSIP platform profiles only
 
