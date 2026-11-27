@@ -501,4 +501,7 @@ jobs:
 
           # Run helmsman with the determined mode and profile
           echo "Using profile: $PROFILE"
-          helmsman --${HELMSMAN_MODE} --keep-untracked-releases -f $WORKDIR/dsf/${PROFILE}/testrigs-dsf.yaml
+          # --no-recursive-env-expand: keep secret values that contain '$' literal
+          # (Helmsman otherwise re-expands every env var). ${VAR} in the DSF is
+          # still substituted.
+          helmsman --${HELMSMAN_MODE} --keep-untracked-releases --no-recursive-env-expand -f $WORKDIR/dsf/${PROFILE}/testrigs-dsf.yaml
